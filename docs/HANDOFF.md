@@ -3,12 +3,12 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** B05 (`git log --oneline -1 --grep=B05`). Earlier: `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** `7e391be` B05. Earlier: `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
 **Active task:** none in progress. **Next:** B06 offers and voucher-code inventory (Trello #7, #9, #17, #8).
 **Last completed task:** B05 orders and Order Sheet (DONE; live providers NOT VERIFIED).
 
-## Tests actually executed (at the B05 commit)
+## Tests actually executed (at `7e391be`)
 
 | Command | Result |
 | --- | --- |
