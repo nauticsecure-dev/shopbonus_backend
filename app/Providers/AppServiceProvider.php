@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Errors\ErrorRecorder;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Singleton so its re-entrancy guard spans the whole request/job.
+        $this->app->singleton(ErrorRecorder::class);
     }
 
     /**

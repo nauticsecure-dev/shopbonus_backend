@@ -3,11 +3,14 @@
 use App\Exceptions\ApiException;
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\AuditAccessDenials;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Services\Errors\ErrorRecorder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // First in the stack so even routing/auth failures carry a request ID.
         $middleware->prepend(AssignRequestId::class);
-        $middleware->prependToGroup('api', ForceJsonResponse::class);
+        $middleware->prependToGroup('api', [ForceJsonResponse::class, AuditAccessDenials::class]);
 
         // API clients get a JSON 401 rather than a redirect to a login page.
         $middleware->redirectGuestsTo(fn (Request $request) => ApiExceptionRenderer::appliesTo($request) ? null : '/');
@@ -27,6 +30,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Intentional client-facing domain errors are not application faults.
         $exceptions->dontReport(ApiException::class);
+
+        // Unexpected faults during an HTTP request go to application_errors.
+        // Queue failures are recorded once, on final failure, by
+        // App\Listeners\RecordFailedJob rather than on every attempt here.
+        $exceptions->report(function (Throwable $e) {
+            $request = app()->bound('request') ? app('request') : null;
+
+            if ($request instanceof Request && $request->route() instanceof Route) {
+                app(ErrorRecorder::class)->recordHttp($e, $request);
+            }
+        });
 
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => ApiExceptionRenderer::appliesTo($request),
