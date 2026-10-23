@@ -73,6 +73,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('integrations', fn (Request $request) => Limit::perMinute(600)->by('integration:'.$request->header('X-Shopbonus-Key', $request->ip())));
         RateLimiter::for('claims', fn (Request $request) => Limit::perMinute(10)->by('claims:'.$request->ip()));
 
+        // Consumer account actions (per user).
+        RateLimiter::for('email-change', fn (Request $request) => Limit::perHour(10)->by('email-change:'.$request->user()?->getAuthIdentifier()));
+        RateLimiter::for('profile-upload', fn (Request $request) => Limit::perMinute(10)->by('profile-upload:'.$request->user()?->getAuthIdentifier()));
+        RateLimiter::for('privacy', fn (Request $request) => Limit::perHour(5)->by('privacy:'.$request->user()?->getAuthIdentifier()));
+
         RateLimiter::for('order-export', fn (Request $request) => Limit::perMinute(5)->by('export:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('code-import', fn (Request $request) => Limit::perMinute(10)->by('code-import:'.$request->user()?->getAuthIdentifier()));

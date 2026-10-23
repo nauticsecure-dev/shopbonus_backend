@@ -66,6 +66,9 @@ tags:
   - name: Public profile
     description: |
       The webshop's public discovery profile, managed by the merchant (Trello #18).
+  - name: Consumer
+    description: |
+      The signed-in consumer's own account (Trello #10, #18): profile, photo, email change, preferences, favourites, My Vouchers, dashboard, data rights.
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -512,6 +515,11 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/AccountInactive' }
         '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '429':
+          description: "More than 5 attempts per minute (protects the current password)."
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a16a62-0acc-7050-a1ef-73742f0652fa"}}
         '422':
           description: Wrong current password or weak new password.
           content:
@@ -3941,6 +3949,586 @@ paths:
           content:
             application/json:
               example: {"error":{"status":404,"code":"offer_not_found","message":"This offer is not available.","request_id":"01a16a55-6d63-7075-b3d5-8959ec9bde0d"}}
+
+  /api/v1/consumer/profile:
+    get:
+      tags: [Consumer]
+      operationId: consumerProfile
+      summary: "Own profile"
+      description: |
+        The signed-in user's profile: name, verified email, pending email change, phone (E.164), locale, photo URL, factual security status and the three email notification switches. Identity comes from the session only; query parameters such as a user ID are ignored.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/profile' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Profile."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":null,"locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '403': { $ref: '#/components/responses/EmailNotVerified' }
+    patch:
+      tags: [Consumer]
+      operationId: updateConsumerProfile
+      summary: "Update own profile"
+      description: |
+        Partial update of `first_name` (letters, spaces, hyphen, apostrophe; max 60; no HTML), `phone` (any common format, normalised to E.164 with NL default; `null` removes it; stored encrypted) and `locale` (`nl`/`en`). Email, status and role fields are ignored (email has its own verified flow). Invalid input changes nothing. Audited.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name: { type: string, maxLength: 60 }
+                phone: { type: string, nullable: true, maxLength: 30 }
+                locale: { type: string, enum: [nl, en] }
+            example: {"first_name": "Anna", "phone": "06 1234 5678", "locale": "nl"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PATCH 'http://localhost:8000/api/v1/consumer/profile' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"first_name":"Anna","phone":"06 1234 5678"}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":"+31612345678","locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '422':
+          description: "Invalid name or phone; nothing saved."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-b5bd-71ff-b7d4-17354bf1fe35","fields":{"first_name":["The first name field format is invalid."]}}}
+
+  /api/v1/consumer/profile/avatar:
+    get:
+      tags: [Consumer]
+      operationId: avatar
+      summary: "Own profile photo"
+      description: |
+        The signed-in user's own photo (there is no way to request someone else's). `private, max-age=300`, `nosniff`, `default-src 'none'` CSP.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -o avatar.jpg 'http://localhost:8000/api/v1/consumer/profile/avatar' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "The image (captured: JPEG, Content-Type image/jpeg)."
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary, description: 'Served with the stored type: image/png, image/jpeg or image/webp.' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404':
+          description: "No photo."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"No profile photo.","request_id":"<id>"}}
+    post:
+      tags: [Consumer]
+      operationId: uploadAvatar
+      summary: "Upload or replace the profile photo"
+      description: |
+        PNG, JPEG or WebP; at most 2 MB and 32–4000 px per side; the content must really be an image (SVG and disguised files are refused). Throttled (10/min).
+        Stored privately; the database points at the new file only after it was stored, so a storage failure (503 `storage_unavailable`) changes nothing and can be retried. The previous photo is deleted. Audited.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar: { type: string, format: binary }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/profile/avatar' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -F 'avatar=@me.jpg;type=image/jpeg'
+      responses:
+        '200':
+          description: "Stored; `avatar_url` set."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":"+31612345678","locale":"nl","avatar_url":"http:\/\/127.0.0.1:8789\/api\/v1\/consumer\/profile\/avatar?v=00819dc8","security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '422':
+          description: "Not an allowed image (captured: an SVG)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-b651-718c-94c8-3e346246af29","fields":{"avatar":["The avatar field must be a file of type: png, jpg, jpeg, webp.","The avatar field must be a file of type: image\/png, image\/jpeg, image\/webp."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503':
+          description: "Storage unavailable; nothing changed (covered by ConsumerProfileTest)."
+          content:
+            application/json:
+              example: {"error":{"status":503,"code":"storage_unavailable","message":"The photo could not be stored. Please try again.","request_id":"<id>"}}
+    delete:
+      tags: [Consumer]
+      operationId: deleteAvatar
+      summary: "Remove the profile photo"
+      description: |
+        Deletes the stored photo; the frontend shows its fallback avatar. Idempotent.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE 'http://localhost:8000/api/v1/consumer/profile/avatar' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Removed."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":"+31612345678","locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+
+  /api/v1/consumer/email-change:
+    post:
+      tags: [Consumer]
+      operationId: requestEmailChange
+      summary: "Request a change of the login email"
+      description: |
+        Needs the current password. Mails a 6-digit code to the **new** address and a security notice to the current one. The login email does not change yet: the account keeps working with the current address (shown as `pending_email` on the profile).
+                A new request supersedes the previous one; 60-second cooldown (429 `verification_resend_too_soon`), 10 requests/hour. The address must not belong to another account (422). Audited.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, current_password]
+              properties:
+                email: { type: string, format: email }
+                current_password: { type: string }
+            example: {"email": "anna.nieuw@example.nl", "current_password": "<current password>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/email-change' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"email":"anna.nieuw@example.nl","current_password":"<current password>"}'
+      responses:
+        '202':
+          description: "Code sent to the new address."
+          content:
+            application/json:
+              example: {"data":{"pending_email":"anna.nieuw@example.nl","expires_at":"2026-10-23T20:19:13+00:00","message":"Enter the code we sent to the new address. Your current address stays active until then."}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '422':
+          description: "Wrong password, same or taken address."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-b95b-70f5-9138-af0a175c35b7","fields":{"current_password":["The provided password is incorrect."]}}}
+        '429':
+          description: "Cooldown."
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"verification_resend_too_soon","message":"Please wait before requesting a new code.","request_id":"01a16a61-c331-7044-91ef-8e2ba23288c9","details":{"retry_after_seconds":58}}}
+    delete:
+      tags: [Consumer]
+      operationId: cancelEmailChange
+      summary: "Cancel a pending email change"
+      description: |
+        Invalidates any open code. Idempotent.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE 'http://localhost:8000/api/v1/consumer/email-change' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "No change pending."
+          content:
+            application/json:
+              example: {"data":{"pending_email":null}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+
+  /api/v1/consumer/email-change/confirm:
+    post:
+      tags: [Consumer]
+      operationId: confirmEmailChange
+      summary: "Confirm the new login email with the code"
+      description: |
+        Replaces the login email with the new address and marks it verified (the code proved the mailbox). The code is bound to the user and the new address, expires after 10 minutes, allows 5 wrong attempts and works once.
+                Errors: 422 `verification_code_invalid` / `verification_code_expired` / `verification_code_attempts_exceeded`; 409 `email_change_not_pending` (none open, e.g. a reused code). The old address gets a "changed" notice. Audited.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^\\d{6}$' }
+            example: {"code": "<code from the email>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/email-change/confirm' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"code":"<code from the email>"}'
+      responses:
+        '200':
+          description: "Email replaced."
+          content:
+            application/json:
+              example: {"data":{"email":"anna.nieuw@example.nl","email_verification":"verified"}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '409':
+          description: "Nothing pending (captured: the same code again)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"email_change_not_pending","message":"There is no pending email change.","request_id":"01a16a61-c9cc-70b4-aa4d-892a76697f4d"}}
+        '422':
+          description: "Wrong, expired or exhausted code."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"verification_code_invalid","message":"This code is not valid.","request_id":"01a16a61-c806-7096-bb13-e911f00aa5ab"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/consumer/preferences:
+    get:
+      tags: [Consumer]
+      operationId: consumerPreferences
+      summary: "Email notification switches and preferred categories"
+      description: |
+        `vouchers_discounts` and `offers_inspiration` are optional marketing (default off; registration opt-in sets `vouchers_discounts`); `reminders` covers reminders about the consumer's own vouchers (default on). Account, security and transactional mail never depend on these.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/preferences' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Current values."
+          content:
+            application/json:
+              example: {"data":{"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false},"categories":[],"mandatory_mail":"Account, security and transaction emails are always sent and do not depend on these settings."}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+    put:
+      tags: [Consumer]
+      operationId: updateConsumerPreferences
+      summary: "Change notification switches and preferred categories"
+      description: |
+        Each switch is independent; only switches whose value actually changes are recorded, as append-only consent records (purpose, policy version, source `profile`, time, request evidence). `categories` replaces the preferred categories. Favourites, vouchers and history are untouched.
+                503 `preferences_unavailable` when no consent policy version is configured. Senders of optional mail must check `CommunicationPreferences::allows()` right before sending.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notifications:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    vouchers_discounts: { type: boolean }
+                    reminders: { type: boolean }
+                    offers_inspiration: { type: boolean }
+                categories: { type: array, maxItems: 12, items: { type: string } }
+            example: {"notifications": {"vouchers_discounts": true, "reminders": true, "offers_inspiration": false}, "categories": ["sports_outdoor", "pets"]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/consumer/preferences' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"notifications":{"vouchers_discounts":true,"offers_inspiration":false}}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"notifications":{"vouchers_discounts":true,"reminders":true,"offers_inspiration":false},"categories":["pets","sports_outdoor"],"mandatory_mail":"Account, security and transaction emails are always sent and do not depend on these settings."}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '422':
+          description: "Unknown switch or category."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-cca9-7198-9df7-e212cc8c58f0","fields":{"notifications":["Unknown notification setting. Allowed: vouchers_discounts, reminders, offers_inspiration."]}}}
+
+  /api/v1/consumer/favorites:
+    get:
+      tags: [Consumer]
+      operationId: consumerFavorites
+      summary: "Favourite webshops"
+      description: |
+        Public cards of favourited webshops that are still listed (unlisted ones are kept but hidden).
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/favorites' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Favourites."
+          content:
+            application/json:
+              example: {"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+
+  /api/v1/consumer/favorites/{slug}:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string }, description: Webshop slug. }
+    put:
+      tags: [Consumer]
+      operationId: addFavorite
+      summary: "Favourite a webshop"
+      description: |
+        Only listed webshops (404 otherwise). 201 when added, 200 when already a favourite. Returns the favourites.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/consumer/favorites/fietsen-utrecht' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '201':
+          description: "Added."
+          content:
+            application/json:
+              example: {"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '404':
+          description: "Not a listed webshop."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"webshop_not_found","message":"This webshop is not available.","request_id":"01a16a61-cdfd-73b8-808f-0a88fe276fb1"}}
+    delete:
+      tags: [Consumer]
+      operationId: removeFavorite
+      summary: "Remove a favourite"
+      description: |
+        Idempotent. Returns the favourites.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE 'http://localhost:8000/api/v1/consumer/favorites/fietsen-utrecht' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Removed."
+          content:
+            application/json:
+              example: {"data":[]}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+
+  /api/v1/consumer/vouchers:
+    get:
+      tags: [Consumer]
+      operationId: myVouchers
+      summary: "My Vouchers"
+      description: |
+        Vouchers issued to the signed-in consumer, from the one voucher model (Answer24 claims, rewards, and later wallet purchases). The code is shown because the voucher is theirs. Newest first, at most 200.
+      x-access: verified
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [issued, redeemed, expired] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/vouchers?status=issued' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Own vouchers."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}]}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '422':
+          description: "Unknown status (reserved vouchers are not the consumer's yet)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d013-70a3-805f-4210b7800dc5","fields":{"status":["The selected status is invalid."]}}}
+
+  /api/v1/consumer/dashboard:
+    get:
+      tags: [Consumer]
+      operationId: consumerDashboard
+      summary: "Personal dashboard"
+      description: |
+        Small, own-data-only summary: voucher counts (issued, redeemed, expiring within 30 days), three recent vouchers and up to four favourites. `wallet` is `null` with `wallet_status: not_available` until the wallet ledger (B09) exists; it is never a made-up balance.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/dashboard' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Dashboard."
+          content:
+            application/json:
+              example: {"data":{"first_name":"Anna","email_verified":true,"wallet":null,"wallet_status":"not_available","vouchers":{"issued":1,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}],"favorites":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+
+  /api/v1/consumer/privacy/export:
+    get:
+      tags: [Consumer]
+      operationId: exportMyData
+      summary: "Download my data"
+      description: |
+        JSON attachment with the requester's own account, consent history, legal acceptances, vouchers (with codes), favourites, categories, workspace memberships and privacy requests. No passwords, hashes or internal IDs. Throttled (5/hour). Audited.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/privacy/export' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -o shopbonus-data.json
+      responses:
+        '200':
+          description: "Export (served as attachment)."
+          content:
+            application/json:
+              example: {"data":{"exported_at":"2026-10-23T20:09:17+00:00","account":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl","phone":"+31612345678","locale":"nl","status":"active","email_verified_at":"2026-10-23T20:09:15+00:00","created_at":"2026-10-23T20:09:06+00:00","last_login_at":null,"has_profile_photo":false},"consents":[{"purpose":"marketing_email","granted":false,"policy_version":"dev-2026-10-23","source":"registration","recorded_at":"2026-10-23T20:09:06+00:00"},{"purpose":"marketing_email","granted":true,"policy_version":"marketing-2026-10","source":"profile","recorded_at":"2026-10-23T20:09:16+00:00"}],"legal_acceptances":[],"vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","title":"\u20ac10 korting op je volgende fiets","issued_at":"2026-10-23T20:09:06+00:00","redeemed_at":null}],"favorite_webshops":["Fietsen Utrecht"],"preferred_categories":["pets","sports_outdoor"],"workspace_memberships":[],"privacy_requests":[]}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/consumer/privacy/deletion-request:
+    post:
+      tags: [Consumer]
+      operationId: requestAccountDeletion
+      summary: "Request account deletion"
+      description: |
+        Records a deletion request (current password + `confirm: true`). Nothing is deleted by this call: processing is a controlled step that keeps records required by law (vouchers, payments, audit; D-013). One open request at a time (409). Throttled. Audited.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, confirm]
+              properties:
+                current_password: { type: string }
+                confirm: { type: boolean, const: true }
+            example: {"current_password": "<current password>", "confirm": true}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/privacy/deletion-request' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"current_password":"<current password>","confirm":true}'
+      responses:
+        '202':
+          description: "Recorded."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5n63pn10404cq8kqwab9zba","type":"deletion","status":"open","requested_at":"2026-10-23T20:09:20+00:00","completed_at":null,"message":"Your request was recorded and will be handled by Shopbonus. Records we must keep by law (vouchers, payments, audit) are retained for their legal period."}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+        '409':
+          description: "Already requested."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"deletion_already_requested","message":"A deletion request is already being processed.","request_id":"01a16a61-e416-71c0-a2dc-f0536c5e6ad6"}}
+        '422':
+          description: "Wrong password or not confirmed."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d259-7214-a24d-e7c9e0a534c4","fields":{"current_password":["The provided password is incorrect."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/consumer/privacy/requests:
+    get:
+      tags: [Consumer]
+      operationId: myPrivacyRequests
+      summary: "My privacy requests"
+      description: |
+        The requester's own data-rights requests and their status.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/privacy/requests' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Requests."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5n63pn10404cq8kqwab9zba","type":"deletion","status":"open","requested_at":"2026-10-23T20:09:20+00:00","completed_at":null}]}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
 
 components:
   parameters:

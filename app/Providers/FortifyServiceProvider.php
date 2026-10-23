@@ -98,5 +98,10 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('identity-resend-code', fn (Request $request) => [
             Limit::perHour(5)->by('resend:'.$request->user()?->getAuthIdentifier()),
         ]);
+
+        // Password change while signed in (Trello #10 E2E 5): limits guessing the current password.
+        RateLimiter::for('identity-change-password', fn (Request $request) => [
+            Limit::perMinute(5)->by('change-password:'.$request->user()?->getAuthIdentifier().'|'.$request->ip()),
+        ]);
     }
 }

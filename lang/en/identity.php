@@ -19,4 +19,12 @@ return [
     'ownership_subject' => 'Confirm that you manage :domain',
     'ownership_line' => 'Someone is registering :webshop on Shopbonus and asked to confirm control of :domain with this code:',
     'ownership_expiry' => 'The code expires in :minutes minutes. If you did not expect this, ignore this email: nothing is linked without the code.',
+    'email_change_subject' => 'Confirm your new Shopbonus email address',
+    'email_change_line' => 'Enter this code in Shopbonus to confirm this as your new email address:',
+    'email_change_expiry' => 'The code expires in :minutes minutes. Your current address stays active until you confirm.',
+    'email_change_requested_subject' => 'Email change requested for your Shopbonus account',
+    'email_change_requested_line' => 'Someone asked to change the email address of your account to :email. Your current address stays active until the change is confirmed.',
+    'email_changed_subject' => 'Your Shopbonus email address was changed',
+    'email_changed_line' => 'The email address of your account was changed to :email.',
+    'email_change_not_you' => 'Did you not do this? Change your password and contact Shopbonus support.',
 ];

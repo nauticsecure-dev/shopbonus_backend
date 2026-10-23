@@ -33,6 +33,9 @@ use Laravel\Sanctum\TransientToken;
  * @property string $public_id
  * @property string $first_name
  * @property string $email
+ * @property string|null $phone
+ * @property string|null $avatar_path
+ * @property string|null $avatar_mime
  * @property CarbonImmutable|null $email_verified_at
  * @property UserStatus $status
  * @property OnboardingIntent $onboarding_intent
@@ -41,7 +44,7 @@ use Laravel\Sanctum\TransientToken;
  * @property int|null $current_webshop_id
  */
 #[Fillable(['first_name', 'email', 'password', 'onboarding_intent', 'locale'])]
-#[Hidden(['id', 'password', 'remember_token'])]
+#[Hidden(['id', 'password', 'remember_token', 'phone', 'avatar_path', 'avatar_mime'])]
 class User extends Authenticatable implements HasLocalePreference
 {
     /**
@@ -68,6 +71,7 @@ class User extends Authenticatable implements HasLocalePreference
             'password' => 'hashed',
             'status' => UserStatus::class,
             'onboarding_intent' => OnboardingIntent::class,
+            'phone' => 'encrypted',
         ];
     }
 
@@ -76,6 +80,10 @@ class User extends Authenticatable implements HasLocalePreference
         'onboarding_intent' => 'consumer',
         'locale' => 'nl',
         'current_webshop_id' => null,
+        'phone' => null,
+        'last_login_at' => null,
+        'avatar_path' => null,
+        'avatar_mime' => null,
     ];
 
     /**

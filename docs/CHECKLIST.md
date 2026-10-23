@@ -274,7 +274,22 @@ Sliced: B08a public discovery; B08b consumer profile, preferences, favourites, M
 
 ### B08b Consumer profile, preferences and benefits
 
-- [ ] Expand when started
+All routes derive the consumer from the session; no user ID is ever accepted (card #10 E2E 10).
+
+- [x] `GET/PATCH /api/v1/consumer/profile`: first name (letters/spaces/hyphen/apostrophe, no HTML), optional phone normalised to E.164 (stored encrypted), locale; email/status/role fields ignored; invalid input changes nothing (`B08B_SHA`)
+- [x] Avatar upload/replace/remove + `GET /consumer/profile/avatar` (PNG/JPEG/WebP, ≤2 MB, content-checked; private storage; storage failure → 503 with no partial change) (`B08B_SHA`)
+- [x] Secured email change: request (current password; code mailed to the new address, notice to the old one) → confirm with code (expiry, attempts, single use) → login email replaced only then; cancel; throttled; audited (`B08B_SHA`)
+- [x] Password change (`PUT /user/password`) throttled per user (card #10 E2E 5) (`B08B_SHA`)
+- [x] Notification preferences `vouchers_discounts`, `reminders`, `offers_inspiration` as append-only consent records (purpose, version, source, time); only changes are recorded; `CommunicationPreferences::allows()` for senders; security/transactional mail never depends on them (`B08B_SHA`)
+- [x] Preferred categories and favourite webshops (listed webshops only; profile edits leave them intact) (`B08B_SHA`)
+- [x] `GET /consumer/vouchers` (My Vouchers: own vouchers only, code visible to the owner once issued) (`B08B_SHA`)
+- [x] `GET /consumer/dashboard`: own voucher summary, favourites, verification status; `wallet: null` until B09 (never fabricated) (`B08B_SHA`)
+- [x] Privacy: `GET /consumer/privacy/export` (own data as JSON, audited), `POST /consumer/privacy/deletion-request` (password; one open request; processing respects retention, D-013), `GET /consumer/privacy/requests` (`B08B_SHA`)
+- [x] Tests: card #10 E2E 1, 2, 3, 4, 5, 6, 9, 10 (E2E 7 covered by B07b; E2E 8 needs B09); card #18 E2E 9 (`B08B_SHA`)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`B08B_SHA`)
+- [x] Found during capture and fixed: the "email changed" notice to the old address crashed for on-demand recipients (500 after the change was saved); now rendered in a test (`B08B_SHA`)
+- [ ] Card #10 E2E 8 wallet balance in header (B09) and #18 E2E 5 return-to-offer after signup (frontend; backend has no redirect state)
+- [ ] Deletion request processing (B16 admin, retention rules D-013)
 
 - [ ] B09 Wallet ledger core
 - [ ] B10 Affiliate integrations (credit timing decision required)

@@ -23,6 +23,7 @@ class ThrottleIdentityEndpoints
         'register.store' => 'identity-register',
         'password.email' => 'identity-forgot-password',
         'password.update' => 'identity-reset-password',
+        'user-password.update' => 'identity-change-password',
     ];
 
     public function __construct(private readonly ThrottleRequests $throttle) {}

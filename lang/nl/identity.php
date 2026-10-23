@@ -19,4 +19,12 @@ return [
     'ownership_subject' => 'Bevestig dat je :domain beheert',
     'ownership_line' => 'Iemand registreert :webshop op Shopbonus en wil met deze code bevestigen dat :domain onder zijn beheer valt:',
     'ownership_expiry' => 'De code verloopt over :minutes minuten. Verwachtte je dit niet? Negeer deze e-mail: zonder de code wordt niets gekoppeld.',
+    'email_change_subject' => 'Bevestig je nieuwe Shopbonus-e-mailadres',
+    'email_change_line' => 'Voer deze code in bij Shopbonus om dit als je nieuwe e-mailadres te bevestigen:',
+    'email_change_expiry' => 'De code verloopt over :minutes minuten. Je huidige adres blijft actief tot je bevestigt.',
+    'email_change_requested_subject' => 'Wijziging van je e-mailadres aangevraagd',
+    'email_change_requested_line' => 'Er is gevraagd het e-mailadres van je account te wijzigen naar :email. Je huidige adres blijft actief tot de wijziging is bevestigd.',
+    'email_changed_subject' => 'Je Shopbonus-e-mailadres is gewijzigd',
+    'email_changed_line' => 'Het e-mailadres van je account is gewijzigd naar :email.',
+    'email_change_not_you' => 'Was jij dit niet? Wijzig je wachtwoord en neem contact op met Shopbonus.',
 ];

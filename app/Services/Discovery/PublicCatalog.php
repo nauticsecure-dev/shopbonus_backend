@@ -142,6 +142,26 @@ class PublicCatalog
         });
     }
 
+    /** The webshop ID behind a listed slug, or null when it is not (or no longer) listed. */
+    public function listedWebshopId(string $slug): ?int
+    {
+        $id = $this->listedProfiles()->where('slug', $slug)->value('webshop_id');
+
+        return $id === null ? null : (int) $id;
+    }
+
+    /**
+     * Public cards of the listed webshops among the given IDs.
+     *
+     * @param  list<int>  $webshopIds
+     * @return list<array<string, mixed>>
+     */
+    public function cardsFor(array $webshopIds): array
+    {
+        return $this->listedProfiles()->whereIn('webshop_id', $webshopIds)->orderBy('display_name')->get()
+            ->map(fn (WebshopPublicProfile $p) => $this->webshopCard($p, withOffers: false))->values()->all();
+    }
+
     public function logo(string $slug): ?WebshopPublicProfile
     {
         return $this->listedProfiles()->where('slug', $slug)->whereNotNull('logo_path')->first();

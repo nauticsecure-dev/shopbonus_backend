@@ -3562,6 +3562,400 @@ X-Request-Id: 01a16a55-6c99-72a5-9d81-c544a8284c54
 
 ---
 
+## Consumer: profile, preferences, benefits, privacy (B08b, Trello #10, #18)
+
+Captured 2026-10-23 against local MySQL + Redis. Anna (`anna@example.nl`) is verified, opted out of marketing at registration, and owns one issued Answer24 voucher of *Fietsen Utrecht*. Emails went to the log mailer. The email-change code was read from the log, and the log was truncated afterwards. The code is shown as `<code from the email>`.
+
+**Profile**
+
+`GET /api/v1/consumer/profile`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-b30d-7147-b0a2-fe9356d930ef
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":null,"locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+```
+
+**Update name, phone (normalised), locale**
+
+`PATCH /api/v1/consumer/profile {"first_name":"Anna","phone":"06 1234 5678","locale":"nl"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-b478-73f4-bb4d-ad8849a4428f
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":"+31612345678","locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+```
+
+**Invalid name/phone → 422, nothing saved**
+
+`PATCH /api/v1/consumer/profile {"first_name":"<b>Anna</b>","phone":"abc"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-b5bd-71ff-b7d4-17354bf1fe35
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-b5bd-71ff-b7d4-17354bf1fe35","fields":{"first_name":["The first name field format is invalid."]}}}
+```
+
+**Photo upload: SVG refused (multipart `avatar=@logo.svg`)**
+
+`POST /api/v1/consumer/profile/avatar (multipart: avatar=@logo.svg;type=image/svg+xml)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-b651-718c-94c8-3e346246af29
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-b651-718c-94c8-3e346246af29","fields":{"avatar":["The avatar field must be a file of type: png, jpg, jpeg, webp.","The avatar field must be a file of type: image\/png, image\/jpeg, image\/webp."]}}}
+```
+
+**Photo upload: JPEG (multipart `avatar=@avatar.jpg`)**
+
+`POST /api/v1/consumer/profile/avatar (multipart: avatar=@avatar.jpg;type=image/jpeg)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-b71a-736d-af6e-87ec56896aa3
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":"+31612345678","locale":"nl","avatar_url":"http:\/\/127.0.0.1:8789\/api\/v1\/consumer\/profile\/avatar?v=00819dc8","security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+```
+
+**Remove photo**
+
+`DELETE /api/v1/consumer/profile/avatar`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-b87a-72da-ab80-d801074dd3bc
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":null,"phone":"+31612345678","locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+```
+
+**Email change with a wrong password → 422**
+
+`POST /api/v1/consumer/email-change {"email":"anna.nieuw@example.nl","current_password":"fout"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-b95b-70f5-9138-af0a175c35b7
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-b95b-70f5-9138-af0a175c35b7","fields":{"current_password":["The provided password is incorrect."]}}}
+```
+
+**Email change requested (code to the new address)**
+
+`POST /api/v1/consumer/email-change {"email":"anna.nieuw@example.nl","current_password":"Sterk-wachtwoord-2026"}`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a16a61-bd66-704b-9ba7-6fc652a6615b
+
+{"data":{"pending_email":"anna.nieuw@example.nl","expires_at":"2026-10-23T20:19:13+00:00","message":"Enter the code we sent to the new address. Your current address stays active until then."}}
+```
+
+**Again within the cooldown → 429**
+
+`POST /api/v1/consumer/email-change {"email":"anna.nieuw@example.nl","current_password":"Sterk-wachtwoord-2026"}`
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 58
+X-Request-Id: 01a16a61-c331-7044-91ef-8e2ba23288c9
+Content-Type: application/json
+
+{"error":{"status":429,"code":"verification_resend_too_soon","message":"Please wait before requesting a new code.","request_id":"01a16a61-c331-7044-91ef-8e2ba23288c9","details":{"retry_after_seconds":58}}}
+```
+
+**Profile while the change is pending (still the old, verified address)**
+
+`GET /api/v1/consumer/profile`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-c730-7159-b7dd-f3e1f681ec0f
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna@example.nl","email_verification":"verified","pending_email":"anna.nieuw@example.nl","phone":"+31612345678","locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"not_available"},"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false}}}
+```
+
+**Wrong code → 422**
+
+`POST /api/v1/consumer/email-change/confirm {"code":"000000"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-c806-7096-bb13-e911f00aa5ab
+Content-Type: application/json
+
+{"error":{"status":422,"code":"verification_code_invalid","message":"This code is not valid.","request_id":"01a16a61-c806-7096-bb13-e911f00aa5ab"}}
+```
+
+**Correct code → email replaced**
+
+`POST /api/v1/consumer/email-change/confirm {"code":"<code from the email>"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-c8b4-7149-956b-12c136783b74
+
+{"data":{"email":"anna.nieuw@example.nl","email_verification":"verified"}}
+```
+
+**Same code again → 409**
+
+`POST /api/v1/consumer/email-change/confirm {"code":"<code from the email>"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16a61-c9cc-70b4-aa4d-892a76697f4d
+Content-Type: application/json
+
+{"error":{"status":409,"code":"email_change_not_pending","message":"There is no pending email change.","request_id":"01a16a61-c9cc-70b4-aa4d-892a76697f4d"}}
+```
+
+**Cancel (nothing pending)**
+
+`DELETE /api/v1/consumer/email-change`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-caa5-73d0-a3d6-2b7566765f85
+
+{"data":{"pending_email":null}}
+```
+
+**Preferences**
+
+`GET /api/v1/consumer/preferences`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-cb31-719a-b2f4-691335d050fa
+
+{"data":{"notifications":{"vouchers_discounts":false,"reminders":true,"offers_inspiration":false},"categories":[],"mandatory_mail":"Account, security and transaction emails are always sent and do not depend on these settings."}}
+```
+
+**Change switches and categories**
+
+`PUT /api/v1/consumer/preferences {"notifications":{"vouchers_discounts":true,"reminders":true,"offers_inspiration":false},"categories":["sports_outdoor","pets"]}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-cbc0-710f-82fb-4a2e7548949b
+
+{"data":{"notifications":{"vouchers_discounts":true,"reminders":true,"offers_inspiration":false},"categories":["pets","sports_outdoor"],"mandatory_mail":"Account, security and transaction emails are always sent and do not depend on these settings."}}
+```
+
+**Unknown switch → 422**
+
+`PUT /api/v1/consumer/preferences {"notifications":{"sms":true}}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-cca9-7198-9df7-e212cc8c58f0
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-cca9-7198-9df7-e212cc8c58f0","fields":{"notifications":["Unknown notification setting. Allowed: vouchers_discounts, reminders, offers_inspiration."]}}}
+```
+
+**Favourite a webshop**
+
+`PUT /api/v1/consumer/favorites/fietsen-utrecht`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16a61-cd41-709a-abe3-2469564539bb
+
+{"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}
+```
+
+**Unknown webshop → 404**
+
+`PUT /api/v1/consumer/favorites/bestaat-niet`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16a61-cdfd-73b8-808f-0a88fe276fb1
+Content-Type: application/json
+
+{"error":{"status":404,"code":"webshop_not_found","message":"This webshop is not available.","request_id":"01a16a61-cdfd-73b8-808f-0a88fe276fb1"}}
+```
+
+**Favourites**
+
+`GET /api/v1/consumer/favorites`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-cea1-7315-b32e-b5d7882c17e8
+
+{"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}
+```
+
+**My Vouchers**
+
+`GET /api/v1/consumer/vouchers`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-cf5b-7126-a4ec-2167e223c746
+
+{"data":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}]}
+```
+
+**Reserved is not a consumer status → 422**
+
+`GET /api/v1/consumer/vouchers?status=reserved`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-d013-70a3-805f-4210b7800dc5
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d013-70a3-805f-4210b7800dc5","fields":{"status":["The selected status is invalid."]}}}
+```
+
+**Dashboard (wallet not available until B09)**
+
+`GET /api/v1/consumer/dashboard`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-d0ae-731f-8865-2c608afd0581
+
+{"data":{"first_name":"Anna","email_verified":true,"wallet":null,"wallet_status":"not_available","vouchers":{"issued":1,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}],"favorites":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}}
+```
+
+**Data export**
+
+`GET /api/v1/consumer/privacy/export`
+
+```http
+HTTP/1.1 200 OK
+Content-Disposition: attachment; filename="shopbonus-data-2026-10-23.json"
+Content-Type: application/json
+X-Request-Id: 01a16a61-d17c-723f-9899-75ab36d79f32
+
+{"data":{"exported_at":"2026-10-23T20:09:17+00:00","account":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl","phone":"+31612345678","locale":"nl","status":"active","email_verified_at":"2026-10-23T20:09:15+00:00","created_at":"2026-10-23T20:09:06+00:00","last_login_at":null,"has_profile_photo":false},"consents":[{"purpose":"marketing_email","granted":false,"policy_version":"dev-2026-10-23","source":"registration","recorded_at":"2026-10-23T20:09:06+00:00"},{"purpose":"marketing_email","granted":true,"policy_version":"marketing-2026-10","source":"profile","recorded_at":"2026-10-23T20:09:16+00:00"}],"legal_acceptances":[],"vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","title":"\u20ac10 korting op je volgende fiets","issued_at":"2026-10-23T20:09:06+00:00","redeemed_at":null}],"favorite_webshops":["Fietsen Utrecht"],"preferred_categories":["pets","sports_outdoor"],"workspace_memberships":[],"privacy_requests":[]}}
+```
+
+**Deletion request with a wrong password → 422**
+
+`POST /api/v1/consumer/privacy/deletion-request {"current_password":"fout","confirm":true}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a61-d259-7214-a24d-e7c9e0a534c4
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d259-7214-a24d-e7c9e0a534c4","fields":{"current_password":["The provided password is incorrect."]}}}
+```
+
+**Deletion request recorded**
+
+`POST /api/v1/consumer/privacy/deletion-request {"current_password":"Sterk-wachtwoord-2026","confirm":true}`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a16a61-d66e-724b-ac55-0f5b2aa6e22a
+
+{"data":{"id":"01m5n63pn10404cq8kqwab9zba","type":"deletion","status":"open","requested_at":"2026-10-23T20:09:20+00:00","completed_at":null,"message":"Your request was recorded and will be handled by Shopbonus. Records we must keep by law (vouchers, payments, audit) are retained for their legal period."}}
+```
+
+**Second request → 409**
+
+`POST /api/v1/consumer/privacy/deletion-request {"current_password":"Sterk-wachtwoord-2026","confirm":true}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16a61-e416-71c0-a2dc-f0536c5e6ad6
+Content-Type: application/json
+
+{"error":{"status":409,"code":"deletion_already_requested","message":"A deletion request is already being processed.","request_id":"01a16a61-e416-71c0-a2dc-f0536c5e6ad6"}}
+```
+
+**Privacy requests**
+
+`GET /api/v1/consumer/privacy/requests`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-e837-709b-97d0-486554739589
+
+{"data":[{"id":"01m5n63pn10404cq8kqwab9zba","type":"deletion","status":"open","requested_at":"2026-10-23T20:09:20+00:00","completed_at":null}]}
+```
+
+**Remove favourite**
+
+`DELETE /api/v1/consumer/favorites/fietsen-utrecht`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a61-e8e3-7063-9442-5faae32472ba
+
+{"data":[]}
+```
+
+**Not signed in → 401**
+
+`GET /api/v1/consumer/profile`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16a61-e97f-707e-a1aa-cb3eb61e4c12
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a61-e97f-707e-a1aa-cb3eb61e4c12"}}
+```
+
+**Password change: sixth attempt within a minute → 429 (session flow; first five had a wrong current password)**
+
+`PUT /user/password {"current_password":"fout","password":"Nieuw-wachtwoord-2027"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 54
+X-Request-Id: 01a16a62-0acc-7050-a1ef-73742f0652fa
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a16a62-0acc-7050-a1ef-73742f0652fa"}}
+```
+
+**Own photo** (`GET /api/v1/consumer/profile/avatar`): binary, response headers only:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/jpeg
+Cache-Control: max-age=300, private
+X-Content-Type-Options: nosniff
+Content-Security-Policy: default-src 'none'
+Content-Length: 1593
+Content-Disposition: inline; filename=avatar
+X-Request-Id: 01a16a61-b807-71bc-9f12-86252cbbef65
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

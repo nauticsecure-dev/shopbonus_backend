@@ -5,6 +5,11 @@ use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopControlle
 use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
+use App\Http\Controllers\Api\V1\Consumer\BenefitsController;
+use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
+use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
+use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
+use App\Http\Controllers\Api\V1\Consumer\ProfileController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
@@ -127,6 +132,34 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             Route::post('invitations/accept', [InvitationController::class, 'accept'])
                 ->middleware('throttle:invitation-preview')->name('invitations.accept');
             Route::post('claims/accept', [ClaimController::class, 'accept'])->middleware('throttle:claims')->name('claims.accept');
+
+            // The signed-in consumer's own account (Trello #10, #18). Identity comes from the session only.
+            Route::prefix('consumer')->name('consumer.')->group(function () {
+                Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
+                Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+                Route::get('profile/avatar', [ProfileController::class, 'avatar'])->name('profile.avatar.show');
+                Route::post('profile/avatar', [ProfileController::class, 'uploadAvatar'])->middleware('throttle:profile-upload')->name('profile.avatar.store');
+                Route::delete('profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.destroy');
+
+                Route::post('email-change', [EmailChangeController::class, 'store'])->middleware('throttle:email-change')->name('email-change.store');
+                Route::post('email-change/confirm', [EmailChangeController::class, 'confirm'])->middleware('throttle:identity-verify-code')->name('email-change.confirm');
+                Route::delete('email-change', [EmailChangeController::class, 'destroy'])->name('email-change.destroy');
+
+                Route::get('preferences', [PreferenceController::class, 'show'])->name('preferences.show');
+                Route::put('preferences', [PreferenceController::class, 'update'])->name('preferences.update');
+                Route::get('favorites', [PreferenceController::class, 'favorites'])->name('favorites.index');
+                Route::put('favorites/{slug}', [PreferenceController::class, 'addFavorite'])->name('favorites.store');
+                Route::delete('favorites/{slug}', [PreferenceController::class, 'removeFavorite'])->name('favorites.destroy');
+
+                Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
+                Route::get('dashboard', [BenefitsController::class, 'dashboard'])->name('dashboard');
+
+                Route::middleware('throttle:privacy')->group(function () {
+                    Route::get('privacy/export', [PrivacyController::class, 'export'])->name('privacy.export');
+                    Route::post('privacy/deletion-request', [PrivacyController::class, 'requestDeletion'])->name('privacy.deletion-request');
+                });
+                Route::get('privacy/requests', [PrivacyController::class, 'requests'])->name('privacy.requests');
+            });
 
             Route::prefix('workspaces/{workspace}')->middleware('workspace')->name('workspaces.')->group(function () {
                 Route::get('/', [WorkspaceController::class, 'show'])->name('show');
