@@ -15,6 +15,7 @@ use App\Notifications\OwnershipVerificationCode;
 use App\Services\Audit\AuditLogger;
 use App\Services\Onboarding\Network\HostResolver;
 use App\Services\Onboarding\Network\WebsiteFileFetcher;
+use App\Services\Workspaces\WebshopLifecycle;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -254,10 +255,18 @@ class OwnershipVerification
             return $locked;
         });
 
-        return $result ?? throw ApiException::conflict(
-            'This domain is already verified for another webshop. Submit a manual review instead.',
-            'domain_already_claimed',
-        );
+        if ($result === null) {
+            throw ApiException::conflict(
+                'This domain is already verified for another webshop. Submit a manual review instead.',
+                'domain_already_claimed',
+            );
+        }
+
+        // An already-accepted agreement may now complete onboarding.
+        $webshop = Webshop::with('businessProfile')->findOrFail($result->webshop_id);
+        app(WebshopLifecycle::class)->evaluate($webshop);
+
+        return $result;
     }
 
     private function fail(WebshopVerification $verification, string $reason): void

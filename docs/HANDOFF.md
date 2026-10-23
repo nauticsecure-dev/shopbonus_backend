@@ -3,17 +3,17 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `b230455` B03c onboarding. Earlier: `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** B03d (`git log --oneline -1 --grep=B03d`). Earlier: `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B03d merchant agreements, Super Admin review and activation.
-**Last completed task:** B03c business profile and ownership verification (DONE, tested).
+**Active task:** none in progress. **Next:** B04 ecommerce provider contracts (capability matrix, encrypted connections, health).
+**Last completed task:** B03d, which completes B03 workspaces and onboarding (DONE, tested).
 
-## Tests actually executed (at `b230455`)
+## Tests actually executed (at the B03d commit)
 
 | Command | Result |
 | --- | --- |
-| `php artisan test` (SQLite in-memory) | PASS: 199 tests |
-| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 199 tests |
+| `php artisan test` (SQLite in-memory) | PASS: 213 tests |
+| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 213 tests |
 | `vendor/bin/pint --test` | PASS |
 | `vendor/bin/phpstan analyse --memory-limit=1G` (level 6) | PASS, 0 errors |
 | `composer audit` | No advisories |
@@ -25,7 +25,7 @@
 
 - Local: PHP 8.4.17, MySQL (`root`, no password) with DBs `shopbonus` and `shopbonus_testing`, Redis 127.0.0.1:6379 via predis (D-004).
 - **Local Redis is shared with other projects.** Only delete keys matching `shopbonus-*` (databases 0 and 1). Never `FLUSHDB`/`FLUSHALL`; see the incident note below.
-- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations), `2026_10_23_170000` (business profiles, verifications, ownership columns).
+- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations), `2026_10_23_170000` (business profiles, verifications, ownership columns), `2026_10_23_180000` (agreements).
 - Env key names added in B02: `LEGAL_TERMS_VERSION`, `LEGAL_PRIVACY_VERSION`, `LEGAL_MARKETING_CONSENT_VERSION` (empty = registration disabled), `SANCTUM_STATEFUL_DOMAINS`, `SESSION_SECURE_COOKIE` (true in prod), `SESSION_SAME_SITE`, `VERIFICATION_CODE_TTL_MINUTES`, `VERIFICATION_CODE_MAX_ATTEMPTS`, `VERIFICATION_RESEND_COOLDOWN_SECONDS`. B03c: `GOOGLE_PLACES_API_KEY` (secret; empty = manual entry only). Earlier: `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CORS_SUPPORTS_CREDENTIALS`, `API_RATE_LIMIT_PER_MINUTE`, `HEALTH_READINESS_TOKEN` (secret).
 - Capturing docs: run the server with `QUEUE_CONNECTION=sync MAIL_MAILER=log`, read codes/tokens from `storage/logs/laravel.log`, then **truncate that log**, since it holds live codes and reset tokens.
 
@@ -50,20 +50,20 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 - Workspace-scoped routes: `Route::prefix('workspaces/{workspace}')->middleware('workspace')`, plus `->middleware('workspace.can:<permission>')` per route. Read the webshop from `CurrentWorkspace`, never from input. Declare `x-permission` in OpenAPI.
 - Non-member access is a generic 404 (and audited by the resolver); members lacking a permission get 403.
+- Commercial routes (offers, vouchers, integrations, payments) must add `workspace.commercial` after `workspace`.
+- Admin routes: inside the `admin` prefix group (`platform:super_admin`); mutations inside `password.recent`. Test them with a stateful session (`Referer`/`Origin` headers + `withSession(['auth.password_confirmed_at' => time()])`).
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
 
 ## Next agent's exact first actions
 
-1. `git status -sb && git log --oneline -8 && php artisan test` (expect 199 passing).
-2. Re-read Trello #16 "Merchant agreement" and the statuses, #3 A.3 ("Dynamic agreement") and #2 §6.
-3. Expand B03d in `docs/CHECKLIST.md`:
-   - versioned agreement templates managed by Super Admin (immutable once published);
-   - a per-webshop rendered document with an immutable snapshot and SHA-256 hash; server-selected current version (a client-sent version must match);
-   - unticked explicit acceptance (owner `agreements.accept`), storing actor, timestamp, hashed IP and request ID;
-   - re-acceptance when a new version is published;
-   - Super Admin endpoints (`/api/v1/admin/...`, platform role check) to list pending webshops and approve/reject/suspend/unsuspend with reasons;
-   - auto-approval when ownership is verified, the agreement accepted and nothing is flagged; otherwise `pending_review`;
-   - fill `OnboardingProgress::agreementStatus()`;
-   - card #16 E2E 3, 4 and the suspension half of 9.
+1. `git status -sb && git log --oneline -8 && php artisan test` (expect 213 passing).
+2. Read Trello #1 (Universal Webshop Order Adapter) fully, plus the integration parts of #3 A.4–B.7, #16 and #23. Note OPEN-PROVIDER-CAPABILITIES: **no provider credentials exist**, so every adapter stays `Setup Required` / NOT VERIFIED until sandbox access is provided.
+3. Expand B04 in `docs/CHECKLIST.md`. Scope it to provider-agnostic contracts:
+   - `platform_connections` per webshop, with encrypted credentials (`encrypted:array`), status (`setup_required` / `testing` / `connected` / `limited` / `error` / `disconnected`), declared capabilities, last health check and last verified order;
+   - a capability matrix (per platform: auth type, order webhooks, refunds, coupons, polling) documented as UNVERIFIED;
+   - an `OrderAdapter` interface (verify signature, parse event, map to a normalised order DTO);
+   - one reference adapter: a generic signed-webhook adapter with HMAC-SHA256 + timestamp replay window, since it needs no third-party credentials;
+   - connection CRUD/test endpoints (`integrations.manage`, `workspace.commercial`);
+   - a "never `connected` before a verified order" rule.

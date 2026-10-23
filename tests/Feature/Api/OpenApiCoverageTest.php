@@ -14,7 +14,7 @@ use Tests\TestCase;
  *  - every /api/v1 route and every session-auth route is in openapi.yaml,
  *    with an example request and an example for each response;
  *  - every operation declares `x-access` (public | guest | authenticated |
- *    verified), and that declaration matches the route's real middleware,
+ *    verified | admin), and that declaration matches the route's real middleware,
  *    so a private route cannot silently ship without auth (default deny).
  */
 class OpenApiCoverageTest extends TestCase
@@ -50,6 +50,7 @@ class OpenApiCoverageTest extends TestCase
         );
 
         return match (true) {
+            $has('auth') && $has('platform') => 'admin',
             $has('auth') && $has('verified') => 'verified',
             $has('auth') => 'authenticated',
             $has('guest') => 'guest',
@@ -106,6 +107,13 @@ class OpenApiCoverageTest extends TestCase
                         continue;
                     }
 
+                    // File downloads document a binary schema instead of a JSON example.
+                    $binary = collect($response['content'] ?? [])->contains(fn ($media, $type) => $type !== 'application/json'
+                        && ($media['schema']['format'] ?? null) === 'binary');
+                    if ($binary) {
+                        continue;
+                    }
+
                     $content = $response['content']['application/json'] ?? [];
                     $this->assertTrue(
                         isset($content['example']) || ! empty($content['examples']),
@@ -119,7 +127,7 @@ class OpenApiCoverageTest extends TestCase
     public function test_every_authenticated_route_requires_an_active_account(): void
     {
         foreach ($this->documentedRoutes() as $route) {
-            if (! in_array($this->actualAccess($route), ['authenticated', 'verified'], true)) {
+            if (! in_array($this->actualAccess($route), ['authenticated', 'verified', 'admin'], true)) {
                 continue;
             }
 

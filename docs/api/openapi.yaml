@@ -36,6 +36,11 @@ tags:
     description: |
       Business details, onboarding progress and ownership verification (Trello #16). External business
       data never proves ownership; only a DNS/file/domain-email challenge or a Super Admin review does.
+  - name: Admin
+    description: |
+      Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
+      command). State-changing admin calls also need a password confirmation (POST /user/confirm-password) within
+      3 hours from a browser session; bearer tokens are always refused for them (423). Interim step-up until MFA (B16).
   - name: Auth
     description: |
       Registration, email verification, sessions and password recovery (Trello #4).
@@ -1632,6 +1637,512 @@ paths:
               example: {"error":{"status":409,"code":"review_in_progress","message":"A review is already in progress.","request_id":"01a16938-d7e2-7280-b7d6-3cdd362251a4"}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
+  /api/v1/workspaces/{workspace}/agreement:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Onboarding]
+      operationId: showAgreement
+      summary: "Current merchant agreement for this webshop"
+      description: |
+        The server-selected current published version (in the profile's language, falling back to NL), rendered with the webshop's confirmed details (HTML-escaped). Send back exactly `version` and `document_hash` when accepting. `status`: not_started, complete, or outdated (a newer version requires re-acceptance). 503 `agreement_unavailable` while nothing is published.
+      x-access: verified
+      x-permission: settings.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/agreement \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Rendered agreement (the template text in this capture is placeholder sample text, not legal content)."
+          content:
+            application/json:
+              example: {"data":{"title":"Merchantovereenkomst 2026 (voorbeeld)","version":"2026.1","locale":"nl","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en Fietsen Utrecht B.V. (KvK 12345678), gevestigd te Oudegracht 1, 3511 AA Utrecht, NL, handelend onder Fietsenwinkel Utrecht (fietsen-utrecht.nl).","document_hash":"54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee","published_at":"2026-10-23T14:54:14+00:00","status":"not_started","latest_acceptance":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/agreement/accept:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Onboarding]
+      operationId: acceptAgreement
+      summary: "Accept the current agreement"
+      description: |
+        Owner-only. `accept` and `confirm_identity` must be true (unticked = 422). `version` and `document_hash` must equal the current document; stale or forged values give 409 `agreement_outdated` with `details.current_version`. Requires confirmed business details and verified ownership or a submitted review. Stores an immutable snapshot of the exact text, its SHA-256, signatory, time, request ID and hashed IP. If ownership is verified by a challenge and nothing is flagged, the webshop becomes `approved` immediately; otherwise it stays `pending_review` for a Super Admin.
+      x-access: verified
+      x-permission: agreements.accept
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accept, confirm_identity, signatory_name, version, document_hash]
+              properties:
+                accept: { type: boolean, const: true }
+                confirm_identity: { type: boolean, const: true, description: Confirms the legal/business identity in the document. }
+                signatory_name: { type: string, minLength: 2, maxLength: 150 }
+                version: { type: string }
+                document_hash: { type: string, minLength: 64, maxLength: 64 }
+            example: {"accept": true, "confirm_identity": true, "signatory_name": "Jan de Vries", "version": "2026.1", "document_hash": "54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/agreement/accept \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"accept":true,"confirm_identity":true,"signatory_name":"Jan de Vries","version":"2026.1","document_hash":"<from GET agreement>"}'
+      responses:
+        '201':
+          description: "Accepted (captured: verified ownership, so auto-approved)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2rfp3cq75b47mf52qd41","version":"2026.1","document_hash":"54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee","signatory_name":"Jan de Vries","accepted_at":"2026-10-23T14:54:15+00:00","webshop_status":"approved"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "agreement_outdated, ownership_not_verified, business_details_incomplete or not_in_onboarding."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"agreement_outdated","message":"The agreement has changed. Reload it, review the current version and accept again.","request_id":"01a16941-61c1-7063-9692-188d10fac403","details":{"current_version":"2026.1"}}}
+        '422':
+          description: "Checkbox unticked or fields missing."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-61a1-7352-9559-1a9e50bcd4ab","fields":{"accept":["The accept field must be accepted."]}}}
+
+  /api/v1/admin/webshops:
+    get:
+      tags: [Admin]
+      operationId: adminListWebshops
+      summary: "Webshops for review and oversight"
+      description: |
+        Super Admin only. Paginated (`links`, `meta`); pending reviews come first. Read-only, no step-up needed.
+      x-access: admin
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [draft, awaiting_verification, verification_failed, pending_review, approved, rejected, suspended] } }
+        - { name: search, in: query, required: false, description: Webshop name or owner email (substring)., schema: { type: string } }
+        - { name: per_page, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X GET http://localhost:8000/api/v1/admin/webshops?status=pending_review \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>"
+      responses:
+        '200':
+          description: "Webshops awaiting review."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mm2n2jfdwbeywxaz2myhd8","name":"Onbekende Shop","platform":"other","status":"pending_review","status_reason":null,"review_flags":[],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"onbekende-shop.nl","owners":[{"id":"01m5mm2n1swp40qhtv0r2k4cvk","first_name":"Piet","email":"piet@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00"},{"id":"01m5mm2n2ezmg4a8w7jm7cs61k","name":"Fietsen Overname","platform":"shopify","status":"pending_review","status_reason":null,"review_flags":["duplicate_domain_claim"],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mtvvzrq38shzrw3rv99","first_name":"Eva","email":"eva@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops?page=1","last":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops?page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops?page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops","per_page":25,"to":2,"total":2}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin (audited)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16941-5d6e-7359-9671-2839d8dcac47"}}
+
+  /api/v1/admin/webshops/{webshop}:
+    parameters:
+      - { name: webshop, in: path, required: true, description: Webshop public ID., schema: { type: string } }
+    get:
+      tags: [Admin]
+      operationId: adminShowWebshop
+      summary: "Webshop detail for review"
+      description: |
+        Business profile, all verification attempts with decrypted review notes and evidence file metadata, review flags (e.g. `duplicate_domain_claim`) and agreement acceptances. Viewing is audited (`admin.webshop_viewed`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X GET http://localhost:8000/api/v1/admin/webshops/<webshop id> \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>"
+      responses:
+        '200':
+          description: "Detail."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2n2ezmg4a8w7jm7cs61k","name":"Fietsen Overname","platform":"shopify","status":"pending_review","status_reason":null,"review_flags":["duplicate_domain_claim"],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mtvvzrq38shzrw3rv99","first_name":"Eva","email":"eva@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00","business_profile":{"legal_name":"Fietsen Overname B.V.","trading_name":null,"website_url":"https:\/\/fietsen-utrecht.nl","website_domain":"fietsen-utrecht.nl","kvk_number":"12345678","vat_number":null,"contact_email":"info@fietsen-utrecht.nl","contact_phone":null,"main_contact_name":null,"address_line":"Oudegracht 1","postal_code":"3511 AA","city":"Utrecht","country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-10-23T14:54:13+00:00","missing_fields":[],"domain_locked":false},"verifications":[{"id":"01m5mm2pv9ht4x57wb81dac66f","method":"manual_review","status":"submitted","domain":"fietsen-utrecht.nl","instructions":{"message":"A Shopbonus administrator will review the submitted information."},"attempt_count":0,"expires_at":null,"verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:54:13+00:00","notes":"Wij hebben deze webshop per 1 oktober 2026 overgenomen","evidence_files":[{"id":"01a16941-5b54-728c-b089-950bbac6038a","name":"koopovereenkomst.pdf","mime":"application\/pdf","size":47}]}],"agreement_acceptances":[]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/webshops/{webshop}/evidence/{file}:
+    parameters:
+      - { name: webshop, in: path, required: true, description: Webshop public ID., schema: { type: string } }
+      - { name: file, in: path, required: true, description: Evidence file ID (from the webshop detail)., schema: { type: string } }
+    get:
+      tags: [Admin]
+      operationId: adminDownloadEvidence
+      summary: "Download review evidence"
+      description: |
+        Decrypts and streams the file as an attachment (`X-Content-Type-Options: nosniff`, `Cache-Control: no-store`). Every download is audited (`admin.evidence_downloaded`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X GET http://localhost:8000/api/v1/admin/webshops/<webshop id>/evidence/<file id> \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" -o evidence.pdf
+      responses:
+        '200':
+          description: "The original file (binary; captured: 47-byte PDF identical to the upload)."
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary, description: 'Served with the stored type (application/pdf, image/jpeg or image/png) as an attachment.' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/webshops/{webshop}/approve:
+    parameters:
+      - { name: webshop, in: path, required: true, description: Webshop public ID., schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminApproveWebshop
+      summary: "Approve a webshop"
+      description: |
+        Step-up: needs a password confirmation within the last 3 hours, from a browser session (423 `password_confirmation_required` otherwise). Requires confirmed business details and the current agreement accepted (409 `agreement_not_accepted`). For a manual review, records ownership as `manual_review`. A flagged duplicate domain claim needs `confirm_duplicate_claim: true` (409 `duplicate_claim_unconfirmed`); it is then approved *without* taking the domain from the other webshop.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: [string, 'null'], maxLength: 500 }
+                confirm_duplicate_claim: { type: boolean }
+            example: {"confirm_duplicate_claim": true, "reason": "Overname bevestigd met koopovereenkomst."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X POST http://localhost:8000/api/v1/admin/webshops/<webshop id>/approve \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -H 'Content-Type: application/json' -d '{"reason":"KvK extract matches"}'
+      responses:
+        '200':
+          description: "Approved (captured: duplicate claim confirmed; verified_domain stays null)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2n2ezmg4a8w7jm7cs61k","name":"Fietsen Overname","platform":"shopify","status":"approved","status_reason":"Overname bevestigd met koopovereenkomst.","review_flags":["duplicate_domain_claim"],"ownership_verified":true,"ownership_method":"manual_review","verified_domain":null,"website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mtvvzrq38shzrw3rv99","first_name":"Eva","email":"eva@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":"2026-10-23T14:54:15+00:00","created_at":"2026-10-23T14:54:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "duplicate_claim_unconfirmed, agreement_not_accepted, business_details_incomplete or invalid_status_transition."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"duplicate_claim_unconfirmed","message":"This webshop claims a domain verified by another webshop. Confirm the duplicate claim explicitly to approve.","request_id":"01a16941-63f3-71e8-9830-e0e1d6976359"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/webshops/{webshop}/reject:
+    parameters:
+      - { name: webshop, in: path, required: true, description: Webshop public ID., schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminRejectWebshop
+      summary: "Reject a webshop in onboarding/review"
+      description: |
+        Step-up required. The reason is mandatory and shown to the merchant. Open verifications are failed.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 500, description: Shown to the merchant as status_reason. }
+            example: {"reason": "Eigendom kon niet worden vastgesteld."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X POST http://localhost:8000/api/v1/admin/webshops/<webshop id>/reject \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -H 'Content-Type: application/json' -d '{"reason":"Ownership could not be established."}'
+      responses:
+        '200':
+          description: "Rejected."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2n2jfdwbeywxaz2myhd8","name":"Onbekende Shop","platform":"other","status":"rejected","status_reason":"Eigendom kon niet worden vastgesteld.","review_flags":[],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"onbekende-shop.nl","owners":[{"id":"01m5mm2n1swp40qhtv0r2k4cvk","first_name":"Piet","email":"piet@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "invalid_status_transition (same envelope as other 409s)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"duplicate_claim_unconfirmed","message":"This webshop claims a domain verified by another webshop. Confirm the duplicate claim explicitly to approve.","request_id":"01a16941-63f3-71e8-9830-e0e1d6976359"}}
+        '422':
+          description: "Reason missing."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-64a3-7183-bd76-47209abcc3c0","fields":{"reason":["The reason field is required."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/webshops/{webshop}/suspend:
+    parameters:
+      - { name: webshop, in: path, required: true, description: Webshop public ID., schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminSuspendWebshop
+      summary: "Suspend a webshop"
+      description: |
+        Step-up required. All members get 403 `workspace_suspended` on their next request; commercial routes are blocked. Reason mandatory.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 500, description: Shown to the merchant as status_reason. }
+            example: {"reason": "Eigendom kon niet worden vastgesteld."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X POST http://localhost:8000/api/v1/admin/webshops/<webshop id>/suspend \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -H 'Content-Type: application/json' -d '{"reason":"Chargeback investigation"}'
+      responses:
+        '200':
+          description: "Suspended."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2n20560s3vdpcf8mbsd9","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"suspended","status_reason":"Onderzoek naar terugboekingen.","review_flags":[],"ownership_verified":true,"ownership_method":"domain_email","verified_domain":"fietsen-utrecht.nl","website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mm147atqbmbca8ftese","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-23T14:54:15+00:00","created_at":"2026-10-23T14:54:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: "Reason missing."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-64a3-7183-bd76-47209abcc3c0","fields":{"reason":["The reason field is required."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/webshops/{webshop}/unsuspend:
+    parameters:
+      - { name: webshop, in: path, required: true, description: Webshop public ID., schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminUnsuspendWebshop
+      summary: "Lift a suspension"
+      description: |
+        Step-up required. Restores `approved` (if it was approved before), `rejected`, or `draft`.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 500, description: Shown to the merchant as status_reason. }
+            example: {"reason": "Eigendom kon niet worden vastgesteld."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X POST http://localhost:8000/api/v1/admin/webshops/<webshop id>/unsuspend \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -H 'Content-Type: application/json' -d '{"reason":"Resolved"}'
+      responses:
+        '200':
+          description: "Restored."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2n20560s3vdpcf8mbsd9","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"approved","status_reason":"Onderzoek afgerond.","review_flags":[],"ownership_verified":true,"ownership_method":"domain_email","verified_domain":"fietsen-utrecht.nl","website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mm147atqbmbca8ftese","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-23T14:54:15+00:00","created_at":"2026-10-23T14:54:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: "Reason missing."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-64a3-7183-bd76-47209abcc3c0","fields":{"reason":["The reason field is required."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/agreement-templates:
+    get:
+      tags: [Admin]
+      operationId: adminListAgreementTemplates
+      summary: "Agreement templates"
+      description: |
+        All versions, including drafts and retired ones.
+      x-access: admin
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [draft, published, retired] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X GET http://localhost:8000/api/v1/admin/agreement-templates \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>"
+      responses:
+        '200':
+          description: "Templates."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst 2026 (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"published","requires_reacceptance":true,"published_at":"2026-10-23T14:54:14+00:00","retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+    post:
+      tags: [Admin]
+      operationId: adminCreateAgreementTemplate
+      summary: "Create a draft agreement version"
+      description: |
+        Step-up required. Shopbonus seeds no legal text; the owner's legal team supplies it. Unknown placeholders are rejected so no unrendered token can appear in a signed document.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, version, locale, title, body]
+              properties:
+                key: { type: string, enum: [merchant_agreement] }
+                version: { type: string, pattern: '^[A-Za-z0-9._-]+$', maxLength: 32 }
+                locale: { type: string, enum: [nl, en] }
+                title: { type: string, maxLength: 255 }
+                body: { type: string, description: 'Markdown. Placeholders: {{webshop_name}} {{legal_name}} {{trading_name}} {{kvk_number}} {{vat_number}} {{website_domain}} {{address}}; anything else is rejected.' }
+                requires_reacceptance: { type: boolean, default: true, description: Whether approved webshops must accept this version before further commercial actions. }
+            example: {"key": "merchant_agreement", "version": "2026.1", "locale": "nl", "title": "Merchantovereenkomst", "body": "Partijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}})."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X POST http://localhost:8000/api/v1/admin/agreement-templates \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -H 'Content-Type: application/json' -d '{"key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst","body":"..."}'
+      responses:
+        '201':
+          description: "Draft created (captured with placeholder sample text)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"draft","requires_reacceptance":null,"published_at":null,"retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '409':
+          description: "template_version_exists (same envelope)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"template_not_draft","message":"Published templates cannot be edited. Create a new version.","request_id":"01a16941-610e-7070-be16-be7ea6648b06"}}
+        '422':
+          description: "Unknown placeholder or invalid fields."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-5fca-72ee-b101-187b427b213f","fields":{"body":["Unknown placeholders: iban. Allowed: webshop_name, legal_name, trading_name, kvk_number, vat_number, website_domain, address."]}}}
+        '423':
+          description: "No recent password confirmation."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16941-5e14-70c6-9bbf-778b1af35937"}}
+
+  /api/v1/admin/agreement-templates/{template}:
+    parameters:
+      - { name: template, in: path, required: true, description: Template public ID., schema: { type: string } }
+    patch:
+      tags: [Admin]
+      operationId: adminUpdateAgreementTemplate
+      summary: "Edit a draft version"
+      description: |
+        Step-up required. Drafts only: published text is immutable (409 `template_not_draft`), so create a new version instead.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                key: { type: string, enum: [merchant_agreement] }
+                version: { type: string, pattern: '^[A-Za-z0-9._-]+$', maxLength: 32 }
+                locale: { type: string, enum: [nl, en] }
+                title: { type: string, maxLength: 255 }
+                body: { type: string, description: 'Markdown. Placeholders: {{webshop_name}} {{legal_name}} {{trading_name}} {{kvk_number}} {{vat_number}} {{website_domain}} {{address}}; anything else is rejected.' }
+                requires_reacceptance: { type: boolean, default: true, description: Whether approved webshops must accept this version before further commercial actions. }
+            example: {"title": "Merchantovereenkomst 2026"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X PATCH http://localhost:8000/api/v1/admin/agreement-templates/<template id> \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -H 'Content-Type: application/json' -d '{"title":"Merchantovereenkomst 2026"}'
+      responses:
+        '200':
+          description: "Updated."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst 2026 (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"draft","requires_reacceptance":true,"published_at":null,"retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "template_not_draft."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"template_not_draft","message":"Published templates cannot be edited. Create a new version.","request_id":"01a16941-610e-7070-be16-be7ea6648b06"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/agreement-templates/{template}/publish:
+    parameters:
+      - { name: template, in: path, required: true, description: Template public ID., schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminPublishAgreementTemplate
+      summary: "Publish a draft version"
+      description: |
+        Step-up required. Freezes the text and retires the previously published version of the same key and locale. If `requires_reacceptance`, approved webshops are blocked from commercial actions (403 `agreement_reacceptance_required`) until they accept it.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (bearer tokens are refused for mutations): cookies from /login, then POST /user/confirm-password
+            curl -i -b jar -c jar -X POST http://localhost:8000/api/v1/admin/agreement-templates/<template id>/publish \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>"
+      responses:
+        '200':
+          description: "Published."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst 2026 (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"published","requires_reacceptance":true,"published_at":"2026-10-23T14:54:14+00:00","retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "template_not_draft."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"template_not_draft","message":"Published templates cannot be edited. Create a new version.","request_id":"01a16941-610e-7070-be16-be7ea6648b06"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
 components:
   parameters:
     Workspace:
@@ -1749,6 +2260,18 @@ components:
               additionalProperties: true
 
   responses:
+    PlatformRoleRequired:
+      description: The caller is not a Super Admin. Audited.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 403, "code": "platform_role_required", "message": "This action requires a platform administrator.", "request_id": "01a16941-5d6e-7359-9671-2839d8dcac47"}}
+    PasswordConfirmationRequired:
+      description: Step-up needed. Confirm the password (POST /user/confirm-password) in a browser session and retry.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 423, "code": "password_confirmation_required", "message": "Confirm your password to continue.", "request_id": "01a16941-5e14-70c6-9bbf-778b1af35937"}}
     EmailNotVerified:
       description: The account's email is not verified yet.
       content:

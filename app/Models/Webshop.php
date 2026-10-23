@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property CarbonImmutable|null $approved_at
  * @property int|null $approved_by
  * @property CarbonImmutable|null $suspended_at
+ * @property CarbonImmutable|null $rejected_at
  * @property CarbonImmutable|null $ownership_verified_at
  * @property string|null $ownership_method
  * @property string|null $verified_domain
@@ -52,6 +53,7 @@ class Webshop extends Model
         'verified_domain' => null,
         'review_requested_at' => null,
         'review_flags' => null,
+        'rejected_at' => null,
     ];
 
     protected function casts(): array
@@ -60,6 +62,7 @@ class Webshop extends Model
             'status' => WebshopStatus::class,
             'approved_at' => 'immutable_datetime',
             'suspended_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
             'ownership_verified_at' => 'immutable_datetime',
             'review_requested_at' => 'immutable_datetime',
             'review_flags' => 'array',
@@ -89,6 +92,12 @@ class Webshop extends Model
     public function businessProfile(): HasOne
     {
         return $this->hasOne(BusinessProfile::class);
+    }
+
+    /** @return HasMany<AgreementAcceptance, $this> */
+    public function agreementAcceptances(): HasMany
+    {
+        return $this->hasMany(AgreementAcceptance::class);
     }
 
     /** @return HasMany<WebshopVerification, $this> */

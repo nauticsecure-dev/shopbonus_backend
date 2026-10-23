@@ -74,6 +74,8 @@ Auth mode decided by card #4: Fortify + Sanctum stateful SPA cookies (D-011).
 
 ## B03 Workspaces and onboarding (Trello #2 #3 #16; #9 is B06)
 
+Status: DONE (B03a–d). Open items outside this task: staging p95 for scoped requests (no staging), Super Admin MFA and support sessions (B16), combined owner dashboard (B13), ownership transfer workflow (D-021).
+
 Sliced. The combined owner dashboard (card #3 §17) needs orders, vouchers and wallets, so it moves to B13 instead of returning fabricated zeros.
 
 ### B03a Workspace core and tenant isolation
@@ -128,7 +130,20 @@ Owner role is never granted by invitation or role change (ownership transfer is 
 
 ### B03d Agreements, review and activation
 
-- [ ] Expand when started (versioned templates, server-selected version + hash, approval/rejection/suspension by Super Admin, activation rules)
+No agreement text is seeded: legal content comes from the owner via Super Admin templates (D-028).
+
+- [x] `agreement_templates`: key, version, locale, title, body with whitelisted placeholders, status draft → published → retired, `requires_reacceptance`; published templates immutable (B03d commit)
+- [x] `webshop_agreement_acceptances` (append-only): template + version, rendered snapshot, SHA-256 hash, signatory, actor, time, request ID, hashed IP (B03d commit)
+- [x] `GET /workspaces/{w}/agreement`: the server-selected current version rendered with the webshop's confirmed details, plus hash and acceptance state (B03d commit)
+- [x] `POST /workspaces/{w}/agreement/accept` (agreements.accept): explicit `accept: true`, signatory, identity confirmation; client version and hash must equal the current ones (stale or forged → 409); requires confirmed details and verified ownership or submitted review (B03d commit)
+- [x] Lifecycle: auto-approve when ownership is verified, the current agreement accepted and nothing flagged; otherwise stays/moves to pending_review; all transitions audited (B03d commit)
+- [x] `workspace.commercial` middleware for later commercial routes: approved and current agreement accepted (403 `workspace_not_active` / `agreement_reacceptance_required`) (B03d commit)
+- [x] Platform-role middleware `platform:super_admin`; admin mutations also require recent password confirmation (step-up until MFA in B16) (B03d commit)
+- [x] Admin agreement templates: list, create draft, update draft, publish (retires the previous version of the key and locale) (B03d commit)
+- [x] Admin webshops: list with status filter and search, detail (profile, verifications, review notes, flags, acceptances), evidence download (audited), approve (requires accepted agreement; duplicate claims need explicit confirmation), reject (reason), suspend/unsuspend (reason) (B03d commit)
+- [x] `OnboardingProgress` agreement step (not_started / complete / outdated) (B03d commit)
+- [x] Tests: card #16 E2E 3 (unverifiable stays pending; only Super Admin approves/rejects), E2E 4 (correct version accepted; unchecked, forged or outdated acceptance cannot activate), E2E 9 suspension half (suspension blocks members immediately), E2E 10 backend journey; non-admins get 403 on every admin route (B03d commit)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (B03d commit)
 
 ## B04–B19
 

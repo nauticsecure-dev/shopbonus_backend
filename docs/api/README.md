@@ -1438,6 +1438,340 @@ Content-Type: application/json
 
 ---
 
+## Agreements, review and activation (B03d, Trello #16)
+
+Captured 2026-10-23 against local MySQL + Redis. Super Admin Lotte was granted by `php artisan shopbonus:grant-super-admin` and uses a **browser session** (cookie jar + `X-XSRF-TOKEN`) with a password confirmation, because admin mutations refuse bearer tokens. Merchants use bearer tokens.
+- Jan: ownership verified by domain email.
+- Eva: claims the same domain through manual review with a PDF.
+- Piet: manual review with no evidence.
+
+The agreement text below is **placeholder sample text written for the capture, not legal content**. Shopbonus seeds no agreement; the owner's legal team supplies it.
+
+### Lifecycle
+
+| From | Event | To |
+| --- | --- | --- |
+| draft (ownership verified by challenge, nothing flagged) | owner accepts current agreement | **approved** (automatic, audited `automatic: true`) |
+| pending_review | owner accepts agreement | pending_review (waits for Super Admin) |
+| pending_review / draft / awaiting_verification / verification_failed | Super Admin approve (agreement accepted) | approved |
+| same | Super Admin reject (reason) | rejected |
+| any except suspended | Super Admin suspend (reason) | suspended (members get 403 immediately) |
+| suspended | Super Admin unsuspend (reason) | previous approved / rejected / draft |
+
+Commercial routes (offers, vouchers and so on, from B06) use `workspace.commercial`. It returns 403 `workspace_not_active` unless the webshop is approved, and 403 `agreement_reacceptance_required` when a newer version that requires re-acceptance has been published.
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 403 | `platform_role_required` | Not a Super Admin (audited) |
+| 423 | `password_confirmation_required` | Admin mutation without a recent password confirmation in a browser session |
+| 409 | `agreement_outdated` | Accepting a version or hash that isn't current (`details.current_version`) |
+| 409 | `ownership_not_verified` / `agreement_not_accepted` / `duplicate_claim_unconfirmed` / `invalid_status_transition` / `template_not_draft` / `template_version_exists` | Lifecycle and template rules |
+| 503 | `agreement_unavailable` | No published merchant agreement |
+
+### A merchant calling the admin API
+
+`GET /api/v1/admin/webshops`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16941-5d6e-7359-9671-2839d8dcac47
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16941-5d6e-7359-9671-2839d8dcac47"}}
+```
+
+### Admin mutation before confirming the password
+
+`POST /api/v1/admin/agreement-templates {"key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst","body":"x"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 423 Locked
+X-Request-Id: 01a16941-5e14-70c6-9bbf-778b1af35937
+Content-Type: application/json
+
+{"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16941-5e14-70c6-9bbf-778b1af35937"}}
+```
+
+### Template with an unknown placeholder
+
+`POST /api/v1/admin/agreement-templates {"key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst","body":"Overeenkomst met {{legal_name}}, IBAN {{iban}}"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16941-5fca-72ee-b101-187b427b213f
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-5fca-72ee-b101-187b427b213f","fields":{"body":["Unknown placeholders: iban. Allowed: webshop_name, legal_name, trading_name, kvk_number, vat_number, website_domain, address."]}}}
+```
+
+### Create a draft version
+
+`POST /api/v1/admin/agreement-templates {"key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}})."}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16941-6013-7373-81c6-c0b83ecc4e9f
+
+{"data":{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"draft","requires_reacceptance":null,"published_at":null,"retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}}
+```
+
+### Edit the draft
+
+`PATCH /api/v1/admin/agreement-templates/01m5mm2r0zjz3qv3ycdnfbp1n1 {"title":"Merchantovereenkomst 2026 (voorbeeld)"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-6068-737b-917d-e3a0ffc16a04
+
+{"data":{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst 2026 (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"draft","requires_reacceptance":true,"published_at":null,"retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}}
+```
+
+### Publish
+
+`POST /api/v1/admin/agreement-templates/01m5mm2r0zjz3qv3ycdnfbp1n1/publish    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-60b4-716b-805a-838813579efc
+
+{"data":{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst 2026 (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"published","requires_reacceptance":true,"published_at":"2026-10-23T14:54:14+00:00","retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}}
+```
+
+### Editing published text
+
+`PATCH /api/v1/admin/agreement-templates/01m5mm2r0zjz3qv3ycdnfbp1n1 {"body":"Gewijzigd"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16941-610e-7070-be16-be7ea6648b06
+Content-Type: application/json
+
+{"error":{"status":409,"code":"template_not_draft","message":"Published templates cannot be edited. Create a new version.","request_id":"01a16941-610e-7070-be16-be7ea6648b06"}}
+```
+
+### List templates
+
+`GET /api/v1/admin/agreement-templates    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-615a-720c-80cc-4d0bd48aea8b
+
+{"data":[{"id":"01m5mm2r0zjz3qv3ycdnfbp1n1","key":"merchant_agreement","version":"2026.1","locale":"nl","title":"Merchantovereenkomst 2026 (voorbeeld)","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en {{legal_name}} (KvK {{kvk_number}}), gevestigd te {{address}}, handelend onder {{webshop_name}} ({{website_domain}}).","status":"published","requires_reacceptance":true,"published_at":"2026-10-23T14:54:14+00:00","retired_at":null,"created_at":"2026-10-23T14:54:14+00:00"}]}
+```
+
+### GET /workspaces/{workspace}/agreement (Jan)
+
+`GET /api/v1/workspaces/01m5mm2n20560s3vdpcf8mbsd9/agreement`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-6179-72b4-bb77-02ed9c58d04b
+
+{"data":{"title":"Merchantovereenkomst 2026 (voorbeeld)","version":"2026.1","locale":"nl","body":"# Merchantovereenkomst (VOORBEELDTEKST, geen juridische inhoud)\n\nPartijen: Shopbonus en Fietsen Utrecht B.V. (KvK 12345678), gevestigd te Oudegracht 1, 3511 AA Utrecht, NL, handelend onder Fietsenwinkel Utrecht (fietsen-utrecht.nl).","document_hash":"54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee","published_at":"2026-10-23T14:54:14+00:00","status":"not_started","latest_acceptance":null}}
+```
+
+### Accepting with the checkbox unticked
+
+`POST /api/v1/workspaces/01m5mm2n20560s3vdpcf8mbsd9/agreement/accept {"accept":false,"confirm_identity":true,"signatory_name":"Jan de Vries","version":"2026.1","document_hash":"54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16941-61a1-7352-9559-1a9e50bcd4ab
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-61a1-7352-9559-1a9e50bcd4ab","fields":{"accept":["The accept field must be accepted."]}}}
+```
+
+### Accepting with a forged document hash
+
+`POST /api/v1/workspaces/01m5mm2n20560s3vdpcf8mbsd9/agreement/accept {"accept":true,"confirm_identity":true,"signatory_name":"Jan de Vries","version":"2026.1","document_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16941-61c1-7063-9692-188d10fac403
+Content-Type: application/json
+
+{"error":{"status":409,"code":"agreement_outdated","message":"The agreement has changed. Reload it, review the current version and accept again.","request_id":"01a16941-61c1-7063-9692-188d10fac403","details":{"current_version":"2026.1"}}}
+```
+
+### Accepting the current agreement: auto-approved
+
+`POST /api/v1/workspaces/01m5mm2n20560s3vdpcf8mbsd9/agreement/accept {"accept":true,"confirm_identity":true,"signatory_name":"Jan de Vries","version":"2026.1","document_hash":"54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16941-61e5-73c6-846e-3b9f62988b80
+
+{"data":{"id":"01m5mm2rfp3cq75b47mf52qd41","version":"2026.1","document_hash":"54d8d27e5acaf0c46d52c407b373277e8249ea10fb7d5b594d67d4ed825fa8ee","signatory_name":"Jan de Vries","accepted_at":"2026-10-23T14:54:15+00:00","webshop_status":"approved"}}
+```
+
+### Jan’s onboarding afterwards
+
+`GET /api/v1/workspaces/01m5mm2n20560s3vdpcf8mbsd9/onboarding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-6215-7065-b3d7-c12fbf6d2282
+
+{"data":{"steps":[{"key":"business_details","status":"complete"},{"key":"ownership","status":"complete"},{"key":"agreement","status":"complete"},{"key":"activation","status":"complete"}],"next_step":null,"webshop_status":"approved"}}
+```
+
+### Admin: webshops pending review
+
+`GET /api/v1/admin/webshops?status=pending_review    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-6264-71b7-9f91-279fe70f4a4a
+
+{"data":[{"id":"01m5mm2n2jfdwbeywxaz2myhd8","name":"Onbekende Shop","platform":"other","status":"pending_review","status_reason":null,"review_flags":[],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"onbekende-shop.nl","owners":[{"id":"01m5mm2n1swp40qhtv0r2k4cvk","first_name":"Piet","email":"piet@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00"},{"id":"01m5mm2n2ezmg4a8w7jm7cs61k","name":"Fietsen Overname","platform":"shopify","status":"pending_review","status_reason":null,"review_flags":["duplicate_domain_claim"],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mtvvzrq38shzrw3rv99","first_name":"Eva","email":"eva@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops?page=1","last":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops?page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops?page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8779\/api\/v1\/admin\/webshops","per_page":25,"to":2,"total":2}}
+```
+
+### Admin: review detail (Eva)
+
+`GET /api/v1/admin/webshops/01m5mm2n2ezmg4a8w7jm7cs61k    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-62b6-70e7-8806-97899253b69b
+
+{"data":{"id":"01m5mm2n2ezmg4a8w7jm7cs61k","name":"Fietsen Overname","platform":"shopify","status":"pending_review","status_reason":null,"review_flags":["duplicate_domain_claim"],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mtvvzrq38shzrw3rv99","first_name":"Eva","email":"eva@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00","business_profile":{"legal_name":"Fietsen Overname B.V.","trading_name":null,"website_url":"https:\/\/fietsen-utrecht.nl","website_domain":"fietsen-utrecht.nl","kvk_number":"12345678","vat_number":null,"contact_email":"info@fietsen-utrecht.nl","contact_phone":null,"main_contact_name":null,"address_line":"Oudegracht 1","postal_code":"3511 AA","city":"Utrecht","country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-10-23T14:54:13+00:00","missing_fields":[],"domain_locked":false},"verifications":[{"id":"01m5mm2pv9ht4x57wb81dac66f","method":"manual_review","status":"submitted","domain":"fietsen-utrecht.nl","instructions":{"message":"A Shopbonus administrator will review the submitted information."},"attempt_count":0,"expires_at":null,"verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:54:13+00:00","notes":"Wij hebben deze webshop per 1 oktober 2026 overgenomen","evidence_files":[{"id":"01a16941-5b54-728c-b089-950bbac6038a","name":"koopovereenkomst.pdf","mime":"application\/pdf","size":47}]}],"agreement_acceptances":[]}}
+```
+
+### Admin: evidence download
+
+`GET /api/v1/admin/webshops/01m5mm2n2ezmg4a8w7jm7cs61k/evidence/01a16941-5b54-728c-b089-950bbac6038a   (session cookie)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="koopovereenkomst.pdf"
+X-Content-Type-Options: nosniff
+Cache-Control: no-store, private
+X-Request-Id: 01a16941-62e6-738f-85a7-65dc45e66fca
+(body: the original PDF, 47 bytes, identical to the upload: yes)
+```
+
+### Approving before the agreement is accepted
+
+`POST /api/v1/admin/webshops/01m5mm2n2ezmg4a8w7jm7cs61k/approve {}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16941-6344-727d-883b-d80f6cef3a55
+Content-Type: application/json
+
+{"error":{"status":409,"code":"agreement_not_accepted","message":"The current merchant agreement has not been accepted.","request_id":"01a16941-6344-727d-883b-d80f6cef3a55"}}
+```
+
+### Eva accepts: stays pending_review
+
+`POST /api/v1/workspaces/01m5mm2n2ezmg4a8w7jm7cs61k/agreement/accept {"accept":true,"confirm_identity":true,"signatory_name":"Eva Jansen","version":"2026.1","document_hash":"99620510c3f1efbdf122d16a2a91df7d15e3cdcc71c8636188fbea340f389672"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16941-639e-7047-8c1f-9ae427a89eb4
+
+{"data":{"id":"01m5mm2rxbhegpqc4twd694t9b","version":"2026.1","document_hash":"99620510c3f1efbdf122d16a2a91df7d15e3cdcc71c8636188fbea340f389672","signatory_name":"Eva Jansen","accepted_at":"2026-10-23T14:54:15+00:00","webshop_status":"pending_review"}}
+```
+
+### Approving a duplicate claim without confirming it
+
+`POST /api/v1/admin/webshops/01m5mm2n2ezmg4a8w7jm7cs61k/approve {}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16941-63f3-71e8-9830-e0e1d6976359
+Content-Type: application/json
+
+{"error":{"status":409,"code":"duplicate_claim_unconfirmed","message":"This webshop claims a domain verified by another webshop. Confirm the duplicate claim explicitly to approve.","request_id":"01a16941-63f3-71e8-9830-e0e1d6976359"}}
+```
+
+### Approving with the duplicate confirmed
+
+`POST /api/v1/admin/webshops/01m5mm2n2ezmg4a8w7jm7cs61k/approve {"confirm_duplicate_claim":true,"reason":"Overname bevestigd met koopovereenkomst."}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-6444-73fd-84ef-c00b7f15a6b8
+
+{"data":{"id":"01m5mm2n2ezmg4a8w7jm7cs61k","name":"Fietsen Overname","platform":"shopify","status":"approved","status_reason":"Overname bevestigd met koopovereenkomst.","review_flags":["duplicate_domain_claim"],"ownership_verified":true,"ownership_method":"manual_review","verified_domain":null,"website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mtvvzrq38shzrw3rv99","first_name":"Eva","email":"eva@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":"2026-10-23T14:54:15+00:00","created_at":"2026-10-23T14:54:11+00:00"}}
+```
+
+### Rejecting without a reason
+
+`POST /api/v1/admin/webshops/01m5mm2n2jfdwbeywxaz2myhd8/reject {}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16941-64a3-7183-bd76-47209abcc3c0
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16941-64a3-7183-bd76-47209abcc3c0","fields":{"reason":["The reason field is required."]}}}
+```
+
+### Rejecting Piet’s webshop
+
+`POST /api/v1/admin/webshops/01m5mm2n2jfdwbeywxaz2myhd8/reject {"reason":"Eigendom kon niet worden vastgesteld."}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-64ea-726d-8fc8-65868387a50b
+
+{"data":{"id":"01m5mm2n2jfdwbeywxaz2myhd8","name":"Onbekende Shop","platform":"other","status":"rejected","status_reason":"Eigendom kon niet worden vastgesteld.","review_flags":[],"ownership_verified":false,"ownership_method":null,"verified_domain":null,"website_domain":"onbekende-shop.nl","owners":[{"id":"01m5mm2n1swp40qhtv0r2k4cvk","first_name":"Piet","email":"piet@example.nl"}],"review_requested_at":"2026-10-23T14:54:13+00:00","approved_at":null,"created_at":"2026-10-23T14:54:11+00:00"}}
+```
+
+### Suspending Jan’s webshop
+
+`POST /api/v1/admin/webshops/01m5mm2n20560s3vdpcf8mbsd9/suspend {"reason":"Onderzoek naar terugboekingen."}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-653b-708b-9c89-4de2e0ce2edd
+
+{"data":{"id":"01m5mm2n20560s3vdpcf8mbsd9","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"suspended","status_reason":"Onderzoek naar terugboekingen.","review_flags":[],"ownership_verified":true,"ownership_method":"domain_email","verified_domain":"fietsen-utrecht.nl","website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mm147atqbmbca8ftese","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-23T14:54:15+00:00","created_at":"2026-10-23T14:54:11+00:00"}}
+```
+
+### Jan while suspended
+
+`GET /api/v1/workspaces/01m5mm2n20560s3vdpcf8mbsd9`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16941-6562-7111-931a-e358789a9aa4
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_suspended","message":"This workspace is suspended.","request_id":"01a16941-6562-7111-931a-e358789a9aa4"}}
+```
+
+### Lifting the suspension
+
+`POST /api/v1/admin/webshops/01m5mm2n20560s3vdpcf8mbsd9/unsuspend {"reason":"Onderzoek afgerond."}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16941-65ac-730c-af61-63c8fad70d81
+
+{"data":{"id":"01m5mm2n20560s3vdpcf8mbsd9","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"approved","status_reason":"Onderzoek afgerond.","review_flags":[],"ownership_verified":true,"ownership_method":"domain_email","verified_domain":"fietsen-utrecht.nl","website_domain":"fietsen-utrecht.nl","owners":[{"id":"01m5mm2mm147atqbmbca8ftese","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-23T14:54:15+00:00","created_at":"2026-10-23T14:54:11+00:00"}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

@@ -5,6 +5,7 @@ namespace App\Services\Onboarding;
 use App\Enums\VerificationStatus;
 use App\Enums\WebshopStatus;
 use App\Models\Webshop;
+use App\Services\Agreements\AgreementService;
 
 /**
  * Onboarding steps derived entirely from server-side state (Trello #16
@@ -36,7 +37,7 @@ class OnboardingProgress
                 $pendingChallenge => 'in_progress',
                 default => 'not_started',
             },
-            // Filled in by the agreement workflow (B03d).
+            // not_started | complete | outdated (a newer version needs re-acceptance)
             'agreement' => $this->agreementStatus($webshop),
             'activation' => match ($webshop->status) {
                 WebshopStatus::Approved => 'complete',
@@ -58,6 +59,6 @@ class OnboardingProgress
 
     protected function agreementStatus(Webshop $webshop): string
     {
-        return 'not_started';
+        return app(AgreementService::class)->status($webshop);
     }
 }

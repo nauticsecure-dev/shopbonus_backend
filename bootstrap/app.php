@@ -6,8 +6,11 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuditAccessDenials;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
+use App\Http\Middleware\EnsurePlatformRole;
+use App\Http\Middleware\EnsureWorkspaceCommerciallyActive;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\RejectAuthenticatedJsonRequests;
+use App\Http\Middleware\RequireRecentPassword;
 use App\Http\Middleware\RequireWorkspacePermission;
 use App\Http\Middleware\ResolveWorkspace;
 use App\Http\Middleware\ThrottleIdentityEndpoints;
@@ -45,6 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => RejectAuthenticatedJsonRequests::class,
             'workspace' => ResolveWorkspace::class,
             'workspace.can' => RequireWorkspacePermission::class,
+            'workspace.commercial' => EnsureWorkspaceCommerciallyActive::class,
+            'platform' => EnsurePlatformRole::class,
+            'password.recent' => RequireRecentPassword::class,
         ]);
 
         // API clients get a JSON 401 rather than a redirect to a login page.

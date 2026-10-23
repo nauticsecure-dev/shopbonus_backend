@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
+use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Onboarding\AgreementController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessDirectoryController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
@@ -60,6 +63,24 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('business-directory/places/{placeId}', [BusinessDirectoryController::class, 'show'])->name('business-directory.show');
             });
 
+            // Super Admin (privately provisioned). Mutations need a recent password confirmation (step-up until MFA, B16).
+            Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
+                Route::get('webshops', [AdminWebshopController::class, 'index'])->name('webshops.index');
+                Route::get('webshops/{webshop}', [AdminWebshopController::class, 'show'])->name('webshops.show');
+                Route::get('webshops/{webshop}/evidence/{file}', [AdminWebshopController::class, 'evidence'])->name('webshops.evidence');
+                Route::get('agreement-templates', [AdminAgreementTemplateController::class, 'index'])->name('agreement-templates.index');
+
+                Route::middleware('password.recent')->group(function () {
+                    Route::post('webshops/{webshop}/approve', [AdminWebshopController::class, 'approve'])->name('webshops.approve');
+                    Route::post('webshops/{webshop}/reject', [AdminWebshopController::class, 'reject'])->name('webshops.reject');
+                    Route::post('webshops/{webshop}/suspend', [AdminWebshopController::class, 'suspend'])->name('webshops.suspend');
+                    Route::post('webshops/{webshop}/unsuspend', [AdminWebshopController::class, 'unsuspend'])->name('webshops.unsuspend');
+                    Route::post('agreement-templates', [AdminAgreementTemplateController::class, 'store'])->name('agreement-templates.store');
+                    Route::patch('agreement-templates/{template}', [AdminAgreementTemplateController::class, 'update'])->name('agreement-templates.update');
+                    Route::post('agreement-templates/{template}/publish', [AdminAgreementTemplateController::class, 'publish'])->name('agreement-templates.publish');
+                });
+            });
+
             Route::post('invitations/accept', [InvitationController::class, 'accept'])
                 ->middleware('throttle:invitation-preview')->name('invitations.accept');
 
@@ -101,6 +122,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         ->middleware('throttle:ownership-check')->name('verifications.confirm-code');
                     Route::post('review', [OwnershipVerificationController::class, 'review'])->name('review');
                 });
+                Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
+                Route::post('agreement/accept', [AgreementController::class, 'accept'])
+                    ->middleware('workspace.can:agreements.accept')->name('agreement.accept');
             });
         });
     });
