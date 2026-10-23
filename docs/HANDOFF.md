@@ -3,12 +3,12 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** B03b team management (`git log --oneline -1 --grep=B03b`). Earlier: `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** `ec20038` B03b team management. Earlier: `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
 **Active task:** none in progress. **Next:** B03c business profile, onboarding progress and ownership verification.
 **Last completed task:** B03b team management (DONE, tested).
 
-## Tests actually executed (at the B03b commit)
+## Tests actually executed (at `ec20038`)
 
 | Command | Result |
 | --- | --- |
