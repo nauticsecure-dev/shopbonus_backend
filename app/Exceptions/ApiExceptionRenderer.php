@@ -91,7 +91,7 @@ class ApiExceptionRenderer
             $error['message'] = 'Requests from this origin are not allowed.';
         }
 
-                if ($e instanceof ValidationException) {
+        if ($e instanceof ValidationException) {
             $error['fields'] = $e->errors();
         }
 

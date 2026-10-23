@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Exceptions\OriginMismatchException;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Route;
@@ -30,7 +31,7 @@ class ErrorEnvelopeTest extends TestCase
                 'Voucher code already reserved.', 'voucher_code_reserved', ['retryable' => false],
             ));
             Route::get('csrf', fn () => throw new TokenMismatchException('CSRF token mismatch.'));
-            Route::get('origin', fn () => throw new \Illuminate\Http\Exceptions\OriginMismatchException('Origin mismatch.'));
+            Route::get('origin', fn () => throw new OriginMismatchException('Origin mismatch.'));
             Route::post('validate', fn (Request $request) => $request->validate(['email' => ['required', 'email']]));
             Route::get('boom', fn () => throw new RuntimeException('SQLSTATE secret internals at /var/www'));
             Route::get('unavailable', fn () => throw new ApiException('Temporarily unavailable.', 503, 'feature_unavailable'));
