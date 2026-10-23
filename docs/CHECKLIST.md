@@ -185,7 +185,22 @@ No provider credentials exist: every real-platform adapter is NOT VERIFIED until
 - [x] Live updates: `OrderSheetUpdated` broadcast on private channel `webshops.{id}.orders` (no PII in payload) with channel authorisation by membership + orders.view (`7e391be`)
 - [x] Tests: card #1 E2E 4 (incomplete/no-phone), E2E 5 (duplicates → one order), out-of-order and stale events, paid→refunded→late paid, cross-tenant 404, export permission and injection, retry, channel auth; card #3 F3 and F5 (`7e391be`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (`7e391be`)
-- [ ] B06 Offers and code inventory
+## B06 Offers and code inventory (Trello #7, #9, #17, #8; #23 "One voucher system")
+
+One voucher model and one code inventory; acquisition methods are typed origins (D-037).
+
+### B06a Offers, versioned terms, cost preview
+
+- [x] `offers` (acquisition: merchant_reward | wallet_purchase | promotional_code; status draft → active ⇄ paused → ended) and `offer_versions` (all terms; locked once activated or used; edits to a locked version create a new version) (B06a commit)
+- [x] Terms: percentage (basis points) or fixed (minor units), currency, minimum order, maximum discount, start/end, claim validity (default 90 days), redemption validity, categories/products, combinable, code mode unique|reusable, allocation limit, wallet price (wallet_purchase) (B06a commit)
+- [x] `FeeCalculator`: direct merchant reward fee = 30% of the reward amount (config bps, integer half-up rounding, never on order value); preview per voucher and for the allocation; percentage offers preview on the maximum discount (OPEN-PERCENT-REWARD-FEE-BASIS) (B06a commit)
+- [x] API: list (with counters), create draft, show (current version + preview), update (in-place while draft, new version once locked), activate (`workspace.commercial`, completeness check), pause, resume, end; audit everything (B06a commit)
+- [x] Tests: card #7 E2E 1 (three offers, each shows only its own data), E2E 2 (10% from €100 max €10, 90 days persists), E2E 3 (issued vouchers keep original terms after edit; new issuance uses the new version), permissions and cross-tenant (B06a commit)
+- [x] Docs with real captures (B06a commit)
+
+### B06b Code inventory, import, atomic reservation, voucher lifecycle
+
+- [ ] Expand when started
 - [ ] B07 Answer24 handoff/claim
 - [ ] B08 Consumer profile/discovery
 - [ ] B09 Wallet ledger core

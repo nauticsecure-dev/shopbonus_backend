@@ -45,6 +45,10 @@ tags:
     description: |
       Normalised orders from verified provider events and the live Order Sheet (Trello #1). One order per
       webshop + platform + external order ID; out-of-order and replayed events can never move an order backwards.
+  - name: Offers
+    description: |
+      Merchant offers with versioned terms (Trello #7). One voucher system; `acquisition` is how consumers obtain it.
+      Money in integer minor units, percentages in basis points.
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -2578,6 +2582,271 @@ paths:
           content:
             application/json:
               example: {"error":{"status":409,"code":"event_not_retryable","message":"Only failed events with a retained payload can be retried.","request_id":"01a16955-54bc-709c-ade8-6daa811743f2"}}
+
+  /api/v1/workspaces/{workspace}/offers:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Offers]
+      operationId: listOffers
+      summary: "Offers of this webshop (offer selector)"
+      description: |
+        Each offer with its current terms, activation gaps and cost preview.
+      x-access: verified
+      x-permission: offers.view
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [draft, active, paused, ended] } }
+        - { name: search, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/offers' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Offers."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mnpwx7zxe9e9crkg1e0rvd","acquisition":"wallet_purchase","status":"draft","terms":{"version":1,"locked":false,"summary":"\u20ac20.00","name":"Cadeaubon \u20ac20","public_description":null,"discount_type":"fixed","discount_value":2000,"currency":"EUR","min_order_minor":null,"max_discount_minor":null,"price_minor":2000,"starts_at":null,"ends_at":null,"claim_validity_days":null,"redemption_validity_days":365,"categories":[],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":null},"missing_for_activation":[],"cost_preview":{"applies":false,"reason":"consumer_funded"},"activated_at":null,"paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"},{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"paused","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":"2026-10-23T15:22:43+00:00","ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    post:
+      tags: [Offers]
+      operationId: createOffer
+      summary: "Create a draft offer"
+      description: |
+        Creates version 1 of the terms. Drafts are allowed during onboarding (card #9); activation needs an approved webshop. `cost_preview` comes from the shared FeeCalculator: for merchant rewards the Shopbonus fee is 30% of the **reward** (never the order value). Percentage offers are previewed on their maximum discount (`basis: maximum_discount`) until the billing basis is decided. Nothing is charged by this endpoint.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                acquisition: { type: string, enum: [merchant_reward, wallet_purchase, promotional_code], description: 'Create only. A: earned by a purchase for a later purchase (merchant-funded, incl. Answer24 claims); B: bought with wallet credit (+ Mollie); C: existing promo code distributed by Shopbonus.' }
+                name: { type: string, maxLength: 150 }
+                public_description: { type: [string, 'null'] }
+                discount_type: { type: string, enum: [percentage, fixed] }
+                discount_value: { type: integer, description: 'Basis points for percentage (1000 = 10%, max 10000) or minor units for fixed.' }
+                currency: { type: string, enum: [EUR] }
+                min_order_minor: { type: [integer, 'null'] }
+                max_discount_minor: { type: [integer, 'null'], description: Required to activate a percentage merchant reward. }
+                price_minor: { type: [integer, 'null'], description: Wallet price; required to activate a wallet_purchase offer. }
+                starts_at: { type: [string, 'null'], format: date-time }
+                ends_at: { type: [string, 'null'], format: date-time }
+                claim_validity_days: { type: [integer, 'null'], description: Default 90 for merchant rewards (Answer24 claim window). }
+                redemption_validity_days: { type: [integer, 'null'] }
+                categories: { type: array, items: { type: string } }
+                products: { type: array, items: { type: string } }
+                combinable: { type: boolean }
+                code_mode: { type: string, enum: [unique, reusable] }
+                allocation_limit: { type: [integer, 'null'] }
+            example: {"acquisition": "merchant_reward", "name": "Woon & Co: 10% korting", "discount_type": "percentage", "discount_value": 1000, "min_order_minor": 10000, "max_discount_minor": 1000, "redemption_validity_days": 90}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/offers' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"acquisition":"merchant_reward","name":"10% korting","discount_type":"percentage","discount_value":1000,"min_order_minor":10000,"max_discount_minor":1000,"redemption_validity_days":90}'
+      responses:
+        '201':
+          description: "Draft created (captured without max_discount_minor, so the preview is unavailable and activation reports it missing)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"draft","terms":{"version":1,"locked":false,"summary":"10% from \u20ac100.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1000,"currency":null,"min_order_minor":10000,"max_discount_minor":null,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":null,"code_mode":null,"allocation_limit":500},"missing_for_activation":["max_discount_minor"],"cost_preview":{"applies":true,"available":false,"reason":"maximum_discount_required"},"activated_at":null,"paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Validation (e.g. percentage above 10000 bps)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1695b-71d8-73ef-a160-dbb3bbe1d78e","fields":{"discount_value":["A percentage discount is in basis points and cannot exceed 10000 (100%)."]}}}
+
+  /api/v1/workspaces/{workspace}/offers/{offer}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, description: Offer public ID., schema: { type: string } }
+    get:
+      tags: [Offers]
+      operationId: showOffer
+      summary: "Offer with current terms and version list"
+      description: |
+        `versions` lists every version. Vouchers always keep the version they were issued under.
+      x-access: verified
+      x-permission: offers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Offer (captured after an edit created version 2)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"},"versions":[{"version":1,"locked":true,"created_at":"2026-10-23T15:22:43+00:00"},{"version":2,"locked":true,"created_at":"2026-10-23T15:22:43+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    patch:
+      tags: [Offers]
+      operationId: updateOffer
+      summary: "Edit terms (in place for drafts, new version once locked)"
+      description: |
+        An unlocked version (draft, never used) is edited in place. Once locked (activated, or a voucher issued), any change creates version N+1 with the unchanged terms copied; issued vouchers are not affected. Ended offers cannot be edited (409 `offer_ended`).
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 150 }
+                public_description: { type: [string, 'null'] }
+                discount_type: { type: string, enum: [percentage, fixed] }
+                discount_value: { type: integer, description: 'Basis points for percentage (1000 = 10%, max 10000) or minor units for fixed.' }
+                currency: { type: string, enum: [EUR] }
+                min_order_minor: { type: [integer, 'null'] }
+                max_discount_minor: { type: [integer, 'null'], description: Required to activate a percentage merchant reward. }
+                price_minor: { type: [integer, 'null'], description: Wallet price; required to activate a wallet_purchase offer. }
+                starts_at: { type: [string, 'null'], format: date-time }
+                ends_at: { type: [string, 'null'], format: date-time }
+                claim_validity_days: { type: [integer, 'null'], description: Default 90 for merchant rewards (Answer24 claim window). }
+                redemption_validity_days: { type: [integer, 'null'] }
+                categories: { type: array, items: { type: string } }
+                products: { type: array, items: { type: string } }
+                combinable: { type: boolean }
+                code_mode: { type: string, enum: [unique, reusable] }
+                allocation_limit: { type: [integer, 'null'] }
+            example: {"discount_value": 1500}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PATCH 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"discount_value":1500}'
+      responses:
+        '200':
+          description: "Updated (captured on an active offer: version 2)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "offer_ended (same envelope)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invalid_status_transition","message":"An offer cannot go from paused to paused.","request_id":"01a1695b-737f-7307-b934-144963fbe078"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/offers/{offer}/activate:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, description: Offer public ID., schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: activateOffer
+      summary: "Activate or resume"
+      description: |
+        Draft or paused → active. Requires a commercially active webshop (403 `workspace_not_active` / `agreement_reacceptance_required`) and complete terms (422 `offer_incomplete` with `details.missing_fields`). Locks the current version.
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>/activate' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Active."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":1,"locked":true,"summary":"10% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1000,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "invalid_status_transition."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invalid_status_transition","message":"An offer cannot go from paused to paused.","request_id":"01a1695b-737f-7307-b934-144963fbe078"}}
+        '422':
+          description: "offer_incomplete."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"offer_incomplete","message":"The offer is incomplete.","request_id":"01a1695b-729e-732a-b52d-3ed7afa26f9c","details":{"missing_fields":["max_discount_minor"]}}}
+
+  /api/v1/workspaces/{workspace}/offers/{offer}/pause:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, description: Offer public ID., schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: pauseOffer
+      summary: "Pause"
+      description: |
+        Active → paused. Stops new issuance; already issued vouchers stay valid.
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>/pause' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Paused."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"paused","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":"2026-10-23T15:22:43+00:00","ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "invalid_status_transition."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invalid_status_transition","message":"An offer cannot go from paused to paused.","request_id":"01a1695b-737f-7307-b934-144963fbe078"}}
+
+  /api/v1/workspaces/{workspace}/offers/{offer}/end:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, description: Offer public ID., schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: endOffer
+      summary: "End permanently"
+      description: |
+        Any non-ended status → ended (final). Issued vouchers stay valid under their own terms.
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>/end' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Ended."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"ended","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":"2026-10-23T15:22:43+00:00","created_at":"2026-10-23T15:22:43+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "invalid_status_transition."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invalid_status_transition","message":"An offer cannot go from paused to paused.","request_id":"01a1695b-737f-7307-b934-144963fbe078"}}
 
 components:
   parameters:

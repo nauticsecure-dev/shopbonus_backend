@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Offers\OfferController;
 use App\Http\Controllers\Api\V1\Onboarding\AgreementController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessDirectoryController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessProfileController;
@@ -149,6 +150,18 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('orders/export', [OrderController::class, 'export'])
                     ->middleware(['workspace.can:orders.export', 'throttle:order-export'])->name('orders.export');
                 Route::get('orders/{order}', [OrderController::class, 'show'])->middleware('workspace.can:orders.view')->name('orders.show');
+
+                // Offers (Trello #7). Drafts can be prepared during onboarding (card #9);
+                // activating and resuming need a commercially active webshop.
+                Route::get('offers', [OfferController::class, 'index'])->middleware('workspace.can:offers.view')->name('offers.index');
+                Route::get('offers/{offer}', [OfferController::class, 'show'])->middleware('workspace.can:offers.view')->name('offers.show');
+                Route::middleware('workspace.can:offers.manage')->group(function () {
+                    Route::post('offers', [OfferController::class, 'store'])->name('offers.store');
+                    Route::patch('offers/{offer}', [OfferController::class, 'update'])->name('offers.update');
+                    Route::post('offers/{offer}/activate', [OfferController::class, 'activate'])->middleware('workspace.commercial')->name('offers.activate');
+                    Route::post('offers/{offer}/pause', [OfferController::class, 'pause'])->name('offers.pause');
+                    Route::post('offers/{offer}/end', [OfferController::class, 'end'])->name('offers.end');
+                });
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])

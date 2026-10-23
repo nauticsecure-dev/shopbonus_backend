@@ -95,4 +95,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Fees (Trello board: 30% Shopbonus fee ON TOP OF the reward amount)
+    |--------------------------------------------------------------------------
+    */
+
+    'fees' => [
+        'direct_reward_fee_bps' => (int) env('DIRECT_REWARD_FEE_BPS', 3000),
+    ],
+
+    'offers' => [
+        // Currencies merchants may price offers in (Netherlands-first).
+        'currencies' => ['EUR'],
+        // Answer24 / reward claim window default (Trello: 90 days).
+        'default_claim_validity_days' => 90,
+    ],
+
 ];

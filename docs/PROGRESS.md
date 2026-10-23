@@ -17,7 +17,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Workspaces, onboarding, agreements, admin review | VERIFIED_WORKING (B03a–d); staging p95 NOT RUN | `tests/Feature/Workspaces/*` |
 | Provider adapters and webhooks | PARTIAL: framework + WooCommerce/Shopify/Shopbonus-v1 adapters VERIFIED_WORKING against fixtures (B04); live provider behaviour NOT VERIFIED; 7 platforms BLOCKED | `tests/Unit/Integrations/*`, `tests/Feature/Integrations/*` |
 | Normalised orders, Order Sheet | VERIFIED_WORKING (B05) against signed fixture webhooks; live stores NOT VERIFIED | `tests/Feature/Orders/*` |
-| Offers / voucher codes | MISSING | B06 |
+| Offers / voucher codes | PARTIAL: offers with versioned terms + fee preview VERIFIED_WORKING (B06a); code inventory MISSING (B06b) | `tests/Feature/Offers/*` |
 | Answer24 | MISSING | B07 |
 | Consumer profile/discovery | MISSING | B08 |
 | Wallet ledgers | MISSING | B09 |
@@ -43,6 +43,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B03d agreements, review, activation | `5acdfbd` | 213 tests / 1772 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures incl. session-based admin step-up and evidence round-trip | B03 complete |
 | 2026-10-23 | Claude (Opus 5.5) | B04 connector framework | `820c6b5` | 255 tests / 2046 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; webhook signatures exercised with openssl-computed HMACs against the real server | No live provider tested |
 | 2026-10-23 | Claude (Opus 5.5) | B05 orders & Order Sheet | `7e391be` | 270 tests / 2190 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; end-to-end capture via signed webhooks | Out-of-order safe ingestion |
+| 2026-10-23 | Claude (Opus 5.5) | B06a offers | B06a commit | 279 tests / 2355 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures | Versioned terms, 30% fee preview |
 
 ### B01a detail
 
