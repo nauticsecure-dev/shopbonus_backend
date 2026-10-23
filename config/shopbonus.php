@@ -14,6 +14,8 @@ return [
     'api' => [
         // Default per-client limit for /api/v1 (per user when authenticated, else per IP).
         'rate_limit_per_minute' => (int) env('API_RATE_LIMIT_PER_MINUTE', 60),
+        // Browsable API docs at /docs (OpenAPI viewer + reference). Off unless enabled; never on by default in production.
+        'docs_enabled' => (bool) env('API_DOCS_ENABLED', env('APP_ENV', 'production') !== 'production'),
     ],
 
     /*
@@ -122,6 +124,27 @@ return [
     | OPEN-MARKETING-CONSENT). Opportunities are still evaluated and queued.
     |
     */
+
+    // Public discovery (Trello #18). Category keys are stable API values; labels NL/EN.
+    'discovery' => [
+        'cache_ttl_seconds' => (int) env('DISCOVERY_CACHE_TTL_SECONDS', 60),
+        'max_per_page' => 50,
+        'logo_max_kb' => 1024,
+        'categories' => [
+            'fashion' => ['nl' => 'Mode', 'en' => 'Fashion'],
+            'home_living' => ['nl' => 'Wonen', 'en' => 'Home & living'],
+            'electronics' => ['nl' => 'Elektronica', 'en' => 'Electronics'],
+            'beauty_health' => ['nl' => 'Beauty & gezondheid', 'en' => 'Beauty & health'],
+            'sports_outdoor' => ['nl' => 'Sport & outdoor', 'en' => 'Sports & outdoor'],
+            'kids_toys' => ['nl' => 'Kinderen & speelgoed', 'en' => 'Kids & toys'],
+            'food_drinks' => ['nl' => 'Eten & drinken', 'en' => 'Food & drinks'],
+            'books_media' => ['nl' => 'Boeken & media', 'en' => 'Books & media'],
+            'garden_diy' => ['nl' => 'Tuin & klussen', 'en' => 'Garden & DIY'],
+            'pets' => ['nl' => 'Dieren', 'en' => 'Pets'],
+            'travel_leisure' => ['nl' => 'Reizen & vrije tijd', 'en' => 'Travel & leisure'],
+            'other' => ['nl' => 'Overig', 'en' => 'Other'],
+        ],
+    ],
 
     'answer24' => [
         'dispatch_enabled' => (bool) env('ANSWER24_DISPATCH_ENABLED', false),

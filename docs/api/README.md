@@ -3309,6 +3309,259 @@ Outbox message queued at claim (`answer24.claim_completed`; delivered by the dis
 
 ---
 
+## Discovery: public webshops and offers (B08a, Trello #18)
+
+Captured 2026-10-23 against local MySQL + Redis. Two approved webshops: *Fietsen Utrecht*, with an active "€10 korting" offer and two codes, and *Woon & Co*, whose "15% op meubels" offer has no codes left. Eva is an employee of Woon & Co.
+
+Browsable docs: when `API_DOCS_ENABLED` is on (the default outside production), `/docs` shows this spec in an OpenAPI viewer and `/docs/reference` shows this README rendered.
+
+### Merchant: public profile
+
+**Before the first save**
+
+`GET /api/v1/workspaces/01m5n5artq8hxe2kt1j9rfy2jc/public-profile`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-683f-7160-af17-174733518203
+
+{"data":{"slug":null,"display_name":"Fietsen Utrecht","short_description":null,"description":null,"website_url":null,"categories":[],"has_logo":false,"published":false,"published_at":null,"slug_locked":false,"listed":false,"listing_blockers":["profile_not_published"],"public_url_path":null}}
+```
+
+**Publishing an incomplete profile → 422**
+
+`PUT /api/v1/workspaces/01m5n5artq8hxe2kt1j9rfy2jc/public-profile {"published":true}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a55-68dc-7050-84ed-082a1487bc91
+Content-Type: application/json
+
+{"error":{"status":422,"code":"public_profile_incomplete","message":"Complete the public profile before publishing it.","request_id":"01a16a55-68dc-7050-84ed-082a1487bc91","details":{"missing":["short_description","categories"]}}}
+```
+
+**HTML is refused → 422**
+
+`PUT /api/v1/workspaces/01m5n5artq8hxe2kt1j9rfy2jc/public-profile {"description":"<script>alert(1)</script>"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a55-6941-73f4-a7c5-3d2f0546f0e5
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a55-6941-73f4-a7c5-3d2f0546f0e5","fields":{"description":["The description field format is invalid."]}}}
+```
+
+**Complete and publish**
+
+`PUT /api/v1/workspaces/01m5n5artq8hxe2kt1j9rfy2jc/public-profile {"short_description":"Fietsen, onderdelen en reparatie in Utrecht","description":"Familiebedrijf sinds 1988.","website_url":"https://fietsen-utrecht.nl","categories":["sports_outdoor"],"published":true}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-697f-72bd-9f37-9806538d1359
+
+{"data":{"slug":"fietsen-utrecht","display_name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","description":"Familiebedrijf sinds 1988.","website_url":"https:\/\/fietsen-utrecht.nl","categories":["sports_outdoor"],"has_logo":false,"published":true,"published_at":"2026-10-23T19:55:44+00:00","slug_locked":true,"listed":true,"listing_blockers":[],"public_url_path":"\/webshops\/fietsen-utrecht"}}
+```
+
+**Changing the slug after publishing → 409**
+
+`PUT /api/v1/workspaces/01m5n5artq8hxe2kt1j9rfy2jc/public-profile {"slug":"fietsen-nl"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16a55-69ca-714c-912d-581f04d05685
+Content-Type: application/json
+
+{"error":{"status":409,"code":"slug_locked","message":"The public address cannot change after the profile was first published.","request_id":"01a16a55-69ca-714c-912d-581f04d05685"}}
+```
+
+**Employee without settings.manage → 403**
+
+`PUT /api/v1/workspaces/01m5n5arva9sbqgpew11z4kndj/public-profile {"short_description":"x"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16a55-69ff-703b-972c-d67613bf0813
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16a55-69ff-703b-972c-d67613bf0813","details":{"required_permission":"settings.manage"}}}
+```
+
+**Logo upload: SVG refused (multipart `logo=@logo.svg`)**
+
+`POST /api/v1/workspaces/{workspace}/public-profile/logo (multipart: logo=@logo.svg;type=image/svg+xml)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a55-6a82-70d3-bc92-59c8c798040f
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a55-6a82-70d3-bc92-59c8c798040f","fields":{"logo":["The logo field must be a file of type: png, jpg, jpeg, webp.","The logo field must be a file of type: image\/png, image\/jpeg, image\/webp."]}}}
+```
+
+**Logo upload: 160×160 PNG (multipart `logo=@logo.png`)**
+
+`POST /api/v1/workspaces/{workspace}/public-profile/logo (multipart: logo=@logo.png;type=image/png)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6afc-71e5-9811-37893da8dc7e
+
+{"data":{"slug":"fietsen-utrecht","display_name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","description":"Familiebedrijf sinds 1988.","website_url":"https:\/\/fietsen-utrecht.nl","categories":["sports_outdoor"],"has_logo":true,"published":true,"published_at":"2026-10-23T19:55:44+00:00","slug_locked":true,"listed":true,"listing_blockers":[],"public_url_path":"\/webshops\/fietsen-utrecht"}}
+```
+
+**Remove the logo**
+
+`DELETE /api/v1/workspaces/01m5n5artq8hxe2kt1j9rfy2jc/public-profile/logo`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6d8e-7005-ae03-c5e7847e6d20
+
+{"data":{"slug":"fietsen-utrecht","display_name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","description":"Familiebedrijf sinds 1988.","website_url":"https:\/\/fietsen-utrecht.nl","categories":["sports_outdoor"],"has_logo":false,"published":true,"published_at":"2026-10-23T19:55:44+00:00","slug_locked":true,"listed":true,"listing_blockers":[],"public_url_path":"\/webshops\/fietsen-utrecht"}}
+```
+
+### Public discovery (no authentication)
+
+**Categories**
+
+`GET /api/v1/public/categories`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6b56-7146-9727-c25ae618e4b0
+
+{"data":[{"key":"fashion","label":{"nl":"Mode","en":"Fashion"}},{"key":"home_living","label":{"nl":"Wonen","en":"Home & living"}},{"key":"electronics","label":{"nl":"Elektronica","en":"Electronics"}},{"key":"beauty_health","label":{"nl":"Beauty & gezondheid","en":"Beauty & health"}},{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}},{"key":"kids_toys","label":{"nl":"Kinderen & speelgoed","en":"Kids & toys"}},{"key":"food_drinks","label":{"nl":"Eten & drinken","en":"Food & drinks"}},{"key":"books_media","label":{"nl":"Boeken & media","en":"Books & media"}},{"key":"garden_diy","label":{"nl":"Tuin & klussen","en":"Garden & DIY"}},{"key":"pets","label":{"nl":"Dieren","en":"Pets"}},{"key":"travel_leisure","label":{"nl":"Reizen & vrije tijd","en":"Travel & leisure"}},{"key":"other","label":{"nl":"Overig","en":"Other"}}]}
+```
+
+**All listed webshops**
+
+`GET /api/v1/public/webshops?per_page=10`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6b82-7111-9de1-de582cdc3b91
+
+{"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","logo_url":"http:\/\/127.0.0.1:8788\/api\/v1\/public\/webshops\/fietsen-utrecht\/logo?v=1792785345","categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}],"offer_count":1,"featured_offer":{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}}},{"slug":"woon-co","name":"Woon & Co","short_description":"Meubels en woonaccessoires","logo_url":null,"categories":[{"key":"home_living","label":{"nl":"Wonen","en":"Home & living"}}],"offer_count":1,"featured_offer":{"slug":"15-op-meubels-0wvxcf","title":"15% op meubels","summary":"15%, maximum \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":null,"price_minor":null,"ends_at":null,"availability":"sold_out","webshop":{"slug":"woon-co","name":"Woon & Co"}}}],"meta":{"current_page":1,"last_page":1,"per_page":10,"total":2}}
+```
+
+**Search + only webshops with an obtainable offer**
+
+`GET /api/v1/public/webshops?search=fiets&has_offers=1`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6bc1-704f-a1aa-58535673ab87
+
+{"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","logo_url":"http:\/\/127.0.0.1:8788\/api\/v1\/public\/webshops\/fietsen-utrecht\/logo?v=1792785345","categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}],"offer_count":1,"featured_offer":{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}}}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":1}}
+```
+
+**Unknown category → 422**
+
+`GET /api/v1/public/webshops?category=weapons`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a55-6bfc-70bc-a404-8ba1ea474f03
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a55-6bfc-70bc-a404-8ba1ea474f03","fields":{"category":["The selected category is invalid."]}}}
+```
+
+**Webshop detail**
+
+`GET /api/v1/public/webshops/fietsen-utrecht`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6c23-73bc-a2d4-69ccb3cff3c7
+
+{"data":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","logo_url":"http:\/\/127.0.0.1:8788\/api\/v1\/public\/webshops\/fietsen-utrecht\/logo?v=1792785345","categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}],"description":"Familiebedrijf sinds 1988.","website_url":"https:\/\/fietsen-utrecht.nl","offers":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}}]}}
+```
+
+**Unknown or unlisted webshop → 404**
+
+`GET /api/v1/public/webshops/bestaat-niet`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16a55-6c52-73d0-b824-177c21fce736
+Content-Type: application/json
+
+{"error":{"status":404,"code":"webshop_not_found","message":"This webshop is not available.","request_id":"01a16a55-6c52-73d0-b824-177c21fce736"}}
+```
+
+**All offers**
+
+`GET /api/v1/public/offers`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6ccc-71c4-a30e-761d7c9dcc3e
+
+{"data":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}},{"slug":"15-op-meubels-0wvxcf","title":"15% op meubels","summary":"15%, maximum \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":null,"price_minor":null,"ends_at":null,"availability":"sold_out","webshop":{"slug":"woon-co","name":"Woon & Co"}}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":2}}
+```
+
+**Only obtainable offers**
+
+`GET /api/v1/public/offers?available=1`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6cff-72bc-a09b-7c72ba68fd62
+
+{"data":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":1}}
+```
+
+**Offer detail**
+
+`GET /api/v1/public/offers/eur10-korting-op-je-volgende-fiets-9taast`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a55-6d33-70b4-8f10-577a9c384c33
+
+{"data":{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"},"description":"Geldig op alle fietsen en accessoires.","max_discount_minor":null,"starts_at":null,"redemption_validity_days":90,"categories":[],"products":[],"combinable":false,"terms_version":1}}
+```
+
+**Unknown, paused or ended offer → 404**
+
+`GET /api/v1/public/offers/bestaat-niet-abc123`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16a55-6d63-7075-b3d5-8959ec9bde0d
+Content-Type: application/json
+
+{"error":{"status":404,"code":"offer_not_found","message":"This offer is not available.","request_id":"01a16a55-6d63-7075-b3d5-8959ec9bde0d"}}
+```
+
+**Logo** (`GET /api/v1/public/webshops/fietsen-utrecht/logo`): binary, response headers only:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Cache-Control: max-age=86400, public
+X-Content-Type-Options: nosniff
+Content-Security-Policy: default-src 'none'
+Content-Length: 471
+Content-Disposition: inline; filename=logo
+X-Request-Id: 01a16a55-6c99-72a5-9d81-c544a8284c54
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

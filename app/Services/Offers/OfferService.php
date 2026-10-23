@@ -43,7 +43,7 @@ class OfferService
                 ...$defaults, ...Arr::only($terms, OfferVersion::TERM_FIELDS),
                 'version' => 1, 'created_by' => $actor->user_id,
             ]);
-            $offer->forceFill(['current_version_id' => $version->id])->save();
+            $offer->forceFill(['current_version_id' => $version->id, 'slug' => Offer::makeSlug($version->name)])->save();
 
             $this->audit->record('offer.created', category: AuditCategory::Voucher, resource: $offer, webshopId: $offer->webshop_id,
                 metadata: ['acquisition' => $acquisition->value, 'version' => 1]);

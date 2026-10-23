@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WebshopStatus;
+use App\Services\Discovery\DiscoveryCache;
 use Carbon\CarbonImmutable;
 use Database\Factories\WebshopFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -36,6 +37,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property array<string, mixed>|null $review_flags
  * @property array<string, mixed>|null $answer24_settings
  * @property-read BusinessProfile|null $businessProfile
+ * @property-read WebshopPublicProfile|null $publicProfile
  * @property CarbonImmutable $created_at
  */
 class Webshop extends Model
@@ -57,6 +59,16 @@ class Webshop extends Model
         'rejected_at' => null,
         'answer24_settings' => null,
     ];
+
+    protected static function booted(): void
+    {
+        // Discovery shows only approved webshops: a status change must reach the public cache.
+        static::saved(function (Webshop $webshop) {
+            if ($webshop->wasChanged(['status', 'name'])) {
+                DiscoveryCache::flush();
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -89,6 +101,12 @@ class Webshop extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(WebshopMembership::class);
+    }
+
+    /** @return HasOne<WebshopPublicProfile, $this> */
+    public function publicProfile(): HasOne
+    {
+        return $this->hasOne(WebshopPublicProfile::class);
     }
 
     /** @return HasOne<BusinessProfile, $this> */

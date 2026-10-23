@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopControlle
 use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
+use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
+use App\Http\Controllers\Api\V1\Workspaces\PublicProfileController;
 use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +68,16 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             Route::post('claims/{claim}/reminders', [Answer24Controller::class, 'reminder'])
                 ->middleware('integration.signed:answer24.claims')->name('claims.reminders.store');
         });
+
+    // Public discovery (Trello #18): published data of approved webshops only.
+    Route::prefix('public')->name('public.')->group(function () {
+        Route::get('categories', [PublicDiscoveryController::class, 'categories'])->name('categories.index');
+        Route::get('webshops', [PublicDiscoveryController::class, 'webshops'])->name('webshops.index');
+        Route::get('webshops/{slug}', [PublicDiscoveryController::class, 'webshop'])->name('webshops.show');
+        Route::get('webshops/{slug}/logo', [PublicDiscoveryController::class, 'logo'])->name('webshops.logo');
+        Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
+        Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
+    });
 
     // Claim link preview (public; the token is the secret).
     Route::post('claims/preview', [ClaimController::class, 'preview'])->middleware('throttle:claims')->name('claims.preview');
@@ -202,6 +214,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::put('answer24/settings', [ContactSettingsController::class, 'update'])->middleware('workspace.can:agreements.accept')->name('answer24.settings.update');
                 Route::post('answer24/suppressions', [ContactSettingsController::class, 'suppress'])->middleware('workspace.can:settings.manage')->name('answer24.suppressions.store');
                 Route::get('answer24/opportunities', [ContactSettingsController::class, 'opportunities'])->middleware('workspace.can:orders.view')->name('answer24.opportunities.index');
+
+                // Public discovery profile (Trello #18).
+                Route::get('public-profile', [PublicProfileController::class, 'show'])->middleware('workspace.can:settings.view')->name('public-profile.show');
+                Route::middleware('workspace.can:settings.manage')->group(function () {
+                    Route::put('public-profile', [PublicProfileController::class, 'update'])->name('public-profile.update');
+                    Route::post('public-profile/logo', [PublicProfileController::class, 'uploadLogo'])->name('public-profile.logo.store');
+                    Route::delete('public-profile/logo', [PublicProfileController::class, 'deleteLogo'])->name('public-profile.logo.destroy');
+                });
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])

@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08 onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08a (public discovery) is done; B08b onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -19,7 +19,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Normalised orders, Order Sheet | VERIFIED_WORKING (B05) against signed fixture webhooks; live stores NOT VERIFIED | `tests/Feature/Orders/*` |
 | Offers / voucher codes | VERIFIED_WORKING (B06a+B06b): versioned offers, fee preview, single code inventory, atomic reservation (real concurrency test), lifecycle, verified redemption; platform coupon verification BLOCKED | `tests/Feature/Offers/*` |
 | Answer24 | VERIFIED_WORKING on the Shopbonus side (B07a+B07b): eligibility, grouping, cancellation, outbox, signed inbound channel, handoff → reserved code + single-use claim, consumer claim, reminder slots, dispatcher. Outbound dispatch disabled by default; real Answer24 NOT VERIFIED (no API) | `tests/Feature/Answer24/*` |
-| Consumer profile/discovery | MISSING | B08 |
+| Consumer profile/discovery | PARTIAL: public discovery + merchant public profile VERIFIED_WORKING (B08a); consumer profile/preferences/benefits MISSING (B08b) | `tests/Feature/Discovery/*` |
 | Wallet ledgers | MISSING | B09 |
 | Affiliate (Daisycon/TradeTracker) | MISSING; credit timing BLOCKED on OPEN-AFFILIATE-CREDIT-TIMING | B10 |
 | Mollie checkout, merchant funding, Moneybird | MISSING; live money BLOCKED on OPEN-FINANCIAL-LEGAL | B11–B12 |
@@ -47,6 +47,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B06b code inventory & vouchers | `c07f778` | SQLite 298 passed + 3 skipped; MySQL 301 passed (incl. forked-process race tests; mutation-tested); Pint, PHPStan L6, audit clean | One voucher system |
 | 2026-10-23 | Claude (Opus 5.5) | B07a Answer24 eligibility | `5c24240` | MySQL 314 passed; SQLite 311 + 3 skipped; Pint, PHPStan L6, audit clean; end-to-end capture via signed webhooks | Dispatch off |
 | 2026-10-23 | Claude (Opus 5.5) | B07b Answer24 channel, handoff, claim | `0c6c035` | MySQL 327 passed; SQLite 324 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (signed requests computed with openssl; dispatcher run against a local Answer24 stand-in); 2 mutations caught | B07 complete; dispatch still off |
+| 2026-10-23 | Claude (Opus 5.5) | B08a public discovery + `/docs` viewer | `B08A_SHA` | MySQL 335 passed; SQLite 332 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures incl. multipart logo upload and binary logo; 2 mutations caught | |
 
 ### B01a detail
 
@@ -118,6 +119,11 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Delivered (B07b):** migration `2026_10_23_240000_create_answer24_channel_tables` (`integration_clients`, `integration_inbound_events`, `contact_opportunity_events`, `voucher_claims`, `voucher_claim_reminders`); `VerifyIntegrationSignature` (`integration.signed:<scope>`), `Support\SignatureV1`; `Services\Answer24\{ContactResults, ClaimLinks, Answer24Client, OutboxDispatcher}`; `Answer24Controller` (contact-results, handoffs, claim status, reminders); `Claims\ClaimController` (preview, accept); commands `shopbonus:create-integration-client`, `shopbonus:dispatch-outbox` (every minute; no-op while disabled); `shopbonus:expire-vouchers` now also closes claims; access level `integration` in `OpenApiCoverageTest`.
 - **Card mapping:** #1 E2E 9 → `Answer24ChannelTest::test_card1_e2e9_*` and `test_callbacks_cannot_cross_tenants_*`; #10 §6 reminder test → `test_card10_reminders_*`, `test_suppressed_customer_gets_no_reminder`; #23 Answer24 free voucher (reserve at handoff, single use, 90-day expiry and release) → `test_card1_e2e9_*`, `test_unclaimed_entitlement_expires_*`, `test_out_of_stock_handoff_*`; signature/scope/replay → `test_signature_scope_and_replay_are_enforced`; dispatcher → `test_dispatcher_*`, `test_cancellation_during_dispatch_*`.
 - **Not verified:** real Answer24 (no API; OPEN-ANSWER24-CONTRACT). Consumer account creation from a claim link uses the normal signup; linking the central points wallet is B09.
+
+### B08 detail
+
+- **Delivered (B08a):** migration `2026_10_23_250000_create_public_discovery_tables` (`webshop_public_profiles`, `webshop_public_categories`, `offers.slug` with backfill); `Services\Discovery\{PublicCatalog, PublicProfileService, DiscoveryCache}`; `PublicDiscoveryController` (`/api/v1/public/...`), `Workspaces\PublicProfileController`; cache invalidation hooks on `Webshop`, `Offer`, `OfferVersion`, `WebshopPublicProfile`; docs viewer `Docs\ApiDocsController` + `resources/views/docs/*`.
+- **Card #18 mapping:** E2E 2 → `PublicDiscoveryTest::test_card18_e2e2_*`; E2E 3 → `test_card18_e2e3_*`; E2E 4 → `test_card18_e2e4_*` (sold-out/expired/paused; viewing reserves nothing); E2E 10 partial → cache invalidation, logo validation, docs. E2E 1 (homepage/CMS/cookies) is frontend + B15; E2E 5–9 are B08b/B09.
 
 ## How to update
 

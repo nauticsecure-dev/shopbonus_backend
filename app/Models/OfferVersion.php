@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Discovery\DiscoveryCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -66,6 +67,7 @@ class OfferVersion extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => DiscoveryCache::flush());
         // Terms that vouchers were issued under can never change.
         static::updating(function (self $version) {
             if ($version->getOriginal('locked_at') !== null && $version->isDirty(self::TERM_FIELDS)) {

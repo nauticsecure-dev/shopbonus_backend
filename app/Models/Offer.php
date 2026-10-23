@@ -4,15 +4,18 @@ namespace App\Models;
 
 use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
+use App\Services\Discovery\DiscoveryCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
  * @property string $public_id
+ * @property string|null $slug
  * @property int $webshop_id
  * @property OfferAcquisition $acquisition
  * @property OfferStatus $status
@@ -31,6 +34,17 @@ class Offer extends Model
     protected $guarded = ['id'];
 
     protected $hidden = ['id', 'webshop_id', 'current_version_id', 'created_by'];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => DiscoveryCache::flush());
+    }
+
+    /** Readable, stable public slug: name plus a short random suffix (Trello #18). */
+    public static function makeSlug(string $name): string
+    {
+        return (Str::limit(Str::slug($name), 60, '') ?: 'offer').'-'.Str::lower(Str::random(6));
+    }
 
     protected function casts(): array
     {

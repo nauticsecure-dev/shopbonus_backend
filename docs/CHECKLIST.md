@@ -251,7 +251,31 @@ Contract is Shopbonus-defined (`shopbonus-answer24-v1`, OPEN-ANSWER24-CONTRACT);
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`0c6c035`)
 - [ ] Real Answer24 end-to-end (blocked: Answer24 has no Shopbonus API yet, OPEN-ANSWER24-CONTRACT)
 
-- [ ] B08 Consumer profile/discovery
+## B08 Consumer discovery and profile (Trello #18, #10, #5 consent parts)
+
+Sliced: B08a public discovery; B08b consumer profile, preferences, favourites, My Vouchers, dashboard, privacy requests. Wallet balance arrives with B09 (dashboard shows `wallet: null` until then, never a fabricated number).
+
+### B08a Public discovery
+
+- [x] `webshop_public_profiles` (stable readable slug, display name, short description, description, website, logo, categories, published flag/at) + `webshop_public_categories` index table; category taxonomy in config (NL/EN labels) (`B08A_SHA`)
+- [x] Offer `slug` (stable, readable, unique); backfilled for existing offers (`B08A_SHA`)
+- [x] Merchant `GET/PUT /workspaces/{w}/public-profile` (settings.view / settings.manage): plain text only (HTML refused), website must be http(s), publish requires name + short description + category; slug editable until first publish; audited (`B08A_SHA`)
+- [x] Merchant logo upload/remove (PNG/JPEG/WebP, ≤1 MB, ≤2000 px, content checked; SVG refused); served only through the API, never a storage path (`B08A_SHA`)
+- [x] `GET /api/v1/public/categories` (`B08A_SHA`)
+- [x] `GET /api/v1/public/webshops` (search, category, has_offers, sort relevance/name/newest, pagination ≤50): only approved webshops with a published profile; never suspended/rejected/draft/unpublished (`B08A_SHA`)
+- [x] `GET /api/v1/public/webshops/{slug}`: public profile + active offers only; no ownership evidence, agreements, orders, members or integration data; unavailable → 404 (`B08A_SHA`)
+- [x] `GET /api/v1/public/webshops/{slug}/logo` (`B08A_SHA`)
+- [x] `GET /api/v1/public/offers` and `/public/offers/{slug}`: only active offers of listed webshops; availability `available` / `sold_out` / `expired` / `upcoming`; paused/ended/draft → 404; viewing never reserves a code (`B08A_SHA`)
+- [x] Public read cache with version-bump invalidation on profile, offer and webshop status changes (short TTL for stock) (`B08A_SHA`)
+- [x] Tests: card #18 E2E 2 (search/filter/sort/pagination, only approved+published), E2E 3 (no private data), E2E 4 (paused/expired/sold-out), cache invalidation, logo validation, merchant permission checks (`B08A_SHA`)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`B08A_SHA`)
+- [x] Browsable API docs at `/docs` (OpenAPI viewer) and `/docs/reference` (README rendered, raw HTML escaped); `API_DOCS_ENABLED`, off in production by default (`B08A_SHA`)
+- [ ] Staging p95 < 300 ms for directory requests (blocked: no staging)
+
+### B08b Consumer profile, preferences and benefits
+
+- [ ] Expand when started
+
 - [ ] B09 Wallet ledger core
 - [ ] B10 Affiliate integrations (credit timing decision required)
 - [ ] B11 Voucher checkout/Mollie
