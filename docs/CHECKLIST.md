@@ -70,7 +70,7 @@ Auth mode decided by card #4: Fortify + Sanctum stateful SPA cookies (D-011).
 - [x] Found during capture and fixed: guest-only routes now 409 for signed-in JSON clients; Fortify session routes re-check account status; intentional 5xx never include debug data (`c95e1e4`)
 - [ ] Staging p95 for `/me` (<250 ms) and signup (<400 ms) (blocked: no staging environment)
 - [ ] Super Admin/owner MFA (moved to B16 by design; Fortify 2FA re-enabled there)
-- [ ] Secured email-change re-verification flow (moved to B08)
+- [x] Secured email-change re-verification flow (moved to B08; done in `c2dfb15`)
 
 ## B03 Workspaces and onboarding (Trello #2 #3 #16; #9 is B06)
 
@@ -147,30 +147,28 @@ No agreement text is seeded: legal content comes from the owner via Super Admin 
 
 ## B04–B19
 
-- [ ] Live verification of WooCommerce / Shopify adapters (blocked: no store or sandbox access; checklist in docs/integrations/VERIFICATION.md)
-- [ ] Adapters for Wix, BigCommerce, Ecwid, Lightspeed, Squarespace, Mijnwebwinkel, CCV (blocked: auth mechanisms and credentials unverified)
-- [ ] Private modules for PrestaShop/OpenCart/Shopware/Magento (outside backend scope: plugin code; the format they must speak is specified)
-
-## B04–B19
-
 ## B04 Ecommerce provider contracts (Trello #1 "Supported platforms", "Shared backend"; #3 A.4)
 
 No provider credentials exist: every real-platform adapter is NOT VERIFIED until tested against a real store or sandbox (OPEN-PROVIDER-CAPABILITIES).
 
-- [ ] Capability matrix (`config/integrations.php`): per platform method, auth, signature scheme, order data source, reliability, adapter class or none, verification state; `GET /api/v1/integrations/platforms`
-- [ ] `webshop_connections`: public ID, webshop, platform, method, status (setup_required, testing, connected, limited, error, disconnected), encrypted credentials, opaque webhook token, limitations, health timestamps, safe last error; one non-disconnected connection per webshop+platform
-- [ ] Connector interface (`setupInstructions`, `connect`, `testConnection`, `verifyIncomingEvent`, `fetchOrder`, `normalizeOrder`, `syncOrders`, `disconnect`) + `ConnectorRegistry`
-- [ ] `NormalizedOrder` DTO: integer minor units, ISO currency, mandatory fields (external ID, reference, first name, email, amount, currency, timestamps), optional phone/payment/cancel/refund; missing mandatory → incomplete (never fabricated)
-- [ ] WooCommerce adapter: `X-WC-Webhook-Signature` base64 HMAC-SHA256 of the raw body, delivery-ID dedupe, ping handling, order payload mapping (NOT VERIFIED live)
-- [ ] Shopify adapter: `X-Shopify-Hmac-Sha256`, `X-Shopify-Webhook-Id` dedupe, orders/* topics, redacted-field handling → limited (NOT VERIFIED live)
-- [ ] Generic Shopbonus signed-webhook adapter for private modules: `X-Shopbonus-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "t.body">`, 5-minute replay window, event-ID dedupe; fully specified format
-- [ ] `webhook_events`: dedupe key unique per connection, verification result, topic, encrypted payload (pruned after 14 days by scheduled command), safe error, processing status
-- [ ] `POST /api/v1/webhooks/{platform}/{token}`: public, throttled per token, verifies before trusting anything, constant-time compare, 401 on bad signature, 404 on unknown or disconnected token, fast 202 and async processing; duplicates acknowledged without reprocessing
-- [ ] Event processing job: normalise; the first verified complete order moves the connection to connected (or limited); a ping moves setup_required to testing; never connected from saved credentials alone
-- [ ] Merchant endpoints (integrations.view / integrations.manage): list, create (secret shown once), show with instructions, rotate secret (shown once), verify checklist, disconnect (credentials wiped), sanitized event history
-- [ ] Audit connection changes, secret rotations, rejected signatures (rate-limited)
-- [ ] Tests: signature valid/invalid/replayed/old timestamp per adapter, duplicate delivery processed once, unsupported platform refused, cross-tenant 404, secret never in responses after creation or in logs, card #1 E2E 2 "unsupported connections cannot activate", E2E 3 incomplete access blocks connected (fixture), E2E 4 mandatory/phone rules at normalisation
-- [ ] Docs with real captures; PROGRESS/HANDOFF/TASKS updated
+- [x] Capability matrix (`config/integrations.php`): per platform method, auth, signature scheme, order data source, reliability, adapter class or none, verification state; `GET /api/v1/integrations/platforms` (`820c6b5`)
+- [x] `webshop_connections`: public ID, webshop, platform, method, status (setup_required, testing, connected, limited, error, disconnected), encrypted credentials, opaque webhook token, limitations, health timestamps, safe last error; one non-disconnected connection per webshop+platform (`820c6b5`)
+- [x] Connector interface (`setupInstructions`, `connect`, `testConnection`, `verifyIncomingEvent`, `fetchOrder`, `normalizeOrder`, `syncOrders`, `disconnect`) + `ConnectorRegistry` (`820c6b5`)
+- [x] `NormalizedOrder` DTO: integer minor units, ISO currency, mandatory fields (external ID, reference, first name, email, amount, currency, timestamps), optional phone/payment/cancel/refund; missing mandatory → incomplete (never fabricated) (`820c6b5`)
+- [x] WooCommerce adapter: `X-WC-Webhook-Signature` base64 HMAC-SHA256 of the raw body, delivery-ID dedupe, ping handling, order payload mapping (NOT VERIFIED live) (`820c6b5`)
+- [x] Shopify adapter: `X-Shopify-Hmac-Sha256`, `X-Shopify-Webhook-Id` dedupe, orders/* topics, redacted-field handling → limited (NOT VERIFIED live) (`820c6b5`)
+- [x] Generic Shopbonus signed-webhook adapter for private modules: `X-Shopbonus-Signature: t=<unix>,v1=<hex HMAC-SHA256 of "t.body">`, 5-minute replay window, event-ID dedupe; fully specified format (`820c6b5`)
+- [x] `webhook_events`: dedupe key unique per connection, verification result, topic, encrypted payload (pruned after 14 days by scheduled command), safe error, processing status (`820c6b5`)
+- [x] `POST /api/v1/webhooks/{platform}/{token}`: public, throttled per token, verifies before trusting anything, constant-time compare, 401 on bad signature, 404 on unknown or disconnected token, fast 202 and async processing; duplicates acknowledged without reprocessing (`820c6b5`)
+- [x] Event processing job: normalise; the first verified complete order moves the connection to connected (or limited); a ping moves setup_required to testing; never connected from saved credentials alone (`820c6b5`)
+- [x] Merchant endpoints (integrations.view / integrations.manage): list, create (secret shown once), show with instructions, rotate secret (shown once), verify checklist, disconnect (credentials wiped), sanitized event history (`820c6b5`)
+- [x] Audit connection changes, secret rotations, rejected signatures (rate-limited) (`820c6b5`)
+- [x] Tests: signature valid/invalid/replayed/old timestamp per adapter, duplicate delivery processed once, unsupported platform refused, cross-tenant 404, secret never in responses after creation or in logs, card #1 E2E 2 "unsupported connections cannot activate", E2E 3 incomplete access blocks connected (fixture), E2E 4 mandatory/phone rules at normalisation (`820c6b5`)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (`820c6b5`)
+- [ ] Live verification of WooCommerce / Shopify adapters (blocked: no store or sandbox access; checklist in docs/integrations/VERIFICATION.md)
+- [ ] Adapters for Wix, BigCommerce, Ecwid, Lightspeed, Squarespace, Mijnwebwinkel, CCV (blocked: auth mechanisms and credentials unverified)
+- [ ] Private modules for PrestaShop/OpenCart/Shopware/Magento (outside backend scope: plugin code; the format they must speak is specified)
+
 ## B05 Orders and state transitions (Trello #1 "Normalized orders", "Live order sheet"; #2 §5; #3 B.6–B.7)
 
 - [x] `webshop_orders`: unique (webshop, platform, external order ID); integer minor units + currency; separate payment, ingestion, eligibility and contact statuses; missing-fields list; encrypted customer name/email/phone with a keyed email hash for exact search; provider-updated timestamp (`7e391be`)
