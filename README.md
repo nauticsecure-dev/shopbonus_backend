@@ -4,7 +4,21 @@
 
 **Source:** Trello export `MS0DLCAX - shopbonus.json` uploaded on 2026-10-23; full card descriptions copied into `requirements/TRELLO_CARDS.md` (with board names and card URLs). The export is a snapshot: current Trello changes are NOT automatically synchronized.
 
-**IMPORTANT:** No GitHub repository/source files were provided for this package, so no project code was audited, changed or tested. All task statuses begin `UNVERIFIED`, not `DONE`.
+**Status (2026-10-23):** No prior code existed, so this repo is a greenfield Laravel 13 API (see `docs/DECISIONS.md` D-001). Current state lives in `docs/PROGRESS.md` and `docs/HANDOFF.md`. API reference: `docs/api/README.md` and `docs/api/openapi.yaml`.
+
+## Local setup
+
+Requires PHP 8.3+, Composer, MySQL and Redis.
+
+```bash
+composer install
+cp .env.example .env && php artisan key:generate
+mysql -uroot -e "CREATE DATABASE shopbonus CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+php artisan migrate
+php artisan serve                     # http://localhost:8000/api/v1/health
+php artisan test                      # SQLite in-memory
+vendor/bin/pint --test && vendor/bin/phpstan analyse --memory-limit=1G
+```
 
 ## How to use with Claude
 
