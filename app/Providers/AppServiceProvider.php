@@ -69,6 +69,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(300)->by('webhook:'.$request->route('token')));
 
+        // Partner systems: per integration key, not per IP. Claim links: per IP (token guessing).
+        RateLimiter::for('integrations', fn (Request $request) => Limit::perMinute(600)->by('integration:'.$request->header('X-Shopbonus-Key', $request->ip())));
+        RateLimiter::for('claims', fn (Request $request) => Limit::perMinute(10)->by('claims:'.$request->ip()));
+
         RateLimiter::for('order-export', fn (Request $request) => Limit::perMinute(5)->by('export:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('code-import', fn (Request $request) => Limit::perMinute(10)->by('code-import:'.$request->user()?->getAuthIdentifier()));

@@ -14,6 +14,7 @@ use App\Http\Middleware\RequireRecentPassword;
 use App\Http\Middleware\RequireWorkspacePermission;
 use App\Http\Middleware\ResolveWorkspace;
 use App\Http\Middleware\ThrottleIdentityEndpoints;
+use App\Http\Middleware\VerifyIntegrationSignature;
 use App\Services\Errors\ErrorRecorder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -53,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.commercial' => EnsureWorkspaceCommerciallyActive::class,
             'platform' => EnsurePlatformRole::class,
             'password.recent' => RequireRecentPassword::class,
+            'integration.signed' => VerifyIntegrationSignature::class,
         ]);
 
         // API clients get a JSON 401 rather than a redirect to a login page.

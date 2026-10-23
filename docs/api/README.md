@@ -2896,6 +2896,419 @@ X-Request-Id: 01a16972-7766-7015-a615-80ac2187b02a
 
 ---
 
+## Answer24: signed channel, handoff, claim, reminders (B07b, Trello #1, #10, #23)
+
+Captured 2026-10-23 against local MySQL + Redis. Setup: *Woon & Co* active with the "€10 korting from €50" offer and two codes (`WOON-A24-0001`, `-0002`), Answer24 enabled (`consent_at_checkout`). Anna's paid, consented order PS-1001 arrived as a signed webhook. Its grouping window was moved into the past in the database, then the real `shopbonus:close-contact-windows` ran.
+
+**Credentials.** Run `php artisan shopbonus:create-integration-client "Answer24"`. It prints `Key ID: sbk_…` and `Secret: …` **once**; the secret is stored encrypted. Pass `--scope=answer24.claims` (repeatable) to limit a key, and `--revoke=<key id>` to revoke one. The capture also created a key limited to `answer24.claims` to show the 403.
+
+**Signing (both directions).** Each request carries:
+
+- `X-Shopbonus-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>`, valid for 5 minutes;
+- `X-Shopbonus-Event-Id`, unique per request;
+- inbound requests only: `X-Shopbonus-Key`.
+
+Retrying with the same event ID and body is processed idempotently. The same event ID with a different body returns 409 `event_id_reused`.
+
+### Outbound: contact request (dispatcher)
+
+`php artisan shopbonus:dispatch-outbox` (scheduled every minute) does nothing while `ANSWER24_DISPATCH_ENABLED=false`, which is the default. For this capture it ran **once with dispatch enabled against a local stand-in for Answer24** (a stub that logs the request and answers `202 {"reference":"A24-778812"}`). Answer24 has no published API yet (OPEN-ANSWER24-CONTRACT), so this shows Shopbonus's side of the contract, not a real Answer24 response.
+
+- Command output: `Sent 1, retrying 0, failed 0, skipped 0.`
+- Request received by the stand-in (`POST /api/shopbonus/v1/contact-requests`), with the signature value elided:
+
+```json
+{
+  "headers": {
+    "X-Shopbonus-Signature": "t=<unix>,v1=<hex>",
+    "X-Shopbonus-Event-Id": "01m5n4ga1qrasn6a6t1pgdzgjm",
+    "X-Shopbonus-Topic": "answer24.contact_requested",
+    "Idempotency-Key": "contact_requested:01m5n4g9mbtc52yzynyrp1p239",
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "event": "answer24.contact_requested",
+    "event_id": "01m5n4ga1qrasn6a6t1pgdzgjm",
+    "contract": "shopbonus-answer24-v1",
+    "opportunity_id": "01m5n4g9mbtc52yzynyrp1p239",
+    "idempotency_key": "contact:20:01m5n4g9m9gma5jkcpb7ygx4a6",
+    "webshop": {
+      "id": "01m5n4g702emasm3dc33ydvwwb",
+      "name": "Woon & Co"
+    },
+    "offer": {
+      "id": "01m5n4g70w95ckv85vdx00t3pk",
+      "summary": "€10.00 from €50.00",
+      "terms": {
+        "version": 1,
+        "locked": true,
+        "summary": "€10.00 from €50.00",
+        "name": "€10 korting",
+        "public_description": null,
+        "discount_type": "fixed",
+        "discount_value": 1000,
+        "currency": "EUR",
+        "min_order_minor": 5000,
+        "max_discount_minor": null,
+        "price_minor": null,
+        "starts_at": null,
+        "ends_at": null,
+        "claim_validity_days": 90,
+        "redemption_validity_days": 90,
+        "categories": [],
+        "products": [],
+        "combinable": false,
+        "code_mode": "unique",
+        "allocation_limit": null
+      }
+    },
+    "customer": {
+      "first_name": "Anna",
+      "phone": "+31612345678"
+    },
+    "orders": [
+      {
+        "reference": "PS-1001",
+        "placed_at": "2026-10-23T19:41:15+00:00",
+        "amount_minor": 7500,
+        "currency": "EUR"
+      }
+    ],
+    "lawful_basis": {
+      "basis": "consent_at_checkout",
+      "evidence_ref": "webshop:01m5n4g702emasm3dc33ydvwwb:answer24_settings"
+    }
+  }
+}
+```
+
+After this the opportunity is `dispatched` with `remote_reference` `A24-778812`, and the Order Sheet shows `contact_status: dispatched`.
+
+### Inbound: contact results
+
+**Handoff before the customer accepted → 409**
+
+`POST /handoffs {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0001)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16a48-2e3f-71db-b5c8-7086972b7757
+Content-Type: application/json
+
+{"error":{"status":409,"code":"handoff_not_permitted","message":"A voucher can only be handed off after the customer accepted the contact.","request_id":"01a16a48-2e3f-71db-b5c8-7086972b7757","details":{"status":"dispatched"}}}
+```
+
+**`accepted` → applied**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"accepted","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0002)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-2e92-7042-b266-3e012a83b2ca
+
+{"data":{"opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"accepted","outcome":"applied"}}
+```
+
+**Same event again → duplicate, nothing changes**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"accepted","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0002)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-2edf-7380-a5fb-04c5fc88069b
+
+{"data":{"opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"accepted","outcome":"duplicate"}}
+```
+
+**Same event ID, different body → 409**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"completed","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0002)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16a48-2f27-7226-a132-534f9a92ea38
+Content-Type: application/json
+
+{"error":{"status":409,"code":"event_id_reused","message":"This event ID was already used for a different request.","request_id":"01a16a48-2f27-7226-a132-534f9a92ea38"}}
+```
+
+**Older result arriving late → recorded as stale, not applied**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"attempted","occurred_at":"2026-01-01T00:00:00Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0003)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-2f71-7039-80ce-fe299948613d
+
+{"data":{"opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"accepted","outcome":"stale"}}
+```
+
+**Impossible transition → 409**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"rejected","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0004)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16a48-2fcd-70cc-a3e3-e8331a232bc5
+Content-Type: application/json
+
+{"error":{"status":409,"code":"invalid_transition","message":"This result cannot be applied in the current state.","request_id":"01a16a48-2fcd-70cc-a3e3-e8331a232bc5","details":{"status":"accepted","result":"rejected"}}}
+```
+
+**Opportunity addressed under another webshop → 404**
+
+`POST /contact-results {"webshop_id":"01jbzzzzzzzzzzzzzzzzzzzzzz","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"completed","occurred_at":"2026-10-23T19:41:17Z"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0005)`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16a48-300e-71aa-bead-9a6d276e41a9
+Content-Type: application/json
+
+{"error":{"status":404,"code":"opportunity_not_found","message":"Contact request not found.","request_id":"01a16a48-300e-71aa-bead-9a6d276e41a9"}}
+```
+
+**No event ID → 400**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"completed","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: )`
+
+```http
+HTTP/1.1 400 Bad Request
+X-Request-Id: 01a16a48-304a-72ed-b93d-cecc7186aeb4
+Content-Type: application/json
+
+{"error":{"status":400,"code":"event_id_required","message":"X-Shopbonus-Event-Id is required (max 120 characters).","request_id":"01a16a48-304a-72ed-b93d-cecc7186aeb4"}}
+```
+
+**Wrong signature → 401 (audited)**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"completed","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0006)`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16a48-3081-7027-9b84-5d1adad35e88
+Content-Type: application/json
+
+{"error":{"status":401,"code":"integration_signature_invalid","message":"The request signature is missing or invalid.","request_id":"01a16a48-3081-7027-9b84-5d1adad35e88"}}
+```
+
+**Key without the scope → 403**
+
+`POST /contact-results {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"completed","occurred_at":"2026-10-23T19:41:17Z","remote_reference":"A24-778812"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0007)`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16a48-30bb-732e-95a0-2f643062223a
+Content-Type: application/json
+
+{"error":{"status":403,"code":"integration_scope_denied","message":"This integration key may not call this endpoint.","request_id":"01a16a48-30bb-732e-95a0-2f643062223a","details":{"required_scope":"answer24.contact_results"}}}
+```
+
+### Handoff → claim link
+
+**Handoff: one code reserved, claim link returned**
+
+`POST /handoffs {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0008)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16a48-30f4-715c-ba07-7135490010d5
+
+{"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"open","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":null,"reminder_days":[30,60,80],"claim_url":"http:\/\/localhost:3000\/claim\/<claim-token>"}}
+```
+
+**Repeated handoff: same claim, same link, no second code**
+
+`POST /handoffs {"webshop_id":"01m5n4g702emasm3dc33ydvwwb","opportunity_id":"01m5n4g9mbtc52yzynyrp1p239"}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0009)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-314f-70fb-921d-a230403d722e
+
+{"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"open","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":null,"reminder_days":[30,60,80],"claim_url":"http:\/\/localhost:3000\/claim\/<claim-token>"}}
+```
+
+**Claim status**
+
+`GET /claims/01m5n4gc8vk6t23v5n3xqh5tsm    (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0010)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-319e-724f-8ce0-fe3dfea2b74d
+
+{"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"open","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":null,"reminder_days":[30,60,80]}}
+```
+
+**Key without `answer24.claims` → 403**
+
+`GET /claims/01m5n4gc8vk6t23v5n3xqh5tsm    (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0015)`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16a48-31d9-713d-ab83-2fe62535ac2a
+Content-Type: application/json
+
+{"error":{"status":403,"code":"integration_scope_denied","message":"This integration key may not call this endpoint.","request_id":"01a16a48-31d9-713d-ab83-2fe62535ac2a","details":{"required_scope":"answer24.claims"}}}
+```
+
+**Reminder for day 30 asked on day 0**
+
+`POST /claims/01m5n4gc8vk6t23v5n3xqh5tsm/reminders {"day":30}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0011)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-32d7-7179-a2f1-e0ef9e94311c
+
+{"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","day":30,"send":false,"reason":"not_due","claim_expires_at":"2027-01-21T19:41:18+00:00"}}
+```
+
+**Not a reminder day**
+
+`POST /claims/01m5n4gc8vk6t23v5n3xqh5tsm/reminders {"day":45}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0012)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a48-3320-7354-9d56-ff7adb282a03
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a48-3320-7354-9d56-ff7adb282a03","fields":{"day":["The selected day is invalid."]}}}
+```
+
+The real claim token is replaced by `<claim-token>` throughout.
+
+### Consumer claim
+
+**Preview (public)**
+
+`POST /api/v1/claims/preview {"token":"<claim-token>"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-334e-71db-9fe9-025c405adae4
+
+{"data":{"status":"open","expires_at":"2027-01-21T19:41:18+00:00","webshop":{"name":"Woon & Co"},"offer":{"name":"\u20ac10 korting","ends_at":null,"summary":"\u20ac10.00 from \u20ac50.00","currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":1000,"min_order_minor":5000,"max_discount_minor":null,"public_description":null,"redemption_validity_days":90},"requirements":{"verified_account":true,"email_matches_order":true}}}
+```
+
+**Unknown token**
+
+`POST /api/v1/claims/preview {"token":"AAAAAAAAAAAAAAAAAAAAAAAA"}`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16a48-3374-73b6-b069-283eb179e9f7
+Content-Type: application/json
+
+{"error":{"status":404,"code":"claim_not_found","message":"This claim link is not valid.","request_id":"01a16a48-3374-73b6-b069-283eb179e9f7"}}
+```
+
+**Accept without signing in**
+
+`POST /api/v1/claims/accept {"token":"<claim-token>"}`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16a48-3397-71c1-a3d3-a722bdbe6744
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a48-3397-71c1-a3d3-a722bdbe6744"}}
+```
+
+**Accept as Bob (bob@example.nl; the order was anna@example.nl) → 403, audited**
+
+`POST /api/v1/claims/accept {"token":"<claim-token>"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16a48-33ba-7073-a70c-05c629b40d03
+Content-Type: application/json
+
+{"error":{"status":403,"code":"claim_email_mismatch","message":"Sign in with the email address used for the order to claim this voucher.","request_id":"01a16a48-33ba-7073-a70c-05c629b40d03"}}
+```
+
+**Accept as Anna → voucher issued with its code**
+
+`POST /api/v1/claims/accept {"token":"<claim-token>"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-33e9-71f6-b95f-974931407398
+
+{"data":{"voucher_id":"01m5n4gc8jpx16113paeaea3cf","status":"issued","code":"WOON-A24-0001","issued_at":"2026-10-23T19:41:19+00:00","expires_at":"2027-01-21T19:41:19+00:00","webshop":{"name":"Woon & Co"},"offer":{"name":"\u20ac10 korting","ends_at":null,"summary":"\u20ac10.00 from \u20ac50.00","currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":1000,"min_order_minor":5000,"max_discount_minor":null,"public_description":null,"redemption_validity_days":90}}}
+```
+
+**Anna again → same voucher**
+
+`POST /api/v1/claims/accept {"token":"<claim-token>"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-3452-7305-abbd-0e3fc9fd5a18
+
+{"data":{"voucher_id":"01m5n4gc8jpx16113paeaea3cf","status":"issued","code":"WOON-A24-0001","issued_at":"2026-10-23T19:41:19+00:00","expires_at":"2027-01-21T19:41:19+00:00","webshop":{"name":"Woon & Co"},"offer":{"name":"\u20ac10 korting","ends_at":null,"summary":"\u20ac10.00 from \u20ac50.00","currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":1000,"min_order_minor":5000,"max_discount_minor":null,"public_description":null,"redemption_validity_days":90}}}
+```
+
+**Link used → 410**
+
+`POST /api/v1/claims/preview {"token":"<claim-token>"}`
+
+```http
+HTTP/1.1 410 Gone
+X-Request-Id: 01a16a48-3480-71b1-9929-76fd949dc598
+Content-Type: application/json
+
+{"error":{"status":410,"code":"claim_already_used","message":"This voucher was already claimed.","request_id":"01a16a48-3480-71b1-9929-76fd949dc598"}}
+```
+
+**Answer24 checks the claim**
+
+`GET /claims/01m5n4gc8vk6t23v5n3xqh5tsm    (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0013)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-34bb-71fe-87df-acbcf667e72c
+
+{"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"claimed","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":"2026-10-23T19:41:19+00:00","reminder_days":[30,60,80]}}
+```
+
+**Reminder after the claim → not sent**
+
+`POST /claims/01m5n4gc8vk6t23v5n3xqh5tsm/reminders {"day":30}   (X-Shopbonus-Key, X-Shopbonus-Signature, X-Shopbonus-Event-Id: a24-evt-0014)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a48-34fb-73ac-a018-832a5925cf9d
+
+{"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","day":30,"send":false,"reason":"claimed","claim_expires_at":"2027-01-21T19:41:18+00:00"}}
+```
+
+Outbox message queued at claim (`answer24.claim_completed`; delivered by the dispatcher once dispatch is enabled):
+
+```json
+{
+  "contract": "shopbonus-answer24-v1",
+  "claim_id": "01m5n4gc8vk6t23v5n3xqh5tsm",
+  "opportunity_id": "01m5n4g9mbtc52yzynyrp1p239",
+  "remote_reference": "A24-778812",
+  "status": "claimed",
+  "at": "2026-10-23T19:41:19+00:00"
+}
+```
+
+**Expiry.** `shopbonus:expire-vouchers` runs hourly. After the claim window it releases the reserved code back to the inventory, marks the claim `expired` and queues `answer24.claim_expired`. Preview then returns 410 `claim_expired`, and reminders return `send: false, reason: expired`. This is covered by `Answer24ChannelTest::test_unclaimed_entitlement_expires_after_90_days_and_releases_the_code`; it was not captured over HTTP, because that would mean waiting 90 days.
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

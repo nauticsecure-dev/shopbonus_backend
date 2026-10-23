@@ -136,6 +136,7 @@ return [
         'recent_contact_days' => (int) env('ANSWER24_RECENT_CONTACT_DAYS', 30),
         'claim_requires_email_match' => true,
         'reminder_days' => [30, 60, 80],
+        'dispatch_max_attempts' => 10,
     ],
 
 ];

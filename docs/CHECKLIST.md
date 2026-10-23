@@ -232,7 +232,25 @@ Answer24 owns calls, consent checks, invitations and reminders; Shopbonus owns o
 
 ### B07b Integration channel, handoff, claim, reminders
 
-- [ ] Expand when started
+Contract is Shopbonus-defined (`shopbonus-answer24-v1`, OPEN-ANSWER24-CONTRACT); outbound dispatch stays off by default.
+
+- [x] `integration_clients` (public key ID, encrypted secret, target, scopes, active/revoked, last used) + `shopbonus:create-integration-client` (secret shown once; `--revoke`) (`B07B_SHA`)
+- [x] `integration.signed:<scope>` middleware: `X-Shopbonus-Key` + `X-Shopbonus-Signature: t=,v1=` HMAC over `t.body`, 5-minute window, constant-time compare; unknown key/bad signature/stale → 401 `integration_signature_invalid`; missing scope → 403 (`B07B_SHA`)
+- [x] Event-ID replay guard (`integration_inbound_events`, unique per client): same event ID with a different body → 409 `event_id_reused`; identical retry is processed idempotently (`B07B_SHA`)
+- [x] `POST /api/v1/integrations/answer24/contact-results`: accepted/rejected/cancelled/attempted/completed/failed with timestamp and remote reference; state machine; stale (older) results recorded but not applied; idempotent; Order Sheet `contact_status` updated; webshop must match (404 otherwise) (`B07B_SHA`)
+- [x] `contact_opportunity_events`: append-only history of every callback (`B07B_SHA`)
+- [x] `POST /api/v1/integrations/answer24/handoffs`: only after permitted engagement (accepted/attempted/completed); reserves one code via `VoucherInventory` (`answer24-handoff:<opportunity>`); returns a short, unguessable, single-use claim URL; idempotent replay returns the same URL; claim expires with the 90-day claim window (`B07B_SHA`)
+- [x] `voucher_claims`: HMAC token hash (lookup), encrypted token (idempotent replay), status open/claimed/expired/cancelled (`B07B_SHA`)
+- [x] `POST /api/v1/integrations/answer24/claims/{claim}/reminders {day}`: day 30/60/80 only; not before the day; atomic slot per day (duplicates → `send:false`); refused once claimed/expired/cancelled or suppressed (`B07B_SHA`)
+- [x] `GET /api/v1/integrations/answer24/claims/{claim}`: claim status for Answer24 (`B07B_SHA`)
+- [x] Consumer `POST /api/v1/claims/preview` (public, throttled): offer/webshop/terms/deadline only; unknown token → 404; used/expired → 410 (`B07B_SHA`)
+- [x] Consumer `POST /api/v1/claims/accept` (verified): account email must match the order email (403 `claim_email_mismatch`, audited); issues the reserved voucher once; second user → 410; outbox `answer24.claim_completed` (`B07B_SHA`)
+- [x] Expiry: unclaimed claims expire with the reservation release (scheduled), outbox `answer24.claim_expired` (`B07B_SHA`)
+- [x] Outbox dispatcher (`shopbonus:dispatch-outbox`, every minute): no-op while disabled; atomic claim of each message; re-checks the opportunity before sending; signed `Answer24Client`; success → `dispatched` + remote reference; failure → exponential backoff, `failed` after max attempts; stuck `sending` reclaimed (`B07B_SHA`)
+- [x] Tests: card #1 E2E 9 (signed request + callback + single-use activation, no cross-tenant, no duplicates); #10 reminders (days 30/60/80, claim before next reminder, repeated delivery no duplicate); #23 Answer24 free voucher; signature/replay/scope negatives; dispatcher with `Http::fake` (`B07B_SHA`)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`B07B_SHA`)
+- [ ] Real Answer24 end-to-end (blocked: Answer24 has no Shopbonus API yet, OPEN-ANSWER24-CONTRACT)
+
 - [ ] B08 Consumer profile/discovery
 - [ ] B09 Wallet ledger core
 - [ ] B10 Affiliate integrations (credit timing decision required)

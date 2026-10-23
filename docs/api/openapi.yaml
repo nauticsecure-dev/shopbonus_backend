@@ -54,6 +54,12 @@ tags:
       Contact eligibility and queue for Answer24 (Trello #1, #23). Answer24 owns calls, consent checks and reminders;
       Shopbonus only queues paid, consented, callable, unsuppressed orders, grouped per customer per hour.
       Outbound dispatch is disabled by default (OPEN-ANSWER24-CONTRACT, OPEN-MARKETING-CONSENT).
+  - name: Answer24 integration
+    description: |
+      Answer24 → Shopbonus, server to server (Trello #1, #23). Signed with a scoped integration key; see the `integrationSignature` scheme.
+  - name: Claims
+    description: |
+      Consumer side of the Answer24 free-voucher claim link (Trello #23).
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -3280,6 +3286,336 @@ paths:
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
 
+  /api/v1/integrations/answer24/contact-results:
+    post:
+      tags: [Answer24 integration]
+      operationId: answer24ContactResult
+      summary: "Report a contact result (Answer24)"
+      description: |
+        Scope `answer24.contact_results`. Status callback for a dispatched contact request: `accepted`, `rejected`, `attempted`, `completed`, `failed`, `cancelled`.
+                Transitions: dispatched → any; accepted → attempted/completed/failed/cancelled; attempted → attempted/completed/failed/cancelled; cancellation_requested → cancelled. Anything else is 409 `invalid_transition`.
+                A result older than the last applied one is recorded but not applied (`outcome: stale`); the same event ID again returns `outcome: duplicate`. The Order Sheet `contact_status` follows applied results.
+                `webshop_id` must be the opportunity's webshop, otherwise 404 (no cross-tenant addressing). `remote_reference` must match the one returned at dispatch (409 `remote_reference_mismatch`).
+      x-access: integration
+      security: [{ integrationSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [webshop_id, opportunity_id, status, occurred_at]
+              properties:
+                webshop_id: { type: string }
+                opportunity_id: { type: string }
+                status: { type: string, enum: [accepted, rejected, cancelled, attempted, completed, failed] }
+                occurred_at: { type: string, format: date-time }
+                remote_reference: { type: string, maxLength: 120 }
+                reason: { type: string, maxLength: 255 }
+            example: {"webshop_id": "01m5n4cw5mqeyx3e20rjqam8an", "opportunity_id": "01m5n4czt76jrgb97rxme4fxjp", "status": "accepted", "occurred_at": "2026-10-23T19:39:29Z", "remote_reference": "A24-778812"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            BODY='{"webshop_id":"…","opportunity_id":"…","status":"accepted","occurred_at":"2026-10-23T19:39:29Z","remote_reference":"A24-778812"}'; T=$(date +%s)
+            SIG=$(printf '%s' "$T.$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $NF}')
+            curl -i -X POST 'http://localhost:8000/api/v1/integrations/answer24/contact-results' \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H "X-Shopbonus-Key: $KEY_ID" -H "X-Shopbonus-Signature: t=$T,v1=$SIG" -H 'X-Shopbonus-Event-Id: <unique id>' \
+              --data-binary "$BODY"
+      responses:
+        '200':
+          description: "Applied (or `duplicate` / `stale`, see description)."
+          content:
+            application/json:
+              example: {"data":{"opportunity_id":"01m5n4g9mbtc52yzynyrp1p239","status":"accepted","outcome":"applied"}}
+        '400':
+          description: "X-Shopbonus-Event-Id missing (`event_id_required`)."
+          content:
+            application/json:
+              example: {"error":{"status":400,"code":"event_id_required","message":"X-Shopbonus-Event-Id is required (max 120 characters).","request_id":"01a16a48-304a-72ed-b93d-cecc7186aeb4"}}
+        '401':
+          description: "Unknown/revoked key, bad or expired signature (5-minute window). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"integration_signature_invalid","message":"The request signature is missing or invalid.","request_id":"01a16a48-3081-7027-9b84-5d1adad35e88"}}
+        '403':
+          description: "The key lacks the scope for this endpoint."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"integration_scope_denied","message":"This integration key may not call this endpoint.","request_id":"01a16a48-30bb-732e-95a0-2f643062223a","details":{"required_scope":"answer24.contact_results"}}}
+        '404':
+          description: "Unknown opportunity, or not of that webshop."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"opportunity_not_found","message":"Contact request not found.","request_id":"01a16a48-300e-71aa-bead-9a6d276e41a9"}}
+        '409':
+          description: "`invalid_transition`, `remote_reference_mismatch` or `event_id_reused`."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invalid_transition","message":"This result cannot be applied in the current state.","request_id":"01a16a48-2fcd-70cc-a3e3-e8331a232bc5","details":{"status":"accepted","result":"rejected"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/integrations/answer24/handoffs:
+    post:
+      tags: [Answer24 integration]
+      operationId: answer24Handoff
+      summary: "Hand off the free voucher: reserve a code, get the claim link (Answer24)"
+      description: |
+        Scope `answer24.handoffs`. Only after permitted engagement (opportunity `accepted`, `attempted` or `completed`; else 409 `handoff_not_permitted`).
+                Reserves one code of the opportunity's offer in the single inventory (409 `offer_out_of_stock` when none is left; nothing else is created then) and returns a short (24-character), unguessable, single-use claim URL for Answer24 to deliver.
+                Idempotent per opportunity: a repeated handoff returns 200 with the same claim and URL; never a second code. The claim expires with the offer's claim window (90 days by default); the unclaimed code then returns to the inventory.
+      x-access: integration
+      security: [{ integrationSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [webshop_id, opportunity_id]
+              properties:
+                webshop_id: { type: string, description: Webshop public ID from the contact request. }
+                opportunity_id: { type: string, description: Opportunity public ID from the contact request. }
+            example: {"webshop_id": "01m5n4cw5mqeyx3e20rjqam8an", "opportunity_id": "01m5n4czt76jrgb97rxme4fxjp"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            BODY='{"webshop_id":"…","opportunity_id":"…"}'; T=$(date +%s)
+            SIG=$(printf '%s' "$T.$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $NF}')
+            curl -i -X POST 'http://localhost:8000/api/v1/integrations/answer24/handoffs' \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H "X-Shopbonus-Key: $KEY_ID" -H "X-Shopbonus-Signature: t=$T,v1=$SIG" -H 'X-Shopbonus-Event-Id: <unique id>' \
+              --data-binary "$BODY"
+      responses:
+        '201':
+          description: "Code reserved, claim link created."
+          content:
+            application/json:
+              example: {"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"open","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":null,"reminder_days":[30,60,80],"claim_url":"http:\/\/localhost:3000\/claim\/<claim-token>"}}
+        '200':
+          description: "Repeated handoff: same claim and URL."
+          content:
+            application/json:
+              example: {"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"open","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":null,"reminder_days":[30,60,80],"claim_url":"http:\/\/localhost:3000\/claim\/<claim-token>"}}
+        '401':
+          description: "Unknown/revoked key, bad or expired signature (5-minute window). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"integration_signature_invalid","message":"The request signature is missing or invalid.","request_id":"01a16a48-3081-7027-9b84-5d1adad35e88"}}
+        '403':
+          description: "The key lacks the scope for this endpoint."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"integration_scope_denied","message":"This integration key may not call this endpoint.","request_id":"01a16a48-30bb-732e-95a0-2f643062223a","details":{"required_scope":"answer24.contact_results"}}}
+        '404':
+          description: "Unknown opportunity, or not of that webshop."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"opportunity_not_found","message":"Contact request not found.","request_id":"01a16a48-300e-71aa-bead-9a6d276e41a9"}}
+        '409':
+          description: "`handoff_not_permitted`, `handoff_no_offer`, `offer_out_of_stock`, `offer_not_active`."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"handoff_not_permitted","message":"A voucher can only be handed off after the customer accepted the contact.","request_id":"01a16a48-2e3f-71db-b5c8-7086972b7757","details":{"status":"dispatched"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/integrations/answer24/claims/{claim}:
+    parameters:
+      - { name: claim, in: path, required: true, schema: { type: string }, description: 'claim_id returned by the handoff.' }
+    get:
+      tags: [Answer24 integration]
+      operationId: answer24ClaimStatus
+      summary: "Claim status (Answer24)"
+      description: |
+        Scope `answer24.claims`. `open`, `claimed`, `expired` or `cancelled`, with deadline. Shopbonus also pushes `answer24.claim_completed` / `answer24.claim_expired` through the outbox.
+      x-access: integration
+      security: [{ integrationSignature: [] }]
+      x-codeSamples:
+        - lang: curl
+          source: |
+            BODY=''; T=$(date +%s)
+            SIG=$(printf '%s' "$T.$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $NF}')
+            curl -i -X GET 'http://localhost:8000/api/v1/integrations/answer24/claims/01m5n4d2x3f5vpq0snwfybk5mn' \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H "X-Shopbonus-Key: $KEY_ID" -H "X-Shopbonus-Signature: t=$T,v1=$SIG" -H 'X-Shopbonus-Event-Id: <unique id>'
+      responses:
+        '200':
+          description: "Claim status."
+          content:
+            application/json:
+              example: {"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","status":"claimed","expires_at":"2027-01-21T19:41:18+00:00","claimed_at":"2026-10-23T19:41:19+00:00","reminder_days":[30,60,80]}}
+        '401':
+          description: "Unknown/revoked key, bad or expired signature (5-minute window). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"integration_signature_invalid","message":"The request signature is missing or invalid.","request_id":"01a16a48-3081-7027-9b84-5d1adad35e88"}}
+        '403':
+          description: "The key lacks `answer24.claims`."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"integration_scope_denied","message":"This integration key may not call this endpoint.","request_id":"01a16a48-31d9-713d-ab83-2fe62535ac2a","details":{"required_scope":"answer24.claims"}}}
+        '404':
+          description: "Unknown claim."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"claim_not_found","message":"Claim not found.","request_id":"01a16a48-3213-7178-b4a2-e8e38ec801f7"}}
+
+  /api/v1/integrations/answer24/claims/{claim}/reminders:
+    parameters:
+      - { name: claim, in: path, required: true, schema: { type: string }, description: 'claim_id returned by the handoff.' }
+    post:
+      tags: [Answer24 integration]
+      operationId: answer24ReminderDecision
+      summary: "May Answer24 send the day-30/60/80 claim reminder? (Answer24)"
+      description: |
+        Scope `answer24.claims`. Answer24 sends reminders; Shopbonus decides once per slot (Trello #10 §6). `send: true` is returned at most once per (claim, day), so repeated queue delivery never sends twice.
+                `send: false` reasons: `not_due` (before that day), `superseded` (the next reminder day has started), `already_sent`, `claimed`, `expired` (deadline passed or reservation released), `cancelled`, `suppressed` (customer on the do-not-contact list).
+                `day` must be one of 30, 60, 80 (422 otherwise).
+      x-access: integration
+      security: [{ integrationSignature: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [day]
+              properties:
+                day: { type: integer, enum: [30, 60, 80] }
+            example: {"day": 30}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            BODY='{"day":30}'; T=$(date +%s)
+            SIG=$(printf '%s' "$T.$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $NF}')
+            curl -i -X POST 'http://localhost:8000/api/v1/integrations/answer24/claims/01m5n4d2x3f5vpq0snwfybk5mn/reminders' \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H "X-Shopbonus-Key: $KEY_ID" -H "X-Shopbonus-Signature: t=$T,v1=$SIG" -H 'X-Shopbonus-Event-Id: <unique id>' \
+              --data-binary "$BODY"
+      responses:
+        '200':
+          description: "Decision (captured after the claim: send=false, reason=claimed)."
+          content:
+            application/json:
+              example: {"data":{"claim_id":"01m5n4gc8vk6t23v5n3xqh5tsm","day":30,"send":false,"reason":"claimed","claim_expires_at":"2027-01-21T19:41:18+00:00"}}
+        '401':
+          description: "Unknown/revoked key, bad or expired signature (5-minute window). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"integration_signature_invalid","message":"The request signature is missing or invalid.","request_id":"01a16a48-3081-7027-9b84-5d1adad35e88"}}
+        '403':
+          description: "The key lacks `answer24.claims`."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"integration_scope_denied","message":"This integration key may not call this endpoint.","request_id":"01a16a48-3293-73d8-88d2-12c7d4179f40","details":{"required_scope":"answer24.claims"}}}
+        '404':
+          description: "Unknown claim."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"claim_not_found","message":"Claim not found.","request_id":"01a16a48-324f-7292-9b32-d49b5ab6025a"}}
+        '422':
+          description: "Not a reminder day."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a48-3320-7354-9d56-ff7adb282a03","fields":{"day":["The selected day is invalid."]}}}
+
+  /api/v1/claims/preview:
+    post:
+      tags: [Claims]
+      operationId: previewClaim
+      summary: "Preview a voucher claim link"
+      description: |
+        Public; the token from the claim link is the secret. Throttled per IP (10/min). Shows only the webshop name, the frozen consumer-facing terms and the deadline; never the code or customer data. 404 `claim_not_found` for an unknown token; 410 `claim_already_used`, `claim_expired` or `claim_cancelled`.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, maxLength: 64, description: The last path segment of the claim URL. }
+            example: {"token": "<claim-token>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/claims/preview' \
+              -H 'Accept: application/json' \
+              -H 'Content-Type: application/json' -d '{"token":"<claim-token>"}'
+      responses:
+        '200':
+          description: "Claimable."
+          content:
+            application/json:
+              example: {"data":{"status":"open","expires_at":"2027-01-21T19:41:18+00:00","webshop":{"name":"Woon & Co"},"offer":{"name":"\u20ac10 korting","ends_at":null,"summary":"\u20ac10.00 from \u20ac50.00","currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":1000,"min_order_minor":5000,"max_discount_minor":null,"public_description":null,"redemption_validity_days":90},"requirements":{"verified_account":true,"email_matches_order":true}}}
+        '404':
+          description: "Unknown token."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"claim_not_found","message":"This claim link is not valid.","request_id":"01a16a48-3374-73b6-b069-283eb179e9f7"}}
+        '410':
+          description: "Used, expired or cancelled."
+          content:
+            application/json:
+              example: {"error":{"status":410,"code":"claim_already_used","message":"This voucher was already claimed.","request_id":"01a16a48-3480-71b1-9929-76fd949dc598"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/claims/accept:
+    post:
+      tags: [Claims]
+      operationId: acceptClaim
+      summary: "Claim the reserved voucher"
+      description: |
+        Verified, active account whose email equals the order's email (403 `claim_email_mismatch`, audited). Issues the reserved voucher to the account exactly once and returns its code. The same account repeating the call gets the same voucher; anyone else then gets 410 `claim_already_used`. Answer24 is told via the outbox (`answer24.claim_completed`). Throttled per IP.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, maxLength: 64 }
+            example: {"token": "<claim-token>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/claims/accept' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"token":"<claim-token>"}'
+      responses:
+        '200':
+          description: "Voucher issued to this account."
+          content:
+            application/json:
+              example: {"data":{"voucher_id":"01m5n4gc8jpx16113paeaea3cf","status":"issued","code":"WOON-A24-0001","issued_at":"2026-10-23T19:41:19+00:00","expires_at":"2027-01-21T19:41:19+00:00","webshop":{"name":"Woon & Co"},"offer":{"name":"\u20ac10 korting","ends_at":null,"summary":"\u20ac10.00 from \u20ac50.00","currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":1000,"min_order_minor":5000,"max_discount_minor":null,"public_description":null,"redemption_validity_days":90}}}
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a48-3397-71c1-a3d3-a722bdbe6744"}}
+        '403':
+          description: "Email differs from the order (or `email_not_verified`)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"claim_email_mismatch","message":"Sign in with the email address used for the order to claim this voucher.","request_id":"01a16a48-33ba-7073-a70c-05c629b40d03"}}
+        '404':
+          description: "Unknown token."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"claim_not_found","message":"This claim link is not valid.","request_id":"01a16a48-342b-7134-ae9b-e94849b54073"}}
+        '410':
+          description: "Already used by someone else, expired or cancelled."
+          content:
+            application/json:
+              example: {"error":{"status":410,"code":"claim_already_used","message":"This voucher was already claimed.","request_id":"01a16a48-3480-71b1-9929-76fd949dc598"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   parameters:
     Workspace:
@@ -3300,6 +3636,13 @@ components:
       type: http
       scheme: bearer
       description: Sanctum personal access token.
+    integrationSignature:
+      type: apiKey
+      in: header
+      name: X-Shopbonus-Key
+      description: |
+        Partner (Answer24) key ID, plus `X-Shopbonus-Signature: t=<unix>,v1=<hex HMAC-SHA256(secret, "<t>.<raw body>")>`
+        (5-minute window) and a unique `X-Shopbonus-Event-Id`. Keys are provisioned with `php artisan shopbonus:create-integration-client`.
 
   headers:
     X-Request-Id:

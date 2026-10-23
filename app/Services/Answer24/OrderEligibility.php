@@ -74,7 +74,7 @@ class OrderEligibility
             $reasons[] = 'no_contact_consent';
         }
 
-        if ($this->suppressed($webshop->id, $order->customer_email, $phone)) {
+        if ($this->isSuppressed($webshop->id, $order->customer_email, $phone)) {
             $reasons[] = 'suppressed';
         }
 
@@ -84,7 +84,7 @@ class OrderEligibility
         return ['eligible' => $reasons === [], 'callable' => $callable, 'reasons' => $reasons, 'offer' => $offer, 'phone' => $phone, 'basis' => $basis];
     }
 
-    private function suppressed(int $webshopId, ?string $email, ?string $phone): bool
+    public function isSuppressed(int $webshopId, ?string $email, ?string $phone): bool
     {
         $subjects = array_filter([
             $email !== null ? ['email', ContactSuppression::emailHash($email)] : null,

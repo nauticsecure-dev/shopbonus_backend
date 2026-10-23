@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). The foundation (B01) and identity (B02: registration, email codes, sessions, recovery) are implemented and tested. **No domain modules exist yet.** Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08 onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -18,7 +18,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Provider adapters and webhooks | PARTIAL: framework + WooCommerce/Shopify/Shopbonus-v1 adapters VERIFIED_WORKING against fixtures (B04); live provider behaviour NOT VERIFIED; 7 platforms BLOCKED | `tests/Unit/Integrations/*`, `tests/Feature/Integrations/*` |
 | Normalised orders, Order Sheet | VERIFIED_WORKING (B05) against signed fixture webhooks; live stores NOT VERIFIED | `tests/Feature/Orders/*` |
 | Offers / voucher codes | VERIFIED_WORKING (B06a+B06b): versioned offers, fee preview, single code inventory, atomic reservation (real concurrency test), lifecycle, verified redemption; platform coupon verification BLOCKED | `tests/Feature/Offers/*` |
-| Answer24 | PARTIAL: eligibility, grouping, cancellation, outbox VERIFIED_WORKING (B07a); signed channel/handoff/claim MISSING (B07b); outbound dispatch disabled | `tests/Feature/Answer24/*` |
+| Answer24 | VERIFIED_WORKING on the Shopbonus side (B07a+B07b): eligibility, grouping, cancellation, outbox, signed inbound channel, handoff → reserved code + single-use claim, consumer claim, reminder slots, dispatcher. Outbound dispatch disabled by default; real Answer24 NOT VERIFIED (no API) | `tests/Feature/Answer24/*` |
 | Consumer profile/discovery | MISSING | B08 |
 | Wallet ledgers | MISSING | B09 |
 | Affiliate (Daisycon/TradeTracker) | MISSING; credit timing BLOCKED on OPEN-AFFILIATE-CREDIT-TIMING | B10 |
@@ -46,6 +46,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B06a offers | `c6485dc` | 279 tests / 2355 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures | Versioned terms, 30% fee preview |
 | 2026-10-23 | Claude (Opus 5.5) | B06b code inventory & vouchers | `c07f778` | SQLite 298 passed + 3 skipped; MySQL 301 passed (incl. forked-process race tests; mutation-tested); Pint, PHPStan L6, audit clean | One voucher system |
 | 2026-10-23 | Claude (Opus 5.5) | B07a Answer24 eligibility | `5c24240` | MySQL 314 passed; SQLite 311 + 3 skipped; Pint, PHPStan L6, audit clean; end-to-end capture via signed webhooks | Dispatch off |
+| 2026-10-23 | Claude (Opus 5.5) | B07b Answer24 channel, handoff, claim | `B07B_SHA` | MySQL 327 passed; SQLite 324 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (signed requests computed with openssl; dispatcher run against a local Answer24 stand-in); 2 mutations caught | B07 complete; dispatch still off |
 
 ### B01a detail
 
@@ -110,6 +111,13 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Delivered:** migrations `2026_10_23_210000` (offers, versions) and `2026_10_23_220000` (voucher_code_batches, voucher_codes, vouchers, voucher_events); `OfferService`, `FeeCalculator`, `VoucherInventory` (reserve/issue/release/redeem/expire), `CodeImporter` + `CommitCodeBatch` job, `RedemptionMatcher` (hooked into order ingestion), `shopbonus:expire-vouchers` (hourly); `OfferController`, `VoucherCodeController`; `vouchers.export` permission; `NormalizedOrder::couponCodes`.
 - **Card #7 mapping:** E2E 1/2 → `OfferTest`; E2E 3 → `OfferTest::test_e2e3_*` + `VoucherInventoryTest::test_e2e3_*`; E2E 4/9/10 → `CodeInventoryApiTest`; **E2E 5 → `ConcurrentReservationTest` (pcntl_fork, MySQL)**; E2E 6 → `VoucherInventoryTest::test_e2e6_*` (redemption via a real signed webhook carrying the coupon); E2E 8 partial (one reward per order via idempotency key; funding in B12); E2E 7 BLOCKED (no coupon APIs).
 - **Bugs found while building:** bulk-inserted codes had upper-case ULIDs, so they were unaddressable via the API (fixed; also fixed the B02 migration backfill); the concurrency test leaked committed rows into later tests (now truncates afterwards); released reservations still counted as "assigned".
+
+### B07 detail
+
+- **Delivered (B07a):** see `5c24240`: eligibility with reasons, one-hour grouping, cancellation suppression, transactional outbox, merchant settings/suppressions/queue.
+- **Delivered (B07b):** migration `2026_10_23_240000_create_answer24_channel_tables` (`integration_clients`, `integration_inbound_events`, `contact_opportunity_events`, `voucher_claims`, `voucher_claim_reminders`); `VerifyIntegrationSignature` (`integration.signed:<scope>`), `Support\SignatureV1`; `Services\Answer24\{ContactResults, ClaimLinks, Answer24Client, OutboxDispatcher}`; `Answer24Controller` (contact-results, handoffs, claim status, reminders); `Claims\ClaimController` (preview, accept); commands `shopbonus:create-integration-client`, `shopbonus:dispatch-outbox` (every minute; no-op while disabled); `shopbonus:expire-vouchers` now also closes claims; access level `integration` in `OpenApiCoverageTest`.
+- **Card mapping:** #1 E2E 9 → `Answer24ChannelTest::test_card1_e2e9_*` and `test_callbacks_cannot_cross_tenants_*`; #10 §6 reminder test → `test_card10_reminders_*`, `test_suppressed_customer_gets_no_reminder`; #23 Answer24 free voucher (reserve at handoff, single use, 90-day expiry and release) → `test_card1_e2e9_*`, `test_unclaimed_entitlement_expires_*`, `test_out_of_stock_handoff_*`; signature/scope/replay → `test_signature_scope_and_replay_are_enforced`; dispatcher → `test_dispatcher_*`, `test_cancellation_during_dispatch_*`.
+- **Not verified:** real Answer24 (no API; OPEN-ANSWER24-CONTRACT). Consumer account creation from a claim link uses the normal signup; linking the central points wallet is B09.
 
 ## How to update
 

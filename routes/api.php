@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreem
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
+use App\Http\Controllers\Api\V1\Claims\ClaimController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -52,6 +54,22 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::post('invitations/preview', [InvitationController::class, 'preview'])
         ->middleware('throttle:invitation-preview')->name('invitations.preview');
 
+    // Answer24 → Shopbonus (server to server; scoped key + signature, Trello #23).
+    Route::prefix('integrations/answer24')->name('integrations.answer24.')
+        ->withoutMiddleware('throttle:api')->middleware('throttle:integrations')->group(function () {
+            Route::post('contact-results', [Answer24Controller::class, 'contactResult'])
+                ->middleware('integration.signed:answer24.contact_results')->name('contact-results.store');
+            Route::post('handoffs', [Answer24Controller::class, 'handoff'])
+                ->middleware('integration.signed:answer24.handoffs')->name('handoffs.store');
+            Route::get('claims/{claim}', [Answer24Controller::class, 'claimStatus'])
+                ->middleware('integration.signed:answer24.claims')->name('claims.show');
+            Route::post('claims/{claim}/reminders', [Answer24Controller::class, 'reminder'])
+                ->middleware('integration.signed:answer24.claims')->name('claims.reminders.store');
+        });
+
+    // Claim link preview (public; the token is the secret).
+    Route::post('claims/preview', [ClaimController::class, 'preview'])->middleware('throttle:claims')->name('claims.preview');
+
     // Authenticated, verified or not (unverified users may only do this).
     Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
         Route::get('me', [MeController::class, 'show'])->name('me');
@@ -96,6 +114,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
             Route::post('invitations/accept', [InvitationController::class, 'accept'])
                 ->middleware('throttle:invitation-preview')->name('invitations.accept');
+            Route::post('claims/accept', [ClaimController::class, 'accept'])->middleware('throttle:claims')->name('claims.accept');
 
             Route::prefix('workspaces/{workspace}')->middleware('workspace')->name('workspaces.')->group(function () {
                 Route::get('/', [WorkspaceController::class, 'show'])->name('show');

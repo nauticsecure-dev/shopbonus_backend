@@ -16,3 +16,6 @@ Schedule::command('shopbonus:expire-vouchers')->hourly()->withoutOverlapping();
 
 // Answer24 one-hour grouping windows.
 Schedule::command('shopbonus:close-contact-windows')->everyMinute()->withoutOverlapping();
+
+// Answer24 outbox delivery (no-op while ANSWER24_DISPATCH_ENABLED=false).
+Schedule::command('shopbonus:dispatch-outbox')->everyMinute()->withoutOverlapping();

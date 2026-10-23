@@ -14,7 +14,7 @@ use Tests\TestCase;
  *  - every /api/v1 route and every session-auth route is in openapi.yaml,
  *    with an example request and an example for each response;
  *  - every operation declares `x-access` (public | guest | authenticated |
- *    verified | admin), and that declaration matches the route's real middleware,
+ *    verified | admin | integration), and that declaration matches the route's real middleware,
  *    so a private route cannot silently ship without auth (default deny).
  */
 class OpenApiCoverageTest extends TestCase
@@ -54,6 +54,7 @@ class OpenApiCoverageTest extends TestCase
             $has('auth') && $has('verified') => 'verified',
             $has('auth') => 'authenticated',
             $has('guest') => 'guest',
+            $has('integration.signed') => 'integration',
             default => 'public',
         };
     }
