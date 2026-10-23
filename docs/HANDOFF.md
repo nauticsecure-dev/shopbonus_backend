@@ -3,21 +3,21 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `c2dfb15` B08b. Earlier: `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** `B09_SHA` B09. Earlier: `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B09 wallet ledger core (Trello #2, #19, #20, #23).
-**Last completed task:** B08b consumer profile, email change, preferences, favourites, My Vouchers, dashboard, privacy requests (B08 complete).
+**Active task:** none in progress. **Next:** B10 affiliate tracking (Trello #19, #23, #24), with credit timing = safe default (pending until approved).
+**Last completed task:** B09 wallet ledger.
 
-## Tests actually executed (at `c2dfb15`)
+## Tests actually executed (at `B09_SHA`)
 
 | Command | Result |
 | --- | --- |
-| `php artisan test` (SQLite in-memory) | PASS: 344 + 3 skipped (MySQL-only concurrency) |
-| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 347 tests (incl. forked-process race tests) |
+| `php artisan test` (SQLite in-memory) | PASS: 358 + 5 skipped (MySQL-only concurrency) |
+| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 363 tests (incl. forked-process race tests) |
 | `vendor/bin/pint --test` | PASS |
 | `vendor/bin/phpstan analyse --memory-limit=1G` (level 6) | PASS, 0 errors |
 | `composer audit` | No advisories |
-| `php artisan migrate:rollback --step=1 && php artisan migrate` (local MySQL, B08b) | OK |
+| `php artisan migrate:rollback --step=1 && php artisan migrate` (local MySQL, B09) | OK |
 | Real HTTP capture of the whole auth flow (MySQL + Redis sessions) | Done; in `docs/api/README.md` → Auth |
 | Staging p95, GitHub CI, PostgreSQL trigger | NOT RUN (no staging, no remote, no PG) |
 
@@ -25,8 +25,8 @@
 
 - Local: PHP 8.4.17, MySQL (`root`, no password) with DBs `shopbonus` and `shopbonus_testing`, Redis 127.0.0.1:6379 via predis (D-004).
 - **Local Redis is shared with other projects.** Only delete keys matching `shopbonus-*` (databases 0 and 1). Never `FLUSHDB`/`FLUSHALL`; see the incident note below.
-- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations), `2026_10_23_170000` (business profiles, verifications, ownership columns), `2026_10_23_180000` (agreements), `2026_10_23_190000` (connections, webhook events), `2026_10_23_200000` (orders, order events), `2026_10_23_210000` (offers, offer versions), `2026_10_23_220000` (voucher codes, batches, vouchers, events), `2026_10_23_230000` (contact suppressions, opportunities, outbox; order customer_key/consent), `2026_10_23_240000` (integration clients, inbound events, opportunity events, voucher claims, claim reminders), `2026_10_23_250000` (public profiles, public categories, offer slugs), `2026_10_23_260000` (users phone/avatar, email change requests, favourites, category preferences, privacy requests).
-- Env key names added in B02: `LEGAL_TERMS_VERSION`, `LEGAL_PRIVACY_VERSION`, `LEGAL_MARKETING_CONSENT_VERSION` (empty = registration disabled), `SANCTUM_STATEFUL_DOMAINS`, `SESSION_SECURE_COOKIE` (true in prod), `SESSION_SAME_SITE`, `VERIFICATION_CODE_TTL_MINUTES`, `VERIFICATION_CODE_MAX_ATTEMPTS`, `VERIFICATION_RESEND_COOLDOWN_SECONDS`. B07: `ANSWER24_DISPATCH_ENABLED` (false), `ANSWER24_CONTACT_PATH` / `ANSWER24_CANCEL_PATH` / `ANSWER24_CLAIM_STATUS_PATH` (Shopbonus-defined defaults), `ANSWER24_BASE_URL`, `ANSWER24_SIGNING_SECRET` (secret), `ANSWER24_ALLOW_LEGITIMATE_INTEREST` (false), `ANSWER24_RECENT_CONTACT_DAYS` (30). B06: `DIRECT_REWARD_FEE_BPS` (3000). B05: `BUSINESS_TIMEZONE` (default Europe/Amsterdam), `BROADCAST_CONNECTION` (null by default). B04: `WEBHOOK_PAYLOAD_RETENTION_DAYS` (default 14). B03c: `GOOGLE_PLACES_API_KEY` (secret; empty = manual entry only). B08a: `DISCOVERY_CACHE_TTL_SECONDS` (60), `API_DOCS_ENABLED` (default on outside production). Earlier: `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CORS_SUPPORTS_CREDENTIALS`, `API_RATE_LIMIT_PER_MINUTE`, `HEALTH_READINESS_TOKEN` (secret).
+- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations), `2026_10_23_170000` (business profiles, verifications, ownership columns), `2026_10_23_180000` (agreements), `2026_10_23_190000` (connections, webhook events), `2026_10_23_200000` (orders, order events), `2026_10_23_210000` (offers, offer versions), `2026_10_23_220000` (voucher codes, batches, vouchers, events), `2026_10_23_230000` (contact suppressions, opportunities, outbox; order customer_key/consent), `2026_10_23_240000` (integration clients, inbound events, opportunity events, voucher claims, claim reminders), `2026_10_23_250000` (public profiles, public categories, offer slugs), `2026_10_23_260000` (users phone/avatar, email change requests, favourites, category preferences, privacy requests), `2026_10_23_270000` (wallets, ledger + triggers, lots, reservations, pending, reconciliation flags).
+- Env key names added in B02: `LEGAL_TERMS_VERSION`, `LEGAL_PRIVACY_VERSION`, `LEGAL_MARKETING_CONSENT_VERSION` (empty = registration disabled), `SANCTUM_STATEFUL_DOMAINS`, `SESSION_SECURE_COOKIE` (true in prod), `SESSION_SAME_SITE`, `VERIFICATION_CODE_TTL_MINUTES`, `VERIFICATION_CODE_MAX_ATTEMPTS`, `VERIFICATION_RESEND_COOLDOWN_SECONDS`. B07: `ANSWER24_DISPATCH_ENABLED` (false), `ANSWER24_CONTACT_PATH` / `ANSWER24_CANCEL_PATH` / `ANSWER24_CLAIM_STATUS_PATH` (Shopbonus-defined defaults), `ANSWER24_BASE_URL`, `ANSWER24_SIGNING_SECRET` (secret), `ANSWER24_ALLOW_LEGITIMATE_INTEREST` (false), `ANSWER24_RECENT_CONTACT_DAYS` (30). B06: `DIRECT_REWARD_FEE_BPS` (3000). B05: `BUSINESS_TIMEZONE` (default Europe/Amsterdam), `BROADCAST_CONNECTION` (null by default). B04: `WEBHOOK_PAYLOAD_RETENTION_DAYS` (default 14). B03c: `GOOGLE_PLACES_API_KEY` (secret; empty = manual entry only). B09: `WALLET_CREDIT_VALIDITY_MONTHS` (12). B08a: `DISCOVERY_CACHE_TTL_SECONDS` (60), `API_DOCS_ENABLED` (default on outside production). Earlier: `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CORS_SUPPORTS_CREDENTIALS`, `API_RATE_LIMIT_PER_MINUTE`, `HEALTH_READINESS_TOKEN` (secret).
 - Capturing docs: run the server with `QUEUE_CONNECTION=sync MAIL_MAILER=log`, read codes/tokens from `storage/logs/laravel.log`, then **truncate that log**, since it holds live codes and reset tokens.
 
 ## Conventions to reuse
@@ -55,7 +55,8 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - Fees: always `FeeCalculator` (never inline percentages).
 - Vouchers: only through `VoucherInventory` (reserve with an idempotency key such as `order:<id>:offer:<id>` or `answer24-handoff:<ref>`). Never update voucher/code status directly.
 - Bulk inserts that bypass Eloquent must generate `public_id` with `strtolower((string) Str::ulid())`.
-- Tests that commit real rows (concurrency) must use DatabaseTruncation **and** truncate in tearDown (see `ConcurrentReservationTest`).
+- Wallet changes only through `WalletService` (idempotency key on every call; never touch `wallets` columns directly). Choose the unit explicitly.
+- Tests that commit real rows (concurrency) use `Tests\Concerns\RacesProcesses` + DatabaseTruncation, call `truncateAfterRace()` in tearDown, and override `truncateDatabaseTables()` to skip on SQLite (see `ConcurrentWalletTest`).
 - Partner (server-to-server) routes: `->middleware('integration.signed:<scope>')`, declared `x-access: integration` with `security: [{ integrationSignature: [] }]`. Credentials only via `php artisan shopbonus:create-integration-client`. Tests sign with `App\Support\SignatureV1::header()` (see `Answer24ChannelTest::signed()`).
 - Claim links: only through `App\Services\Answer24\ClaimLinks` (handoff/accept/reminder/expire). Outbox delivery only through `OutboxDispatcher` (`shopbonus:dispatch-outbox`).
 - Public read endpoints: under `Route::prefix('public')`, data through `PublicCatalog` only (published fields, cached via `DiscoveryCache`). Models whose change affects public data must call `DiscoveryCache::flush()` on save.
@@ -69,7 +70,6 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 ## Next agent's exact first actions
 
-1. `git status -sb && git log --oneline -8 && php artisan test` (expect 344 + 3 skipped on SQLite; 347 on MySQL).
-2. Read Trello #19 (affiliate + central points wallet), #20 (checkout/My Vouchers), #23 (wallet rules) and #2 (ledger standards), and the B09 row in `docs/TASKS.md`. Check `docs/DECISIONS.md` OPEN-REWARD-UNITS (points vs euro) and OPEN-AFFILIATE-CREDIT-TIMING: **do not choose either silently**.
-3. Expand B09 in `docs/CHECKLIST.md` before coding. Expected scope: one central consumer wallet per user and separate merchant ledger types; append-only ledger entries with idempotency keys; available/reserved/spent balances; reservations with expiry; no negative balances under concurrency (forked-process test like `ConcurrentReservationTest`); no cash withdrawal; integer minor units only; the dashboard `wallet` field and `GET /consumer/wallet` + transactions.
-4. Where a unit or timing decision is missing, build the ledger generically (amount + unit column) and record the open question rather than guessing.
+1. `git status -sb && git log --oneline -8 && php artisan test` (expect 358 + 5 skipped on SQLite; 363 on MySQL).
+2. B10 affiliate tracking (Trello #19 network sections, #23 "Instant affiliate credit", #24): owner chose the safe default for OPEN-AFFILIATE-CREDIT-TIMING, so an approved-by-rule conversion is a **pending** wallet credit until the network approves; rejection before approval cancels it; reversal after credit uses `WalletService::reverse` (unspent part only, rest flagged).
+3. No Daisycon/TradeTracker credentials exist: build the `AffiliateNetworkAdapter` contract, fixture-based adapters (marked NOT VERIFIED), clicks/redirect, transaction import (idempotent, cross-network dedupe), reward rules, and admin review, then capture with fixtures.

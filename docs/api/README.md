@@ -3831,16 +3831,16 @@ Content-Type: application/json
 {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d013-70a3-805f-4210b7800dc5","fields":{"status":["The selected status is invalid."]}}}
 ```
 
-**Dashboard (wallet not available until B09)**
+**Dashboard** (re-captured in B09 with the real wallet)
 
 `GET /api/v1/consumer/dashboard`
 
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Request-Id: 01a16a61-d0ae-731f-8865-2c608afd0581
+X-Request-Id: 01a16a6f-b071-70d6-b1ce-5ff3c15e55f1
 
-{"data":{"first_name":"Anna","email_verified":true,"wallet":null,"wallet_status":"not_available","vouchers":{"issued":1,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}],"favorites":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}}
+{"data":{"first_name":"Anna","email_verified":true,"wallet":{"eur_credit":{"unit":"eur_credit","available":220,"pending":300,"reserved":0,"total_earned":1220,"total_spent":1000,"total_expired":0,"next_expiry":{"amount":220,"at":"2027-10-23T20:24:21+00:00"}},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"vouchers":{"issued":1,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}],"favorites":[]}}
 ```
 
 **Data export**
@@ -3952,6 +3952,109 @@ Content-Security-Policy: default-src 'none'
 Content-Length: 1593
 Content-Disposition: inline; filename=avatar
 X-Request-Id: 01a16a61-b807-71bc-9f12-86252cbbef65
+```
+
+---
+
+## Wallet: central non-cash ledger (B09, Trello #19, #23)
+
+Captured 2026-10-23 against local MySQL. Anna's euro-credit wallet received a €12.20 credit (affiliate conversion `conv-8841`) and a €3.00 pending credit, then spent €10.00 on a voucher purchase through `WalletService::debit`. Bob has his own wallet. All amounts are integer cents (`eur_credit`) or integer points (`points`), and the two are never converted.
+
+Ledger rules:
+
+- Every change is one append-only entry, blocked from updates and deletes in the model and by database triggers.
+- Every operation is idempotent per key, and balances can never go negative: the service refuses, and the unsigned columns refuse too.
+- Credits are lots valid for 12 months; the oldest-expiring lot is spent first.
+- A reversal only takes the unspent part of a credit; any remainder is flagged in `wallet_reconciliation_flags`.
+- Housekeeping and proof run on a schedule: `shopbonus:wallet-expire` every five minutes, and `shopbonus:wallet-reconcile` nightly. Captured output:
+
+```
+All wallets reconcile.
+Expired 0 credit lot(s); released 0 reservation(s).
+```
+
+**Balances**
+
+`GET /api/v1/consumer/wallet`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a6f-aad2-7027-ac88-0105508fde52
+
+{"data":{"balances":{"eur_credit":{"unit":"eur_credit","available":220,"pending":300,"reserved":0,"total_earned":1220,"total_spent":1000,"total_expired":0,"next_expiry":{"amount":220,"at":"2027-10-23T20:24:21+00:00"}},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"withdrawable":false,"notice":"ShopBonus credit and points are not money: they cannot be withdrawn or transferred."}}
+```
+
+**History**
+
+`GET /api/v1/consumer/wallet/transactions`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a6f-acbe-707d-8c08-00af4f059687
+
+{"data":[{"id":"01m5n6z742bdngd1zmms9g23tm","type":"debit","amount":-1000,"unit":"eur_credit","available_after":220,"source":{"type":"voucher_purchase","ref":"demo"},"description":null,"expires_at":null,"created_at":"2026-10-23T20:24:21+00:00"},{"id":"01m5n6z73t0yzvtspczc4tp4er","type":"reserve","amount":0,"unit":"eur_credit","available_after":220,"source":{"type":"voucher_purchase","ref":"demo"},"description":null,"expires_at":null,"created_at":"2026-10-23T20:24:21+00:00"},{"id":"01m5n6z72892ybxx5vkqcpexsa","type":"credit","amount":1220,"unit":"eur_credit","available_after":1220,"source":{"type":"affiliate","ref":"conv-8841"},"description":"Purchase at Fietsen Utrecht","expires_at":"2027-10-23T20:24:21+00:00","created_at":"2026-10-23T20:24:21+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":3}}
+```
+
+**Pending (not spendable)**
+
+`GET /api/v1/consumer/wallet/transactions?filter=pending`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a6f-add6-72c4-bfb0-b08a61aae675
+
+{"data":[{"id":"01m5n6z7383xyt8nd7g8jpv96v","type":"pending_credit","status":"pending","amount":300,"unit":"eur_credit","description":"Purchase at Woon & Co (awaiting confirmation)","source":{"type":"affiliate","ref":"conv-8842"},"spendable":false,"created_at":"2026-10-23T20:24:21+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":1}}
+```
+
+**Unknown filter → 422**
+
+`GET /api/v1/consumer/wallet/transactions?filter=cash`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16a6f-ae82-7212-855f-7c1d4b1686f3
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a6f-ae82-7212-855f-7c1d4b1686f3","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+**One entry**
+
+`GET /api/v1/consumer/wallet/transactions/01m5n6z72892ybxx5vkqcpexsa`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16a6f-af1b-73d3-beea-a6933cc6506c
+
+{"data":{"id":"01m5n6z72892ybxx5vkqcpexsa","type":"credit","amount":1220,"unit":"eur_credit","available_after":1220,"source":{"type":"affiliate","ref":"conv-8841"},"description":"Purchase at Fietsen Utrecht","expires_at":"2027-10-23T20:24:21+00:00","created_at":"2026-10-23T20:24:21+00:00","remaining":220,"related_to":null}}
+```
+
+**Another consumer's entry → 404**
+
+`GET /api/v1/consumer/wallet/transactions/01m5n6z74p2ew6yvsw8ee30s79`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16a6f-af92-704c-bcf6-ce5167d38dc4
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Transaction not found.","request_id":"01a16a6f-af92-704c-bcf6-ce5167d38dc4"}}
+```
+
+**Not signed in → 401**
+
+`GET /api/v1/consumer/wallet`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16a6f-b001-7195-a525-f98115037cb5
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16a6f-b001-7195-a525-f98115037cb5"}}
 ```
 
 ---

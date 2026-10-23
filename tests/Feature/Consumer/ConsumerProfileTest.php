@@ -86,7 +86,7 @@ class ConsumerProfileTest extends TestCase
             ->assertJsonPath('data.notifications', ['vouchers_discounts' => false, 'reminders' => true, 'offers_inspiration' => false]);
         $this->assertNotSame($this->anna->getRawOriginal('phone'), '+31612345678'); // stored encrypted
 
-        $this->getJson('/api/v1/consumer/dashboard')->assertOk()->assertJsonPath('data.wallet', null)->assertJsonPath('data.wallet_status', 'not_available');
+        $this->getJson('/api/v1/consumer/dashboard')->assertOk()->assertJsonPath('data.wallet.eur_credit.available', 0); // authoritative ledger, empty
     }
 
     public function test_card10_e2e2_personal_data_changes_persist_and_invalid_input_changes_nothing(): void

@@ -19,3 +19,7 @@ Schedule::command('shopbonus:close-contact-windows')->everyMinute()->withoutOver
 
 // Answer24 outbox delivery (no-op while ANSWER24_DISPATCH_ENABLED=false).
 Schedule::command('shopbonus:dispatch-outbox')->everyMinute()->withoutOverlapping();
+
+// Wallet: credit expiry and reservation timeouts; nightly ledger proof.
+Schedule::command('shopbonus:wallet-expire')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('shopbonus:wallet-reconcile')->dailyAt('04:00')->withoutOverlapping();

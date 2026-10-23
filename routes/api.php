@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
 use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
+use App\Http\Controllers\Api\V1\Consumer\WalletController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
@@ -153,6 +154,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
                 Route::get('dashboard', [BenefitsController::class, 'dashboard'])->name('dashboard');
+
+                Route::get('wallet', [WalletController::class, 'show'])->name('wallet.show');
+                Route::get('wallet/transactions', [WalletController::class, 'transactions'])->name('wallet.transactions.index');
+                Route::get('wallet/transactions/{id}', [WalletController::class, 'transaction'])->name('wallet.transactions.show');
 
                 Route::middleware('throttle:privacy')->group(function () {
                     Route::get('privacy/export', [PrivacyController::class, 'export'])->name('privacy.export');

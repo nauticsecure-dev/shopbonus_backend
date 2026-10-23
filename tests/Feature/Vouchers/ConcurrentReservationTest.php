@@ -27,7 +27,20 @@ use Throwable;
  */
 class ConcurrentReservationTest extends TestCase
 {
-    use CreatesActiveWebshops, DatabaseTruncation;
+    use CreatesActiveWebshops, DatabaseTruncation {
+        DatabaseTruncation::truncateDatabaseTables as truncateCommittedTables;
+    }
+
+    /**
+     * On SQLite these tests are skipped; truncating would mark migrations as
+     * done and leave later in-memory RefreshDatabase tests without tables.
+     */
+    protected function truncateDatabaseTables(): void
+    {
+        if (in_array(config('database.default'), ['mysql', 'mariadb', 'pgsql'], true)) {
+            $this->truncateCommittedTables();
+        }
+    }
 
     /**
      * DatabaseTruncation cleans up before each test only; these tests commit

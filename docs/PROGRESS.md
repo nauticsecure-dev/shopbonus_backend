@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08 (discovery + consumer profile) is done; B09 onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08 and B09 (wallet) are done; B10 onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -20,7 +20,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Offers / voucher codes | VERIFIED_WORKING (B06a+B06b): versioned offers, fee preview, single code inventory, atomic reservation (real concurrency test), lifecycle, verified redemption; platform coupon verification BLOCKED | `tests/Feature/Offers/*` |
 | Answer24 | VERIFIED_WORKING on the Shopbonus side (B07a+B07b): eligibility, grouping, cancellation, outbox, signed inbound channel, handoff → reserved code + single-use claim, consumer claim, reminder slots, dispatcher. Outbound dispatch disabled by default; real Answer24 NOT VERIFIED (no API) | `tests/Feature/Answer24/*` |
 | Consumer profile/discovery | VERIFIED_WORKING (B08a discovery, B08b profile/email change/preferences/favourites/My Vouchers/dashboard/privacy requests); wallet in dashboard waits for B09 | `tests/Feature/Discovery/*`, `tests/Feature/Consumer/*` |
-| Wallet ledgers | MISSING | B09 |
+| Wallet ledgers | VERIFIED_WORKING (B09): central consumer wallet, append-only ledger, lots/expiry, reservations, pending, reversal policy, reconcile; merchant funding kind reserved for B12 | `tests/Feature/Wallet/*` |
 | Affiliate (Daisycon/TradeTracker) | MISSING; credit timing BLOCKED on OPEN-AFFILIATE-CREDIT-TIMING | B10 |
 | Mollie checkout, merchant funding, Moneybird | MISSING; live money BLOCKED on OPEN-FINANCIAL-LEGAL | B11–B12 |
 | Analytics, banners, CMS, admin, AI support | MISSING | B13–B17 |
@@ -49,6 +49,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B07b Answer24 channel, handoff, claim | `0c6c035` | MySQL 327 passed; SQLite 324 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (signed requests computed with openssl; dispatcher run against a local Answer24 stand-in); 2 mutations caught | B07 complete; dispatch still off |
 | 2026-10-23 | Claude (Opus 5.5) | B08a public discovery + `/docs` viewer | `4c4e26c` | MySQL 335 passed; SQLite 332 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures incl. multipart logo upload and binary logo; 2 mutations caught | |
 | 2026-10-23 | Claude (Opus 5.5) | B08b consumer profile, preferences, benefits, privacy | `c2dfb15` | MySQL 347 passed; SQLite 344 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (email change via logged mail code, session password throttle); 2 mutations caught; 1 bug found by capture and fixed | B08 complete |
+| 2026-10-23 | Claude (Opus 5.5) | B09 wallet ledger | `B09_SHA` | MySQL 363 passed (incl. forked-process wallet races); SQLite 358 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures; lock-removal mutation caught by the race test | |
 
 ### B01a detail
 
@@ -128,6 +129,11 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Delivered (B08b):** migration `2026_10_23_260000_create_consumer_profile_tables` (users phone/avatar, `email_change_requests`, `consumer_favorite_webshops`, `consumer_category_preferences`, `privacy_requests`); `Services\Consumer\{EmailChange, CommunicationPreferences, ConsumerFiles}`; `Consumer\{Profile, EmailChange, Preference, Benefits, Privacy}Controller`; notifications `EmailChangeCode`, `EmailChangeRequested`; consent purposes `marketing_inspiration`, `voucher_reminders`; password-change limiter `identity-change-password`.
 - **Card #10 mapping:** E2E 1–6, 9, 10 → `ConsumerProfileTest::test_card10_*`; E2E 7 → B07b `Answer24ChannelTest::test_card10_reminders_*`; E2E 8 BLOCKED on B09. Card #18 E2E 9 → `test_card10_e2e10_and_card18_e2e9_*`.
 - **Bug found by the real capture:** the completion notice to the old address was typed for `User` and crashed for the on-demand recipient after the email was already changed (500). Fixed; `test_email_change_mails_render_for_on_demand_recipients` renders both mails.
+
+### B09 detail
+
+- **Delivered:** migration `2026_10_23_270000_create_wallet_tables` (`wallets`, `wallet_ledger_entries` + append-only triggers, `wallet_credit_lots`, `wallet_reservations`, `wallet_pending_credits`, `wallet_reconciliation_flags`); enums `WalletUnit`, `WalletKind`, `LedgerEntryType`; `Services\Wallet\WalletService`; commands `shopbonus:wallet-expire` (every 5 min) and `shopbonus:wallet-reconcile` (nightly); `Consumer\WalletController`; dashboard wallet; test helper `Tests\Concerns\RacesProcesses`.
+- **Card mapping:** #19 E2E 8 → `ConcurrentWalletTest` (MySQL, forked) + `WalletServiceTest`; #23 test 7 (simultaneous wallet-only purchases debit once) → `test_two_simultaneous_requests_with_the_same_key_debit_once`; #10 E2E 8 → `WalletApiTest`. #19 E2E 1–7 and 9 belong to B10/B16.
 
 ## How to update
 

@@ -289,10 +289,28 @@ All routes derive the consumer from the session; no user ID is ever accepted (ca
 - [x] Tests: card #10 E2E 1, 2, 3, 4, 5, 6, 9, 10 (E2E 7 covered by B07b; E2E 8 needs B09); card #18 E2E 9 (`c2dfb15`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`c2dfb15`)
 - [x] Found during capture and fixed: the "email changed" notice to the old address crashed for on-demand recipients (500 after the change was saved); now rendered in a test (`c2dfb15`)
-- [ ] **MOVED** Card #10 E2E 8 wallet balance in header (B09) and #18 E2E 5 return-to-offer after signup (frontend; backend has no redirect state)
+- [x] Card #10 E2E 8 wallet balance from the ledger (`WalletApiTest`, `B09_SHA`)
+- [ ] **BLOCKED** #18 E2E 5 return-to-offer after signup (frontend; backend has no redirect state)
 - [ ] **MOVED** Deletion request processing (B16 admin, retention rules D-013)
 
-- [ ] B09 Wallet ledger core
+## B09 Wallet ledger core (Trello #19 "Central wallet", #23 "Instant affiliate credit", #20, #2)
+
+Owner 2026-10-23: proceed with the safe defaults for OPEN-REWARD-UNITS and OPEN-AFFILIATE-CREDIT-TIMING. So every amount carries an explicit unit (`eur_credit` minor units or `points`), with no implicit conversion, and pending credit is never spendable.
+
+- [x] `wallets` per (owner, kind, unit): consumer credit now, merchant funding kind reserved for B12; cached available/reserved/pending and lifetime totals, unsigned (DB refuses negatives) (`B09_SHA`)
+- [x] `wallet_ledger_entries`: append-only (model + DB trigger), types credit/debit/reserve/release/expire/adjustment/reversal, signed deltas and balances after, source, reason, actor and origin, idempotency key unique per wallet (`B09_SHA`)
+- [x] `wallet_credit_lots`: every credit is a lot with an expiry (default 12 months, card #23); spending/reserving takes the oldest-expiring lot first (`B09_SHA`)
+- [x] `wallet_reservations`: reserve → capture (debit) or release; expiry releases automatically; idempotent per key (`B09_SHA`)
+- [x] `wallet_pending_credits`: pending amounts shown separately, never spendable; confirm → exactly one credit; cancel → nothing credited (`B09_SHA`)
+- [x] `WalletService`: credit, addPending/confirmPending/cancelPending, reserve/capture/release, debit, adjust (reason + actor; never below zero), reverse (only the unspent part; the rest is flagged for reconciliation, never a negative balance), expire (`B09_SHA`)
+- [x] Scheduled `shopbonus:wallet-expire` (lots, reservations) and `shopbonus:wallet-reconcile` (cached balances = ledger sums; mismatches recorded as application errors) (`B09_SHA`)
+- [x] Consumer `GET /consumer/wallet`, `GET /consumer/wallet/transactions` (filters all/earned/spent/pending/adjustments, unit, pagination), `GET /consumer/wallet/transactions/{id}`; dashboard shows the real wallet; no transfer or cash-out endpoint exists (`B09_SHA`)
+- [x] Tests: concurrent debits on MySQL with forked processes (never negative, exact balance); idempotent retries; FIFO-by-expiry; reservation release on failure; reversal of spent credit flagged and never negative; expiry; isolation between consumers; append-only enforced (`B09_SHA`)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`B09_SHA`)
+- [x] Found while testing and fixed: DatabaseTruncation tests on SQLite marked migrations as done, leaving later in-memory tests without tables (order-dependent); both race tests now skip truncation on SQLite (`B09_SHA`)
+- [ ] **MOVED** Admin wallet adjustment requests with password + email OTP step-up and four-eyes approval (B16; the service method `adjust()` exists)
+- [ ] **BLOCKED** Staging p95 < 250 ms for wallet reads (no staging)
+
 - [ ] B10 Affiliate integrations (credit timing decision required)
 - [ ] B11 Voucher checkout/Mollie
 - [ ] B12 Merchant wallet/funding

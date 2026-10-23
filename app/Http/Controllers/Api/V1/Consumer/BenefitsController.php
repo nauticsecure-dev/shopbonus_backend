@@ -15,9 +15,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * My Vouchers and the personal dashboard (Trello #18 "Consumer dashboard",
- * #20 "My Vouchers"). Read from the one voucher model; the consumer sees
- * only vouchers issued to them. The wallet arrives with B09: until then it
- * is reported as unavailable, never as a made-up balance.
+ * #20 "My Vouchers"). Read from the one voucher model and the central
+ * wallet; the consumer sees only their own vouchers and balances.
  */
 class BenefitsController extends Controller
 {
@@ -47,8 +46,7 @@ class BenefitsController extends Controller
         return response()->json(['data' => [
             'first_name' => $user->first_name,
             'email_verified' => $user->email_verified_at !== null,
-            'wallet' => null,
-            'wallet_status' => 'not_available',
+            'wallet' => WalletController::summary($user)['balances'],
             'vouchers' => [
                 'issued' => (clone $owned)->where('status', VoucherStatus::Issued)->count(),
                 'redeemed' => (clone $owned)->where('status', VoucherStatus::Redeemed)->count(),

@@ -125,6 +125,13 @@ return [
     |
     */
 
+    // Central non-cash wallet (Trello #19, #23). No cash-out exists.
+    'wallet' => [
+        // Card #23: "Default credit validity: 12 months".
+        'credit_validity_months' => (int) env('WALLET_CREDIT_VALIDITY_MONTHS', 12),
+        'reservation_ttl_minutes' => 30,
+    ],
+
     // Public discovery (Trello #18). Category keys are stable API values; labels NL/EN.
     'discovery' => [
         'cache_ttl_seconds' => (int) env('DISCOVERY_CACHE_TTL_SECONDS', 60),
