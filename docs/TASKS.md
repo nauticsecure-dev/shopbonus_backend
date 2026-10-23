@@ -1,0 +1,32 @@
+# Backend Task Ledger — Shopbonus
+
+This is the proposed dependency-ordered **backend-only** work queue derived from the attached Trello snapshot. Trello lists are PEOPLE/WORKSTREAM labels (Howto, Frank, Hassan), not a verified status workflow. **Every task starts `UNVERIFIED`** pending repo audit. Exact acceptance details are in corresponding Trello cards in `requirements/TRELLO_CARDS.md`.
+
+Statuses allowed: `UNVERIFIED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `PARTIAL`, `VERIFIED_WORKING`, `DONE`. Only mark DONE with actual tests/commit/evidence. Keep one active writer per overlapping code area.
+
+| Task | Phase | Relevant cards | Depends on | Backend deliverable/acceptance | Status |
+| --- | --- | --- | --- | --- | --- |
+| B00 | Repository audit | #2 #22 #23 | — | Inventory of routes/models/migrations/services/providers/tests, working/partial/missing/broken; git/runtime; no rewrites | UNVERIFIED |
+| B01 | Foundation & quality | #2 #3 #22 | B00 | Versioned API, consistent JSON errors/request IDs, roles/permissions patterns, migration review, Redis jobs, env, CI skeleton, OpenAPI | UNVERIFIED |
+| B02 | Identity & consent | #4 #5 #10 | B00 B01 | Secure signup/login/logout, verification OTP, recovery, account state, legal version and notification consent, access tests | UNVERIFIED |
+| B03 | Workspaces & onboarding | #2 #3 #16 #9 | B02 | Multi-webshop membership, ownership verification, agreement snapshots, invite roles, audit and isolation tests | UNVERIFIED |
+| B04 | Ecommerce provider contracts | #1 #3 #16 #23 | B01 B03 | Capability matrix, encrypted connection registry, verification/health, authenticated adapters, provider test fixtures | UNVERIFIED |
+| B05 | Orders & state transitions | #1 #3 #22 #23 | B04 | Normalized orders, webhook signature/idempotency/out-of-order changes, paid/refunded/cancelled rules, order event feeds | UNVERIFIED |
+| B06 | Offers & code inventory | #7 #9 #17 #8 | B03 | Offer CRUD/state/conditions, CSV import, unique/reusable code controls, atomic reservation/issuance, snapshots | UNVERIFIED |
+| B07 | Answer24 handoff/claim | #1 #3 #23 #10 | B05 B06 | Lawful paid eligibility, one-hour grouping, cancellation suppression, signed outbound/callbacks, 90-day claim, reminder callback contracts | UNVERIFIED |
+| B08 | Consumer profile/discovery | #18 #10 #5 | B02 B03 | Public browse APIs, favorites/categories, profile/upload/preference contracts, owned dashboard, data privacy | UNVERIFIED |
+| B09 | Wallet ledger core | #2 #19 #20 #23 | B02 B01 | One central virtual consumer ledger, separate merchant ledger types, locks/reservations/no negative balances, tests | UNVERIFIED |
+| B10 | Affiliate integrations | #19 #23 #24 | B04 B08 B09 | Daisycon/TradeTracker adapters, network selection, conversion evidence, duplicates/reversals, approved rule engine. **CREDIT TIMING DECISION REQUIRED** | UNVERIFIED |
+| B11 | Voucher checkout/Mollie | #20 #23 #24 | B06 B09 | Typed quotes, wallet/stock reserve, provider callbacks/verified settlement, exactly-once fulfillment, refunds/reconcile | UNVERIFIED |
+| B12 | Merchant wallet/funding | #24 #7 #6 | B03 B05 B06 B09 | Sponsor obligation + 30%-on-reward fees, merchant top-up via Mollie, Moneybird invoices, settlement/reconciliations | UNVERIFIED |
+| B13 | Merchant analytics | #8 #17 #24 #6 | B05 B06 B07 B10 B11 | Scoped KPI/claims/order reports, real paid-order metrics, no cross-workspace leakage, accurate rollups | UNVERIFIED |
+| B14 | Campaign/banner backend | #25 #24 | B03 B06 B05 | Versioned banner configs, publish/pause/rollback, signed pairing API, consent-aware events, attribution/holdouts, public configs only | UNVERIFIED |
+| B15 | CMS/legal/cookie API | #5 #4 #18 | B02 | NL/EN page/FAQ revisions, secure publication/rollback, cookie categories/consent, content access controls | UNVERIFIED |
+| B16 | Super Admin APIs | #21 #6 #23 #24 | B03 B05 B06 B09 | Audited support access, oversight, search, financial/provider health, alerts, content/settings, permission and PII isolation | UNVERIFIED |
+| B17 | Customer support backend | #26 #10 #21 | B08 B09 B11 B13 | Verified-answer tool allowlist, evidence checks, 1 retry, safe Reverb, feedback/human review, admin settings, 100 regression questions | UNVERIFIED |
+| B18 | E2E/security/load/release | #22 #23 plus all cards | B01–B17 | Evidence-backed E2E/backups/staging, permission matrix, race/replay/load, provider sandbox, rollback/runbooks | UNVERIFIED |
+| B19 | Integration marketplace listing | #27 | B04, owner clarification | **UNSPECIFIED — empty Trello card**. Do not implement until a description exists | BLOCKED |
+
+## Work ticket procedure
+
+For EACH task, append an entry to `docs/PROGRESS.md` or a subtask: Trello link, dependency confirmation, actual code paths, test names, negative tests, integration fixtures, performance/cost outcomes, commit SHA and state. Split large tasks into small slices by route/adapter/transaction. Mark BLOCKED on missing owner decisions or credentials, not fabricated PASS. Frontend screenshot/manual UI E2Es are outside backend scope; document associated backend tests/contracts and hand over to frontend owner.
