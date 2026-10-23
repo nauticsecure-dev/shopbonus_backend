@@ -3,17 +3,17 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `2fe8db6` B03a workspace core. Earlier: B02 `c95e1e4` (+ style `49f059d`), `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** B03b team management (`git log --oneline -1 --grep=B03b`). Earlier: `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B03b team management (invitations, roles, removal, final-owner protection).
-**Last completed task:** B03a workspace core (DONE, tested).
+**Active task:** none in progress. **Next:** B03c business profile, onboarding progress and ownership verification.
+**Last completed task:** B03b team management (DONE, tested).
 
-## Tests actually executed (at `2fe8db6`)
+## Tests actually executed (at the B03b commit)
 
 | Command | Result |
 | --- | --- |
-| `php artisan test` (SQLite in-memory) | PASS: 125 tests |
-| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 125 tests |
+| `php artisan test` (SQLite in-memory) | PASS: 144 tests |
+| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 144 tests |
 | `vendor/bin/pint --test` | PASS |
 | `vendor/bin/phpstan analyse --memory-limit=1G` (level 6) | PASS, 0 errors |
 | `composer audit` | No advisories |
@@ -25,7 +25,7 @@
 
 - Local: PHP 8.4.17, MySQL (`root`, no password) with DBs `shopbonus` and `shopbonus_testing`, Redis 127.0.0.1:6379 via predis (D-004).
 - **Local Redis is shared with other projects.** Only delete keys matching `shopbonus-*` (databases 0 and 1). Never `FLUSHDB`/`FLUSHALL`; see the incident note below.
-- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles).
+- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations).
 - Env key names added in B02: `LEGAL_TERMS_VERSION`, `LEGAL_PRIVACY_VERSION`, `LEGAL_MARKETING_CONSENT_VERSION` (empty = registration disabled), `SANCTUM_STATEFUL_DOMAINS`, `SESSION_SECURE_COOKIE` (true in prod), `SESSION_SAME_SITE`, `VERIFICATION_CODE_TTL_MINUTES`, `VERIFICATION_CODE_MAX_ATTEMPTS`, `VERIFICATION_RESEND_COOLDOWN_SECONDS`. Earlier: `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CORS_SUPPORTS_CREDENTIALS`, `API_RATE_LIMIT_PER_MINUTE`, `HEALTH_READINESS_TOKEN` (secret).
 - Capturing docs: run the server with `QUEUE_CONNECTION=sync MAIL_MAILER=log`, read codes/tokens from `storage/logs/laravel.log`, then **truncate that log**, since it holds live codes and reset tokens.
 
@@ -50,9 +50,12 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 - Workspace-scoped routes: `Route::prefix('workspaces/{workspace}')->middleware('workspace')`, plus `->middleware('workspace.can:<permission>')` per route. Read the webshop from `CurrentWorkspace`, never from input. Declare `x-permission` in OpenAPI.
 - Non-member access is a generic 404 (and audited by the resolver); members lacking a permission get 403.
+- **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
+- Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
+- The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
 
 ## Next agent's exact first actions
 
-1. `git status -sb && git log --oneline -8 && php artisan test` (expect 125 passing).
-2. Re-read Trello #16 "Team management" and "Workspaces & memberships".
-3. Expand B03b in `docs/CHECKLIST.md`: `webshop_invitations` (hashed token, expiry, bound to webshop and recipient email, single use), invite/resend/cancel/accept, member list, role/permission changes (no granting above own authority; managers cannot invite owners), suspend/remove (immediate loss of access; final active owner cannot be removed), audit for each.
+1. `git status -sb && git log --oneline -8 && php artisan test` (expect 144 passing).
+2. Re-read Trello #16 "Business search & details", "Ownership verification" and "Merchant agreement", plus #3 A.2–A.3.
+3. Expand B03c in `docs/CHECKLIST.md`: business profile per webshop (legal name, trading name, KvK, VAT, contacts, address; private by default), onboarding progress and step state that cannot be skipped, a Google Places adapter behind an interface (no credentials: return 503 `provider_not_configured`, manual entry still works), ownership challenges (DNS TXT, well-known file, business-domain email code; hashed, expiring, single use; SSRF-safe fetching), duplicate-claim protection, and manual review submission with encrypted private evidence.

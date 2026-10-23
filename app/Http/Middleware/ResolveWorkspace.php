@@ -57,7 +57,7 @@ class ResolveWorkspace
 
         Context::add(AuditLogger::CONTEXT_WEBSHOP_ID, $webshop->id);
         $webshop->setRelation('memberships', collect([$membership]));
-        $membership->setRelation('webshop', $webshop);
+        $membership->setRelation('webshop', $webshop)->setRelation('user', $user);
 
         if (! $webshop->status->allowsMemberAccess()) {
             throw new ApiException('This workspace is suspended.', 403, 'workspace_suspended');

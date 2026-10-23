@@ -746,6 +746,349 @@ X-Request-Id: 01a16923-d882-702d-a2f1-d2058f06e579
 
 ---
 
+## Team management (B03b, Trello #16)
+
+Captured 2026-10-23 against local MySQL + Redis with bearer tokens. Fietsenwinkel Utrecht has owner Jan, manager Mia, and employee Piet (extra `orders.view`). Eva and Ann have accounts but no membership. Invitation tokens are shown as `<token>`.
+
+### Authority rules
+
+- The **owner role is never granted** through invitations or role changes (403 `owner_role_not_grantable`). Ownership transfer will be a separate step-up workflow.
+- You can grant a role only up to your own rank, and only permissions you hold yourself. Owner-only permissions (`agreements.accept`, `ownership.manage`, `finance.manage`) are never grantable.
+- You can change, suspend or remove only members you outrank. Owners are never targets, and you can't change yourself (you can leave).
+- The final active owner can't leave or be removed (409 `final_owner`).
+- An invitation dies if, by acceptance time, the inviter has lost `team.manage` or the webshop is suspended.
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 403 | `owner_role_not_grantable` / `role_above_own` / `permission_above_own` | Granting beyond your authority |
+| 403 | `cannot_manage_self` / `owner_not_manageable` / `member_not_below_you` | Target not manageable by you |
+| 403 | `invitation_recipient_mismatch` | Signed in with a different email than invited (audited) |
+| 409 | `already_member` / `invitation_pending` / `invitation_not_pending` / `member_not_suspended` / `final_owner` | State conflicts |
+| 410 | `invitation_invalid` | Token unknown, used, cancelled, expired, or the inviter lost authority |
+| 422 | `unknown_permission` | Permission name not in the registry |
+| 429 | `invitation_resend_too_soon` / `invitation_resend_limit` | Resend cooldown (60 s) or cap (5) |
+
+### GET /workspaces/{workspace}/members
+
+`GET /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-d932-73e0-8f2a-fd51e914fe2a
+
+{"data":[{"id":"01m5mjvnc2qm5v4trb0y8pcbh5","first_name":"Jan","email":"jan@example.nl","role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"granted_permissions":[],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":"2026-10-23T14:32:53+00:00"},{"id":"01m5mjvnc7d8cm4qahhag2pvjw","first_name":"Mia","email":"mia@example.nl","role":"manager","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view"],"granted_permissions":[],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null},{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view"],"granted_permissions":["orders.view"],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}]}
+```
+
+### POST /workspaces/{workspace}/invitations, as manager Mia
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"Eva@Example.nl","role":"employee","permissions":["orders.view","offers.view"]}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a1692d-d989-7125-a6bb-a5200647006f
+
+{"data":{"id":"01m5mjvpdm5nmzjsj1aqm6hfbj","email":"eva@example.nl","role":"employee","permissions":["orders.view","offers.view"],"status":"pending","expires_at":"2026-10-30T14:32:54+00:00","last_sent_at":"2026-10-23T14:32:54+00:00","resend_count":0,"created_at":"2026-10-23T14:32:54+00:00"}}
+```
+
+### Inviting an owner
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"x@example.nl","role":"owner"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1692d-da35-7291-88f3-73ffb54fb4b4
+Content-Type: application/json
+
+{"error":{"status":403,"code":"owner_role_not_grantable","message":"The owner role cannot be granted this way.","request_id":"01a1692d-da35-7291-88f3-73ffb54fb4b4"}}
+```
+
+### Manager granting an owner-only permission
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"x@example.nl","role":"employee","permissions":["agreements.accept"]}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1692d-da5b-7326-acc6-190ac61421ea
+Content-Type: application/json
+
+{"error":{"status":403,"code":"permission_above_own","message":"You cannot grant a permission you do not hold.","request_id":"01a1692d-da5b-7326-acc6-190ac61421ea","details":{"permission":"agreements.accept"}}}
+```
+
+### Unknown permission
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"x@example.nl","role":"employee","permissions":["root.everything"]}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a1692d-da81-7319-97b2-08f6d404d9da
+Content-Type: application/json
+
+{"error":{"status":422,"code":"unknown_permission","message":"Unknown permission.","request_id":"01a1692d-da81-7319-97b2-08f6d404d9da","details":{"permission":"root.everything"}}}
+```
+
+### Already invited
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"eva@example.nl","role":"employee"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1692d-daa4-73b0-931f-6a31d0b6ff65
+Content-Type: application/json
+
+{"error":{"status":409,"code":"invitation_pending","message":"An invitation for this email is already pending. Resend it instead.","request_id":"01a1692d-daa4-73b0-931f-6a31d0b6ff65"}}
+```
+
+### Already a member
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"piet@example.nl","role":"employee"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1692d-dac9-736a-b37c-58d5ed68b75b
+Content-Type: application/json
+
+{"error":{"status":409,"code":"already_member","message":"This person is already a member of this workspace.","request_id":"01a1692d-dac9-736a-b37c-58d5ed68b75b"}}
+```
+
+### Employee without team.manage
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations {"email":"x@example.nl","role":"employee"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1692d-daee-7114-9ea4-4777a39c1ade
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a1692d-daee-7114-9ea4-4777a39c1ade","details":{"required_permission":"team.manage"}}}
+```
+
+### GET /workspaces/{workspace}/invitations
+
+`GET /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-db17-723a-9fb1-b680d70dab43
+
+{"data":[{"id":"01m5mjvpdm5nmzjsj1aqm6hfbj","email":"eva@example.nl","role":"employee","permissions":["orders.view","offers.view"],"status":"pending","expires_at":"2026-10-30T14:32:54+00:00","last_sent_at":"2026-10-23T14:32:54+00:00","resend_count":0,"created_at":"2026-10-23T14:32:54+00:00"}]}
+```
+
+### Resend within the cooldown
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations/01m5mjvpdm5nmzjsj1aqm6hfbj/resend`
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 59
+X-Request-Id: 01a1692d-db38-70fb-9716-56dea92fc6ce
+Content-Type: application/json
+
+{"error":{"status":429,"code":"invitation_resend_too_soon","message":"Please wait before resending.","request_id":"01a1692d-db38-70fb-9716-56dea92fc6ce","details":{"retry_after_seconds":59}}}
+```
+
+### Resend after the cooldown (new invitation for Ann)
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations/01m5mjvr97ak60p5zvcg7xzgvm/resend`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-e1b9-706e-8d10-bc9b5c58596f
+
+{"data":{"id":"01m5mjvr97ak60p5zvcg7xzgvm","email":"ann@example.nl","role":"employee","permissions":[],"status":"pending","expires_at":"2026-10-30T14:32:57+00:00","last_sent_at":"2026-10-23T14:32:57+00:00","resend_count":1,"created_at":"2026-10-23T14:32:56+00:00"}}
+```
+
+### Resend a cancelled invitation
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations/01m5mjvr97ak60p5zvcg7xzgvm/resend`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1692d-e371-72ac-8733-ad4be94f5c61
+Content-Type: application/json
+
+{"error":{"status":409,"code":"invitation_not_pending","message":"Only pending invitations can be resent.","request_id":"01a1692d-e371-72ac-8733-ad4be94f5c61"}}
+```
+
+### POST /invitations/preview (public)
+
+`POST /api/v1/invitations/preview {"token":"<token>"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-db56-714e-926b-aa31d2d63ae8
+
+{"data":{"webshop":{"name":"Fietsenwinkel Utrecht"},"role":"employee","invited_by":"Mia","email_hint":"e**@example.nl","expires_at":"2026-10-30T14:32:54+00:00"}}
+```
+
+### POST /invitations/accept signed in as Ann
+
+`POST /api/v1/invitations/accept {"token":"<token>"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1692d-db74-73b2-b80f-1e8b0124f6ef
+Content-Type: application/json
+
+{"error":{"status":403,"code":"invitation_recipient_mismatch","message":"This invitation was sent to a different email address. Sign in with that address to accept it.","request_id":"01a1692d-db74-73b2-b80f-1e8b0124f6ef"}}
+```
+
+### POST /invitations/accept signed in as Eva
+
+`POST /api/v1/invitations/accept {"token":"<token>"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-db97-73d2-8eae-558ceb863d00
+
+{"data":{"id":"01m5mjvndq5spwdz5ny31z452d","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"draft","commercially_active":false,"is_current":false,"membership":{"role":"employee","permissions":["dashboard.view","orders.view","offers.view"],"joined_at":"2026-10-23T14:32:55+00:00"},"created_at":"2026-10-23T14:32:53+00:00"}}
+```
+
+### Same token again
+
+`POST /api/v1/invitations/accept {"token":"<token>"}`
+
+```http
+HTTP/1.1 410 Gone
+X-Request-Id: 01a1692d-dbbf-73d4-9530-78d274a76438
+Content-Type: application/json
+
+{"error":{"status":410,"code":"invitation_invalid","message":"This invitation is invalid or has expired.","request_id":"01a1692d-dbbf-73d4-9530-78d274a76438"}}
+```
+
+### Accepting while already a member
+
+`POST /api/v1/invitations/accept {"token":"<token>"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1692d-e32b-717f-b300-60c3054c7bb5
+Content-Type: application/json
+
+{"error":{"status":409,"code":"already_member","message":"You are already a member of this workspace.","request_id":"01a1692d-e32b-717f-b300-60c3054c7bb5"}}
+```
+
+### DELETE /workspaces/{workspace}/invitations/{invitation}
+
+`DELETE /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/invitations/01m5mjvpzc51y78v6494r67r0m`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-dc18-703f-9bc1-c35a4fea7f1d
+
+{"data":{"id":"01m5mjvpzc51y78v6494r67r0m","email":"ann@example.nl","role":"employee","permissions":[],"status":"cancelled","expires_at":"2026-10-30T14:32:55+00:00","last_sent_at":"2026-10-23T14:32:55+00:00","resend_count":0,"created_at":"2026-10-23T14:32:55+00:00"}}
+```
+
+### PATCH /workspaces/{workspace}/members/{member}, Mia changing Piet's grants
+
+`PATCH /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members/01m5mjvnc9bchqs7612nwyczba {"permissions":["orders.view","vouchers.view"]}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-dc3c-71cf-8931-2e0146d9cf54
+
+{"data":{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view","vouchers.view"],"granted_permissions":["orders.view","vouchers.view"],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}}
+```
+
+### Mia changing herself
+
+`PATCH /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members/01m5mjvnc7d8cm4qahhag2pvjw {"role":"manager"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1692d-dc60-73b7-bc92-8857d1f110a2
+Content-Type: application/json
+
+{"error":{"status":403,"code":"cannot_manage_self","message":"You cannot change your own membership this way.","request_id":"01a1692d-dc60-73b7-bc92-8857d1f110a2"}}
+```
+
+### Mia removing the owner
+
+`DELETE /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members/01m5mjvnc2qm5v4trb0y8pcbh5`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1692d-dc83-7192-8ee3-56d35554f982
+Content-Type: application/json
+
+{"error":{"status":403,"code":"owner_not_manageable","message":"Owners can only be changed through the ownership workflow.","request_id":"01a1692d-dc83-7192-8ee3-56d35554f982"}}
+```
+
+### POST .../members/{member}/suspend
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members/01m5mjvnc9bchqs7612nwyczba/suspend`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-dca4-71d2-862f-9e585e5f0355
+
+{"data":{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view","vouchers.view"],"granted_permissions":["orders.view","vouchers.view"],"status":"suspended","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}}
+```
+
+### Piet while suspended
+
+`GET /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a1692d-dcc9-722f-85d1-afd52a7722df
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1692d-dcc9-722f-85d1-afd52a7722df"}}
+```
+
+### POST .../members/{member}/reactivate
+
+`POST /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members/01m5mjvnc9bchqs7612nwyczba/reactivate`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1692d-dceb-73bd-9d5e-1fc394d89d39
+
+{"data":{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view","vouchers.view"],"granted_permissions":["orders.view","vouchers.view"],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}}
+```
+
+### DELETE .../members/{member}
+
+`DELETE /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/members/01m5mjvnc9bchqs7612nwyczba`
+
+```http
+HTTP/1.1 204 No Content
+X-Request-Id: 01a1692d-dd0f-71e9-b3c8-8190caa2077c
+```
+
+### DELETE /workspaces/{workspace}/membership as the only owner
+
+`DELETE /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/membership`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1692d-dd33-73c1-a07d-0058beb3a2c6
+Content-Type: application/json
+
+{"error":{"status":409,"code":"final_owner","message":"The last owner cannot leave or be removed.","request_id":"01a1692d-dd33-73c1-a07d-0058beb3a2c6"}}
+```
+
+### Mia leaving
+
+`DELETE /api/v1/workspaces/01m5mjvndq5spwdz5ny31z452d/membership`
+
+```http
+HTTP/1.1 204 No Content
+X-Request-Id: 01a1692d-dd4e-7085-89ad-f52ab238eb2a
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

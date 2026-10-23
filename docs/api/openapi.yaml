@@ -852,6 +852,408 @@ paths:
         '403': { $ref: '#/components/responses/WorkspaceSuspended' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
 
+  /api/v1/workspaces/{workspace}/members:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Workspaces]
+      operationId: listMembers
+      summary: "Team members of the workspace"
+      description: |
+        Active and suspended members (removed members are not listed), owners first. `permissions` are effective permissions; `granted_permissions` are the explicit grants on top of the role. `last_activity_at` is the member's last login.
+      x-access: verified
+      x-permission: team.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/members \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Members."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mjvnc2qm5v4trb0y8pcbh5","first_name":"Jan","email":"jan@example.nl","role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"granted_permissions":[],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":"2026-10-23T14:32:53+00:00"},{"id":"01m5mjvnc7d8cm4qahhag2pvjw","first_name":"Mia","email":"mia@example.nl","role":"manager","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view"],"granted_permissions":[],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null},{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view"],"granted_permissions":["orders.view"],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/members/{member}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: member, in: path, required: true, description: The member's user public ID., schema: { type: string } }
+    patch:
+      tags: [Workspaces]
+      operationId: updateMember
+      summary: "Change a member's role or grants"
+      description: |
+        Rules: no changes to yourself; owners are never targets; you must outrank the member; the new role can't be `owner` or above your own; grants must be permissions you hold (owner-only permissions are never grantable). Sending `permissions` replaces the explicit grants. Audited as `team.member_updated` with before/after.
+      x-access: verified
+      x-permission: team.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: [manager, employee] }
+                permissions: { type: array, items: { type: string } }
+            example: {"permissions": ["orders.view", "vouchers.view"]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PATCH http://localhost:8000/api/v1/workspaces/current/members/<user id> \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"permissions":["orders.view","vouchers.view"]}'
+      responses:
+        '200':
+          description: "Updated (captured as manager Mia changing employee Piet)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view","vouchers.view"],"granted_permissions":["orders.view","vouchers.view"],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Authority rule violated: cannot_manage_self, owner_not_manageable, member_not_below_you, owner_role_not_grantable, role_above_own, permission_above_own, or missing team.manage."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"cannot_manage_self","message":"You cannot change your own membership this way.","request_id":"01a1692d-dc60-73b7-bc92-8857d1f110a2"}}
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Unknown permission (unknown_permission) or invalid role."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"unknown_permission","message":"Unknown permission.","request_id":"01a1692d-da81-7319-97b2-08f6d404d9da","details":{"permission":"root.everything"}}}
+    delete:
+      tags: [Workspaces]
+      operationId: removeMember
+      summary: "Remove a member"
+      description: |
+        Access ends on the member's next request; their current-workspace selection is cleared. Same authority rules as PATCH; owners can't be removed here. Audited as `team.member_removed`.
+      x-access: verified
+      x-permission: team.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE http://localhost:8000/api/v1/workspaces/current/members/<user id> \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '204':
+          description: "Removed."
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Authority rule violated (captured: a manager trying to remove the owner)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"owner_not_manageable","message":"Owners can only be changed through the ownership workflow.","request_id":"01a1692d-dc83-7192-8ee3-56d35554f982"}}
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/members/{member}/suspend:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: member, in: path, required: true, description: The member's user public ID., schema: { type: string } }
+    post:
+      tags: [Workspaces]
+      operationId: suspendMember
+      summary: "Suspend a member"
+      description: |
+        The suspended member immediately gets 404 on this workspace (like a non-member). Reversible with /reactivate. Audited.
+      x-access: verified
+      x-permission: team.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/members/<user id>/suspend \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Suspended."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view","vouchers.view"],"granted_permissions":["orders.view","vouchers.view"],"status":"suspended","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/members/{member}/reactivate:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: member, in: path, required: true, description: The member's user public ID., schema: { type: string } }
+    post:
+      tags: [Workspaces]
+      operationId: reactivateMember
+      summary: "Reactivate a suspended member"
+      description: |
+        Only suspended members (409 member_not_suspended otherwise). Audited.
+      x-access: verified
+      x-permission: team.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/members/<user id>/reactivate \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Active again."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mjvnc9bchqs7612nwyczba","first_name":"Piet","email":"piet@example.nl","role":"employee","permissions":["dashboard.view","orders.view","vouchers.view"],"granted_permissions":["orders.view","vouchers.view"],"status":"active","joined_at":"2026-10-23T14:32:53+00:00","last_activity_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/membership:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    delete:
+      tags: [Workspaces]
+      operationId: leaveWorkspace
+      summary: "Leave the workspace"
+      description: |
+        Any member may leave, except the final active owner (409 final_owner). Audited as `team.member_left`.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE http://localhost:8000/api/v1/workspaces/current/membership \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '204':
+          description: "Left."
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "The final owner cannot leave."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"final_owner","message":"The last owner cannot leave or be removed.","request_id":"01a1692d-dd33-73c1-a07d-0058beb3a2c6"}}
+
+  /api/v1/workspaces/{workspace}/invitations:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Workspaces]
+      operationId: listInvitations
+      summary: "Pending invitations"
+      description: |
+        Pending invitations only (accepted and cancelled ones are not listed). `status` reads `expired` once a pending invitation passes `expires_at`. Tokens are never returned.
+      x-access: verified
+      x-permission: team.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/invitations \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Invitations."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mjvpdm5nmzjsj1aqm6hfbj","email":"eva@example.nl","role":"employee","permissions":["orders.view","offers.view"],"status":"pending","expires_at":"2026-10-30T14:32:54+00:00","last_sent_at":"2026-10-23T14:32:54+00:00","resend_count":0,"created_at":"2026-10-23T14:32:54+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    post:
+      tags: [Workspaces]
+      operationId: inviteMember
+      summary: "Invite someone by email"
+      description: |
+        Emails a 7-day, single-use link (`FRONTEND_URL/invitations/accept#token=...`; the token sits in the URL fragment so it never reaches servers or logs). The mail is queued after commit with an encrypted payload, NL or EN. The email is normalised to lower case. Rules: role `manager` or `employee`, never above your own; grants must be permissions you hold. 409 `already_member` / `invitation_pending`. 30 per hour per user.
+      x-access: verified
+      x-permission: team.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: { type: string, format: email }
+                role: { type: string, enum: [manager, employee], description: 'owner is never grantable (403 owner_role_not_grantable).' }
+                permissions: { type: array, items: { type: string }, description: Extra grants; each must be held by the inviter and not owner-only. }
+            example: {"email": "Eva@Example.nl", "role": "employee", "permissions": ["orders.view", "offers.view"]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/invitations \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"email":"eva@example.nl","role":"employee","permissions":["orders.view"]}'
+      responses:
+        '201':
+          description: "Invitation created and queued (captured as manager Mia)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mjvpdm5nmzjsj1aqm6hfbj","email":"eva@example.nl","role":"employee","permissions":["orders.view","offers.view"],"status":"pending","expires_at":"2026-10-30T14:32:54+00:00","last_sent_at":"2026-10-23T14:32:54+00:00","resend_count":0,"created_at":"2026-10-23T14:32:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "owner_role_not_grantable, role_above_own, permission_above_own, or missing team.manage."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"owner_role_not_grantable","message":"The owner role cannot be granted this way.","request_id":"01a1692d-da35-7291-88f3-73ffb54fb4b4"}}
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "invitation_pending or already_member."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invitation_pending","message":"An invitation for this email is already pending. Resend it instead.","request_id":"01a1692d-daa4-73b0-931f-6a31d0b6ff65"}}
+        '422':
+          description: "Validation or unknown_permission."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"unknown_permission","message":"Unknown permission.","request_id":"01a1692d-da81-7319-97b2-08f6d404d9da","details":{"permission":"root.everything"}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/invitations/{invitation}/resend:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: invitation, in: path, required: true, description: Invitation public ID., schema: { type: string } }
+    post:
+      tags: [Workspaces]
+      operationId: resendInvitation
+      summary: "Resend with a new token"
+      description: |
+        Issues a new token (the old link stops working) and a fresh 7-day expiry. 60-second cooldown (429 `invitation_resend_too_soon` with Retry-After) and at most 5 resends (429 `invitation_resend_limit`). The resender must still be allowed to grant the invited role and grants.
+      x-access: verified
+      x-permission: team.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/invitations/<invitation id>/resend \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Resent with a new token."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mjvr97ak60p5zvcg7xzgvm","email":"ann@example.nl","role":"employee","permissions":[],"status":"pending","expires_at":"2026-10-30T14:32:57+00:00","last_sent_at":"2026-10-23T14:32:57+00:00","resend_count":1,"created_at":"2026-10-23T14:32:56+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "The invitation is accepted or cancelled."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"invitation_not_pending","message":"Only pending invitations can be resent.","request_id":"01a1692d-e371-72ac-8733-ad4be94f5c61"}}
+        '429':
+          description: "Cooldown or resend cap."
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"invitation_resend_too_soon","message":"Please wait before resending.","request_id":"01a1692d-db38-70fb-9716-56dea92fc6ce","details":{"retry_after_seconds":59}}}
+
+  /api/v1/workspaces/{workspace}/invitations/{invitation}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: invitation, in: path, required: true, description: Invitation public ID., schema: { type: string } }
+    delete:
+      tags: [Workspaces]
+      operationId: cancelInvitation
+      summary: "Cancel a pending invitation"
+      description: |
+        The link stops working immediately. Audited.
+      x-access: verified
+      x-permission: team.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE http://localhost:8000/api/v1/workspaces/current/invitations/<invitation id> \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Cancelled."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mjvpzc51y78v6494r67r0m","email":"ann@example.nl","role":"employee","permissions":[],"status":"cancelled","expires_at":"2026-10-30T14:32:55+00:00","last_sent_at":"2026-10-23T14:32:55+00:00","resend_count":0,"created_at":"2026-10-23T14:32:55+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/invitations/preview:
+    post:
+      tags: [Workspaces]
+      operationId: previewInvitation
+      summary: "What an invitation token is for (public)"
+      description: |
+        For the accept screen, before sign-in. The token goes in the body, never the URL. Unknown, used, cancelled and expired tokens all return 410 `invitation_invalid`. 10 per minute per IP.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 48, maxLength: 48, description: From the invitation link fragment (#token=...). }
+            example: {"token": "<48-character token from the link>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/invitations/preview \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{"token":"<token>"}'
+      responses:
+        '200':
+          description: "Invitation summary with a masked email."
+          content:
+            application/json:
+              example: {"data":{"webshop":{"name":"Fietsenwinkel Utrecht"},"role":"employee","invited_by":"Mia","email_hint":"e**@example.nl","expires_at":"2026-10-30T14:32:54+00:00"}}
+        '410':
+          description: "Invalid, used, cancelled or expired."
+          content:
+            application/json:
+              example: {"error":{"status":410,"code":"invitation_invalid","message":"This invitation is invalid or has expired.","request_id":"01a1692d-dbbf-73d4-9530-78d274a76438"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/invitations/accept:
+    post:
+      tags: [Workspaces]
+      operationId: acceptInvitation
+      summary: "Accept an invitation"
+      description: |
+        The signed-in user's email must equal the invited email (403 `invitation_recipient_mismatch`, audited as a security event). The invitation must be pending and unexpired, the inviter must still hold `team.manage` and a role at least as high as the invited one, and the webshop must not be suspended; otherwise 410 `invitation_invalid`. Creates the membership, or reactivates it for someone previously removed. Single use under a row lock.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 48, maxLength: 48, description: From the invitation link fragment (#token=...). }
+            example: {"token": "<48-character token from the link>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/invitations/accept \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"token":"<token>"}'
+      responses:
+        '200':
+          description: "Joined; returns the workspace with the new membership."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+              example: {"data":{"id":"01m5mjvndq5spwdz5ny31z452d","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"draft","commercially_active":false,"is_current":false,"membership":{"role":"employee","permissions":["dashboard.view","orders.view","offers.view"],"joined_at":"2026-10-23T14:32:55+00:00"},"created_at":"2026-10-23T14:32:53+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Signed in as a different email."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"invitation_recipient_mismatch","message":"This invitation was sent to a different email address. Sign in with that address to accept it.","request_id":"01a1692d-db74-73b2-b80f-1e8b0124f6ef"}}
+        '409':
+          description: "Already an active member."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"already_member","message":"You are already a member of this workspace.","request_id":"01a1692d-e32b-717f-b300-60c3054c7bb5"}}
+        '410':
+          description: "Invalid, used, cancelled or expired."
+          content:
+            application/json:
+              example: {"error":{"status":410,"code":"invitation_invalid","message":"This invitation is invalid or has expired.","request_id":"01a1692d-dbbf-73d4-9530-78d274a76438"}}
+
 components:
   parameters:
     Workspace:

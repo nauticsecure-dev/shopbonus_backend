@@ -9,4 +9,11 @@ return [
     'reset_line' => 'We hebben een verzoek ontvangen om het wachtwoord van je Shopbonus-account opnieuw in te stellen.',
     'reset_action' => 'Wachtwoord opnieuw instellen',
     'reset_expiry' => 'Deze link verloopt over :minutes minuten. Heb je dit niet aangevraagd? Dan hoef je niets te doen.',
+    'invitation_subject' => 'Je bent uitgenodigd voor :webshop op Shopbonus',
+    'invitation_line' => ':inviter heeft je uitgenodigd om :webshop te versterken als :role.',
+    'invitation_action' => 'Uitnodiging bekijken',
+    'invitation_expiry' => 'Deze uitnodiging verloopt over :days dagen. Verwachtte je deze niet? Dan kun je deze e-mail negeren.',
+    'role_owner' => 'eigenaar',
+    'role_manager' => 'manager',
+    'role_employee' => 'medewerker',
 ];

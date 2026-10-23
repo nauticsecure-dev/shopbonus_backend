@@ -14,7 +14,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | API foundation (versioning, errors, request ID, health, log redaction, CORS, rate limit) | VERIFIED_WORKING | B01a, commit `a51a9b6`. Tests in `tests/Feature/Api/*`, `tests/Feature/Logging/*`, `tests/Unit/Logging/*`. |
 | Audit events / application error store | VERIFIED_WORKING | B01b. Tests in `tests/Feature/Audit/*`, `tests/Feature/Errors/*`. The PostgreSQL trigger variant is written but NOT RUN (no PG locally). |
 | Auth (signup/login/OTP/recovery), Sanctum SPA + bearer | VERIFIED_WORKING | B02. Tests in `tests/Feature/Identity/*`. Real captures in `docs/api/README.md` → Auth. Staging p95 NOT RUN. |
-| Workspaces / memberships / roles / isolation | PARTIAL: core VERIFIED_WORKING (B03a); team, onboarding, verification and agreements MISSING (B03b–d) | `tests/Feature/Workspaces/*` |
+| Workspaces / memberships / roles / isolation | PARTIAL: core and team VERIFIED_WORKING (B03a, B03b); onboarding, verification and agreements MISSING (B03c–d) | `tests/Feature/Workspaces/*` |
 | Provider adapters, orders, webhooks | MISSING | B04–B05 |
 | Offers / voucher codes | MISSING | B06 |
 | Answer24 | MISSING | B07 |
@@ -37,6 +37,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B01b audit & error store | `088fb20` | `php artisan test`: 47 passed / 271 assertions on SQLite and on local MySQL; Pint PASS; PHPStan L6 0 errors; `migrate:rollback --step=2` + `migrate` on MySQL OK (trigger dropped and recreated) | Owner-requested `docs/CHECKLIST.md` added |
 | 2026-10-23 | Claude (Opus 5.5) | B02 identity | `c95e1e4` | `php artisan test`: 107 passed / 690+ assertions on SQLite and on local MySQL; Pint PASS; PHPStan L6 0 errors; `composer audit` clean; `migrate:rollback --step=4` + `migrate` OK; full real HTTP flow captured against MySQL + Redis sessions | Fortify + Sanctum SPA |
 | 2026-10-23 | Claude (Opus 5.5) | B03a workspace core | `2fe8db6` | 125 tests / 880 assertions pass on SQLite and MySQL; Pint, PHPStan L6, composer audit clean; real captures against MySQL + Redis | Tenant isolation, permissions, switcher |
+| 2026-10-23 | Claude (Opus 5.5) | B03b team management | B03b commit | 144 tests / 1130 assertions pass on SQLite and MySQL; Pint, PHPStan L6, composer audit clean; real captures against MySQL + Redis | Invitations, member management |
 
 ### B01a detail
 
@@ -65,6 +66,12 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Isolation evidence:** `WorkspaceTest::test_other_tenants_webshop_is_indistinguishable_from_a_missing_one_and_audited` (same 404 body for foreign/unknown/garbage IDs; GET/PATCH/select all blocked; 5 `workspace.access_denied` audits). Removed/suspended memberships lose access immediately; `current` re-validated on each use; permission denials audited with `webshop_id`.
 - **Card mapping:** #2 acceptance "one owner creates five webshops" and "one user has different roles in different workspaces"; #3 F1 (create part), F13 (switching scope), F16–F17 (scoping, blocked + audited); #4 E2E 3 (`test_card4_e2e3_*`).
 - **Registry:** `OpenApiCoverageTest` now also checks `x-permission` against `workspace.can:` middleware.
+
+### B03b detail
+
+- **Delivered:** migration `2026_10_23_160000_create_webshop_invitations_table`; `WebshopInvitation`, `InvitationStatus`; `TeamService` (invite/resend/cancel/findOpen/accept, updateMember/suspend/reactivate/remove, with all authority rules in one place); `InvitationController`, `MemberController`; `WorkspaceInvitationMail` (queued, encrypted, NL/EN, token in the URL fragment); routes under `workspaces/{workspace}` (members, invitations, membership) plus public `invitations/preview` and verified `invitations/accept`; limiters `invitation-create`, `invitation-preview`.
+- **Card #16 mapping:** E2E 7 → `TeamTest::test_e2e7_*` (existing and new user accept; reused, expired, cancelled, unknown and mismatched tokens fail); E2E 8 → `test_e2e8_*` (owner never grantable, manager limits, no grants beyond own, other webshop's members and invitations give 404, denials audited); E2E 9 membership half → `test_e2e9_*` (removal and suspension block immediately; current selection cleared; final owner protected). Webshop suspension half → B03d.
+- **Bugs found and fixed while building:** the recipient-mismatch audit was written inside a transaction and rolled back with it (now audited before the transaction); new invitations returned `resend_count: null` (seen only in the real capture).
 
 ## How to update
 

@@ -92,7 +92,20 @@ Sliced. The combined owner dashboard (card #3 §17) needs orders, vouchers and w
 
 ### B03b Team management
 
-- [ ] Expand when started (invitations, resend/cancel/accept, role changes, suspend/remove, final-owner protection, manager limits)
+Owner role is never granted by invitation or role change (ownership transfer is a separate step-up workflow, D-021).
+
+- [x] `webshop_invitations`: public ID, normalised recipient email, role, grants, HMAC token hash, 7-day expiry, status, inviter/acceptor, resend count (B03b commit)
+- [x] `POST /workspaces/{w}/invitations` (team.manage): role is manager or employee and never above the inviter's own; grants limited to the inviter's effective permissions; 409 when already an active member or a pending invite exists (B03b commit)
+- [x] Invitation mail queued after commit, encrypted payload, NL/EN, link to FRONTEND_URL; token never stored or logged (B03b commit)
+- [x] `GET /workspaces/{w}/invitations` (team.view), `POST .../{invitation}/resend` (new token, old one dies, cooldown + cap), `DELETE .../{invitation}` (cancel) (B03b commit)
+- [x] `POST /api/v1/invitations/preview` (public, throttled; token in body, not URL): webshop name, role, inviter first name, masked email, expiry (B03b commit)
+- [x] `POST /api/v1/invitations/accept` (verified): token must be pending, unexpired, single use, and match the signed-in user's email; creates or reactivates the membership atomically (B03b commit)
+- [x] `GET /workspaces/{w}/members` (team.view) with role, permissions, status, joined and last activity (B03b commit)
+- [x] `PATCH /workspaces/{w}/members/{user}` (team.manage): no self-change, no owner targets or grants, actor must outrank target, grants within actor's permissions (B03b commit)
+- [x] Suspend / reactivate / remove members; final active owner cannot be removed or suspended; members may leave; removal clears their current-workspace selection; access ends on the next request (B03b commit)
+- [x] Audit every invitation and membership change (B03b commit)
+- [x] Tests: card #16 E2E 7 (existing and new users accept; expired, reused and mismatched tokens fail), E2E 8 (no escalation, denied actions audited), E2E 9 membership half (removal blocks immediately; final owner protected) (B03b commit)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (B03b commit)
 
 ### B03c Business profile, onboarding progress, ownership verification
 

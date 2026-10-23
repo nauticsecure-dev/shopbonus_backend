@@ -44,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('workspace-create', fn (Request $request) => Limit::perHour(10)->by('ws-create:'.$request->user()?->getAuthIdentifier()));
 
+        RateLimiter::for('invitation-create', fn (Request $request) => Limit::perHour(30)->by('inv-create:'.$request->user()?->getAuthIdentifier()));
+        RateLimiter::for('invitation-preview', fn (Request $request) => Limit::perMinute(10)->by('inv-token:'.$request->ip()));
+
         RateLimiter::for('api', function (Request $request) {
             $perMinute = (int) config('shopbonus.api.rate_limit_per_minute', 60);
 
