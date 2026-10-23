@@ -3,12 +3,12 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** B06a (`git log --oneline -1 --grep=B06a`). Earlier: `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** `c6485dc` B06a. Earlier: `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
 **Active task:** none in progress. **Next:** B06b voucher-code inventory, import, atomic reservation and voucher lifecycle.
 **Last completed task:** B06a offers with versioned terms and fee preview.
 
-## Tests actually executed (at the B06a commit)
+## Tests actually executed (at `c6485dc`)
 
 | Command | Result |
 | --- | --- |
