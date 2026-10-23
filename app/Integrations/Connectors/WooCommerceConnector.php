@@ -138,6 +138,7 @@ class WooCommerceConnector extends WebhookConnector
             cancelledAt: $status === 'cancelled' ? $this->date($payload['date_modified_gmt'] ?? null) : null,
             refundedAt: $refunded > 0 ? $this->date($payload['date_modified_gmt'] ?? null) : null,
             refundedMinor: $refunded > 0 ? $refunded : null,
+            providerUpdatedAt: $this->date($payload['date_modified_gmt'] ?? null),
         );
     }
 }

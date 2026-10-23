@@ -69,6 +69,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(300)->by('webhook:'.$request->route('token')));
 
+        RateLimiter::for('order-export', fn (Request $request) => Limit::perMinute(5)->by('export:'.$request->user()?->getAuthIdentifier()));
+
         RateLimiter::for('api', function (Request $request) {
             $perMinute = (int) config('shopbonus.api.rate_limit_per_minute', 60);
 

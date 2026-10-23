@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1\Integrations;
 
+use App\Enums\AuditCategory;
 use App\Enums\EcommercePlatform;
+use App\Enums\WebhookEventStatus;
+use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConnectionResource;
 use App\Integrations\ConnectionManager;
 use App\Integrations\ConnectorRegistry;
+use App\Jobs\ProcessWebhookEvent;
 use App\Models\WebshopConnection;
+use App\Services\Audit\AuditLogger;
 use App\Services\Workspaces\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +26,7 @@ class ConnectionController extends Controller
     public function __construct(
         private readonly ConnectionManager $connections,
         private readonly ConnectorRegistry $registry,
+        private readonly AuditLogger $audit,
     ) {}
 
     /** Platform catalogue with honest availability and verification state. */
@@ -85,6 +91,30 @@ class ConnectionController extends Controller
         ]);
 
         return response()->json(['data' => $events]);
+    }
+
+    /**
+     * Re-queue a failed event (Trello #1 "failed-import retry").
+     */
+    public function retryEvent(CurrentWorkspace $current, string $connection, string $event): JsonResponse
+    {
+        $model = $this->find($current, $connection);
+        $webhookEvent = Str::isUlid($event) ? $model->events()->where('public_id', Str::lower($event))->first() : null;
+
+        if ($webhookEvent === null) {
+            throw new NotFoundHttpException;
+        }
+
+        if ($webhookEvent->status !== WebhookEventStatus::Failed || $webhookEvent->payload === null) {
+            throw ApiException::conflict('Only failed events with a retained payload can be retried.', 'event_not_retryable');
+        }
+
+        $webhookEvent->forceFill(['status' => WebhookEventStatus::Verified, 'error_code' => null])->save();
+        ProcessWebhookEvent::dispatch($webhookEvent->id);
+        $this->audit->record('integration.event_retried', category: AuditCategory::Integration,
+            resource: $webhookEvent, webshopId: $model->webshop_id);
+
+        return response()->json(['data' => ['id' => $webhookEvent->public_id, 'status' => $webhookEvent->fresh()?->status->value]], 202);
     }
 
     private function find(CurrentWorkspace $current, string $publicId): WebshopConnection

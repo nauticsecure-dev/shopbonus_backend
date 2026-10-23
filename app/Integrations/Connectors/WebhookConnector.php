@@ -40,6 +40,17 @@ abstract class WebhookConnector implements Connector
     }
 
     /** @return list<string> */
+    /**
+     * For refund-only events: the external order ID the refund belongs to.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function refundTarget(array $payload): ?string
+    {
+        return null;
+    }
+
+    /** @return list<string> */
     public function generatedSecrets(): array
     {
         return [];

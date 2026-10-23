@@ -171,7 +171,20 @@ No provider credentials exist: every real-platform adapter is NOT VERIFIED until
 - [ ] Audit connection changes, secret rotations, rejected signatures (rate-limited)
 - [ ] Tests: signature valid/invalid/replayed/old timestamp per adapter, duplicate delivery processed once, unsupported platform refused, cross-tenant 404, secret never in responses after creation or in logs, card #1 E2E 2 "unsupported connections cannot activate", E2E 3 incomplete access blocks connected (fixture), E2E 4 mandatory/phone rules at normalisation
 - [ ] Docs with real captures; PROGRESS/HANDOFF/TASKS updated
-- [ ] B05 Orders and state transitions
+## B05 Orders and state transitions (Trello #1 "Normalized orders", "Live order sheet"; #2 §5; #3 B.6–B.7)
+
+- [x] `webshop_orders`: unique (webshop, platform, external order ID); integer minor units + currency; separate payment, ingestion, eligibility and contact statuses; missing-fields list; encrypted customer name/email/phone with a keyed email hash for exact search; provider-updated timestamp (B05 commit)
+- [x] `order_events` (append-only): created, updated, payment_changed, refund_notified, ignored_stale, with from/to payment status and source webhook event (B05 commit)
+- [x] Ingestion listener on `OrderEventVerified`: transaction-safe upsert under row lock; race on first insert handled; never fabricates values; incomplete → `ingestion_status=incomplete` with missing fields; no phone → not callable (order still imported) (B05 commit)
+- [x] Out-of-order safety: an event older than the stored provider update time is recorded as `ignored_stale` and not applied; without timestamps only forward payment transitions apply (refunded/cancelled never revert to paid) (B05 commit)
+- [x] Refund notifications (Shopify `refunds/create`) mark a paid order `partially_refunded` until the order update gives exact amounts (B05 commit)
+- [x] Order Sheet `GET /workspaces/{w}/orders` (orders.view): pagination, filters (payment, ingestion, platform, date range), search (reference or exact email), sorting, today's counters in the business timezone, never cross-tenant (B05 commit)
+- [x] `GET /workspaces/{w}/orders/{order}` with sanitized history (B05 commit)
+- [x] CSV export (`orders.export` permission, audited, throttled, CSV-injection safe) (B05 commit)
+- [x] Failed-event retry `POST /workspaces/{w}/connections/{c}/events/{event}/retry` (integrations.manage) (B05 commit)
+- [x] Live updates: `OrderSheetUpdated` broadcast on private channel `webshops.{id}.orders` (no PII in payload) with channel authorisation by membership + orders.view (B05 commit)
+- [x] Tests: card #1 E2E 4 (incomplete/no-phone), E2E 5 (duplicates → one order), out-of-order and stale events, paid→refunded→late paid, cross-tenant 404, export permission and injection, retry, channel auth; card #3 F3 and F5 (B05 commit)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (B05 commit)
 - [ ] B06 Offers and code inventory
 - [ ] B07 Answer24 handoff/claim
 - [ ] B08 Consumer profile/discovery

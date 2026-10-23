@@ -8,6 +8,9 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // Business day boundaries for counters/reports (Netherlands-first).
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'Europe/Amsterdam'),
+
     'api' => [
         // Default per-client limit for /api/v1 (per user when authenticated, else per IP).
         'rate_limit_per_minute' => (int) env('API_RATE_LIMIT_PER_MINUTE', 60),

@@ -139,6 +139,17 @@ class ShopifyConnector extends WebhookConnector
             paidAt: $payment === PaymentStatus::Paid ? $this->date($payload['processed_at'] ?? null) : null,
             cancelledAt: $cancelledAt,
             refundedAt: in_array($payment, [PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded], true) ? $this->date($payload['updated_at'] ?? null) : null,
+            providerUpdatedAt: $this->date($payload['updated_at'] ?? null),
         );
+    }
+
+    /**
+     * `refunds/create` carries a refund, not an order: identify the order it belongs to.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function refundTarget(array $payload): ?string
+    {
+        return $this->str($payload['order_id'] ?? null);
     }
 }

@@ -135,6 +135,7 @@ class GenericSignedWebhookConnector extends WebhookConnector
             cancelledAt: $this->date($order['cancelled_at'] ?? null),
             refundedAt: $this->date($order['refunded_at'] ?? null),
             refundedMinor: is_int($order['refunded_minor'] ?? null) ? $order['refunded_minor'] : null,
+            providerUpdatedAt: $this->date($order['updated_at'] ?? null),
         );
     }
 }

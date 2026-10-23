@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Onboarding\BusinessDirectoryController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
+use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
 use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
@@ -140,7 +141,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
                     Route::post('connections/{connection}/credentials', [ConnectionController::class, 'replaceCredentials'])->name('connections.credentials');
                     Route::delete('connections/{connection}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
+                    Route::post('connections/{connection}/events/{event}/retry', [ConnectionController::class, 'retryEvent'])->name('connections.events.retry');
                 });
+
+                // Live Order Sheet (Trello #1).
+                Route::get('orders', [OrderController::class, 'index'])->middleware('workspace.can:orders.view')->name('orders.index');
+                Route::get('orders/export', [OrderController::class, 'export'])
+                    ->middleware(['workspace.can:orders.export', 'throttle:order-export'])->name('orders.export');
+                Route::get('orders/{order}', [OrderController::class, 'show'])->middleware('workspace.can:orders.view')->name('orders.show');
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])

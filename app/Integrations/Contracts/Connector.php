@@ -82,6 +82,13 @@ interface Connector
     public function normalizeOrder(array $payload): NormalizedOrder;
 
     /**
+     * For refund-only events: the external order ID the refund belongs to (null if not a refund).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function refundTarget(array $payload): ?string;
+
+    /**
      * @return iterable<array<string, mixed>>
      *
      * @throws UnsupportedCapability

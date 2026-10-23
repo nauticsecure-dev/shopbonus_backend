@@ -28,6 +28,8 @@ final readonly class NormalizedOrder
         public ?CarbonImmutable $cancelledAt,
         public ?CarbonImmutable $refundedAt,
         public ?int $refundedMinor = null,
+        // Provider's own last-modified time: used to reject out-of-order events.
+        public ?CarbonImmutable $providerUpdatedAt = null,
     ) {}
 
     /** @return list<string> */

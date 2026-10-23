@@ -12,6 +12,7 @@ enum WorkspacePermission: string
     case DashboardView = 'dashboard.view';
     case OrdersView = 'orders.view';
     case OrdersManage = 'orders.manage';
+    case OrdersExport = 'orders.export';
     case IntegrationsView = 'integrations.view';
     case IntegrationsManage = 'integrations.manage';
     case OffersView = 'offers.view';

@@ -6,6 +6,7 @@ use App\Enums\AuditCategory;
 use App\Enums\ConnectionStatus;
 use App\Enums\WebhookEventStatus;
 use App\Events\OrderEventVerified;
+use App\Events\RefundEventVerified;
 use App\Integrations\ConnectorRegistry;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\VerifiedEvent;
@@ -59,21 +60,33 @@ class ProcessWebhookEvent implements ShouldQueue
                 return;
             }
 
-            if ($kind !== VerifiedEvent::KIND_ORDER) {
-                // Refunds and other topics are handled by order ingestion (B05).
-                $this->finish($event, WebhookEventStatus::Processed, ['kind' => $kind]);
+            $payload = json_decode((string) $event->payload, true);
+            $connector = $registry->for($connection->platform);
+
+            if ($kind === VerifiedEvent::KIND_REFUND) {
+                $target = is_array($payload) ? $connector->refundTarget($payload) : null;
+                $this->finish($event, WebhookEventStatus::Processed, ['kind' => $kind, 'order_found' => $target !== null]);
+
+                if ($target !== null) {
+                    RefundEventVerified::dispatch($event, $connection, $target);
+                }
 
                 return;
             }
 
-            $payload = json_decode((string) $event->payload, true);
+            if ($kind !== VerifiedEvent::KIND_ORDER) {
+                $this->finish($event, WebhookEventStatus::Ignored, ['kind' => $kind]);
+
+                return;
+            }
+
             if (! is_array($payload)) {
                 $this->finish($event, WebhookEventStatus::Failed, ['kind' => $kind], 'invalid_json');
 
                 return;
             }
 
-            $order = $registry->for($connection->platform)->normalizeOrder($payload);
+            $order = $connector->normalizeOrder($payload);
             $this->updateConnection($connection, $order, $audit);
             $this->finish($event, WebhookEventStatus::Processed, $order->summary());
 

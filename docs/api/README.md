@@ -2146,6 +2146,180 @@ Content-Type: application/json
 
 ---
 
+## Orders: the live Order Sheet (B05, Trello #1)
+
+Captured 2026-10-23 against local MySQL + Redis. Orders were created by **signed WooCommerce webhooks sent with curl/openssl** to the real server (realistic payloads; no real store), so the whole pipeline ran for real: webhook → verification → ingestion → API. Sequence sent:
+
+1. W-4711 pending, then paid (sent twice: the duplicate is ignored).
+2. W-4712 paid without a phone (valid, not callable).
+3. W-4713 paid without a first name (incomplete).
+4. W-4714: the refund (newer) arrived **before** an older "processing/paid" event. The older event was ignored as stale.
+
+Retry: a signed event with an invalid JSON body was stored as `failed` and then retried (202; it failed again because the stored payload is still invalid). A processed event can't be retried (409).
+
+### GET /workspaces/{workspace}/orders
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders?per_page=10`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-530c-7269-a438-664da4573cd5
+
+{"data":[{"id":"01m5mnamp49vamgcy42sq7wdhq","reference":"W-4714","external_order_id":"4714","platform":"woocommerce","customer":{"first_name":"=Dirk","email":"dirk@example.nl","phone":"+31600000000"},"amount_minor":8000,"refunded_minor":8000,"currency":"EUR","payment_status":"refunded","provider_status":"refunded","ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T12:00:00+00:00","cancelled_at":null,"refunded_at":"2026-10-24T09:00:00+00:00","updated_at":"2026-10-23T15:16:01+00:00"},{"id":"01m5mnammgce7s4p3m5mz9c7vp","reference":"W-4713","external_order_id":"4713","platform":"woocommerce","customer":{"first_name":null,"email":"cees@example.nl","phone":"+31687654321"},"amount_minor":1200,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"incomplete","missing_fields":["first_name"],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T11:30:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"},{"id":"01m5mnamjxe87dfwdk5znm0t2w","reference":"W-4712","external_order_id":"4712","platform":"woocommerce","customer":{"first_name":"Bram","email":"bram@example.nl","phone":null},"amount_minor":2450,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"complete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T11:00:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"},{"id":"01m5mnamdmmh96jz8x9j1g5qtf","reference":"W-4711","external_order_id":"4711","platform":"woocommerce","customer":{"first_name":"Anna","email":"anna@example.nl","phone":"+31612345678"},"amount_minor":5995,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T10:05:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=10&page=1","last":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=10&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=10&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders","per_page":10,"to":4,"total":4,"today":{"timezone":"Europe\/Amsterdam","orders":4,"paid_orders":3,"incomplete_orders":1,"paid_revenue_minor":{"EUR":9645}}}}
+```
+
+### Paid orders, largest first
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders?payment_status=paid&sort=-amount_minor`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-5338-71b3-bf56-34dd92efac09
+
+{"data":[{"id":"01m5mnamdmmh96jz8x9j1g5qtf","reference":"W-4711","external_order_id":"4711","platform":"woocommerce","customer":{"first_name":"Anna","email":"anna@example.nl","phone":"+31612345678"},"amount_minor":5995,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T10:05:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"},{"id":"01m5mnamjxe87dfwdk5znm0t2w","reference":"W-4712","external_order_id":"4712","platform":"woocommerce","customer":{"first_name":"Bram","email":"bram@example.nl","phone":null},"amount_minor":2450,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"complete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T11:00:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"},{"id":"01m5mnammgce7s4p3m5mz9c7vp","reference":"W-4713","external_order_id":"4713","platform":"woocommerce","customer":{"first_name":null,"email":"cees@example.nl","phone":"+31687654321"},"amount_minor":1200,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"incomplete","missing_fields":["first_name"],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T11:30:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?payment_status=paid&sort=-amount_minor&page=1","last":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?payment_status=paid&sort=-amount_minor&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?payment_status=paid&sort=-amount_minor&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders","per_page":25,"to":3,"total":3,"today":{"timezone":"Europe\/Amsterdam","orders":4,"paid_orders":3,"incomplete_orders":1,"paid_revenue_minor":{"EUR":9645}}}}
+```
+
+### Exact email search (case-insensitive)
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders?search=BRAM@example.nl`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-535e-708a-a0dd-de25da094a1f
+
+{"data":[{"id":"01m5mnamjxe87dfwdk5znm0t2w","reference":"W-4712","external_order_id":"4712","platform":"woocommerce","customer":{"first_name":"Bram","email":"bram@example.nl","phone":null},"amount_minor":2450,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"complete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T11:00:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?search=BRAM%40example.nl&page=1","last":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?search=BRAM%40example.nl&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?search=BRAM%40example.nl&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders","per_page":25,"to":1,"total":1,"today":{"timezone":"Europe\/Amsterdam","orders":4,"paid_orders":3,"incomplete_orders":1,"paid_revenue_minor":{"EUR":9645}}}}
+```
+
+### Incomplete orders
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders?ingestion_status=incomplete`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-5382-7203-83c1-c3d19b7496d8
+
+{"data":[{"id":"01m5mnammgce7s4p3m5mz9c7vp","reference":"W-4713","external_order_id":"4713","platform":"woocommerce","customer":{"first_name":null,"email":"cees@example.nl","phone":"+31687654321"},"amount_minor":1200,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"incomplete","missing_fields":["first_name"],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T11:30:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?ingestion_status=incomplete&page=1","last":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?ingestion_status=incomplete&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?ingestion_status=incomplete&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders","per_page":25,"to":1,"total":1,"today":{"timezone":"Europe\/Amsterdam","orders":4,"paid_orders":3,"incomplete_orders":1,"paid_revenue_minor":{"EUR":9645}}}}
+```
+
+### Order W-4711 history: pending → paid
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders/01m5mnamdmmh96jz8x9j1g5qtf`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-53b0-7227-80a9-4fe57d78f8a3
+
+{"data":{"id":"01m5mnamdmmh96jz8x9j1g5qtf","reference":"W-4711","external_order_id":"4711","platform":"woocommerce","customer":{"first_name":"Anna","email":"anna@example.nl","phone":"+31612345678"},"amount_minor":5995,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":"processing","ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T10:05:00+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:16:01+00:00"},"history":[{"type":"created","from_payment_status":null,"to_payment_status":"pending","summary":{"topic":"order.updated","complete":true},"provider_updated_at":null,"recorded_at":"2026-10-23T15:16:01+00:00"},{"type":"payment_changed","from_payment_status":"pending","to_payment_status":"paid","summary":{"topic":"order.updated","complete":true},"provider_updated_at":"2026-10-23T10:05:00+00:00","recorded_at":"2026-10-23T15:16:01+00:00"}]}
+```
+
+### Order W-4714: older event ignored
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders/01m5mnamp49vamgcy42sq7wdhq`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-53cf-715e-81fc-2b5835277eba
+
+{"data":{"id":"01m5mnamp49vamgcy42sq7wdhq","reference":"W-4714","external_order_id":"4714","platform":"woocommerce","customer":{"first_name":"=Dirk","email":"dirk@example.nl","phone":"+31600000000"},"amount_minor":8000,"refunded_minor":8000,"currency":"EUR","payment_status":"refunded","provider_status":"refunded","ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T12:00:00+00:00","cancelled_at":null,"refunded_at":"2026-10-24T09:00:00+00:00","updated_at":"2026-10-23T15:16:01+00:00"},"history":[{"type":"created","from_payment_status":null,"to_payment_status":"refunded","summary":{"topic":"order.updated","complete":true},"provider_updated_at":null,"recorded_at":"2026-10-23T15:16:01+00:00"},{"type":"ignored_stale","from_payment_status":"refunded","to_payment_status":"paid","summary":{"topic":"order.updated","reason":"older_than_stored"},"provider_updated_at":"2026-10-23T12:00:00+00:00","recorded_at":"2026-10-23T15:16:01+00:00"}]}
+```
+
+### Sorting by a non-sortable column
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders?sort=customer_email`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16955-53ed-735e-a15f-5b48b43658bf
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16955-53ed-735e-a15f-5b48b43658bf","fields":{"sort":["The selected sort is invalid."]}}}
+```
+
+### Employee with orders.view
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders?per_page=1`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16955-540e-715d-a22a-423c0037fb14
+
+{"data":[{"id":"01m5mnamp49vamgcy42sq7wdhq","reference":"W-4714","external_order_id":"4714","platform":"woocommerce","customer":{"first_name":"=Dirk","email":"dirk@example.nl","phone":"+31600000000"},"amount_minor":8000,"refunded_minor":8000,"currency":"EUR","payment_status":"refunded","provider_status":"refunded","ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"not_evaluated","contact_status":"not_evaluated","placed_at":"2026-10-23T15:16:01+00:00","paid_at":"2026-10-23T12:00:00+00:00","cancelled_at":null,"refunded_at":"2026-10-24T09:00:00+00:00","updated_at":"2026-10-23T15:16:01+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=1","last":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=4","prev":null,"next":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=2"},"meta":{"current_page":1,"from":1,"last_page":4,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=1","label":"1","page":1,"active":true},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=2","label":"2","page":2,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=3","label":"3","page":3,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=4","label":"4","page":4,"active":false},{"url":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders?per_page=1&page=2","label":"Next &raquo;","page":2,"active":false}],"path":"http:\/\/127.0.0.1:8781\/api\/v1\/workspaces\/01m5mnak2kkmds3dmby9nt7tya\/orders","per_page":1,"to":1,"total":4,"today":{"timezone":"Europe\/Amsterdam","orders":4,"paid_orders":3,"incomplete_orders":1,"paid_revenue_minor":{"EUR":9645}}}}
+```
+
+### Employee export without orders.export
+
+`GET /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/orders/export`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16955-5432-739a-8298-b9a73e45fb2c
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16955-5432-739a-8298-b9a73e45fb2c","details":{"required_permission":"orders.export"}}}
+```
+
+### CSV export (owner)
+
+`GET /api/v1/workspaces/<webshop id>/orders/export`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Cache-Control: no-store, private
+Content-Disposition: attachment; filename=orders-fietsenwinkel-utrecht-20261023-151602.csv
+X-Request-Id: 01a16955-5451-7222-b348-2e40fb7d5a30
+placed_at,reference,platform,first_name,email,phone,amount,currency,payment_status,ingestion_status,eligibility_status,contact_status
+2026-10-23T15:16:01+00:00,W-4711,woocommerce,Anna,anna@example.nl,'+31612345678,59.95,EUR,paid,complete,not_evaluated,not_evaluated
+2026-10-23T15:16:01+00:00,W-4712,woocommerce,Bram,bram@example.nl,,24.50,EUR,paid,complete,not_evaluated,not_evaluated
+2026-10-23T15:16:01+00:00,W-4713,woocommerce,,cees@example.nl,'+31687654321,12.00,EUR,paid,incomplete,not_evaluated,not_evaluated
+2026-10-23T15:16:01+00:00,W-4714,woocommerce,'=Dirk,dirk@example.nl,'+31600000000,80.00,EUR,refunded,complete,not_evaluated,not_evaluated
+```
+
+Note the apostrophe before `=Dirk` and before phone numbers starting with `+`: the formula-injection guard.
+
+### Another webshop requesting the order
+
+`GET /api/v1/workspaces/01m5mnak339tkhype3pt8hjnkc/orders/01m5mnamdmmh96jz8x9j1g5qtf`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16955-5473-7251-a737-846397f545b2
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a16955-5473-7251-a737-846397f545b2"}}
+```
+
+### Retrying a failed event
+
+`POST /api/v1/workspaces/<webshop id>/connections/<id>/events/<event id>/retry`
+
+```http
+HTTP/1.1 202 Accepted
+
+{"data":{"id":"01m5mndypk7pjesy520sztrypa","status":"failed"}}
+```
+
+### Retrying a processed event
+
+`POST /api/v1/workspaces/01m5mnak2kkmds3dmby9nt7tya/connections/01m5mnam5rfbkbk8f494krmmw4/events/01m5mnamqe5rqyz7w64xqx8y14/retry`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16955-54bc-709c-ade8-6daa811743f2
+Content-Type: application/json
+
+{"error":{"status":409,"code":"event_not_retryable","message":"Only failed events with a retained payload can be retried.","request_id":"01a16955-54bc-709c-ade8-6daa811743f2"}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.
