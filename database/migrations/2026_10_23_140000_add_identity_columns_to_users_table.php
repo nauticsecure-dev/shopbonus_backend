@@ -30,7 +30,7 @@ return new class extends Migration
         });
 
         DB::table('users')->whereNull('public_id')->orderBy('id')->each(function (object $user) {
-            DB::table('users')->where('id', $user->id)->update(['public_id' => (string) Str::ulid()]);
+            DB::table('users')->where('id', $user->id)->update(['public_id' => strtolower((string) Str::ulid())]);
         });
 
         Schema::table('users', function (Blueprint $table) {

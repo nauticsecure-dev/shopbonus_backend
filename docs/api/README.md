@@ -2474,6 +2474,234 @@ X-Request-Id: 01a1695b-73e7-71d2-a297-3dc4dd1b11ef
 
 ---
 
+## Code inventory (B06b, Trello #7 §5–8, #23)
+
+Captured 2026-10-23 against local MySQL + Redis. *Woon & Co* offer "€10 korting vanaf €100". Two codes were then taken through the inventory service: one reserved and issued to a consumer (merchant reward for order 4711), one reserved for an Answer24 handoff. The consumer claim and checkout APIs that drive this come in B07, B08 and B11. All codes shown are fake samples.
+
+- **One inventory, one voucher model.** Origins: merchant_reward, answer24_claim, wallet_purchase, promotional.
+- **Code states:** available → reserved → issued → redeemed, plus expired, invalid and cancelled. Counters cover every state.
+- **Issued is not redeemed.** A voucher becomes redeemed only when its code appears in a **verified paid order** of the same webshop (WooCommerce `coupon_lines`, Shopify `discount_codes`, format v1 `order.coupon_codes`), exactly once.
+- **Concurrency.** Reservation is atomic. It is proven with real forked processes on MySQL (`tests/Feature/Vouchers/ConcurrentReservationTest.php`), and mutation-tested: removing the guards makes it fail.
+
+Large imports (more than 2,000 codes) are committed by a queued job. Captured with 2,100 codes:
+
+```http
+POST /code-imports/<batch id>/commit → HTTP/1.1 202 Accepted
+
+{"data":{"id":"01m5mppysn5brk8ytj9nj4jmwk","status":"committing","source":"paste","totals":{"valid":2100,"invalid":0,"submitted":2100,"duplicate_existing":0,"duplicate_in_upload":0},"rejections":[],"expires_at":null,"committed_at":null}}
+
+GET /code-imports/<batch id> (after the job ran) → HTTP/1.1 200 OK
+
+{"data":{"id":"01m5mppysn5brk8ytj9nj4jmwk","status":"committed","source":"paste","totals":{"valid":2100,"invalid":0,"imported":2100,"submitted":2100,"duplicate_existing":0,"duplicate_at_commit":0,"duplicate_in_upload":0},"rejections":[],"expires_at":null,"committed_at":"2026-10-23T15:40:14+00:00"}}
+```
+
+### Paste preview: one duplicate, one invalid
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/offers/01m5mpjewf73zwcf12me43kaw0/code-imports {"codes":"WOON-7F3K-0001\nWOON-7F3K-0002\n  WOON-7F3K-0003  \nwoon-7f3k-0001\nbad code!\n\nWOON-7F3K-0004\nWOON-7F3K-0005"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16969-3f8b-70aa-8f33-0fcfc366f002
+
+{"data":{"id":"01m5mpjg1tt6q0vjbaw3an5j6j","status":"preview","source":"paste","totals":{"submitted":7,"valid":5,"invalid":1,"duplicate_in_upload":1,"duplicate_existing":0},"rejections":[{"line":4,"code":"********0001","reason":"duplicate_in_upload"},{"line":5,"code":"*****ode!","reason":"invalid_format"}],"expires_at":"2026-10-23T16:37:47+00:00","committed_at":null}}
+```
+
+### Commit
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/code-imports/01m5mpjg1tt6q0vjbaw3an5j6j/commit`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-4067-7152-b6aa-0a75dae451e0
+
+{"data":{"id":"01m5mpjg1tt6q0vjbaw3an5j6j","status":"committed","source":"paste","totals":{"valid":5,"invalid":1,"submitted":7,"duplicate_existing":0,"duplicate_in_upload":1,"imported":5,"duplicate_at_commit":0},"rejections":[{"code":"********0001","line":4,"reason":"duplicate_in_upload"},{"code":"*****ode!","line":5,"reason":"invalid_format"}],"expires_at":null,"committed_at":"2026-10-23T15:37:47+00:00"}}
+```
+
+### Commit twice
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/code-imports/01m5mpjg1tt6q0vjbaw3an5j6j/commit`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16969-40a5-7142-8c99-a2f7af0f69a6
+Content-Type: application/json
+
+{"error":{"status":409,"code":"batch_not_committable","message":"This import preview was already committed, discarded or has expired.","request_id":"01a16969-40a5-7142-8c99-a2f7af0f69a6"}}
+```
+
+### CSV upload preview (code column, one duplicate of an existing code)
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/offers/01m5mpjewf73zwcf12me43kaw0/code-imports (multipart file=codes.csv)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16969-40d8-720c-852e-4f7ccd120241
+
+{"data":{"id":"01m5mpjg7g1qfb396kz5bf87a7","status":"preview","source":"file","totals":{"submitted":3,"valid":2,"invalid":0,"duplicate_in_upload":0,"duplicate_existing":1},"rejections":[{"line":3,"code":"********0002","reason":"duplicate_existing"}],"expires_at":"2026-10-23T16:37:48+00:00","committed_at":null}}
+```
+
+### CSV commit
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/code-imports/01m5mpjg7g1qfb396kz5bf87a7/commit`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-411a-715e-9546-22f9bd51cc44
+
+{"data":{"id":"01m5mpjg7g1qfb396kz5bf87a7","status":"committed","source":"file","totals":{"valid":2,"invalid":0,"submitted":3,"duplicate_existing":1,"duplicate_in_upload":0,"imported":2,"duplicate_at_commit":0},"rejections":[{"code":"********0002","line":3,"reason":"duplicate_existing"}],"expires_at":null,"committed_at":"2026-10-23T15:37:48+00:00"}}
+```
+
+### XLSX upload
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/offers/01m5mpjewf73zwcf12me43kaw0/code-imports (multipart file=codes.xlsx)`
+
+```http
+HTTP/1.1 415 Unsupported Media Type
+X-Request-Id: 01a16969-415b-7100-a383-293a6ea24685
+Content-Type: application/json
+
+{"error":{"status":415,"code":"unsupported_media_type","message":"Spreadsheet files are not supported. Save the sheet as CSV and upload that.","request_id":"01a16969-415b-7100-a383-293a6ea24685"}}
+```
+
+### Code sheet with counters
+
+`GET /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/offers/01m5mpjewf73zwcf12me43kaw0/codes?per_page=10&sort=created_at`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-449e-7335-8e6e-c4f3b8ee3e88
+
+{"data":[{"id":"01m5mpjg3wfgpg70c2k2rzh6rz","code":"****0001","status":"issued","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":{"voucher_id":"01m5mpjh2vjze9pr6e3nvttgmq","origin":"merchant_reward","voucher_status":"issued","consumer":"c********@example.nl","claim_expires_at":"2027-01-21T15:37:48+00:00","expires_at":"2027-01-21T15:37:48+00:00"},"reserved_at":"2026-10-23T15:37:48+00:00","issued_at":"2026-10-23T15:37:48+00:00","redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsfx","code":"****0002","status":"reserved","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":{"voucher_id":"01m5mpjh3fmvekcmygnjyabnee","origin":"answer24_claim","voucher_status":"reserved","consumer":null,"claim_expires_at":"2027-01-21T15:37:48+00:00","expires_at":null},"reserved_at":"2026-10-23T15:37:48+00:00","issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsfy","code":"****0003","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsfz","code":"****0004","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsg0","code":"****0005","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg9hymgs43c01a0b4n74","code":"****0001","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:48+00:00"},{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"****0002","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:48+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?per_page=10&sort=created_at&page=1","last":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?per_page=10&sort=created_at&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?per_page=10&sort=created_at&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes","per_page":10,"to":7,"total":7,"counters":{"total":7,"available":5,"reserved":1,"issued":1,"redeemed":0,"expired":0,"invalid":0,"cancelled":0}}}
+```
+
+### Issued codes
+
+`GET /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/offers/01m5mpjewf73zwcf12me43kaw0/codes?status=issued`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-44e5-73f7-84dc-4b585630bff9
+
+{"data":[{"id":"01m5mpjg3wfgpg70c2k2rzh6rz","code":"****0001","status":"issued","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":{"voucher_id":"01m5mpjh2vjze9pr6e3nvttgmq","origin":"merchant_reward","voucher_status":"issued","consumer":"c********@example.nl","claim_expires_at":"2027-01-21T15:37:48+00:00","expires_at":"2027-01-21T15:37:48+00:00"},"reserved_at":"2026-10-23T15:37:48+00:00","issued_at":"2026-10-23T15:37:48+00:00","redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?status=issued&page=1","last":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?status=issued&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?status=issued&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes","per_page":50,"to":1,"total":1,"counters":{"total":7,"available":5,"reserved":1,"issued":1,"redeemed":0,"expired":0,"invalid":0,"cancelled":0}}}
+```
+
+### Exact code search
+
+`GET /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/offers/01m5mpjewf73zwcf12me43kaw0/codes?search=woon-9q2l-0002`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-451a-7190-adbf-cbf4703ed479
+
+{"data":[{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"****0002","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:48+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?search=woon-9q2l-0002&page=1","last":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?search=woon-9q2l-0002&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?search=woon-9q2l-0002&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes","per_page":50,"to":1,"total":1,"counters":{"total":7,"available":5,"reserved":1,"issued":1,"redeemed":0,"expired":0,"invalid":0,"cancelled":0}}}
+```
+
+### Batch
+
+`GET /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/code-imports/01m5mpjg1tt6q0vjbaw3an5j6j`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-4551-70d2-b7e4-7be0d253f756
+
+{"data":{"id":"01m5mpjg1tt6q0vjbaw3an5j6j","status":"committed","source":"paste","totals":{"valid":5,"invalid":1,"imported":5,"submitted":7,"duplicate_existing":0,"duplicate_at_commit":0,"duplicate_in_upload":1},"rejections":[{"code":"********0001","line":4,"reason":"duplicate_in_upload"},{"code":"*****ode!","line":5,"reason":"invalid_format"}],"expires_at":null,"committed_at":"2026-10-23T15:37:47+00:00"}}
+```
+
+### Reveal one code (audited)
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/codes/01m5mpjg9hymgs43c01a0b4n75/reveal`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-457a-71ef-b3af-2231c61f0fa3
+
+{"data":{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"WOON-9Q2L-0002"}}
+```
+
+### Invalidate an unused code
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/codes/01m5mpjg9hymgs43c01a0b4n75/invalidate {"reason":"Code wordt niet geaccepteerd in de kassa"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-45aa-717a-91ff-1d86c89ace84
+
+{"data":{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"****0002","status":"invalid","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":"2026-10-23T15:37:49+00:00","invalid_reason":"Code wordt niet geaccepteerd in de kassa","created_at":"2026-10-23T15:37:48+00:00"}}
+```
+
+### Invalidate again
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/codes/01m5mpjg9hymgs43c01a0b4n75/invalidate {"reason":"Nogmaals"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16969-45e1-72e1-8857-681b9b09b091
+Content-Type: application/json
+
+{"error":{"status":409,"code":"code_not_available","message":"Only available codes can be invalidated.","request_id":"01a16969-45e1-72e1-8857-681b9b09b091","details":{"status":"invalid"}}}
+```
+
+### History of the issued code
+
+`GET /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/codes/01m5mpjg3wfgpg70c2k2rzh6rz/history`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16969-4612-7303-bb6d-e1d1d465b2b4
+
+{"data":[{"type":"reserved","from_status":null,"to_status":"reserved","summary":{"origin":"merchant_reward","version":1},"recorded_at":"2026-10-23T15:37:48+00:00"},{"type":"code_issued","from_status":"reserved","to_status":"issued","summary":null,"recorded_at":"2026-10-23T15:37:48+00:00"},{"type":"issued","from_status":"reserved","to_status":"issued","summary":null,"recorded_at":"2026-10-23T15:37:48+00:00"}]}
+```
+
+### Employee without vouchers.manage
+
+`POST /api/v1/workspaces/01m5mpjevbdanbh28agkfdq7y2/codes/01m5mpjg9hymgs43c01a0b4n75/reveal`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16969-4676-73ab-93e1-114c8bdd16e8
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16969-4676-73ab-93e1-114c8bdd16e8","details":{"required_permission":"vouchers.manage"}}}
+```
+
+### Another merchant
+
+`GET /api/v1/workspaces/01m5mpjevv5d0p88mph8y0qzp9/offers/01m5mpjewf73zwcf12me43kaw0/codes`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16969-46a4-703d-bdf8-7cd442a56086
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a16969-46a4-703d-bdf8-7cd442a56086"}}
+```
+
+### CSV export of the CSV batch (full codes; audited)
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Cache-Control: no-store, private
+Content-Disposition: attachment; filename=codes-01m5mpjewf73zwcf12me43kaw0.csv
+X-Request-Id: 01a16969-463f-7019-a894-d726e7605113
+code,status,batch,platform_validation,added_at,issued_at,redeemed_at
+WOON-9Q2L-0001,available,01m5mpjg7g1qfb396kz5bf87a7,merchant_verification_required,2026-10-23T15:37:48+00:00,,
+WOON-9Q2L-0002,invalid,01m5mpjg7g1qfb396kz5bf87a7,merchant_verification_required,2026-10-23T15:37:48+00:00,,
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

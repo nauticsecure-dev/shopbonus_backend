@@ -19,6 +19,7 @@ enum WorkspacePermission: string
     case OffersManage = 'offers.manage';
     case VouchersView = 'vouchers.view';
     case VouchersManage = 'vouchers.manage';
+    case VouchersExport = 'vouchers.export';
     case TeamView = 'team.view';
     case TeamManage = 'team.manage';
     case SettingsView = 'settings.view';

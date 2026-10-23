@@ -2848,6 +2848,296 @@ paths:
             application/json:
               example: {"error":{"status":409,"code":"invalid_status_transition","message":"An offer cannot go from paused to paused.","request_id":"01a1695b-737f-7307-b934-144963fbe078"}}
 
+  /api/v1/workspaces/{workspace}/offers/{offer}/codes:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Offers]
+      operationId: listCodes
+      summary: "Code sheet of an offer"
+      description: |
+        Codes are masked (`****` + last 4); the full value needs the audited reveal. `meta.counters` counts every status, so the sum always equals `total` (reserved, issued, redeemed and expired codes never disappear or count as available). `assigned` shows the live voucher (origin, status, masked consumer, expiries). `platform_validation` is `merchant_verification_required` until a platform coupon check exists: importing a code never proves the shop accepts it.
+      x-access: verified
+      x-permission: vouchers.view
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [available, reserved, issued, redeemed, expired, invalid, cancelled] } }
+        - { name: batch, in: query, required: false, schema: { type: string } }
+        - { name: search, in: query, required: false, description: Exact code (case-insensitive)., schema: { type: string } }
+        - { name: assigned, in: query, required: false, description: Has a live (reserved/issued/redeemed) voucher., schema: { type: boolean } }
+        - { name: platform_validation, in: query, required: false, schema: { type: string } }
+        - { name: sort, in: query, required: false, schema: { type: string, enum: [created_at, -created_at, status, -status] } }
+        - { name: per_page, in: query, required: false, schema: { type: integer, maximum: 200, default: 50 } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>/codes?status=available' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Codes with counters."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mpjg3wfgpg70c2k2rzh6rz","code":"****0001","status":"issued","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":{"voucher_id":"01m5mpjh2vjze9pr6e3nvttgmq","origin":"merchant_reward","voucher_status":"issued","consumer":"c********@example.nl","claim_expires_at":"2027-01-21T15:37:48+00:00","expires_at":"2027-01-21T15:37:48+00:00"},"reserved_at":"2026-10-23T15:37:48+00:00","issued_at":"2026-10-23T15:37:48+00:00","redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsfx","code":"****0002","status":"reserved","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":{"voucher_id":"01m5mpjh3fmvekcmygnjyabnee","origin":"answer24_claim","voucher_status":"reserved","consumer":null,"claim_expires_at":"2027-01-21T15:37:48+00:00","expires_at":null},"reserved_at":"2026-10-23T15:37:48+00:00","issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsfy","code":"****0003","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsfz","code":"****0004","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg3xtp01ppyq71dapsg0","code":"****0005","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg1tt6q0vjbaw3an5j6j","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:47+00:00"},{"id":"01m5mpjg9hymgs43c01a0b4n74","code":"****0001","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:48+00:00"},{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"****0002","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-10-23T15:37:48+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?per_page=10&sort=created_at&page=1","last":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?per_page=10&sort=created_at&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes?per_page=10&sort=created_at&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8784\/api\/v1\/workspaces\/01m5mpjevbdanbh28agkfdq7y2\/offers\/01m5mpjewf73zwcf12me43kaw0\/codes","per_page":10,"to":7,"total":7,"counters":{"total":7,"available":5,"reserved":1,"issued":1,"redeemed":0,"expired":0,"invalid":0,"cancelled":0}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown offer or another webshop."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a16969-46a4-703d-bdf8-7cd442a56086"}}
+
+  /api/v1/workspaces/{workspace}/offers/{offer}/code-imports:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: previewCodeImport
+      summary: "Preview a code import (paste or CSV)"
+      description: |
+        Body: `codes` (newline-separated) **or** multipart `file` (CSV/TXT ≤ 5 MB; a `code` column header is used if present, otherwise the first column). XLSX returns 415: save as CSV. Codes are trimmed; format 4–64 of `A-Z a-z 0-9 _ -`; uniqueness is case-insensitive per webshop. The preview reports totals and up to 200 rejections (masked codes, reasons invalid_format, duplicate_in_upload, duplicate_existing) and **creates nothing**. It expires after 60 minutes. A reusable-code offer takes exactly one code. Max 50,000 codes; 10 imports per minute.
+      x-access: verified
+      x-permission: vouchers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                codes: { type: string, description: One code per line. }
+                file: { type: string, format: binary, description: CSV/TXT (multipart). }
+            example: {"codes": "WOON-7F3K-0001\nWOON-7F3K-0002"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>/code-imports' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"codes":"WOON-7F3K-0001\nWOON-7F3K-0002"}'
+      responses:
+        '201':
+          description: "Preview batch."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mpjg1tt6q0vjbaw3an5j6j","status":"preview","source":"paste","totals":{"submitted":7,"valid":5,"invalid":1,"duplicate_in_upload":1,"duplicate_existing":0},"rejections":[{"line":4,"code":"********0001","reason":"duplicate_in_upload"},{"line":5,"code":"*****ode!","reason":"invalid_format"}],"expires_at":"2026-10-23T16:37:47+00:00","committed_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "offer_ended (same envelope)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"batch_not_committable","message":"This import preview was already committed, discarded or has expired.","request_id":"01a16969-40a5-7142-8c99-a2f7af0f69a6"}}
+        '415':
+          description: "Spreadsheet file."
+          content:
+            application/json:
+              example: {"error":{"status":415,"code":"unsupported_media_type","message":"Spreadsheet files are not supported. Save the sheet as CSV and upload that.","request_id":"01a16969-415b-7100-a383-293a6ea24685"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/code-imports/{batch}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: batch, in: path, required: true, description: Import batch public ID., schema: { type: string } }
+    get:
+      tags: [Offers]
+      operationId: showCodeImport
+      summary: "Import batch status and totals"
+      description: |
+        For polling a queued commit (status preview → committing → committed | failed).
+      x-access: verified
+      x-permission: vouchers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/code-imports/<batch id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Batch."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mpjg1tt6q0vjbaw3an5j6j","status":"committed","source":"paste","totals":{"valid":5,"invalid":1,"imported":5,"submitted":7,"duplicate_existing":0,"duplicate_at_commit":0,"duplicate_in_upload":1},"rejections":[{"code":"********0001","line":4,"reason":"duplicate_in_upload"},{"code":"*****ode!","line":5,"reason":"invalid_format"}],"expires_at":null,"committed_at":"2026-10-23T15:37:47+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/code-imports/{batch}/commit:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: batch, in: path, required: true, description: Import batch public ID., schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: commitCodeImport
+      summary: "Commit a previewed import"
+      description: |
+        Inserts all still-valid codes in one transaction (all or nothing). Codes added elsewhere since the preview are skipped and counted as `duplicate_at_commit`. More than 2,000 codes are committed by a queued job (202, poll the batch). A batch can be committed once (409 `batch_not_committable`, also when expired). Never charges anything.
+      x-access: verified
+      x-permission: vouchers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/code-imports/<batch id>/commit' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Committed."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mpjg1tt6q0vjbaw3an5j6j","status":"committed","source":"paste","totals":{"valid":5,"invalid":1,"submitted":7,"duplicate_existing":0,"duplicate_in_upload":1,"imported":5,"duplicate_at_commit":0},"rejections":[{"code":"********0001","line":4,"reason":"duplicate_in_upload"},{"code":"*****ode!","line":5,"reason":"invalid_format"}],"expires_at":null,"committed_at":"2026-10-23T15:37:47+00:00"}}
+        '202':
+          description: "Queued for large batches (captured with 2,100 codes); poll GET /code-imports/{batch}."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mppysn5brk8ytj9nj4jmwk","status":"committing","source":"paste","totals":{"valid":2100,"invalid":0,"submitted":2100,"duplicate_existing":0,"duplicate_in_upload":0},"rejections":[],"expires_at":null,"committed_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "Already committed, discarded or expired."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"batch_not_committable","message":"This import preview was already committed, discarded or has expired.","request_id":"01a16969-40a5-7142-8c99-a2f7af0f69a6"}}
+
+  /api/v1/workspaces/{workspace}/codes/{code}/reveal:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: code, in: path, required: true, description: Code public ID., schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: revealCode
+      summary: "Show one full code"
+      description: |
+        Audited (`codes.revealed`), 30 per minute: protects unused codes against bulk extraction.
+      x-access: verified
+      x-permission: vouchers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/codes/<code id>/reveal' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Full code (a fake sample here)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"WOON-9Q2L-0002"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Missing vouchers.manage."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16969-4676-73ab-93e1-114c8bdd16e8","details":{"required_permission":"vouchers.manage"}}}
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/codes/{code}/invalidate:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: code, in: path, required: true, description: Code public ID., schema: { type: string } }
+    post:
+      tags: [Offers]
+      operationId: invalidateCode
+      summary: "Invalidate an unused code"
+      description: |
+        Only `available` codes (409 `code_not_available` otherwise): reserved and issued codes belong to a consumer flow, and redeemed codes are history. A reason is required. Audited.
+      x-access: verified
+      x-permission: vouchers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 3, maxLength: 255 }
+            example: {"reason": "Code wordt niet geaccepteerd in de kassa"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/codes/<code id>/invalidate' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"reason":"Not accepted at checkout"}'
+      responses:
+        '200':
+          description: "Invalidated."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mpjg9hymgs43c01a0b4n75","code":"****0002","status":"invalid","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m5mpjg7g1qfb396kz5bf87a7","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":"2026-10-23T15:37:49+00:00","invalid_reason":"Code wordt niet geaccepteerd in de kassa","created_at":"2026-10-23T15:37:48+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "Not available."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"code_not_available","message":"Only available codes can be invalidated.","request_id":"01a16969-45e1-72e1-8857-681b9b09b091","details":{"status":"invalid"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/codes/{code}/history:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: code, in: path, required: true, description: Code public ID., schema: { type: string } }
+    get:
+      tags: [Offers]
+      operationId: codeHistory
+      summary: "Code and voucher history"
+      description: |
+        Append-only events (reserved, code_issued, issued, code_redeemed, redeemed, released, expired, code_invalidated). Never contains code values.
+      x-access: verified
+      x-permission: vouchers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/codes/<code id>/history' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Events."
+          content:
+            application/json:
+              example: {"data":[{"type":"reserved","from_status":null,"to_status":"reserved","summary":{"origin":"merchant_reward","version":1},"recorded_at":"2026-10-23T15:37:48+00:00"},{"type":"code_issued","from_status":"reserved","to_status":"issued","summary":null,"recorded_at":"2026-10-23T15:37:48+00:00"},{"type":"issued","from_status":"reserved","to_status":"issued","summary":null,"recorded_at":"2026-10-23T15:37:48+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/offers/{offer}/codes/export:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: offer, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Offers]
+      operationId: exportCodes
+      summary: "Export codes as CSV (full values)"
+      description: |
+        Same filters as the sheet. Contains full code values, so it needs `vouchers.export` (owners and managers by default), is audited and limited to 5 per minute. Formula-injection safe.
+      x-access: verified
+      x-permission: vouchers.export
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [available, reserved, issued, redeemed, expired, invalid, cancelled] } }
+        - { name: batch, in: query, required: false, schema: { type: string } }
+        - { name: search, in: query, required: false, description: Exact code (case-insensitive)., schema: { type: string } }
+        - { name: assigned, in: query, required: false, description: Has a live (reserved/issued/redeemed) voucher., schema: { type: boolean } }
+        - { name: platform_validation, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/offers/<offer id>/codes/export?status=available' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -o codes.csv
+      responses:
+        '200':
+          description: "CSV file (captured example in docs/api/README.md)."
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
 components:
   parameters:
     Workspace:

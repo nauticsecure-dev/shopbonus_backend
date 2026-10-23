@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Offers\OfferController;
+use App\Http\Controllers\Api\V1\Offers\VoucherCodeController;
 use App\Http\Controllers\Api\V1\Onboarding\AgreementController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessDirectoryController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessProfileController;
@@ -161,6 +162,19 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('offers/{offer}/activate', [OfferController::class, 'activate'])->middleware('workspace.commercial')->name('offers.activate');
                     Route::post('offers/{offer}/pause', [OfferController::class, 'pause'])->name('offers.pause');
                     Route::post('offers/{offer}/end', [OfferController::class, 'end'])->name('offers.end');
+                });
+
+                // Code inventory per offer (Trello #7 §5–7).
+                Route::get('offers/{offer}/codes', [VoucherCodeController::class, 'index'])->middleware('workspace.can:vouchers.view')->name('codes.index');
+                Route::get('offers/{offer}/codes/export', [VoucherCodeController::class, 'export'])
+                    ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('codes.export');
+                Route::get('codes/{code}/history', [VoucherCodeController::class, 'history'])->middleware('workspace.can:vouchers.view')->name('codes.history');
+                Route::get('code-imports/{batch}', [VoucherCodeController::class, 'showBatch'])->middleware('workspace.can:vouchers.view')->name('code-imports.show');
+                Route::middleware('workspace.can:vouchers.manage')->group(function () {
+                    Route::post('offers/{offer}/code-imports', [VoucherCodeController::class, 'import'])->middleware('throttle:code-import')->name('code-imports.store');
+                    Route::post('code-imports/{batch}/commit', [VoucherCodeController::class, 'commitBatch'])->name('code-imports.commit');
+                    Route::post('codes/{code}/reveal', [VoucherCodeController::class, 'reveal'])->middleware('throttle:code-reveal')->name('codes.reveal');
+                    Route::post('codes/{code}/invalidate', [VoucherCodeController::class, 'invalidate'])->name('codes.invalidate');
                 });
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');

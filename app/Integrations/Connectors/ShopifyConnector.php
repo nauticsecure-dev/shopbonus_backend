@@ -139,6 +139,7 @@ class ShopifyConnector extends WebhookConnector
             paidAt: $payment === PaymentStatus::Paid ? $this->date($payload['processed_at'] ?? null) : null,
             cancelledAt: $cancelledAt,
             refundedAt: in_array($payment, [PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded], true) ? $this->date($payload['updated_at'] ?? null) : null,
+            couponCodes: array_values(array_filter(array_map(fn ($l) => is_array($l) ? $this->str($l['code'] ?? null) : null, is_array($payload['discount_codes'] ?? null) ? $payload['discount_codes'] : []))),
             providerUpdatedAt: $this->date($payload['updated_at'] ?? null),
         );
     }

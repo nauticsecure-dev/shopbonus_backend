@@ -17,7 +17,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Workspaces, onboarding, agreements, admin review | VERIFIED_WORKING (B03a–d); staging p95 NOT RUN | `tests/Feature/Workspaces/*` |
 | Provider adapters and webhooks | PARTIAL: framework + WooCommerce/Shopify/Shopbonus-v1 adapters VERIFIED_WORKING against fixtures (B04); live provider behaviour NOT VERIFIED; 7 platforms BLOCKED | `tests/Unit/Integrations/*`, `tests/Feature/Integrations/*` |
 | Normalised orders, Order Sheet | VERIFIED_WORKING (B05) against signed fixture webhooks; live stores NOT VERIFIED | `tests/Feature/Orders/*` |
-| Offers / voucher codes | PARTIAL: offers with versioned terms + fee preview VERIFIED_WORKING (B06a); code inventory MISSING (B06b) | `tests/Feature/Offers/*` |
+| Offers / voucher codes | VERIFIED_WORKING (B06a+B06b): versioned offers, fee preview, single code inventory, atomic reservation (real concurrency test), lifecycle, verified redemption; platform coupon verification BLOCKED | `tests/Feature/Offers/*` |
 | Answer24 | MISSING | B07 |
 | Consumer profile/discovery | MISSING | B08 |
 | Wallet ledgers | MISSING | B09 |
@@ -44,6 +44,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B04 connector framework | `820c6b5` | 255 tests / 2046 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; webhook signatures exercised with openssl-computed HMACs against the real server | No live provider tested |
 | 2026-10-23 | Claude (Opus 5.5) | B05 orders & Order Sheet | `7e391be` | 270 tests / 2190 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; end-to-end capture via signed webhooks | Out-of-order safe ingestion |
 | 2026-10-23 | Claude (Opus 5.5) | B06a offers | `c6485dc` | 279 tests / 2355 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures | Versioned terms, 30% fee preview |
+| 2026-10-23 | Claude (Opus 5.5) | B06b code inventory & vouchers | B06b commit | SQLite 298 passed + 3 skipped; MySQL 301 passed (incl. forked-process race tests; mutation-tested); Pint, PHPStan L6, audit clean | One voucher system |
 
 ### B01a detail
 
@@ -102,6 +103,12 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Delivered:** migration `2026_10_23_200000_create_order_tables` (`webshop_orders`, `order_events`); `WebshopOrder` (encrypted PII, email hash), `OrderEvent` (append-only); `Services\Orders\{OrderIngestion, PaymentTransitions}`; `IngestOrderEvents` listener (inside the processing transaction); `RefundEventVerified` + Shopify `refundTarget`; `NormalizedOrder::providerUpdatedAt`; `OrderController` (sheet, detail, CSV export); `OrderResource`; event retry endpoint; `OrderSheetUpdated` broadcast + `routes/channels.php`; `orders.export` permission; `shopbonus.business_timezone`.
 - **Card mapping:** #1 E2E 4 → `test_card1_e2e4_*`; E2E 5 and #3 F5 → `test_card1_e2e5_and_card3_f5_*`; #3 F3 → `test_card3_f3_*`; out-of-order, non-forward and redaction rules → `test_out_of_order_*`, `test_without_timestamps_*`, `test_redacted_*`; isolation → `test_orders_are_never_visible_across_webshops`; export → `test_export_*`; retry → `test_failed_event_can_be_retried`; channel auth → `test_broadcast_channel_authorisation`.
 - **Not done here:** Answer24 eligibility/contact (B07; columns exist with `not_evaluated`); connection health monitor and alerts (B16); staging performance (B18).
+
+### B06 detail
+
+- **Delivered:** migrations `2026_10_23_210000` (offers, versions) and `2026_10_23_220000` (voucher_code_batches, voucher_codes, vouchers, voucher_events); `OfferService`, `FeeCalculator`, `VoucherInventory` (reserve/issue/release/redeem/expire), `CodeImporter` + `CommitCodeBatch` job, `RedemptionMatcher` (hooked into order ingestion), `shopbonus:expire-vouchers` (hourly); `OfferController`, `VoucherCodeController`; `vouchers.export` permission; `NormalizedOrder::couponCodes`.
+- **Card #7 mapping:** E2E 1/2 → `OfferTest`; E2E 3 → `OfferTest::test_e2e3_*` + `VoucherInventoryTest::test_e2e3_*`; E2E 4/9/10 → `CodeInventoryApiTest`; **E2E 5 → `ConcurrentReservationTest` (pcntl_fork, MySQL)**; E2E 6 → `VoucherInventoryTest::test_e2e6_*` (redemption via a real signed webhook carrying the coupon); E2E 8 partial (one reward per order via idempotency key; funding in B12); E2E 7 BLOCKED (no coupon APIs).
+- **Bugs found while building:** bulk-inserted codes had upper-case ULIDs, so they were unaddressable via the API (fixed; also fixed the B02 migration backfill); the concurrency test leaked committed rows into later tests (now truncates afterwards); released reservations still counted as "assigned".
 
 ## How to update
 

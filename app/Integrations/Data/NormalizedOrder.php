@@ -30,6 +30,9 @@ final readonly class NormalizedOrder
         public ?int $refundedMinor = null,
         // Provider's own last-modified time: used to reject out-of-order events.
         public ?CarbonImmutable $providerUpdatedAt = null,
+        // Discount codes the customer used (for verified voucher redemption).
+        /** @var list<string> */
+        public array $couponCodes = [],
     ) {}
 
     /** @return list<string> */
