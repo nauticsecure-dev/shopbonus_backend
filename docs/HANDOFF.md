@@ -3,7 +3,7 @@
 **Session:** 2026-10-23, first implementation session (continued)
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** the B01b commit (`git log --oneline --grep=B01b`). Earlier: `a51a9b6` B01a, `48520b7` scaffold, `7cc47a8` pack.
+**Last code commit:** `088fb20` B01b. Earlier: `a51a9b6` B01a, `48520b7` scaffold, `7cc47a8` pack.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
 **Active task:** none in progress. **Next:** B02, after the owner answers the Sanctum-mode question below.
 **Last completed task:** B01b (DONE, tested), which completes B01.
@@ -15,7 +15,7 @@
 3. Owner rules added to AGENTS.md: rule 11 (every endpoint documented with a real captured request/response) and rule 12 (**`docs/CHECKLIST.md`**: expand a task's items before starting, tick each in the commit that implements it, only after tests pass).
 4. B01b audit and error store. Details in `docs/PROGRESS.md` → "B01b detail".
 
-## Tests actually executed (at the B01b commit)
+## Tests actually executed (at `088fb20`)
 
 | Command | Result |
 | --- | --- |

@@ -26,19 +26,19 @@ Tasks further down are listed at headline level. Expand them into concrete items
 
 ## B01b Foundation: audit and error store
 
-- [x] `audit_events` migration: append-only, request ID, actor and real actor, webshop, action, resource, outcome, HTTP status, hashed IP, redacted metadata (B01b commit)
-- [x] DB-level guard against UPDATE on `audit_events` (MySQL and SQLite triggers) (B01b commit)
-- [x] `AuditEvent` model refuses update and delete (B01b commit)
-- [x] `AuditLogger` service (`record` throws; `recordSafely` never breaks the request) (B01b commit)
-- [x] 401/403 API responses audited automatically with request ID and route template (B01b commit)
-- [x] An audit write failure never breaks the API response (B01b commit)
-- [x] `application_errors` migration + `ApplicationError` model (B01b commit)
-- [x] Unexpected exceptions (5xx) recorded to `application_errors`, redacted; SQL bindings never stored (B01b commit)
-- [x] Intentional `ApiException`s and 4xx not recorded as application errors (B01b commit)
-- [x] Failed queue jobs recorded with job name, queue, connection and originating request ID (B01b commit)
-- [x] Alert hook event dispatched for recorded errors (B01b commit)
-- [x] Tests on SQLite and MySQL; Pint + PHPStan clean (B01b commit)
-- [x] Docs: PROGRESS, HANDOFF, TASKS, DECISIONS updated (B01b commit)
+- [x] `audit_events` migration: append-only, request ID, actor and real actor, webshop, action, resource, outcome, HTTP status, hashed IP, redacted metadata (`088fb20`)
+- [x] DB-level guard against UPDATE on `audit_events` (MySQL and SQLite triggers) (`088fb20`)
+- [x] `AuditEvent` model refuses update and delete (`088fb20`)
+- [x] `AuditLogger` service (`record` throws; `recordSafely` never breaks the request) (`088fb20`)
+- [x] 401/403 API responses audited automatically with request ID and route template (`088fb20`)
+- [x] An audit write failure never breaks the API response (`088fb20`)
+- [x] `application_errors` migration + `ApplicationError` model (`088fb20`)
+- [x] Unexpected exceptions (5xx) recorded to `application_errors`, redacted; SQL bindings never stored (`088fb20`)
+- [x] Intentional `ApiException`s and 4xx not recorded as application errors (`088fb20`)
+- [x] Failed queue jobs recorded with job name, queue, connection and originating request ID (`088fb20`)
+- [x] Alert hook event dispatched for recorded errors (`088fb20`)
+- [x] Tests on SQLite and MySQL; Pint + PHPStan clean (`088fb20`)
+- [x] Docs: PROGRESS, HANDOFF, TASKS, DECISIONS updated (`088fb20`)
 
 ## B02 Identity and consent (Trello #4 #5 #10)
 
