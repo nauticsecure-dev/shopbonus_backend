@@ -3,17 +3,17 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `5acdfbd` B03d. Earlier: `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** B04 (`git log --oneline -1 --grep=B04`). Earlier: `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B04 ecommerce provider contracts (capability matrix, encrypted connections, health).
-**Last completed task:** B03d, which completes B03 workspaces and onboarding (DONE, tested).
+**Active task:** none in progress. **Next:** B05 normalised orders, ingestion and state transitions (listen to `OrderEventVerified`).
+**Last completed task:** B04 connector framework (DONE as a framework; live adapters NOT VERIFIED).
 
-## Tests actually executed (at `5acdfbd`)
+## Tests actually executed (at the B04 commit)
 
 | Command | Result |
 | --- | --- |
-| `php artisan test` (SQLite in-memory) | PASS: 213 tests |
-| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 213 tests |
+| `php artisan test` (SQLite in-memory) | PASS: 255 tests |
+| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 255 tests |
 | `vendor/bin/pint --test` | PASS |
 | `vendor/bin/phpstan analyse --memory-limit=1G` (level 6) | PASS, 0 errors |
 | `composer audit` | No advisories |
@@ -25,8 +25,8 @@
 
 - Local: PHP 8.4.17, MySQL (`root`, no password) with DBs `shopbonus` and `shopbonus_testing`, Redis 127.0.0.1:6379 via predis (D-004).
 - **Local Redis is shared with other projects.** Only delete keys matching `shopbonus-*` (databases 0 and 1). Never `FLUSHDB`/`FLUSHALL`; see the incident note below.
-- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations), `2026_10_23_170000` (business profiles, verifications, ownership columns), `2026_10_23_180000` (agreements).
-- Env key names added in B02: `LEGAL_TERMS_VERSION`, `LEGAL_PRIVACY_VERSION`, `LEGAL_MARKETING_CONSENT_VERSION` (empty = registration disabled), `SANCTUM_STATEFUL_DOMAINS`, `SESSION_SECURE_COOKIE` (true in prod), `SESSION_SAME_SITE`, `VERIFICATION_CODE_TTL_MINUTES`, `VERIFICATION_CODE_MAX_ATTEMPTS`, `VERIFICATION_RESEND_COOLDOWN_SECONDS`. B03c: `GOOGLE_PLACES_API_KEY` (secret; empty = manual entry only). Earlier: `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CORS_SUPPORTS_CREDENTIALS`, `API_RATE_LIMIT_PER_MINUTE`, `HEALTH_READINESS_TOKEN` (secret).
+- Migrations applied locally: Laravel defaults, `personal_access_tokens`, `2026_10_23_130000/130100` (audit, errors), `2026_10_23_140000..140300` (identity), `2026_10_23_150000` (webshops, memberships, platform roles), `2026_10_23_160000` (invitations), `2026_10_23_170000` (business profiles, verifications, ownership columns), `2026_10_23_180000` (agreements), `2026_10_23_190000` (connections, webhook events).
+- Env key names added in B02: `LEGAL_TERMS_VERSION`, `LEGAL_PRIVACY_VERSION`, `LEGAL_MARKETING_CONSENT_VERSION` (empty = registration disabled), `SANCTUM_STATEFUL_DOMAINS`, `SESSION_SECURE_COOKIE` (true in prod), `SESSION_SAME_SITE`, `VERIFICATION_CODE_TTL_MINUTES`, `VERIFICATION_CODE_MAX_ATTEMPTS`, `VERIFICATION_RESEND_COOLDOWN_SECONDS`. B04: `WEBHOOK_PAYLOAD_RETENTION_DAYS` (default 14). B03c: `GOOGLE_PLACES_API_KEY` (secret; empty = manual entry only). Earlier: `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS`, `CORS_SUPPORTS_CREDENTIALS`, `API_RATE_LIMIT_PER_MINUTE`, `HEALTH_READINESS_TOKEN` (secret).
 - Capturing docs: run the server with `QUEUE_CONNECTION=sync MAIL_MAILER=log`, read codes/tokens from `storage/logs/laravel.log`, then **truncate that log**, since it holds live codes and reset tokens.
 
 ## Conventions to reuse
@@ -58,12 +58,16 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 ## Next agent's exact first actions
 
-1. `git status -sb && git log --oneline -8 && php artisan test` (expect 213 passing).
-2. Read Trello #1 (Universal Webshop Order Adapter) fully, plus the integration parts of #3 A.4–B.7, #16 and #23. Note OPEN-PROVIDER-CAPABILITIES: **no provider credentials exist**, so every adapter stays `Setup Required` / NOT VERIFIED until sandbox access is provided.
-3. Expand B04 in `docs/CHECKLIST.md`. Scope it to provider-agnostic contracts:
-   - `platform_connections` per webshop, with encrypted credentials (`encrypted:array`), status (`setup_required` / `testing` / `connected` / `limited` / `error` / `disconnected`), declared capabilities, last health check and last verified order;
-   - a capability matrix (per platform: auth type, order webhooks, refunds, coupons, polling) documented as UNVERIFIED;
-   - an `OrderAdapter` interface (verify signature, parse event, map to a normalised order DTO);
-   - one reference adapter: a generic signed-webhook adapter with HMAC-SHA256 + timestamp replay window, since it needs no third-party credentials;
-   - connection CRUD/test endpoints (`integrations.manage`, `workspace.commercial`);
-   - a "never `connected` before a verified order" rule.
+1. `git status -sb && git log --oneline -8 && php artisan test` (expect 255 passing).
+2. Re-read Trello #1 "Normalized orders & database", "Live order sheet", "Answer24: payment first / cancellation", #3 B.6–B.7, and #23.
+3. Expand B05 in `docs/CHECKLIST.md`:
+   - a `webshop_orders` table, unique `(connection_id, external_order_id)`, integer minor units, encrypted customer PII;
+   - ingestion as a listener on `OrderEventVerified`, as a transaction-safe upsert;
+   - **out-of-order safety**: never let an older event overwrite newer state (compare the provider's updated timestamp; terminal states such as refunded and cancelled can't be reverted to paid by a late event);
+   - order state history (`order_events`), keeping payment, ingestion, eligibility and contact statuses separate;
+   - Shopify `refunds/create` handling via `order_id`;
+   - `incomplete` and `not_callable` flags;
+   - the Order Sheet API: paginated, filterable, sortable search, daily counters, `orders.view`, never cross-tenant;
+   - CSV export (`orders.manage`, audited, rate-limited);
+   - retry of failed events;
+   - a broadcast event for live updates (Reverb optional: the channel contract only).

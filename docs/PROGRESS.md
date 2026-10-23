@@ -15,7 +15,8 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Audit events / application error store | VERIFIED_WORKING | B01b. Tests in `tests/Feature/Audit/*`, `tests/Feature/Errors/*`. The PostgreSQL trigger variant is written but NOT RUN (no PG locally). |
 | Auth (signup/login/OTP/recovery), Sanctum SPA + bearer | VERIFIED_WORKING | B02. Tests in `tests/Feature/Identity/*`. Real captures in `docs/api/README.md` → Auth. Staging p95 NOT RUN. |
 | Workspaces, onboarding, agreements, admin review | VERIFIED_WORKING (B03a–d); staging p95 NOT RUN | `tests/Feature/Workspaces/*` |
-| Provider adapters, orders, webhooks | MISSING | B04–B05 |
+| Provider adapters and webhooks | PARTIAL: framework + WooCommerce/Shopify/Shopbonus-v1 adapters VERIFIED_WORKING against fixtures (B04); live provider behaviour NOT VERIFIED; 7 platforms BLOCKED | `tests/Unit/Integrations/*`, `tests/Feature/Integrations/*` |
+| Normalised orders, Order Sheet | MISSING | B05 |
 | Offers / voucher codes | MISSING | B06 |
 | Answer24 | MISSING | B07 |
 | Consumer profile/discovery | MISSING | B08 |
@@ -40,6 +41,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B03b team management | `ec20038` | 144 tests / 1130 assertions pass on SQLite and MySQL; Pint, PHPStan L6, composer audit clean; real captures against MySQL + Redis | Invitations, member management |
 | 2026-10-23 | Claude (Opus 5.5) | B03c business profile & ownership | `b230455` | 199 tests / 1444 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures (Google 200 and DNS/file success NOT live) | SSRF-safe verification |
 | 2026-10-23 | Claude (Opus 5.5) | B03d agreements, review, activation | `5acdfbd` | 213 tests / 1772 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures incl. session-based admin step-up and evidence round-trip | B03 complete |
+| 2026-10-23 | Claude (Opus 5.5) | B04 connector framework | B04 commit | 255 tests / 2046 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; webhook signatures exercised with openssl-computed HMACs against the real server | No live provider tested |
 
 ### B01a detail
 
@@ -87,6 +89,11 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Delivered:** migration `2026_10_23_180000_create_agreement_tables` (`agreement_templates`, `webshop_agreement_acceptances`, `webshops.rejected_at`); models `AgreementTemplate` (immutable once published), `AgreementAcceptance` (append-only); `AgreementService` (server-selected version, escaped rendering, SHA-256, accept); `WebshopLifecycle` (auto-approval, approve/reject/suspend/unsuspend); middleware `EnsurePlatformRole` (`platform:`), `RequireRecentPassword` (`password.recent`), `EnsureWorkspaceCommerciallyActive` (`workspace.commercial`); `AgreementController`; `Admin\WebshopController`, `Admin\AgreementTemplateController`; `AdminWebshopResource`, `AgreementTemplateResource`; `OnboardingProgress` agreement step; registry `x-access: admin`.
 - **Card #16 mapping:** E2E 3 → `AgreementAndReviewTest::test_e2e3_*`; E2E 4 → `test_e2e4_*` (escaped rendering, auto-activation, unticked/forged/outdated refused, re-acceptance); E2E 9 suspension half → `test_e2e9_*`; E2E 10 backend journey → `test_e2e10_backend_journey_*`; every admin route refuses non-admins (`test_every_admin_route_refuses_non_admins`).
 - **Card #3 F18 / #2 "support sessions"** are not done: impersonation/support sessions are B16.
+
+### B04 detail
+
+- **Delivered:** migration `2026_10_23_190000_create_integration_tables` (`webshop_connections`, `webhook_events`); `config/integrations.php` capability matrix; `App\Integrations\{ConnectorRegistry, ConnectionManager}`; `Contracts\Connector`; `Connectors\{WebhookConnector, WooCommerceConnector, ShopifyConnector, GenericSignedWebhookConnector}`; `Data\{NormalizedOrder, PaymentStatus, VerifiedEvent}`; `Support\Money` (exact, never rounds); `WebhookController` (public intake), `ConnectionController`; `ProcessWebhookEvent` job; `OrderEventVerified` event (B05 hook); `shopbonus:prune-webhook-payloads` scheduled daily; docs: webhook format v1 spec and `docs/integrations/VERIFICATION.md`.
+- **Card #1 mapping (backend, fixtures):** E2E 1 partial (WooCommerce verified order → connected; live Order Sheet is B05); E2E 2 "unsupported connections cannot activate" → `test_card1_e2e2_*`; E2E 3 Shopify redacted → limited → `test_card1_e2e3_*` (unit + feature); E2E 4 normalisation rules → `ConnectorTest::test_card1_e2e4_*`; E2E 5 duplicate deliveries processed once (`test_card1_e2e1_*`). Real-store parts of E2E 1–3 are NOT RUN.
 
 ## How to update
 

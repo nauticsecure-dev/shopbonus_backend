@@ -1772,6 +1772,380 @@ X-Request-Id: 01a16941-65ac-730c-af61-63c8fad70d81
 
 ---
 
+## Integrations: connections and webhooks (B04, Trello #1)
+
+Captured 2026-10-23 against local MySQL + Redis with `APP_URL=https://api.shopbonus.example` and a sync queue. Webhook signatures were computed independently with `openssl`, so the server's verification was exercised for real. **Secrets, webhook tokens and signatures are redacted** in these examples. The provider payloads are realistic fixtures sent by curl; **no real WooCommerce or Shopify store was involved** (adapters NOT VERIFIED; see `docs/integrations/VERIFICATION.md`).
+
+### Connection status
+
+| Status | Meaning |
+| --- | --- |
+| `setup_required` | Created; waiting for the shop to send anything |
+| `testing` | A verified ping arrived (e.g. WooCommerce sends one when a webhook is saved) |
+| `connected` | A verified order with all mandatory fields arrived |
+| `limited` | The first verified order lacked mandatory fields (`limitations: ["additional_integration_required"]`, e.g. Shopify redacted customer data) |
+| `error` | Reserved for the health monitor (B05/B16) |
+| `disconnected` | Credentials wiped; the webhook URL returns 404 |
+
+Mandatory order fields: external ID, reference, first name, email, amount (minor units), currency, placed-at. A missing phone keeps the order valid but not callable.
+
+### Shopbonus webhook format v1
+
+For private modules (PrestaShop, OpenCart, Shopware 6, Magento) and custom shops. POST JSON to the connection's webhook URL with:
+
+| Header | Value |
+| --- | --- |
+| `X-Shopbonus-Signature` | `t=<unix seconds>,v1=<hex HMAC-SHA256(signing_secret, "<t>.<raw body>")>`. Several `v1=` values are allowed (during secret rotation). Requests more than 300 s from server time are rejected (`timestamp_out_of_tolerance`) |
+| `X-Shopbonus-Event-Id` | Unique per event, at most 100 chars. Retries **must** reuse it (dedupe) |
+| `X-Shopbonus-Topic` | `order.created`, `order.updated`, `order.paid`, `order.cancelled`, `order.refunded` or `ping` |
+
+Body:
+
+```json
+{
+  "order": {
+    "id": "PS-1001",                 // shop's internal order ID (string)
+    "reference": "XKBKNABJK",        // reference shown to the customer
+    "currency": "EUR",               // ISO 4217, upper case
+    "total_minor": 5995,             // integer minor units — never a float or string
+    "customer": { "first_name": "Anna", "email": "anna@example.nl", "phone": "+31612345678" },
+    "payment_status": "paid",        // paid | pending | failed | cancelled | refunded | partially_refunded
+    "status": "payment_accepted",    // shop's own status (informational)
+    "created_at": "2026-10-23T10:00:00Z",
+    "paid_at": "2026-10-23T10:01:00Z",
+    "cancelled_at": null,
+    "refunded_at": null,
+    "refunded_minor": 0
+  }
+}
+```
+
+Signing example (bash):
+
+```bash
+T=$(date +%s)
+SIG=$(printf '%s' "$T.$(cat order.json)" | openssl dgst -sha256 -hmac "$SIGNING_SECRET" | awk '{print $NF}')
+curl -X POST "$WEBHOOK_URL" -H 'Content-Type: application/json' \
+  -H "X-Shopbonus-Signature: t=$T,v1=$SIG" -H 'X-Shopbonus-Event-Id: evt_01' -H 'X-Shopbonus-Topic: order.paid' \
+  --data-binary @order.json
+```
+
+Responses: 202 (accepted), 200 `duplicate: true` (already received; do not retry), 401 (fix signing; do not retry blindly), 404 (wrong or disconnected URL), 429 (back off). Sign the exact bytes you send.
+
+### GET /integrations/platforms
+
+`GET /api/v1/integrations/platforms`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b485-7046-af8d-e334541ef11a
+
+{"data":[{"platform":"woocommerce","name":"WooCommerce","priority":"production","available":true,"method":"webhook","auth":"shared secret (HMAC-SHA256, base64)","reliability":"high","limitations":[],"verification":"unverified","blocked_reason":null},{"platform":"shopify","name":"Shopify","priority":"production","available":true,"method":"webhook","auth":"webhook signing secret (HMAC-SHA256, base64)","reliability":"high","limitations":["customer fields may be redacted without protected customer data access"],"verification":"unverified","blocked_reason":null},{"platform":"wix","name":"Wix","priority":"production","available":false,"method":"automation HTTP POST","auth":"to be determined (verify whether automations can sign or authenticate requests)","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Request authentication for Wix automations not yet verified."},{"platform":"bigcommerce","name":"BigCommerce","priority":"production","available":false,"method":"webhook + API lookup","auth":"restricted API token","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Requires API credentials and order lookup (webhooks carry only IDs)."},{"platform":"ecwid","name":"Ecwid","priority":"production","available":false,"method":"webhook\/polling + API","auth":"store API token","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Requires store API token and app registration."},{"platform":"lightspeed_c","name":"Lightspeed C-Series","priority":"production","available":false,"method":"confirmation tracking where supported","auth":"to be determined","reliability":"lower","limitations":["lower reliability"],"verification":"unverified","blocked_reason":"Supported mechanism not yet verified."},{"platform":"lightspeed_e","name":"Lightspeed E-Series","priority":"additional","available":false,"method":"API\/confirmation (to be determined)","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Supported API method not yet verified."},{"platform":"prestashop","name":"PrestaShop","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private ZIP module must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"opencart","name":"OpenCart","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private OCMOD extension must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"shopware6","name":"Shopware 6","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (extension not yet built)","limitations":["private extension must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"magento","name":"Magento \/ Adobe Commerce","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private module must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"squarespace","name":"Squarespace","priority":"additional","available":false,"method":"polling (read-only Orders API)","auth":"API key","reliability":"polling delay","limitations":["polling"],"verification":"unverified","blocked_reason":"Polling adapter not built; requires API key."},{"platform":"mijnwebwinkel","name":"Mijnwebwinkel","priority":"additional","available":false,"method":"partner API","auth":"partner authorisation","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Partner\/API authorisation pending."},{"platform":"ccv","name":"CCV Shop","priority":"additional","available":false,"method":"to be investigated","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Merchant-accessible API options not yet investigated."},{"platform":"other","name":"Other \/ custom shop","priority":"additional","available":true,"method":"webhook","auth":"Shopbonus signed webhook v1","reliability":"depends on the custom integration","limitations":[],"verification":"unverified","blocked_reason":null}]}
+```
+
+### Connecting an unsupported platform
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections {"platform":"wix"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1694b-b4d7-72f9-976d-87a0751a79b6
+Content-Type: application/json
+
+{"error":{"status":409,"code":"platform_not_available","message":"This platform cannot be connected yet.","request_id":"01a1694b-b4d7-72f9-976d-87a0751a79b6","details":{"reason":"Request authentication for Wix automations not yet verified."}}}
+```
+
+### POST /workspaces/{workspace}/connections (WooCommerce)
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections {"platform":"woocommerce"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a1694b-b513-71ff-9097-343af429202e
+
+{"data":{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/woocommerce\/<token>","steps":["In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<secret shown once>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
+```
+
+### Second WooCommerce connection
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections {"platform":"woocommerce"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1694b-b54f-71a4-a22e-92820b37f4af
+Content-Type: application/json
+
+{"error":{"status":409,"code":"connection_exists","message":"This webshop already has a connection for this platform.","request_id":"01a1694b-b54f-71a4-a22e-92820b37f4af"}}
+```
+
+### Shopify with invalid input
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections {"platform":"shopify","shop_domain":"evil.com","signing_secret":"short"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a1694b-b570-728a-ab48-991f09afe195
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1694b-b570-728a-ab48-991f09afe195","fields":{"shop_domain":["The shop domain field format is invalid."],"signing_secret":["The signing secret field must be at least 16 characters."]}}}
+```
+
+### Shopify with merchant-supplied secret
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections {"platform":"shopify","shop_domain":"fietsen.myshopify.com","signing_secret":"shpss_merchant_supplied_secret"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a1694b-b592-7055-bc33-ae998b7d31c9
+
+{"data":{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"setup_required","external_shop_ref":"fietsen.myshopify.com","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"shopify-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/shopify\/<token>","shop_domain":"fietsen.myshopify.com","steps":["In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.","Copy the signing secret shown on that page into this connection.","Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."]}}}
+```
+
+### PrestaShop (Shopbonus format, private module)
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections {"platform":"prestashop"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a1694b-b5c0-7246-9f72-2f135275dd6c
+
+{"data":{"id":"01m5mmqdeessjag26x40n5dfk2","platform":"prestashop","method":"private_module","status":"setup_required","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"shopbonus-webhook-v1","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/prestashop\/<token>","steps":["Install the private Shopbonus module for your shop (provided by Shopbonus support).","Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).","Place a real test order. The connection becomes Connected after a verified order with all required fields."],"documentation":"docs\/api\/README.md#shopbonus-webhook-format-v1"},"secrets":{"signing_secret":"<secret shown once>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
+```
+
+### GET connection (no secret)
+
+`GET /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqd944fxvw6ndwyxmd8qs`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b5fc-726d-bfb1-5849086b35cf
+
+{"data":{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/woocommerce\/<token>","steps":["In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]}}}
+```
+
+### Verify checklist before any event
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqd944fxvw6ndwyxmd8qs/verify`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b61a-704d-90f7-adda9afb2730
+
+{"data":{"status":"setup_required","checks":{"credentials_configured":true,"event_received":false,"order_received":false,"mandatory_fields_present":false,"phone_available":false,"webshop_ownership_verified":false},"missing_fields":[],"limitations":[],"next_action":"configure_webhook"}}
+```
+
+### Webhook: signed WooCommerce ping
+
+`POST /api/v1/webhooks/woocommerce/<token> (provider headers: X-WC-Webhook-Signature: <base64 signature>)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1694b-b664-7191-abc7-aac52da29d68
+
+{"data":{"received":true,"duplicate":false,"event_id":"01m5mmqdkcfye2x1tad9r4fgk5"}}
+```
+
+### Connection after the ping (testing)
+
+`GET /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqd944fxvw6ndwyxmd8qs`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b691-711e-a227-386b10b45053
+
+{"data":{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"testing","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/woocommerce\/<token>","steps":["In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]}}}
+```
+
+### Webhook: forged signature
+
+`POST /api/v1/webhooks/woocommerce/<token> (provider headers: X-WC-Webhook-Signature: Zm9yZ2VkCg== X-WC-Webhook-Topic: order.created X-WC-Webhook-Delivery-ID: 9a1)`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a1694b-b6ba-71d1-87a3-9d4babe84347
+Content-Type: application/json
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a1694b-b6ba-71d1-87a3-9d4babe84347","details":{"reason":"invalid_signature"}}}
+```
+
+### Webhook: signed WooCommerce order
+
+`POST /api/v1/webhooks/woocommerce/<token> (provider headers: X-WC-Webhook-Signature: <base64 signature> X-WC-Webhook-Topic: order.created X-WC-Webhook-Delivery-ID: 9a1)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1694b-b6d9-73c6-bf3b-b4c92f425e30
+
+{"data":{"received":true,"duplicate":false,"event_id":"01m5mmqdpyrwt78trs3gc64x0z"}}
+```
+
+### Webhook: same delivery again
+
+`POST /api/v1/webhooks/woocommerce/<token> (provider headers: X-WC-Webhook-Signature: <base64 signature> X-WC-Webhook-Topic: order.created X-WC-Webhook-Delivery-ID: 9a1)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b6fc-73e0-b65b-198cb1476ed6
+
+{"data":{"received":true,"duplicate":true}}
+```
+
+### Connection after the verified order (connected)
+
+`GET /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqd944fxvw6ndwyxmd8qs`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b71c-70c5-8862-3ecad83aa5df
+
+{"data":{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_invalid_signature","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/woocommerce\/<token>","steps":["In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]}}}
+```
+
+### Verify checklist when connected
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqd944fxvw6ndwyxmd8qs/verify`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b73a-7302-9a2e-b416b9afa7ac
+
+{"data":{"status":"connected","checks":{"credentials_configured":true,"event_received":true,"order_received":true,"mandatory_fields_present":true,"phone_available":true,"webshop_ownership_verified":false},"missing_fields":[],"limitations":[],"next_action":"verify_ownership"}}
+```
+
+### Sanitised event history
+
+`GET /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqd944fxvw6ndwyxmd8qs/events`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b759-7083-9822-066bde3d89db
+
+{"data":[{"id":"01m5mmqdpyrwt78trs3gc64x0z","topic":"order.created","status":"processed","delivery_count":2,"result":{"kind":"order","complete":true,"currency":"EUR","has_phone":true,"amount_minor":5995,"missing_fields":[],"payment_status":"paid"},"error_code":null,"received_at":"2026-10-23T15:05:32+00:00","processed_at":"2026-10-23T15:05:32+00:00"},{"id":"01m5mmqdkcfye2x1tad9r4fgk5","topic":null,"status":"processed","delivery_count":1,"result":{"kind":"ping"},"error_code":null,"received_at":"2026-10-23T15:05:32+00:00","processed_at":"2026-10-23T15:05:32+00:00"}]}
+```
+
+### Webhook: Shopify order with redacted customer data
+
+`POST /api/v1/webhooks/shopify/<token> (provider headers: X-Shopify-Hmac-Sha256: <base64 signature> X-Shopify-Topic: orders/paid X-Shopify-Webhook-Id: b54557e4 X-Shopify-Shop-Domain: fietsen.myshopify.com)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1694b-b783-70b5-9363-bc5fccefc693
+
+{"data":{"received":true,"duplicate":false,"event_id":"01m5mmqdw90z1qbbefx4pedxjs"}}
+```
+
+### Shopify checklist (limited)
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqdcww6d106jp3f92yez8/verify`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b7a9-72e6-9323-7891909cf529
+
+{"data":{"status":"limited","checks":{"credentials_configured":true,"event_received":true,"order_received":true,"mandatory_fields_present":false,"phone_available":false,"webshop_ownership_verified":false},"missing_fields":["first_name","email"],"limitations":["additional_integration_required"],"next_action":"additional_integration_required"}}
+```
+
+### Webhook: Shopbonus format, replayed old timestamp
+
+`POST /api/v1/webhooks/prestashop/<token> (provider headers: X-Shopbonus-Signature: t=1792767332,v1=<hex signature> X-Shopbonus-Event-Id: evt_01 X-Shopbonus-Topic: order.paid)`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a1694b-b7d9-703d-ad76-5701d98c5a04
+Content-Type: application/json
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a1694b-b7d9-703d-ad76-5701d98c5a04","details":{"reason":"timestamp_out_of_tolerance"}}}
+```
+
+### Webhook: Shopbonus format order
+
+`POST /api/v1/webhooks/prestashop/<token> (provider headers: X-Shopbonus-Signature: t=1792767932,v1=<hex signature> X-Shopbonus-Event-Id: evt_01 X-Shopbonus-Topic: order.paid)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1694b-b7f8-70c7-8e03-bdedd9cd1884
+
+{"data":{"received":true,"duplicate":false,"event_id":"01m5mmqdzyrhrwwww5gza26p7s"}}
+```
+
+### Rotate the PrestaShop secret
+
+`POST /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqdeessjag26x40n5dfk2/credentials`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b81e-722e-a33c-7bf334f5d13a
+
+{"data":{"id":"01m5mmqdeessjag26x40n5dfk2","platform":"prestashop","method":"private_module","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_timestamp_out_of_tolerance","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"shopbonus-webhook-v1","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/prestashop\/<token>","steps":["Install the private Shopbonus module for your shop (provided by Shopbonus support).","Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).","Place a real test order. The connection becomes Connected after a verified order with all required fields."],"documentation":"docs\/api\/README.md#shopbonus-webhook-format-v1"},"secrets":{"signing_secret":"<secret shown once>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
+```
+
+### GET /workspaces/{workspace}/connections
+
+`GET /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b83f-7307-8ad1-1208e9251518
+
+{"data":[{"id":"01m5mmqdeessjag26x40n5dfk2","platform":"prestashop","method":"private_module","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_timestamp_out_of_tolerance","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00"},{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"limited","external_shop_ref":"fietsen.myshopify.com","limitations":["additional_integration_required"],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00"},{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_invalid_signature","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00"}]}
+```
+
+### Employee without integrations.view
+
+`GET /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a1694b-b85c-72b8-b65d-c14aabb9109f
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a1694b-b85c-72b8-b65d-c14aabb9109f","details":{"required_permission":"integrations.view"}}}
+```
+
+### Disconnect Shopify
+
+`DELETE /api/v1/workspaces/01m5mmqc8df2zzngh4vm4ab2gb/connections/01m5mmqdcww6d106jp3f92yez8`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1694b-b87c-710a-afcc-5a1298b7311f
+
+{"data":{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"disconnected","external_shop_ref":"fietsen.myshopify.com","limitations":["additional_integration_required"],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":null,"disconnected_at":"2026-10-23T15:05:32+00:00","last_error":null,"created_at":"2026-10-23T15:05:31+00:00"}}
+```
+
+### Webhook to the disconnected connection
+
+`POST /api/v1/webhooks/shopify/<token> (provider headers: X-Shopify-Hmac-Sha256: <base64 signature> X-Shopify-Topic: orders/paid X-Shopify-Webhook-Id: b54557e5 X-Shopify-Shop-Domain: fietsen.myshopify.com)`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a1694b-b8a3-7215-936d-10bce88e346d
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1694b-b8a3-7215-936d-10bce88e346d"}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

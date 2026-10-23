@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreem
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
+use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Onboarding\AgreementController;
 use App\Http\Controllers\Api\V1\Onboarding\BusinessDirectoryController;
@@ -38,6 +40,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // Public
     Route::get('health', [HealthController::class, 'live'])->name('health.live');
     Route::get('health/ready', [HealthController::class, 'ready'])->name('health.ready');
+    // Provider webhooks (public; authenticity proven by the connector's signature check).
+    // One provider IP serves many merchants, so the per-IP api limiter is replaced by a per-connection one.
+    Route::post('webhooks/{platform}/{token}', [WebhookController::class, 'receive'])
+        ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('webhooks.receive');
+
     Route::post('invitations/preview', [InvitationController::class, 'preview'])
         ->middleware('throttle:invitation-preview')->name('invitations.preview');
 
@@ -57,6 +64,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
             Route::post('workspaces', [WorkspaceController::class, 'store'])
                 ->middleware('throttle:workspace-create')->name('workspaces.store');
+            Route::get('integrations/platforms', [ConnectionController::class, 'platforms'])->name('integrations.platforms');
+
             // Business lookup (suggestions only; never proof of ownership).
             Route::middleware('throttle:business-search')->group(function () {
                 Route::get('business-directory/search', [BusinessDirectoryController::class, 'search'])->name('business-directory.search');
@@ -122,6 +131,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         ->middleware('throttle:ownership-check')->name('verifications.confirm-code');
                     Route::post('review', [OwnershipVerificationController::class, 'review'])->name('review');
                 });
+                // Ecommerce connections (Trello #1).
+                Route::get('connections', [ConnectionController::class, 'index'])->middleware('workspace.can:integrations.view')->name('connections.index');
+                Route::get('connections/{connection}', [ConnectionController::class, 'show'])->middleware('workspace.can:integrations.view')->name('connections.show');
+                Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
+                Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
+                Route::middleware('workspace.can:integrations.manage')->group(function () {
+                    Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
+                    Route::post('connections/{connection}/credentials', [ConnectionController::class, 'replaceCredentials'])->name('connections.credentials');
+                    Route::delete('connections/{connection}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
+                });
+
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])
                     ->middleware('workspace.can:agreements.accept')->name('agreement.accept');
