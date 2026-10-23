@@ -3,12 +3,12 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** B02 identity (`git log --oneline -1 --grep=B02`). Earlier: `088fb20` B01b, `a51a9b6` B01a, `48520b7` scaffold, `7cc47a8` pack.
+**Last code commit:** `c95e1e4` B02 identity. Earlier: `088fb20` B01b, `a51a9b6` B01a, `48520b7` scaffold, `7cc47a8` pack.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
 **Active task:** none in progress. **Next:** B03 workspaces and onboarding (READY).
 **Last completed task:** B02 (DONE, tested).
 
-## Tests actually executed (at the B02 commit)
+## Tests actually executed (at `c95e1e4`)
 
 | Command | Result |
 | --- | --- |
