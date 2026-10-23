@@ -37,6 +37,7 @@ class OrderResource extends JsonResource
             'missing_fields' => $o->missing_fields ?? [],
             'callable' => $o->has_phone,
             'eligibility_status' => $o->eligibility_status,
+            'eligibility_reasons' => $o->eligibility_reasons ?? [],
             'contact_status' => $o->contact_status,
             'placed_at' => $o->placed_at?->toIso8601String(),
             'paid_at' => $o->paid_at?->toIso8601String(),

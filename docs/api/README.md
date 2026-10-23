@@ -2702,6 +2702,200 @@ WOON-9Q2L-0002,invalid,01m5mpjg7g1qfb396kz5bf87a7,merchant_verification_required
 
 ---
 
+## Answer24: eligibility, grouping, cancellation (B07a, Trello #1, #3, #23)
+
+Captured 2026-10-23 against local MySQL + Redis. *Woon & Co* is active, with an active "€10 korting from €50" reward offer, Answer24 enabled with `consent_at_checkout`, and phone `06 9999 8888` on the do-not-contact list. Orders were sent as **signed Shopbonus-format webhooks** (with `contact_consent`), so ingestion and eligibility ran for real.
+
+Outcome per order (from the Order Sheet capture below):
+
+| Order | Situation | eligibility | contact_status | reasons |
+| --- | --- | --- | --- | --- |
+| PS-1001 | Anna, paid, consent, phone | eligible | grouped → queued | — |
+| PS-1002 | Anna again 20 min later (email in different case) | eligible | grouped (same opportunity) → queued | — |
+| PS-1003 | Bram, no consent | ineligible | blocked | no_contact_consent |
+| PS-1004 | Cees, no phone | eligible | not_callable | — |
+| PS-1005 | Dirk, suppressed phone | ineligible | blocked | suppressed |
+| PS-1006 | Eva, payment pending | ineligible | blocked | not_paid |
+| PS-1007 | Fenna, paid then refunded | ineligible | removed (opportunity cancelled) | refunded |
+
+To show the hour-long window closing without waiting an hour, the capture moved `window_ends_at` into the past in the database and ran the real command `php artisan shopbonus:close-contact-windows` (output: `Queued 1 contact opportunity(ies).`). It is scheduled every minute in production.
+
+Queued outbox payload (`answer24.contact_requested`, contract `shopbonus-answer24-v1`). It is **not sent**, because `ANSWER24_DISPATCH_ENABLED=false` and Answer24 hasn't confirmed the contract yet. Only first name and phone, never email:
+
+```json
+{
+  "contract": "shopbonus-answer24-v1",
+  "opportunity_id": "01m5mq4wyj15qcxh4ysp2weaz2",
+  "idempotency_key": "contact:17:01m5mq4wyhpj4kxeqe5wytxq27",
+  "webshop": {
+    "id": "01m5mq4vmycsgnv6bxa7vcz4vg",
+    "name": "Woon & Co"
+  },
+  "offer": {
+    "id": "01m5mq4vncgypz8x9knxj5mv4x",
+    "summary": "€10.00 from €50.00",
+    "terms": {
+      "version": 1,
+      "locked": true,
+      "summary": "€10.00 from €50.00",
+      "name": "€10 korting",
+      "public_description": null,
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "min_order_minor": 5000,
+      "max_discount_minor": null,
+      "price_minor": null,
+      "starts_at": null,
+      "ends_at": null,
+      "claim_validity_days": 90,
+      "redemption_validity_days": 90,
+      "categories": [],
+      "products": [],
+      "combinable": false,
+      "code_mode": "unique",
+      "allocation_limit": null
+    }
+  },
+  "customer": {
+    "first_name": "Anna",
+    "phone": "+31612345678"
+  },
+  "orders": [
+    {
+      "reference": "PS-1001",
+      "placed_at": "2026-10-23T15:47:50+00:00",
+      "amount_minor": 7500,
+      "currency": "EUR"
+    },
+    {
+      "reference": "PS-1002",
+      "placed_at": "2026-10-23T15:47:50+00:00",
+      "amount_minor": 9900,
+      "currency": "EUR"
+    }
+  ],
+  "lawful_basis": {
+    "basis": "consent_at_checkout",
+    "evidence_ref": "webshop:01m5mq4vmycsgnv6bxa7vcz4vg:answer24_settings"
+  }
+}
+```
+
+### Eligibility reasons
+
+`webshop_not_active`, `no_active_reward_offer`, `below_minimum_order_value`, `not_paid`, `cancelled`, `refunded`, `incomplete_order`, `answer24_disabled`, `no_lawful_basis`, `lawful_basis_not_permitted`, `no_contact_consent`, `suppressed`, `recently_contacted` (within `ANSWER24_RECENT_CONTACT_DAYS`, default 30). A missing or invalid phone is not a reason: the order stays eligible but `not_callable`.
+
+### GET answer24/settings (default)
+
+`GET /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/settings`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16972-7207-712e-8abc-bfea2501a639
+
+{"data":{"enabled":false,"lawful_basis":null,"documented_by":null,"documented_at":null,"allowed_bases":["consent_at_checkout"],"platform_dispatch_enabled":false,"notes":"An order alone never authorises contact. Consent-based contact requires the shop to report contact consent per order."}}
+```
+
+### Legitimate interest refused
+
+`PUT /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/settings {"enabled":true,"lawful_basis":"legitimate_interest","attestation":true}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16972-725a-7284-abc2-bead2c22905d
+Content-Type: application/json
+
+{"error":{"status":422,"code":"lawful_basis_not_permitted","message":"Legitimate interest is not currently accepted as a basis for calls. Use consent captured at checkout.","request_id":"01a16972-725a-7284-abc2-bead2c22905d"}}
+```
+
+### A manager attesting
+
+`PUT /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/settings {"enabled":true,"lawful_basis":"consent_at_checkout","attestation":true}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16972-7286-72a2-a6aa-9a4f3366fac7
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16972-7286-72a2-a6aa-9a4f3366fac7","details":{"required_permission":"agreements.accept"}}}
+```
+
+### Owner enables consent-based contact
+
+`PUT /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/settings {"enabled":true,"lawful_basis":"consent_at_checkout","attestation":true}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16972-72ad-71e5-9e50-541bc4ac40a7
+
+{"data":{"enabled":true,"lawful_basis":"consent_at_checkout","documented_by":"01m5mq4vmf52rtd7nqtdmrhp08","documented_at":"2026-10-23T15:47:50+00:00","allowed_bases":["consent_at_checkout"],"platform_dispatch_enabled":false,"notes":"An order alone never authorises contact. Consent-based contact requires the shop to report contact consent per order."}}
+```
+
+### Add a phone to the do-not-contact list
+
+`POST /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/suppressions {"phone":"06 9999 8888","reason":"Wil niet gebeld worden"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16972-72d0-7371-94cf-2e7d4c5b6d51
+
+{"data":{"suppressed":true,"new_entries":1}}
+```
+
+### Order Sheet with eligibility and contact status
+
+`GET /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/orders?sort=placed_at&per_page=10`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16972-75c3-7013-9c37-41aa99abf926
+
+{"data":[{"id":"01m5mq4wy0bv91hspkq03pap3q","reference":"PS-1001","external_order_id":"1001","platform":"prestashop","customer":{"first_name":"Anna","email":"anna@example.nl","phone":"06 1234 5678"},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"eligible","eligibility_reasons":[],"contact_status":"grouped","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:50+00:00"},{"id":"01m5mq4x0y5gq82spzqbcagdq2","reference":"PS-1002","external_order_id":"1002","platform":"prestashop","customer":{"first_name":"Anna","email":"ANNA@example.nl","phone":"0612345678"},"amount_minor":9900,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"eligible","eligibility_reasons":[],"contact_status":"grouped","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:50+00:00"},{"id":"01m5mq4x31p9kmbaa12nvaa3xb","reference":"PS-1003","external_order_id":"1003","platform":"prestashop","customer":{"first_name":"Bram","email":"bram@example.nl","phone":"0611112222"},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"ineligible","eligibility_reasons":["no_contact_consent"],"contact_status":"blocked","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4x516hgpjxag1m102bd3","reference":"PS-1004","external_order_id":"1004","platform":"prestashop","customer":{"first_name":"Cees","email":"cees@example.nl","phone":null},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":false,"eligibility_status":"eligible","eligibility_reasons":[],"contact_status":"not_callable","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4x6zkpaff1qney8mfky9","reference":"PS-1005","external_order_id":"1005","platform":"prestashop","customer":{"first_name":"Dirk","email":"dirk@example.nl","phone":"06 9999 8888"},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"ineligible","eligibility_reasons":["suppressed"],"contact_status":"blocked","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4x8yg25afj2byhvg18w9","reference":"PS-1006","external_order_id":"1006","platform":"prestashop","customer":{"first_name":"Eva","email":"eva@example.nl","phone":"0633334444"},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"pending","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"ineligible","eligibility_reasons":["not_paid"],"contact_status":"blocked","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4xawh1wzcv8v5sqeqj7b","reference":"PS-1007","external_order_id":"1007","platform":"prestashop","customer":{"first_name":"Fenna","email":"fenna@example.nl","phone":"0655556666"},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"refunded","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"ineligible","eligibility_reasons":["refunded"],"contact_status":"removed","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:51+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders?sort=placed_at&per_page=10&page=1","last":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders?sort=placed_at&per_page=10&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders?sort=placed_at&per_page=10&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders","per_page":10,"to":7,"total":7,"today":{"timezone":"Europe\/Amsterdam","orders":7,"paid_orders":5,"incomplete_orders":0,"paid_revenue_minor":{"EUR":39900}}}}
+```
+
+### Opportunities while the window is open
+
+`GET /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/opportunities`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16972-75f1-737f-bfa4-64d7ed3c468d
+
+{"data":[{"id":"01m5mq4xb8f0btfqpgym3r01nh","status":"cancelled","lawful_basis":"consent_at_checkout","orders":0,"window_ends_at":"2026-10-23T16:47:51+00:00","ready_at":null,"dispatched_at":null,"cancelled_at":"2026-10-23T15:47:51+00:00","cancel_reason":"refunded","created_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4wyj15qcxh4ysp2weaz2","status":"pending","lawful_basis":"consent_at_checkout","orders":2,"window_ends_at":"2026-10-23T16:47:50+00:00","ready_at":null,"dispatched_at":null,"cancelled_at":null,"cancel_reason":null,"created_at":"2026-10-23T15:47:50+00:00"}],"meta":{"current_page":1,"total":2,"dispatch_enabled":false}}
+```
+
+### Opportunities after the window closed
+
+`GET /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/answer24/opportunities`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16972-7745-7014-95ea-de4617a57f96
+
+{"data":[{"id":"01m5mq4xb8f0btfqpgym3r01nh","status":"cancelled","lawful_basis":"consent_at_checkout","orders":0,"window_ends_at":"2026-10-23T16:47:51+00:00","ready_at":null,"dispatched_at":null,"cancelled_at":"2026-10-23T15:47:51+00:00","cancel_reason":"refunded","created_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4wyj15qcxh4ysp2weaz2","status":"ready","lawful_basis":"consent_at_checkout","orders":2,"window_ends_at":"2026-10-23T15:46:51+00:00","ready_at":"2026-10-23T15:47:51+00:00","dispatched_at":null,"cancelled_at":null,"cancel_reason":null,"created_at":"2026-10-23T15:47:50+00:00"}],"meta":{"current_page":1,"total":2,"dispatch_enabled":false}}
+```
+
+### Order PS-1001 after queueing
+
+`GET /api/v1/workspaces/01m5mq4vmycsgnv6bxa7vcz4vg/orders?search=PS-1001`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16972-7766-7015-a615-80ac2187b02a
+
+{"data":[{"id":"01m5mq4wy0bv91hspkq03pap3q","reference":"PS-1001","external_order_id":"1001","platform":"prestashop","customer":{"first_name":"Anna","email":"anna@example.nl","phone":"06 1234 5678"},"amount_minor":7500,"refunded_minor":0,"currency":"EUR","payment_status":"paid","provider_status":null,"ingestion_status":"complete","missing_fields":[],"callable":true,"eligibility_status":"eligible","eligibility_reasons":[],"contact_status":"queued","placed_at":"2026-10-23T15:47:50+00:00","paid_at":"2026-10-23T15:47:50+00:00","cancelled_at":null,"refunded_at":null,"updated_at":"2026-10-23T15:47:51+00:00"}],"links":{"first":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders?search=PS-1001&page=1","last":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders?search=PS-1001&page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders?search=PS-1001&page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8786\/api\/v1\/workspaces\/01m5mq4vmycsgnv6bxa7vcz4vg\/orders","per_page":25,"to":1,"total":1,"today":{"timezone":"Europe\/Amsterdam","orders":7,"paid_orders":5,"incomplete_orders":0,"paid_revenue_minor":{"EUR":39900}}}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

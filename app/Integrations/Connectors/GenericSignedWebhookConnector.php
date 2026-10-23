@@ -137,6 +137,7 @@ class GenericSignedWebhookConnector extends WebhookConnector
             refundedMinor: is_int($order['refunded_minor'] ?? null) ? $order['refunded_minor'] : null,
             providerUpdatedAt: $this->date($order['updated_at'] ?? null),
             couponCodes: array_values(array_filter(array_map(fn ($c) => $this->str($c), is_array($order['coupon_codes'] ?? null) ? $order['coupon_codes'] : []))),
+            contactConsent: is_bool($customer['contact_consent'] ?? null) ? $customer['contact_consent'] : null,
         );
     }
 }

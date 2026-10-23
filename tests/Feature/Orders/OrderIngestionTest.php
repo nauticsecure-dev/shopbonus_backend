@@ -94,8 +94,11 @@ class OrderIngestionTest extends TestCase
         $this->assertSame('4711', $row['reference']);
         $this->assertSame('anna@example.nl', $row['customer']['email']);
         $this->assertSame('paid', $row['payment_status']);
-        $this->assertSame('not_evaluated', $row['eligibility_status']);
-        $this->assertSame('not_evaluated', $row['contact_status']);
+        // Evaluated on ingestion (B07a): this draft webshop has no Answer24 setup, so it is blocked with reasons.
+        $this->assertSame('ineligible', $row['eligibility_status']);
+        $this->assertSame('blocked', $row['contact_status']);
+        $this->assertContains('webshop_not_active', $row['eligibility_reasons']);
+        $this->assertContains('no_lawful_basis', $row['eligibility_reasons']);
         $this->assertTrue(WebhookEvent::sole()->result['ingested']);
         Event::assertDispatched(OrderSheetUpdated::class, fn ($e) => $e->orderId === $order->public_id && $e->broadcastWith() === ['order_id' => $order->public_id, 'payment_status' => 'paid']);
     }

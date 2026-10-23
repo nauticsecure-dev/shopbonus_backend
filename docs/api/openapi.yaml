@@ -49,6 +49,11 @@ tags:
     description: |
       Merchant offers with versioned terms (Trello #7). One voucher system; `acquisition` is how consumers obtain it.
       Money in integer minor units, percentages in basis points.
+  - name: Answer24
+    description: |
+      Contact eligibility and queue for Answer24 (Trello #1, #23). Answer24 owns calls, consent checks and reminders;
+      Shopbonus only queues paid, consented, callable, unsuppressed orders, grouped per customer per hour.
+      Outbound dispatch is disabled by default (OPEN-ANSWER24-CONTRACT, OPEN-MARKETING-CONSENT).
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -3137,6 +3142,143 @@ paths:
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/answer24/settings:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Answer24]
+      operationId: answer24Settings
+      summary: "Answer24 contact settings"
+      description: |
+        The owner's lawful-basis attestation and whether platform dispatch is enabled. Contact is never enabled by default.
+      x-access: verified
+      x-permission: settings.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/answer24/settings' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Settings (default: disabled)."
+          content:
+            application/json:
+              example: {"data":{"enabled":false,"lawful_basis":null,"documented_by":null,"documented_at":null,"allowed_bases":["consent_at_checkout"],"platform_dispatch_enabled":false,"notes":"An order alone never authorises contact. Consent-based contact requires the shop to report contact consent per order."}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    put:
+      tags: [Answer24]
+      operationId: updateAnswer24Settings
+      summary: "Attest the lawful basis for Answer24 contact (owner)"
+      description: |
+        Owner-only legal attestation. `consent_at_checkout` means only orders whose shop reports `contact_consent: true` are ever contacted (currently only the Shopbonus webhook format v1 can report it). `legitimate_interest` is refused (422 `lawful_basis_not_permitted`) while the platform does not allow it (OPEN-MARKETING-CONSENT). Audited.
+      x-access: verified
+      x-permission: agreements.accept
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+                lawful_basis: { type: string, enum: [consent_at_checkout, legitimate_interest], description: Required when enabled. }
+                attestation: { type: boolean, const: true, description: Required when enabled. }
+            example: {"enabled": true, "lawful_basis": "consent_at_checkout", "attestation": true}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/workspaces/current/answer24/settings' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"enabled":true,"lawful_basis":"consent_at_checkout","attestation":true}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"enabled":true,"lawful_basis":"consent_at_checkout","documented_by":"01m5mq4vmf52rtd7nqtdmrhp08","documented_at":"2026-10-23T15:47:50+00:00","allowed_bases":["consent_at_checkout"],"platform_dispatch_enabled":false,"notes":"An order alone never authorises contact. Consent-based contact requires the shop to report contact consent per order."}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not the owner (agreements.accept)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16972-7286-72a2-a6aa-9a4f3366fac7","details":{"required_permission":"agreements.accept"}}}
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Basis not permitted or attestation missing."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"lawful_basis_not_permitted","message":"Legitimate interest is not currently accepted as a basis for calls. Use consent captured at checkout.","request_id":"01a16972-725a-7284-abc2-bead2c22905d"}}
+
+  /api/v1/workspaces/{workspace}/answer24/suppressions:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Answer24]
+      operationId: addContactSuppression
+      summary: "Add a customer to the do-not-contact list"
+      description: |
+        Stores only keyed hashes of the email and/or E.164 phone. Applies to this webshop; future orders from that customer are never contacted and pending opportunities drop them at the next check. There is no removal endpoint (opt-outs are kept). 201 when new, 200 when already listed.
+      x-access: verified
+      x-permission: settings.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                phone: { type: string, description: 'Any common format; normalised to E.164 (NL default).' }
+                reason: { type: string }
+            example: {"phone": "06 9999 8888", "reason": "Wil niet gebeld worden"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/answer24/suppressions' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"phone":"06 9999 8888"}'
+      responses:
+        '201':
+          description: "Added."
+          content:
+            application/json:
+              example: {"data":{"suppressed":true,"new_entries":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/answer24/opportunities:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Answer24]
+      operationId: contactOpportunities
+      summary: "Answer24 contact queue of this webshop"
+      description: |
+        One opportunity per customer per one-hour window. pending = window open; ready = queued for Answer24 (stays queued while `meta.dispatch_enabled` is false); cancelled = no eligible orders left; cancellation_requested = withdrawn after dispatch (suppression sent). No customer data in this list.
+      x-access: verified
+      x-permission: orders.view
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [pending, ready, dispatched, accepted, rejected, attempted, completed, failed, cancelled, cancellation_requested] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/answer24/opportunities?status=ready' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Queue (captured after the window closed)."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mq4xb8f0btfqpgym3r01nh","status":"cancelled","lawful_basis":"consent_at_checkout","orders":0,"window_ends_at":"2026-10-23T16:47:51+00:00","ready_at":null,"dispatched_at":null,"cancelled_at":"2026-10-23T15:47:51+00:00","cancel_reason":"refunded","created_at":"2026-10-23T15:47:51+00:00"},{"id":"01m5mq4wyj15qcxh4ysp2weaz2","status":"ready","lawful_basis":"consent_at_checkout","orders":2,"window_ends_at":"2026-10-23T15:46:51+00:00","ready_at":"2026-10-23T15:47:51+00:00","dispatched_at":null,"cancelled_at":null,"cancel_reason":null,"created_at":"2026-10-23T15:47:50+00:00"}],"meta":{"current_page":1,"total":2,"dispatch_enabled":false}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
 
 components:
   parameters:

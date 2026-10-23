@@ -9,6 +9,7 @@ use App\Models\OrderEvent;
 use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
+use App\Support\PhoneNumber;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -144,6 +145,9 @@ class OrderIngestion
             'customer_email_hash' => WebshopOrder::emailHash($email),
             'customer_phone' => $phone,
             'has_phone' => $phone !== null && $phone !== '',
+            'customer_key' => WebshopOrder::customerKey($order->webshop_id, $email, PhoneNumber::normalize($phone)),
+            // Consent is only ever taken from the provider, never assumed; a later event without it keeps the earlier answer.
+            'contact_consent' => $o->contactConsent ?? $order->contact_consent,
             'amount_minor' => $keep($o->amountMinor, $order->amount_minor),
             'currency' => $keep($o->currency, $order->currency),
             'refunded_minor' => $o->refundedMinor ?? $order->refunded_minor ?? 0,

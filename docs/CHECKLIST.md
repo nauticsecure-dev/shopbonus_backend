@@ -213,7 +213,26 @@ One voucher model and one code inventory; acquisition methods are typed origins 
 - [ ] Platform coupon verification via provider coupon APIs (blocked: no coupon adapters/credentials; status stays `merchant_verification_required`)
 - [ ] Card #7 E2E 7 real webshop coupon check (blocked as above) and E2E 8 merchant funding enforcement (B12)
 
-- [ ] B07 Answer24 handoff/claim
+## B07 Answer24 (Trello #1 "Answer24 required processing", #3 B.7–C.10, #23 "Answer24 responsibilities", #10)
+
+Answer24 owns calls, consent checks, invitations and reminders; Shopbonus owns order eligibility, signed handoff, reservations, claim links, identity verification and status (card #23). No Shopbonus dialer or marketing automation. Answer24 has no Shopbonus API yet, so the contract is Shopbonus-defined and **outbound dispatch is disabled by default** (OPEN-ANSWER24-CONTRACT, OPEN-MARKETING-CONSENT).
+
+### B07a Eligibility, grouping, cancellation, outbox
+
+- [x] Per-webshop Answer24 settings (owner attestation): enabled flag, lawful basis (`consent_at_checkout` | `legitimate_interest`), documented by/at; legitimate interest refused unless the config allows it (default off) (B07a commit)
+- [x] `contact_suppressions` (consumer opt-out per webshop or global, by keyed email/phone hash) with an API to add them (B07a commit)
+- [x] `OrderEligibility`: evaluated after each order change; reasons recorded (webshop not active, no active merchant-reward offer, not paid, cancelled/refunded, incomplete, no phone → not callable, Answer24 disabled, no lawful basis, no order consent for consent-based basis, suppressed, recently contacted); no contact without every check passing (B07a commit)
+- [x] `contact_opportunities` + `contact_opportunity_orders`: rolling 1-hour grouping per (webshop, customer key); never across webshops; unique idempotency key (B07a commit)
+- [x] Window close (scheduled every minute): re-check every order immediately before readiness; no eligible orders → cancelled; else ready → outbox event (dispatch disabled → stays queued) (B07a commit)
+- [x] Cancellation/refund: removes the order from a pending/ready opportunity, cancels it when empty, and records a suppression request for an already dispatched one (outbox) (B07a commit)
+- [x] `integration_outbox` (transactional outbox: target, type, payload, idempotency key unique, status, attempts, next attempt); no sending in B07a (B07a commit)
+- [x] Order Sheet shows `eligibility_status` / `contact_status` with reasons (B07a commit)
+- [x] Tests: card #1 E2E 6 (unpaid/pending/spoofed never contact), E2E 7 (grouping), E2E 8 (cancellation removes eligibility, dispatched → suppression queued), E2E 4 no phone; #3 F4, F6, F7 (B07a commit)
+- [x] Docs with real captures (B07a commit)
+
+### B07b Integration channel, handoff, claim, reminders
+
+- [ ] Expand when started
 - [ ] B08 Consumer profile/discovery
 - [ ] B09 Wallet ledger core
 - [ ] B10 Affiliate integrations (credit timing decision required)

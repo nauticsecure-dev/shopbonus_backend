@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
+use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
@@ -176,6 +177,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('codes/{code}/reveal', [VoucherCodeController::class, 'reveal'])->middleware('throttle:code-reveal')->name('codes.reveal');
                     Route::post('codes/{code}/invalidate', [VoucherCodeController::class, 'invalidate'])->name('codes.invalidate');
                 });
+
+                // Answer24 contact (Trello #1, #23): owner attestation, suppressions, opportunity queue.
+                Route::get('answer24/settings', [ContactSettingsController::class, 'show'])->middleware('workspace.can:settings.view')->name('answer24.settings.show');
+                Route::put('answer24/settings', [ContactSettingsController::class, 'update'])->middleware('workspace.can:agreements.accept')->name('answer24.settings.update');
+                Route::post('answer24/suppressions', [ContactSettingsController::class, 'suppress'])->middleware('workspace.can:settings.manage')->name('answer24.suppressions.store');
+                Route::get('answer24/opportunities', [ContactSettingsController::class, 'opportunities'])->middleware('workspace.can:orders.view')->name('answer24.opportunities.index');
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])

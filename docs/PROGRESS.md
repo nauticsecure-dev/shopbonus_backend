@@ -18,7 +18,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Provider adapters and webhooks | PARTIAL: framework + WooCommerce/Shopify/Shopbonus-v1 adapters VERIFIED_WORKING against fixtures (B04); live provider behaviour NOT VERIFIED; 7 platforms BLOCKED | `tests/Unit/Integrations/*`, `tests/Feature/Integrations/*` |
 | Normalised orders, Order Sheet | VERIFIED_WORKING (B05) against signed fixture webhooks; live stores NOT VERIFIED | `tests/Feature/Orders/*` |
 | Offers / voucher codes | VERIFIED_WORKING (B06a+B06b): versioned offers, fee preview, single code inventory, atomic reservation (real concurrency test), lifecycle, verified redemption; platform coupon verification BLOCKED | `tests/Feature/Offers/*` |
-| Answer24 | MISSING | B07 |
+| Answer24 | PARTIAL: eligibility, grouping, cancellation, outbox VERIFIED_WORKING (B07a); signed channel/handoff/claim MISSING (B07b); outbound dispatch disabled | `tests/Feature/Answer24/*` |
 | Consumer profile/discovery | MISSING | B08 |
 | Wallet ledgers | MISSING | B09 |
 | Affiliate (Daisycon/TradeTracker) | MISSING; credit timing BLOCKED on OPEN-AFFILIATE-CREDIT-TIMING | B10 |
@@ -45,6 +45,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B05 orders & Order Sheet | `7e391be` | 270 tests / 2190 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; end-to-end capture via signed webhooks | Out-of-order safe ingestion |
 | 2026-10-23 | Claude (Opus 5.5) | B06a offers | `c6485dc` | 279 tests / 2355 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures | Versioned terms, 30% fee preview |
 | 2026-10-23 | Claude (Opus 5.5) | B06b code inventory & vouchers | `c07f778` | SQLite 298 passed + 3 skipped; MySQL 301 passed (incl. forked-process race tests; mutation-tested); Pint, PHPStan L6, audit clean | One voucher system |
+| 2026-10-23 | Claude (Opus 5.5) | B07a Answer24 eligibility | B07a commit | MySQL 314 passed; SQLite 311 + 3 skipped; Pint, PHPStan L6, audit clean; end-to-end capture via signed webhooks | Dispatch off |
 
 ### B01a detail
 

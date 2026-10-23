@@ -112,4 +112,30 @@ return [
         'default_claim_validity_days' => 90,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Answer24 (Trello #1, #3, #23)
+    |--------------------------------------------------------------------------
+    |
+    | Outbound dispatch is OFF until the Answer24 contract and the lawful
+    | basis for contact are confirmed (OPEN-ANSWER24-CONTRACT,
+    | OPEN-MARKETING-CONSENT). Opportunities are still evaluated and queued.
+    |
+    */
+
+    'answer24' => [
+        'dispatch_enabled' => (bool) env('ANSWER24_DISPATCH_ENABLED', false),
+        'base_url' => env('ANSWER24_BASE_URL'),
+        'contact_path' => env('ANSWER24_CONTACT_PATH', '/api/shopbonus/v1/contact-requests'),
+        'cancel_path' => env('ANSWER24_CANCEL_PATH', '/api/shopbonus/v1/contact-requests/{reference}/cancel'),
+        'claim_status_path' => env('ANSWER24_CLAIM_STATUS_PATH', '/api/shopbonus/v1/claims/{reference}/status'),
+        'signing_secret' => env('ANSWER24_SIGNING_SECRET'),
+        // Legitimate interest as a basis for calls stays off until legally confirmed.
+        'allow_legitimate_interest' => (bool) env('ANSWER24_ALLOW_LEGITIMATE_INTEREST', false),
+        'grouping_window_minutes' => 60,
+        'recent_contact_days' => (int) env('ANSWER24_RECENT_CONTACT_DAYS', 30),
+        'claim_requires_email_match' => true,
+        'reminder_days' => [30, 60, 80],
+    ],
+
 ];

@@ -33,6 +33,8 @@ final readonly class NormalizedOrder
         // Discount codes the customer used (for verified voucher redemption).
         /** @var list<string> */
         public array $couponCodes = [],
+        // Explicit contact consent captured at checkout, if the shop reports it (null = unknown).
+        public ?bool $contactConsent = null,
     ) {}
 
     /** @return list<string> */

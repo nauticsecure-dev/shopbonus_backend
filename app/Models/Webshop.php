@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string|null $verified_domain
  * @property CarbonImmutable|null $review_requested_at
  * @property array<string, mixed>|null $review_flags
+ * @property array<string, mixed>|null $answer24_settings
  * @property-read BusinessProfile|null $businessProfile
  * @property CarbonImmutable $created_at
  */
@@ -54,6 +55,7 @@ class Webshop extends Model
         'review_requested_at' => null,
         'review_flags' => null,
         'rejected_at' => null,
+        'answer24_settings' => null,
     ];
 
     protected function casts(): array
@@ -66,6 +68,7 @@ class Webshop extends Model
             'ownership_verified_at' => 'immutable_datetime',
             'review_requested_at' => 'immutable_datetime',
             'review_flags' => 'array',
+            'answer24_settings' => 'array',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];

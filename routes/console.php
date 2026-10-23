@@ -13,3 +13,6 @@ Schedule::command('shopbonus:prune-webhook-payloads')->dailyAt('03:15')->without
 
 // Voucher claim windows (90-day Answer24 rule) and redemption validity.
 Schedule::command('shopbonus:expire-vouchers')->hourly()->withoutOverlapping();
+
+// Answer24 one-hour grouping windows.
+Schedule::command('shopbonus:close-contact-windows')->everyMinute()->withoutOverlapping();

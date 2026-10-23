@@ -25,6 +25,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $customer_email_hash
  * @property string|null $customer_phone
  * @property bool $has_phone
+ * @property bool|null $contact_consent
+ * @property string|null $customer_key
+ * @property list<string>|null $eligibility_reasons
  * @property int|null $amount_minor
  * @property string|null $currency
  * @property int $refunded_minor
@@ -48,7 +51,7 @@ class WebshopOrder extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'last_webhook_event_id'];
+    protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'customer_key', 'last_webhook_event_id'];
 
     protected $attributes = ['refunded_minor' => 0, 'eligibility_status' => 'not_evaluated', 'contact_status' => 'not_evaluated'];
 
@@ -59,6 +62,8 @@ class WebshopOrder extends Model
             'customer_email' => 'encrypted',
             'customer_phone' => 'encrypted',
             'has_phone' => 'boolean',
+            'contact_consent' => 'boolean',
+            'eligibility_reasons' => 'array',
             'amount_minor' => 'integer',
             'refunded_minor' => 'integer',
             'payment_status' => PaymentStatus::class,
@@ -77,6 +82,16 @@ class WebshopOrder extends Model
     public function uniqueIds(): array
     {
         return ['public_id'];
+    }
+
+    /**
+     * Identifies "the same customer" within one webshop (grouping, recency).
+     */
+    public static function customerKey(int $webshopId, ?string $email, ?string $phone): ?string
+    {
+        $subject = $email !== null && trim($email) !== '' ? 'e:'.mb_strtolower(trim($email)) : ($phone !== null ? 'p:'.$phone : null);
+
+        return $subject === null ? null : hash_hmac('sha256', "customer|{$webshopId}|{$subject}", (string) config('app.key'));
     }
 
     public static function emailHash(?string $email): ?string
