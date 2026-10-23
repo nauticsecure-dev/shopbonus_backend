@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Enums\AuditCategory;
 use App\Enums\AuditOutcome;
+use App\Models\Concerns\AppendOnly;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
-use LogicException;
 
 /**
  * Append-only audit record. Write through App\Services\Audit\AuditLogger.
@@ -33,6 +33,8 @@ use LogicException;
  */
 class AuditEvent extends Model
 {
+    use AppendOnly;
+
     public $timestamps = false;
 
     protected $guarded = ['id'];
@@ -46,11 +48,5 @@ class AuditEvent extends Model
             'http_status' => 'integer',
             'metadata' => 'array',
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::updating(fn () => throw new LogicException('Audit events are append-only and cannot be updated.'));
-        static::deleting(fn () => throw new LogicException('Audit events are append-only and cannot be deleted.'));
     }
 }

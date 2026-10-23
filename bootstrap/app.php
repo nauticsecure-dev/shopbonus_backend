@@ -4,12 +4,18 @@ use App\Exceptions\ApiException;
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuditAccessDenials;
+use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\RejectAuthenticatedJsonRequests;
+use App\Http\Middleware\ThrottleIdentityEndpoints;
 use App\Services\Errors\ErrorRecorder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\OriginMismatchException;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Routing\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,12 +30,25 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(AssignRequestId::class);
         $middleware->prependToGroup('api', [ForceJsonResponse::class, AuditAccessDenials::class]);
 
+        // Sanctum SPA cookie auth for first-party frontends (SANCTUM_STATEFUL_DOMAINS).
+        $middleware->statefulApi();
+
+        // Must wrap Fortify's route-level throttle:login to see its 429s.
+        $middleware->prependToPriorityList(before: ThrottleRequests::class, prepend: ThrottleIdentityEndpoints::class);
+
+        $middleware->alias([
+            'account.active' => EnsureAccountIsActive::class,
+            // Overrides Laravel's signed-link `verified`: Shopbonus verifies by emailed code.
+            'verified' => EnsureEmailIsVerified::class,
+            'guest' => RejectAuthenticatedJsonRequests::class,
+        ]);
+
         // API clients get a JSON 401 rather than a redirect to a login page.
         $middleware->redirectGuestsTo(fn (Request $request) => ApiExceptionRenderer::appliesTo($request) ? null : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Intentional client-facing domain errors are not application faults.
-        $exceptions->dontReport(ApiException::class);
+        $exceptions->dontReport([ApiException::class, OriginMismatchException::class]);
 
         // Unexpected faults during an HTTP request go to application_errors.
         // Queue failures are recorded once, on final failure, by

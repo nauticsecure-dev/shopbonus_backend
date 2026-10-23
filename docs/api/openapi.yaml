@@ -26,12 +26,23 @@ servers:
 tags:
   - name: Health
     description: Liveness and readiness probes for load balancers and monitoring.
+  - name: Auth
+    description: |
+      Registration, email verification, sessions and password recovery (Trello #4).
+      First-party SPAs use Sanctum cookie sessions: GET /sanctum/csrf-cookie first, then send
+      `X-XSRF-TOKEN` on every state-changing request from an origin in SANCTUM_STATEFUL_DOMAINS.
+      /api/v1 also accepts `Authorization: Bearer <Sanctum token>` (token issuance is not public yet).
+
+      `x-access` on each operation: `public` (anyone), `guest` (signed-out only; signed-in
+      JSON clients get 409 `already_authenticated`), `authenticated` (active account, verified
+      or not), `verified` (active and email-verified; otherwise 403 `email_not_verified`).
 
 paths:
   /api/v1/health:
     get:
       tags: [Health]
       operationId: healthLive
+      x-access: public
       summary: Liveness probe
       description: |
         Returns 200 while the PHP process is serving requests. Performs no dependency
@@ -68,6 +79,7 @@ paths:
     get:
       tags: [Health]
       operationId: healthReady
+      x-access: public
       summary: Readiness probe
       description: |
         Checks the database, the cache store and (when cache or queue use Redis) Redis.
@@ -131,7 +143,560 @@ paths:
                     checks: { database: fail, cache: ok, redis: ok }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+  /sanctum/csrf-cookie:
+    get:
+      tags: [Auth]
+      operationId: csrfCookie
+      summary: Start a session and get the CSRF cookie
+      description: |
+        First call of the SPA before any state-changing request. Sets the `XSRF-TOKEN`
+        cookie (readable by JS) and the `shopbonus-session` cookie (HttpOnly, SameSite=Lax;
+        Secure in production). Send the decoded `XSRF-TOKEN` value as `X-XSRF-TOKEN` on
+        every POST/PUT/DELETE. Must come from an origin listed in `SANCTUM_STATEFUL_DOMAINS`.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              http://localhost:8000/sanctum/csrf-cookie
+      responses:
+        '204':
+          description: |
+            Cookies set. Captured `Set-Cookie` attributes:
+            `XSRF-TOKEN=…; Max-Age=7200; path=/; samesite=lax` and
+            `shopbonus-session=…; Max-Age=7200; path=/; httponly; samesite=lax`.
+
+  /register:
+    post:
+      tags: [Auth]
+      operationId: register
+      summary: Create an account (Fortify)
+      description: |
+        Creates one identity and signs it in (session). Stores Terms and Privacy acceptance at
+        the exact current versions (immutable) and an optional marketing-consent record. Queues
+        a 6-digit verification code email. `account_type` only selects the post-verification
+        destination; it never grants a role or webshop membership. Any other field (role,
+        status, admin flags, webshop IDs) is ignored. Returns 503 `legal_documents_unavailable`
+        while no Terms/Privacy version is published.
+
+        Rate limits: 5 per 10 minutes per IP, 3 per hour per email.
+      x-access: guest
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_type, first_name, email, password, accept_terms, terms_version, privacy_version]
+              properties:
+                account_type: { type: string, enum: [consumer, merchant] }
+                first_name: { type: string, maxLength: 100 }
+                email: { type: string, format: email, description: Stored lower-cased; unique case-insensitively. }
+                password: { type: string, minLength: 10, description: At least one letter and one number; breached-password check in production. }
+                accept_terms: { type: boolean, const: true }
+                terms_version: { type: string, description: Version the user was shown; must equal the current one. }
+                privacy_version: { type: string }
+                marketing_opt_in: { type: boolean, default: false }
+                locale: { type: string, enum: [nl, en], default: nl }
+            example:
+              account_type: consumer
+              first_name: Jan
+              email: jan@example.nl
+              password: Sterk-wachtwoord-2026
+              accept_terms: true
+              terms_version: dev-2026-10-23
+              privacy_version: dev-2026-10-23
+              marketing_opt_in: true
+              locale: nl
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/register \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -d '{"account_type":"consumer","first_name":"Jan","email":"jan@example.nl","password":"Sterk-wachtwoord-2026","accept_terms":true,"terms_version":"dev-2026-10-23","privacy_version":"dev-2026-10-23","marketing_opt_in":true,"locale":"nl"}'
+      responses:
+        '201':
+          description: Account created and signed in; verification code queued.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+              example:
+                data: { id: 01m5mhgrhg7apq2p6wt7084kzn, first_name: Jan, email: jan@example.nl, email_verified: false, status: active, onboarding_intent: consumer, locale: nl, roles: [], workspaces: [], destination: verify_email }
+        '409':
+          description: Already signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 409, code: already_authenticated, message: You are already signed in., request_id: 01a16918-62f7-7298-a3b9-97ecd027302e }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: Invalid input, stale legal version or email taken.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error:
+                  status: 422
+                  code: validation_failed
+                  message: The given data was invalid.
+                  request_id: 01a16918-6094-7056-8caf-0b8b5c49d766
+                  fields:
+                    account_type: [The selected account type is invalid.]
+                    first_name: [The first name field is required.]
+                    password: [The password field must be at least 10 characters., The password field must contain at least one number.]
+                    accept_terms: [The accept terms field must be accepted.]
+                    terms_version: [The Terms have been updated. Reload the page and review them.]
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503':
+          description: No published Terms/Privacy version; registration disabled (fails closed).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 503, code: legal_documents_unavailable, message: Registration is temporarily unavailable., request_id: 01a1691a-31a2-7040-bc08-83a295239267 }
+
+  /login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Sign in (Fortify session)
+      description: |
+        Rotates the session ID on success and returns the `/me` payload; route on
+        `data.destination`, never on a client-supplied URL. Wrong password, unknown email and
+        suspended/deleted accounts all get the same 422 message. Rate limits: 5 per minute per
+        email+IP and 20 per minute per IP; lockouts are audited.
+      x-access: guest
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                remember: { type: boolean, default: false }
+            example: { email: jan@example.nl, password: Sterk-wachtwoord-2026 }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/login \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -d '{"email":"jan@example.nl","password":"Sterk-wachtwoord-2026"}'
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+              example:
+                data: { id: 01m5mhgrhg7apq2p6wt7084kzn, first_name: Jan, email: jan@example.nl, email_verified: true, status: active, onboarding_intent: consumer, locale: nl, roles: [], workspaces: [], destination: consumer_dashboard }
+        '409':
+          description: Already signed in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 409, code: already_authenticated, message: You are already signed in., request_id: 01a16918-62f7-7298-a3b9-97ecd027302e }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: Generic credentials failure.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 422, code: validation_failed, message: The given data was invalid., request_id: 01a16918-65b4-7353-ba75-c5c007bf9609, fields: { email: [These credentials do not match our records.] } }
+        '429':
+          description: Locked out.
+          headers:
+            Retry-After: { $ref: '#/components/headers/Retry-After' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 429, code: too_many_requests, message: Too many requests. Please slow down., request_id: 01a16918-7fde-71d5-a9d1-bae3ad781cda }
+
+  /logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Sign out (Fortify)
+      description: Invalidates the session and regenerates the CSRF token. Later protected requests return 401.
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/logout \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>"
+      responses:
+        '204': { description: Signed out. }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+
+  /forgot-password:
+    post:
+      tags: [Auth]
+      operationId: forgotPassword
+      summary: Request a password reset link (Fortify)
+      description: |
+        Always answers 200 with the same message, whether the email exists, is unknown or was
+        throttled by the broker (60 s), so it cannot reveal accounts. The link is mailed
+        (queued, encrypted payload) and points to `FRONTEND_URL/reset-password?token=…&email=…`.
+        Rate limits: 5 per hour per email+IP, 20 per hour per IP.
+      x-access: guest
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+            example: { email: jan@example.nl }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/forgot-password \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" -d '{"email":"jan@example.nl"}'
+      responses:
+        '200':
+          description: Identical for known and unknown emails.
+          content:
+            application/json:
+              example: { message: 'If an account exists for this email address, a password reset link has been sent.' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /reset-password:
+    post:
+      tags: [Auth]
+      operationId: resetPassword
+      summary: Set a new password with the emailed token (Fortify)
+      description: |
+        Token is single use and expires after 60 minutes. On success every existing session
+        is signed out (password-hash check plus deletion of stored sessions), all API tokens
+        are revoked and the remember token is rotated. The user is not signed in by this call.
+        Rate limit: 10 per hour per IP.
+      x-access: guest
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, email, password]
+              properties:
+                token: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 10 }
+            example: { token: '<token from the email link>', email: jan@example.nl, password: Derde-wachtwoord-2028 }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/reset-password \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -d '{"token":"<token from the email link>","email":"jan@example.nl","password":"Derde-wachtwoord-2028"}'
+      responses:
+        '200':
+          description: Password changed.
+          content:
+            application/json:
+              example: { message: Your password has been reset. }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: Invalid, expired or already used token, or weak password.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 422, code: validation_failed, message: The given data was invalid., request_id: 01a16918-7300-70d4-9ff9-711fc215d4b5, fields: { email: [This password reset token is invalid.] } }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /user/password:
+    put:
+      tags: [Auth]
+      operationId: updatePassword
+      summary: Change password while signed in (Fortify)
+      description: |
+        Requires the current password. Keeps this session signed in, signs out every other
+        session and revokes all API tokens. The 200 body is Fortify's native empty JSON string.
+      x-access: authenticated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, password]
+              properties:
+                current_password: { type: string }
+                password: { type: string, minLength: 10 }
+            example: { current_password: Sterk-wachtwoord-2026, password: Nieuw-wachtwoord-2027 }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X PUT http://localhost:8000/user/password \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -d '{"current_password":"Sterk-wachtwoord-2026","password":"Nieuw-wachtwoord-2027"}'
+      responses:
+        '200':
+          description: Password changed.
+          content:
+            application/json:
+              example: ''
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: Wrong current password or weak new password.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 422, code: validation_failed, message: The given data was invalid., request_id: 01a16918-6854-716a-8180-2c96f1b97489, fields: { current_password: [The provided password does not match your current password.] } }
+
+  /user/confirm-password:
+    post:
+      tags: [Auth]
+      operationId: confirmPassword
+      summary: Re-confirm the password before a sensitive action (Fortify)
+      description: Marks the session's password as freshly confirmed (default 3 hours). Basis for later step-up checks.
+      x-access: authenticated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+            example: { password: Nieuw-wachtwoord-2027 }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/user/confirm-password \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" -d '{"password":"Nieuw-wachtwoord-2027"}'
+      responses:
+        '201':
+          description: Confirmed. Body is Fortify's native empty JSON string.
+          content:
+            application/json:
+              example: ''
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: Wrong password.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 422, code: validation_failed, message: The given data was invalid., request_id: 01a16918-6c9b-7052-a57b-48f8cb5c431f, fields: { password: [The provided password was incorrect.] } }
+
+  /user/confirmed-password-status:
+    get:
+      tags: [Auth]
+      operationId: confirmedPasswordStatus
+      summary: Whether the password was recently confirmed (Fortify)
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -H 'Accept: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              http://localhost:8000/user/confirmed-password-status
+      responses:
+        '200':
+          description: Confirmation state.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  confirmed: { type: boolean }
+              example: { confirmed: true }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+
+  /api/v1/me:
+    get:
+      tags: [Auth]
+      operationId: me
+      summary: Current user identity and destination
+      description: |
+        Minimal identity of the signed-in user (session cookie or bearer token). Allowed for
+        unverified users. `id` is the public ULID, never the internal key. `roles` and
+        `workspaces` are server-owned and empty until workspace memberships exist (B03).
+        `destination` is computed by the server: `verify_email`, `consumer_dashboard` or
+        `webshop_setup`.
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -H 'Accept: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              http://localhost:8000/api/v1/me
+      responses:
+        '200':
+          description: Current user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+              examples:
+                unverified:
+                  summary: Right after registration
+                  value:
+                    data: { id: 01m5mhgrhg7apq2p6wt7084kzn, first_name: Jan, email: jan@example.nl, email_verified: false, status: active, onboarding_intent: consumer, locale: nl, roles: [], workspaces: [], destination: verify_email }
+                verified:
+                  summary: After verification
+                  value:
+                    data: { id: 01m5mhgrhg7apq2p6wt7084kzn, first_name: Jan, email: jan@example.nl, email_verified: true, status: active, onboarding_intent: consumer, locale: nl, roles: [], workspaces: [], destination: consumer_dashboard }
+        '401':
+          description: Not signed in (e.g. after logout).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 401, code: unauthenticated, message: Authentication is required., request_id: 01a16918-650f-721a-b787-30280f4825eb }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/auth/email/verify-code:
+    post:
+      tags: [Auth]
+      operationId: verifyEmailCode
+      summary: Verify the email with the 6-digit code
+      description: |
+        Consumes the newest open code once. Codes expire after 10 minutes and allow 5 wrong
+        attempts, after which the code is burned and a new one must be requested. Error codes:
+        `verification_code_invalid`, `verification_code_expired`,
+        `verification_code_attempts_exceeded` (422) and `email_already_verified` (409).
+        Rate limit: 10 per minute per user+IP.
+      x-access: authenticated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^\d{6}$' }
+            example: { code: '257424' }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/api/v1/auth/email/verify-code \
+              -H 'Accept: application/json' -H 'Content-Type: application/json' \
+              -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" -d '{"code":"257424"}'
+      responses:
+        '200':
+          description: Verified; returns `/me` with the new destination.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+              example:
+                data: { id: 01m5mhgrhg7apq2p6wt7084kzn, first_name: Jan, email: jan@example.nl, email_verified: true, status: active, onboarding_intent: consumer, locale: nl, roles: [], workspaces: [], destination: consumer_dashboard }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '409':
+          description: Already verified.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 409, code: email_already_verified, message: This email address is already verified., request_id: 01a16918-6481-71ce-807c-ffc0b282fa7c }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: Wrong, expired or burned code.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 422, code: verification_code_invalid, message: This code is not valid., request_id: 01a16918-6384-73d9-b292-51e9fbb6fd50 }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/auth/email/resend-code:
+    post:
+      tags: [Auth]
+      operationId: resendEmailCode
+      summary: Send a new verification code
+      description: |
+        Supersedes all open codes and queues a new email. 60-second cooldown between codes
+        (429 `verification_resend_too_soon` with `Retry-After`), and at most 5 per hour
+        (429 `too_many_requests`).
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -c jar -b jar -X POST http://localhost:8000/api/v1/auth/email/resend-code \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>"
+      responses:
+        '202':
+          description: |
+            New code queued. `resend_available_in_seconds` equals the configured cooldown
+            (60 by default; the capture below ran with `VERIFICATION_RESEND_COOLDOWN_SECONDS=0`).
+          content:
+            application/json:
+              example:
+                data: { sent: true, expires_at: '2026-10-23T14:21:29+00:00', resend_available_in_seconds: 0 }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '409':
+          description: Already verified.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 409, code: email_already_verified, message: This email address is already verified., request_id: 01a16918-6481-71ce-807c-ffc0b282fa7c }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '429':
+          description: Cooldown or hourly limit.
+          headers:
+            Retry-After: { $ref: '#/components/headers/Retry-After' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                error: { status: 429, code: verification_resend_too_soon, message: Please wait before requesting a new code., request_id: 01a16918-63d9-7335-a770-2ce4d868bd98, details: { retry_after_seconds: 60 } }
+
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: shopbonus-session
+      description: Sanctum SPA session (plus X-XSRF-TOKEN header on writes).
+    bearerToken:
+      type: http
+      scheme: bearer
+      description: Sanctum personal access token.
+
   headers:
     X-Request-Id:
       description: Correlation ID for this request; quote it in support tickets and logs.
@@ -149,6 +714,25 @@ components:
       example: 43
 
   schemas:
+    Me:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [id, first_name, email, email_verified, status, onboarding_intent, locale, roles, workspaces, destination]
+          properties:
+            id: { type: string, description: Public ULID (lower-case). }
+            first_name: { type: string }
+            email: { type: string, format: email }
+            email_verified: { type: boolean }
+            status: { type: string, enum: [active, suspended, deleted] }
+            onboarding_intent: { type: string, enum: [consumer, merchant], description: Signup choice; grants nothing. }
+            locale: { type: string, enum: [nl, en] }
+            roles: { type: array, items: { type: string }, description: Server-owned; empty until B03. }
+            workspaces: { type: array, items: { type: object }, description: Server-owned memberships; empty until B03. }
+            destination: { type: string, enum: [verify_email, consumer_dashboard, webshop_setup] }
+
     Readiness:
       type: object
       required: [status]
@@ -189,6 +773,20 @@ components:
               additionalProperties: true
 
   responses:
+    CsrfMismatch:
+      description: Missing/expired CSRF token or cross-site origin. Fetch /sanctum/csrf-cookie and retry.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 419, code: csrf_token_mismatch, message: The session or CSRF token has expired. Refresh and try again., request_id: 01a16918-6531-73b7-aec9-8f6355a03ffb }
+    AccountInactive:
+      description: The account is suspended or deleted; the session/token is ended.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 403, code: account_inactive, message: This account is not active., request_id: 01a16918-755d-7150-95c8-7297b7efa823 }
     Unauthenticated:
       description: Missing or invalid credentials.
       content:

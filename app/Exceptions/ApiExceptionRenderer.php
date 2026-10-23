@@ -6,6 +6,7 @@ use App\Http\Middleware\AssignRequestId;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Exceptions\OriginMismatchException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,7 +62,11 @@ class ApiExceptionRenderer
         $status = $this->statusFor($e);
         [$code, $message] = self::STATUS_DEFAULTS[$status]
             ?? ($status >= 500 ? self::STATUS_DEFAULTS[500] : self::STATUS_DEFAULTS[400]);
-        $headers = $e instanceof HttpExceptionInterface ? $e->getHeaders() : [];
+        $headers = match (true) {
+            $e instanceof HttpExceptionInterface => $e->getHeaders(),
+            $e instanceof ApiException => $e->headers,
+            default => [],
+        };
 
         $error = [
             'status' => $status,
@@ -79,11 +84,19 @@ class ApiExceptionRenderer
             }
         }
 
-        if ($e instanceof ValidationException) {
+        // Laravel maps a failed origin check (Sec-Fetch-Site) to a 403. Retrying
+        // with a fresh CSRF token cannot fix it, so it is not a 419.
+        if ($e instanceof OriginMismatchException || $e->getPrevious() instanceof OriginMismatchException) {
+            $error['code'] = 'origin_not_allowed';
+            $error['message'] = 'Requests from this origin are not allowed.';
+        }
+
+                if ($e instanceof ValidationException) {
             $error['fields'] = $e->errors();
         }
 
-        if ($status >= 500 && config('app.debug')) {
+        // Intentional ApiExceptions are not faults: never attach internals to them.
+        if ($status >= 500 && config('app.debug') && ! $e instanceof ApiException) {
             $error['debug'] = [
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
@@ -100,6 +113,7 @@ class ApiExceptionRenderer
     {
         return match (true) {
             $e instanceof ApiException => $e->status,
+            $e instanceof OriginMismatchException => 403,
             $e instanceof ValidationException => 422,
             $e instanceof AuthenticationException => 401,
             $e instanceof AuthorizationException => $e->hasStatus() ? (int) $e->status() : 403,

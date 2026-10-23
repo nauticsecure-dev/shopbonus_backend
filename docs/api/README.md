@@ -174,9 +174,384 @@ Without the token, the same failure returns only `{"status":"fail"}`.
 
 ---
 
+## Auth (B02, Trello #4)
+
+Captured 2026-10-23 against local MySQL + Redis sessions, Laravel 13.38, PHP 8.4, using a curl cookie jar with `Origin`/`Referer: http://localhost:3000` and `X-XSRF-TOKEN` set from the `XSRF-TOKEN` cookie. Rate-limit headers are trimmed. The verification code shown was a real one-time code, consumed during the capture.
+
+### How a browser client signs in
+
+1. `GET /sanctum/csrf-cookie`: sets `XSRF-TOKEN` and the HttpOnly `shopbonus-session` cookie.
+2. Every POST/PUT/DELETE sends `X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>` and cookies (`credentials: 'include'`). It must come from an origin in `SANCTUM_STATEFUL_DOMAINS`, which must also be in `CORS_ALLOWED_ORIGINS`.
+3. `POST /register` or `POST /login` returns the `/me` payload. Route on `data.destination` (`verify_email`, `consumer_dashboard`, `webshop_setup`), never on a URL from the query string.
+4. Unverified users can only call `/api/v1/me`, `verify-code`, `resend-code` and `/logout`. Every other private endpoint returns 403 `email_not_verified`.
+5. On a 419, fetch `/sanctum/csrf-cookie` again and retry once. On a 401, show the login screen. On 403 `account_inactive`, the session has already been ended.
+
+`/api/v1` also accepts `Authorization: Bearer <Sanctum token>`. There is no public token-issuing endpoint yet.
+
+### Access levels (`x-access` in openapi.yaml)
+
+| Level | Meaning |
+| --- | --- |
+| `public` | Anyone |
+| `guest` | Signed-out only. A signed-in JSON client gets 409 `already_authenticated` |
+| `authenticated` | Active account (verified or not). Status is re-checked on every request |
+| `verified` | Active and email-verified |
+
+### Identity error codes
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 403 | `account_inactive` | Account suspended or deleted. The session or token is ended |
+| 403 | `email_not_verified` | Verified-only endpoint called before verification |
+| 403 | `origin_not_allowed` | The browser reported a cross-site request and origin-only CSRF mode is on. Retrying cannot fix it |
+| 409 | `already_authenticated` | Guest-only route while signed in |
+| 409 | `email_already_verified` | Verify or resend after verification |
+| 422 | `verification_code_invalid` / `verification_code_expired` / `verification_code_attempts_exceeded` | Code problems. After 5 wrong tries the code is burned |
+| 429 | `verification_resend_too_soon` | Within the 60 s resend cooldown (`Retry-After`, `details.retry_after_seconds`) |
+| 503 | `legal_documents_unavailable` | No published Terms/Privacy version, so registration is disabled |
+
+### `GET /sanctum/csrf-cookie` (public)
+
+`GET /sanctum/csrf-cookie `
+
+```http
+HTTP/1.1 204 No Content
+X-Request-Id: 01a16918-602d-7233-983b-e584ec5663e8
+```
+
+Captured `Set-Cookie` attributes (values removed). `Secure` is added when `SESSION_SECURE_COOKIE=true`, which is required in production:
+
+```http
+Set-Cookie: XSRF-TOKEN=<redacted>; expires=Fri, 23 Oct 2026 16:09:27 GMT; Max-Age=7200; path=/; samesite=lax
+Set-Cookie: shopbonus-session=<redacted>; expires=Fri, 23 Oct 2026 16:09:27 GMT; Max-Age=7200; path=/; httponly; samesite=lax
+```
+
+### `POST /register` (guest)
+
+Body fields: `account_type` (`consumer`|`merchant`), `first_name`, `email`, `password` (≥10 chars, letters and numbers), `accept_terms`, `terms_version` and `privacy_version` (must equal the current published versions), and optionally `marketing_opt_in` and `locale` (`nl`|`en`). Anything else is ignored.
+
+**201 Created**
+
+`POST /register {"account_type":"consumer","first_name":"Jan","email":"jan@example.nl","password":"Sterk-wachtwoord-2026","accept_terms":true,"terms_version":"dev-2026-10-23","privacy_version":"dev-2026-10-23","marketing_opt_in":true,"locale":"nl"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16918-6116-70f1-bd5c-28ce1d003497
+{"data":{"id":"01m5mhgrhg7apq2p6wt7084kzn","first_name":"Jan","email":"jan@example.nl","email_verified":false,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[],"destination":"verify_email"}}
+```
+
+**422** (validation, stale Terms version)
+
+`POST /register {"account_type":"admin","first_name":"","email":"JAN@example.nl","password":"short","accept_terms":false,"terms_version":"old","privacy_version":"dev-2026-10-23"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16918-6094-7056-8caf-0b8b5c49d766
+Content-Type: application/json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16918-6094-7056-8caf-0b8b5c49d766","fields":{"account_type":["The selected account type is invalid."],"first_name":["The first name field is required."],"password":["The password field must be at least 10 characters.","The password field must contain at least one number."],"accept_terms":["The accept terms field must be accepted."],"terms_version":["The Terms have been updated. Reload the page and review them."]}}}
+```
+
+**409** (already signed in)
+
+`POST /register {}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16918-62f7-7298-a3b9-97ecd027302e
+Content-Type: application/json
+{"error":{"status":409,"code":"already_authenticated","message":"You are already signed in.","request_id":"01a16918-62f7-7298-a3b9-97ecd027302e"}}
+```
+
+**503** (no published legal version). Captured with `LEGAL_TERMS_VERSION` empty:
+
+```http
+HTTP/1.1 503 Service Unavailable
+
+{"error":{"status":503,"code":"legal_documents_unavailable","message":"Registration is temporarily unavailable.","request_id":"01a1691a-31a2-7040-bc08-83a295239267"}}
+```
+
+(That capture also showed a `debug` block because `APP_DEBUG=true`. That was a bug for intentional errors and is fixed, so intentional 5xx errors never carry debug data.)
+
+### `GET /api/v1/me` (authenticated)
+
+**200**, unverified:
+
+`GET /api/v1/me `
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-633c-7231-bcdc-30b8fa48c7da
+{"data":{"id":"01m5mhgrhg7apq2p6wt7084kzn","first_name":"Jan","email":"jan@example.nl","email_verified":false,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[],"destination":"verify_email"}}
+```
+
+**200**, verified:
+
+`GET /api/v1/me `
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-6808-704d-975c-4a54eb4bd04c
+{"data":{"id":"01m5mhgrhg7apq2p6wt7084kzn","first_name":"Jan","email":"jan@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[],"destination":"consumer_dashboard"}}
+```
+
+**401** (after logout):
+
+`GET /api/v1/me `
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16918-650f-721a-b787-30280f4825eb
+Content-Type: application/json
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16918-650f-721a-b787-30280f4825eb"}}
+```
+
+**403** (account suspended while signed in):
+
+`GET /api/v1/me `
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16918-755d-7150-95c8-7297b7efa823
+Content-Type: application/json
+{"error":{"status":403,"code":"account_inactive","message":"This account is not active.","request_id":"01a16918-755d-7150-95c8-7297b7efa823"}}
+```
+
+
+### `POST /api/v1/auth/email/verify-code` (authenticated)
+
+**422** (wrong code):
+
+`POST /api/v1/auth/email/verify-code {"code":"000000"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16918-6384-73d9-b292-51e9fbb6fd50
+Content-Type: application/json
+{"error":{"status":422,"code":"verification_code_invalid","message":"This code is not valid.","request_id":"01a16918-6384-73d9-b292-51e9fbb6fd50"}}
+```
+
+**200** (verified; destination changes):
+
+`POST /api/v1/auth/email/verify-code {"code":"257424"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-6425-73dd-83d1-6306ee24d0d4
+{"data":{"id":"01m5mhgrhg7apq2p6wt7084kzn","first_name":"Jan","email":"jan@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[],"destination":"consumer_dashboard"}}
+```
+
+**409** (already verified):
+
+`POST /api/v1/auth/email/verify-code {"code":"123456"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16918-6481-71ce-807c-ffc0b282fa7c
+Content-Type: application/json
+{"error":{"status":409,"code":"email_already_verified","message":"This email address is already verified.","request_id":"01a16918-6481-71ce-807c-ffc0b282fa7c"}}
+```
+
+
+### `POST /api/v1/auth/email/resend-code` (authenticated)
+
+**429** (inside the 60 s cooldown that starts when the signup code is sent):
+
+`POST /api/v1/auth/email/resend-code `
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 60
+X-Request-Id: 01a16918-63d9-7335-a770-2ce4d868bd98
+Content-Type: application/json
+{"error":{"status":429,"code":"verification_resend_too_soon","message":"Please wait before requesting a new code.","request_id":"01a16918-63d9-7335-a770-2ce4d868bd98","details":{"retry_after_seconds":60}}}
+```
+
+**202**. Captured on a server with `VERIFICATION_RESEND_COOLDOWN_SECONDS=0`; by default `resend_available_in_seconds` is 60:
+
+```http
+HTTP/1.1 202 Accepted
+X-Request-Id: 01a1691a-3b5e-7098-bf08-345e9903e219
+
+{"data":{"sent":true,"expires_at":"2026-10-23T14:21:29+00:00","resend_available_in_seconds":0}}
+```
+
+### `POST /login` (guest)
+
+**200**:
+
+`POST /login {"email":"jan@example.nl","password":"Sterk-wachtwoord-2026"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-66dc-73d0-aea9-f8fab2495084
+{"data":{"id":"01m5mhgrhg7apq2p6wt7084kzn","first_name":"Jan","email":"jan@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[],"destination":"consumer_dashboard"}}
+```
+
+**422**. Identical for a wrong password, an unknown email and a suspended account:
+
+`POST /login {"email":"jan@example.nl","password":"Wrong-password-2026"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16918-65b4-7353-ba75-c5c007bf9609
+Content-Type: application/json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16918-65b4-7353-ba75-c5c007bf9609","fields":{"email":["These credentials do not match our records."]}}}
+```
+
+**429** (lockout after 5 failures per email+IP per minute):
+
+`POST /login {"email":"piet@example.nl","password":"Wrong-password-2026"}`
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 58
+X-Request-Id: 01a16918-7fde-71d5-a9d1-bae3ad781cda
+Content-Type: application/json
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a16918-7fde-71d5-a9d1-bae3ad781cda"}}
+```
+
+**419** (no CSRF token, cross-site):
+
+`POST /login (no X-XSRF-TOKEN, Sec-Fetch-Site: cross-site)`
+
+```http
+HTTP/1.1 419 unknown status
+X-Request-Id: 01a16918-6531-73b7-aec9-8f6355a03ffb
+Content-Type: application/json
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"01a16918-6531-73b7-aec9-8f6355a03ffb"}}
+```
+
+
+### `POST /logout` (authenticated)
+
+`POST /logout `
+
+```http
+HTTP/1.1 204 No Content
+X-Request-Id: 01a16918-64c6-70ae-9e87-c0d5c4141d89
+```
+
+
+### `PUT /user/password` (authenticated)
+
+Keeps this session, signs out other sessions and revokes API tokens. The 200 body is Fortify's native `""`.
+
+**200**:
+
+`PUT /user/password {"current_password":"Sterk-wachtwoord-2026","password":"Nieuw-wachtwoord-2027"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-6974-70f5-ac80-432cd307aaa9
+""
+```
+
+**422**:
+
+`PUT /user/password {"current_password":"wrong","password":"Nieuw-wachtwoord-2027"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16918-6854-716a-8180-2c96f1b97489
+Content-Type: application/json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16918-6854-716a-8180-2c96f1b97489","fields":{"current_password":["The provided password does not match your current password."]}}}
+```
+
+
+### `POST /user/confirm-password` and `GET /user/confirmed-password-status` (authenticated)
+
+Fresh password confirmation (valid for 3 hours), the basis for later step-up checks.
+
+`POST /user/confirm-password {"password":"Nieuw-wachtwoord-2027"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16918-6b7c-7278-ada8-735ebbac9c5e
+""
+```
+
+`POST /user/confirm-password {"password":"wrong"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16918-6c9b-7052-a57b-48f8cb5c431f
+Content-Type: application/json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16918-6c9b-7052-a57b-48f8cb5c431f","fields":{"password":["The provided password was incorrect."]}}}
+```
+
+`GET /user/confirmed-password-status `
+
+```http
+HTTP/1.1 200 OK
+X-Retry-After: 1
+Content-Type: application/json
+X-Request-Id: 01a16918-6db9-7311-b4fa-eb62d8c108a8
+{"confirmed":true}
+```
+
+
+### `POST /forgot-password` (guest)
+
+Known and unknown emails get byte-identical responses:
+
+`POST /forgot-password {"email":"jan@example.nl"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-6e8e-728e-9c79-bfa5100f7a75
+{"message":"If an account exists for this email address, a password reset link has been sent."}
+```
+
+`POST /forgot-password {"email":"nobody@example.nl"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-6fc8-70eb-9b6b-9f883721b0e0
+{"message":"If an account exists for this email address, a password reset link has been sent."}
+```
+
+
+### `POST /reset-password` (guest)
+
+The token comes from the emailed link (`FRONTEND_URL/reset-password?token=…&email=…`). It is shown as a placeholder here.
+
+**200**:
+
+`POST /reset-password {"token":"<token from the email link>","email":"jan@example.nl","password":"Derde-wachtwoord-2028"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16918-70e8-73bf-b2e8-5060d571d551
+{"message":"Your password has been reset."}
+```
+
+**422** (same token reused):
+
+`POST /reset-password {"token":"<token from the email link>","email":"jan@example.nl","password":"Vierde-wachtwoord-2029"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16918-7300-70d4-9ff9-711fc215d4b5
+Content-Type: application/json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16918-7300-70d4-9ff9-711fc215d4b5","fields":{"email":["This password reset token is invalid."]}}}
+```
+
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
-No endpoint returns these statuses yet. The bodies below were rendered through the real application kernel on 2026-10-23 using temporary routes, so they are actual renderer output. Replace them with per-endpoint captures once B02 (auth) adds real endpoints.
+Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.
 
 ```text
 401 {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a168bd-f864-70ce-9573-0f6c6905e5fb"}}

@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\OnboardingIntent;
+use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -25,12 +27,30 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'first_name' => fake()->firstName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'status' => UserStatus::Active,
+            'onboarding_intent' => OnboardingIntent::Consumer,
+            'locale' => 'nl',
         ];
+    }
+
+    public function merchant(): static
+    {
+        return $this->state(fn () => ['onboarding_intent' => OnboardingIntent::Merchant]);
+    }
+
+    public function suspended(): static
+    {
+        return $this->state(fn () => ['status' => UserStatus::Suspended]);
+    }
+
+    public function deleted(): static
+    {
+        return $this->state(fn () => ['status' => UserStatus::Deleted]);
     }
 
     /**

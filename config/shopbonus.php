@@ -29,4 +29,38 @@ return [
         'readiness_token' => env('HEALTH_READINESS_TOKEN'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Identity (Trello #4)
+    |--------------------------------------------------------------------------
+    */
+
+    'identity' => [
+        // Where the SPA lives; password-reset links point here.
+        'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),
+
+        'verification' => [
+            'code_ttl_minutes' => (int) env('VERIFICATION_CODE_TTL_MINUTES', 10),
+            'max_attempts' => (int) env('VERIFICATION_CODE_MAX_ATTEMPTS', 5),
+            'resend_cooldown_seconds' => (int) env('VERIFICATION_RESEND_COOLDOWN_SECONDS', 60),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Published legal document versions
+    |--------------------------------------------------------------------------
+    |
+    | Interim source until the CMS (B15) publishes versioned legal documents.
+    | Registration fails closed (503) while a required version is unset, so no
+    | one can accept an undefined document.
+    |
+    */
+
+    'legal' => [
+        'terms_version' => env('LEGAL_TERMS_VERSION'),
+        'privacy_version' => env('LEGAL_PRIVACY_VERSION'),
+        'marketing_consent_version' => env('LEGAL_MARKETING_CONSENT_VERSION'),
+    ],
+
 ];

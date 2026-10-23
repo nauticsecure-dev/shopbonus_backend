@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +29,14 @@ class AppServiceProvider extends ServiceProvider
         // Surface lazy loading, silently discarded attributes and missing
         // attributes as errors outside production.
         Model::shouldBeStrict(! $this->app->isProduction());
+
+        // Breached-password check (k-anonymity HIBP lookup) only in production,
+        // where outbound HTTP is expected; length/character rules everywhere.
+        Password::defaults(function () {
+            $rule = Password::min(10)->max(255)->letters()->numbers();
+
+            return $this->app->isProduction() ? $rule->uncompromised() : $rule;
+        });
 
         RateLimiter::for('api', function (Request $request) {
             $perMinute = (int) config('shopbonus.api.rate_limit_per_minute', 60);

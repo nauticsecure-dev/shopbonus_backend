@@ -30,8 +30,10 @@ class ErrorEnvelopeTest extends TestCase
                 'Voucher code already reserved.', 'voucher_code_reserved', ['retryable' => false],
             ));
             Route::get('csrf', fn () => throw new TokenMismatchException('CSRF token mismatch.'));
+            Route::get('origin', fn () => throw new \Illuminate\Http\Exceptions\OriginMismatchException('Origin mismatch.'));
             Route::post('validate', fn (Request $request) => $request->validate(['email' => ['required', 'email']]));
             Route::get('boom', fn () => throw new RuntimeException('SQLSTATE secret internals at /var/www'));
+            Route::get('unavailable', fn () => throw new ApiException('Temporarily unavailable.', 503, 'feature_unavailable'));
         });
     }
 
@@ -97,6 +99,11 @@ class ErrorEnvelopeTest extends TestCase
         $this->assertEnvelope($this->getJson('/api/v1/_test/csrf'), 419, 'csrf_token_mismatch');
     }
 
+    public function test_origin_mismatch_returns_403_origin_not_allowed(): void
+    {
+        $this->assertEnvelope($this->getJson('/api/v1/_test/origin'), 403, 'origin_not_allowed');
+    }
+
     public function test_validation_returns_422_with_fields(): void
     {
         $response = $this->postJson('/api/v1/_test/validate', ['email' => 'not-an-email']);
@@ -127,6 +134,16 @@ class ErrorEnvelopeTest extends TestCase
         $response->assertJsonMissingPath('error.debug');
         $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
         $this->assertStringNotContainsString('/var/www', $response->getContent());
+    }
+
+    public function test_intentional_5xx_api_exception_never_includes_debug_block(): void
+    {
+        config(['app.debug' => true]);
+
+        $this->getJson('/api/v1/_test/unavailable')
+            ->assertStatus(503)
+            ->assertJsonPath('error.code', 'feature_unavailable')
+            ->assertJsonMissingPath('error.debug');
     }
 
     public function test_server_error_includes_debug_block_only_when_debug_on(): void

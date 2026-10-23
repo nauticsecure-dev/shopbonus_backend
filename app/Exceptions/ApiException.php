@@ -14,12 +14,14 @@ class ApiException extends RuntimeException
 {
     /**
      * @param  array<string, mixed>  $details  Extra machine-readable context safe for the client.
+     * @param  array<string, string>  $headers  Extra response headers (e.g. Retry-After).
      */
     public function __construct(
         string $message,
         public readonly int $status = 400,
         public readonly string $errorCode = 'bad_request',
         public readonly array $details = [],
+        public readonly array $headers = [],
         ?Throwable $previous = null,
     ) {
         parent::__construct($message, 0, $previous);
