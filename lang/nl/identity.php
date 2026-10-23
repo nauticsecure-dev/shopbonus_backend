@@ -16,4 +16,7 @@ return [
     'role_owner' => 'eigenaar',
     'role_manager' => 'manager',
     'role_employee' => 'medewerker',
+    'ownership_subject' => 'Bevestig dat je :domain beheert',
+    'ownership_line' => 'Iemand registreert :webshop op Shopbonus en wil met deze code bevestigen dat :domain onder zijn beheer valt:',
+    'ownership_expiry' => 'De code verloopt over :minutes minuten. Verwachtte je dit niet? Negeer deze e-mail: zonder de code wordt niets gekoppeld.',
 ];

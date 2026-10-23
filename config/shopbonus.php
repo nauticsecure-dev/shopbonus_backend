@@ -74,4 +74,22 @@ return [
         'max_unapproved_per_user' => (int) env('WORKSPACES_MAX_UNAPPROVED_PER_USER', 10),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Onboarding (Trello #16)
+    |--------------------------------------------------------------------------
+    */
+
+    'onboarding' => [
+        // Google Places API (New). Empty = business search disabled (manual entry only).
+        'google_places_api_key' => env('GOOGLE_PLACES_API_KEY'),
+
+        // Domains where a mailbox does not prove control of the domain.
+        'free_email_domains' => [
+            'gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'hotmail.nl', 'live.com', 'live.nl',
+            'msn.com', 'yahoo.com', 'yahoo.nl', 'icloud.com', 'me.com', 'proton.me', 'protonmail.com',
+            'ziggo.nl', 'kpnmail.nl', 'planet.nl', 'home.nl', 'hetnet.nl', 'xs4all.nl', 'upcmail.nl', 'telfort.nl',
+        ],
+    ],
+
 ];

@@ -16,4 +16,7 @@ return [
     'role_owner' => 'owner',
     'role_manager' => 'manager',
     'role_employee' => 'employee',
+    'ownership_subject' => 'Confirm that you manage :domain',
+    'ownership_line' => 'Someone is registering :webshop on Shopbonus and asked to confirm control of :domain with this code:',
+    'ownership_expiry' => 'The code expires in :minutes minutes. If you did not expect this, ignore this email: nothing is linked without the code.',
 ];

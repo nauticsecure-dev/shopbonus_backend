@@ -14,7 +14,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | API foundation (versioning, errors, request ID, health, log redaction, CORS, rate limit) | VERIFIED_WORKING | B01a, commit `a51a9b6`. Tests in `tests/Feature/Api/*`, `tests/Feature/Logging/*`, `tests/Unit/Logging/*`. |
 | Audit events / application error store | VERIFIED_WORKING | B01b. Tests in `tests/Feature/Audit/*`, `tests/Feature/Errors/*`. The PostgreSQL trigger variant is written but NOT RUN (no PG locally). |
 | Auth (signup/login/OTP/recovery), Sanctum SPA + bearer | VERIFIED_WORKING | B02. Tests in `tests/Feature/Identity/*`. Real captures in `docs/api/README.md` → Auth. Staging p95 NOT RUN. |
-| Workspaces / memberships / roles / isolation | PARTIAL: core and team VERIFIED_WORKING (B03a, B03b); onboarding, verification and agreements MISSING (B03c–d) | `tests/Feature/Workspaces/*` |
+| Workspaces / memberships / roles / isolation | PARTIAL: core, team, business profile and ownership verification VERIFIED_WORKING (B03a–c); agreements, review and activation MISSING (B03d) | `tests/Feature/Workspaces/*` |
 | Provider adapters, orders, webhooks | MISSING | B04–B05 |
 | Offers / voucher codes | MISSING | B06 |
 | Answer24 | MISSING | B07 |
@@ -38,6 +38,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B02 identity | `c95e1e4` | `php artisan test`: 107 passed / 690+ assertions on SQLite and on local MySQL; Pint PASS; PHPStan L6 0 errors; `composer audit` clean; `migrate:rollback --step=4` + `migrate` OK; full real HTTP flow captured against MySQL + Redis sessions | Fortify + Sanctum SPA |
 | 2026-10-23 | Claude (Opus 5.5) | B03a workspace core | `2fe8db6` | 125 tests / 880 assertions pass on SQLite and MySQL; Pint, PHPStan L6, composer audit clean; real captures against MySQL + Redis | Tenant isolation, permissions, switcher |
 | 2026-10-23 | Claude (Opus 5.5) | B03b team management | `ec20038` | 144 tests / 1130 assertions pass on SQLite and MySQL; Pint, PHPStan L6, composer audit clean; real captures against MySQL + Redis | Invitations, member management |
+| 2026-10-23 | Claude (Opus 5.5) | B03c business profile & ownership | B03c commit | 199 tests / 1444 assertions pass on SQLite and MySQL; Pint, PHPStan L6, audit clean; real captures (Google 200 and DNS/file success NOT live) | SSRF-safe verification |
 
 ### B01a detail
 
@@ -72,6 +73,13 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Delivered:** migration `2026_10_23_160000_create_webshop_invitations_table`; `WebshopInvitation`, `InvitationStatus`; `TeamService` (invite/resend/cancel/findOpen/accept, updateMember/suspend/reactivate/remove, with all authority rules in one place); `InvitationController`, `MemberController`; `WorkspaceInvitationMail` (queued, encrypted, NL/EN, token in the URL fragment); routes under `workspaces/{workspace}` (members, invitations, membership) plus public `invitations/preview` and verified `invitations/accept`; limiters `invitation-create`, `invitation-preview`.
 - **Card #16 mapping:** E2E 7 → `TeamTest::test_e2e7_*` (existing and new user accept; reused, expired, cancelled, unknown and mismatched tokens fail); E2E 8 → `test_e2e8_*` (owner never grantable, manager limits, no grants beyond own, other webshop's members and invitations give 404, denials audited); E2E 9 membership half → `test_e2e9_*` (removal and suspension block immediately; current selection cleared; final owner protected). Webshop suspension half → B03d.
 - **Bugs found and fixed while building:** the recipient-mismatch audit was written inside a transaction and rolled back with it (now audited before the transaction); new invitations returned `resend_count: null` (seen only in the real capture).
+
+### B03c detail
+
+- **Delivered:** migration `2026_10_23_170000_create_onboarding_tables` (webshop ownership columns, `webshop_business_profiles` with encrypted contact fields, `webshop_verifications` with encrypted evidence); models `BusinessProfile`, `WebshopVerification`; `DomainName` normaliser; `Network\{HostResolver, SystemHostResolver, PublicAddressGuard, WebsiteFileFetcher, SafeWebsiteFileFetcher}`; `OwnershipVerification` (start/check/confirmEmailCode/submitManualReview); `BusinessProfileService`; `OnboardingProgress`; `Directory\{BusinessDirectory, GooglePlacesDirectory}`; `OwnershipVerificationCode` mail; controllers in `Api/V1/Onboarding`; `Support\Mask`; app-wide immutable dates.
+- **Card #16 mapping:** E2E 1 → `OnboardingTest::test_e2e1_*` (manual entry, Google prefill with faked HTTP); E2E 2 → `test_e2e2_*` (DNS, file and email succeed; expired, superseded and replayed fail; attempt cap); E2E 5 → `test_e2e5_*` (derived progress, skipping refused, resume). Plus duplicate-claim, evidence-encryption and cross-tenant tests. SSRF: `tests/Unit/Onboarding/NetworkSafetyTest.php` (21 blocked address forms, domain normalisation) and `OnboardingTest::test_safe_fetcher_*` (no request to private IPs; redirects ignored; 1 KB cap).
+- **Bugs found while building:** the race-loss failure was marked inside a transaction that then threw (now committed first); `firstOrNew` tripped the `webshop_id` mass-assignment guard; the Places adapter froze its API key at construction, so a rotated key would be ignored by cached controllers.
+- **Not verified live:** Google Places responses (no key); DNS/file success (needs a controlled public domain).
 
 ## How to update
 

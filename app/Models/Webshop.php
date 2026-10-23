@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A webshop and its isolated workspace.
@@ -27,6 +28,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $approved_at
  * @property int|null $approved_by
  * @property CarbonImmutable|null $suspended_at
+ * @property CarbonImmutable|null $ownership_verified_at
+ * @property string|null $ownership_method
+ * @property string|null $verified_domain
+ * @property CarbonImmutable|null $review_requested_at
+ * @property array<string, mixed>|null $review_flags
+ * @property-read BusinessProfile|null $businessProfile
  * @property CarbonImmutable $created_at
  */
 class Webshop extends Model
@@ -38,7 +45,14 @@ class Webshop extends Model
 
     protected $hidden = ['id', 'created_by', 'approved_by'];
 
-    protected $attributes = ['status' => 'draft'];
+    protected $attributes = [
+        'status' => 'draft',
+        'ownership_verified_at' => null,
+        'ownership_method' => null,
+        'verified_domain' => null,
+        'review_requested_at' => null,
+        'review_flags' => null,
+    ];
 
     protected function casts(): array
     {
@@ -46,6 +60,9 @@ class Webshop extends Model
             'status' => WebshopStatus::class,
             'approved_at' => 'immutable_datetime',
             'suspended_at' => 'immutable_datetime',
+            'ownership_verified_at' => 'immutable_datetime',
+            'review_requested_at' => 'immutable_datetime',
+            'review_flags' => 'array',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
         ];
@@ -66,6 +83,23 @@ class Webshop extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(WebshopMembership::class);
+    }
+
+    /** @return HasOne<BusinessProfile, $this> */
+    public function businessProfile(): HasOne
+    {
+        return $this->hasOne(BusinessProfile::class);
+    }
+
+    /** @return HasMany<WebshopVerification, $this> */
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(WebshopVerification::class);
+    }
+
+    public function isOwnershipVerified(): bool
+    {
+        return $this->ownership_verified_at !== null;
     }
 
     /** @return BelongsTo<User, $this> */

@@ -3,6 +3,10 @@
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Onboarding\BusinessDirectoryController;
+use App\Http\Controllers\Api\V1\Onboarding\BusinessProfileController;
+use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
+use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
 use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
@@ -50,6 +54,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
             Route::post('workspaces', [WorkspaceController::class, 'store'])
                 ->middleware('throttle:workspace-create')->name('workspaces.store');
+            // Business lookup (suggestions only; never proof of ownership).
+            Route::middleware('throttle:business-search')->group(function () {
+                Route::get('business-directory/search', [BusinessDirectoryController::class, 'search'])->name('business-directory.search');
+                Route::get('business-directory/places/{placeId}', [BusinessDirectoryController::class, 'show'])->name('business-directory.show');
+            });
+
             Route::post('invitations/accept', [InvitationController::class, 'accept'])
                 ->middleware('throttle:invitation-preview')->name('invitations.accept');
 
@@ -74,6 +84,23 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::delete('invitations/{invitation}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
                 });
                 Route::get('invitations', [InvitationController::class, 'index'])->middleware('workspace.can:team.view')->name('invitations.index');
+
+                // Onboarding (Trello #16): business details, progress, ownership.
+                Route::get('onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
+                Route::get('business-profile', [BusinessProfileController::class, 'show'])
+                    ->middleware('workspace.can:settings.view')->name('business-profile.show');
+                Route::put('business-profile', [BusinessProfileController::class, 'update'])
+                    ->middleware('workspace.can:settings.manage')->name('business-profile.update');
+                Route::middleware('workspace.can:ownership.manage')->prefix('ownership')->name('ownership.')->group(function () {
+                    Route::get('verifications', [OwnershipVerificationController::class, 'index'])->name('verifications.index');
+                    Route::post('verifications', [OwnershipVerificationController::class, 'store'])
+                        ->middleware('throttle:ownership-check')->name('verifications.store');
+                    Route::post('verifications/{verification}/check', [OwnershipVerificationController::class, 'check'])
+                        ->middleware('throttle:ownership-check')->name('verifications.check');
+                    Route::post('verifications/{verification}/confirm-code', [OwnershipVerificationController::class, 'confirmCode'])
+                        ->middleware('throttle:ownership-check')->name('verifications.confirm-code');
+                    Route::post('review', [OwnershipVerificationController::class, 'review'])->name('review');
+                });
             });
         });
     });

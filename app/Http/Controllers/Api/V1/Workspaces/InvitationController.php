@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\WebshopInvitation;
 use App\Services\Workspaces\CurrentWorkspace;
 use App\Services\Workspaces\TeamService;
+use App\Support\Mask;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Str;
@@ -67,7 +68,7 @@ class InvitationController extends Controller
             'webshop' => ['name' => $invitation->webshop->name],
             'role' => $invitation->role->value,
             'invited_by' => $invitation->inviter->first_name,
-            'email_hint' => $this->maskEmail($invitation->email),
+            'email_hint' => Mask::email($invitation->email),
             'expires_at' => $invitation->expires_at->toIso8601String(),
         ]]);
     }
@@ -89,12 +90,5 @@ class InvitationController extends Controller
             : null;
 
         return $invitation ?? throw new NotFoundHttpException;
-    }
-
-    private function maskEmail(string $email): string
-    {
-        [$local, $domain] = explode('@', $email, 2) + [1 => ''];
-
-        return Str::substr($local, 0, 1).str_repeat('*', max(Str::length($local) - 1, 2)).'@'.$domain;
     }
 }

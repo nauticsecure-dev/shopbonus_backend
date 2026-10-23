@@ -1089,6 +1089,355 @@ X-Request-Id: 01a1692d-dd4e-7085-89ad-f52ab238eb2a
 
 ---
 
+## Onboarding: business details and ownership (B03c, Trello #16)
+
+Captured 2026-10-23 against local MySQL + Redis with bearer tokens, `GOOGLE_PLACES_API_KEY` empty and the log mailer (the ownership code was read from the local mail log, which was wiped afterwards). Jan owns *Fietsenwinkel Utrecht*, with Piet as employee. Eva owns *Fietsen Overname* and claims the same domain.
+
+**Not captured live:** the Google Places 200 responses (no API key; the examples are test fixtures, NOT VERIFIED) and a successful DNS/file check (that needs a public domain we control; the success response is identical to the domain-email 200 below).
+
+### Error codes
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 409 | `business_details_incomplete` | Verification or review before details are confirmed |
+| 409 | `ownership_already_verified` / `review_in_progress` / `not_in_onboarding` | Wrong lifecycle state |
+| 409 | `domain_already_claimed` | Another webshop already verified this domain. Use manual review |
+| 409 | `domain_locked` | Changing the website domain after verification |
+| 409 | `verification_not_pending` / `wrong_verification_method` | Challenge superseded, used, or of another type |
+| 410 | `verification_expired` | Challenge past its expiry; the webshop becomes `verification_failed` |
+| 422 | `business_details_incomplete` | `confirm: true` with missing fields (`details.missing_fields`) |
+| 422 | `invalid_domain` | IP literal, internal or otherwise non-public domain |
+| 422 | `challenge_not_found` | TXT record or file not (yet) found; the challenge stays pending |
+| 422 | `mailbox_not_allowed` / `free_email_domain` | Domain-email restrictions |
+| 422 | `verification_code_invalid` / `verification_attempts_exceeded` | Domain-email code problems |
+| 502 / 503 | `provider_error` / `provider_not_configured` | Google Places unavailable or not configured |
+
+### GET /business-directory/search (no API key)
+
+`GET /api/v1/business-directory/search?query=fietsenwinkel%20utrecht`
+
+```http
+HTTP/1.1 503 Service Unavailable
+X-Request-Id: 01a16938-d260-70fa-88b5-97fcb0a66bf5
+Content-Type: application/json
+
+{"error":{"status":503,"code":"provider_not_configured","message":"Business search is not configured. Enter the details manually.","request_id":"01a16938-d260-70fa-88b5-97fcb0a66bf5"}}
+```
+
+### GET /workspaces/{workspace}/onboarding, new webshop
+
+`GET /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/onboarding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d2e2-72f0-b6e7-b2c3a722beb7
+
+{"data":{"steps":[{"key":"business_details","status":"not_started"},{"key":"ownership","status":"not_started"},{"key":"agreement","status":"not_started"},{"key":"activation","status":"not_started"}],"next_step":"business_details","webshop_status":"draft"}}
+```
+
+### GET /workspaces/{workspace}/business-profile, new webshop
+
+`GET /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d306-739e-ab48-e37984f19619
+
+{"data":{"legal_name":null,"trading_name":null,"website_url":null,"website_domain":null,"kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":null,"preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":false,"confirmed_at":null,"missing_fields":["legal_name","website_url","contact_email","address_line","postal_code","city","country_code"],"domain_locked":false}}
+```
+
+### PUT business-profile, partial draft
+
+`PUT /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile {"legal_name":"Fietsen Utrecht B.V.","country_code":"NL"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d325-70db-8138-8ae63b209cc1
+
+{"data":{"legal_name":"Fietsen Utrecht B.V.","trading_name":null,"website_url":null,"website_domain":null,"kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":false,"confirmed_at":null,"missing_fields":["website_url","contact_email","address_line","postal_code","city","kvk_number"],"domain_locked":false}}
+```
+
+### PUT business-profile, confirm with fields missing
+
+`PUT /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile {"confirm":true}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16938-d352-708b-b87f-73a1a5ca0901
+Content-Type: application/json
+
+{"error":{"status":422,"code":"business_details_incomplete","message":"Some required business details are missing.","request_id":"01a16938-d352-708b-b87f-73a1a5ca0901","details":{"missing_fields":["website_url","contact_email","address_line","postal_code","city","kvk_number"]}}}
+```
+
+### PUT business-profile, invalid KvK and VAT
+
+`PUT /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile {"kvk_number":"123","vat_number":"NL12","website_url":"http://127.0.0.1/admin"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16938-d370-7248-8b3b-d65f3e782e3e
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16938-d370-7248-8b3b-d65f3e782e3e","fields":{"kvk_number":["The KvK number must have 8 digits."],"vat_number":["Enter a valid EU VAT number (for example NL123456789B01)."]}}}
+```
+
+### PUT business-profile, internal IP as website
+
+`PUT /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile {"website_url":"http://127.0.0.1/admin"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16938-d38f-739f-82a8-d9c637b8430d
+Content-Type: application/json
+
+{"error":{"status":422,"code":"invalid_domain","message":"Enter a valid public website domain.","request_id":"01a16938-d38f-739f-82a8-d9c637b8430d"}}
+```
+
+### Starting verification before confirming details
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications {"method":"dns_txt"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16938-d3b1-73c5-b90d-d723b66e3cea
+Content-Type: application/json
+
+{"error":{"status":409,"code":"business_details_incomplete","message":"Confirm the business details first.","request_id":"01a16938-d3b1-73c5-b90d-d723b66e3cea"}}
+```
+
+### PUT business-profile, full profile confirmed (note the normalised domain and KvK)
+
+`PUT /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile {"legal_name":"Fietsen Utrecht B.V.","trading_name":"Fietsenwinkel Utrecht","website_url":"https://www.Fietsen-Utrecht.nl/winkel","kvk_number":"1234 5678","vat_number":"NL123456789B01","contact_email":"info@fietsen-utrecht.nl","contact_phone":"+31 30 123 4567","main_contact_name":"Jan de Vries","address_line":"Oudegracht 1","postal_code":"3511 AA","city":"Utrecht","country_code":"NL","confirm":true}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d3d2-7172-b196-e74f54110637
+
+{"data":{"legal_name":"Fietsen Utrecht B.V.","trading_name":"Fietsenwinkel Utrecht","website_url":"https:\/\/www.Fietsen-Utrecht.nl\/winkel","website_domain":"fietsen-utrecht.nl","kvk_number":"12345678","vat_number":"NL123456789B01","contact_email":"info@fietsen-utrecht.nl","contact_phone":"+31 30 123 4567","main_contact_name":"Jan de Vries","address_line":"Oudegracht 1","postal_code":"3511 AA","city":"Utrecht","country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-10-23T14:44:54+00:00","missing_fields":[],"domain_locked":false}}
+```
+
+### Employee reading the profile
+
+`GET /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16938-d403-7390-bd0a-0c03e44a3ac4
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16938-d403-7390-bd0a-0c03e44a3ac4","details":{"required_permission":"settings.view"}}}
+```
+
+### POST /ownership/verifications, DNS TXT
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications {"method":"dns_txt"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16938-d425-71bf-be2c-8c7af30d5954
+
+{"data":{"id":"01m5mkhn1pmt95hs1y4kw4fr36","method":"dns_txt","status":"pending","domain":"fietsen-utrecht.nl","instructions":{"record_type":"TXT","record_name":"_shopbonus-verification.fietsen-utrecht.nl","record_value":"shopbonus-verification=a470a8f0f140e9469b28a588809327e1"},"attempt_count":0,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+```
+
+### Check before the record exists (real DNS lookup)
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications/01m5mkhn1pmt95hs1y4kw4fr36/check`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16938-d459-70e0-92df-bd7d4a67c776
+Content-Type: application/json
+
+{"error":{"status":422,"code":"challenge_not_found","message":"The verification value was not found yet. DNS changes can take a while; try again later.","request_id":"01a16938-d459-70e0-92df-bd7d4a67c776"}}
+```
+
+### POST /ownership/verifications, website file
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications {"method":"website_file"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16938-d4e3-7267-af63-d7e01a870b9a
+
+{"data":{"id":"01m5mkhn7mfpr3gh8g4h5r065b","method":"website_file","status":"pending","domain":"fietsen-utrecht.nl","instructions":{"url":"https:\/\/fietsen-utrecht.nl\/.well-known\/shopbonus-verification.txt","file_contents":"shopbonus-verification=4c99116a214526c2674c8bf208bcbe86"},"attempt_count":0,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+```
+
+### Checking the superseded DNS challenge
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications/01m5mkhn1pmt95hs1y4kw4fr36/check`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16938-d50f-7368-aeb7-6aa357073a6d
+Content-Type: application/json
+
+{"error":{"status":409,"code":"verification_not_pending","message":"This verification is no longer open.","request_id":"01a16938-d50f-7368-aeb7-6aa357073a6d"}}
+```
+
+### Domain email with a non-administrative mailbox
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications {"method":"domain_email","mailbox":"info"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16938-d52f-7006-8d49-02c0ac9d627f
+Content-Type: application/json
+
+{"error":{"status":422,"code":"mailbox_not_allowed","message":"Choose one of the administrative mailboxes at your domain.","request_id":"01a16938-d52f-7006-8d49-02c0ac9d627f","details":{"allowed":["admin","administrator","webmaster","hostmaster","postmaster"]}}}
+```
+
+### Domain email to admin@
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications {"method":"domain_email","mailbox":"admin"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16938-d553-7091-9069-5e165a9eab16
+
+{"data":{"id":"01m5mkhnb2h68qk1487k0m057x","method":"domain_email","status":"pending","domain":"fietsen-utrecht.nl","instructions":{"sent_to":"a****@fietsen-utrecht.nl"},"attempt_count":0,"expires_at":"2026-10-23T15:14:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+```
+
+### Progress while the challenge is pending
+
+`GET /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/onboarding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d652-729e-a60f-1af50290640a
+
+{"data":{"steps":[{"key":"business_details","status":"complete"},{"key":"ownership","status":"in_progress"},{"key":"agreement","status":"not_started"},{"key":"activation","status":"not_started"}],"next_step":"ownership","webshop_status":"awaiting_verification"}}
+```
+
+### Wrong code
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications/01m5mkhnb2h68qk1487k0m057x/confirm-code {"code":"000000"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16938-d670-7023-b883-ea7a9e10e3e9
+Content-Type: application/json
+
+{"error":{"status":422,"code":"verification_code_invalid","message":"This code is not valid.","request_id":"01a16938-d670-7023-b883-ea7a9e10e3e9"}}
+```
+
+### Correct code: ownership verified
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications/01m5mkhnb2h68qk1487k0m057x/confirm-code {"code":"693024"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d695-726b-bb5c-0edc94a0d89a
+
+{"data":{"id":"01m5mkhnb2h68qk1487k0m057x","method":"domain_email","status":"verified","domain":"fietsen-utrecht.nl","instructions":{"sent_to":"a****@fietsen-utrecht.nl"},"attempt_count":1,"expires_at":"2026-10-23T15:14:54+00:00","verified_at":"2026-10-23T14:44:55+00:00","failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+```
+
+### GET /ownership/verifications
+
+`GET /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d6bf-734f-92c8-c6deacfbea5a
+
+{"data":[{"id":"01m5mkhnb2h68qk1487k0m057x","method":"domain_email","status":"verified","domain":"fietsen-utrecht.nl","instructions":{"sent_to":"a****@fietsen-utrecht.nl"},"attempt_count":1,"expires_at":"2026-10-23T15:14:54+00:00","verified_at":"2026-10-23T14:44:55+00:00","failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"},{"id":"01m5mkhn7mfpr3gh8g4h5r065b","method":"website_file","status":"superseded","domain":"fietsen-utrecht.nl","instructions":{"url":"https:\/\/fietsen-utrecht.nl\/.well-known\/shopbonus-verification.txt","file_contents":"shopbonus-verification=4c99116a214526c2674c8bf208bcbe86"},"attempt_count":0,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"},{"id":"01m5mkhn1pmt95hs1y4kw4fr36","method":"dns_txt","status":"superseded","domain":"fietsen-utrecht.nl","instructions":{"record_type":"TXT","record_name":"_shopbonus-verification.fietsen-utrecht.nl","record_value":"shopbonus-verification=a470a8f0f140e9469b28a588809327e1"},"attempt_count":1,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}]}
+```
+
+### Starting again after verification
+
+`POST /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/ownership/verifications {"method":"dns_txt"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16938-d6de-73be-a663-eed3cecf3c25
+Content-Type: application/json
+
+{"error":{"status":409,"code":"ownership_already_verified","message":"Ownership is already verified.","request_id":"01a16938-d6de-73be-a663-eed3cecf3c25"}}
+```
+
+### Changing the domain after verification
+
+`PUT /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/business-profile {"website_url":"https://ander-domein.nl"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16938-d6fe-733e-a530-c583cf7db3cf
+Content-Type: application/json
+
+{"error":{"status":409,"code":"domain_locked","message":"The website domain is locked after ownership verification.","request_id":"01a16938-d6fe-733e-a530-c583cf7db3cf"}}
+```
+
+### Progress after verification
+
+`GET /api/v1/workspaces/01m5mkhkqpc76qtepcdx39ymn1/onboarding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d71b-70d3-8541-11238176c3ab
+
+{"data":{"steps":[{"key":"business_details","status":"complete"},{"key":"ownership","status":"complete"},{"key":"agreement","status":"not_started"},{"key":"activation","status":"not_started"}],"next_step":"agreement","webshop_status":"draft"}}
+```
+
+### Eva claiming the already-verified domain
+
+`POST /api/v1/workspaces/01m5mkhkr2csb13kw773vf2x97/ownership/verifications {"method":"dns_txt"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16938-d75e-7150-9788-007347328fe3
+Content-Type: application/json
+
+{"error":{"status":409,"code":"domain_already_claimed","message":"This domain is already verified for another webshop. Submit a manual review instead.","request_id":"01a16938-d75e-7150-9788-007347328fe3"}}
+```
+
+### Eva submits a manual review with a PDF
+
+`POST /api/v1/workspaces/01m5mkhkr2csb13kw773vf2x97/ownership/review (multipart: notes, evidence[]=koopovereenkomst.pdf)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16938-d77f-7127-80fc-73adb7733901
+
+{"data":{"id":"01m5mkhnx5yhpk64tw2mtqvpq0","method":"manual_review","status":"submitted","domain":"fietsen-utrecht.nl","instructions":{"message":"A Shopbonus administrator will review the submitted information."},"attempt_count":0,"expires_at":null,"verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:55+00:00"}}
+```
+
+### Eva's progress (in review, flagged duplicate_domain_claim server-side)
+
+`GET /api/v1/workspaces/01m5mkhkr2csb13kw773vf2x97/onboarding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16938-d7c3-72e2-b334-a10b7c1e5ca5
+
+{"data":{"steps":[{"key":"business_details","status":"complete"},{"key":"ownership","status":"in_review"},{"key":"agreement","status":"not_started"},{"key":"activation","status":"not_started"}],"next_step":"agreement","webshop_status":"pending_review"}}
+```
+
+### Submitting a second review
+
+`POST /api/v1/workspaces/01m5mkhkr2csb13kw773vf2x97/ownership/review {"notes":"Nogmaals graag beoordelen."}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16938-d7e2-7280-b7d6-3cdd362251a4
+Content-Type: application/json
+
+{"error":{"status":409,"code":"review_in_progress","message":"A review is already in progress.","request_id":"01a16938-d7e2-7280-b7d6-3cdd362251a4"}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

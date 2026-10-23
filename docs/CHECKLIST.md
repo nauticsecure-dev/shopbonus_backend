@@ -109,7 +109,22 @@ Owner role is never granted by invitation or role change (ownership transfer is 
 
 ### B03c Business profile, onboarding progress, ownership verification
 
-- [ ] Expand when started (Google Places adapter behind config, manual entry, DNS/file/domain-email challenges, manual review evidence)
+- [x] `webshop_business_profiles` (1:1): legal/trading name, website + normalised domain, KvK, VAT, contact email/phone/person (encrypted), address, language, Google place ID/category, source, confirmation; private (never in public APIs) (B03c commit)
+- [x] `GET/PUT /workspaces/{w}/business-profile` (settings.view / settings.manage): partial drafts allowed, format validation (KvK 8 digits, NL VAT, domain), `missing_fields` reported; `confirm: true` only when complete; domain locked once ownership is verified (B03c commit)
+- [x] `GET /workspaces/{w}/onboarding`: steps computed from real state (business details, ownership, agreement, activation) plus the next step; nothing client-settable (B03c commit)
+- [x] Business directory interface + Google Places (New) adapter with minimal field masks and caching; 503 `provider_not_configured` without a key; `GET /api/v1/business-directory/search` and `/places/{id}` (verified, throttled) (B03c commit)
+- [x] `webshop_verifications`: method, status, domain, public challenge value or HMAC'd email code, attempts, expiry, single use (B03c commit)
+- [x] DNS TXT challenge (`_shopbonus-verification.<domain>`) via an injectable resolver (B03c commit)
+- [x] Website-file challenge (`https://<domain>/.well-known/shopbonus-verification.txt`) via an SSRF-safe fetcher (HTTPS only, public IPs only, DNS pinned, no redirects, size and time limits) (B03c commit)
+- [x] Domain-email challenge: only admin/administrator/webmaster/hostmaster/postmaster at the verified domain; free-mail domains refused (manual review); 6-digit HMAC code, 30 min, 5 attempts; queued encrypted mail (B03c commit)
+- [x] Status effects: draft → awaiting_verification on start; failure/expiry → verification_failed (retry allowed); success sets `ownership_verified_at` and returns to draft for the agreement step; starting is refused until business details are confirmed (B03c commit)
+- [x] Duplicate claims: a domain already verified by another webshop never auto-verifies; the claim goes to manual review flagged `duplicate_domain_claim` (B03c commit)
+- [x] Manual review submission (agreements.accept-level owner action): notes + up to 5 private evidence files (PDF/JPEG/PNG ≤5 MB), encrypted at rest on the private disk; status → pending_review (B03c commit)
+- [x] Audit every claim, attempt, success, failure and review submission (B03c commit)
+- [x] Tests: card #16 E2E 1 (search/select/manual entry), E2E 2 (valid DNS/file/email challenge succeeds; expired and replayed fail), E2E 5 (resume; steps cannot be skipped by API tampering); SSRF guard unit tests (B03c commit)
+- [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (B03c commit)
+- [ ] Google Places adapter verified against the live API (blocked: no `GOOGLE_PLACES_API_KEY`)
+- [ ] Successful DNS/website-file check captured live (blocked: needs a public domain we control; covered by tests with fakes)
 
 ### B03d Agreements, review and activation
 

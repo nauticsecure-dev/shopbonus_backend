@@ -32,6 +32,10 @@ tags:
       route resolves `{workspace}` against the caller's own active memberships: a webshop the caller
       does not belong to returns the same 404 as a non-existent one. `x-permission` names the
       workspace permission a route needs; members without it get 403 `workspace_permission_denied`.
+  - name: Onboarding
+    description: |
+      Business details, onboarding progress and ownership verification (Trello #16). External business
+      data never proves ownership; only a DNS/file/domain-email challenge or a Super Admin review does.
   - name: Auth
     description: |
       Registration, email verification, sessions and password recovery (Trello #4).
@@ -1253,6 +1257,380 @@ paths:
           content:
             application/json:
               example: {"error":{"status":410,"code":"invitation_invalid","message":"This invitation is invalid or has expired.","request_id":"01a1692d-dbbf-73d4-9530-78d274a76438"}}
+
+  /api/v1/business-directory/search:
+    get:
+      tags: [Onboarding]
+      operationId: searchBusinessDirectory
+      summary: "Search businesses (Google Places autocomplete)"
+      description: |
+        Suggestions only. Selecting one never proves ownership. Up to 5 results, cached for 10 minutes, 30 requests per minute per user. Returns 503 `provider_not_configured` when no `GOOGLE_PLACES_API_KEY` is set (manual entry always works) and 502 `provider_error` on upstream failures. **NOT VERIFIED against the live Google API**: the 200 example is a test fixture.
+      x-access: verified
+      parameters:
+        - { name: query, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - { name: country, in: query, required: false, schema: { type: string, default: NL } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/business-directory/search?query=fietsenwinkel%20utrecht \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Suggestions (test fixture, not a live capture)."
+          content:
+            application/json:
+              example: {"data": [{"place_id": "ChIJ_fietsen_utrecht_01", "name": "Fietsenwinkel Utrecht", "description": "Oudegracht 1, Utrecht"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '503':
+          description: "No API key configured (real capture)."
+          content:
+            application/json:
+              example: {"error":{"status":503,"code":"provider_not_configured","message":"Business search is not configured. Enter the details manually.","request_id":"01a16938-d260-70fa-88b5-97fcb0a66bf5"}}
+
+  /api/v1/business-directory/places/{placeId}:
+    parameters:
+      - { name: placeId, in: path, required: true, description: Google place ID from search., schema: { type: string } }
+    get:
+      tags: [Onboarding]
+      operationId: businessDirectoryPlace
+      summary: "Business details for prefilling the profile"
+      description: |
+        Place Details with a minimal field mask (name, address components, website, phone, primary type). Map the result into PUT business-profile with `source: google`. NOT VERIFIED live; the 200 example is a test fixture.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/business-directory/places/<placeId> \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Prefill data (test fixture)."
+          content:
+            application/json:
+              example: {"data": {"place_id": "ChIJ_fietsen_utrecht_01", "name": "Fietsenwinkel Utrecht", "formatted_address": "Oudegracht 1, 3511 AA Utrecht, Nederland", "address_line": "Oudegracht 1", "postal_code": "3511 AA", "city": "Utrecht", "country_code": "NL", "website_url": "https://fietsen-utrecht.nl/", "phone": "+31 30 123 4567", "category": "bicycle_store"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '503':
+          description: "No API key configured."
+          content:
+            application/json:
+              example: {"error":{"status":503,"code":"provider_not_configured","message":"Business search is not configured. Enter the details manually.","request_id":"01a16938-d260-70fa-88b5-97fcb0a66bf5"}}
+
+  /api/v1/workspaces/{workspace}/onboarding:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Onboarding]
+      operationId: onboardingProgress
+      summary: "Onboarding steps and next step"
+      description: |
+        Derived entirely from server-side state, so it cannot be set or skipped by the client. Steps: `business_details`, `ownership`, `agreement` (B03d), `activation`. Statuses: not_started, in_progress, complete, in_review, failed, rejected, suspended. `next_step` is the first step that is neither complete nor in review.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/onboarding \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Progress (captured while email verification was pending)."
+          content:
+            application/json:
+              example: {"data":{"steps":[{"key":"business_details","status":"complete"},{"key":"ownership","status":"in_progress"},{"key":"agreement","status":"not_started"},{"key":"activation","status":"not_started"}],"next_step":"ownership","webshop_status":"awaiting_verification"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/business-profile:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Onboarding]
+      operationId: showBusinessProfile
+      summary: "Private business details"
+      description: |
+        Never exposed on public pages. `missing_fields` lists what confirmation still needs; `domain_locked` is true once ownership is verified.
+      x-access: verified
+      x-permission: settings.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/business-profile \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Profile (empty for a new webshop)."
+          content:
+            application/json:
+              example: {"data":{"legal_name":null,"trading_name":null,"website_url":null,"website_domain":null,"kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":null,"preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":false,"confirmed_at":null,"missing_fields":["legal_name","website_url","contact_email","address_line","postal_code","city","country_code"],"domain_locked":false}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Missing settings.view."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16938-d403-7390-bd0a-0c03e44a3ac4","details":{"required_permission":"settings.view"}}}
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    put:
+      tags: [Onboarding]
+      operationId: updateBusinessProfile
+      summary: "Save draft or confirm business details"
+      description: |
+        Partial saves are allowed. `confirm: true` succeeds only when every required field is present (422 `business_details_incomplete` with `details.missing_fields`). Any change to a confirmed profile un-confirms it. The domain can't change after ownership verification (409 `domain_locked`). KvK and VAT are normalised (spaces and dots removed, upper case).
+      x-access: verified
+      x-permission: settings.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: All fields optional (drafts). `confirm` true requires the full set.
+              properties:
+                legal_name: { type: [string, 'null'], maxLength: 255 }
+                trading_name: { type: [string, 'null'], maxLength: 255 }
+                website_url: { type: [string, 'null'], description: URL or bare domain; normalised to website_domain; IPs/internal names rejected (invalid_domain). Locked after ownership verification. }
+                kvk_number: { type: [string, 'null'], description: 8 digits; spaces/dots allowed and removed. Required when country_code is NL. }
+                vat_number: { type: [string, 'null'], description: 'EU VAT, e.g. NL123456789B01.' }
+                contact_email: { type: [string, 'null'], format: email, description: Encrypted at rest. }
+                contact_phone: { type: [string, 'null'], description: Encrypted at rest. }
+                main_contact_name: { type: [string, 'null'], description: Encrypted at rest. }
+                address_line: { type: [string, 'null'] }
+                postal_code: { type: [string, 'null'] }
+                city: { type: [string, 'null'] }
+                country_code: { type: [string, 'null'], pattern: '^[A-Z]{2}$' }
+                preferred_language: { type: string, enum: [nl, en] }
+                google_place_id: { type: [string, 'null'] }
+                business_category: { type: [string, 'null'] }
+                source: { type: string, enum: [manual, google] }
+                confirm: { type: boolean }
+            example: {"legal_name": "Fietsen Utrecht B.V.", "website_url": "https://www.Fietsen-Utrecht.nl/winkel", "kvk_number": "1234 5678", "country_code": "NL", "confirm": true}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT http://localhost:8000/api/v1/workspaces/current/business-profile \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"legal_name":"Fietsen Utrecht B.V.","country_code":"NL"}'
+      responses:
+        '200':
+          description: "Saved (captured: full profile confirmed)."
+          content:
+            application/json:
+              example: {"data":{"legal_name":"Fietsen Utrecht B.V.","trading_name":"Fietsenwinkel Utrecht","website_url":"https:\/\/www.Fietsen-Utrecht.nl\/winkel","website_domain":"fietsen-utrecht.nl","kvk_number":"12345678","vat_number":"NL123456789B01","contact_email":"info@fietsen-utrecht.nl","contact_phone":"+31 30 123 4567","main_contact_name":"Jan de Vries","address_line":"Oudegracht 1","postal_code":"3511 AA","city":"Utrecht","country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-10-23T14:44:54+00:00","missing_fields":[],"domain_locked":false}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "domain_locked."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"domain_locked","message":"The website domain is locked after ownership verification.","request_id":"01a16938-d6fe-733e-a530-c583cf7db3cf"}}
+        '422':
+          description: "business_details_incomplete, invalid_domain or field validation."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"business_details_incomplete","message":"Some required business details are missing.","request_id":"01a16938-d352-708b-b87f-73a1a5ca0901","details":{"missing_fields":["website_url","contact_email","address_line","postal_code","city","kvk_number"]}}}
+
+  /api/v1/workspaces/{workspace}/ownership/verifications:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Onboarding]
+      operationId: listVerifications
+      summary: "Ownership verification attempts"
+      description: |
+        Latest 20, newest first. Codes and evidence are never returned.
+      x-access: verified
+      x-permission: ownership.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/ownership/verifications \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Attempts."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5mkhnb2h68qk1487k0m057x","method":"domain_email","status":"verified","domain":"fietsen-utrecht.nl","instructions":{"sent_to":"a****@fietsen-utrecht.nl"},"attempt_count":1,"expires_at":"2026-10-23T15:14:54+00:00","verified_at":"2026-10-23T14:44:55+00:00","failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"},{"id":"01m5mkhn7mfpr3gh8g4h5r065b","method":"website_file","status":"superseded","domain":"fietsen-utrecht.nl","instructions":{"url":"https:\/\/fietsen-utrecht.nl\/.well-known\/shopbonus-verification.txt","file_contents":"shopbonus-verification=4c99116a214526c2674c8bf208bcbe86"},"attempt_count":0,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"},{"id":"01m5mkhn1pmt95hs1y4kw4fr36","method":"dns_txt","status":"superseded","domain":"fietsen-utrecht.nl","instructions":{"record_type":"TXT","record_name":"_shopbonus-verification.fietsen-utrecht.nl","record_value":"shopbonus-verification=a470a8f0f140e9469b28a588809327e1"},"attempt_count":1,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    post:
+      tags: [Onboarding]
+      operationId: startVerification
+      summary: "Start an ownership challenge"
+      description: |
+        Owner-only. Requires confirmed business details. Supersedes any pending challenge. Methods:
+
+        - `dns_txt`: publish a TXT record at `_shopbonus-verification.<domain>` (valid 7 days).
+        - `website_file`: serve the value at `https://<domain>/.well-known/shopbonus-verification.txt` (valid 7 days; fetched with SSRF protection).
+        - `domain_email`: a 6-digit code to `mailbox@<domain>`, where `mailbox` is one of admin, administrator, webmaster, hostmaster or postmaster (30 minutes, 5 attempts). Not available for free-mail domains.
+
+        A domain already verified by another webshop returns 409 `domain_already_claimed`; use manual review. The webshop moves to `awaiting_verification`.
+      x-access: verified
+      x-permission: ownership.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method: { type: string, enum: [dns_txt, website_file, domain_email] }
+                mailbox: { type: string, description: 'Required for domain_email: admin | administrator | webmaster | hostmaster | postmaster.' }
+            example: {"method": "domain_email", "mailbox": "admin"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/ownership/verifications \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"method":"dns_txt"}'
+      responses:
+        '201':
+          description: "Challenge created with instructions."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mkhn1pmt95hs1y4kw4fr36","method":"dns_txt","status":"pending","domain":"fietsen-utrecht.nl","instructions":{"record_type":"TXT","record_name":"_shopbonus-verification.fietsen-utrecht.nl","record_value":"shopbonus-verification=a470a8f0f140e9469b28a588809327e1"},"attempt_count":0,"expires_at":"2026-10-30T14:44:54+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "domain_already_claimed, business_details_incomplete, ownership_already_verified, review_in_progress or not_in_onboarding."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"domain_already_claimed","message":"This domain is already verified for another webshop. Submit a manual review instead.","request_id":"01a16938-d75e-7150-9788-007347328fe3"}}
+        '422':
+          description: "mailbox_not_allowed, free_email_domain or validation."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"mailbox_not_allowed","message":"Choose one of the administrative mailboxes at your domain.","request_id":"01a16938-d52f-7006-8d49-02c0ac9d627f","details":{"allowed":["admin","administrator","webmaster","hostmaster","postmaster"]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: verification, in: path, required: true, description: Verification public ID., schema: { type: string } }
+    post:
+      tags: [Onboarding]
+      operationId: checkVerification
+      summary: "Check a DNS or website-file challenge now"
+      description: |
+        Looks up the TXT record or fetches the file. 422 `challenge_not_found` leaves the challenge pending, so you can retry (10 per minute). Expired: 410 `verification_expired`, and the webshop becomes `verification_failed`. Success marks ownership verified, locks the domain and returns the webshop to `draft` for the agreement step. The success response has the same shape as the domain-email 200 (a real DNS/file success can't be captured without a domain under our control).
+      x-access: verified
+      x-permission: ownership.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/ownership/verifications/<id>/check \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Verified (example from the domain-email capture; identical shape)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mkhnb2h68qk1487k0m057x","method":"domain_email","status":"verified","domain":"fietsen-utrecht.nl","instructions":{"sent_to":"a****@fietsen-utrecht.nl"},"attempt_count":1,"expires_at":"2026-10-23T15:14:54+00:00","verified_at":"2026-10-23T14:44:55+00:00","failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "verification_not_pending (superseded, already used), wrong_verification_method or domain_already_claimed."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"verification_not_pending","message":"This verification is no longer open.","request_id":"01a16938-d50f-7368-aeb7-6aa357073a6d"}}
+        '422':
+          description: "challenge_not_found (real DNS lookup)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"challenge_not_found","message":"The verification value was not found yet. DNS changes can take a while; try again later.","request_id":"01a16938-d459-70e0-92df-bd7d4a67c776"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: verification, in: path, required: true, description: Verification public ID., schema: { type: string } }
+    post:
+      tags: [Onboarding]
+      operationId: confirmVerificationCode
+      summary: "Confirm the domain-email code"
+      description: |
+        Wrong code: 422 `verification_code_invalid`. On the 5th wrong code: 422 `verification_attempts_exceeded`, the challenge fails and the webshop becomes `verification_failed`. Expired: 410.
+      x-access: verified
+      x-permission: ownership.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^\\d{6}$' }
+            example: {"code": "123456"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/ownership/verifications/<id>/confirm-code \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"code":"123456"}'
+      responses:
+        '200':
+          description: "Verified."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mkhnb2h68qk1487k0m057x","method":"domain_email","status":"verified","domain":"fietsen-utrecht.nl","instructions":{"sent_to":"a****@fietsen-utrecht.nl"},"attempt_count":1,"expires_at":"2026-10-23T15:14:54+00:00","verified_at":"2026-10-23T14:44:55+00:00","failure_reason":null,"created_at":"2026-10-23T14:44:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Wrong code or attempts exceeded."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"verification_code_invalid","message":"This code is not valid.","request_id":"01a16938-d670-7023-b883-ea7a9e10e3e9"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/ownership/review:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Onboarding]
+      operationId: submitOwnershipReview
+      summary: "Request manual ownership review"
+      description: |
+        For when automated checks aren't possible, or the domain is claimed by another webshop (flagged `duplicate_domain_claim` for the reviewer). Multipart: `notes` (10–5000 chars) and up to 5 `evidence[]` files (PDF/JPEG/PNG, ≤5 MB each). Files are encrypted on private storage and never returned. The webshop becomes `pending_review` until a Super Admin decides (B03d).
+      x-access: verified
+      x-permission: ownership.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notes]
+              properties:
+                notes: { type: string, minLength: 10, maxLength: 5000 }
+                evidence: { type: array, maxItems: 5, items: { type: string, format: binary } }
+            example: {"notes": "Wij hebben deze webshop per 1 oktober 2026 overgenomen; koopovereenkomst bijgevoegd."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/ownership/review \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -F 'notes=We took over this webshop on 1 October 2026; contract attached.' \
+              -F 'evidence[]=@koopovereenkomst.pdf;type=application/pdf'
+      responses:
+        '201':
+          description: "Review submitted."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5mkhnx5yhpk64tw2mtqvpq0","method":"manual_review","status":"submitted","domain":"fietsen-utrecht.nl","instructions":{"message":"A Shopbonus administrator will review the submitted information."},"attempt_count":0,"expires_at":null,"verified_at":null,"failure_reason":null,"created_at":"2026-10-23T14:44:55+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "review_in_progress, ownership_already_verified or business_details_incomplete."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"review_in_progress","message":"A review is already in progress.","request_id":"01a16938-d7e2-7280-b7d6-3cdd362251a4"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
 components:
   parameters:
