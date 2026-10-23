@@ -1,0 +1,247 @@
+openapi: 3.1.0
+info:
+  title: Shopbonus API
+  version: 1.0.0-dev
+  description: |
+    Shopbonus backend REST API. All endpoints are versioned under `/api/v1`.
+
+    **Conventions (apply to every endpoint):**
+    - Responses are always JSON (the API forces `Accept: application/json`).
+    - Every response carries an `X-Request-Id` header. Clients may send their own
+      `X-Request-Id` (8-128 chars of `A-Z a-z 0-9 . _ -`) for cross-system tracing;
+      anything else is replaced by a server-generated UUIDv7.
+    - Every error uses the `Error` envelope below. Messages for framework errors are
+      fixed per status; a 404 is identical whether a record does not exist or belongs
+      to another workspace.
+    - Money is always integer minor units plus an explicit currency/unit, never floats.
+    - Default rate limit: `API_RATE_LIMIT_PER_MINUTE` (default 60) per user when
+      authenticated, otherwise per IP. `X-RateLimit-Limit` / `X-RateLimit-Remaining`
+      are returned on success; `Retry-After` on 429.
+
+    **Documentation rule:** every endpoint documents an example request and an
+    example response captured from a real running server (see `docs/api/README.md`).
+servers:
+  - url: http://localhost:8000
+    description: Local development
+tags:
+  - name: Health
+    description: Liveness and readiness probes for load balancers and monitoring.
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      operationId: healthLive
+      summary: Liveness probe
+      description: |
+        Returns 200 while the PHP process is serving requests. Performs no dependency
+        checks. Public, no authentication. Rate limited by the default `api` limiter.
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -s -H 'Accept: application/json' http://localhost:8000/api/v1/health
+      responses:
+        '200':
+          description: Service is alive.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
+            X-RateLimit-Limit: { $ref: '#/components/headers/X-RateLimit-Limit' }
+            X-RateLimit-Remaining: { $ref: '#/components/headers/X-RateLimit-Remaining' }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, time]
+                properties:
+                  status: { type: string, const: ok }
+                  service: { type: string, const: shopbonus-api }
+                  time: { type: string, format: date-time }
+              example:
+                status: ok
+                service: shopbonus-api
+                time: '2026-10-23T12:28:46+00:00'
+        '405': { $ref: '#/components/responses/MethodNotAllowed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/health/ready:
+    get:
+      tags: [Health]
+      operationId: healthReady
+      summary: Readiness probe
+      description: |
+        Checks the database, the cache store and (when cache or queue use Redis) Redis.
+        Returns 200 when all pass and 503 when any fail. Public, no authentication.
+
+        Per-component `checks` are included **only** when `X-Health-Token` matches the
+        server's `HEALTH_READINESS_TOKEN`, so infrastructure layout is not disclosed
+        publicly. Failure causes are logged server-side (exception class only), never
+        returned.
+      security: []
+      parameters:
+        - name: X-Health-Token
+          in: header
+          required: false
+          description: Monitoring token; unlocks per-component detail.
+          schema: { type: string }
+      x-codeSamples:
+        - lang: curl
+          label: Public (no detail)
+          source: |
+            curl -s -H 'Accept: application/json' http://localhost:8000/api/v1/health/ready
+        - lang: curl
+          label: Monitoring (with detail)
+          source: |
+            curl -s -H 'Accept: application/json' \
+              -H 'X-Health-Token: <HEALTH_READINESS_TOKEN>' \
+              -H 'X-Request-Id: ops-probe-20261023-01' \
+              http://localhost:8000/api/v1/health/ready
+      responses:
+        '200':
+          description: All dependencies reachable.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Readiness' }
+              examples:
+                public:
+                  summary: Without token
+                  value: { status: ok }
+                withDetail:
+                  summary: With valid X-Health-Token
+                  value:
+                    status: ok
+                    checks: { database: ok, cache: ok, redis: ok }
+        '503':
+          description: At least one dependency failed.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/X-Request-Id' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Readiness' }
+              examples:
+                public:
+                  summary: Without token
+                  value: { status: fail }
+                withDetail:
+                  summary: With valid X-Health-Token (database unreachable)
+                  value:
+                    status: fail
+                    checks: { database: fail, cache: ok, redis: ok }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+components:
+  headers:
+    X-Request-Id:
+      description: Correlation ID for this request; quote it in support tickets and logs.
+      schema: { type: string }
+      example: 01a168bc-3180-72b7-b3eb-05b0fd701ba4
+    X-RateLimit-Limit:
+      schema: { type: integer }
+      example: 60
+    X-RateLimit-Remaining:
+      schema: { type: integer }
+      example: 59
+    Retry-After:
+      description: Seconds until the client may retry.
+      schema: { type: integer }
+      example: 43
+
+  schemas:
+    Readiness:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok, fail] }
+        checks:
+          type: object
+          description: Present only with a valid X-Health-Token.
+          additionalProperties: { type: string, enum: [ok, fail] }
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [status, code, message, request_id]
+          properties:
+            status: { type: integer, description: Mirrors the HTTP status. }
+            code:
+              type: string
+              description: |
+                Stable machine-readable code. Framework codes: `bad_request`,
+                `unauthenticated` (401), `forbidden` (403), `not_found` (404),
+                `method_not_allowed` (405), `conflict` (409), `unsupported_media_type`
+                (415), `csrf_token_mismatch` (419), `validation_failed` (422),
+                `too_many_requests` (429), `server_error` (500), `service_unavailable`
+                (503). Domain errors use their own documented codes.
+            message: { type: string, description: Human-readable; safe to display. }
+            request_id: { type: string }
+            fields:
+              type: object
+              description: 422 only. Field name => list of messages.
+              additionalProperties: { type: array, items: { type: string } }
+            details:
+              type: object
+              description: Domain errors only. Extra machine-readable context.
+              additionalProperties: true
+
+  responses:
+    Unauthenticated:
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 401, code: unauthenticated, message: Authentication is required., request_id: 01a168bd-f864-70ce-9573-0f6c6905e5fb }
+    Forbidden:
+      description: Authenticated but not permitted.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 403, code: forbidden, message: You are not allowed to perform this action., request_id: 01a168bd-f891-71fa-b745-e681283411ee }
+    NotFound:
+      description: Resource does not exist or is outside the caller's scope.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 404, code: not_found, message: The requested resource was not found., request_id: 01a168bc-4082-739c-a3cb-1995636d37a5 }
+    MethodNotAllowed:
+      description: HTTP method not supported; see the `Allow` header.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 405, code: method_not_allowed, message: This method is not allowed for the requested resource., request_id: 01a168bc-40c7-7329-ab27-cb1f1a89d354 }
+    ValidationFailed:
+      description: Input failed validation.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              status: 422
+              code: validation_failed
+              message: The given data was invalid.
+              request_id: 01a168bd-f895-73d8-881b-0f4ac0620658
+              fields: { email: [The email field must be a valid email address.] }
+    TooManyRequests:
+      description: Rate limit exceeded.
+      headers:
+        Retry-After: { $ref: '#/components/headers/Retry-After' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 429, code: too_many_requests, message: Too many requests. Please slow down., request_id: 01a168bc-72ce-7350-8cbb-acff7fa4bd42 }
+    ServerError:
+      description: Unexpected failure. Internals are never returned; quote the request_id.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error: { status: 500, code: server_error, message: An unexpected error occurred., request_id: 01a168bd-f8b0-725d-912b-fc7c412e64d5 }
