@@ -4,6 +4,9 @@ Granular companion to `docs/TASKS.md`. **Rule (owner, 2026-10-23):** tick a box 
 
 Tasks further down are listed at headline level. Expand them into concrete items when the task is started, before writing code.
 
+
+**Legend:** `[x]` implemented and tested (commit SHA in brackets). `[ ] **BLOCKED**` needs something outside the code (credentials, staging, a git remote, a partner API, or a decision) and cannot be ticked from here. `[ ] **MOVED**` is tracked in the later task named.
+
 ## B00 Repository audit
 
 - [x] Inventory of existing code, repos and runtime (`7cc47a8`; see PROGRESS.md)
@@ -21,7 +24,7 @@ Tasks further down are listed at headline level. Expand them into concrete items
 - [x] Log redaction on all channels (`a51a9b6`)
 - [x] CORS allowlist from env (`a51a9b6`)
 - [x] Pint, Larastan level 6, CI workflow file (`a51a9b6`)
-- [ ] CI actually run green on GitHub (blocked: no git remote)
+- [ ] **BLOCKED** CI actually run green on GitHub (blocked: no git remote)
 - [x] OpenAPI 3.1 + API reference with real captured examples; coverage test (`a51a9b6`)
 
 ## B01b Foundation: audit and error store
@@ -68,8 +71,8 @@ Auth mode decided by card #4: Fortify + Sanctum stateful SPA cookies (D-011).
 - [x] Local timing of `GET /api/v1/me` and signup measured and recorded (staging p95 NOT RUN; see PROGRESS) (`c95e1e4`)
 - [x] Docs: PROGRESS, HANDOFF, TASKS, DECISIONS updated (`c95e1e4`)
 - [x] Found during capture and fixed: guest-only routes now 409 for signed-in JSON clients; Fortify session routes re-check account status; intentional 5xx never include debug data (`c95e1e4`)
-- [ ] Staging p95 for `/me` (<250 ms) and signup (<400 ms) (blocked: no staging environment)
-- [ ] Super Admin/owner MFA (moved to B16 by design; Fortify 2FA re-enabled there)
+- [ ] **BLOCKED** Staging p95 for `/me` (<250 ms) and signup (<400 ms) (blocked: no staging environment)
+- [ ] **MOVED** Super Admin/owner MFA (moved to B16 by design; Fortify 2FA re-enabled there)
 - [x] Secured email-change re-verification flow (moved to B08; done in `c2dfb15`)
 
 ## B03 Workspaces and onboarding (Trello #2 #3 #16; #9 is B06)
@@ -125,8 +128,8 @@ Owner role is never granted by invitation or role change (ownership transfer is 
 - [x] Audit every claim, attempt, success, failure and review submission (`b230455`)
 - [x] Tests: card #16 E2E 1 (search/select/manual entry), E2E 2 (valid DNS/file/email challenge succeeds; expired and replayed fail), E2E 5 (resume; steps cannot be skipped by API tampering); SSRF guard unit tests (`b230455`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (`b230455`)
-- [ ] Google Places adapter verified against the live API (blocked: no `GOOGLE_PLACES_API_KEY`)
-- [ ] Successful DNS/website-file check captured live (blocked: needs a public domain we control; covered by tests with fakes)
+- [ ] **BLOCKED** Google Places adapter verified against the live API (blocked: no `GOOGLE_PLACES_API_KEY`)
+- [ ] **BLOCKED** Successful DNS/website-file check captured live (blocked: needs a public domain we control; covered by tests with fakes)
 
 ### B03d Agreements, review and activation
 
@@ -165,9 +168,9 @@ No provider credentials exist: every real-platform adapter is NOT VERIFIED until
 - [x] Audit connection changes, secret rotations, rejected signatures (rate-limited) (`820c6b5`)
 - [x] Tests: signature valid/invalid/replayed/old timestamp per adapter, duplicate delivery processed once, unsupported platform refused, cross-tenant 404, secret never in responses after creation or in logs, card #1 E2E 2 "unsupported connections cannot activate", E2E 3 incomplete access blocks connected (fixture), E2E 4 mandatory/phone rules at normalisation (`820c6b5`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (`820c6b5`)
-- [ ] Live verification of WooCommerce / Shopify adapters (blocked: no store or sandbox access; checklist in docs/integrations/VERIFICATION.md)
-- [ ] Adapters for Wix, BigCommerce, Ecwid, Lightspeed, Squarespace, Mijnwebwinkel, CCV (blocked: auth mechanisms and credentials unverified)
-- [ ] Private modules for PrestaShop/OpenCart/Shopware/Magento (outside backend scope: plugin code; the format they must speak is specified)
+- [ ] **BLOCKED** Live verification of WooCommerce / Shopify adapters (blocked: no store or sandbox access; checklist in docs/integrations/VERIFICATION.md)
+- [ ] **BLOCKED** Adapters for Wix, BigCommerce, Ecwid, Lightspeed, Squarespace, Mijnwebwinkel, CCV (blocked: auth mechanisms and credentials unverified)
+- [ ] **BLOCKED** Private modules for PrestaShop/OpenCart/Shopware/Magento (outside backend scope: plugin code; the format they must speak is specified)
 
 ## B05 Orders and state transitions (Trello #1 "Normalized orders", "Live order sheet"; #2 §5; #3 B.6–B.7)
 
@@ -208,8 +211,8 @@ One voucher model and one code inventory; acquisition methods are typed origins 
 - [x] Tests: card #7 E2E 3 (issued voucher keeps v1 after edit), E2E 4 (paste with duplicate + invalid, CSV, preview, totals, batch audit), **E2E 5 real concurrency (forked processes, MySQL)**, E2E 6 lifecycle + repeated redemption rejected, E2E 9 (500 codes, three batches, filters, export), E2E 10 cross-tenant + failed upload; idempotent reservation per order (`c07f778`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (`c07f778`)
 - [x] Verified redemption: codes in paid verified orders (Woo `coupon_lines`, Shopify `discount_codes`, format v1 `coupon_codes`) redeem the issued voucher once (`c07f778`)
-- [ ] Platform coupon verification via provider coupon APIs (blocked: no coupon adapters/credentials; status stays `merchant_verification_required`)
-- [ ] Card #7 E2E 7 real webshop coupon check (blocked as above) and E2E 8 merchant funding enforcement (B12)
+- [ ] **BLOCKED** Platform coupon verification via provider coupon APIs (blocked: no coupon adapters/credentials; status stays `merchant_verification_required`)
+- [ ] **MOVED** Card #7 E2E 7 real webshop coupon check (blocked as above) and E2E 8 merchant funding enforcement (B12)
 
 ## B07 Answer24 (Trello #1 "Answer24 required processing", #3 B.7–C.10, #23 "Answer24 responsibilities", #10)
 
@@ -247,7 +250,7 @@ Contract is Shopbonus-defined (`shopbonus-answer24-v1`, OPEN-ANSWER24-CONTRACT);
 - [x] Outbox dispatcher (`shopbonus:dispatch-outbox`, every minute): no-op while disabled; atomic claim of each message; re-checks the opportunity before sending; signed `Answer24Client`; success → `dispatched` + remote reference; failure → exponential backoff, `failed` after max attempts; stuck `sending` reclaimed (`0c6c035`)
 - [x] Tests: card #1 E2E 9 (signed request + callback + single-use activation, no cross-tenant, no duplicates); #10 reminders (days 30/60/80, claim before next reminder, repeated delivery no duplicate); #23 Answer24 free voucher; signature/replay/scope negatives; dispatcher with `Http::fake` (`0c6c035`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`0c6c035`)
-- [ ] Real Answer24 end-to-end (blocked: Answer24 has no Shopbonus API yet, OPEN-ANSWER24-CONTRACT)
+- [ ] **BLOCKED** Real Answer24 end-to-end (blocked: Answer24 has no Shopbonus API yet, OPEN-ANSWER24-CONTRACT)
 
 ## B08 Consumer discovery and profile (Trello #18, #10, #5 consent parts)
 
@@ -268,7 +271,7 @@ Sliced: B08a public discovery; B08b consumer profile, preferences, favourites, M
 - [x] Tests: card #18 E2E 2 (search/filter/sort/pagination, only approved+published), E2E 3 (no private data), E2E 4 (paused/expired/sold-out), cache invalidation, logo validation, merchant permission checks (`4c4e26c`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`4c4e26c`)
 - [x] Browsable API docs at `/docs` (OpenAPI viewer) and `/docs/reference` (README rendered, raw HTML escaped); `API_DOCS_ENABLED`, off in production by default (`4c4e26c`)
-- [ ] Staging p95 < 300 ms for directory requests (blocked: no staging)
+- [ ] **BLOCKED** Staging p95 < 300 ms for directory requests (blocked: no staging)
 
 ### B08b Consumer profile, preferences and benefits
 
@@ -286,8 +289,8 @@ All routes derive the consumer from the session; no user ID is ever accepted (ca
 - [x] Tests: card #10 E2E 1, 2, 3, 4, 5, 6, 9, 10 (E2E 7 covered by B07b; E2E 8 needs B09); card #18 E2E 9 (`c2dfb15`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`c2dfb15`)
 - [x] Found during capture and fixed: the "email changed" notice to the old address crashed for on-demand recipients (500 after the change was saved); now rendered in a test (`c2dfb15`)
-- [ ] Card #10 E2E 8 wallet balance in header (B09) and #18 E2E 5 return-to-offer after signup (frontend; backend has no redirect state)
-- [ ] Deletion request processing (B16 admin, retention rules D-013)
+- [ ] **MOVED** Card #10 E2E 8 wallet balance in header (B09) and #18 E2E 5 return-to-offer after signup (frontend; backend has no redirect state)
+- [ ] **MOVED** Deletion request processing (B16 admin, retention rules D-013)
 
 - [ ] B09 Wallet ledger core
 - [ ] B10 Affiliate integrations (credit timing decision required)
