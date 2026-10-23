@@ -63,4 +63,15 @@ return [
         'marketing_consent_version' => env('LEGAL_MARKETING_CONSENT_VERSION'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Workspaces (Trello #16)
+    |--------------------------------------------------------------------------
+    */
+
+    'workspaces' => [
+        // Anti-abuse cap on webshops a user may have in onboarding/review at once.
+        'max_unapproved_per_user' => (int) env('WORKSPACES_MAX_UNAPPROVED_PER_USER', 10),
+    ],
+
 ];

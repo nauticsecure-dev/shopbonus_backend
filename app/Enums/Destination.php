@@ -11,4 +11,6 @@ enum Destination: string
     case VerifyEmail = 'verify_email';
     case ConsumerDashboard = 'consumer_dashboard';
     case WebshopSetup = 'webshop_setup';
+    case Workspace = 'workspace';
+    case Admin = 'admin';
 }

@@ -8,6 +8,8 @@ use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\RejectAuthenticatedJsonRequests;
+use App\Http\Middleware\RequireWorkspacePermission;
+use App\Http\Middleware\ResolveWorkspace;
 use App\Http\Middleware\ThrottleIdentityEndpoints;
 use App\Services\Errors\ErrorRecorder;
 use Illuminate\Foundation\Application;
@@ -41,6 +43,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // Overrides Laravel's signed-link `verified`: Shopbonus verifies by emailed code.
             'verified' => EnsureEmailIsVerified::class,
             'guest' => RejectAuthenticatedJsonRequests::class,
+            'workspace' => ResolveWorkspace::class,
+            'workspace.can' => RequireWorkspacePermission::class,
         ]);
 
         // API clients get a JSON 401 rather than a redirect to a login page.

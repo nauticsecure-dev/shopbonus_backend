@@ -549,6 +549,203 @@ Content-Type: application/json
 
 ---
 
+## Workspaces (B03a, Trello #2 §3-4, #16)
+
+Captured 2026-10-23 against local MySQL + Redis with Sanctum bearer tokens (`Authorization: Bearer <token>`); browser clients use the session cookie flow from the Auth section instead. Three users: Jan (owner), Piet (employee in Jan's first shop, extra `orders.view`) and Eva (no memberships). The server ran with `WORKSPACES_MAX_UNAPPROVED_PER_USER=3` to show the cap. Rate-limit headers trimmed.
+
+### Rules
+
+- `{workspace}` is a webshop public ID or `current` (the caller's server-side selection).
+- A webshop the caller isn't an active member of returns **the same 404 as a non-existent one**, and the attempt is audited (`workspace.access_denied`). Removed and suspended memberships behave the same.
+- A member of a suspended webshop gets 403 `workspace_suspended`.
+- A member without the route's `x-permission` gets 403 `workspace_permission_denied`, audited with the webshop in context.
+- Roles: `owner` (everything, including the owner-only `agreements.accept`, `ownership.manage` and `finance.manage`), `manager` (everything except owner-only), `employee` (`dashboard.view` plus explicit grants). Owner-only permissions never apply to non-owners, even if stored.
+- Creating a webshop makes the caller its owner. Nothing in a request body (`role`, `owner`, `status`, `created_by`, `webshop_id`) grants anything.
+
+### Workspace error codes
+
+| Status | `code` | When |
+| --- | --- | --- |
+| 403 | `workspace_suspended` | Member of a suspended webshop |
+| 403 | `workspace_permission_denied` | Member lacks `details.required_permission` |
+| 404 | `not_found` | Not a member, or no such webshop (indistinguishable) |
+| 409 | `no_current_workspace` | `current` used before selecting one |
+| 409 | `workspace_draft_limit_reached` | Too many unapproved webshops |
+
+### `POST /api/v1/workspaces` (verified)
+
+**201**. The request also sent `status: approved` and `role: super_admin`; both were ignored:
+
+`POST /api/v1/workspaces {"name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"approved","role":"super_admin"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16923-d4e3-7151-9f3f-efffeed78324
+
+{"data":{"id":"01m5mj7namw3ysnwzvha9rkbxf","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"draft","commercially_active":false,"is_current":true,"membership":{"role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}}
+```
+
+**422**:
+
+`POST /api/v1/workspaces {"name":"x","platform":"myspace"}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16923-d591-708d-ab15-c8ba0a877d9a
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16923-d591-708d-ab15-c8ba0a877d9a","fields":{"name":["The name field must be at least 2 characters."],"platform":["The selected platform is invalid."]}}}
+```
+
+**409** (cap reached):
+
+`POST /api/v1/workspaces {"name":"Vierde winkel"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16923-d5fa-7221-959b-4f0e672e5b04
+Content-Type: application/json
+
+{"error":{"status":409,"code":"workspace_draft_limit_reached","message":"You can have at most 3 webshops awaiting approval.","request_id":"01a16923-d5fa-7221-959b-4f0e672e5b04"}}
+```
+
+### `GET /api/v1/workspaces` (verified)
+
+With `?search=boek`:
+
+`GET /api/v1/workspaces?search=boek`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d76a-71b5-9b41-dd7fee07093c
+
+{"data":[{"id":"01m5mj7ndsfx9z4r1fx0gqhgmq","name":"Boekhandel Amsterdam","platform":"shopify","status":"draft","commercially_active":false,"is_current":false,"membership":{"role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}]}
+```
+
+### `GET /api/v1/workspaces/{workspace}` (verified)
+
+As owner:
+
+`GET /api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d787-730b-b618-5e9babefbd08
+
+{"data":{"id":"01m5mj7namw3ysnwzvha9rkbxf","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"draft","commercially_active":false,"is_current":true,"membership":{"role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}}
+```
+
+The same webshop as employee Piet (role defaults plus an `orders.view` grant):
+
+`GET /api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d7a3-708c-85be-dfb3657debf2
+
+{"data":{"id":"01m5mj7namw3ysnwzvha9rkbxf","name":"Fietsenwinkel Utrecht","platform":"woocommerce","status":"draft","commercially_active":false,"is_current":false,"membership":{"role":"employee","permissions":["dashboard.view","orders.view"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}}
+```
+
+As Eva, who is not a member. This is byte-for-byte the same as an unknown ID:
+
+`GET /api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16923-d803-7076-b994-877ecad6f7a3
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a16923-d803-7076-b994-877ecad6f7a3"}}
+```
+
+After the webshop was suspended:
+
+`GET /api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16923-d8bc-710a-8381-3ffeeb3572e2
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_suspended","message":"This workspace is suspended.","request_id":"01a16923-d8bc-710a-8381-3ffeeb3572e2"}}
+```
+
+### `PATCH /api/v1/workspaces/{workspace}` (verified, `settings.manage`)
+
+`PATCH /api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf {"name":"Fietsenwinkel Utrecht Centrum"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d7bf-7048-b67e-38fa1b5fa7dc
+
+{"data":{"id":"01m5mj7namw3ysnwzvha9rkbxf","name":"Fietsenwinkel Utrecht Centrum","platform":"woocommerce","status":"draft","commercially_active":false,"is_current":true,"membership":{"role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}}
+```
+
+As employee:
+
+`PATCH /api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf {"name":"Overgenomen"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16923-d7e5-7235-a3a5-67e8214491cd
+Content-Type: application/json
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a16923-d7e5-7235-a3a5-67e8214491cd","details":{"required_permission":"settings.manage"}}}
+```
+
+### `POST /api/v1/workspaces/{workspace}/select` and `GET /api/v1/workspaces/current`
+
+`POST /api/v1/workspaces/01m5mj7ndsfx9z4r1fx0gqhgmq/select`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d83c-70df-9dd4-8238b52dfe11
+
+{"data":{"id":"01m5mj7ndsfx9z4r1fx0gqhgmq","name":"Boekhandel Amsterdam","platform":"shopify","status":"draft","commercially_active":false,"is_current":true,"membership":{"role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}}
+```
+
+`GET /api/v1/workspaces/current`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d861-726f-8a3d-6ebb603d1d44
+
+{"data":{"id":"01m5mj7ndsfx9z4r1fx0gqhgmq","name":"Boekhandel Amsterdam","platform":"shopify","status":"draft","commercially_active":false,"is_current":true,"membership":{"role":"owner","permissions":["dashboard.view","orders.view","orders.manage","integrations.view","integrations.manage","offers.view","offers.manage","vouchers.view","vouchers.manage","team.view","team.manage","settings.view","settings.manage","finance.view","finance.manage","agreements.accept","ownership.manage"],"joined_at":"2026-10-23T14:21:58+00:00"},"created_at":"2026-10-23T14:21:58+00:00"}}
+```
+
+Eva has nothing selected:
+
+`GET /api/v1/workspaces/current`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16923-d821-7077-9ca3-9413256a6571
+Content-Type: application/json
+
+{"error":{"status":409,"code":"no_current_workspace","message":"No workspace is selected.","request_id":"01a16923-d821-7077-9ca3-9413256a6571"}}
+```
+
+### `GET /api/v1/me` with memberships
+
+`GET /api/v1/me`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16923-d882-702d-a2f1-d2058f06e579
+
+{"data":{"id":"01m5mj7mc9f0pkxdznfx5nfz0s","first_name":"Jan","email":"jan@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[{"id":"01m5mj7ndsfx9z4r1fx0gqhgmq","name":"Boekhandel Amsterdam","status":"draft","role":"owner","is_current":true},{"id":"01m5mj7namw3ysnwzvha9rkbxf","name":"Fietsenwinkel Utrecht Centrum","status":"draft","role":"owner","is_current":false},{"id":"01m5mj7nf06ed40b0gc2d6qkm2","name":"Kaaswinkel Gouda","status":"draft","role":"owner","is_current":false}],"destination":"workspace"}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

@@ -89,6 +89,14 @@ class OpenApiCoverageTest extends TestCase
                     "{$label}: x-access does not match the route's middleware",
                 );
 
+                $permission = collect($route->gatherMiddleware())
+                    ->first(fn ($m) => is_string($m) && str_starts_with($m, 'workspace.can:'));
+                $this->assertSame(
+                    $permission === null ? null : substr($permission, strlen('workspace.can:')),
+                    $operation['x-permission'] ?? null,
+                    "{$label}: x-permission does not match the route's workspace.can middleware",
+                );
+
                 foreach ($operation['responses'] as $status => $response) {
                     if (isset($response['$ref'])) {
                         $response = $components[basename($response['$ref'])] ?? [];

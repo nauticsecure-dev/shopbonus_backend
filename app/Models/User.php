@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OnboardingIntent;
+use App\Enums\PlatformRole;
 use App\Enums\UserStatus;
 use App\Notifications\ResetPasswordLink;
 use Carbon\CarbonImmutable;
@@ -37,6 +38,7 @@ use Laravel\Sanctum\TransientToken;
  * @property OnboardingIntent $onboarding_intent
  * @property string $locale
  * @property CarbonImmutable|null $last_login_at
+ * @property int|null $current_webshop_id
  */
 #[Fillable(['first_name', 'email', 'password', 'onboarding_intent', 'locale'])]
 #[Hidden(['id', 'password', 'remember_token'])]
@@ -73,6 +75,7 @@ class User extends Authenticatable implements HasLocalePreference
         'status' => 'active',
         'onboarding_intent' => 'consumer',
         'locale' => 'nl',
+        'current_webshop_id' => null,
     ];
 
     /**
@@ -123,6 +126,28 @@ class User extends Authenticatable implements HasLocalePreference
     public function isActive(): bool
     {
         return $this->status->canAuthenticate();
+    }
+
+    /** @return HasMany<WebshopMembership, $this> */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(WebshopMembership::class);
+    }
+
+    /** @return HasMany<PlatformRoleAssignment, $this> */
+    public function platformRoles(): HasMany
+    {
+        return $this->hasMany(PlatformRoleAssignment::class);
+    }
+
+    public function hasPlatformRole(PlatformRole $role): bool
+    {
+        return $this->platformRoles()->where('role', $role)->whereNull('revoked_at')->exists();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasPlatformRole(PlatformRole::SuperAdmin);
     }
 
     /** @return HasMany<LegalAcceptance, $this> */

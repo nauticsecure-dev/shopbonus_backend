@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,7 +41,18 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
-            //
+            // Workspaces. {workspace} is a webshop public ID or `current`; the
+            // `workspace` middleware resolves it to the user's own membership.
+            Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
+            Route::post('workspaces', [WorkspaceController::class, 'store'])
+                ->middleware('throttle:workspace-create')->name('workspaces.store');
+
+            Route::prefix('workspaces/{workspace}')->middleware('workspace')->name('workspaces.')->group(function () {
+                Route::get('/', [WorkspaceController::class, 'show'])->name('show');
+                Route::patch('/', [WorkspaceController::class, 'update'])
+                    ->middleware('workspace.can:settings.manage')->name('update');
+                Route::post('select', [WorkspaceController::class, 'select'])->name('select');
+            });
         });
     });
 });

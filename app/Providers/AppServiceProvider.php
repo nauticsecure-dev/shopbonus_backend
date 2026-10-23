@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Errors\ErrorRecorder;
+use App\Services\Workspaces\CurrentWorkspace;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -19,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Singleton so its re-entrancy guard spans the whole request/job.
         $this->app->singleton(ErrorRecorder::class);
+
+        // One resolved workspace per request (and per queued job).
+        $this->app->scoped(CurrentWorkspace::class);
     }
 
     /**
@@ -37,6 +41,8 @@ class AppServiceProvider extends ServiceProvider
 
             return $this->app->isProduction() ? $rule->uncompromised() : $rule;
         });
+
+        RateLimiter::for('workspace-create', fn (Request $request) => Limit::perHour(10)->by('ws-create:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('api', function (Request $request) {
             $perMinute = (int) config('shopbonus.api.rate_limit_per_minute', 60);

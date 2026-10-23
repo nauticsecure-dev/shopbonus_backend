@@ -14,7 +14,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | API foundation (versioning, errors, request ID, health, log redaction, CORS, rate limit) | VERIFIED_WORKING | B01a, commit `a51a9b6`. Tests in `tests/Feature/Api/*`, `tests/Feature/Logging/*`, `tests/Unit/Logging/*`. |
 | Audit events / application error store | VERIFIED_WORKING | B01b. Tests in `tests/Feature/Audit/*`, `tests/Feature/Errors/*`. The PostgreSQL trigger variant is written but NOT RUN (no PG locally). |
 | Auth (signup/login/OTP/recovery), Sanctum SPA + bearer | VERIFIED_WORKING | B02. Tests in `tests/Feature/Identity/*`. Real captures in `docs/api/README.md` → Auth. Staging p95 NOT RUN. |
-| Workspaces / memberships / roles / isolation | MISSING | B03 |
+| Workspaces / memberships / roles / isolation | PARTIAL: core VERIFIED_WORKING (B03a); team, onboarding, verification and agreements MISSING (B03b–d) | `tests/Feature/Workspaces/*` |
 | Provider adapters, orders, webhooks | MISSING | B04–B05 |
 | Offers / voucher codes | MISSING | B06 |
 | Answer24 | MISSING | B07 |
@@ -36,6 +36,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B01a API foundation | `a51a9b6` | `php artisan test`: 28 passed / 196 assertions on SQLite, same on local MySQL; `pint --test` PASS; `phpstan` (level 6) 0 errors; `composer audit` no advisories | Real HTTP captures in `docs/api/README.md` |
 | 2026-10-23 | Claude (Opus 5.5) | B01b audit & error store | `088fb20` | `php artisan test`: 47 passed / 271 assertions on SQLite and on local MySQL; Pint PASS; PHPStan L6 0 errors; `migrate:rollback --step=2` + `migrate` on MySQL OK (trigger dropped and recreated) | Owner-requested `docs/CHECKLIST.md` added |
 | 2026-10-23 | Claude (Opus 5.5) | B02 identity | `c95e1e4` | `php artisan test`: 107 passed / 690+ assertions on SQLite and on local MySQL; Pint PASS; PHPStan L6 0 errors; `composer audit` clean; `migrate:rollback --step=4` + `migrate` OK; full real HTTP flow captured against MySQL + Redis sessions | Fortify + Sanctum SPA |
+| 2026-10-23 | Claude (Opus 5.5) | B03a workspace core | B03a commit | 125 tests / 880 assertions pass on SQLite and MySQL; Pint, PHPStan L6, composer audit clean; real captures against MySQL + Redis | Tenant isolation, permissions, switcher |
 
 ### B01a detail
 
@@ -57,6 +58,13 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 - **Session tests use a real cookie jar** (`tests/Concerns/BrowsesLikeSpa.php`). Laravel's test client otherwise neither sends cookies on JSON requests nor resets cached users, which made the first logout test pass for the wrong reason. The jar exposed a real bug: the current device was signed out after a password change, because the session hash was stored under the wrong key.
 - **Local timings** (2026-10-23, `php artisan serve` single process, MySQL + Redis, mail queued): signup n=5 p50 251 ms / p95 256 ms (dominated by bcrypt cost 12); `GET /api/v1/me` n=100 p50 12 ms / p95 14 ms. Card targets (staging p95 <400 ms / <250 ms) are **NOT RUN** on staging.
 - **Known gaps:** no MFA (B16); no email change flow (B08); no public bearer-token issuance; registration reveals existing emails (OPEN-SIGNUP-ENUMERATION); "deleted" accounts are not anonymised (D-013); validation messages are English only (NL in B15).
+
+### B03a detail
+
+- **Delivered:** migration `2026_10_23_150000_create_webshops_table` (`webshops`, `webshop_memberships` unique per user+webshop, `users.current_webshop_id`, `platform_role_assignments`); enums `WebshopStatus`, `MembershipRole`, `MembershipStatus`, `WorkspacePermission`, `PlatformRole`, `EcommercePlatform`; models `Webshop`, `WebshopMembership` (server-side effective permissions), `PlatformRoleAssignment`; `CurrentWorkspace` (request-scoped), middleware `ResolveWorkspace` (`workspace`) and `RequireWorkspacePermission` (`workspace.can:<perm>`); `WorkspaceService`; `WorkspaceController` (index/store/show/update/select); `/me` roles and memberships; `DestinationResolver` adds `workspace` and `admin`; console `shopbonus:grant-super-admin`; `WebshopFactory`.
+- **Isolation evidence:** `WorkspaceTest::test_other_tenants_webshop_is_indistinguishable_from_a_missing_one_and_audited` (same 404 body for foreign/unknown/garbage IDs; GET/PATCH/select all blocked; 5 `workspace.access_denied` audits). Removed/suspended memberships lose access immediately; `current` re-validated on each use; permission denials audited with `webshop_id`.
+- **Card mapping:** #2 acceptance "one owner creates five webshops" and "one user has different roles in different workspaces"; #3 F1 (create part), F13 (switching scope), F16–F17 (scoping, blocked + audited); #4 E2E 3 (`test_card4_e2e3_*`).
+- **Registry:** `OpenApiCoverageTest` now also checks `x-permission` against `workspace.can:` middleware.
 
 ## How to update
 

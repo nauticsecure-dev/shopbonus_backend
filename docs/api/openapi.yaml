@@ -26,6 +26,12 @@ servers:
 tags:
   - name: Health
     description: Liveness and readiness probes for load balancers and monitoring.
+  - name: Workspaces
+    description: |
+      Webshop workspaces and the caller's membership (Trello #2 §3-4, #16). Every workspace-scoped
+      route resolves `{workspace}` against the caller's own active memberships: a webshop the caller
+      does not belong to returns the same 404 as a non-existent one. `x-permission` names the
+      workspace permission a route needs; members without it get 403 `workspace_permission_denied`.
   - name: Auth
     description: |
       Registration, email verification, sessions and password recovery (Trello #4).
@@ -685,7 +691,177 @@ paths:
               example:
                 error: { status: 429, code: verification_resend_too_soon, message: Please wait before requesting a new code., request_id: 01a16918-63d9-7335-a770-2ce4d868bd98, details: { retry_after_seconds: 60 } }
 
+  /api/v1/workspaces:
+    get:
+      tags: [Workspaces]
+      operationId: listWorkspaces
+      summary: Workspaces the user is an active member of (switcher list)
+      description: |
+        Only active memberships. Each item carries the caller's own role and effective permissions.
+        Optional `search` filters by name (case-insensitive substring; wildcards escaped). Sorted by name.
+      x-access: verified
+      parameters:
+        - { name: search, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces?search=boek \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: Memberships.
+          content:
+            application/json:
+              example: {"data": [{"id": "01m5mj7ndsfx9z4r1fx0gqhgmq", "name": "Boekhandel Amsterdam", "platform": "shopify", "status": "draft", "commercially_active": false, "is_current": false, "membership": {"role": "owner", "permissions": ["dashboard.view", "orders.view", "orders.manage", "integrations.view", "integrations.manage", "offers.view", "offers.manage", "vouchers.view", "vouchers.manage", "team.view", "team.manage", "settings.view", "settings.manage", "finance.view", "finance.manage", "agreements.accept", "ownership.manage"], "joined_at": "2026-10-23T14:21:58+00:00"}, "created_at": "2026-10-23T14:21:58+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/EmailNotVerified' }
+    post:
+      tags: [Workspaces]
+      operationId: createWorkspace
+      summary: Create a draft webshop; the caller becomes its owner
+      description: |
+        Any verified user may create a webshop (a consumer can become an owner without a second
+        account). Only `name` and `platform` are read: `status`, `role`, `owner`, `created_by` and
+        similar fields are ignored. The webshop starts as `draft` and is not commercially active
+        until approved (B03d). The first workspace becomes the current one. At most
+        `WORKSPACES_MAX_UNAPPROVED_PER_USER` (default 10) unapproved webshops per user; 10 creations per hour.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 150 }
+                platform: { type: [string, 'null'], enum: [woocommerce, shopify, wix, bigcommerce, ecwid, lightspeed_c, lightspeed_e, prestashop, opencart, shopware6, magento, squarespace, mijnwebwinkel, ccv, other, null] }
+            example: { name: Fietsenwinkel Utrecht, platform: woocommerce }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"name":"Fietsenwinkel Utrecht","platform":"woocommerce"}'
+      responses:
+        '201':
+          description: Draft created. (Captured request also sent `status` and `role`; both were ignored.)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+              example: {"data": {"id": "01m5mj7namw3ysnwzvha9rkbxf", "name": "Fietsenwinkel Utrecht", "platform": "woocommerce", "status": "draft", "commercially_active": false, "is_current": true, "membership": {"role": "owner", "permissions": ["dashboard.view", "orders.view", "orders.manage", "integrations.view", "integrations.manage", "offers.view", "offers.manage", "vouchers.view", "vouchers.manage", "team.view", "team.manage", "settings.view", "settings.manage", "finance.view", "finance.manage", "agreements.accept", "ownership.manage"], "joined_at": "2026-10-23T14:21:58+00:00"}, "created_at": "2026-10-23T14:21:58+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/EmailNotVerified' }
+        '409':
+          description: Too many unapproved webshops (captured with the cap set to 3).
+          content:
+            application/json:
+              example: {"error": {"status": 409, "code": "workspace_draft_limit_reached", "message": "You can have at most 3 webshops awaiting approval.", "request_id": "01a16923-d5fa-7221-959b-4f0e672e5b04"}}
+        '422':
+          description: Invalid name or platform.
+          content:
+            application/json:
+              example: {"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a16923-d591-708d-ab15-c8ba0a877d9a", "fields": {"name": ["The name field must be at least 2 characters."], "platform": ["The selected platform is invalid."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Workspaces]
+      operationId: showWorkspace
+      summary: One workspace, as seen by the caller
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET http://localhost:8000/api/v1/workspaces/current \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: The workspace with the caller's role and permissions.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+              examples:
+                owner: { summary: As owner, value: {"data": {"id": "01m5mj7namw3ysnwzvha9rkbxf", "name": "Fietsenwinkel Utrecht", "platform": "woocommerce", "status": "draft", "commercially_active": false, "is_current": true, "membership": {"role": "owner", "permissions": ["dashboard.view", "orders.view", "orders.manage", "integrations.view", "integrations.manage", "offers.view", "offers.manage", "vouchers.view", "vouchers.manage", "team.view", "team.manage", "settings.view", "settings.manage", "finance.view", "finance.manage", "agreements.accept", "ownership.manage"], "joined_at": "2026-10-23T14:21:58+00:00"}, "created_at": "2026-10-23T14:21:58+00:00"}} }
+                employee: { summary: As employee with an extra orders.view grant, value: {"data": {"id": "01m5mj7namw3ysnwzvha9rkbxf", "name": "Fietsenwinkel Utrecht", "platform": "woocommerce", "status": "draft", "commercially_active": false, "is_current": false, "membership": {"role": "employee", "permissions": ["dashboard.view", "orders.view"], "joined_at": "2026-10-23T14:21:58+00:00"}, "created_at": "2026-10-23T14:21:58+00:00"}} }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspaceSuspended' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409': { $ref: '#/components/responses/NoCurrentWorkspace' }
+    patch:
+      tags: [Workspaces]
+      operationId: renameWorkspace
+      summary: Rename the webshop
+      description: Requires `settings.manage`.
+      x-access: verified
+      x-permission: settings.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 150 }
+            example: { name: Fietsenwinkel Utrecht Centrum }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PATCH http://localhost:8000/api/v1/workspaces/01m5mj7namw3ysnwzvha9rkbxf \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"name":"Fietsenwinkel Utrecht Centrum"}'
+      responses:
+        '200':
+          description: Renamed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+              example: {"data": {"id": "01m5mj7namw3ysnwzvha9rkbxf", "name": "Fietsenwinkel Utrecht Centrum", "platform": "woocommerce", "status": "draft", "commercially_active": false, "is_current": true, "membership": {"role": "owner", "permissions": ["dashboard.view", "orders.view", "orders.manage", "integrations.view", "integrations.manage", "offers.view", "offers.manage", "vouchers.view", "vouchers.manage", "team.view", "team.manage", "settings.view", "settings.manage", "finance.view", "finance.manage", "agreements.accept", "ownership.manage"], "joined_at": "2026-10-23T14:21:58+00:00"}, "created_at": "2026-10-23T14:21:58+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/select:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Workspaces]
+      operationId: selectWorkspace
+      summary: Make this the current workspace (server-side switcher)
+      description: |
+        Stores the selection on the user (all devices). `current` resolves to it on later requests and is
+        re-validated every time: if the membership ends, `current` returns 404. Audited as `workspace.switched`.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST http://localhost:8000/api/v1/workspaces/01m5mj7ndsfx9z4r1fx0gqhgmq/select \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: Selected.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Workspace' }
+              example: {"data": {"id": "01m5mj7ndsfx9z4r1fx0gqhgmq", "name": "Boekhandel Amsterdam", "platform": "shopify", "status": "draft", "commercially_active": false, "is_current": true, "membership": {"role": "owner", "permissions": ["dashboard.view", "orders.view", "orders.manage", "integrations.view", "integrations.manage", "offers.view", "offers.manage", "vouchers.view", "vouchers.manage", "team.view", "team.manage", "settings.view", "settings.manage", "finance.view", "finance.manage", "agreements.accept", "ownership.manage"], "joined_at": "2026-10-23T14:21:58+00:00"}, "created_at": "2026-10-23T14:21:58+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspaceSuspended' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
 components:
+  parameters:
+    Workspace:
+      name: workspace
+      in: path
+      required: true
+      description: Webshop public ID (ULID) or `current` for the caller's selected workspace.
+      schema: { type: string }
+      example: current
+
   securitySchemes:
     sessionCookie:
       type: apiKey
@@ -714,6 +890,26 @@ components:
       example: 43
 
   schemas:
+    Workspace:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id: { type: string, description: Public ULID. }
+            name: { type: string }
+            platform: { type: [string, 'null'] }
+            status: { type: string, enum: [draft, awaiting_verification, verification_failed, pending_review, approved, rejected, suspended] }
+            commercially_active: { type: boolean, description: Only `approved` webshops. }
+            is_current: { type: boolean }
+            membership:
+              type: object
+              properties:
+                role: { type: string, enum: [owner, manager, employee] }
+                permissions: { type: array, items: { type: string }, description: Effective permissions (role defaults + explicit grants). }
+                joined_at: { type: [string, 'null'], format: date-time }
+            created_at: { type: string, format: date-time }
+
     Me:
       type: object
       required: [data]
@@ -773,6 +969,36 @@ components:
               additionalProperties: true
 
   responses:
+    EmailNotVerified:
+      description: The account's email is not verified yet.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 403, "code": "email_not_verified", "message": "Verify your email address to continue.", "request_id": "01a16924-ab43-71d2-83cb-9fa430290df5"}}
+    WorkspaceNotFound:
+      description: No such webshop, or the caller is not an active member. Both cases look the same and are audited (`workspace.access_denied`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a16923-d803-7076-b994-877ecad6f7a3"}}
+    WorkspaceSuspended:
+      description: The caller is a member, but the webshop is suspended.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 403, "code": "workspace_suspended", "message": "This workspace is suspended.", "request_id": "01a16923-d8bc-710a-8381-3ffeeb3572e2"}}
+    WorkspacePermissionDenied:
+      description: The caller is a member but lacks the permission named in `details.required_permission`. Audited.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 403, "code": "workspace_permission_denied", "message": "You do not have permission to do this in this workspace.", "request_id": "01a16923-d7e5-7235-a3a5-67e8214491cd", "details": {"required_permission": "settings.manage"}}}
+    NoCurrentWorkspace:
+      description: '`current` was used but no workspace is selected.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: {"error": {"status": 409, "code": "no_current_workspace", "message": "No workspace is selected.", "request_id": "01a16923-d821-7077-9ca3-9413256a6571"}}
     CsrfMismatch:
       description: Missing/expired CSRF token or cross-site origin. Fetch /sanctum/csrf-cookie and retry.
       content:
