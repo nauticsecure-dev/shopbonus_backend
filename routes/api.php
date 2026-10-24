@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
+use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
+use App\Http\Controllers\Api\V1\Content\PublicContentController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
@@ -99,6 +101,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('webshops/{slug}/visit', [VisitController::class, 'visit'])->middleware('throttle:visits')->name('webshops.visit');
         Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
         Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
+        // Published CMS content (Trello #5).
+        Route::get('pages', [PublicContentController::class, 'pages'])->name('pages.index');
+        Route::get('pages/{locale}/{slug}', [PublicContentController::class, 'page'])->name('pages.show');
+        Route::get('faq', [PublicContentController::class, 'faq'])->name('faq.index');
+        Route::get('content-assets/{id}', [PublicContentController::class, 'asset'])->name('content-assets.show');
     });
 
     // Affiliate network postback: secret token in the URL, untrusted (records "tracked" only).
@@ -162,6 +169,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('reward-rules', [AdminAffiliateController::class, 'rules'])->name('reward-rules.index');
                 });
                 Route::get('disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
+                Route::prefix('cms')->name('cms.')->group(function () {
+                    Route::get('pages', [AdminCmsController::class, 'pages'])->name('pages.index');
+                    Route::get('pages/{page}', [AdminCmsController::class, 'showPage'])->name('pages.show');
+                    Route::get('pages/{page}/revisions', [AdminCmsController::class, 'revisions'])->name('pages.revisions');
+                    Route::get('pages/{page}/locales/{locale}/preview', [AdminCmsController::class, 'preview'])->name('pages.preview');
+                    Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
+                    Route::get('faq', [AdminCmsController::class, 'faq'])->name('faq.index');
+                });
                 Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
@@ -186,6 +201,18 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('reward-rules/{version}/deactivate', [AdminAffiliateController::class, 'deactivateRule'])->name('reward-rules.deactivate');
                     });
                     Route::post('disputes/{dispute}/status', [AdminDisputeController::class, 'status'])->name('disputes.status');
+                    Route::prefix('cms')->name('cms.')->group(function () {
+                        Route::post('pages', [AdminCmsController::class, 'storePage'])->name('pages.store');
+                        Route::put('pages/{page}/locales/{locale}', [AdminCmsController::class, 'saveDraft'])->name('pages.draft');
+                        Route::post('pages/{page}/locales/{locale}/publish', [AdminCmsController::class, 'publish'])->name('pages.publish');
+                        Route::post('pages/{page}/revisions/{revision}/restore', [AdminCmsController::class, 'restore'])->name('pages.restore');
+                        Route::post('pages/{page}/archive', [AdminCmsController::class, 'archive'])->name('pages.archive');
+                        Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
+                        Route::post('faq/categories', [AdminCmsController::class, 'storeFaqCategory'])->name('faq.categories.store');
+                        Route::post('faq/items', [AdminCmsController::class, 'storeFaqItem'])->name('faq.items.store');
+                        Route::put('faq/items/{item}', [AdminCmsController::class, 'updateFaqItem'])->name('faq.items.update');
+                        Route::post('faq/reorder', [AdminCmsController::class, 'reorderFaq'])->name('faq.reorder');
+                    });
                     Route::post('disputes/{dispute}/resolve', [AdminDisputeController::class, 'resolve'])->name('disputes.resolve');
                     Route::post('checkouts/{checkout}/refund', [AdminDisputeController::class, 'refundCheckout'])->name('checkouts.refund');
                 });

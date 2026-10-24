@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `e5df771` B14. Earlier: `2bfa953` B13, `1edd8d9` B12, `0dc12d6` CI PHP 8.4, `cd48d26` B11b, `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B15 CMS, legal pages and cookie consent API (Trello #5, #4, #18).
+**Active task:** B15a IN PROGRESS (work-in-progress commit, see "B15a resume point"). **Next:** B15 CMS, legal pages and cookie consent API (Trello #5, #4, #18).
 **Last completed task:** B14 banner campaigns backend.
 
 ## Tests actually executed (at `e5df771`)
@@ -71,6 +71,23 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B15a resume point (work-in-progress commit)
+
+Committed:
+- migration `2026_10_24_150000_create_cms_tables`; models `Cms*`, `Faq*`;
+- `Services\Cms\{RichText, CmsService, CmsCache}`; `LegalConsents` now prefers the published CMS legal versions;
+- `Admin\CmsController` (pages, drafts, preview, publish, revisions, restore, archive, translations, assets, FAQ) and `Content\PublicContentController` (`public/pages`, `public/pages/{locale}/{slug}`, `public/faq`, `public/content-assets/{id}`).
+
+Pint and PHPStan pass.
+
+Remaining:
+1. Write `tests/Feature/Cms/CmsTest.php` covering card #5 E2E 2–8:
+   - draft isolation; preview only for admins (no-store/noindex); publish + cache invalidation;
+   - stale draft 409 + restore as a new revision; legal publish needs version/date/approval and drives registration's required version;
+   - FAQ audience enforced; non-admin 403; XSS payloads 422 and fake image MIME 422.
+2. Capture docs, tick the checklist, commit + push.
+3. Then B15b (cookie consent + NL/EN API messages): expand the checklist first.
 
 ## Next agent's exact first actions
 

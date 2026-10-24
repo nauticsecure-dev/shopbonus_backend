@@ -7,14 +7,15 @@ use App\Enums\LegalDocumentType;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Cms\CmsService;
 use Illuminate\Support\Facades\Context;
 
 /**
  * Records legal acceptances and optional consents as immutable history.
  *
- * Current document versions come from config('shopbonus.legal') until the
- * CMS (B15) publishes versioned documents; this class is the single place to
- * switch that source.
+ * Current document versions come from the published CMS legal pages (B15),
+ * falling back to config('shopbonus.legal'); this class is the single place
+ * that decides.
  */
 class LegalConsents
 {
@@ -27,9 +28,10 @@ class LegalConsents
      */
     public function requiredVersions(): array
     {
+        // The published CMS legal version wins (B15); the env config is the fallback.
         $versions = [
-            LegalDocumentType::Terms->value => config('shopbonus.legal.terms_version'),
-            LegalDocumentType::Privacy->value => config('shopbonus.legal.privacy_version'),
+            LegalDocumentType::Terms->value => CmsService::publishedLegalVersion('terms') ?? config('shopbonus.legal.terms_version'),
+            LegalDocumentType::Privacy->value => CmsService::publishedLegalVersion('privacy') ?? config('shopbonus.legal.privacy_version'),
         ];
 
         foreach ($versions as $version) {

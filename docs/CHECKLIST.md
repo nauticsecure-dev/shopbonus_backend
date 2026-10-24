@@ -417,7 +417,26 @@ The live editor, renderer and embed script are frontend; the backend owns campai
 - [ ] **BLOCKED** AI Create / AI Insights (no AI provider configured; B17 decides the provider) and A/B + holdout experiments (**MOVED** to a follow-up slice B14b)
 - [ ] **BLOCKED** Card #25 E2E 1, 2, 9, 10: real storefront editor, AI designs, platform install checks (frontend/plugins, AI provider, store access)
 
-- [ ] B15 CMS/legal/cookie API
+## B15 CMS, legal pages, FAQ, cookie consent, NL/EN (Trello #5, #4, #18)
+
+Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowlist), never HTML, so stored content cannot carry scripts. Only Super Admins edit; publishing needs step-up.
+
+### B15a Pages, legal documents, FAQ
+
+- [ ] `cms_pages` (type privacy/terms/cookie_policy/help/faq/info/landing, stable key, audience, archived) + `cms_page_locales` (NL/EN slug unique per locale, private draft with optimistic revision, published revision) + immutable `cms_revisions` (content, SEO, legal version, effective date, approver)
+- [ ] Rich-text schema: doc → paragraph, heading 2–4, bullet/ordered list, list item, text with bold/italic/link (https or relative only), image (own CMS asset + alt), button; unknown nodes, marks, attributes and unsafe URLs → 422
+- [ ] Admin: list/search with translation status (missing, draft newer than published), create, save draft (409 on stale revision), preview (admin only, `no-store`, `noindex`), publish (step-up; legal pages need version, effective date and explicit approval), revisions, restore as a new revision, archive; audited
+- [ ] Public: `GET /public/pages/{locale}/{slug}` (published only, NL fallback flagged), `GET /public/pages?type=&locale=`; cached with version-bump invalidation
+- [ ] Legal: the published Terms/Privacy versions become the versions registration requires (`LegalConsents`), env config as fallback; existing acceptances unchanged
+- [ ] FAQ: categories (NL/EN names, order) and items (NL/EN question + rich-text answer, order, audience public/consumers/merchants, published flag); admin CRUD + reorder; public `GET /public/faq?locale=&search=` where audience restrictions are enforced server-side
+- [ ] CMS image assets (admin upload, PNG/JPEG/WebP, content-checked)
+- [ ] Tests: card #5 E2E 2, 3, 4, 5, 6, 7, 8
+- [ ] Docs with real captures
+
+### B15b Cookie consent and NL/EN API
+
+- [ ] Expand when started
+
 - [ ] B16 Super Admin APIs
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release
