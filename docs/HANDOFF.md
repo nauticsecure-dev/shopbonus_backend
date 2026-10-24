@@ -3,12 +3,12 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `B11A_SHA` B11a. Earlier: `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** `5fca11a` B11a. Earlier: `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
 **Active task:** none in progress. **Next:** B11b voucher details/code reveal, merchant redemption verification, disputes + compensation (Trello #20).
 **Last completed task:** B11a voucher checkout (wallet + Mollie test mode).
 
-## Tests actually executed (at `B11A_SHA`)
+## Tests actually executed (at `5fca11a`)
 
 | Command | Result |
 | --- | --- |

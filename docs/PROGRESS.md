@@ -51,7 +51,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B08b consumer profile, preferences, benefits, privacy | `c2dfb15` | MySQL 347 passed; SQLite 344 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (email change via logged mail code, session password throttle); 2 mutations caught; 1 bug found by capture and fixed | B08 complete |
 | 2026-10-23 | Claude (Opus 5.5) | B09 wallet ledger | `862d3d0` | MySQL 363 passed (incl. forked-process wallet races); SQLite 358 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures; lock-removal mutation caught by the race test | |
 | 2026-10-24 | Claude (Opus 5.5) | B10 affiliate tracking | `37edebf` | MySQL 374 passed; SQLite 369 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Daisycon via a local stub, TradeTracker via import; adapters NOT VERIFIED); 2 mutations caught | WIP checkpoint `93926ee` |
-| 2026-10-24 | Claude (Opus 5.5) | B11a voucher checkout + Mollie | `B11A_SHA` | MySQL 386 passed (incl. forked checkout races, 5 repeat runs); SQLite 379 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures with a local Mollie test-mode stub; mutation caught (after fixing a test that could not fail) | WIP `b175c83`; deadlock found + fixed |
+| 2026-10-24 | Claude (Opus 5.5) | B11a voucher checkout + Mollie | `5fca11a` | MySQL 386 passed (incl. forked checkout races, 5 repeat runs); SQLite 379 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures with a local Mollie test-mode stub; mutation caught (after fixing a test that could not fail) | WIP `b175c83`; deadlock found + fixed |
 
 ### B01a detail
 
