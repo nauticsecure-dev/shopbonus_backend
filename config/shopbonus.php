@@ -132,6 +132,12 @@ return [
         'reservation_ttl_minutes' => 30,
     ],
 
+    // Merchant notifications (Trello #8 §6).
+    'notifications' => [
+        'low_inventory_threshold' => (int) env('NOTIFY_LOW_INVENTORY_THRESHOLD', 20),
+        'expiry_warning_days' => 7,
+    ],
+
     // Merchant funding of sponsored rewards (Trello #24 §4).
     'funding' => [
         // New sponsored vouchers need funding for reward + fee (card #24 "stop new rewards when unfunded").

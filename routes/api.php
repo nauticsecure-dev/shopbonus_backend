@@ -33,9 +33,11 @@ use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
+use App\Http\Controllers\Api\V1\Workspaces\DashboardController;
 use App\Http\Controllers\Api\V1\Workspaces\FundingController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
+use App\Http\Controllers\Api\V1\Workspaces\OwnerDashboardController;
 use App\Http\Controllers\Api\V1\Workspaces\PublicProfileController;
 use App\Http\Controllers\Api\V1\Workspaces\VoucherOperationsController;
 use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
@@ -125,6 +127,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             Route::post('workspaces', [WorkspaceController::class, 'store'])
                 ->middleware('throttle:workspace-create')->name('workspaces.store');
             Route::get('integrations/platforms', [ConnectionController::class, 'platforms'])->name('integrations.platforms');
+            Route::get('owner/dashboard', [OwnerDashboardController::class, 'show'])->name('owner.dashboard');
 
             // Business lookup (suggestions only; never proof of ownership).
             Route::middleware('throttle:business-search')->group(function () {
@@ -317,6 +320,16 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::put('public-profile', [PublicProfileController::class, 'update'])->name('public-profile.update');
                     Route::post('public-profile/logo', [PublicProfileController::class, 'uploadLogo'])->name('public-profile.logo.store');
                     Route::delete('public-profile/logo', [PublicProfileController::class, 'deleteLogo'])->name('public-profile.logo.destroy');
+                });
+
+                // Merchant overview (Trello #8).
+                Route::middleware('workspace.can:dashboard.view')->group(function () {
+                    Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
+                    Route::get('analytics/claims', [DashboardController::class, 'claims'])->name('analytics.claims');
+                    Route::get('analytics/overview', [DashboardController::class, 'overview'])->name('analytics.overview');
+                    Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
+                    Route::post('notifications/read-all', [DashboardController::class, 'readAll'])->name('notifications.read-all');
+                    Route::post('notifications/{notification}/read', [DashboardController::class, 'read'])->name('notifications.read');
                 });
 
                 // Reward funding (Trello #24 §4).

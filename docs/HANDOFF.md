@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `1edd8d9` B12. Earlier: `0dc12d6` CI PHP 8.4, `cd48d26` B11b, `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B13 merchant analytics + owner combined dashboard (Trello #8, #17, #24 §6, #6, #3 §17).
+**Active task:** B13 IN PROGRESS (work-in-progress commit, see "B13 resume point"). **Next:** B13 merchant analytics + owner combined dashboard (Trello #8, #17, #24 §6, #6, #3 §17).
 **Last completed task:** B12 merchant funding (reward + 30% fee, top-ups, statements).
 
 ## Tests actually executed (at `1edd8d9`)
@@ -71,6 +71,20 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B13 resume point (work-in-progress commit)
+
+Committed:
+- migration `2026_10_24_130000_create_merchant_notifications_table`; model `MerchantNotification`;
+- `Services\Analytics\{MerchantAnalytics, MerchantNotifications}`;
+- `Workspaces\DashboardController` (dashboard, analytics/claims, analytics/overview, notifications, read, read-all; permission `dashboard.view`) and `Workspaces\OwnerDashboardController` (`GET /api/v1/owner/dashboard`);
+- `shopbonus:merchant-notifications` (every 15 min); config `shopbonus.notifications`.
+
+Pint and PHPStan pass.
+
+Remaining:
+1. Write `tests/Feature/Analytics/MerchantDashboardTest.php`: KPI definitions reconcile with the inventory; claims series in Europe/Amsterdam with zero days; switching webshops never mixes data; notifications dedupe, workspace-scoped, read/read-all; owner dashboard only owned shops.
+2. Capture docs, tick the checklist, PROGRESS/TASKS, commit + push.
 
 ## Next agent's exact first actions
 

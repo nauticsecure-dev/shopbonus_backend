@@ -29,3 +29,6 @@ Schedule::command('shopbonus:expire-checkouts')->everyFiveMinutes()->withoutOver
 
 // Merchant funding statements (drafts; Moneybird not connected).
 Schedule::command('shopbonus:prepare-invoices')->monthlyOn(1, '05:00')->withoutOverlapping();
+
+// Merchant notifications (Trello #8 §6).
+Schedule::command('shopbonus:merchant-notifications')->everyFifteenMinutes()->withoutOverlapping();
