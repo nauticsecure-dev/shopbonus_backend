@@ -57,7 +57,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-24 | Claude (Opus 5.5) | B11b vouchers detail, redemption, disputes | `cd48d26` | MySQL 391 passed; SQLite 384 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie refunds via the local stub); 2 mutations caught | WIP `3b58e93`; B11 complete |
 | 2026-10-24 | Claude (Opus 5.5) | B12 merchant funding | `1edd8d9` | MySQL 396 passed; SQLite 389 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie stub); mutation caught; first GitHub CI run: 8.4 jobs green, 8.3 failed → fixed (D-055) | WIP `f419888` |
 | 2026-10-24 | Claude (Opus 5.5) | B13 merchant dashboard + analytics | `2bfa953` | SQLite 395 + 7 skipped; MySQL 402 passed (a first MySQL run hit error 3675 from a 99%-full disk, passed on re-run); Pint, PHPStan L6, audit clean; rollback OK; real captures; mutation caught | WIP `716993e` |
-| 2026-10-24 | Claude (Opus 5.5) | B14 banner campaigns backend | `B14_SHA` | MySQL 410 passed; SQLite 403 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (embed simulated with Origin headers); mutation caught; capture found `draft_revision` null on create (fixed) | WIP `641e86d` |
+| 2026-10-24 | Claude (Opus 5.5) | B14 banner campaigns backend | `e5df771` | MySQL 410 passed; SQLite 403 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (embed simulated with Origin headers); mutation caught; capture found `draft_revision` null on create (fixed) | WIP `641e86d` |
 
 ### B01a detail
 
