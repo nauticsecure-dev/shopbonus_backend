@@ -386,14 +386,14 @@ Fee = 30% **on top of** the consumer reward (card #24: €10 + €3 = €13; €
 
 Every number comes from the authoritative tables (offers, codes, vouchers, claims, orders, funding, Answer24); definitions are returned with the data. Banner/funnel metrics depend on B14 and are reported as `not_available`, never zero.
 
-- [x] `GET /workspaces/{w}/dashboard` (dashboard.view): greeting name; KPIs active offers, available codes, issued vouchers, claimed vouchers (with definitions); offers table (inventory, issued, status; active and attention-needed first); unread notifications; funding balance (`B13_SHA`)
-- [x] `GET /workspaces/{w}/analytics/claims?days=7|30|90` or `from/to`: daily series in the business timezone with claims, issuance and redemptions kept separate; zero-filled days; chronological (`B13_SHA`)
-- [x] `GET /workspaces/{w}/analytics/overview?from&to`: paid orders, revenue, AOV, refunds, vouchers reserved/issued/redeemed, redemption rate, reward cost and fees (settled obligations), Answer24 funnel; `banner_metrics: not_available` (`B13_SHA`)
-- [x] `merchant_notifications` (type, severity, title, body, subject reference, deduplication key, read state) + scheduled `shopbonus:merchant-notifications` for low inventory, new claims (daily digest), offers nearing expiry, connector errors, low funding; configurable thresholds (`B13_SHA`)
-- [x] `GET /workspaces/{w}/notifications` (unread filter, unread count), `POST .../notifications/{id}/read`, `POST .../notifications/read-all` (`B13_SHA`)
-- [x] Owner combined dashboard `GET /api/v1/owner/dashboard`: per owned webshop KPIs and totals; only webshops the user owns (`B13_SHA`)
-- [x] Tests: card #8 KPI definitions reconcile with the inventory, chart timezone/zero days, switching webshops never mixes data, notifications dedupe and stay in their workspace; owner dashboard isolation (`B13_SHA`)
-- [x] Docs with real captures (`B13_SHA`)
+- [x] `GET /workspaces/{w}/dashboard` (dashboard.view): greeting name; KPIs active offers, available codes, issued vouchers, claimed vouchers (with definitions); offers table (inventory, issued, status; active and attention-needed first); unread notifications; funding balance (`2bfa953`)
+- [x] `GET /workspaces/{w}/analytics/claims?days=7|30|90` or `from/to`: daily series in the business timezone with claims, issuance and redemptions kept separate; zero-filled days; chronological (`2bfa953`)
+- [x] `GET /workspaces/{w}/analytics/overview?from&to`: paid orders, revenue, AOV, refunds, vouchers reserved/issued/redeemed, redemption rate, reward cost and fees (settled obligations), Answer24 funnel; `banner_metrics: not_available` (`2bfa953`)
+- [x] `merchant_notifications` (type, severity, title, body, subject reference, deduplication key, read state) + scheduled `shopbonus:merchant-notifications` for low inventory, new claims (daily digest), offers nearing expiry, connector errors, low funding; configurable thresholds (`2bfa953`)
+- [x] `GET /workspaces/{w}/notifications` (unread filter, unread count), `POST .../notifications/{id}/read`, `POST .../notifications/read-all` (`2bfa953`)
+- [x] Owner combined dashboard `GET /api/v1/owner/dashboard`: per owned webshop KPIs and totals; only webshops the user owns (`2bfa953`)
+- [x] Tests: card #8 KPI definitions reconcile with the inventory, chart timezone/zero days, switching webshops never mixes data, notifications dedupe and stay in their workspace; owner dashboard isolation (`2bfa953`)
+- [x] Docs with real captures (`2bfa953`)
 - [ ] **MOVED** Banner funnel metrics (impressions, CTR, attribution, A/B, holdout) → B14; Super Admin network dashboard → B16
 - [ ] **BLOCKED** Staging p95 for dashboard endpoints (no staging)
 
