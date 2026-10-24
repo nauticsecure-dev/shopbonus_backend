@@ -105,7 +105,7 @@ class AffiliateProcessor
             'network' => $connection->network, 'connection_id' => $connection->id, 'external_id' => $data->externalId,
             'program_id' => $program?->id, 'click_id' => $click?->id, 'user_id' => $click?->user_id, 'webshop_id' => $program?->webshop_id,
             'order_reference_hash' => $orderHash, 'order_amount_minor' => $data->orderAmountMinor, 'currency' => $data->currency,
-            'commission_minor' => $data->commissionMinor, 'network_status' => $data->networkStatus, 'status' => $status,
+            'commission_minor' => $data->commissionMinor, 'network_status' => $data->networkStatus, 'status' => $status, 'reward_status' => 'none',
             'review_reason' => $duplicate !== null ? 'duplicate' : $reason, 'duplicate_of_id' => $duplicate?->id,
             'transaction_at' => $data->transactionAt, 'network_updated_at' => $data->networkUpdatedAt, 'last_synced_at' => $trusted ? now() : null,
         ]);

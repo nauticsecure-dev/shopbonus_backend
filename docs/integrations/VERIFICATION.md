@@ -26,3 +26,16 @@ Every platform in `config/integrations.php` stays `verification: unverified` unt
 ## Platforms without an adapter
 
 Wix, BigCommerce, Ecwid, Lightspeed C/E, Squarespace, Mijnwebwinkel and CCV: see `blocked_reason` in `config/integrations.php`. Each needs its authentication mechanism verified (and usually API credentials) before an adapter is written.
+
+## Affiliate networks (B10)
+
+Neither adapter has been run against a live account. Before enabling production sync, verify each item with a real publisher account and record the date, evidence and SHA here.
+
+| Check | Daisycon (`DaisyconAdapter`) | TradeTracker (`TradeTrackerAdapter`) |
+| --- | --- | --- |
+| Auth works; bad credentials → `reauthentication_required` | NOT RUN (stub only) | NOT RUN: SOAP transport not shipped, connection is `limited` |
+| Program list paths/fields: `id`, `name`, `url`, `commission.type/value/restricted`, `cashback_allowed`, `tracking_url` | NOT VERIFIED | Export fields `ID`, `URL`, `info.commission.saleCommissionVariable/Fixed`, `info.policyCashbackStatus`, `info.trackingURL`: NOT VERIFIED |
+| Sub-ID parameter on the tracking link (`ws` / `r`) reaches conversions as `parts[].subid` / `reference` | NOT VERIFIED | NOT VERIFIED |
+| Transaction statuses mapped (`approved/pending/open/disapproved` → approved/pending/rejected; TradeTracker `accepted/pending/rejected/cancelled`) | NOT VERIFIED | NOT VERIFIED |
+| Cashback/sub-ID use permitted by each program's terms | Check per program | Check per program |
+| Postback format and source IPs | NOT VERIFIED | NOT VERIFIED |

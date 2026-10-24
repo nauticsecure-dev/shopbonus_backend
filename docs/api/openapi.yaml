@@ -69,6 +69,9 @@ tags:
   - name: Consumer
     description: |
       The signed-in consumer's own account (Trello #10, #18): profile, photo, email change, preferences, favourites, My Vouchers, dashboard, data rights.
+  - name: Affiliate
+    description: |
+      Affiliate network callbacks (Trello #19). Untrusted by design.
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -4624,6 +4627,660 @@ paths:
           content:
             application/json:
               example: {"error":{"status":404,"code":"not_found","message":"Transaction not found.","request_id":"01a16a6f-af92-704c-bcf6-ce5167d38dc4"}}
+
+  /api/v1/public/webshops/{slug}/visit:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Discovery]
+      operationId: visitWebshop
+      summary: "Visit webshop (affiliate redirect)"
+      description: |
+        Records a click and answers 302 to the selected network's own tracking link, with an opaque 20-character click reference as the network sub ID (Trello #19 "Tracked consumer journey"). A click never earns anything.
+        A signed-in, verified consumer (session or bearer) is attributed; an anonymous visit is tracked but not attributed. Without a usable affiliate program it redirects to the webshop's website and records nothing. Unlisted webshop: 404. Throttled (30/min per IP).
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i 'http://localhost:8000/api/v1/public/webshops/fietsen-utrecht/visit' -H 'Authorization: Bearer <consumer token>'
+      responses:
+        '302':
+          description: "Redirect (captured: through TradeTracker; `Location: https://tc.tradetracker.net/?c=1&m=2&a=3&r=<click reference>`)."
+          headers:
+            Location: { schema: { type: string, format: uri } }
+          content:
+            application/json:
+              example: {}
+        '404':
+          description: "Webshop not listed."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"webshop_not_found","message":"This webshop is not available.","request_id":"<id>"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/affiliate/postback/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string }, description: 'Secret postback token, shown once when the connection is created.' }
+    get:
+      tags: [Affiliate]
+      operationId: affiliatePostbackGet
+      summary: "Network conversion postback (GET form)"
+      description: |
+        Same as the POST form, with the network's fields as query parameters (many networks send postbacks as GET pings). Untrusted: it can only record `tracked`.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i 'http://localhost:8000/api/v1/affiliate/postback/<postback token>?ID=TT-1003&campaign[ID]=T1&reference=<click reference>&commission=2.00&transactionStatus=accepted'
+      responses:
+        '202':
+          description: "Recorded (same handling as POST; captured via POST)."
+          content:
+            application/json:
+              example: {"data":{"received":true,"status":"disputed"}}
+        '404':
+          description: "Unknown token."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Unknown postback endpoint.","request_id":"<id>"}}
+    post:
+      tags: [Affiliate]
+      operationId: affiliatePostback
+      summary: "Network conversion postback"
+      description: |
+        Untrusted conversion ping (GET or POST, network-format fields). It can record a new conversion as `tracked` (or `unmatched`/`disputed`), but it never approves, credits or changes a conversion that the network API or an import already reported. Rewards need a trusted sync or import. Unknown token: 404; unreadable payload: 422. Throttled like webhooks.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: The network's own postback fields (TradeTracker shown).
+            example: {"ID": "TT-1003", "campaign": {"ID": "T1"}, "reference": "<click reference>", "orderID": "ORD-3", "orderAmount": "79.95", "commission": "2.00", "transactionStatus": "accepted", "registrationDate": "2026-10-24T07:21:40Z", "assessmentDate": "2026-10-24T09:00:00Z"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/affiliate/postback/<postback token>' \
+              -H 'Content-Type: application/json' -d '{"ID":"TT-1003","campaign":{"ID":"T1"},...}'
+      responses:
+        '202':
+          description: "Recorded (captured: a second report of an already credited click \u2192 disputed duplicate)."
+          content:
+            application/json:
+              example: {"data":{"received":true,"status":"disputed"}}
+        '404':
+          description: "Unknown token."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Unknown postback endpoint.","request_id":"01a16cc9-6688-7352-bcfd-6f6d16fb0655"}}
+        '422':
+          description: "Unreadable payload."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cc9-6136-70a1-8b19-98be08e2e621","fields":{"publisher_id":["The publisher id field format is invalid."],"access_token":["The access token field is required."],"media_id":["The media id field is required."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/consumer/affiliate-activity:
+    get:
+      tags: [Consumer]
+      operationId: affiliateActivity
+      summary: "My tracked purchases"
+      description: |
+        The consumer's own attributed purchases with a plain-language status and the reward (amount, unit, status). Never network commission data; conversions in review are not listed.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/affiliate-activity' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Own activity."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pcjsb9az5awhgh6s41sbdd","webshop":"Fietsen Utrecht","purchased_at":"2026-10-24T07:21:40+00:00","order_amount_minor":7995,"currency":"EUR","status":"approved","explanation":"The purchase was confirmed.","reward":{"amount":320,"unit":"eur_credit","status":"credited"}}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /api/v1/admin/affiliate/connections:
+    get:
+      tags: [Admin]
+      operationId: affiliateConnections
+      summary: "Affiliate network connections"
+      description: |
+        Status `connected`, `limited`, `reauthentication_required`, `error` or `disabled`. Credentials are never returned. Adapters are NOT VERIFIED against live network accounts.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/affiliate/connections' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Connections."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."},{"id":"01m5pcjrhbp0asmpwtj19hjnzk","network":"tradetracker","name":"TradeTracker NL","status":"limited","last_synced_at":null,"last_error":"soap_transport_not_verified","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+    post:
+      tags: [Admin]
+      operationId: createAffiliateConnection
+      summary: "Connect an affiliate network"
+      description: |
+        Step-up required. Credentials are validated per network (Daisycon: `publisher_id`, `access_token`, `media_id`; TradeTracker: `customer_id`, `passphrase`, `site_id`), stored encrypted and tested immediately (401/403 from the network → `reauthentication_required`).
+                TradeTracker is `limited`: its SOAP transport is not shipped (not verifiable without an account); use the import. The postback URL is shown once. Captured with Daisycon pointed at a local stub that rejects the token. Adapters are NOT VERIFIED against live network accounts.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [network, name, credentials]
+              properties:
+                network: { type: string, enum: [daisycon, tradetracker] }
+                name: { type: string, maxLength: 120 }
+                credentials: { type: object }
+            example: {"network": "daisycon", "name": "Daisycon NL", "credentials": {"publisher_id": "381234", "access_token": "<oauth token>", "media_id": "55001"}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/connections' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"network":"daisycon","name":"Daisycon NL","credentials":{...}}'
+      responses:
+        '201':
+          description: "Created (captured: token rejected \u2192 reauthentication_required)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES).","postback_url":"http:\/\/127.0.0.1:8791\/api\/v1\/affiliate\/postback\/DJrIyfrq4IUdzJS5sQd7NhyRENcRYVCa0St2lAQw","postback_url_notice":"Shown once. Postbacks can only record conversions as tracked; rewards need the network API or an import."}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '422':
+          description: "Invalid credentials shape."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cc9-6136-70a1-8b19-98be08e2e621","fields":{"publisher_id":["The publisher id field format is invalid."],"access_token":["The access token field is required."],"media_id":["The media id field is required."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/connections/{connection}/test:
+    parameters:
+      - { name: connection, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: testAffiliateConnection
+      summary: "Re-test a connection"
+      description: |
+        Step-up required. Calls the network and updates the status.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/connections/{id}/test' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Status updated."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/connections/{connection}/disable:
+    parameters:
+      - { name: connection, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: disableAffiliateConnection
+      summary: "Disable a connection"
+      description: |
+        Step-up required. Disabled connections are not synced, imported or used for selection; their postbacks are refused. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/connections/{id}/disable' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Disabled."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"disabled","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/connections/{connection}/sync:
+    parameters:
+      - { name: connection, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: syncAffiliateConnection
+      summary: "Sync programs and conversions from the network"
+      description: |
+        Step-up required. Pulls programs and conversions (incrementally) and processes them idempotently. A failure updates the connection status and never touches wallets. Adapters are NOT VERIFIED against live network accounts.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/connections/{id}/sync' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Result (captured: TradeTracker, transport not available \u2192 limited)."
+          content:
+            application/json:
+              example: {"data":{"programs":0,"transactions":0,"error":"TradeTracker sync is not available yet (SOAP transport not verified); use the import.","connection":{"id":"01m5pcjrhbp0asmpwtj19hjnzk","network":"tradetracker","name":"TradeTracker NL","status":"limited","last_synced_at":null,"last_error":"TradeTracker sync is not available yet (SOAP transport not verified); use the import.","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Connection disabled."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"not_in_review","message":"Only unmatched, disputed or tracked conversions need review.","request_id":"01a16cc9-67ba-7269-bb33-913f5f8c9735","details":{"status":"approved"}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/connections/{connection}/import:
+    parameters:
+      - { name: connection, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: importAffiliateData
+      summary: "Import the network's own program/conversion export"
+      description: |
+        Step-up required. Rows in the network's own format, normalised by the same adapter as the sync and processed as trusted. Per-row failures are listed in `rejected`; the other rows go through. Programs are auto-matched to a webshop only on its verified domain (B03c). Re-importing the same rows changes nothing (idempotent per network + conversion ID).
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                programs: { type: array, maxItems: 2000, items: { type: object } }
+                transactions: { type: array, maxItems: 5000, items: { type: object } }
+            example: {"transactions": [{"ID": "TT-1001", "campaign": {"ID": "T1"}, "reference": "<click reference>", "orderID": "ORD-1", "orderAmount": "79.95", "commission": "6.40", "transactionStatus": "pending", "registrationDate": "2026-10-24T07:21:26Z"}]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/connections/{id}/import' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"transactions":[...]}'
+      responses:
+        '200':
+          description: "Imported (captured: two pending conversions, one without a click reference)."
+          content:
+            application/json:
+              example: {"data":{"programs":0,"transactions":2,"rejected":[]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/programs:
+    get:
+      tags: [Admin]
+      operationId: affiliatePrograms
+      summary: "Merchant programs"
+      description: |
+        Programs per network with commission (type, value in basis points or minor units, category restriction), cashback permission and matched webshop.
+      x-access: admin
+      parameters:
+        - { name: unmatched, in: query, required: false, schema: { type: boolean } }
+        - { name: webshop, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/affiliate/programs' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Programs."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pcjrwbh2tssdty9kg3nsx5","network":"daisycon","external_id":"P1","name":"Fietsen Utrecht","domain":"www.fietsen-utrecht.nl","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","active":true,"commission":{"type":"percentage","value":600,"currency":"EUR","category_restricted":false},"cashback_allowed":true},{"id":"01m5pcjryx25vs5fc4g1rn3wx5","network":"tradetracker","external_id":"T1","name":"Fietsen Utrecht","domain":"fietsen-utrecht.nl","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","active":true,"commission":{"type":"percentage","value":800,"currency":"EUR","category_restricted":false},"cashback_allowed":true}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+
+  /api/v1/admin/affiliate/programs/{program}:
+    parameters:
+      - { name: program, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [Admin]
+      operationId: updateAffiliateProgram
+      summary: "Match a program to a webshop / set cashback permission"
+      description: |
+        Step-up required. Re-runs the selection for the webshop. Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                webshop_id: { type: string, nullable: true }
+                cashback_allowed: { type: boolean }
+            example: {"cashback_allowed": false}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PATCH 'http://localhost:8000/api/v1/admin/affiliate/programs/{id}' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"cashback_allowed":false}'
+      responses:
+        '200':
+          description: "Updated."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pcjrwbh2tssdty9kg3nsx5","network":"daisycon","external_id":"P1","name":"Fietsen Utrecht","domain":"www.fietsen-utrecht.nl","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","active":true,"commission":{"type":"percentage","value":600,"currency":"EUR","category_restricted":false},"cashback_allowed":false}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/webshops/{webshop}/selections:
+    parameters:
+      - { name: webshop, in: path, required: true, schema: { type: string }, description: Webshop public ID. }
+    get:
+      tags: [Admin]
+      operationId: affiliateSelections
+      summary: "Network selection decisions"
+      description: |
+        Latest 20 decisions with candidates, expected commission on the reference basket, method (`best_comparable`, `single`, `fallback`, `none`), limitation and rule version.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/affiliate/webshops/{id}/selections' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Decisions."
+          content:
+            application/json:
+              example: {"data":[{"program_id":"01m5pcjryx25vs5fc4g1rn3wx5","method":"single","limitation":null,"candidates":[{"network":"tradetracker","program":"01m5pcjryx25vs5fc4g1rn3wx5","currency":"EUR","commission_type":"percentage","commission_value":800,"category_restricted":false,"expected_commission_minor":400}],"rule_version":"2026-10-23.1","at":"2026-10-24 07:21:40"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Admin]
+      operationId: runAffiliateSelection
+      summary: "Run the network selection now"
+      description: |
+        Step-up required. Only active, cashback-permitted programs on usable connections compete. Highest expected commission wins only when comparable; a category-restricted rate or a currency difference means the configured fallback network, with the limitation recorded. Captured: Daisycon needs reauthentication, so TradeTracker is the only candidate (`single`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/webshops/{id}/selections' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Decision."
+          content:
+            application/json:
+              example: {"data":{"program_id":"01m5pcjryx25vs5fc4g1rn3wx5","method":"single","limitation":null,"candidates":[{"network":"tradetracker","program":"01m5pcjryx25vs5fc4g1rn3wx5","currency":"EUR","commission_type":"percentage","commission_value":800,"category_restricted":false,"expected_commission_minor":400}],"rule_version":"2026-10-23.1","at":"2026-10-24 07:21:40"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/transactions:
+    get:
+      tags: [Admin]
+      operationId: affiliateTransactions
+      summary: "Conversions and reconciliation"
+      description: |
+        Newest first, with network status, review reason, duplicate link and reward status kept apart from the network status; `totals` per status (count, commission).
+      x-access: admin
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [tracked, pending, approved, rejected, reversed, unmatched, disputed] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/affiliate/transactions?status=disputed' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Conversions."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pcjskennn0zwmtpvm5qs8z","network":"tradetracker","external_id":"TT-1003","status":"disputed","network_status":"approved","review_reason":"duplicate","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":true,"order_amount_minor":7995,"commission_minor":200,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":"01m5pcjsb9az5awhgh6s41sbdd","transaction_at":"2026-10-24T07:21:40+00:00"},{"id":"01m5pcjsbzb23dsxwhh87mr70e","network":"tradetracker","external_id":"TT-1002","status":"unmatched","network_status":"pending","review_reason":"no_click_reference","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":false,"order_amount_minor":7995,"commission_minor":320,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"},{"id":"01m5pcjsb9az5awhgh6s41sbdd","network":"tradetracker","external_id":"TT-1001","status":"approved","network_status":"approved","review_reason":null,"webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":true,"order_amount_minor":7995,"commission_minor":640,"currency":"EUR","reward":{"status":"credited","amount":320,"unit":"eur_credit","rule_version":1},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":50,"total":3},"totals":{"approved":{"count":1,"commission_minor":640},"disputed":{"count":1,"commission_minor":200},"unmatched":{"count":1,"commission_minor":320}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+
+  /api/v1/admin/affiliate/transactions/{transaction}:
+    parameters:
+      - { name: transaction, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Admin]
+      operationId: affiliateTransaction
+      summary: "One conversion with its history"
+      description: |
+        Includes the append-only reconciliation events (source, from/to status, network status, note).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/affiliate/transactions/{id}' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Conversion."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pcjsb9az5awhgh6s41sbdd","network":"tradetracker","external_id":"TT-1001","status":"approved","network_status":"approved","review_reason":null,"webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":true,"order_amount_minor":7995,"commission_minor":640,"currency":"EUR","reward":{"status":"credited","amount":320,"unit":"eur_credit","rule_version":1},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00","events":[{"source":"import","from":null,"to":"pending","network_status":"pending","note":null,"at":"2026-10-24T07:21:40+00:00"},{"source":"import","from":"pending","to":"approved","network_status":"approved","note":null,"at":"2026-10-24T07:21:40+00:00"}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/affiliate/transactions/{transaction}/resolve:
+    parameters:
+      - { name: transaction, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: resolveAffiliateTransaction
+      summary: "Resolve a conversion in review"
+      description: |
+        Step-up required; a note is mandatory. `link_click` attaches an attributable click of the same webshop (then rewards follow the rules), `accept` releases a disputed one (e.g. above the review threshold), `reject` closes it with no reward. Only `unmatched`, `disputed` or `tracked` conversions (409 otherwise). Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, note]
+              properties:
+                action: { type: string, enum: [link_click, accept, reject] }
+                click_reference: { type: string, description: Required for link_click. }
+                note: { type: string, maxLength: 255 }
+            example: {"action": "reject", "note": "No click reference; customer not identifiable"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/transactions/{id}/resolve' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"action":"reject","note":"..."}'
+      responses:
+        '200':
+          description: "Resolved."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pcjsbzb23dsxwhh87mr70e","network":"tradetracker","external_id":"TT-1002","status":"rejected","network_status":"pending","review_reason":"resolved:reject","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":false,"order_amount_minor":7995,"commission_minor":320,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not in review."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"not_in_review","message":"Only unmatched, disputed or tracked conversions need review.","request_id":"01a16cc9-67ba-7269-bb33-913f5f8c9735","details":{"status":"approved"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/reward-rules:
+    get:
+      tags: [Admin]
+      operationId: affiliateRewardRules
+      summary: "Reward rules"
+      description: |
+        All versions and the version currently in force (`current`, null = no rewards).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/affiliate/reward-rules' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Rules."
+          content:
+            application/json:
+              example: {"data":[{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}],"current":1}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+    post:
+      tags: [Admin]
+      operationId: createAffiliateRewardRule
+      summary: "Create a reward rule version"
+      description: |
+        Step-up required. Reward = commission × `share_bps` / 10 000, rounded down, at least `min_commission_minor` commission, at most `max_reward_minor`; rewards above `review_above_minor` wait for an admin. The newest active version in its validity window applies. With no rule nothing is rewarded. Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [unit, share_bps]
+              properties:
+                unit: { type: string, enum: [eur_credit, points] }
+                share_bps: { type: integer, minimum: 1, maximum: 10000 }
+                min_commission_minor: { type: integer, minimum: 0 }
+                max_reward_minor: { type: integer, nullable: true }
+                review_above_minor: { type: integer, nullable: true }
+                starts_at: { type: string, format: date-time, nullable: true }
+                ends_at: { type: string, format: date-time, nullable: true }
+            example: {"unit": "eur_credit", "share_bps": 5000, "min_commission_minor": 50, "max_reward_minor": 2500, "review_above_minor": 5000}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/reward-rules' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"unit":"eur_credit","share_bps":5000}'
+      responses:
+        '201':
+          description: "Created."
+          content:
+            application/json:
+              example: {"data":{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/affiliate/reward-rules/{version}/deactivate:
+    parameters:
+      - { name: version, in: path, required: true, schema: { type: integer } }
+    post:
+      tags: [Admin]
+      operationId: deactivateAffiliateRewardRule
+      summary: "Deactivate a reward rule version"
+      description: |
+        Step-up required. Already granted rewards are unaffected. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/affiliate/reward-rules/1/deactivate' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Deactivated."
+          content:
+            application/json:
+              example: {"data":{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":false}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
 components:
   parameters:

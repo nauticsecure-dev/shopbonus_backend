@@ -36,7 +36,7 @@ class AffiliateSync
             $programs = $adapter->fetchPrograms($connection);
             $transactions = $adapter->fetchTransactions($connection, $connection->last_synced_at?->subDays(7));
         } catch (Throwable $e) {
-            $error = mb_substr(class_basename($e).': '.$e->getMessage(), 0, 255);
+            $error = mb_substr($e->getMessage(), 0, 255);
             $connection->forceFill(['status' => $connection->status === 'disabled' ? 'disabled' : ($connection->network === 'tradetracker' ? 'limited' : 'error'), 'last_error' => $error])->save();
             $this->audit->recordSafely('affiliate.sync_failed', category: AuditCategory::Integration, resource: $connection, metadata: ['error' => $error]);
 

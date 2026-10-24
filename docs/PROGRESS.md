@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08 and B09 (wallet) are done; B10 onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B10 are done (B10 adapters NOT VERIFIED live); B11 onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -21,7 +21,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Answer24 | VERIFIED_WORKING on the Shopbonus side (B07a+B07b): eligibility, grouping, cancellation, outbox, signed inbound channel, handoff → reserved code + single-use claim, consumer claim, reminder slots, dispatcher. Outbound dispatch disabled by default; real Answer24 NOT VERIFIED (no API) | `tests/Feature/Answer24/*` |
 | Consumer profile/discovery | VERIFIED_WORKING (B08a discovery, B08b profile/email change/preferences/favourites/My Vouchers/dashboard/privacy requests); wallet in dashboard waits for B09 | `tests/Feature/Discovery/*`, `tests/Feature/Consumer/*` |
 | Wallet ledgers | VERIFIED_WORKING (B09): central consumer wallet, append-only ledger, lots/expiry, reservations, pending, reversal policy, reconcile; merchant funding kind reserved for B12 | `tests/Feature/Wallet/*` |
-| Affiliate (Daisycon/TradeTracker) | MISSING; credit timing BLOCKED on OPEN-AFFILIATE-CREDIT-TIMING | B10 |
+| Affiliate (Daisycon/TradeTracker) | PARTIAL: framework, selection, clicks, idempotent processing, rewards, admin review VERIFIED_WORKING against fixtures (B10); live networks NOT VERIFIED; TradeTracker transport missing | `tests/Feature/Affiliate/*` |
 | Mollie checkout, merchant funding, Moneybird | MISSING; live money BLOCKED on OPEN-FINANCIAL-LEGAL | B11–B12 |
 | Analytics, banners, CMS, admin, AI support | MISSING | B13–B17 |
 | CI | PARTIAL | `.github/workflows/ci.yml` written but NOT RUN: no git remote configured. |
@@ -50,6 +50,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B08a public discovery + `/docs` viewer | `4c4e26c` | MySQL 335 passed; SQLite 332 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures incl. multipart logo upload and binary logo; 2 mutations caught | |
 | 2026-10-23 | Claude (Opus 5.5) | B08b consumer profile, preferences, benefits, privacy | `c2dfb15` | MySQL 347 passed; SQLite 344 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (email change via logged mail code, session password throttle); 2 mutations caught; 1 bug found by capture and fixed | B08 complete |
 | 2026-10-23 | Claude (Opus 5.5) | B09 wallet ledger | `862d3d0` | MySQL 363 passed (incl. forked-process wallet races); SQLite 358 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures; lock-removal mutation caught by the race test | |
+| 2026-10-24 | Claude (Opus 5.5) | B10 affiliate tracking | `B10_SHA` | MySQL 374 passed; SQLite 369 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Daisycon via a local stub, TradeTracker via import; adapters NOT VERIFIED); 2 mutations caught | WIP checkpoint `93926ee` |
 
 ### B01a detail
 
@@ -134,6 +135,11 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 
 - **Delivered:** migration `2026_10_23_270000_create_wallet_tables` (`wallets`, `wallet_ledger_entries` + append-only triggers, `wallet_credit_lots`, `wallet_reservations`, `wallet_pending_credits`, `wallet_reconciliation_flags`); enums `WalletUnit`, `WalletKind`, `LedgerEntryType`; `Services\Wallet\WalletService`; commands `shopbonus:wallet-expire` (every 5 min) and `shopbonus:wallet-reconcile` (nightly); `Consumer\WalletController`; dashboard wallet; test helper `Tests\Concerns\RacesProcesses`.
 - **Card mapping:** #19 E2E 8 → `ConcurrentWalletTest` (MySQL, forked) + `WalletServiceTest`; #23 test 7 (simultaneous wallet-only purchases debit once) → `test_two_simultaneous_requests_with_the_same_key_debit_once`; #10 E2E 8 → `WalletApiTest`. #19 E2E 1–7 and 9 belong to B10/B16.
+
+### B10 detail
+
+- **Delivered:** migration `2026_10_23_280000_create_affiliate_tables`; `app/Affiliate/*` (contract, `DaisyconAdapter`, `TradeTrackerAdapter`, registry, DTOs); `Services\Affiliate\{ProgramSelector, AffiliateProcessor, AffiliateSync}`; `Affiliate\{Visit,Postback}Controller`, `Consumer\AffiliateActivityController`, `Admin\AffiliateController`; config `shopbonus.affiliate`.
+- **Card mapping:** #19 E2E 2 → `test_card19_e2e2_*`; E2E 3 → `test_card19_e2e3_*`; E2E 4 → `test_card19_e2e4_*` (fixtures); E2E 5 → `test_card19_e2e5_*`; E2E 6 → `test_card19_e2e4_and_e2e6_*`; E2E 7 → `test_card19_e2e7_*`; E2E 9 → `test_card19_e2e9_*` + admin guard test; #23 test 6 → `test_card23_test6_*`. E2E 1 (live connect) and real provider data: BLOCKED.
 
 ## How to update
 

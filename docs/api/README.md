@@ -4059,6 +4059,314 @@ Content-Type: application/json
 
 ---
 
+## Affiliate tracking and rewards (B10, Trello #19, #23, #24)
+
+Captured 2026-10-24 against local MySQL. **The Daisycon and TradeTracker adapters are NOT VERIFIED.** There are no network accounts, so:
+- Daisycon was pointed at a local stub that rejects every token;
+- TradeTracker data came through the admin import, in TradeTracker's export field names.
+
+Admin calls ran in a real browser session as a Super Admin, after `POST /user/confirm-password` (step-up). The consumer is Anna, using a bearer token. Reward rule: 50% of commission as `eur_credit`, at most €25, with admin review above €50.
+
+Credit timing is the owner's safe default (`AFFILIATE_CREDIT_TIMING=on_network_approval`): a reward is pending until the network approves. `on_validated_attribution` (card #23 instant credit) exists and is tested, but is off.
+
+**Invalid credentials → 422**
+
+`POST /api/v1/admin/affiliate/connections {"network":"daisycon","name":"Daisycon NL","credentials":{"publisher_id":"abc"}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16cc9-6136-70a1-8b19-98be08e2e621
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cc9-6136-70a1-8b19-98be08e2e621","fields":{"publisher_id":["The publisher id field format is invalid."],"access_token":["The access token field is required."],"media_id":["The media id field is required."]}}}
+```
+
+**Connect Daisycon (stub rejects the token)**
+
+`POST /api/v1/admin/affiliate/connections {"network":"daisycon","name":"Daisycon NL","credentials":{"publisher_id":"381234","access_token":"<oauth token>","media_id":"55001"}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6197-7242-82cc-808298491375
+
+{"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES).","postback_url":"http:\/\/127.0.0.1:8791\/api\/v1\/affiliate\/postback\/DJrIyfrq4IUdzJS5sQd7NhyRENcRYVCa0St2lAQw","postback_url_notice":"Shown once. Postbacks can only record conversions as tracked; rewards need the network API or an import."}}
+```
+
+**Connect TradeTracker (limited: no verified transport)**
+
+`POST /api/v1/admin/affiliate/connections {"network":"tradetracker","name":"TradeTracker NL","credentials":{"customer_id":"98765","passphrase":"<passphrase>","site_id":"441"}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cc9-621c-72f6-87fd-d659d08c91d7
+
+{"data":{"id":"01m5pcjrhbp0asmpwtj19hjnzk","network":"tradetracker","name":"TradeTracker NL","status":"limited","last_synced_at":null,"last_error":"soap_transport_not_verified","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES).","postback_url":"http:\/\/127.0.0.1:8791\/api\/v1\/affiliate\/postback\/<postback token>","postback_url_notice":"Shown once. Postbacks can only record conversions as tracked; rewards need the network API or an import."}}
+```
+
+**Reward rule**
+
+`POST /api/v1/admin/affiliate/reward-rules {"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cc9-62dc-7231-b110-76f2dd128de0
+
+{"data":{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}}
+```
+
+**Import TradeTracker programs (auto-matched on the verified domain)**
+
+`POST /api/v1/admin/affiliate/connections/01m5pcjrhbp0asmpwtj19hjnzk/import {"programs":[{"ID":"T1","name":"Fietsen Utrecht","URL":"https://fietsen-utrecht.nl","info":{"assignmentStatus":"accepted","policyCashbackStatus":true,"commission":{"saleCommissionVariable":"8","categoryRestricted":false},"trackingURL":"https://tc.tradetracker.net/?c=1&m=2&a=3"}}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-63d2-7137-a116-f234b080614b
+
+{"data":{"programs":1,"transactions":0,"rejected":[]}}
+```
+
+**Programs**
+
+`GET /api/v1/admin/affiliate/programs    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6424-7001-bb52-081562c0b8e8
+
+{"data":[{"id":"01m5pcjrwbh2tssdty9kg3nsx5","network":"daisycon","external_id":"P1","name":"Fietsen Utrecht","domain":"www.fietsen-utrecht.nl","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","active":true,"commission":{"type":"percentage","value":600,"currency":"EUR","category_restricted":false},"cashback_allowed":true},{"id":"01m5pcjryx25vs5fc4g1rn3wx5","network":"tradetracker","external_id":"T1","name":"Fietsen Utrecht","domain":"fietsen-utrecht.nl","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","active":true,"commission":{"type":"percentage","value":800,"currency":"EUR","category_restricted":false},"cashback_allowed":true}]}
+```
+
+**Run selection**
+
+`POST /api/v1/admin/affiliate/webshops/01m5n6399tnc5h1vtfyf3gsgv4/selections    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6471-70fd-8c4b-36848102e382
+
+{"data":{"program_id":"01m5pcjryx25vs5fc4g1rn3wx5","method":"single","limitation":null,"candidates":[{"network":"tradetracker","program":"01m5pcjryx25vs5fc4g1rn3wx5","currency":"EUR","commission_type":"percentage","commission_value":800,"category_restricted":false,"expected_commission_minor":400}],"rule_version":"2026-10-23.1","at":"2026-10-24 07:21:40"}}
+```
+
+**Visit webshop as Anna** (`GET /api/v1/public/webshops/fietsen-utrecht/visit`, bearer token): headers only:
+
+```http
+HTTP/1.1 302 Found
+Location: https://tc.tradetracker.net/?c=1&m=2&a=3&r=<click reference>
+X-Request-Id: 01a16cc9-64e8-720d-a226-828790cde6f9
+```
+
+**Import two pending conversions (one with Anna’s click reference, one without)**
+
+`POST /api/v1/admin/affiliate/connections/01m5pcjrhbp0asmpwtj19hjnzk/import {"transactions":[{"ID":"TT-1001","campaign":{"ID":"T1"},"reference":"<click reference>","orderID":"ORD-1","orderAmount":"79.95","commission":"6.40","transactionStatus":"pending","registrationDate":"2026-10-24T07:21:40Z","assessmentDate":"2026-10-24T08:00:00Z"},{"ID":"TT-1002","campaign":{"ID":"T1"},"reference":"","orderID":"ORD-2","orderAmount":"79.95","commission":"3.20","transactionStatus":"pending","registrationDate":"2026-10-24T07:21:40Z","assessmentDate":"2026-10-24T08:00:00Z"}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6559-71e6-8e5e-b20bf8ef9704
+
+{"data":{"programs":0,"transactions":2,"rejected":[]}}
+```
+
+**Anna: tracked purchase, reward pending**
+
+`GET /api/v1/consumer/affiliate-activity`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-659d-7240-ac51-df6481dd2270
+
+{"data":[{"id":"01m5pcjsb9az5awhgh6s41sbdd","webshop":"Fietsen Utrecht","purchased_at":"2026-10-24T07:21:40+00:00","order_amount_minor":7995,"currency":"EUR","status":"pending","explanation":"The webshop has not confirmed this purchase yet. Your reward is pending and cannot be spent yet.","reward":{"amount":320,"unit":"eur_credit","status":"pending"}}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":1}}
+```
+
+**Anna: pending is not spendable**
+
+`GET /api/v1/consumer/wallet`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-65be-7392-9359-3f0da1b11ab0
+
+{"data":{"balances":{"eur_credit":{"unit":"eur_credit","available":0,"pending":320,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"withdrawable":false,"notice":"ShopBonus credit and points are not money: they cannot be withdrawn or transferred."}}
+```
+
+**Network approves → credited once**
+
+`POST /api/v1/admin/affiliate/connections/01m5pcjrhbp0asmpwtj19hjnzk/import {"transactions":[{"ID":"TT-1001","campaign":{"ID":"T1"},"reference":"<click reference>","orderID":"ORD-1","orderAmount":"79.95","commission":"6.40","transactionStatus":"accepted","registrationDate":"2026-10-24T07:21:40Z","assessmentDate":"2026-10-24T09:00:00Z"}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-660a-72bc-90f7-1f10303cc6a4
+
+{"data":{"programs":0,"transactions":1,"rejected":[]}}
+```
+
+**Anna: credited**
+
+`GET /api/v1/consumer/wallet`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6644-71eb-bcb4-e45c366ac6cd
+
+{"data":{"balances":{"eur_credit":{"unit":"eur_credit","available":320,"pending":0,"reserved":0,"total_earned":320,"total_spent":0,"total_expired":0,"next_expiry":{"amount":320,"at":"2027-10-24T07:21:40+00:00"}},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"withdrawable":false,"notice":"ShopBonus credit and points are not money: they cannot be withdrawn or transferred."}}
+```
+
+**Postback reporting the same click again → disputed duplicate, no reward**
+
+`POST /api/v1/affiliate/postback/<postback token> {"ID":"TT-1003","campaign":{"ID":"T1"},"reference":"<click reference>","orderID":"ORD-3","orderAmount":"79.95","commission":"2.00","transactionStatus":"accepted","registrationDate":"2026-10-24T07:21:40Z","assessmentDate":"2026-10-24T09:00:00Z"}`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6663-71f9-a62a-0082308061df
+
+{"data":{"received":true,"status":"disputed"}}
+```
+
+**Unknown postback token → 404**
+
+`POST /api/v1/affiliate/postback/wrong-token {}`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16cc9-6688-7352-bcfd-6f6d16fb0655
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Unknown postback endpoint.","request_id":"01a16cc9-6688-7352-bcfd-6f6d16fb0655"}}
+```
+
+**Conversions**
+
+`GET /api/v1/admin/affiliate/transactions    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-66e3-7312-ba56-3cc9bea594f4
+
+{"data":[{"id":"01m5pcjskennn0zwmtpvm5qs8z","network":"tradetracker","external_id":"TT-1003","status":"disputed","network_status":"approved","review_reason":"duplicate","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":true,"order_amount_minor":7995,"commission_minor":200,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":"01m5pcjsb9az5awhgh6s41sbdd","transaction_at":"2026-10-24T07:21:40+00:00"},{"id":"01m5pcjsbzb23dsxwhh87mr70e","network":"tradetracker","external_id":"TT-1002","status":"unmatched","network_status":"pending","review_reason":"no_click_reference","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":false,"order_amount_minor":7995,"commission_minor":320,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"},{"id":"01m5pcjsb9az5awhgh6s41sbdd","network":"tradetracker","external_id":"TT-1001","status":"approved","network_status":"approved","review_reason":null,"webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":true,"order_amount_minor":7995,"commission_minor":640,"currency":"EUR","reward":{"status":"credited","amount":320,"unit":"eur_credit","rule_version":1},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":50,"total":3},"totals":{"approved":{"count":1,"commission_minor":640},"disputed":{"count":1,"commission_minor":200},"unmatched":{"count":1,"commission_minor":320}}}
+```
+
+**One conversion with history**
+
+`GET /api/v1/admin/affiliate/transactions/01m5pcjsb9az5awhgh6s41sbdd    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6768-70d8-ae7d-e86c804a5464
+
+{"data":{"id":"01m5pcjsb9az5awhgh6s41sbdd","network":"tradetracker","external_id":"TT-1001","status":"approved","network_status":"approved","review_reason":null,"webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":true,"order_amount_minor":7995,"commission_minor":640,"currency":"EUR","reward":{"status":"credited","amount":320,"unit":"eur_credit","rule_version":1},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00","events":[{"source":"import","from":null,"to":"pending","network_status":"pending","note":null,"at":"2026-10-24T07:21:40+00:00"},{"source":"import","from":"pending","to":"approved","network_status":"approved","note":null,"at":"2026-10-24T07:21:40+00:00"}]}}
+```
+
+**Resolving one that is not in review → 409**
+
+`POST /api/v1/admin/affiliate/transactions/01m5pcjsb9az5awhgh6s41sbdd/resolve {"action":"accept","note":"x"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16cc9-67ba-7269-bb33-913f5f8c9735
+Content-Type: application/json
+
+{"error":{"status":409,"code":"not_in_review","message":"Only unmatched, disputed or tracked conversions need review.","request_id":"01a16cc9-67ba-7269-bb33-913f5f8c9735","details":{"status":"approved"}}}
+```
+
+**Reject the conversion without a click**
+
+`POST /api/v1/admin/affiliate/transactions/01m5pcjsbzb23dsxwhh87mr70e/resolve {"action":"reject","note":"No click reference; customer not identifiable"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-680c-728b-90a9-de7dc8bcf91d
+
+{"data":{"id":"01m5pcjsbzb23dsxwhh87mr70e","network":"tradetracker","external_id":"TT-1002","status":"rejected","network_status":"pending","review_reason":"resolved:reject","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":false,"order_amount_minor":7995,"commission_minor":320,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"}}
+```
+
+**TradeTracker sync → limited**
+
+`POST /api/v1/admin/affiliate/connections/01m5pcjrhbp0asmpwtj19hjnzk/sync    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6862-735c-948c-130e9eec22c4
+
+{"data":{"programs":0,"transactions":0,"error":"TradeTracker sync is not available yet (SOAP transport not verified); use the import.","connection":{"id":"01m5pcjrhbp0asmpwtj19hjnzk","network":"tradetracker","name":"TradeTracker NL","status":"limited","last_synced_at":null,"last_error":"TradeTracker sync is not available yet (SOAP transport not verified); use the import.","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}}
+```
+
+**Re-test Daisycon**
+
+`POST /api/v1/admin/affiliate/connections/01m5pcjrd3segw8wk28cdw83nq/test    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-68bb-73c0-8846-281702d55a34
+
+{"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+```
+
+**Withdraw cashback permission for a program**
+
+`PATCH /api/v1/admin/affiliate/programs/01m5pcjrwbh2tssdty9kg3nsx5 {"cashback_allowed":false}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6935-7319-b9ed-28b84b54e2ca
+
+{"data":{"id":"01m5pcjrwbh2tssdty9kg3nsx5","network":"daisycon","external_id":"P1","name":"Fietsen Utrecht","domain":"www.fietsen-utrecht.nl","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","active":true,"commission":{"type":"percentage","value":600,"currency":"EUR","category_restricted":false},"cashback_allowed":false}}
+```
+
+**Deactivate rule version 1**
+
+`POST /api/v1/admin/affiliate/reward-rules/1/deactivate    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-6996-72e4-8f20-2966b21dd961
+
+{"data":{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":false}}
+```
+
+**Disable a connection**
+
+`POST /api/v1/admin/affiliate/connections/01m5pcjrd3segw8wk28cdw83nq/disable    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cc9-69ec-70cd-a139-863ff729da6e
+
+{"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"disabled","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+```
+
+**Consumer → admin route: 403**
+
+`GET /api/v1/admin/affiliate/connections`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16cc9-6a37-7048-a6fc-67761beca117
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.
