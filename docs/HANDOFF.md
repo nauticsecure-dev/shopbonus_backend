@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `862d3d0` B09. Earlier: `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B10 affiliate tracking (Trello #19, #23, #24), with credit timing = safe default (pending until approved).
+**Active task:** B10 IN PROGRESS (work-in-progress commit, see "B10 resume point" below). **Next:** B10 affiliate tracking (Trello #19, #23, #24), with credit timing = safe default (pending until approved).
 **Last completed task:** B09 wallet ledger.
 
 ## Tests actually executed (at `862d3d0`)
@@ -67,6 +67,23 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B10 resume point (work-in-progress commit)
+
+Done and committed:
+- migration `2026_10_23_280000_create_affiliate_tables`, models `Affiliate*`;
+- `app/Affiliate/*` (contract, Daisycon and TradeTracker adapters NOT VERIFIED, registry, DTOs);
+- `Services\Affiliate\{ProgramSelector, AffiliateProcessor, AffiliateSync}`;
+- controllers `Affiliate\{Visit,Postback}Controller`, `Consumer\AffiliateActivityController`, `Admin\AffiliateController`;
+- routes, the `visits` limiter, and config `shopbonus.affiliate` (`AFFILIATE_CREDIT_TIMING`, default `on_network_approval`).
+
+Pint and PHPStan pass.
+
+Remaining for B10:
+1. Write `tests/Feature/Affiliate/AffiliateTest.php`: card #19 E2E 2 (selection, restricted not compared), 3 (visit redirect + click, no reward), 4 (fixture import normalises; unknown program/click → unmatched), 5 (replay + cross-network duplicate → disputed), 6 (pending → approved credits once), 7 (rejected → cancelled; reversed after spend → flagged, never negative), 9 (postback cannot approve; non-admin 403; step-up). Also card #23 test 6 with `AFFILIATE_CREDIT_TIMING=on_validated_attribution`, and a review threshold → disputed → admin accept.
+2. Run `php artisan test`: until step 3, the only expected failure is `OpenApiCoverageTest` (affiliate routes undocumented).
+3. Capture real responses (pattern: the scratchpad `capture_b09.sh`; admin calls need a session with password confirmation, see `slogin`/`sreq` in `caplib.sh` plus `POST /user/confirm-password`), generate the docs, and tick the B10 checklist.
+4. Update PROGRESS/TASKS/DECISIONS (D-052: credit timing switch + postback untrusted + auto-match on verified domain only) and commit.
 
 ## Next agent's exact first actions
 

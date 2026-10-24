@@ -311,7 +311,24 @@ Owner 2026-10-23: proceed with the safe defaults for OPEN-REWARD-UNITS and OPEN-
 - [ ] **MOVED** Admin wallet adjustment requests with password + email OTP step-up and four-eyes approval (B16; the service method `adjust()` exists)
 - [ ] **BLOCKED** Staging p95 < 250 ms for wallet reads (no staging)
 
-- [ ] B10 Affiliate integrations (credit timing decision required)
+## B10 Affiliate tracking and rewards (Trello #19, #23 "Instant affiliate credit", #24 §5)
+
+No Daisycon/TradeTracker credentials or sandbox: adapters map the networks' documented fields and are **NOT VERIFIED**. Credit timing follows the owner's safe default: `AFFILIATE_CREDIT_TIMING=on_network_approval`, so credit stays pending until the network approves. `on_validated_attribution` (card #23 instant credit) is implemented and tested, but off.
+
+- [ ] `affiliate_network_connections` (network, status connected/limited/reauthentication_required/error/disabled, encrypted credentials, postback token hash, last sync/error)
+- [ ] `affiliate_merchant_programs` (external ID, name, matched webshop, active, commission type/value/currency, category restriction, cashback permitted, tracking URL template)
+- [ ] `AffiliateNetworkAdapter` contract + Daisycon and TradeTracker adapters (program/transaction normalisation, tracking link with click reference, connection test); NOT VERIFIED
+- [ ] Network selection: only active, cashback-permitted, matched programs; compare expected commission on a reference basket only when comparable (no restricted-vs-unrestricted comparison); otherwise configured fallback; every decision recorded with candidates and rule version
+- [ ] `GET /api/v1/public/webshops/{slug}/visit`: records a click (consumer if signed in), short opaque click reference, redirect to the selected tracking URL; no points for a click; untracked fallback to the website
+- [ ] `affiliate_transactions` (unique per network + external ID; statuses tracked/pending/approved/rejected/reversed/unmatched/disputed; separate reward status) + append-only `affiliate_reconciliation_events`
+- [ ] Idempotent ingestion (sync, admin import of network exports, tokenised postback that can only create/keep pending), out-of-order safe, cross-network duplicate (same click or same order reference) → disputed, no reward
+- [ ] `affiliate_reward_rules` (versioned; unit, share of commission in basis points, minimum commission, cap, review threshold, validity window); no active rule → no reward
+- [ ] Rewards through `WalletService`: pending → confirmed once; rejected before credit → cancelled; reversed after credit → unspent part reversed, rest flagged (never negative); above review threshold → disputed
+- [ ] Admin (Super Admin; mutations need step-up): connections CRUD/test/sync/import, programs list + match, selection run + decisions, transactions list + resolve (link click, reject), reward rules
+- [ ] Consumer `GET /consumer/affiliate-activity` (own matched transactions, status explained, reward; never commission data)
+- [ ] Tests: card #19 E2E 2, 3, 4 (fixtures), 5, 6, 7, 9; card #23 test 6 (instant mode)
+- [ ] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated
+
 - [ ] B11 Voucher checkout/Mollie
 - [ ] B12 Merchant wallet/funding
 - [ ] B13 Merchant analytics

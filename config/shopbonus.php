@@ -132,6 +132,23 @@ return [
         'reservation_ttl_minutes' => 30,
     ],
 
+    // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
+    'affiliate' => [
+        // on_network_approval (owner's safe default): pending until the network approves.
+        // on_validated_attribution (card #23): credit immediately after attribution checks.
+        'credit_timing' => env('AFFILIATE_CREDIT_TIMING', 'on_network_approval'),
+        // Network used when programs cannot be compared reliably.
+        'fallback_network' => env('AFFILIATE_FALLBACK_NETWORK', 'daisycon'),
+        // Reference basket for comparing percentage against fixed commissions.
+        'reference_basket_minor' => 5000,
+        'selection_rule_version' => '2026-10-23.1',
+        // A conversion must cite a click from this many days back.
+        'attribution_window_days' => 30,
+        'networks' => [
+            'daisycon' => ['base_url' => env('DAISYCON_API_BASE_URL', 'https://services.daisycon.com')],
+        ],
+    ],
+
     // Public discovery (Trello #18). Category keys are stable API values; labels NL/EN.
     'discovery' => [
         'cache_ttl_seconds' => (int) env('DISCOVERY_CACHE_TTL_SECONDS', 60),

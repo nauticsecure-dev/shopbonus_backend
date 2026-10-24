@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
+use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
+use App\Http\Controllers\Api\V1\Affiliate\VisitController;
 use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
+use App\Http\Controllers\Api\V1\Consumer\AffiliateActivityController;
 use App\Http\Controllers\Api\V1\Consumer\BenefitsController;
 use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
 use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
@@ -81,9 +85,15 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('webshops', [PublicDiscoveryController::class, 'webshops'])->name('webshops.index');
         Route::get('webshops/{slug}', [PublicDiscoveryController::class, 'webshop'])->name('webshops.show');
         Route::get('webshops/{slug}/logo', [PublicDiscoveryController::class, 'logo'])->name('webshops.logo');
+        // Affiliate "Visit webshop": redirect through the selected network (Trello #19). Signed-in consumers are attributed.
+        Route::get('webshops/{slug}/visit', [VisitController::class, 'visit'])->middleware('throttle:visits')->name('webshops.visit');
         Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
         Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
     });
+
+    // Affiliate network postback: secret token in the URL, untrusted (records "tracked" only).
+    Route::match(['get', 'post'], 'affiliate/postback/{token}', [PostbackController::class, 'receive'])
+        ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('affiliate.postback');
 
     // Claim link preview (public; the token is the secret).
     Route::post('claims/preview', [ClaimController::class, 'preview'])->middleware('throttle:claims')->name('claims.preview');
@@ -118,6 +128,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('webshops/{webshop}', [AdminWebshopController::class, 'show'])->name('webshops.show');
                 Route::get('webshops/{webshop}/evidence/{file}', [AdminWebshopController::class, 'evidence'])->name('webshops.evidence');
                 Route::get('agreement-templates', [AdminAgreementTemplateController::class, 'index'])->name('agreement-templates.index');
+                Route::prefix('affiliate')->name('affiliate.')->group(function () {
+                    Route::get('connections', [AdminAffiliateController::class, 'connections'])->name('connections.index');
+                    Route::get('programs', [AdminAffiliateController::class, 'programs'])->name('programs.index');
+                    Route::get('webshops/{webshop}/selections', [AdminAffiliateController::class, 'selections'])->name('selections.index');
+                    Route::get('transactions', [AdminAffiliateController::class, 'transactions'])->name('transactions.index');
+                    Route::get('transactions/{transaction}', [AdminAffiliateController::class, 'showTransaction'])->name('transactions.show');
+                    Route::get('reward-rules', [AdminAffiliateController::class, 'rules'])->name('reward-rules.index');
+                });
 
                 Route::middleware('password.recent')->group(function () {
                     Route::post('webshops/{webshop}/approve', [AdminWebshopController::class, 'approve'])->name('webshops.approve');
@@ -127,6 +145,18 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('agreement-templates', [AdminAgreementTemplateController::class, 'store'])->name('agreement-templates.store');
                     Route::patch('agreement-templates/{template}', [AdminAgreementTemplateController::class, 'update'])->name('agreement-templates.update');
                     Route::post('agreement-templates/{template}/publish', [AdminAgreementTemplateController::class, 'publish'])->name('agreement-templates.publish');
+                    Route::prefix('affiliate')->name('affiliate.')->group(function () {
+                        Route::post('connections', [AdminAffiliateController::class, 'storeConnection'])->name('connections.store');
+                        Route::post('connections/{connection}/test', [AdminAffiliateController::class, 'testConnection'])->name('connections.test');
+                        Route::post('connections/{connection}/disable', [AdminAffiliateController::class, 'disableConnection'])->name('connections.disable');
+                        Route::post('connections/{connection}/sync', [AdminAffiliateController::class, 'sync'])->name('connections.sync');
+                        Route::post('connections/{connection}/import', [AdminAffiliateController::class, 'import'])->name('connections.import');
+                        Route::patch('programs/{program}', [AdminAffiliateController::class, 'updateProgram'])->name('programs.update');
+                        Route::post('webshops/{webshop}/selections', [AdminAffiliateController::class, 'select'])->name('selections.store');
+                        Route::post('transactions/{transaction}/resolve', [AdminAffiliateController::class, 'resolve'])->name('transactions.resolve');
+                        Route::post('reward-rules', [AdminAffiliateController::class, 'storeRule'])->name('reward-rules.store');
+                        Route::post('reward-rules/{version}/deactivate', [AdminAffiliateController::class, 'deactivateRule'])->name('reward-rules.deactivate');
+                    });
                 });
             });
 
@@ -153,6 +183,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::delete('favorites/{slug}', [PreferenceController::class, 'removeFavorite'])->name('favorites.destroy');
 
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
+                Route::get('affiliate-activity', [AffiliateActivityController::class, 'index'])->name('affiliate-activity.index');
                 Route::get('dashboard', [BenefitsController::class, 'dashboard'])->name('dashboard');
 
                 Route::get('wallet', [WalletController::class, 'show'])->name('wallet.show');
