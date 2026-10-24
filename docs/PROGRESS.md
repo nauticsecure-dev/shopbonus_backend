@@ -53,7 +53,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-24 | Claude (Opus 5.5) | B10 affiliate tracking | `37edebf` | MySQL 374 passed; SQLite 369 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Daisycon via a local stub, TradeTracker via import; adapters NOT VERIFIED); 2 mutations caught | WIP checkpoint `93926ee` |
 | 2026-10-24 | Claude (Opus 5.5) | B11a voucher checkout + Mollie | `5fca11a` | MySQL 386 passed (incl. forked checkout races, 5 repeat runs); SQLite 379 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures with a local Mollie test-mode stub; mutation caught (after fixing a test that could not fail) | WIP `b175c83`; deadlock found + fixed |
 | 2026-10-24 | Claude (Opus 5.5) | B11b vouchers detail, redemption, disputes | `cd48d26` | MySQL 391 passed; SQLite 384 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie refunds via the local stub); 2 mutations caught | WIP `3b58e93`; B11 complete |
-| 2026-10-24 | Claude (Opus 5.5) | B12 merchant funding | `B12_SHA` | MySQL 396 passed; SQLite 389 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie stub); mutation caught; first GitHub CI run: 8.4 jobs green, 8.3 failed → fixed (D-055) | WIP `f419888` |
+| 2026-10-24 | Claude (Opus 5.5) | B12 merchant funding | `1edd8d9` | MySQL 396 passed; SQLite 389 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie stub); mutation caught; first GitHub CI run: 8.4 jobs green, 8.3 failed → fixed (D-055) | WIP `f419888` |
 
 ### B01a detail
 
