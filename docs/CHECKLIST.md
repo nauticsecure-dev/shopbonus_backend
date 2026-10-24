@@ -437,14 +437,14 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 
 ### B15b Cookie consent and NL/EN API
 
-- [x] `cookie_policies`: version, status draft/published/retired, categories necessary/preferences/analytics/marketing with allowlisted trackers (name, provider, NL/EN purpose, retention), NL/EN banner texts, `requires_reconsent`; Super Admin create/edit draft/publish (step-up; previous published → retired); audited (`B15B_SHA`)
-- [x] Public `GET /public/cookie-policy?locale=`: current published policy in the locale (no policy → only necessary) (`B15B_SHA`)
-- [x] Append-only `cookie_consents` keyed by an opaque visitor consent ID (+ user when signed in): choices, policy version, action accept_all/reject_optional/customize/withdraw, hashed IP; necessary always on (`B15B_SHA`)
-- [x] Public `POST /public/cookie-consents` (only the current policy version, 409 otherwise; throttled) returns the consent ID and the trackers allowed to load; `GET /public/cookie-consents/{id}` with `needs_renewal` (`B15B_SHA`)
-- [x] Locale middleware: `Accept-Language` (nl/en) sets the API locale and `Content-Language`; `lang/nl/validation.php` and `lang/nl/auth.php` for the rules in use; requests without a preference keep English (`B15B_SHA`)
-- [x] Tests: card #5 E2E 9 (cookie lifecycle), E2E 1 backend part (NL/EN 422 messages) (`B15B_SHA`)
-- [x] Docs with real captures (`B15B_SHA`)
-- [x] Error envelope and domain messages pass through `__()`; `lang/nl.json` translates the generic messages and the consumer-facing domain messages (`B15B_SHA`)
+- [x] `cookie_policies`: version, status draft/published/retired, categories necessary/preferences/analytics/marketing with allowlisted trackers (name, provider, NL/EN purpose, retention), NL/EN banner texts, `requires_reconsent`; Super Admin create/edit draft/publish (step-up; previous published → retired); audited (`b2abb82`)
+- [x] Public `GET /public/cookie-policy?locale=`: current published policy in the locale (no policy → only necessary) (`b2abb82`)
+- [x] Append-only `cookie_consents` keyed by an opaque visitor consent ID (+ user when signed in): choices, policy version, action accept_all/reject_optional/customize/withdraw, hashed IP; necessary always on (`b2abb82`)
+- [x] Public `POST /public/cookie-consents` (only the current policy version, 409 otherwise; throttled) returns the consent ID and the trackers allowed to load; `GET /public/cookie-consents/{id}` with `needs_renewal` (`b2abb82`)
+- [x] Locale middleware: `Accept-Language` (nl/en) sets the API locale and `Content-Language`; `lang/nl/validation.php` and `lang/nl/auth.php` for the rules in use; requests without a preference keep English (`b2abb82`)
+- [x] Tests: card #5 E2E 9 (cookie lifecycle), E2E 1 backend part (NL/EN 422 messages) (`b2abb82`)
+- [x] Docs with real captures (`b2abb82`)
+- [x] Error envelope and domain messages pass through `__()`; `lang/nl.json` translates the generic messages and the consumer-facing domain messages (`b2abb82`)
 - [ ] **MOVED** Translating every remaining domain error message to NL (add keys to `lang/nl.json`; ongoing, owner/copywriter review)
 - [ ] **BLOCKED** Card #5 E2E 1 frontend part and E2E 10 staging p95 (frontend; no staging)
 
