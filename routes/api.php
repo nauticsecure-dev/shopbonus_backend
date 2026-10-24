@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
+use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
+use App\Http\Controllers\Api\V1\Content\CookieConsentController;
 use App\Http\Controllers\Api\V1\Content\PublicContentController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -106,6 +108,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('pages/{locale}/{slug}', [PublicContentController::class, 'page'])->name('pages.show');
         Route::get('faq', [PublicContentController::class, 'faq'])->name('faq.index');
         Route::get('content-assets/{id}', [PublicContentController::class, 'asset'])->name('content-assets.show');
+        // Cookie banner (Trello #5).
+        Route::get('cookie-policy', [CookieConsentController::class, 'policy'])->name('cookie-policy.show');
+        Route::post('cookie-consents', [CookieConsentController::class, 'store'])->middleware('throttle:claims')->name('cookie-consents.store');
+        Route::get('cookie-consents/{consentId}', [CookieConsentController::class, 'show'])->name('cookie-consents.show');
     });
 
     // Affiliate network postback: secret token in the URL, untrusted (records "tracked" only).
@@ -176,6 +182,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('pages/{page}/locales/{locale}/preview', [AdminCmsController::class, 'preview'])->name('pages.preview');
                     Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
                     Route::get('faq', [AdminCmsController::class, 'faq'])->name('faq.index');
+                    Route::get('cookie-policies', [AdminCookiePolicyController::class, 'index'])->name('cookie-policies.index');
+                    Route::get('cookie-consents/stats', [AdminCookiePolicyController::class, 'stats'])->name('cookie-consents.stats');
                 });
                 Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
@@ -212,6 +220,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('faq/items', [AdminCmsController::class, 'storeFaqItem'])->name('faq.items.store');
                         Route::put('faq/items/{item}', [AdminCmsController::class, 'updateFaqItem'])->name('faq.items.update');
                         Route::post('faq/reorder', [AdminCmsController::class, 'reorderFaq'])->name('faq.reorder');
+                        Route::post('cookie-policies', [AdminCookiePolicyController::class, 'store'])->name('cookie-policies.store');
+                        Route::put('cookie-policies/{policy}', [AdminCookiePolicyController::class, 'update'])->name('cookie-policies.update');
+                        Route::post('cookie-policies/{policy}/publish', [AdminCookiePolicyController::class, 'publish'])->name('cookie-policies.publish');
                     });
                     Route::post('disputes/{dispute}/resolve', [AdminDisputeController::class, 'resolve'])->name('disputes.resolve');
                     Route::post('checkouts/{checkout}/refund', [AdminDisputeController::class, 'refundCheckout'])->name('checkouts.refund');

@@ -13,6 +13,7 @@ use App\Http\Middleware\RejectAuthenticatedJsonRequests;
 use App\Http\Middleware\RequireRecentPassword;
 use App\Http\Middleware\RequireWorkspacePermission;
 use App\Http\Middleware\ResolveWorkspace;
+use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\ThrottleIdentityEndpoints;
 use App\Http\Middleware\VerifyIntegrationSignature;
 use App\Services\Errors\ErrorRecorder;
@@ -36,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // First in the stack so even routing/auth failures carry a request ID.
         $middleware->prepend(AssignRequestId::class);
-        $middleware->prependToGroup('api', [ForceJsonResponse::class, AuditAccessDenials::class]);
+        $middleware->prependToGroup('api', [ForceJsonResponse::class, AuditAccessDenials::class, SetRequestLocale::class]);
 
         // Sanctum SPA cookie auth for first-party frontends (SANCTUM_STATEFUL_DOMAINS).
         $middleware->statefulApi();

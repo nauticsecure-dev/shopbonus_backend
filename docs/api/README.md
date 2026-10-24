@@ -5928,6 +5928,259 @@ After the Terms were published as 2026.11, registration requires `terms_version:
 
 ---
 
+## Cookie consent and NL/EN API messages (B15b, Trello #5)
+
+Captured 2026-10-24 against local MySQL. The admin used a step-up session, and the visitor was anonymous. Sending `Accept-Language` sets the language of validation and error messages. The response's `Content-Language` says which language was used; requests without a supported preference get English.
+
+**No policy yet: necessary only**
+
+`GET /api/v1/public/cookie-policy?locale=nl`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d708-72b5-970e-525445708bbe
+
+{"data":{"version":null,"categories":[{"key":"necessary","required":true,"trackers":[]}],"texts":null,"requires_reconsent":false}}
+```
+
+**Create policy 2026.1**
+
+`POST /api/v1/admin/cms/cookie-policies {"version":"2026.1","requires_reconsent":false,"texts":{"nl":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"en":{"title":"Cookies on ShopBonus","body":"We use necessary cookies and, with your consent, analytics and marketing cookies.","accept_all":"Accept all","reject_optional":"Reject optional","customize":"Customize"}},"categories":[{"key":"necessary","trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose_nl":"Ingelogd blijven","purpose_en":"Staying signed in","retention":"Sessie"}]},{"key":"preferences","trackers":[]},{"key":"analytics","trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose_nl":"Anonieme bezoekstatistieken","purpose_en":"Anonymous visit statistics","retention":"24 uur"}]},{"key":"marketing","trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose_nl":"Advertenties meten","purpose_en":"Measuring ads","retention":"90 dagen"}]}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d74f-70f2-b68a-8f657ddaac85
+
+{"data":{"id":"01m5pzxnv6j8jd16cxmvwpnh96","status":"draft","version":"2026.1","requires_reconsent":false,"published_at":null,"texts":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+```
+
+**Edit the draft**
+
+`PUT /api/v1/admin/cms/cookie-policies/01m5pzxnv6j8jd16cxmvwpnh96 {"version":"2026.1","requires_reconsent":false,"texts":{"nl":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"en":{"title":"Cookies on ShopBonus","body":"We use necessary cookies and, with your consent, analytics and marketing cookies.","accept_all":"Accept all","reject_optional":"Reject optional","customize":"Customize"}},"categories":[{"key":"necessary","trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose_nl":"Ingelogd blijven","purpose_en":"Staying signed in","retention":"Sessie"}]},{"key":"preferences","trackers":[]},{"key":"analytics","trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose_nl":"Anonieme bezoekstatistieken","purpose_en":"Anonymous visit statistics","retention":"24 uur"}]},{"key":"marketing","trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose_nl":"Advertenties meten","purpose_en":"Measuring ads","retention":"90 dagen"}]}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d7b4-7200-bbe4-4af16b1d9aab
+
+{"data":{"id":"01m5pzxnv6j8jd16cxmvwpnh96","status":"draft","version":"2026.1","requires_reconsent":false,"published_at":null,"texts":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+```
+
+**Publish**
+
+`POST /api/v1/admin/cms/cookie-policies/01m5pzxnv6j8jd16cxmvwpnh96/publish    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d803-7023-a03a-71fa17c04d9c
+
+{"data":{"id":"01m5pzxnv6j8jd16cxmvwpnh96","status":"published","version":"2026.1","requires_reconsent":false,"published_at":"2026-10-24T12:59:40+00:00","texts":{"body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","title":"Cookies op ShopBonus","customize":"Aanpassen","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+```
+
+**Published policies are immutable → 409**
+
+`PUT /api/v1/admin/cms/cookie-policies/01m5pzxnv6j8jd16cxmvwpnh96 {"version":"2026.1","requires_reconsent":false,"texts":{"nl":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"en":{"title":"Cookies on ShopBonus","body":"We use necessary cookies and, with your consent, analytics and marketing cookies.","accept_all":"Accept all","reject_optional":"Reject optional","customize":"Customize"}},"categories":[{"key":"necessary","trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose_nl":"Ingelogd blijven","purpose_en":"Staying signed in","retention":"Sessie"}]},{"key":"preferences","trackers":[]},{"key":"analytics","trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose_nl":"Anonieme bezoekstatistieken","purpose_en":"Anonymous visit statistics","retention":"24 uur"}]},{"key":"marketing","trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose_nl":"Advertenties meten","purpose_en":"Measuring ads","retention":"90 dagen"}]}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16dfe-d856-716c-aae9-08e5e67c5997
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":409,"code":"policy_not_draft","message":"Published policies cannot change; create a new version.","request_id":"01a16dfe-d856-716c-aae9-08e5e67c5997"}}
+```
+
+**Banner policy (NL)**
+
+`GET /api/v1/public/cookie-policy?locale=nl`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d87b-73fe-b71b-57567decf83a
+
+{"data":{"version":"2026.1","requires_reconsent":false,"published_at":"2026-10-24T12:59:40+00:00","texts":{"body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","title":"Cookies op ShopBonus","customize":"Aanpassen","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+```
+
+**Reject optional (new consent ID)**
+
+`POST /api/v1/public/cookie-consents {"policy_version":"2026.1","action":"reject_optional"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d896-700b-a84e-8bb1e7c6eaa7
+
+{"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"reject_optional","choices":{"necessary":true,"preferences":false,"analytics":false,"marketing":false},"recorded_at":"2026-10-24T12:59:40+00:00","allowed_trackers":["session"]}}
+```
+
+**Customize: analytics only**
+
+`POST /api/v1/public/cookie-consents {"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"customize","choices":{"analytics":true}}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d8be-7041-8ba7-2e7d1000942f
+
+{"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"customize","choices":{"necessary":true,"preferences":false,"analytics":true,"marketing":false},"recorded_at":"2026-10-24T12:59:40+00:00","allowed_trackers":["session","plausible"]}}
+```
+
+**Status**
+
+`GET /api/v1/public/cookie-consents/8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d8de-7215-8ab1-3d48ff470399
+
+{"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"customize","choices":{"analytics":true,"marketing":false,"necessary":true,"preferences":false},"recorded_at":"2026-10-24T12:59:40+00:00","current_policy_version":"2026.1","needs_renewal":false,"allowed_trackers":["session","plausible"]}}
+```
+
+**Withdraw**
+
+`POST /api/v1/public/cookie-consents {"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"withdraw"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d8fb-7277-8ff1-09d523b4b8b3
+
+{"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"withdraw","choices":{"necessary":true,"preferences":false,"analytics":false,"marketing":false},"recorded_at":"2026-10-24T12:59:40+00:00","allowed_trackers":["session"]}}
+```
+
+**Policy 2026.2 requiring renewed consent**
+
+`POST /api/v1/admin/cms/cookie-policies {"version":"2026.2","requires_reconsent":true,"texts":{"nl":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"en":{"title":"Cookies on ShopBonus","body":"We use necessary cookies and, with your consent, analytics and marketing cookies.","accept_all":"Accept all","reject_optional":"Reject optional","customize":"Customize"}},"categories":[{"key":"necessary","trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose_nl":"Ingelogd blijven","purpose_en":"Staying signed in","retention":"Sessie"}]},{"key":"preferences","trackers":[]},{"key":"analytics","trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose_nl":"Anonieme bezoekstatistieken","purpose_en":"Anonymous visit statistics","retention":"24 uur"}]},{"key":"marketing","trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose_nl":"Advertenties meten","purpose_en":"Measuring ads","retention":"90 dagen"}]}]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d945-7384-b1ee-b97e97d15479
+
+{"data":{"id":"01m5pzxpagmfpbh19v6pmxbq4p","status":"draft","version":"2026.2","requires_reconsent":true,"published_at":null,"texts":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+```
+
+**Publish it**
+
+`POST /api/v1/admin/cms/cookie-policies/01m5pzxpagmfpbh19v6pmxbq4p/publish    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d99c-72b7-a0ab-c24c969d5165
+
+{"data":{"id":"01m5pzxpagmfpbh19v6pmxbq4p","status":"published","version":"2026.2","requires_reconsent":true,"published_at":"2026-10-24T12:59:40+00:00","texts":{"body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","title":"Cookies op ShopBonus","customize":"Aanpassen","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+```
+
+**Old choice needs renewal; nothing may load**
+
+`GET /api/v1/public/cookie-consents/8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d9bf-73cd-9951-5862d483bfb0
+
+{"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"withdraw","choices":{"analytics":false,"marketing":false,"necessary":true,"preferences":false},"recorded_at":"2026-10-24T12:59:40+00:00","current_policy_version":"2026.2","needs_renewal":true,"allowed_trackers":[]}}
+```
+
+**Choosing under the old version → 409**
+
+`POST /api/v1/public/cookie-consents {"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"accept_all"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16dfe-d9da-70ae-a369-609cf76c8dfe
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":409,"code":"policy_outdated","message":"The cookie policy changed. Reload to see the current choices.","request_id":"01a16dfe-d9da-70ae-a369-609cf76c8dfe","details":{"current_version":"2026.2"}}}
+```
+
+**Accept all under 2026.2**
+
+`POST /api/v1/public/cookie-consents {"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.2","action":"accept_all"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-d9f6-70d2-9472-ec814f4de03e
+
+{"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.2","action":"accept_all","choices":{"necessary":true,"preferences":true,"analytics":true,"marketing":true},"recorded_at":"2026-10-24T12:59:40+00:00","allowed_trackers":["session","plausible","meta_pixel"]}}
+```
+
+**Versions**
+
+`GET /api/v1/admin/cms/cookie-policies    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-da3f-7090-9a4a-1c3568164789
+
+{"data":[{"id":"01m5pzxpagmfpbh19v6pmxbq4p","version":"2026.2","status":"published","requires_reconsent":true,"published_at":"2026-10-24T12:59:40+00:00"},{"id":"01m5pzxnv6j8jd16cxmvwpnh96","version":"2026.1","status":"retired","requires_reconsent":false,"published_at":"2026-10-24T12:59:40+00:00"}]}
+```
+
+**Statistics**
+
+`GET /api/v1/admin/cms/cookie-consents/stats    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16dfe-da8a-7399-8729-2215c6620a4a
+
+{"data":{"version":"2026.2","by_action":{"accept_all":1}}}
+```
+
+**Validation in Dutch (Accept-Language: nl)**
+
+`POST /api/v1/public/cookie-consents {}   (Accept-Language: nl-NL,nl;q=0.9)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16dfe-daac-7396-9c61-e2190c9eb7bd
+Content-Type: application/json
+Content-Language: nl
+
+{"error":{"status":422,"code":"validation_failed","message":"De ingevulde gegevens zijn ongeldig.","request_id":"01a16dfe-daac-7396-9c61-e2190c9eb7bd","fields":{"policy_version":["Beleidsversie is verplicht."],"action":["Actie is verplicht."]}}}
+```
+
+**Validation in English (Accept-Language: en)**
+
+`POST /api/v1/public/cookie-consents {}   (Accept-Language: en)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16dfe-dac7-7309-ac5d-749097c0466a
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16dfe-dac7-7309-ac5d-749097c0466a","fields":{"policy_version":["The policy version field is required."],"action":["The action field is required."]}}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

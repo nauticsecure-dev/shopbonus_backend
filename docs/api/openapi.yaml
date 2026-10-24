@@ -7916,6 +7916,278 @@ paths:
             application/json:
               example: {"error":{"status":404,"code":"not_found","message":"Image not found.","request_id":"<id>"}}
 
+  /api/v1/admin/cms/cookie-policies:
+    get:
+      tags: [CMS]
+      operationId: cookiePolicies
+      summary: "Cookie policy versions"
+      description: |
+        All versions with status draft/published/retired.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/cookie-policies' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Versions."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pzxpagmfpbh19v6pmxbq4p","version":"2026.2","status":"published","requires_reconsent":true,"published_at":"2026-10-24T12:59:40+00:00"},{"id":"01m5pzxnv6j8jd16cxmvwpnh96","version":"2026.1","status":"retired","requires_reconsent":false,"published_at":"2026-10-24T12:59:40+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+    post:
+      tags: [CMS]
+      operationId: createCookiePolicy
+      summary: "Create a cookie policy draft"
+      description: |
+        Step-up required. Categories and an allowlist of trackers per category (no pasted code), NL/EN banner texts (plain text). Requires human compliance review before publishing. Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, categories, texts]
+              properties:
+                version: { type: string, pattern: '^[A-Za-z0-9._-]+$' }
+                requires_reconsent: { type: boolean, description: 'Visitors who chose under an earlier version must choose again.' }
+                categories:
+                  type: array
+                  minItems: 4
+                  maxItems: 4
+                  description: 'Exactly necessary, preferences, analytics, marketing; necessary is always required.'
+                  items: { type: object, properties: { key: { type: string, enum: [necessary, preferences, analytics, marketing] }, trackers: { type: array, items: { type: object, properties: { key: { type: string }, name: { type: string }, provider: { type: string }, purpose_nl: { type: string }, purpose_en: { type: string }, retention: { type: string } } } } } }
+                texts: { type: object, description: '{nl|en: {title, body, accept_all, reject_optional, customize}} (plain text)' }
+            example: {"version": "2026.1", "requires_reconsent": false, "texts": {"nl": {"title": "Cookies op ShopBonus", "body": "Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.", "accept_all": "Alles accepteren", "reject_optional": "Optionele weigeren", "customize": "Aanpassen"}, "en": {"title": "Cookies on ShopBonus", "body": "We use necessary cookies and, with your consent, analytics and marketing cookies.", "accept_all": "Accept all", "reject_optional": "Reject optional", "customize": "Customize"}}, "categories": [{"key": "necessary", "trackers": [{"key": "session", "name": "Sessie", "provider": "ShopBonus", "purpose_nl": "Ingelogd blijven", "purpose_en": "Staying signed in", "retention": "Sessie"}]}, {"key": "preferences", "trackers": []}, {"key": "analytics", "trackers": [{"key": "plausible", "name": "Plausible Analytics", "provider": "Plausible", "purpose_nl": "Anonieme bezoekstatistieken", "purpose_en": "Anonymous visit statistics", "retention": "24 uur"}]}, {"key": "marketing", "trackers": [{"key": "meta_pixel", "name": "Meta Pixel", "provider": "Meta", "purpose_nl": "Advertenties meten", "purpose_en": "Measuring ads", "retention": "90 dagen"}]}]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/cookie-policies' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"version":"2026.1",...}'
+      responses:
+        '201':
+          description: "Draft."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pzxnv6j8jd16cxmvwpnh96","status":"draft","version":"2026.1","requires_reconsent":false,"published_at":null,"texts":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/cookie-policies/{policy}:
+    parameters:
+      - { name: policy, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [CMS]
+      operationId: updateCookiePolicy
+      summary: "Edit a draft policy"
+      description: |
+        Step-up required. Published policies never change (409); create a new version.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, categories, texts]
+              properties:
+                version: { type: string, pattern: '^[A-Za-z0-9._-]+$' }
+                requires_reconsent: { type: boolean, description: 'Visitors who chose under an earlier version must choose again.' }
+                categories:
+                  type: array
+                  minItems: 4
+                  maxItems: 4
+                  description: 'Exactly necessary, preferences, analytics, marketing; necessary is always required.'
+                  items: { type: object, properties: { key: { type: string, enum: [necessary, preferences, analytics, marketing] }, trackers: { type: array, items: { type: object, properties: { key: { type: string }, name: { type: string }, provider: { type: string }, purpose_nl: { type: string }, purpose_en: { type: string }, retention: { type: string } } } } } }
+                texts: { type: object, description: '{nl|en: {title, body, accept_all, reject_optional, customize}} (plain text)' }
+            example: {"version": "2026.1", "requires_reconsent": false, "texts": {"nl": {"title": "Cookies op ShopBonus", "body": "Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.", "accept_all": "Alles accepteren", "reject_optional": "Optionele weigeren", "customize": "Aanpassen"}, "en": {"title": "Cookies on ShopBonus", "body": "We use necessary cookies and, with your consent, analytics and marketing cookies.", "accept_all": "Accept all", "reject_optional": "Reject optional", "customize": "Customize"}}, "categories": [{"key": "necessary", "trackers": [{"key": "session", "name": "Sessie", "provider": "ShopBonus", "purpose_nl": "Ingelogd blijven", "purpose_en": "Staying signed in", "retention": "Sessie"}]}, {"key": "preferences", "trackers": []}, {"key": "analytics", "trackers": [{"key": "plausible", "name": "Plausible Analytics", "provider": "Plausible", "purpose_nl": "Anonieme bezoekstatistieken", "purpose_en": "Anonymous visit statistics", "retention": "24 uur"}]}, {"key": "marketing", "trackers": [{"key": "meta_pixel", "name": "Meta Pixel", "provider": "Meta", "purpose_nl": "Advertenties meten", "purpose_en": "Measuring ads", "retention": "90 dagen"}]}]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/admin/cms/cookie-policies/<id>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{...}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pzxnv6j8jd16cxmvwpnh96","status":"draft","version":"2026.1","requires_reconsent":false,"published_at":null,"texts":{"title":"Cookies op ShopBonus","body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren","customize":"Aanpassen"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not a draft."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"policy_not_draft","message":"Published policies cannot change; create a new version.","request_id":"01a16dfe-d856-716c-aae9-08e5e67c5997"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/cookie-policies/{policy}/publish:
+    parameters:
+      - { name: policy, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: publishCookiePolicy
+      summary: "Publish a cookie policy"
+      description: |
+        Step-up required. The previous published version is retired. With `requires_reconsent`, earlier choices stop counting until the visitor chooses again. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/cookie-policies/<id>/publish' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Published (captured: 2026.2 with reconsent)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pzxpagmfpbh19v6pmxbq4p","status":"published","version":"2026.2","requires_reconsent":true,"published_at":"2026-10-24T12:59:40+00:00","texts":{"body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","title":"Cookies op ShopBonus","customize":"Aanpassen","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not a draft."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"policy_not_draft","message":"Published policies cannot change; create a new version.","request_id":"01a16dfe-d856-716c-aae9-08e5e67c5997"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/cookie-consents/stats:
+    get:
+      tags: [CMS]
+      operationId: cookieConsentStats
+      summary: "Consent statistics"
+      description: |
+        Counts by action for a policy version (default: current).
+      x-access: admin
+      parameters:
+        - { name: version, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/cookie-consents/stats' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Counts."
+          content:
+            application/json:
+              example: {"data":{"version":"2026.2","by_action":{"accept_all":1}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/public/cookie-policy:
+    get:
+      tags: [Content]
+      operationId: publicCookiePolicy
+      summary: "Current cookie policy for the banner"
+      description: |
+        Banner texts and categories with their allowlisted trackers (localized purpose). With no published policy only `necessary` exists.
+      x-access: public
+      security: []
+      parameters:
+        - { name: locale, in: query, required: false, schema: { type: string, enum: [nl, en], default: nl } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/public/cookie-policy?locale=nl' \
+              -H 'Accept: application/json' -H 'Accept-Language: nl'
+      responses:
+        '200':
+          description: "Policy (captured before v2)."
+          content:
+            application/json:
+              example: {"data":{"version":"2026.1","requires_reconsent":false,"published_at":"2026-10-24T12:59:40+00:00","texts":{"body":"Wij gebruiken noodzakelijke cookies en, met jouw toestemming, statistiek- en marketingcookies.","title":"Cookies op ShopBonus","customize":"Aanpassen","accept_all":"Alles accepteren","reject_optional":"Optionele weigeren"},"categories":[{"key":"necessary","required":true,"trackers":[{"key":"session","name":"Sessie","provider":"ShopBonus","purpose":"Ingelogd blijven","retention":"Sessie"}]},{"key":"preferences","required":false,"trackers":[]},{"key":"analytics","required":false,"trackers":[{"key":"plausible","name":"Plausible Analytics","provider":"Plausible","purpose":"Anonieme bezoekstatistieken","retention":"24 uur"}]},{"key":"marketing","required":false,"trackers":[{"key":"meta_pixel","name":"Meta Pixel","provider":"Meta","purpose":"Advertenties meten","retention":"90 dagen"}]}]}}
+
+  /api/v1/public/cookie-consents:
+    post:
+      tags: [Content]
+      operationId: recordCookieConsent
+      summary: "Save the visitor's cookie choice"
+      description: |
+        Appends a decision under the **current** policy version (409 `policy_outdated` otherwise): `accept_all`, `reject_optional`, `customize` (with `choices`) or `withdraw` (needs an earlier `consent_id`). Necessary is always on. Returns the opaque `consent_id` for the browser to keep and `allowed_trackers`: only these may load (consent-aware loader). Stores a hashed IP and the user when signed in; nothing else. Throttled.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policy_version, action]
+              properties:
+                consent_id: { type: string, format: uuid }
+                policy_version: { type: string }
+                action: { type: string, enum: [accept_all, reject_optional, customize, withdraw] }
+                choices: { type: object, properties: { preferences: { type: boolean }, analytics: { type: boolean }, marketing: { type: boolean } } }
+            example: {"consent_id": "8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f", "policy_version": "2026.1", "action": "customize", "choices": {"analytics": true}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/public/cookie-consents' \
+              -H 'Accept: application/json' -H 'Accept-Language: nl' \
+              -H 'Content-Type: application/json' -d '{"policy_version":"2026.1","action":"reject_optional"}'
+      responses:
+        '201':
+          description: "Recorded (captured: analytics only)."
+          content:
+            application/json:
+              example: {"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"customize","choices":{"necessary":true,"preferences":false,"analytics":true,"marketing":false},"recorded_at":"2026-10-24T12:59:40+00:00","allowed_trackers":["session","plausible"]}}
+        '404':
+          description: "Withdraw without an earlier choice."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Consent not found.","request_id":"<id>"}}
+        '409':
+          description: "Policy changed."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"policy_outdated","message":"The cookie policy changed. Reload to see the current choices.","request_id":"01a16dfe-d9da-70ae-a369-609cf76c8dfe","details":{"current_version":"2026.2"}}}
+        '422':
+          description: "Invalid input (captured with Accept-Language: nl)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"De ingevulde gegevens zijn ongeldig.","request_id":"01a16dfe-daac-7396-9c61-e2190c9eb7bd","fields":{"policy_version":["Beleidsversie is verplicht."],"action":["Actie is verplicht."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/public/cookie-consents/{consentId}:
+    parameters:
+      - { name: consentId, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Content]
+      operationId: cookieConsentStatus
+      summary: "The visitor's current cookie choice"
+      description: |
+        Latest decision, the current policy version and `needs_renewal` (the policy changed with `requires_reconsent`); `allowed_trackers` is empty until renewed.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/public/cookie-consents/<consent id>' \
+              -H 'Accept: application/json' -H 'Accept-Language: nl'
+      responses:
+        '200':
+          description: "Status (captured after v2 required renewal)."
+          content:
+            application/json:
+              example: {"data":{"consent_id":"8c8f1ceb-adad-46fd-ad27-1c6ff0418c5f","policy_version":"2026.1","action":"withdraw","choices":{"analytics":false,"marketing":false,"necessary":true,"preferences":false},"recorded_at":"2026-10-24T12:59:40+00:00","current_policy_version":"2026.2","needs_renewal":true,"allowed_trackers":[]}}
+        '404':
+          description: "Unknown consent ID."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Consent not found.","request_id":"<id>"}}
+
 components:
   parameters:
     Workspace:

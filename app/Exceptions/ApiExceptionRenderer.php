@@ -71,13 +71,14 @@ class ApiExceptionRenderer
         $error = [
             'status' => $status,
             'code' => $code,
-            'message' => $message,
+            // Translatable: lang/<locale>.json keyed by the English text (Trello #5 i18n).
+            'message' => __($message),
             'request_id' => AssignRequestId::resolve($request),
         ];
 
         if ($e instanceof ApiException) {
             $error['code'] = $e->errorCode;
-            $error['message'] = $e->getMessage();
+            $error['message'] = __($e->getMessage());
 
             if ($e->details !== []) {
                 $error['details'] = $e->details;
