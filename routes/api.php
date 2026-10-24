@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
 use App\Http\Controllers\Api\V1\Consumer\AffiliateActivityController;
 use App\Http\Controllers\Api\V1\Consumer\BenefitsController;
+use App\Http\Controllers\Api\V1\Consumer\CheckoutController;
 use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
 use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Api\V1\Onboarding\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
+use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
 use App\Http\Controllers\Api\V1\Workspaces\PublicProfileController;
@@ -94,6 +96,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // Affiliate network postback: secret token in the URL, untrusted (records "tracked" only).
     Route::match(['get', 'post'], 'affiliate/postback/{token}', [PostbackController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('affiliate.postback');
+
+    // Mollie webhook: only a payment ID; the status is always fetched from Mollie.
+    Route::post('payments/mollie/webhook', [MollieWebhookController::class, 'receive'])
+        ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('payments.mollie.webhook');
 
     // Claim link preview (public; the token is the secret).
     Route::post('claims/preview', [ClaimController::class, 'preview'])->middleware('throttle:claims')->name('claims.preview');
@@ -184,6 +190,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
                 Route::get('affiliate-activity', [AffiliateActivityController::class, 'index'])->name('affiliate-activity.index');
+
+                Route::post('checkouts/quote', [CheckoutController::class, 'quote'])->name('checkouts.quote');
+                Route::post('checkouts', [CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkouts.store');
+                Route::get('checkouts/{id}', [CheckoutController::class, 'show'])->name('checkouts.show');
                 Route::get('dashboard', [BenefitsController::class, 'dashboard'])->name('dashboard');
 
                 Route::get('wallet', [WalletController::class, 'show'])->name('wallet.show');

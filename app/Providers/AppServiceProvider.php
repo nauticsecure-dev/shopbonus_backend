@@ -80,6 +80,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('visits', fn (Request $request) => Limit::perMinute(30)->by('visit:'.$request->ip()));
 
+        RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by('checkout:'.$request->user()?->getAuthIdentifier()));
+
         RateLimiter::for('order-export', fn (Request $request) => Limit::perMinute(5)->by('export:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('code-import', fn (Request $request) => Limit::perMinute(10)->by('code-import:'.$request->user()?->getAuthIdentifier()));

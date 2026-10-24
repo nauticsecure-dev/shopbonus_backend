@@ -23,3 +23,6 @@ Schedule::command('shopbonus:dispatch-outbox')->everyMinute()->withoutOverlappin
 // Wallet: credit expiry and reservation timeouts; nightly ledger proof.
 Schedule::command('shopbonus:wallet-expire')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('shopbonus:wallet-reconcile')->dailyAt('04:00')->withoutOverlapping();
+
+// Voucher checkouts: late Mollie payments and abandoned reservations.
+Schedule::command('shopbonus:expire-checkouts')->everyFiveMinutes()->withoutOverlapping();

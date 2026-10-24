@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `37edebf` B10. Earlier: `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B11 voucher checkout with wallet + Mollie (sandbox only) (Trello #20, #23, #24).
+**Active task:** B11a IN PROGRESS (work-in-progress commit, see "B11a resume point" below). **Next:** B11 voucher checkout with wallet + Mollie (sandbox only) (Trello #20, #23, #24).
 **Last completed task:** B10 affiliate tracking and rewards (adapters NOT VERIFIED live).
 
 ## Tests actually executed (at `37edebf`)
@@ -67,6 +67,26 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B11a resume point (work-in-progress commit)
+
+Committed:
+- migration `2026_10_24_100000_create_checkout_tables`; models `VoucherCheckout`, `VoucherCheckoutPayment`;
+- `Services\Checkout\{MollieClient, CheckoutService}`;
+- `Consumer\CheckoutController` (quote/store/show), `Payments\MollieWebhookController`;
+- `shopbonus:expire-checkouts` (every 5 min), the `checkout` limiter, and config `shopbonus.payments` (`MOLLIE_API_KEY`, `MOLLIE_API_BASE_URL`, `MOLLIE_ALLOW_LIVE`).
+
+Pint and PHPStan pass.
+
+Remaining:
+1. Write `tests/Feature/Checkout/CheckoutTest.php` (`Http::fake` for `api.mollie.com`, config key `test_x`):
+   - card #20 E2E 1 (wallet-only), E2E 2 (blockers, no mutation), E2E 4 (reusable code), E2E 5 (paid webhook finalises once; a redirect alone never does), E2E 6 (failed/canceled/expired release everything);
+   - forged webhook, unknown ID → 200;
+   - paid after expiry → finalised if reservations are still active, else `paid_unfulfilled`;
+   - Idempotency-Key replay; cross-user 404;
+   - card #23 tests 7 (two simultaneous wallet-only purchases → one debit; forked race with `RacesProcesses`) and 8 (wallet €10 + Mollie €10).
+2. Capture docs, with Mollie pointed at a local stub via `MOLLIE_API_BASE_URL`; tick the B11a checklist; update PROGRESS/TASKS/DECISIONS (D-053: euro price from `eur_credit`, test mode only, paid_unfulfilled path); commit.
+3. Then B11b (expand the checklist first): voucher detail + audited code reveal (list shows the code masked), merchant redemption verification, disputes + admin resolution with one-time compensation (wallet adjustment or Mollie refund).
 
 ## Next agent's exact first actions
 

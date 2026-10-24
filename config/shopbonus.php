@@ -132,6 +132,18 @@ return [
         'reservation_ttl_minutes' => 30,
     ],
 
+    // Voucher checkout (Trello #20). Mollie test mode only unless explicitly allowed (OPEN-FINANCIAL-LEGAL).
+    'payments' => [
+        'checkout_ttl_minutes' => 30,
+        // A Mollie payment can still complete after the checkout's soft expiry.
+        'checkout_hard_limit_minutes' => 180,
+        'mollie' => [
+            'key' => env('MOLLIE_API_KEY'),
+            'base_url' => env('MOLLIE_API_BASE_URL', 'https://api.mollie.com/v2'),
+            'allow_live' => (bool) env('MOLLIE_ALLOW_LIVE', false),
+        ],
+    ],
+
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
         // on_network_approval (owner's safe default): pending until the network approves.
