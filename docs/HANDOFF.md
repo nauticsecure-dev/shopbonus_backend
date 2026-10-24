@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `5fca11a` B11a. Earlier: `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B11b voucher details/code reveal, merchant redemption verification, disputes + compensation (Trello #20).
+**Active task:** B11b IN PROGRESS (work-in-progress commit, see "B11b resume point"). **Next:** B11b voucher details/code reveal, merchant redemption verification, disputes + compensation (Trello #20).
 **Last completed task:** B11a voucher checkout (wallet + Mollie test mode).
 
 ## Tests actually executed (at `5fca11a`)
@@ -68,6 +68,22 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B11b resume point (work-in-progress commit)
+
+Committed:
+- migration `2026_10_24_110000_create_voucher_dispute_tables` (voucher redemption columns, `voucher_disputes`, `voucher_dispute_events`);
+- `VoucherInventory::redeemByMerchant`; `Services\Disputes\DisputeService`;
+- controllers `Consumer\DisputeController`, `Workspaces\VoucherOperationsController` (redeem, disputes, respond), `Admin\DisputeController` (disputes, status, resolve, checkouts, refund);
+- `BenefitsController`: masked codes in the list, `filter` param (active/used/expired/cancelled/all), detail `GET /consumer/vouchers/{id}` reveals the code (audited);
+- Mollie refund with `Idempotency-Key`.
+
+Pint and PHPStan pass.
+
+Remaining:
+1. Fix the existing tests that expected full codes in `/consumer/vouchers` and the dashboard, and the `status` param, now `filter` (`ConsumerProfileTest`, `WalletApiTest`).
+2. Write `tests/Feature/Checkout/VoucherDisputeTest.php`: card #20 E2E 7 (own vouchers only, masked list, audited reveal), E2E 8 (merchant redeem once; copy/visit never redeems; expired refused; other webshop 404), E2E 9 (dispute → merchant response → admin resolve with wallet credit applied once; refund and replacement paths; rejected gets nothing), refund of `paid_unfulfilled`.
+3. Capture docs (re-capture B08b's My Vouchers and dashboard examples, since codes are now masked); tick the B11b checklist; update PROGRESS/TASKS/DECISIONS; commit.
 
 ## Next agent's exact first actions
 

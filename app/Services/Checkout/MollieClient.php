@@ -53,9 +53,10 @@ class MollieClient
     }
 
     /** @return array{id: string, status: string} */
-    public function refund(string $paymentId, int $amountMinor, string $currency, string $description): array
+    public function refund(string $paymentId, int $amountMinor, string $currency, string $description, string $idempotencyKey): array
     {
-        $r = $this->send(fn (PendingRequest $http) => $http->post('/payments/'.rawurlencode($paymentId).'/refunds', [
+        // Mollie honours Idempotency-Key: a retried refund request never refunds twice.
+        $r = $this->send(fn (PendingRequest $http) => $http->withHeaders(['Idempotency-Key' => $idempotencyKey])->post('/payments/'.rawurlencode($paymentId).'/refunds', [
             'amount' => ['currency' => $currency, 'value' => self::decimal($amountMinor)], 'description' => mb_substr($description, 0, 255),
         ]));
 

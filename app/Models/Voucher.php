@@ -32,6 +32,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $expires_at
  * @property CarbonImmutable|null $redeemed_at
  * @property int|null $redeemed_order_id
+ * @property string|null $redemption_source
+ * @property int|null $redeemed_by
+ * @property string|null $redemption_reference
  * @property CarbonImmutable|null $cancelled_at
  * @property string|null $cancel_reason
  * @property-read VoucherCode $code

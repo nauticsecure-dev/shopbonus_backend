@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
+use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
 use App\Http\Controllers\Api\V1\Affiliate\VisitController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\V1\Claims\ClaimController;
 use App\Http\Controllers\Api\V1\Consumer\AffiliateActivityController;
 use App\Http\Controllers\Api\V1\Consumer\BenefitsController;
 use App\Http\Controllers\Api\V1\Consumer\CheckoutController;
+use App\Http\Controllers\Api\V1\Consumer\DisputeController;
 use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
 use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
@@ -34,6 +36,7 @@ use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
 use App\Http\Controllers\Api\V1\Workspaces\PublicProfileController;
+use App\Http\Controllers\Api\V1\Workspaces\VoucherOperationsController;
 use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -142,6 +145,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('transactions/{transaction}', [AdminAffiliateController::class, 'showTransaction'])->name('transactions.show');
                     Route::get('reward-rules', [AdminAffiliateController::class, 'rules'])->name('reward-rules.index');
                 });
+                Route::get('disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
+                Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
+                Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
                     Route::post('webshops/{webshop}/approve', [AdminWebshopController::class, 'approve'])->name('webshops.approve');
@@ -163,6 +169,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('reward-rules', [AdminAffiliateController::class, 'storeRule'])->name('reward-rules.store');
                         Route::post('reward-rules/{version}/deactivate', [AdminAffiliateController::class, 'deactivateRule'])->name('reward-rules.deactivate');
                     });
+                    Route::post('disputes/{dispute}/status', [AdminDisputeController::class, 'status'])->name('disputes.status');
+                    Route::post('disputes/{dispute}/resolve', [AdminDisputeController::class, 'resolve'])->name('disputes.resolve');
+                    Route::post('checkouts/{checkout}/refund', [AdminDisputeController::class, 'refundCheckout'])->name('checkouts.refund');
                 });
             });
 
@@ -189,6 +198,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::delete('favorites/{slug}', [PreferenceController::class, 'removeFavorite'])->name('favorites.destroy');
 
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
+                Route::get('vouchers/{id}', [BenefitsController::class, 'voucher'])->middleware('throttle:code-reveal')->name('vouchers.show');
+                Route::post('disputes', [DisputeController::class, 'store'])->middleware('throttle:checkout')->name('disputes.store');
+                Route::get('disputes', [DisputeController::class, 'index'])->name('disputes.index');
+                Route::get('disputes/{id}', [DisputeController::class, 'show'])->name('disputes.show');
                 Route::get('affiliate-activity', [AffiliateActivityController::class, 'index'])->name('affiliate-activity.index');
 
                 Route::post('checkouts/quote', [CheckoutController::class, 'quote'])->name('checkouts.quote');
@@ -281,11 +294,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('codes.export');
                 Route::get('codes/{code}/history', [VoucherCodeController::class, 'history'])->middleware('workspace.can:vouchers.view')->name('codes.history');
                 Route::get('code-imports/{batch}', [VoucherCodeController::class, 'showBatch'])->middleware('workspace.can:vouchers.view')->name('code-imports.show');
+                Route::get('disputes', [VoucherOperationsController::class, 'disputes'])->middleware('workspace.can:vouchers.view')->name('disputes.index');
                 Route::middleware('workspace.can:vouchers.manage')->group(function () {
                     Route::post('offers/{offer}/code-imports', [VoucherCodeController::class, 'import'])->middleware('throttle:code-import')->name('code-imports.store');
                     Route::post('code-imports/{batch}/commit', [VoucherCodeController::class, 'commitBatch'])->name('code-imports.commit');
                     Route::post('codes/{code}/reveal', [VoucherCodeController::class, 'reveal'])->middleware('throttle:code-reveal')->name('codes.reveal');
                     Route::post('codes/{code}/invalidate', [VoucherCodeController::class, 'invalidate'])->name('codes.invalidate');
+                    Route::post('vouchers/redeem', [VoucherOperationsController::class, 'redeem'])->middleware('throttle:code-reveal')->name('vouchers.redeem');
+                    Route::post('disputes/{dispute}/respond', [VoucherOperationsController::class, 'respond'])->name('disputes.respond');
                 });
 
                 // Answer24 contact (Trello #1, #23): owner attestation, suppressions, opportunity queue.

@@ -353,7 +353,15 @@ Prices of `wallet_purchase` offers are euro cents (`price_minor`) paid from the 
 
 ### B11b Voucher details, redemption, disputes
 
-- [ ] Expand when started
+- [ ] My Vouchers list shows codes masked (last 4); filters active/used/expired/cancelled/all; `GET /consumer/vouchers/{id}` reveals the full code to its owner (audited) with redemption instructions, website, terms, expiry warning and checkout reference
+- [ ] Merchant `POST /workspaces/{w}/vouchers/redeem` (vouchers.manage): an issued voucher of this webshop is redeemed once (source merchant, actor, reference); expired/unknown/other webshop refused; viewing, copying or visiting never redeems
+- [ ] `voucher_disputes` + append-only `voucher_dispute_events`: consumer opens (voucher or checkout; reasons code_invalid, code_already_used, refused_by_webshop, terms_differ, missing_after_payment, other) and follows status open/under_review/waiting_for_merchant/resolved/rejected; one open dispute per voucher/checkout
+- [ ] Merchant lists own webshop's disputes (vouchers.view) and responds (vouchers.manage); never other tenants' data
+- [ ] Super Admin: list/show, set status, resolve with **one-time** compensation (wallet credit via `WalletService::adjust`, replacement voucher via `VoucherInventory`, or Mollie refund of the checkout payment); step-up; audited
+- [ ] Admin refund of `paid_unfulfilled` checkouts (Mollie refund once; state refunded)
+- [ ] Tests: card #20 E2E 7, 8, 9; compensation never twice; cross-tenant and cross-user denials
+- [ ] Docs with real captures; B08b My Vouchers examples updated
+
 
 - [ ] B12 Merchant wallet/funding
 - [ ] B13 Merchant analytics

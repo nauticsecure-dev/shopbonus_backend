@@ -111,9 +111,35 @@ class VoucherInventory
             throw ApiException::conflict('Redemption needs a verified paid order of the same webshop.', 'redemption_order_invalid');
         }
 
-        return DB::transaction(function () use ($voucher, $order) {
+        return $this->markRedeemed($voucher, ['redeemed_order_id' => $order->id, 'redemption_source' => 'order', 'redemption_reference' => $order->reference],
+            null, ['source' => 'order', 'order_id' => $order->public_id]);
+    }
+
+    /**
+     * Redemption confirmed by the merchant (Trello #20 "explicitly authorized
+     * merchant verification workflow"), when no provider evidence exists.
+     */
+    public function redeemByMerchant(Voucher $voucher, int $actorUserId, ?string $reference): Voucher
+    {
+        if ($voucher->status === VoucherStatus::Issued && $voucher->expires_at !== null && $voucher->expires_at->isPast()) {
+            throw ApiException::conflict('This voucher has expired.', 'voucher_expired');
+        }
+
+        return $this->markRedeemed($voucher, ['redemption_source' => 'merchant', 'redeemed_by' => $actorUserId, 'redemption_reference' => $reference],
+            $actorUserId, ['source' => 'merchant', 'reference' => $reference]);
+    }
+
+    /**
+     * Exactly once: conditional issued → redeemed.
+     *
+     * @param  array<string, mixed>  $fields
+     * @param  array<string, mixed>  $summary
+     */
+    private function markRedeemed(Voucher $voucher, array $fields, ?int $actorUserId, array $summary): Voucher
+    {
+        return DB::transaction(function () use ($voucher, $fields, $actorUserId, $summary) {
             $updated = Voucher::whereKey($voucher->id)->where('status', VoucherStatus::Issued)
-                ->update(['status' => VoucherStatus::Redeemed->value, 'redeemed_at' => now(), 'redeemed_order_id' => $order->id, 'updated_at' => now()]);
+                ->update(['status' => VoucherStatus::Redeemed->value, 'redeemed_at' => now(), 'updated_at' => now(), ...$fields]);
 
             if ($updated !== 1) {
                 $status = Voucher::whereKey($voucher->id)->value('status');
@@ -122,7 +148,7 @@ class VoucherInventory
 
             $v = Voucher::findOrFail($voucher->id);
             $this->moveCode($v, [VoucherCodeStatus::Issued], VoucherCodeStatus::Redeemed, ['redeemed_at' => now()]);
-            $this->event($v, 'redeemed', VoucherStatus::Issued, VoucherStatus::Redeemed, null, ['order_id' => $order->public_id]);
+            $this->event($v, 'redeemed', VoucherStatus::Issued, VoucherStatus::Redeemed, $actorUserId, $summary);
 
             return $v;
         });
