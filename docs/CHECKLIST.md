@@ -448,7 +448,21 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 - [ ] **MOVED** Translating every remaining domain error message to NL (add keys to `lang/nl.json`; ongoing, owner/copywriter review)
 - [ ] **BLOCKED** Card #5 E2E 1 frontend part and E2E 10 staging p95 (frontend; no staging)
 
-- [ ] B16 Super Admin APIs
+## B16 Super Admin cockpit, security, monitoring (Trello #21, #6, #23)
+
+### B16a Admin MFA, sensitive step-up, support sessions
+
+- [ ] TOTP two-factor via Fortify (enable, confirm, QR, secret, recovery codes, login challenge); secrets never in API resources
+- [ ] Super Admin routes require confirmed 2FA (`ADMIN_MFA_REQUIRED`, default on; 403 `mfa_required`)
+- [ ] Sensitive step-up = recent password + email OTP (`step_up_challenges`: HMAC code, 10 min, 5 attempts, single use); `POST /admin/step-up/code`, `POST /admin/step-up/verify`; middleware `step_up.otp` (423 `otp_confirmation_required`)
+- [ ] Support sessions (`impersonation_sessions`): start needs reason + password + email OTP; target must be an active non-admin; 30-minute scoped token; every action audited with the real admin as `real_actor_user_id`; `GET /me` shows the active session; financial, security, ownership, team and agreement actions blocked (403 `blocked_during_impersonation`); end revokes immediately; expiry enforced
+- [ ] Tests: MFA gate, OTP step-up (wrong/expired/reused), impersonation lifecycle and blocked actions, audit real actor
+- [ ] Docs with real captures
+
+### B16b Cockpit, oversight, incidents, audit
+
+- [ ] Expand when started
+
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)

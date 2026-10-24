@@ -27,4 +27,7 @@ return [
     'email_changed_subject' => 'Your Shopbonus email address was changed',
     'email_changed_line' => 'The email address of your account was changed to :email.',
     'email_change_not_you' => 'Did you not do this? Change your password and contact Shopbonus support.',
+    'step_up_subject' => 'Your Shopbonus admin confirmation code',
+    'step_up_line' => 'Use this code to confirm a sensitive admin action:',
+    'step_up_expiry' => 'The code expires in :minutes minutes. If you did not request it, change your password and review recent admin activity.',
 ];

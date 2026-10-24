@@ -9,8 +9,10 @@ use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsurePlatformRole;
 use App\Http\Middleware\EnsureWorkspaceCommerciallyActive;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\GuardSupportSession;
 use App\Http\Middleware\RejectAuthenticatedJsonRequests;
 use App\Http\Middleware\RequireRecentPassword;
+use App\Http\Middleware\RequireStepUpCode;
 use App\Http\Middleware\RequireWorkspacePermission;
 use App\Http\Middleware\ResolveWorkspace;
 use App\Http\Middleware\SetRequestLocale;
@@ -56,6 +58,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform' => EnsurePlatformRole::class,
             'password.recent' => RequireRecentPassword::class,
             'integration.signed' => VerifyIntegrationSignature::class,
+            'step_up.otp' => RequireStepUpCode::class,
+            'support.session' => GuardSupportSession::class,
         ]);
 
         // API clients get a JSON 401 rather than a redirect to a login page.

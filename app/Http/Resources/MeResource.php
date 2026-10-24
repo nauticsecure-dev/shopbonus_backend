@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Enums\MembershipStatus;
+use App\Models\ImpersonationSession;
 use App\Models\User;
 use App\Models\WebshopMembership;
 use App\Services\Identity\DestinationResolver;
@@ -48,6 +49,14 @@ class MeResource extends JsonResource
                 ])
                 ->sortBy('name')->values()->all(),
             'destination' => app(DestinationResolver::class)->for($user)->value,
+            'two_factor_enabled' => $user->hasEnabledTwoFactorAuthentication(),
+            // Set only for requests made with a support-session token: the SPA shows the "Impersonation Active" banner.
+            'support_session' => ($s = $request->attributes->get('support_session')) instanceof ImpersonationSession ? [
+                'id' => $s->public_id,
+                'admin' => ['first_name' => $s->admin->first_name, 'email' => $s->admin->email],
+                'reason' => $s->reason,
+                'expires_at' => $s->expires_at->toIso8601String(),
+            ] : null,
         ];
     }
 }

@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\TransientToken;
@@ -42,9 +43,10 @@ use Laravel\Sanctum\TransientToken;
  * @property string $locale
  * @property CarbonImmutable|null $last_login_at
  * @property int|null $current_webshop_id
+ * @property CarbonImmutable|null $two_factor_confirmed_at
  */
 #[Fillable(['first_name', 'email', 'password', 'onboarding_intent', 'locale'])]
-#[Hidden(['id', 'password', 'remember_token', 'phone', 'avatar_path', 'avatar_mime'])]
+#[Hidden(['id', 'password', 'remember_token', 'phone', 'avatar_path', 'avatar_mime', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference
 {
     /**
@@ -56,7 +58,7 @@ class User extends Authenticatable implements HasLocalePreference
     use HasApiTokens;
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasUlids, Notifiable;
+    use HasFactory, HasUlids, Notifiable, TwoFactorAuthenticatable;
 
     public const SUPPORTED_LOCALES = ['nl', 'en'];
 
@@ -84,6 +86,9 @@ class User extends Authenticatable implements HasLocalePreference
         'last_login_at' => null,
         'avatar_path' => null,
         'avatar_mime' => null,
+        'two_factor_secret' => null,
+        'two_factor_recovery_codes' => null,
+        'two_factor_confirmed_at' => null,
     ];
 
     /**

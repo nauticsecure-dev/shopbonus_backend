@@ -40,6 +40,19 @@ return [
     |--------------------------------------------------------------------------
     */
 
+    // Super Admin security (B16a, Trello #21 "Audit & security controls").
+    'admin' => [
+        // Super Admin routes require confirmed TOTP two-factor authentication.
+        'mfa_required' => (bool) env('ADMIN_MFA_REQUIRED', true),
+        // Emailed step-up code for sensitive admin actions (after a recent password).
+        'step_up' => [
+            'code_ttl_minutes' => (int) env('ADMIN_STEP_UP_CODE_TTL_MINUTES', 10),
+            'max_attempts' => (int) env('ADMIN_STEP_UP_MAX_ATTEMPTS', 5),
+            'valid_minutes' => (int) env('ADMIN_STEP_UP_VALID_MINUTES', 10),
+        ],
+        'support_session_minutes' => (int) env('ADMIN_SUPPORT_SESSION_MINUTES', 30),
+    ],
+
     'identity' => [
         // Where the SPA lives; password-reset links point here.
         'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),

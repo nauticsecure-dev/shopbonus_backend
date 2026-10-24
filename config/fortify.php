@@ -157,11 +157,13 @@ return [
     // Only what Trello #4 needs. Disabled on purpose:
     // - emailVerification: signed links; Shopbonus uses 6-digit codes (EmailVerificationCodes).
     // - updateProfileInformation: would change email without re-verification (B08 adds a secured flow).
-    // - twoFactorAuthentication / passkeys: enabled with Super Admin/owner MFA (B16), with their migrations.
+    // - passkeys: not yet.
+    // twoFactorAuthentication (B16a): TOTP with confirmation and recovery codes; required for Super Admins.
     'features' => [
         Features::registration(),
         Features::resetPasswords(),
         Features::updatePasswords(),
+        Features::twoFactorAuthentication(['confirm' => true, 'confirmPassword' => true]),
     ],
 
 ];

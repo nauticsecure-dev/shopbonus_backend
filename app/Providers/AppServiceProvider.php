@@ -59,6 +59,8 @@ class AppServiceProvider extends ServiceProvider
             return $this->app->isProduction() ? $rule->uncompromised() : $rule;
         });
 
+        RateLimiter::for('admin-step-up', fn (Request $request) => Limit::perHour(10)->by('step-up:'.$request->user()?->getAuthIdentifier()));
+
         RateLimiter::for('workspace-create', fn (Request $request) => Limit::perHour(10)->by('ws-create:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('invitation-create', fn (Request $request) => Limit::perHour(30)->by('inv-create:'.$request->user()?->getAuthIdentifier()));

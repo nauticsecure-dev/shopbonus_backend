@@ -27,4 +27,7 @@ return [
     'email_changed_subject' => 'Je Shopbonus-e-mailadres is gewijzigd',
     'email_changed_line' => 'Het e-mailadres van je account is gewijzigd naar :email.',
     'email_change_not_you' => 'Was jij dit niet? Wijzig je wachtwoord en neem contact op met Shopbonus.',
+    'step_up_subject' => 'Je Shopbonus-bevestigingscode voor beheer',
+    'step_up_line' => 'Gebruik deze code om een gevoelige beheeractie te bevestigen:',
+    'step_up_expiry' => 'De code verloopt over :minutes minuten. Heb je hem niet aangevraagd? Wijzig je wachtwoord en controleer de recente beheeractiviteit.',
 ];

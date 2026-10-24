@@ -5,11 +5,14 @@ use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreem
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
+use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
+use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
 use App\Http\Controllers\Api\V1\Affiliate\VisitController;
 use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
+use App\Http\Controllers\Api\V1\Auth\SupportSessionController;
 use App\Http\Controllers\Api\V1\Banners\PublicBannerController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
 use App\Http\Controllers\Api\V1\Consumer\AffiliateActivityController;
@@ -136,8 +139,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::post('claims/preview', [ClaimController::class, 'preview'])->middleware('throttle:claims')->name('claims.preview');
 
     // Authenticated, verified or not (unverified users may only do this).
-    Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
+    Route::middleware(['auth:sanctum', 'account.active', 'support.session'])->group(function () {
         Route::get('me', [MeController::class, 'show'])->name('me');
+        // Support-session token only: ends its own session (the banner's "End session").
+        Route::delete('support-session', [SupportSessionController::class, 'endCurrent'])->name('support-session.end');
 
         Route::post('auth/email/verify-code', [EmailVerificationController::class, 'verify'])
             ->middleware('throttle:identity-verify-code')->name('auth.email.verify');
@@ -160,8 +165,13 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('business-directory/places/{placeId}', [BusinessDirectoryController::class, 'show'])->name('business-directory.show');
             });
 
-            // Super Admin (privately provisioned). Mutations need a recent password confirmation (step-up until MFA, B16).
+            // Super Admin (privately provisioned; confirmed 2FA required). Mutations need a recent password
+            // confirmation; the most sensitive ones also an emailed step-up code (B16a).
             Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
+                Route::get('support-sessions', [AdminSupportSessionController::class, 'index'])->name('support-sessions.index');
+                Route::get('support-sessions/{session}', [AdminSupportSessionController::class, 'show'])->name('support-sessions.show');
+                // Ending never needs step-up: revoking access must always be easy.
+                Route::post('support-sessions/{session}/end', [AdminSupportSessionController::class, 'end'])->name('support-sessions.end');
                 Route::get('webshops', [AdminWebshopController::class, 'index'])->name('webshops.index');
                 Route::get('webshops/{webshop}', [AdminWebshopController::class, 'show'])->name('webshops.show');
                 Route::get('webshops/{webshop}/evidence/{file}', [AdminWebshopController::class, 'evidence'])->name('webshops.evidence');
@@ -189,6 +199,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
+                    Route::post('step-up/code', [AdminStepUpController::class, 'code'])->middleware('throttle:admin-step-up')->name('step-up.code');
+                    Route::post('step-up/verify', [AdminStepUpController::class, 'verify'])->middleware('throttle:identity-verify-code')->name('step-up.verify');
+                    Route::post('support-sessions', [AdminSupportSessionController::class, 'store'])->middleware('step_up.otp')->name('support-sessions.store');
                     Route::post('webshops/{webshop}/approve', [AdminWebshopController::class, 'approve'])->name('webshops.approve');
                     Route::post('webshops/{webshop}/reject', [AdminWebshopController::class, 'reject'])->name('webshops.reject');
                     Route::post('webshops/{webshop}/suspend', [AdminWebshopController::class, 'suspend'])->name('webshops.suspend');
