@@ -10,7 +10,8 @@ use Illuminate\Console\Command;
 
 /**
  * Private provisioning of Super Admins (Trello #4: "internally provisioned;
- * never available through public registration"). There is no API for this.
+ * never available through public registration"). There is no API for granting;
+ * revoking is also possible via POST /admin/users/{user}/revoke-super-admin.
  */
 class GrantSuperAdmin extends Command
 {
@@ -29,6 +30,14 @@ class GrantSuperAdmin extends Command
         }
 
         if ($this->option('revoke')) {
+            $others = $user->platformRoles()->getModel()->newQuery()->where('role', PlatformRole::SuperAdmin)->whereNull('revoked_at')
+                ->where('user_id', '!=', $user->id)->whereHas('user', fn ($q) => $q->where('status', 'active'))->count();
+            if ($user->isSuperAdmin() && $others === 0) {
+                $this->error('This is the last active Super Admin; grant another one first.');
+
+                return self::FAILURE;
+            }
+
             $revoked = $user->platformRoles()->where('role', PlatformRole::SuperAdmin)->whereNull('revoked_at')
                 ->update(['revoked_at' => now()]);
             $audit->record('admin.super_admin_revoked', category: AuditCategory::Admin, resource: $user, metadata: ['via' => 'console', 'rows' => $revoked]);
@@ -51,7 +60,9 @@ class GrantSuperAdmin extends Command
         $audit->record('admin.super_admin_granted', category: AuditCategory::Admin, resource: $user, metadata: ['via' => 'console']);
 
         $this->info('Super Admin role granted.');
-        $this->warn('Super Admin MFA is not implemented yet (B16). Do not grant this role in production before it is.');
+        if (config('shopbonus.admin.mfa_required')) {
+            $this->warn('The admin API stays closed (403 mfa_required) until this user enables two-factor authentication.');
+        }
 
         return self::SUCCESS;
     }

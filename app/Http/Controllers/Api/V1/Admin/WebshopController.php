@@ -7,6 +7,7 @@ use App\Enums\WebshopStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\WebshopDecisionRequest;
 use App\Http\Resources\AdminWebshopResource;
+use App\Models\MerchantNotification;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Services\Audit\AuditLogger;
@@ -40,7 +41,8 @@ class WebshopController extends Controller
         ]);
         $search = isset($filters['search']) ? '%'.addcslashes($filters['search'], '%_\\').'%' : null;
 
-        $webshops = Webshop::with(['businessProfile', 'memberships.user'])
+        $webshops = Webshop::with(['businessProfile', 'memberships.user', 'connections'])
+            ->withCount(['offers as active_offers_count' => fn ($q) => $q->where('status', 'active')])
             ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
             ->when($search, fn ($q) => $q->where(fn ($q) => $q
                 ->where('name', 'like', $search)
@@ -100,6 +102,26 @@ class WebshopController extends Controller
     public function unsuspend(WebshopDecisionRequest $request, string $webshop): JsonResponse
     {
         return $this->respond($this->lifecycle->unsuspend($this->admin($request), $this->find($webshop), (string) $request->validated('reason')));
+    }
+
+    /**
+     * "Request additional information": the merchant gets a dashboard
+     * notification with the message; the status does not change.
+     */
+    public function requestInformation(Request $request, string $webshop): JsonResponse
+    {
+        $data = $request->validate(['message' => ['required', 'string', 'min:10', 'max:500']]);
+        $model = $this->find($webshop);
+
+        $notification = MerchantNotification::create([
+            'webshop_id' => $model->id, 'type' => 'information_requested', 'severity' => 'warning',
+            'title' => 'Shopbonus needs more information', 'body' => $data['message'],
+            'subject_type' => 'webshop', 'subject_ref' => $model->public_id, 'dedupe_key' => 'info-request:'.Str::ulid(),
+        ]);
+        $this->audit->record('admin.webshop_information_requested', category: AuditCategory::Admin, resource: $model,
+            webshopId: $model->id, metadata: ['message' => $data['message']]);
+
+        return response()->json(['data' => ['notification_id' => $notification->public_id, 'webshop_id' => $model->public_id, 'status' => $model->status->value]], 201);
     }
 
     /**

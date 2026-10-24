@@ -3,8 +3,10 @@
 namespace App\Http\Resources;
 
 use App\Models\Webshop;
+use App\Models\WebshopConnection;
 use App\Models\WebshopMembership;
 use App\Models\WebshopVerification;
+use App\Services\Agreements\AgreementService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -53,6 +55,22 @@ class AdminWebshopResource extends JsonResource
             'created_at' => $w->created_at->toIso8601String(),
         ];
 
+        // List columns (Trello #21 "Webshop administration"), when the index loaded them.
+        if ($w->relationLoaded('connections')) {
+            $statuses = $w->connections->map(fn (WebshopConnection $c) => $c->status->value);
+            $data['integration_status'] = match (true) {
+                $statuses->contains('connected') => 'connected',
+                $statuses->contains('error') => 'error',
+                $statuses->contains('limited') => 'limited',
+                $statuses->contains('testing') || $statuses->contains('setup_required') => 'setup',
+                default => 'not_connected',
+            };
+            $data['last_activity_at'] = collect([$w->updated_at, ...$w->connections->pluck('last_event_at')])->filter()->max()?->toIso8601String();
+        }
+        if (array_key_exists('active_offers_count', $w->getAttributes())) {
+            $data['active_offers'] = (int) $w->getAttribute('active_offers_count');
+        }
+
         if (! $this->detail) {
             return $data;
         }
@@ -60,6 +78,14 @@ class AdminWebshopResource extends JsonResource
         $profile = $w->businessProfile;
 
         return $data + [
+            // Approval checklist (Trello #21): approval never bypasses a missing mandatory item.
+            'approval_checklist' => [
+                'business_identity' => $profile !== null && filled($profile->legal_name) && filled($profile->kvk_number),
+                'ownership_verified' => $w->isOwnershipVerified(),
+                'company_information_confirmed' => $profile?->confirmed_at !== null,
+                'agreement_accepted' => app(AgreementService::class)->hasAcceptedCurrent($w),
+                'owner_account_active' => $owners->isNotEmpty() && $owners->every(fn (WebshopMembership $m) => $m->user->isActive() && $m->user->email_verified_at !== null),
+            ],
             'business_profile' => $profile === null ? null : (new BusinessProfileResource($profile->setRelation('webshop', $w)))->toArray($request),
             'verifications' => $w->verifications->sortByDesc('id')->values()->map(fn (WebshopVerification $v) => [
                 ...(new VerificationResource($v))->toArray($request),

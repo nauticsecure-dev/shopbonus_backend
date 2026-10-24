@@ -3,10 +3,12 @@
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
+use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
+use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
 use App\Http\Controllers\Api\V1\Affiliate\VisitController;
@@ -168,6 +170,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             // Super Admin (privately provisioned; confirmed 2FA required). Mutations need a recent password
             // confirmation; the most sensitive ones also an emailed step-up code (B16a).
             Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
+                Route::get('cockpit', [AdminCockpitController::class, 'show'])->name('cockpit');
+                Route::get('activity', [AdminCockpitController::class, 'activity'])->name('activity');
+                Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
+                Route::get('users/{user}', [AdminUserController::class, 'show'])->name('users.show');
                 Route::get('support-sessions', [AdminSupportSessionController::class, 'index'])->name('support-sessions.index');
                 Route::get('support-sessions/{session}', [AdminSupportSessionController::class, 'show'])->name('support-sessions.show');
                 // Ending never needs step-up: revoking access must always be easy.
@@ -202,6 +208,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('step-up/code', [AdminStepUpController::class, 'code'])->middleware('throttle:admin-step-up')->name('step-up.code');
                     Route::post('step-up/verify', [AdminStepUpController::class, 'verify'])->middleware('throttle:identity-verify-code')->name('step-up.verify');
                     Route::post('support-sessions', [AdminSupportSessionController::class, 'store'])->middleware('step_up.otp')->name('support-sessions.store');
+                    Route::post('users/{user}/suspend', [AdminUserController::class, 'suspend'])->name('users.suspend');
+                    Route::post('users/{user}/reactivate', [AdminUserController::class, 'reactivate'])->name('users.reactivate');
+                    Route::post('users/{user}/reset-security', [AdminUserController::class, 'resetSecurity'])->middleware('step_up.otp')->name('users.reset-security');
+                    Route::post('users/{user}/revoke-super-admin', [AdminUserController::class, 'revokeSuperAdmin'])->middleware('step_up.otp')->name('users.revoke-super-admin');
+                    Route::post('webshops/{webshop}/members/{user}/revoke', [AdminUserController::class, 'revokeMembership'])->name('webshops.members.revoke');
+                    Route::post('webshops/{webshop}/request-information', [AdminWebshopController::class, 'requestInformation'])->name('webshops.request-information');
                     Route::post('webshops/{webshop}/approve', [AdminWebshopController::class, 'approve'])->name('webshops.approve');
                     Route::post('webshops/{webshop}/reject', [AdminWebshopController::class, 'reject'])->name('webshops.reject');
                     Route::post('webshops/{webshop}/suspend', [AdminWebshopController::class, 'suspend'])->name('webshops.suspend');

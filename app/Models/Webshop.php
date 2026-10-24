@@ -97,6 +97,18 @@ class Webshop extends Model
         return 'public_id';
     }
 
+    /** @return HasMany<WebshopConnection, $this> */
+    public function connections(): HasMany
+    {
+        return $this->hasMany(WebshopConnection::class);
+    }
+
+    /** @return HasMany<Offer, $this> */
+    public function offers(): HasMany
+    {
+        return $this->hasMany(Offer::class);
+    }
+
     /** @return HasMany<WebshopMembership, $this> */
     public function memberships(): HasMany
     {

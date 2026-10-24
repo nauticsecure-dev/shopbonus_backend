@@ -290,6 +290,30 @@ class TeamService
         });
     }
 
+    /**
+     * Super Admin revocation of any membership (Trello #21 "Revoke Membership").
+     * The last active owner of a webshop stays protected.
+     */
+    public function adminRevoke(User $admin, WebshopMembership $target, string $reason): WebshopMembership
+    {
+        if ($target->status === MembershipStatus::Removed) {
+            throw ApiException::conflict('This membership is already removed.', 'membership_already_removed');
+        }
+
+        DB::transaction(function () use ($admin, $target, $reason) {
+            if ($target->role === MembershipRole::Owner && $target->status === MembershipStatus::Active) {
+                $this->assertNotFinalOwner($target);
+            }
+
+            $this->changeStatus($target, MembershipStatus::Removed, 'admin.membership_revoked');
+            $this->audit->record('admin.membership_revoked_reason', category: AuditCategory::Admin,
+                resource: (new User)->getMorphClass(), resourceId: $target->user_id, webshopId: $target->webshop_id,
+                metadata: ['reason' => $reason, 'role' => $target->role->value, 'by' => $admin->public_id]);
+        });
+
+        return $target;
+    }
+
     // ---------------------------------------------------------------- rules
 
     /**
