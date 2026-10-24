@@ -19,6 +19,7 @@ use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Contracts\LoginResponse;
 use Laravel\Fortify\Contracts\RegisterResponse;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\TwoFactorLoginResponse;
 use Laravel\Fortify\Fortify;
 
 /**
@@ -31,6 +32,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->app->singleton(LoginResponse::class, MeResponse::class);
         $this->app->singleton(RegisterResponse::class, MeResponse::class);
+        $this->app->singleton(TwoFactorLoginResponse::class, MeResponse::class);
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, GenericPasswordResetLinkResponse::class);
         $this->app->bind(FailedPasswordResetLinkRequestResponse::class, GenericPasswordResetLinkResponse::class);
     }
@@ -75,6 +77,11 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('login', fn (Request $request) => [
             Limit::perMinute(5)->by('login:'.$email($request).'|'.$request->ip()),
             Limit::perMinute(20)->by('login-ip:'.$request->ip()),
+        ]);
+
+        // Two-factor challenge (B16a): keyed by the half-finished login, so TOTP codes cannot be brute-forced.
+        RateLimiter::for('two-factor', fn (Request $request) => [
+            Limit::perMinute(5)->by('two-factor:'.$request->session()->get('login.id').'|'.$request->ip()),
         ]);
 
         RateLimiter::for('identity-register', fn (Request $request) => [

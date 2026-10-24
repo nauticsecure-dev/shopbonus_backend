@@ -6181,6 +6181,424 @@ Content-Language: en
 
 ---
 
+## Admin two-factor, step-up codes and support sessions (B16a, Trello #21, #4)
+
+Captured 2026-10-24 against local MySQL with `ADMIN_MFA_REQUIRED=true`, `QUEUE_CONNECTION=sync` and `MAIL_MAILER=log`, so the step-up code was read from the mail log. The admin used a browser session (cookie + XSRF) and the support requests used the bearer token. Redacted: the TOTP secret, the QR code (it encodes the secret), the recovery codes and the plain support tokens. Request IDs and timestamps are real.
+
+Flow for the admin SPA:
+1. **2FA enrolment (once):** confirm the password, then POST /user/two-factor-authentication. Show the QR code or secret, then POST /user/confirmed-two-factor-authentication with a code. Show the recovery codes.
+2. **Login:** POST /login answers `{"two_factor": true}`, then POST /two-factor-challenge with `code` or `recovery_code`.
+3. **Sensitive action:** POST /user/confirm-password, then POST /api/v1/admin/step-up/code, then POST /api/v1/admin/step-up/verify, then the action.
+4. **Support session:** the start response returns the token. Send it as Bearer without cookies, and show the banner from `GET /api/v1/me` → `support_session`. End the session with `POST /admin/support-sessions/{id}/end` or `DELETE /api/v1/support-session`.
+
+**Admin without confirmed 2FA → 403 mfa_required**
+
+`GET /api/v1/admin/support-sessions    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16e0f-13ee-70dd-b5e2-368d5d5ed165
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":403,"code":"mfa_required","message":"Enable two-factor authentication to use the admin area.","request_id":"01a16e0f-13ee-70dd-b5e2-368d5d5ed165"}}
+```
+
+**Enable 2FA (pending confirmation)**
+
+`POST /user/two-factor-authentication    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-1455-734b-92af-b5e7fb5eb254
+
+""
+```
+
+**QR code (redacted)**
+
+`GET /user/two-factor-qr-code    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-14b7-7108-806b-4bc5b8d6e696
+
+{"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...>(QR code, redacted: it encodes the secret)</svg>", "url": "otpauth://totp/Shopbonus:admin.affiliate%40example.nl?secret=<redacted>&issuer=Shopbonus&algorithm=SHA1&digits=6&period=30"}
+```
+
+**Secret for manual entry (redacted)**
+
+`GET /user/two-factor-secret-key    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-19d5-7197-ac6c-cfbb047a55cc
+
+{"secretKey":"<base32 TOTP secret, redacted>"}
+```
+
+**Confirm with a wrong code → 422**
+
+`POST /user/confirmed-two-factor-authentication {"code":"000000"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16e0f-1a2c-703c-a807-c18dce4e08aa
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16e0f-1a2c-703c-a807-c18dce4e08aa","fields":{"code":["The provided two factor authentication code was invalid."]}}}
+```
+
+**Confirm with the TOTP code**
+
+`POST /user/confirmed-two-factor-authentication {"code":"<6-digit code>"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-1af3-728b-a4d3-49c137c97b71
+
+""
+```
+
+**Recovery codes (redacted)**
+
+`GET /user/two-factor-recovery-codes    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-1b8a-72c1-a5b9-7072b8057b00
+
+["<recovery code 1, redacted>", "<recovery code 2, redacted>", "<recovery code 3, redacted>", "<recovery code 4, redacted>", "<recovery code 5, redacted>", "<recovery code 6, redacted>", "<recovery code 7, redacted>", "<recovery code 8, redacted>"]
+```
+
+**Regenerate recovery codes**
+
+`POST /user/two-factor-recovery-codes    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-1be2-7166-91aa-ac0b201a82fc
+
+""
+```
+
+**/me shows two_factor_enabled**
+
+`GET /api/v1/me    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-1c92-72ef-86de-3f1faad9e0bf
+
+{"data":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":["super_admin"],"workspaces":[],"destination":"admin","two_factor_enabled":true,"support_session":null}}
+```
+
+**Login now stops at the second factor**
+
+`POST /login {"email":"admin.affiliate@example.nl","password":"Admin-wachtwoord-2026"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-2640-7102-a899-d8c27955b743
+
+{"two_factor":true}
+```
+
+**Wrong challenge code → 422**
+
+`POST /two-factor-challenge {"code":"000000"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16e0f-2799-72ea-b600-a21cc8e9e3e1
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16e0f-2799-72ea-b600-a21cc8e9e3e1","fields":{"code":["The provided two factor authentication code was invalid."]}}}
+```
+
+**Challenge with a recovery code → signed in**
+
+`POST /two-factor-challenge {"recovery_code":"<one recovery code>"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e0f-27f2-71f1-a358-829eb103ef7a
+
+{"data":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":["super_admin"],"workspaces":[],"destination":"admin","two_factor_enabled":true,"support_session":null}}
+```
+
+**Admin API reachable**
+
+`GET /api/v1/admin/support-sessions    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2852-722a-b7a9-31d1ddae6c03
+
+{"data":[{"id":"01m5q0wrqmhwzb4v787rtnpc0k","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4412: profiel controleren","started_at":"2026-10-24T13:16:39+00:00","expires_at":"2026-10-24T13:46:39+00:00","ended_at":"2026-10-24T13:16:39+00:00","ended_reason":"ended_by_session"},{"id":"01m5q0tvyn6d67mxww3zxsda54","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:15:36+00:00","expires_at":"2026-10-24T13:45:36+00:00","ended_at":"2026-10-24T13:15:37+00:00","ended_reason":"ended_by_admin"}]}
+```
+
+**Step-up code without recent password → 423**
+
+`POST /api/v1/admin/step-up/code    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 423 Locked
+X-Request-Id: 01a16e0f-28ca-72e8-b325-1804a1ac38b0
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+```
+
+**Start without emailed code → 423**
+
+`POST /api/v1/admin/support-sessions {"user_id":"<target user id>","reason":"Ticket 4411: klant ziet voucher niet"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 423 Locked
+X-Request-Id: 01a16e0f-2a64-72a5-b020-27eeae272006
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"01a16e0f-2a64-72a5-b020-27eeae272006"}}
+```
+
+**Request a step-up code**
+
+`POST /api/v1/admin/step-up/code    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2ad1-710f-9b3f-357497ec68e9
+
+{"data":{"sent":true,"expires_at":"2026-10-24T13:27:30+00:00"}}
+```
+
+**Second request within 60 s → 429**
+
+`POST /api/v1/admin/step-up/code    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 60
+X-Request-Id: 01a16e0f-2c10-703f-b26f-ba43e5c52cf9
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":429,"code":"step_up_resend_too_soon","message":"Please wait before requesting a new code.","request_id":"01a16e0f-2c10-703f-b26f-ba43e5c52cf9","details":{"retry_after_seconds":60}}}
+```
+
+**Wrong code → 422**
+
+`POST /api/v1/admin/step-up/verify {"code":"000000"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16e0f-2c5f-7272-9481-1a5a15e976dd
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":422,"code":"step_up_code_invalid","message":"This code is not valid.","request_id":"01a16e0f-2c5f-7272-9481-1a5a15e976dd"}}
+```
+
+**Correct code**
+
+`POST /api/v1/admin/step-up/verify {"code":"<6-digit code>"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2cbe-720a-8c13-3c9ee7bcfe86
+
+{"data":{"confirmed":true,"valid_until":"2026-10-24T13:27:30+00:00"}}
+```
+
+**Start a support session (token redacted)**
+
+`POST /api/v1/admin/support-sessions {"user_id":"<target user id>","reason":"Ticket 4411: klant ziet voucher niet"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2d24-737a-8b03-fe664dc6015f
+
+{"data":{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"active","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":null,"ended_reason":null,"token":"<plain support token, shown once; redacted>","token_type":"Bearer"}}
+```
+
+**/me with the support token: target + banner data**
+
+`GET /api/v1/me`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2d73-714b-84d8-9f4b94d07ea3
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":[],"workspaces":[],"destination":"consumer_dashboard","two_factor_enabled":false,"support_session":{"id":"01m5q0yba2j69fjv28qxfgvk2m","admin":{"first_name":"Sanne","email":"admin.affiliate@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","expires_at":"2026-10-24T13:47:30+00:00"}}}
+```
+
+**Allowed: profile update as the target (audited with the admin as real actor)**
+
+`PATCH /api/v1/consumer/profile {"first_name":"Anna"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2d9f-7184-b1e2-d07956db9da2
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl","email_verification":"verified","pending_email":null,"phone":null,"locale":"nl","avatar_url":null,"security":{"email_verified":true,"two_factor":"disabled"},"notifications":{"vouchers_discounts":true,"reminders":true,"offers_inspiration":false}}}
+```
+
+**Blocked: email change → 403**
+
+`POST /api/v1/consumer/email-change {"email":"ander@example.nl"}`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16e0f-2dcb-7067-9002-aec7a0a40550
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"01a16e0f-2dcb-7067-9002-aec7a0a40550"}}
+```
+
+**Session cookie and support token together → 400**
+
+`GET /api/v1/me   (session cookie AND Authorization: Bearer <support token>)`
+
+```http
+HTTP/1.1 400 Bad Request
+X-Request-Id: 01a16e0f-2df1-7140-b055-a94845d6bd4f
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":400,"code":"ambiguous_credentials","message":"Send either the session cookie or a bearer token, not both.","request_id":"01a16e0f-2df1-7140-b055-a94845d6bd4f"}}
+```
+
+**Sessions list**
+
+`GET /api/v1/admin/support-sessions    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2e39-712a-ad5f-a06b41fbe4e0
+
+{"data":[{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"active","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":null,"ended_reason":null},{"id":"01m5q0wrqmhwzb4v787rtnpc0k","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4412: profiel controleren","started_at":"2026-10-24T13:16:39+00:00","expires_at":"2026-10-24T13:46:39+00:00","ended_at":"2026-10-24T13:16:39+00:00","ended_reason":"ended_by_session"},{"id":"01m5q0tvyn6d67mxww3zxsda54","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:15:36+00:00","expires_at":"2026-10-24T13:45:36+00:00","ended_at":"2026-10-24T13:15:37+00:00","ended_reason":"ended_by_admin"}]}
+```
+
+**Session with action history**
+
+`GET /api/v1/admin/support-sessions/<session id>    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2e90-7264-96cf-21301507edd9
+
+{"data":{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"active","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":null,"ended_reason":null,"actions":[{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.started","outcome":"success","http_method":"POST","route":"api\/v1\/admin\/support-sessions","route_name":null,"http_status":null,"request_id":"01a16e0f-2d24-737a-8b03-fe664dc6015f"},{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.request","outcome":"success","http_method":"GET","route":"api\/v1\/me","route_name":"api.v1.me","http_status":200,"request_id":"01a16e0f-2d73-714b-84d8-9f4b94d07ea3"},{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.request","outcome":"success","http_method":"PATCH","route":"api\/v1\/consumer\/profile","route_name":"api.v1.consumer.profile.update","http_status":200,"request_id":"01a16e0f-2d9f-7184-b1e2-d07956db9da2"},{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.request","outcome":"denied","http_method":"POST","route":"api\/v1\/consumer\/email-change","route_name":"api.v1.consumer.email-change.store","http_status":403,"request_id":"01a16e0f-2dcb-7067-9002-aec7a0a40550"}]}}
+```
+
+**Admin ends the session**
+
+`POST /api/v1/admin/support-sessions/<session id>/end    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e0f-2eea-7020-8861-6fb175b43e8c
+
+{"data":{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":"2026-10-24T13:17:31+00:00","ended_reason":"ended_by_admin"}}
+```
+
+**Token after end → 401**
+
+`GET /api/v1/me`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16e0f-2f25-7106-8d62-bee26754edf6
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16e0f-2f25-7106-8d62-bee26754edf6"}}
+```
+
+**DELETE /support-session from the admin session → 404**
+
+`DELETE /api/v1/support-session    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16e0f-2f7a-718a-962c-62bbfea98b41
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":404,"code":"not_in_support_session","message":"This request is not part of a support session.","request_id":"01a16e0f-2f7a-718a-962c-62bbfea98b41"}}
+```
+
+**Self-end from the banner**
+
+`DELETE /api/v1/support-session`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e10-2064-70f8-9fc8-82ed0d72bfc7
+
+{"data":{"id":"01m5q1081t0zbh3nhvgjrffeb1","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4412: profiel controleren","started_at":"2026-10-24T13:18:33+00:00","expires_at":"2026-10-24T13:48:33+00:00","ended_at":"2026-10-24T13:18:33+00:00","ended_reason":"ended_by_session"}}
+```
+
+**Next start needs a new emailed code → 423**
+
+`POST /api/v1/admin/support-sessions {"user_id":"<target user id>","reason":"Ticket 4413: nog een keer"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 423 Locked
+X-Request-Id: 01a16e10-2121-7128-8e86-b24f77a49d7a
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"01a16e10-2121-7128-8e86-b24f77a49d7a"}}
+```
+
+**Turn 2FA off again (local reset)**
+
+`DELETE /user/two-factor-authentication    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16e10-2179-718d-b356-b69772e29d55
+
+""
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

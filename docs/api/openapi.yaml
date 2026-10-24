@@ -3981,6 +3981,7 @@ paths:
       summary: "Own profile"
       description: |
         The signed-in user's profile: name, verified email, pending email change, phone (E.164), locale, photo URL, factual security status and the three email notification switches. Identity comes from the session only; query parameters such as a user ID are ignored.
+        Since B16a `security.two_factor` is `enabled` or `disabled` (TOTP via `/user/two-factor-authentication`); the examples below were captured before B16a and show the former placeholder `not_available`.
       x-access: verified
       x-codeSamples:
         - lang: curl
@@ -8188,6 +8189,481 @@ paths:
             application/json:
               example: {"error":{"status":404,"code":"not_found","message":"Consent not found.","request_id":"<id>"}}
 
+  /user/two-factor-authentication:
+    post:
+      tags: [Auth]
+      operationId: enableTwoFactor
+      summary: "Start TOTP two-factor enrolment (Fortify)"
+      description: |
+        Browser session only, recent password confirmation required (Fortify `confirmPassword`). Generates a TOTP secret and 8 recovery codes; 2FA is **not active** until confirmed with a code from the authenticator app (POST /user/confirmed-two-factor-authentication). Calling it again replaces an unconfirmed secret. Body is Fortify's empty JSON string. Required for Super Admins (`ADMIN_MFA_REQUIRED`), optional for everyone else.
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/user/two-factor-authentication' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Secret generated, awaiting confirmation."
+          content:
+            application/json:
+              example: ""
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+    delete:
+      tags: [Auth]
+      operationId: disableTwoFactor
+      summary: "Turn off two-factor authentication (Fortify)"
+      description: |
+        Browser session, recent password confirmation required. Removes the secret and recovery codes. A Super Admin who does this loses admin access until 2FA is set up again (403 `mfa_required`).
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE 'http://localhost:8000/user/two-factor-authentication' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Disabled."
+          content:
+            application/json:
+              example: ""
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+
+  /user/confirmed-two-factor-authentication:
+    post:
+      tags: [Auth]
+      operationId: confirmTwoFactor
+      summary: "Confirm TOTP enrolment with a code (Fortify)"
+      description: |
+        Browser session, recent password confirmation required. Activates 2FA when the 6-digit code from the authenticator matches; from then on every login asks for the second factor.
+      x-access: authenticated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: 6-digit TOTP code }
+            example: {"code": "123456"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/user/confirmed-two-factor-authentication' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"code":"123456"}'
+      responses:
+        '200':
+          description: "Two-factor authentication is active."
+          content:
+            application/json:
+              example: ""
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: "Wrong code."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16e0f-1a2c-703c-a807-c18dce4e08aa","fields":{"code":["The provided two factor authentication code was invalid."]}}}
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+
+  /user/two-factor-qr-code:
+    get:
+      tags: [Auth]
+      operationId: twoFactorQrCode
+      summary: "QR code for the authenticator app (Fortify)"
+      description: |
+        Browser session, recent password confirmation required. SVG QR code and `otpauth://` URL. Both encode the secret: show them only during enrolment, never log them. (The example is redacted.)
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/user/two-factor-qr-code' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "QR SVG and otpauth URL (redacted)."
+          content:
+            application/json:
+              example: {"svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" ...>(QR code, redacted: it encodes the secret)</svg>", "url": "otpauth://totp/Shopbonus:admin.affiliate%40example.nl?secret=<redacted>&issuer=Shopbonus&algorithm=SHA1&digits=6&period=30"}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+
+  /user/two-factor-secret-key:
+    get:
+      tags: [Auth]
+      operationId: twoFactorSecretKey
+      summary: "Secret for manual entry (Fortify)"
+      description: |
+        Browser session, recent password confirmation required. The base32 secret for typing into an authenticator app. Never logged or stored outside the encrypted user column. (The example is redacted.)
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/user/two-factor-secret-key' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Secret (redacted)."
+          content:
+            application/json:
+              example: {"secretKey":"<base32 TOTP secret, redacted>"}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+
+  /user/two-factor-recovery-codes:
+    get:
+      tags: [Auth]
+      operationId: twoFactorRecoveryCodes
+      summary: "Show recovery codes (Fortify)"
+      description: |
+        Browser session, recent password confirmation required. The 8 single-use recovery codes (stored encrypted). Each one can replace a TOTP code once at login; a used code is replaced by a new one. (The example is redacted.)
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/user/two-factor-recovery-codes' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Codes (redacted)."
+          content:
+            application/json:
+              example: ["<recovery code 1, redacted>", "<recovery code 2, redacted>", "<recovery code 3, redacted>", "<recovery code 4, redacted>", "<recovery code 5, redacted>", "<recovery code 6, redacted>", "<recovery code 7, redacted>", "<recovery code 8, redacted>"]
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+    post:
+      tags: [Auth]
+      operationId: regenerateTwoFactorRecoveryCodes
+      summary: "Replace all recovery codes (Fortify)"
+      description: |
+        Browser session, recent password confirmation required. Invalidates every existing recovery code and creates 8 new ones (read them with GET).
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/user/two-factor-recovery-codes' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Replaced."
+          content:
+            application/json:
+              example: ""
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '423':
+          description: "Laravel's password confirmation is older than `auth.password_timeout`: POST /user/confirm-password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+
+  /two-factor-challenge:
+    post:
+      tags: [Auth]
+      operationId: twoFactorChallenge
+      summary: "Second login step: TOTP or recovery code (Fortify)"
+      description: |
+        After POST /login answered `{"two_factor": true}` (password correct, 2FA active) nobody is signed in yet. Send either `code` (6-digit TOTP) or `recovery_code`. On success the session is signed in and the body is the `/me` payload, like a normal login. Limited to 5 attempts per minute per pending login.
+      x-access: guest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string, description: 6-digit TOTP code }
+                recovery_code: { type: string }
+            example: {"recovery_code": "<one recovery code>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/two-factor-challenge' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"code":"123456"}'
+      responses:
+        '200':
+          description: "Signed in (captured with a recovery code)."
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+              example: {"data":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":["super_admin"],"workspaces":[],"destination":"admin","two_factor_enabled":true,"support_session":null}}
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: "Wrong code, or no pending login."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16e0f-2799-72ea-b600-a21cc8e9e3e1","fields":{"code":["The provided two factor authentication code was invalid."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/admin/step-up/code:
+    post:
+      tags: [Admin]
+      operationId: adminStepUpCode
+      summary: "Email a step-up code"
+      description: |
+        Second factor for the most sensitive admin actions (currently: starting a support session; B16b adds wallet adjustments and role changes). Needs a recent password confirmation first. Mails a 6-digit code to the admin's own address (queued, encrypted); a new code supersedes open ones. One code per 60 s (429 `step_up_resend_too_soon` with `retry_after_seconds`), 10 per hour. Only an HMAC of the code is stored; codes never appear in logs or audit metadata.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/step-up/code' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '202':
+          description: "Code sent."
+          content:
+            application/json:
+              example: {"data":{"sent":true,"expires_at":"2026-10-24T13:27:30+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '423':
+          description: "Confirm the password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+        '429':
+          description: "Too soon after the previous code."
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"step_up_resend_too_soon","message":"Please wait before requesting a new code.","request_id":"01a16e0f-2c10-703f-b26f-ba43e5c52cf9","details":{"retry_after_seconds":60}}}
+
+  /api/v1/admin/step-up/verify:
+    post:
+      tags: [Admin]
+      operationId: adminStepUpVerify
+      summary: "Confirm the emailed step-up code"
+      description: |
+        Needs a recent password confirmation. A correct code marks this browser session as stepped up for `ADMIN_STEP_UP_VALID_MINUTES` (default 10) and is consumed (single use). Codes expire after 10 minutes and allow 5 wrong attempts (`step_up_code_invalid`, `step_up_code_expired`, `step_up_code_attempts_exceeded`). Successes and failures are audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^\\d{6}$' }
+            example: {"code": "123456"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/step-up/verify' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"code":"123456"}'
+      responses:
+        '200':
+          description: "Stepped up until `valid_until`."
+          content:
+            application/json:
+              example: {"data":{"confirmed":true,"valid_until":"2026-10-24T13:27:30+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422':
+          description: "Invalid, expired or too many attempts."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"step_up_code_invalid","message":"This code is not valid.","request_id":"01a16e0f-2c5f-7272-9481-1a5a15e976dd"}}
+        '423':
+          description: "Confirm the password first."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"01a16e0f-28ca-72e8-b325-1804a1ac38b0"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/admin/support-sessions:
+    get:
+      tags: [Admin]
+      operationId: adminSupportSessions
+      summary: "Support sessions"
+      description: |
+        Latest 200 support sessions, newest first. Fields: `status` active | ended | expired; `ended_reason` ended_by_admin | ended_by_session | replaced | expired.
+      x-access: admin
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [active, ended, expired] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/support-sessions' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Sessions."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"active","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":null,"ended_reason":null},{"id":"01m5q0wrqmhwzb4v787rtnpc0k","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4412: profiel controleren","started_at":"2026-10-24T13:16:39+00:00","expires_at":"2026-10-24T13:46:39+00:00","ended_at":"2026-10-24T13:16:39+00:00","ended_reason":"ended_by_session"},{"id":"01m5q0tvyn6d67mxww3zxsda54","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:15:36+00:00","expires_at":"2026-10-24T13:45:36+00:00","ended_at":"2026-10-24T13:15:37+00:00","ended_reason":"ended_by_admin"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin (`platform_role_required`) or 2FA not confirmed (`mfa_required`, captured). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"mfa_required","message":"Enable two-factor authentication to use the admin area.","request_id":"01a16e0f-13ee-70dd-b5e2-368d5d5ed165"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    post:
+      tags: [Admin]
+      operationId: adminStartSupportSession
+      summary: "Start a support session (impersonation)"
+      description: |
+        Needs a recent password **and** an emailed step-up code (423 `step_up_code_required`); the code confirmation is used up by this call. The target must be an active account without platform roles and not yourself (422 `support_session_self`, `support_session_target_admin`, `support_session_target_inactive`). Starting a new session ends your previous one (`replaced`).
+
+        Returns a **30-minute** Sanctum token for the target (shown once; `ADMIN_SUPPORT_SESSION_MINUTES`). The admin UI sends it as `Authorization: Bearer` **without cookies** (a request with both is refused, 400 `ambiguous_credentials`); the admin's own session stays the admin. With the token:
+        - `GET /api/v1/me` returns the target plus `support_session` (admin, reason, expiry) for the permanent "Impersonation Active" banner;
+        - every request is audited as `support_session.request` with the target as actor and the admin as `real_actor_user_id`, and so is every domain audit event;
+        - blocked (403 `blocked_during_impersonation`): checkouts/payments, voucher code reveal, email change, privacy export/deletion, email verification, claims, invitations, new workspaces, agreements, code imports/inventory, connections and credentials, funding, team members, ownership verification, redemption, disputes, all admin routes; session-only routes (password change, 2FA, password confirmation) never accept the token.
+        Audited (`support_session.started`, with reason).
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, reason]
+              properties:
+                user_id: { type: string, description: Target user's public ID }
+                reason: { type: string, minLength: 10, maxLength: 255, description: 'Why (e.g. a ticket reference); shown in the banner and audit.' }
+            example: {"user_id": "01m5n63987h9jnx97myg2ycsny", "reason": "Ticket 4411: klant ziet voucher niet"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/support-sessions' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"user_id":"<target user id>","reason":"Ticket 4411: klant ziet voucher niet"}'
+      responses:
+        '201':
+          description: "Started; `token` is shown once (redacted here)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"active","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":null,"ended_reason":null,"token":"<plain support token, shown once; redacted>","token_type":"Bearer"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423':
+          description: "Password (`password_confirmation_required`) or emailed code (`step_up_code_required`) missing; captured without code."
+          content:
+            application/json:
+              example: {"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"01a16e0f-2a64-72a5-b020-27eeae272006"}}
+
+  /api/v1/admin/support-sessions/{session}:
+    parameters:
+      - { name: session, in: path, required: true, schema: { type: string }, description: Support session ID. }
+    get:
+      tags: [Admin]
+      operationId: adminSupportSession
+      summary: "Support session with its action history"
+      description: |
+        The session plus `actions`: every audit event of the session in order (start, each request with route, status and outcome, end). Fields: `status` active | ended | expired; `ended_reason` ended_by_admin | ended_by_session | replaced | expired.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/support-sessions/<session id>' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Session and actions."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"active","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":null,"ended_reason":null,"actions":[{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.started","outcome":"success","http_method":"POST","route":"api\/v1\/admin\/support-sessions","route_name":null,"http_status":null,"request_id":"01a16e0f-2d24-737a-8b03-fe664dc6015f"},{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.request","outcome":"success","http_method":"GET","route":"api\/v1\/me","route_name":"api.v1.me","http_status":200,"request_id":"01a16e0f-2d73-714b-84d8-9f4b94d07ea3"},{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.request","outcome":"success","http_method":"PATCH","route":"api\/v1\/consumer\/profile","route_name":"api.v1.consumer.profile.update","http_status":200,"request_id":"01a16e0f-2d9f-7184-b1e2-d07956db9da2"},{"occurred_at":"2026-10-24T13:17:30+00:00","action":"support_session.request","outcome":"denied","http_method":"POST","route":"api\/v1\/consumer\/email-change","route_name":"api.v1.consumer.email-change.store","http_status":403,"request_id":"01a16e0f-2dcb-7067-9002-aec7a0a40550"}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/support-sessions/{session}/end:
+    parameters:
+      - { name: session, in: path, required: true, schema: { type: string }, description: Support session ID. }
+    post:
+      tags: [Admin]
+      operationId: adminEndSupportSession
+      summary: "End a support session"
+      description: |
+        No step-up needed: revoking access must always be easy. Deletes the token at once (the next request with it is 401). Idempotent: an ended session is returned unchanged. Audited (`support_session.ended`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/support-sessions/<session id>/end' -b cookies.txt -c cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Ended."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5q0yba2j69fjv28qxfgvk2m","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4411: klant ziet voucher niet","started_at":"2026-10-24T13:17:30+00:00","expires_at":"2026-10-24T13:47:30+00:00","ended_at":"2026-10-24T13:17:31+00:00","ended_reason":"ended_by_admin"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+
+  /api/v1/support-session:
+    delete:
+      tags: [Auth]
+      operationId: endCurrentSupportSession
+      summary: "End the current support session (banner \"End session\")"
+      description: |
+        Called with the support token itself; ends the session and deletes the token. Without a support token: 404 `not_in_support_session`.
+      x-access: authenticated
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE 'http://localhost:8000/api/v1/support-session' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <support token>'
+      responses:
+        '200':
+          description: "Ended (`ended_by_session`)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5q1081t0zbh3nhvgjrffeb1","status":"ended","admin":{"id":"01m5pchsnh8j21gcjrtd7vvekg","first_name":"Sanne","email":"admin.affiliate@example.nl"},"target":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl"},"reason":"Ticket 4412: profiel controleren","started_at":"2026-10-24T13:18:33+00:00","expires_at":"2026-10-24T13:48:33+00:00","ended_at":"2026-10-24T13:18:33+00:00","ended_reason":"ended_by_session"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/AccountInactive' }
+        '404':
+          description: "Not a support-session request."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_in_support_session","message":"This request is not part of a support session.","request_id":"01a16e0f-2f7a-718a-962c-62bbfea98b41"}}
+
 components:
   parameters:
     Workspace:
@@ -8259,7 +8735,7 @@ components:
       properties:
         data:
           type: object
-          required: [id, first_name, email, email_verified, status, onboarding_intent, locale, roles, workspaces, destination]
+          required: [id, first_name, email, email_verified, status, onboarding_intent, locale, roles, workspaces, destination, two_factor_enabled, support_session]
           properties:
             id: { type: string, description: Public ULID (lower-case). }
             first_name: { type: string }
@@ -8268,9 +8744,18 @@ components:
             status: { type: string, enum: [active, suspended, deleted] }
             onboarding_intent: { type: string, enum: [consumer, merchant], description: Signup choice; grants nothing. }
             locale: { type: string, enum: [nl, en] }
-            roles: { type: array, items: { type: string }, description: Server-owned; empty until B03. }
-            workspaces: { type: array, items: { type: object }, description: Server-owned memberships; empty until B03. }
-            destination: { type: string, enum: [verify_email, consumer_dashboard, webshop_setup] }
+            roles: { type: array, items: { type: string }, description: Server-owned platform roles (e.g. super_admin). }
+            workspaces: { type: array, items: { type: object }, description: Server-owned active memberships. }
+            destination: { type: string, enum: [verify_email, consumer_dashboard, webshop_setup, workspace, admin] }
+            two_factor_enabled: { type: boolean, description: Confirmed TOTP two-factor authentication (B16a). }
+            support_session:
+              type: [object, 'null']
+              description: 'Set only on requests made with a support-session token: show the permanent "Impersonation Active" banner with End session (B16a).'
+              properties:
+                id: { type: string }
+                admin: { type: object, properties: { first_name: { type: string }, email: { type: string } } }
+                reason: { type: string }
+                expires_at: { type: string, format: date-time }
 
     Readiness:
       type: object
@@ -8313,7 +8798,7 @@ components:
 
   responses:
     PlatformRoleRequired:
-      description: The caller is not a Super Admin. Audited.
+      description: The caller is not a Super Admin (`platform_role_required`) or, with `ADMIN_MFA_REQUIRED`, has not confirmed two-factor authentication (`mfa_required`). Audited.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

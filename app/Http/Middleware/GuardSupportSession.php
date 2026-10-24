@@ -13,12 +13,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Applies support-session rules to requests made with a support token
  * (Trello #21 "Impersonation"):
  *
+ * - a request with both a session cookie and a bearer token is refused
+ *   (400 `ambiguous_credentials`), so the admin UI never acts as itself by mistake;
  * - an ended or expired session is refused (401) and its token deleted;
  * - the real admin is put in Context, so every audit event of the request
  *   carries `real_actor_user_id`;
@@ -69,6 +72,12 @@ class GuardSupportSession
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->user()?->currentAccessToken();
+
+        // Sanctum prefers the cookie session over a bearer token; a client sending both would
+        // silently act as the session user. Refuse instead of guessing.
+        if ($token instanceof TransientToken && $request->bearerToken() !== null) {
+            throw new ApiException('Send either the session cookie or a bearer token, not both.', 400, 'ambiguous_credentials');
+        }
         $session = $token instanceof PersonalAccessToken ? $this->sessions->forToken($token) : null;
 
         if ($token instanceof PersonalAccessToken && $token->name === SupportSessions::TOKEN_NAME && ($session === null || ! $session->isActive())) {

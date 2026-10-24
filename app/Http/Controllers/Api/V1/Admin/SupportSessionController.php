@@ -34,8 +34,9 @@ class SupportSessionController extends Controller
         return response()->json(['data' => $rows->map(fn (ImpersonationSession $s) => self::present($s))->all()]);
     }
 
-    public function show(ImpersonationSession $session): JsonResponse
+    public function show(string $session): JsonResponse
     {
+        $session = $this->find($session);
         // Complete action history: every request made with the session's token.
         $actions = AuditEvent::where('resource_type', $session->getMorphClass())->where('resource_id', (string) $session->id)
             ->orderBy('id')->limit(1000)->get()
@@ -74,9 +75,15 @@ class SupportSessionController extends Controller
         ]], 201);
     }
 
-    public function end(ImpersonationSession $session): JsonResponse
+    public function end(string $session): JsonResponse
     {
-        return response()->json(['data' => self::present($this->sessions->end($session, 'ended_by_admin'))]);
+        return response()->json(['data' => self::present($this->sessions->end($this->find($session), 'ended_by_admin'))]);
+    }
+
+    // Looked up here, not by route binding, so non-admins get 403 before any 404.
+    private function find(string $id): ImpersonationSession
+    {
+        return ImpersonationSession::where('public_id', $id)->firstOrFail();
     }
 
     /** @return array<string, mixed> */

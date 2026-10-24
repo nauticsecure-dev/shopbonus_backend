@@ -7,12 +7,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Laravel\Fortify\Contracts\LoginResponse;
 use Laravel\Fortify\Contracts\RegisterResponse;
+use Laravel\Fortify\Contracts\TwoFactorLoginResponse;
 
 /**
- * Fortify login (200) and registration (201) both answer with the /me
+ * Fortify login and the two-factor challenge (200) and registration (201) answer with the /me
  * payload, so the SPA routes on the server-computed destination.
  */
-class MeResponse implements LoginResponse, RegisterResponse
+class MeResponse implements LoginResponse, RegisterResponse, TwoFactorLoginResponse
 {
     /**
      * @param  Request  $request

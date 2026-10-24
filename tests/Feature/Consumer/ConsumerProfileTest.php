@@ -82,7 +82,7 @@ class ConsumerProfileTest extends TestCase
             ->assertJsonPath('data.email_verification', 'verified')
             ->assertJsonPath('data.phone', '+31612345678')
             ->assertJsonPath('data.avatar_url', null)
-            ->assertJsonPath('data.security', ['email_verified' => true, 'two_factor' => 'not_available'])
+            ->assertJsonPath('data.security', ['email_verified' => true, 'two_factor' => 'disabled'])
             ->assertJsonPath('data.notifications', ['vouchers_discounts' => false, 'reminders' => true, 'offers_inspiration' => false]);
         $this->assertNotSame($this->anna->getRawOriginal('phone'), '+31612345678'); // stored encrypted
 

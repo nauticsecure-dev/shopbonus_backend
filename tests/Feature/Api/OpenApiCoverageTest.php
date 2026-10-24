@@ -24,6 +24,9 @@ class OpenApiCoverageTest extends TestCase
         'sanctum.csrf-cookie', 'register.store', 'login.store', 'logout',
         'password.email', 'password.update', 'user-password.update',
         'password.confirm.store', 'password.confirmation',
+        // Fortify TOTP (B16a)
+        'two-factor.login.store', 'two-factor.enable', 'two-factor.confirm', 'two-factor.disable',
+        'two-factor.qr-code', 'two-factor.secret-key', 'two-factor.recovery-codes', 'two-factor.regenerate-recovery-codes',
     ];
 
     /** @return array<string, mixed> */

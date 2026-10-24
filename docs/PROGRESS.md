@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected); B16 onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected). B16a (admin 2FA, step-up code, support sessions) is done; B16b onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -61,6 +61,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-24 | Claude (Opus 5.5) | B14 banner campaigns backend | `e5df771` | MySQL 410 passed; SQLite 403 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (embed simulated with Origin headers); mutation caught; capture found `draft_revision` null on create (fixed) | WIP `641e86d` |
 | 2026-10-24 | Claude (Opus 5.5) | B15a CMS pages, legal, FAQ | `4604215` | SQLite 410 + 7 skipped; MySQL CMS suite passed after a MySQL-only reorder bug was found and fixed; Pint, PHPStan L6, audit clean; rollback OK; real captures; mutation caught | WIP `ca6ef84` |
 | 2026-10-24 | Claude (Opus 5.5) | B15b cookie consent + NL/EN API | `b2abb82` | MySQL 420 passed; SQLite 413 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures incl. Dutch validation; mutation caught | B15 complete |
+| 2026-10-24 | Claude (Opus 5.5) | B16a admin 2FA, step-up code, support sessions | see git log | MySQL 426 passed; SQLite 419 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (secrets redacted); 9 mutations caught (one survived at first and the test was strengthened); found and fixed: unthrottled 2FA challenge, route-binding 404 before the admin check | WIP `962af29` |
 
 ### B01a detail
 
@@ -107,7 +108,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 
 - **Delivered:** migration `2026_10_23_180000_create_agreement_tables` (`agreement_templates`, `webshop_agreement_acceptances`, `webshops.rejected_at`); models `AgreementTemplate` (immutable once published), `AgreementAcceptance` (append-only); `AgreementService` (server-selected version, escaped rendering, SHA-256, accept); `WebshopLifecycle` (auto-approval, approve/reject/suspend/unsuspend); middleware `EnsurePlatformRole` (`platform:`), `RequireRecentPassword` (`password.recent`), `EnsureWorkspaceCommerciallyActive` (`workspace.commercial`); `AgreementController`; `Admin\WebshopController`, `Admin\AgreementTemplateController`; `AdminWebshopResource`, `AgreementTemplateResource`; `OnboardingProgress` agreement step; registry `x-access: admin`.
 - **Card #16 mapping:** E2E 3 → `AgreementAndReviewTest::test_e2e3_*`; E2E 4 → `test_e2e4_*` (escaped rendering, auto-activation, unticked/forged/outdated refused, re-acceptance); E2E 9 suspension half → `test_e2e9_*`; E2E 10 backend journey → `test_e2e10_backend_journey_*`; every admin route refuses non-admins (`test_every_admin_route_refuses_non_admins`).
-- **Card #3 F18 / #2 "support sessions"** are not done: impersonation/support sessions are B16.
+- **Card #3 F18 / #2 "support sessions"**: done in B16a (support sessions with real-actor audit).
 
 ### B04 detail
 

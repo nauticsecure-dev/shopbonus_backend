@@ -104,7 +104,7 @@ class ProfileController extends Controller
             // Factual security information only (Trello #10 "Security status").
             'security' => [
                 'email_verified' => $user->email_verified_at !== null,
-                'two_factor' => 'not_available',
+                'two_factor' => $user->hasEnabledTwoFactorAuthentication() ? 'enabled' : 'disabled',
             ],
             'notifications' => $this->preferences->current($user),
         ];
