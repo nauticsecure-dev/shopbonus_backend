@@ -4864,6 +4864,172 @@ Content-Type: application/json
 
 ---
 
+## Merchant funding: reward + 30% fee (B12, Trello #24 §4, #7)
+
+Captured 2026-10-24 against local MySQL. **Mollie was a local test-mode stub**, and Moneybird is not connected. Jan owns *Woon & Co*, whose funding wallet starts at €0. The new merchant reward "€10 korting op je volgende bestelling" costs €10 reward + €3 fee = €13 per voucher.
+
+**Funding: empty**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-d9b9-7269-87fc-9fd3993be7ba
+
+{"data":{"currency":"EUR","available_minor":0,"reserved_minor":0,"settled_minor":0,"released_minor":0,"topped_up_minor":0,"obligations":{"reserved":0,"settled":0,"released":0},"fee_rate_bps":3000,"fee_basis":{"fixed":"reward","percentage":"maximum_discount"},"funding_required":true,"withdrawable":false}}
+```
+
+**Activating the reward offer while unfunded → 409**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/offers/01m5pefmgdjxy9q4fa1r7pk7cx/activate`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16ce7-da1e-7239-ae39-6a638ca985a2
+Content-Type: application/json
+
+{"error":{"status":409,"code":"funding_insufficient","message":"Top up the reward funding before activating this offer.","request_id":"01a16ce7-da1e-7239-ae39-6a638ca985a2","details":{"required_minor":1300}}}
+```
+
+**Top-up below the minimum → 422**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding/top-ups {"amount_minor":500}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16ce7-da5a-739d-9127-9528c6522252
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16ce7-da5a-739d-9127-9528c6522252","fields":{"amount_minor":["The amount minor field must be at least 1000."]}}}
+```
+
+**Top-up €500 via Mollie iDEAL**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding/top-ups {"amount_minor":50000}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ce7-da94-7061-8a5b-3acd99ac6e76
+
+{"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"pending","amount_minor":50000,"currency":"EUR","checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/861cd71ef5","paid_at":null}}
+```
+
+**Mollie webhook (payment paid at the stub)**
+
+`POST /api/v1/payments/mollie/webhook id=tr_861cd71ef5`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-db26-70f6-b12e-8f28afb3ced0
+
+{"data":{"received":true}}
+```
+
+**Top-up credited once**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding/top-ups/01m5pefpna4hvspc2gxpg25yhk`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-db64-7250-b808-df92c8546602
+
+{"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"paid","amount_minor":50000,"currency":"EUR","checkout_url":null,"paid_at":"2026-10-24T07:54:56+00:00"}}
+```
+
+**Now the offer activates**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/offers/01m5pefmgdjxy9q4fa1r7pk7cx/activate`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-db88-732f-a021-b5cbd6f00a53
+
+{"data":{"id":"01m5pefmgdjxy9q4fa1r7pk7cx","acquisition":"merchant_reward","status":"active","terms":{"version":1,"locked":true,"summary":"\u20ac10.00 from \u20ac50.00","name":"\u20ac10 korting op je volgende bestelling","public_description":null,"discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"max_discount_minor":null,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":[],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":null},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"fixed_value","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":null,"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-24T07:54:56+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-24T07:54:54+00:00"}}
+```
+
+Two sponsored vouchers were then reserved through `VoucherInventory` (one issued to Anna), which reserved 2 × €13.
+
+**Funding: €26 reserved**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-dd6d-72d6-8e0c-9a243b45c34a
+
+{"data":{"currency":"EUR","available_minor":47400,"reserved_minor":2600,"settled_minor":0,"released_minor":0,"topped_up_minor":50000,"obligations":{"reserved":2,"settled":0,"released":0},"fee_rate_bps":3000,"fee_basis":{"fixed":"reward","percentage":"maximum_discount"},"funding_required":true,"withdrawable":false}}
+```
+
+**Jan verifies Anna's redemption → one €13 obligation settled**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/vouchers/redeem {"code":"NEXT-10-A","reference":"Order WC-7001"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-dd95-700b-a072-a7cb1d6ae7f9
+
+{"data":{"voucher_id":"01m5pefq8db6ph9n4xkrrkxtmh","status":"redeemed","redeemed_at":"2026-10-24T07:54:57+00:00","source":"merchant","reference":"Order WC-7001"}}
+```
+
+**Obligations**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding/obligations`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-ddd8-716d-8ea2-be8b6227c33b
+
+{"data":[{"id":"01m5pefq9ybtdw3vzgtx599mvh","voucher_id":"01m5pefq9nvj291fxq2dvx08wk","status":"reserved","basis":"fixed","reward_minor":1000,"fee_minor":300,"total_minor":1300,"created_at":"2026-10-24T07:54:57+00:00","settled_at":null,"released_at":null},{"id":"01m5pefq93nw9qtdrjhfk9d443","voucher_id":"01m5pefq8db6ph9n4xkrrkxtmh","status":"settled","basis":"fixed","reward_minor":1000,"fee_minor":300,"total_minor":1300,"created_at":"2026-10-24T07:54:57+00:00","settled_at":"2026-10-24T07:54:57+00:00","released_at":null}]}
+```
+
+**Funding ledger**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding/transactions`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-ddff-72a3-80f5-e12f74c80b0f
+
+{"data":[{"id":"01m5pefqdnf0ej2r9ngay98eh0","type":"debit","amount_minor":-1300,"available_after_minor":47400,"reserved_after_minor":1300,"source":{"type":"sponsorship","ref":"01m5pefq8db6ph9n4xkrrkxtmh"},"description":null,"created_at":"2026-10-24T07:54:57+00:00"},{"id":"01m5pefq9x5mhvsraxbtywnnkk","type":"reserve","amount_minor":0,"available_after_minor":47400,"reserved_after_minor":2600,"source":{"type":"sponsorship","ref":"01m5pefq9nvj291fxq2dvx08wk"},"description":null,"created_at":"2026-10-24T07:54:57+00:00"},{"id":"01m5pefq8zkqfmraeh0dktjz1t","type":"reserve","amount_minor":0,"available_after_minor":48700,"reserved_after_minor":1300,"source":{"type":"sponsorship","ref":"01m5pefq8db6ph9n4xkrrkxtmh"},"description":null,"created_at":"2026-10-24T07:54:57+00:00"},{"id":"01m5pefpsxy61qytej1vgzw4j7","type":"credit","amount_minor":50000,"available_after_minor":50000,"reserved_after_minor":0,"source":{"type":"top_up","ref":"01m5pefpna4hvspc2gxpg25yhk"},"description":"Mollie top-up","created_at":"2026-10-24T07:54:56+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":50,"total":4}}
+```
+
+`php artisan shopbonus:prepare-invoices 2026-10` → `Prepared 1 draft invoice(s) for 2026-10.`
+
+**Statement draft**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/invoices`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-df47-73a1-9196-446c8a3b1ec5
+
+{"data":[{"id":"01m5pefqrwgqpck880316vxzs9","period":"2026-10","reward_minor":1000,"fee_minor":300,"total_minor":1300,"lines":1,"status":"draft","moneybird":"not_connected"}]}
+```
+
+**Funding afterwards**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/funding`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ce7-df6c-7072-86bb-642bcd8b5257
+
+{"data":{"currency":"EUR","available_minor":47400,"reserved_minor":1300,"settled_minor":1300,"released_minor":0,"topped_up_minor":50000,"obligations":{"reserved":1,"settled":1,"released":0},"fee_rate_bps":3000,"fee_basis":{"fixed":"reward","percentage":"maximum_discount"},"funding_required":true,"withdrawable":false}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

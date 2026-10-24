@@ -75,6 +75,9 @@ tags:
   - name: Payments
     description: |
       Payment provider callbacks (Mollie, test mode). Never trusted: statuses are fetched from the provider.
+  - name: Funding
+    description: |
+      Merchant funding of sponsored rewards: reward + 30% fee on top (Trello #24 §4).
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -2805,7 +2808,7 @@ paths:
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
         '409':
-          description: "invalid_status_transition."
+          description: "`invalid_status_transition`, or (B12) `funding_insufficient`: a merchant reward needs funding for at least one reward + 30% fee (captured in the Funding section of the README)."
           content:
             application/json:
               example: {"error":{"status":409,"code":"invalid_status_transition","message":"An offer cannot go from paused to paused.","request_id":"01a1695b-737f-7307-b934-144963fbe078"}}
@@ -5922,6 +5925,187 @@ paths:
               example: {"error":{"status":409,"code":"checkout_not_refundable","message":"Only paid but unfulfilled checkouts are refunded here.","request_id":"01a16cdc-2a64-7263-9bef-14c13fd2d20f","details":{"state":"refunded"}}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/workspaces/{workspace}/funding:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Funding]
+      operationId: funding
+      summary: "Reward funding balance"
+      description: |
+        The webshop's funding wallet for sponsored rewards (Trello #24 §4): `available_minor` can fund new rewards; `reserved_minor` is held for reserved/issued vouchers (reward + 30% fee each); `settled_minor` was billed at redemption; `released_minor` came back from vouchers that lapsed. Fixed rewards use the reward as fee basis; percentage rewards use the maximum discount (`fee_basis.percentage`, provisional: OPEN-PERCENT-REWARD-FEE-BASIS). With `funding_required`, new sponsored vouchers need funding. Not withdrawable.
+      x-access: verified
+      x-permission: finance.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/funding' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Balances (captured after one redemption)."
+          content:
+            application/json:
+              example: {"data":{"currency":"EUR","available_minor":47400,"reserved_minor":1300,"settled_minor":1300,"released_minor":0,"topped_up_minor":50000,"obligations":{"reserved":1,"settled":1,"released":0},"fee_rate_bps":3000,"fee_basis":{"fixed":"reward","percentage":"maximum_discount"},"funding_required":true,"withdrawable":false}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/funding/transactions:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Funding]
+      operationId: fundingTransactions
+      summary: "Funding wallet ledger"
+      description: |
+        Append-only ledger of the funding wallet: top-up credits, reserve/debit/release per sponsored voucher. Newest first, 50 per page.
+      x-access: verified
+      x-permission: finance.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/funding/transactions' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Entries."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pefqdnf0ej2r9ngay98eh0","type":"debit","amount_minor":-1300,"available_after_minor":47400,"reserved_after_minor":1300,"source":{"type":"sponsorship","ref":"01m5pefq8db6ph9n4xkrrkxtmh"},"description":null,"created_at":"2026-10-24T07:54:57+00:00"},{"id":"01m5pefq9x5mhvsraxbtywnnkk","type":"reserve","amount_minor":0,"available_after_minor":47400,"reserved_after_minor":2600,"source":{"type":"sponsorship","ref":"01m5pefq9nvj291fxq2dvx08wk"},"description":null,"created_at":"2026-10-24T07:54:57+00:00"},{"id":"01m5pefq8zkqfmraeh0dktjz1t","type":"reserve","amount_minor":0,"available_after_minor":48700,"reserved_after_minor":1300,"source":{"type":"sponsorship","ref":"01m5pefq8db6ph9n4xkrrkxtmh"},"description":null,"created_at":"2026-10-24T07:54:57+00:00"},{"id":"01m5pefpsxy61qytej1vgzw4j7","type":"credit","amount_minor":50000,"available_after_minor":50000,"reserved_after_minor":0,"source":{"type":"top_up","ref":"01m5pefpna4hvspc2gxpg25yhk"},"description":"Mollie top-up","created_at":"2026-10-24T07:54:56+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":50,"total":4}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/funding/obligations:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Funding]
+      operationId: fundingObligations
+      summary: "Sponsorship obligations"
+      description: |
+        One per sponsored voucher (unique, so issuance/redemption never bills twice): reward, fee, total, basis and status.
+      x-access: verified
+      x-permission: finance.view
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [reserved, settled, released] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/funding/obligations?status=settled' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Obligations."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pefq9ybtdw3vzgtx599mvh","voucher_id":"01m5pefq9nvj291fxq2dvx08wk","status":"reserved","basis":"fixed","reward_minor":1000,"fee_minor":300,"total_minor":1300,"created_at":"2026-10-24T07:54:57+00:00","settled_at":null,"released_at":null},{"id":"01m5pefq93nw9qtdrjhfk9d443","voucher_id":"01m5pefq8db6ph9n4xkrrkxtmh","status":"settled","basis":"fixed","reward_minor":1000,"fee_minor":300,"total_minor":1300,"created_at":"2026-10-24T07:54:57+00:00","settled_at":"2026-10-24T07:54:57+00:00","released_at":null}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/funding/top-ups:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Funding]
+      operationId: startTopUp
+      summary: "Top up via Mollie (iDEAL)"
+      description: |
+        Creates a Mollie iDEAL payment (test mode only; `MOLLIE_ALLOW_LIVE`) and returns its `checkout_url`. The funding wallet is credited once, after Mollie's webhook and a server-side check of the payment (amount, currency, top-up ID). Requires a commercially active webshop. €10–€10,000 per top-up. Captured against a local Mollie test-mode stub.
+      x-access: verified
+      x-permission: finance.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount_minor]
+              properties:
+                amount_minor: { type: integer, minimum: 1000, maximum: 1000000 }
+            example: {"amount_minor": 50000}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/funding/top-ups' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"amount_minor":50000}'
+      responses:
+        '201':
+          description: "Payment created."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"pending","amount_minor":50000,"currency":"EUR","checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/861cd71ef5","paid_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "`payments_unavailable` (no test key)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"payments_unavailable","message":"Online payment is not available right now.","request_id":"<id>"}}
+        '422':
+          description: "Amount out of range."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16ce7-da5a-739d-9127-9528c6522252","fields":{"amount_minor":["The amount minor field must be at least 1000."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: topUp, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Funding]
+      operationId: topUpStatus
+      summary: "Top-up status"
+      description: |
+        `pending`, `paid` or `failed`. The page Mollie redirects back to polls this; the redirect itself proves nothing.
+      x-access: verified
+      x-permission: finance.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/funding/top-ups/<id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Top-up."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"paid","amount_minor":50000,"currency":"EUR","checkout_url":null,"paid_at":"2026-10-24T07:54:56+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/invoices:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Funding]
+      operationId: fundingInvoices
+      summary: "Monthly statements"
+      description: |
+        Monthly drafts of settled rewards and fees (`shopbonus:prepare-invoices`, 1st of the month). Moneybird is not connected yet (`moneybird: not_connected`; OPEN-FINANCIAL-LEGAL), so these are statements, not sent invoices.
+      x-access: verified
+      x-permission: finance.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/invoices' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Statements."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pefqrwgqpck880316vxzs9","period":"2026-10","reward_minor":1000,"fee_minor":300,"total_minor":1300,"lines":1,"status":"draft","moneybird":"not_connected"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
 
 components:
   parameters:
