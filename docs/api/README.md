@@ -3807,40 +3807,40 @@ X-Request-Id: 01a16a61-cea1-7315-b32e-b5d7882c17e8
 {"data":[{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie","logo_url":null,"categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}]}]}
 ```
 
-**My Vouchers**
+**My Vouchers** (re-captured in B11b: codes are masked in the list)
 
-`GET /api/v1/consumer/vouchers`
+`GET /api/v1/consumer/vouchers?filter=active`
 
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Request-Id: 01a16a61-cf5b-7126-a4ec-2167e223c746
+X-Request-Id: 01a16cdc-241a-710c-a808-20da117a3890
 
-{"data":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}]}
+{"data":[{"id":"01m5pdr4zv96djgyr0ybmg0j51","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-C","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:42:05+00:00","expires_at":"2027-01-22T07:42:05+00:00","redeemed_at":null},{"id":"01m5pd8g6wwgnnb2qdty25kc2p","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-B","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:32+00:00","expires_at":"2027-01-22T07:33:32+00:00","redeemed_at":null},{"id":"01m5pd8g05ak30hy67ndss1s4v","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-A","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:31+00:00","expires_at":"2027-01-22T07:33:31+00:00","redeemed_at":null},{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code_masked":"\u2022\u2022\u2022\u20227Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}]}
 ```
 
-**Reserved is not a consumer status → 422**
+**Unknown filter → 422**
 
-`GET /api/v1/consumer/vouchers?status=reserved`
+`GET /api/v1/consumer/vouchers?filter=reserved`
 
 ```http
 HTTP/1.1 422 Unprocessable Content
-X-Request-Id: 01a16a61-d013-70a3-805f-4210b7800dc5
+X-Request-Id: 01a16cdc-2459-71c9-a85d-02d5d6727b94
 Content-Type: application/json
 
-{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d013-70a3-805f-4210b7800dc5","fields":{"status":["The selected status is invalid."]}}}
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cdc-2459-71c9-a85d-02d5d6727b94","fields":{"filter":["The selected filter is invalid."]}}}
 ```
 
-**Dashboard** (re-captured in B09 with the real wallet)
+**Dashboard** (re-captured in B11b)
 
 `GET /api/v1/consumer/dashboard`
 
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Request-Id: 01a16a6f-b071-70d6-b1ce-5ff3c15e55f1
+X-Request-Id: 01a16cdc-24c1-70cb-a9ce-d4d17570d3b3
 
-{"data":{"first_name":"Anna","email_verified":true,"wallet":{"eur_credit":{"unit":"eur_credit","available":220,"pending":300,"reserved":0,"total_earned":1220,"total_spent":1000,"total_expired":0,"next_expiry":{"amount":220,"at":"2027-10-23T20:24:21+00:00"}},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"vouchers":{"issued":1,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}],"favorites":[]}}
+{"data":{"first_name":"Anna","email_verified":true,"wallet":{"eur_credit":{"unit":"eur_credit","available":0,"pending":0,"reserved":0,"total_earned":3100,"total_spent":3100,"total_expired":0,"next_expiry":null},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"vouchers":{"issued":4,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5pdr4zv96djgyr0ybmg0j51","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-C","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:42:05+00:00","expires_at":"2027-01-22T07:42:05+00:00","redeemed_at":null},{"id":"01m5pd8g6wwgnnb2qdty25kc2p","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-B","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:32+00:00","expires_at":"2027-01-22T07:33:32+00:00","redeemed_at":null},{"id":"01m5pd8g05ak30hy67ndss1s4v","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-A","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:31+00:00","expires_at":"2027-01-22T07:33:31+00:00","redeemed_at":null}],"favorites":[]}}
 ```
 
 **Data export**
@@ -4612,6 +4612,254 @@ Content-Type: application/json
 X-Request-Id: 01a16cd4-43c9-7388-97f9-96ea0379a97a
 
 {"data":{"balances":{"eur_credit":{"unit":"eur_credit","available":0,"pending":0,"reserved":0,"total_earned":3100,"total_spent":3100,"total_expired":0,"next_expiry":null},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"withdrawable":false,"notice":"ShopBonus credit and points are not money: they cannot be withdrawn or transferred."}}
+```
+
+---
+
+## My Vouchers details, redemption, disputes (B11b, Trello #20)
+
+Captured 2026-10-24 against local MySQL, continuing the B11a data. Anna owns *Woon & Co* vouchers; Jan owns Woon & Co; the Super Admin used a session with step-up. Mollie refunds went to the local test-mode stub; what it received:
+
+```json
+{
+  "path": "/v2/payments/tr_lost1708de/refunds",
+  "idempotency_key": "refund:checkout:01m5pdr69v44a0e6p83qxvtxrx",
+  "body": {
+    "amount": {
+      "currency": "EUR",
+      "value": "20.00"
+    },
+    "description": "ShopBonus voucher could not be delivered"
+  }
+}
+```
+
+**Voucher details: the code, revealed to its owner (audited)**
+
+`GET /api/v1/consumer/vouchers/01m5pdr4zv96djgyr0ybmg0j51`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-2488-71a5-b75f-9ee1d71b0916
+
+{"data":{"id":"01m5pdr4zv96djgyr0ybmg0j51","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-C","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:42:05+00:00","expires_at":"2027-01-22T07:42:05+00:00","redeemed_at":null,"code":"MEUBEL-25-C","expires_soon":false,"instructions":"Enter the code in the discount field at checkout on the webshop. Minimum order and conditions below apply.","website_url":null,"terms":{"name":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","version":1,"currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":2500,"min_order_minor":10000,"max_discount_minor":null,"public_description":null},"purchase":{"checkout_id":"01m5pdr4zgkbfrnm2hpt5z6mte","price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000},"redemption":null}}
+```
+
+**Merchant verifies a redemption**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/vouchers/redeem {"code":"MEUBEL-25-A","reference":"Order WC-5531"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-24f4-70c7-82f1-08fd3eadc680
+
+{"data":{"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","status":"redeemed","redeemed_at":"2026-10-24T07:42:09+00:00","source":"merchant","reference":"Order WC-5531"}}
+```
+
+**Same code again → 409**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/vouchers/redeem {"code":"MEUBEL-25-A"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16cdc-2544-73ed-9aad-d70499dff64d
+Content-Type: application/json
+
+{"error":{"status":409,"code":"voucher_not_redeemable","message":"This voucher was already redeemed or is not issued.","request_id":"01a16cdc-2544-73ed-9aad-d70499dff64d","details":{"status":"redeemed"}}}
+```
+
+**Unknown code → 404**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/vouchers/redeem {"code":"NOPE-0000"}`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16cdc-2581-715f-929d-d5e61cf61d0e
+Content-Type: application/json
+
+{"error":{"status":404,"code":"voucher_not_found","message":"No issued voucher of this webshop has that code.","request_id":"01a16cdc-2581-715f-929d-d5e61cf61d0e"}}
+```
+
+**Anna reports an invalid code**
+
+`POST /api/v1/consumer/disputes {"voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","reason":"code_invalid","description":"The webshop says this code does not exist."}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cdc-25ce-7282-9f9a-b87133025655
+
+{"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}}
+```
+
+**Second report for the same voucher → 409**
+
+`POST /api/v1/consumer/disputes {"voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","reason":"other","description":"Second report about the same voucher"}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16cdc-261a-70cf-ac65-2c30f55ed593
+Content-Type: application/json
+
+{"error":{"status":409,"code":"dispute_already_open","message":"There is already an open report for this voucher.","request_id":"01a16cdc-261a-70cf-ac65-2c30f55ed593"}}
+```
+
+**Her reports**
+
+`GET /api/v1/consumer/disputes`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-265a-72c7-bbc4-e8b4f56e05e1
+
+{"data":[{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}]}
+```
+
+**Admin: all reports**
+
+`GET /api/v1/admin/disputes    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-26b5-71ca-b157-a3614fac23fa
+
+{"data":[{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}]}
+```
+
+**Admin asks the merchant**
+
+`POST /api/v1/admin/disputes/01m5pdr9f7d6zf69g911xryy6x/status {"status":"waiting_for_merchant","note":"Asked Woon & Co to check the code"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-2719-7154-9ab7-5e4a49605c27
+
+{"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"waiting_for_merchant","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"}]}}
+```
+
+**Merchant view (no consumer identity)**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/disputes`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-2754-73d9-8638-a0159a356b01
+
+{"data":[{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"waiting_for_merchant","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","resolution":null,"created_at":"2026-10-24T07:42:09+00:00","code_last4":"25-C"}]}
+```
+
+**Merchant responds**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/disputes/01m5pdr9f7d6zf69g911xryy6x/respond {"message":"This code was not imported correctly, sorry."}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-277b-721e-8dac-f227083922fb
+
+{"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"under_review","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","resolution":null,"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"}],"code_last4":"25-C"}}
+```
+
+**Admin: report with timeline**
+
+`GET /api/v1/admin/disputes/01m5pdr9f7d6zf69g911xryy6x    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-27d6-7098-9efc-e829af9836b0
+
+{"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"under_review","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"}]}}
+```
+
+**Admin resolves with a refund of the €9.00 card part (once)**
+
+`POST /api/v1/admin/disputes/01m5pdr9f7d6zf69g911xryy6x/resolve {"outcome":"resolved","compensation":"refund","note":"Invalid code confirmed by the webshop; card payment refunded"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-283d-71b2-87a2-366128cc4359
+
+{"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"resolved","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":{"note":"Invalid code confirmed by the webshop; card payment refunded","compensation":"refund","amount_minor":2000,"at":"2026-10-24T07:42:10+00:00"},"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"resolved","note":"resolved: Invalid code confirmed by the webshop; card payment refunded","at":"2026-10-24T07:42:10+00:00"},{"by":"admin","type":"compensated","note":"refund 2000","at":"2026-10-24T07:42:10+00:00"}]}}
+```
+
+**Resolving again → 409, no second compensation**
+
+`POST /api/v1/admin/disputes/01m5pdr9f7d6zf69g911xryy6x/resolve {"outcome":"resolved","compensation":"wallet_credit","amount_minor":2000,"note":"again"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16cdc-291a-71fd-9109-e3a9468d574c
+Content-Type: application/json
+
+{"error":{"status":409,"code":"dispute_closed","message":"This report is already closed.","request_id":"01a16cdc-291a-71fd-9109-e3a9468d574c","details":{"status":"resolved"}}}
+```
+
+**Anna sees the resolution and timeline**
+
+`GET /api/v1/consumer/disputes/01m5pdr9f7d6zf69g911xryy6x`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-2944-72d6-814f-10080476ed4a
+
+{"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"resolved","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":{"note":"Invalid code confirmed by the webshop; card payment refunded","compensation":"refund","amount_minor":2000,"at":"2026-10-24T07:42:10+00:00"},"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"resolved","note":"resolved: Invalid code confirmed by the webshop; card payment refunded","at":"2026-10-24T07:42:10+00:00"},{"by":"admin","type":"compensated","note":"refund 2000","at":"2026-10-24T07:42:10+00:00"}]}}
+```
+
+**Admin: paid but unfulfilled checkouts**
+
+`GET /api/v1/admin/checkouts?state=paid_unfulfilled    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-299c-7117-8b08-0a8bd50fa6a1
+
+{"data":[{"id":"01m5pdr69v44a0e6p83qxvtxrx","state":"paid_unfulfilled","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"reservation_lost","expires_at":"2026-10-24T07:42:06+00:00","completed_at":null}]}
+```
+
+**Refund one**
+
+`POST /api/v1/admin/checkouts/01m5pdr69v44a0e6p83qxvtxrx/refund {"note":"Paid after the reservation lapsed"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cdc-29fc-73c6-a029-38143b0be1b6
+
+{"data":{"id":"01m5pdr69v44a0e6p83qxvtxrx","state":"refunded","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"reservation_lost","expires_at":"2026-10-24T07:42:06+00:00","completed_at":null}}
+```
+
+**Again → 409**
+
+`POST /api/v1/admin/checkouts/01m5pdr69v44a0e6p83qxvtxrx/refund {"note":"again please"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16cdc-2a64-7263-9bef-14c13fd2d20f
+Content-Type: application/json
+
+{"error":{"status":409,"code":"checkout_not_refundable","message":"Only paid but unfulfilled checkouts are refunded here.","request_id":"01a16cdc-2a64-7263-9bef-14c13fd2d20f","details":{"state":"refunded"}}}
+```
+
+**Merchant on an admin route → 403**
+
+`GET /api/v1/admin/disputes`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16cdc-2a8f-73e0-83ac-09ac69790070
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
 ```
 
 ---

@@ -4386,21 +4386,21 @@ paths:
       operationId: myVouchers
       summary: "My Vouchers"
       description: |
-        Vouchers issued to the signed-in consumer, from the one voucher model (Answer24 claims, rewards, and later wallet purchases). The code is shown because the voucher is theirs. Newest first, at most 200.
+        Vouchers issued to the signed-in consumer, from the one voucher model (Answer24 claims, rewards, purchases). Codes are masked here (`code_masked`, last 4); `GET /api/v1/consumer/vouchers/{id}` reveals the code (audited). Filters: `active` (issued), `used` (redeemed), `expired`, `cancelled`, `all`. Newest first, at most 200.
       x-access: verified
       parameters:
-        - { name: status, in: query, required: false, schema: { type: string, enum: [issued, redeemed, expired] } }
+        - { name: filter, in: query, required: false, schema: { type: string, enum: [all, active, used, expired, cancelled], default: all } }
       x-codeSamples:
         - lang: curl
           source: |
-            curl -i -X GET 'http://localhost:8000/api/v1/consumer/vouchers?status=issued' \
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/vouchers?filter=active' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
       responses:
         '200':
           description: "Own vouchers."
           content:
             application/json:
-              example: {"data":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}]}
+              example: {"data":[{"id":"01m5pdr4zv96djgyr0ybmg0j51","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-C","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:42:05+00:00","expires_at":"2027-01-22T07:42:05+00:00","redeemed_at":null},{"id":"01m5pd8g6wwgnnb2qdty25kc2p","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-B","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:32+00:00","expires_at":"2027-01-22T07:33:32+00:00","redeemed_at":null},{"id":"01m5pd8g05ak30hy67ndss1s4v","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-A","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:31+00:00","expires_at":"2027-01-22T07:33:31+00:00","redeemed_at":null},{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code_masked":"\u2022\u2022\u2022\u20227Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}]}
         '401':
           description: "Not signed in."
           content:
@@ -4410,7 +4410,7 @@ paths:
           description: "Unknown status (reserved vouchers are not the consumer's yet)."
           content:
             application/json:
-              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16a61-d013-70a3-805f-4210b7800dc5","fields":{"status":["The selected status is invalid."]}}}
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cdc-2459-71c9-a85d-02d5d6727b94","fields":{"filter":["The selected filter is invalid."]}}}
 
   /api/v1/consumer/dashboard:
     get:
@@ -4430,7 +4430,7 @@ paths:
           description: "Dashboard."
           content:
             application/json:
-              example: {"data":{"first_name":"Anna","email_verified":true,"wallet":{"eur_credit":{"unit":"eur_credit","available":220,"pending":300,"reserved":0,"total_earned":1220,"total_spent":1000,"total_expired":0,"next_expiry":{"amount":220,"at":"2027-10-23T20:24:21+00:00"}},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"vouchers":{"issued":1,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5n639gjt0r0h2rbvj3aegm3","status":"issued","origin":"answer24_claim","code":"FIETS-7Q2K","webshop":{"name":"Fietsen Utrecht","slug":"fietsen-utrecht"},"title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","min_order_minor":5000,"issued_at":"2026-10-23T20:09:06+00:00","expires_at":"2027-01-21T20:09:06+00:00","redeemed_at":null}],"favorites":[]}}
+              example: {"data":{"first_name":"Anna","email_verified":true,"wallet":{"eur_credit":{"unit":"eur_credit","available":0,"pending":0,"reserved":0,"total_earned":3100,"total_spent":3100,"total_expired":0,"next_expiry":null},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"vouchers":{"issued":4,"redeemed":0,"expiring_within_30_days":0},"recent_vouchers":[{"id":"01m5pdr4zv96djgyr0ybmg0j51","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-C","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:42:05+00:00","expires_at":"2027-01-22T07:42:05+00:00","redeemed_at":null},{"id":"01m5pd8g6wwgnnb2qdty25kc2p","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-B","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:32+00:00","expires_at":"2027-01-22T07:33:32+00:00","redeemed_at":null},{"id":"01m5pd8g05ak30hy67ndss1s4v","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-A","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:33:31+00:00","expires_at":"2027-01-22T07:33:31+00:00","redeemed_at":null}],"favorites":[]}}
         '401':
           description: "Not signed in."
           content:
@@ -5451,6 +5451,477 @@ paths:
             application/json:
               example: {"error":{"status":422,"code":"invalid_payment_id","message":"Invalid payment ID.","request_id":"01a16cd4-42a3-719e-93ec-5df4b757859b"}}
         '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/consumer/vouchers/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Consumer]
+      operationId: myVoucher
+      summary: "Voucher details with the code"
+      description: |
+        The full code, for its owner only (every reveal is audited). Also: redemption instructions, webshop website, frozen terms, `expires_soon` (within 14 days), purchase reference and redemption. Another consumer's voucher is 404. Throttled like code reveals.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/vouchers/<id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Voucher."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr4zv96djgyr0ybmg0j51","status":"issued","origin":"wallet_purchase","code_masked":"\u2022\u2022\u2022\u202225-C","webshop":{"name":"Woon & Co","slug":null},"title":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","min_order_minor":10000,"issued_at":"2026-10-24T07:42:05+00:00","expires_at":"2027-01-22T07:42:05+00:00","redeemed_at":null,"code":"MEUBEL-25-C","expires_soon":false,"instructions":"Enter the code in the discount field at checkout on the webshop. Minimum order and conditions below apply.","website_url":null,"terms":{"name":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","version":1,"currency":"EUR","products":[],"categories":[],"combinable":false,"discount_type":"fixed","discount_value":2500,"min_order_minor":10000,"max_discount_minor":null,"public_description":null},"purchase":{"checkout_id":"01m5pdr4zgkbfrnm2hpt5z6mte","price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000},"redemption":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/consumer/disputes:
+    post:
+      tags: [Consumer]
+      operationId: openDispute
+      summary: "Report a voucher problem"
+      description: |
+        About one of your vouchers (`voucher_id`) or purchases (`checkout_id`). Reasons: `code_invalid`, `code_already_used`, `refused_by_webshop`, `terms_differ`, `missing_after_payment`, `other`. Plain text only. One open report per voucher/purchase (409). Audited.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, description]
+              properties:
+                voucher_id: { type: string }
+                checkout_id: { type: string }
+                reason: { type: string, enum: [code_invalid, code_already_used, refused_by_webshop, terms_differ, missing_after_payment, other] }
+                description: { type: string, minLength: 10, maxLength: 2000 }
+            example: {"voucher_id": "01m5pdr4zv96djgyr0ybmg0j51", "reason": "code_invalid", "description": "The webshop says this code does not exist."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/disputes' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"voucher_id":"<id>","reason":"code_invalid","description":"..."}'
+      responses:
+        '201':
+          description: "Opened."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Already an open report."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"dispute_already_open","message":"There is already an open report for this voucher.","request_id":"01a16cdc-261a-70cf-ac65-2c30f55ed593"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    get:
+      tags: [Consumer]
+      operationId: myDisputes
+      summary: "My voucher reports"
+      description: |
+        Newest first, with status and resolution.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/disputes' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Reports."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /api/v1/consumer/disputes/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Consumer]
+      operationId: myDispute
+      summary: "One report with its timeline"
+      description: |
+        Timeline of every step (consumer, merchant response, admin decisions, compensation).
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/disputes/<id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Report."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"resolved","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":{"note":"Invalid code confirmed by the webshop; card payment refunded","compensation":"refund","amount_minor":2000,"at":"2026-10-24T07:42:10+00:00"},"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"resolved","note":"resolved: Invalid code confirmed by the webshop; card payment refunded","at":"2026-10-24T07:42:10+00:00"},{"by":"admin","type":"compensated","note":"refund 2000","at":"2026-10-24T07:42:10+00:00"}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/workspaces/{workspace}/vouchers/redeem:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Vouchers]
+      operationId: redeemVoucher
+      summary: "Verify that a customer used a voucher"
+      description: |
+        Merchant redemption verification (Trello #20) when no provider evidence exists. The oldest issued voucher of this webshop with that code becomes `redeemed` once, with source `merchant`, actor and optional reference. Already redeemed → 409; expired → 409 `voucher_expired`; unknown or another webshop's code → 404. Viewing, copying or "Visit webshop" never redeem.
+      x-access: verified
+      x-permission: vouchers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, maxLength: 100 }
+                reference: { type: string, maxLength: 120, description: e.g. the webshop order number. }
+            example: {"code": "MEUBEL-25-A", "reference": "Order WC-5531"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/vouchers/redeem' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"code":"<code>","reference":"Order WC-5531"}'
+      responses:
+        '200':
+          description: "Redeemed."
+          content:
+            application/json:
+              example: {"data":{"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","status":"redeemed","redeemed_at":"2026-10-24T07:42:09+00:00","source":"merchant","reference":"Order WC-5531"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "No such voucher here."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"voucher_not_found","message":"No issued voucher of this webshop has that code.","request_id":"01a16cdc-2581-715f-929d-d5e61cf61d0e"}}
+        '409':
+          description: "Already redeemed or expired."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"voucher_not_redeemable","message":"This voucher was already redeemed or is not issued.","request_id":"01a16cdc-2544-73ed-9aad-d70499dff64d","details":{"status":"redeemed"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/disputes:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Vouchers]
+      operationId: merchantDisputes
+      summary: "Reports about this webshop's vouchers"
+      description: |
+        The consumer's description and status, the code's last 4 characters; never the consumer's identity or other webshops' reports.
+      x-access: verified
+      x-permission: vouchers.view
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, under_review, waiting_for_merchant, resolved, rejected] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/disputes' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Reports."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"waiting_for_merchant","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","resolution":null,"created_at":"2026-10-24T07:42:09+00:00","code_last4":"25-C"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/disputes/{dispute}/respond:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: dispute, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Vouchers]
+      operationId: respondToDispute
+      summary: "Respond to a report"
+      description: |
+        Adds the merchant's response to the timeline; a report waiting for the merchant goes back to review. Merchants never compensate or change balances.
+      x-access: verified
+      x-permission: vouchers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, minLength: 5, maxLength: 2000 }
+            example: {"message": "This code was not imported correctly, sorry."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/disputes/<id>/respond' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"message":"..."}'
+      responses:
+        '200':
+          description: "Recorded."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"under_review","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","resolution":null,"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"}],"code_last4":"25-C"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "Report closed."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"dispute_closed","message":"This report is already closed.","request_id":"01a16cdc-291a-71fd-9109-e3a9468d574c","details":{"status":"resolved"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/admin/disputes:
+    get:
+      tags: [Admin]
+      operationId: adminDisputes
+      summary: "All voucher reports"
+      description: |
+        Newest 200.
+      x-access: admin
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, under_review, waiting_for_merchant, resolved, rejected] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/disputes?status=open' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Reports."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
+
+  /api/v1/admin/disputes/{dispute}:
+    parameters:
+      - { name: dispute, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Admin]
+      operationId: adminDispute
+      summary: "One report with timeline"
+      description: |
+        Includes the merchant response.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/disputes/<id>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Report."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"under_review","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/disputes/{dispute}/status:
+    parameters:
+      - { name: dispute, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminDisputeStatus
+      summary: "Move a report to review / waiting for merchant"
+      description: |
+        Step-up required.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [under_review, waiting_for_merchant] }
+                note: { type: string, maxLength: 500 }
+            example: {"status": "waiting_for_merchant", "note": "Asked Woon & Co to check the code"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/disputes/<id>/status' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"status":"waiting_for_merchant"}'
+      responses:
+        '200':
+          description: "Updated."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"waiting_for_merchant","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Closed."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"dispute_closed","message":"This report is already closed.","request_id":"01a16cdc-291a-71fd-9109-e3a9468d574c","details":{"status":"resolved"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/disputes/{dispute}/resolve:
+    parameters:
+      - { name: dispute, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminResolveDispute
+      summary: "Resolve or reject a report, with one-time compensation"
+      description: |
+        Step-up required. Compensation is applied at most once, through the normal ledgers:
+                - `wallet_credit`: a `WalletService` adjustment with key `dispute:<id>`; needs `amount_minor`;
+                - `replacement`: a new voucher from the same offer's inventory;
+                - `refund`: a Mollie refund of the purchase's card/bank part with an `Idempotency-Key`; at most what is left to refund.
+
+                A rejected report gets no compensation. A closed report is 409. Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome, compensation, note]
+              properties:
+                outcome: { type: string, enum: [resolved, rejected] }
+                compensation: { type: string, enum: [none, wallet_credit, replacement, refund] }
+                amount_minor: { type: integer, minimum: 1, description: 'Required for wallet_credit; optional for refund (default: all that is left).' }
+                note: { type: string, minLength: 5, maxLength: 1000 }
+            example: {"outcome": "resolved", "compensation": "refund", "note": "Invalid code confirmed by the webshop; card payment refunded"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/disputes/<id>/resolve' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"outcome":"resolved","compensation":"refund","note":"..."}'
+      responses:
+        '200':
+          description: "Resolved (captured: refund of the \u20ac9.00 Mollie part)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"resolved","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":{"note":"Invalid code confirmed by the webshop; card payment refunded","compensation":"refund","amount_minor":2000,"at":"2026-10-24T07:42:10+00:00"},"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"resolved","note":"resolved: Invalid code confirmed by the webshop; card payment refunded","at":"2026-10-24T07:42:10+00:00"},{"by":"admin","type":"compensated","note":"refund 2000","at":"2026-10-24T07:42:10+00:00"}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Already closed: no second compensation."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"dispute_closed","message":"This report is already closed.","request_id":"01a16cdc-291a-71fd-9109-e3a9468d574c","details":{"status":"resolved"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+        '502':
+          description: "Mollie refused or unreachable; nothing recorded."
+          content:
+            application/json:
+              example: {"error":{"status":502,"code":"payment_provider_error","message":"The payment provider refused the request.","request_id":"<id>","details":{"provider_status":422}}}
+
+  /api/v1/admin/checkouts:
+    get:
+      tags: [Admin]
+      operationId: adminCheckouts
+      summary: "Checkouts (monitoring)"
+      description: |
+        Use `state=paid_unfulfilled` for paid purchases that need a refund.
+      x-access: admin
+      parameters:
+        - { name: state, in: query, required: false, schema: { type: string, enum: [pending_payment, completed, failed, expired, paid_unfulfilled, refunded] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/checkouts?state=paid_unfulfilled' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Checkouts."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pdr69v44a0e6p83qxvtxrx","state":"paid_unfulfilled","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"reservation_lost","expires_at":"2026-10-24T07:42:06+00:00","completed_at":null}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
+
+  /api/v1/admin/checkouts/{checkout}/refund:
+    parameters:
+      - { name: checkout, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Admin]
+      operationId: adminRefundCheckout
+      summary: "Refund a paid but unfulfilled checkout"
+      description: |
+        Step-up required. Refunds the whole Mollie payment once (Idempotency-Key `refund:checkout:<id>`), state → `refunded`. Other states → 409. Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: { type: string, minLength: 5, maxLength: 500 }
+            example: {"note": "Paid after the reservation lapsed"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/checkouts/<id>/refund' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"note":"..."}'
+      responses:
+        '200':
+          description: "Refunded."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pdr69v44a0e6p83qxvtxrx","state":"refunded","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"reservation_lost","expires_at":"2026-10-24T07:42:06+00:00","completed_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not refundable (already refunded)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"checkout_not_refundable","message":"Only paid but unfulfilled checkouts are refunded here.","request_id":"01a16cdc-2a64-7263-9bef-14c13fd2d20f","details":{"state":"refunded"}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
 components:
   parameters:

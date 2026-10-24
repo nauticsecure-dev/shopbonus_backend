@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B10 and B11a are done (B10 adapters NOT VERIFIED live); B11b onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B11 are done (B10 adapters NOT VERIFIED live; Mollie stubbed); B12 onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -52,6 +52,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B09 wallet ledger | `862d3d0` | MySQL 363 passed (incl. forked-process wallet races); SQLite 358 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures; lock-removal mutation caught by the race test | |
 | 2026-10-24 | Claude (Opus 5.5) | B10 affiliate tracking | `37edebf` | MySQL 374 passed; SQLite 369 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Daisycon via a local stub, TradeTracker via import; adapters NOT VERIFIED); 2 mutations caught | WIP checkpoint `93926ee` |
 | 2026-10-24 | Claude (Opus 5.5) | B11a voucher checkout + Mollie | `5fca11a` | MySQL 386 passed (incl. forked checkout races, 5 repeat runs); SQLite 379 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures with a local Mollie test-mode stub; mutation caught (after fixing a test that could not fail) | WIP `b175c83`; deadlock found + fixed |
+| 2026-10-24 | Claude (Opus 5.5) | B11b vouchers detail, redemption, disputes | `B11B_SHA` | MySQL 391 passed; SQLite 384 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie refunds via the local stub); 2 mutations caught | WIP `3b58e93`; B11 complete |
 
 ### B01a detail
 
@@ -146,6 +147,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 
 - **Delivered (B11a):** migration `2026_10_24_100000_create_checkout_tables`; `Services\Checkout\{MollieClient, CheckoutService}`; `Consumer\CheckoutController`; `Payments\MollieWebhookController`; `shopbonus:expire-checkouts`.
 - **Card mapping:** #20 E2E 1 → `test_card20_e2e1_*`; E2E 2 → `test_card20_e2e2_*`; E2E 3 → `ConcurrentCheckoutTest` (MySQL, forked); E2E 4 → `test_card20_e2e4_*`; E2E 5 → `test_card20_e2e5_*`; E2E 6 → `test_card20_e2e6_*`; E2E 10 → `test_card20_e2e10_*` + `test_a_paid_payment_for_another_amount_*`; #23 tests 7/8 → `ConcurrentCheckoutTest` + `test_card20_e2e5_and_card23_test8_*`.
+- **Delivered (B11b):** migration `2026_10_24_110000_create_voucher_dispute_tables`; `VoucherInventory::redeemByMerchant`; `Services\Disputes\DisputeService`; `Consumer\DisputeController`, `Workspaces\VoucherOperationsController`, `Admin\DisputeController`; My Vouchers masked list + audited detail. Card #20 E2E 7 → `VoucherDisputeTest::test_card20_e2e7_*`; E2E 8 → `test_card20_e2e8_*`; E2E 9 → `test_card20_e2e9_*` + `test_replacement_and_refund_*` + `test_paid_unfulfilled_*`.
 - **Bug found:** concurrent checkouts deadlocked (insert's FK shared lock on the offer, then FOR UPDATE); fixed by locking the offer first.
 
 ## How to update
