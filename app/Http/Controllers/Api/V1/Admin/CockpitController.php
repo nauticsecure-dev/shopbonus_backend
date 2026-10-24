@@ -41,8 +41,8 @@ class CockpitController extends Controller
             throw new ApiException('Choose a range of at most one year.', 422, 'range_too_long');
         }
 
-        // Cache per minute bucket so "today" stays cacheable.
-        return response()->json(['data' => $cockpit->summary($from->utc()->startOfMinute(), $to->utc()->startOfMinute()) + ['period_name' => $data['period'] ?? '30d', 'timezone' => $tz]]);
+        // Day boundaries are stable within a day, so they double as the cache key.
+        return response()->json(['data' => $cockpit->summary($from->utc(), $to->utc()) + ['period_name' => $data['period'] ?? '30d', 'timezone' => $tz]]);
     }
 
     /**

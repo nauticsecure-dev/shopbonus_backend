@@ -462,13 +462,13 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 
 ### B16b Cockpit, users and webshop administration (Trello #21 "Cockpit", "Webshop administration", "Users, memberships & access")
 
-- [ ] `GET /admin/cockpit` KPI cards from real records with stated definitions (webshops by status, consumers, published offers, vouchers issued/redeemed, inventory, orders received/paid, Answer24, affiliate pending/approved/rejected separately, wallet issued/spent/outstanding per unit, open disputes, incidents); period today/7d/30d/custom (≤ 366 days); daily trends; cached 60 s with `generated_at`
-- [ ] Attention lists with links: pending approvals, integration failures, failed jobs, reconciliation flags, paid-unfulfilled checkouts, affiliate problems, security denials
-- [ ] `GET /admin/activity` recent audit events (paginated, filters)
-- [ ] Users: search/filter (role, status, webshop, registration date; paginated), detail (memberships, roles, 2FA, wallets; no hashes); suspend/reactivate with reason (sessions and tokens end immediately); reset security access (2FA off + tokens revoked; step-up code); revoke membership (last active owner protected); revoke Super Admin (step-up code; last admin protected; grant stays console-only)
-- [ ] Webshops: list columns owner, integration status, active offers, last activity; approval checklist in detail; request additional information (notifies the merchant)
-- [ ] Tests incl. E2E 1 (cockpit) and E2E 3 (user security), mutation check
-- [ ] Docs with real captures
+- [x] `GET /admin/cockpit` KPI cards from real records with stated definitions (webshops by status, consumers, published offers, vouchers issued/redeemed, inventory, orders received/paid, Answer24, affiliate pending/approved/rejected separately, wallet issued/spent/outstanding per unit, open disputes, incidents); period today/7d/30d/custom (≤ 366 days); daily trends; cached 60 s with `generated_at`
+- [x] Attention lists with links: pending approvals, integration failures, failed jobs, reconciliation flags, paid-unfulfilled checkouts, affiliate problems, security denials
+- [x] `GET /admin/activity` recent audit events (paginated, filters)
+- [x] Users: search/filter (role, status, webshop, registration date; paginated), detail (memberships, roles, 2FA, wallets; no hashes); suspend/reactivate with reason (sessions and tokens end immediately); reset security access (2FA off + tokens revoked; step-up code); revoke membership (last active owner protected); revoke Super Admin (step-up code; last admin protected; grant stays console-only)
+- [x] Webshops: list columns owner, integration status, active offers, last activity; approval checklist in detail; request additional information (notifies the merchant)
+- [x] Tests incl. E2E 1 (cockpit) and E2E 3 (user security), mutation check
+- [x] Docs with real captures
 
 ### B16c Financial, integration and Answer24 oversight (Trello #21 "Financial & voucher oversight", "Integrations & Answer24 monitoring")
 

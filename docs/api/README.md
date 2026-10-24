@@ -6599,6 +6599,285 @@ X-Request-Id: 01a16e10-2179-718d-b356-b69772e29d55
 
 ---
 
+## Super Admin cockpit and user administration (B16b, Trello #21)
+
+Captured 2026-10-24 against local MySQL. The admin used a browser session with a recent password confirmation and the server ran with `ADMIN_MFA_REQUIRED=false`; in production the admin also needs confirmed 2FA (see B16a). The step-up code was read from the log mailer. The local data set is small: figures such as `access_denials_in_period` come from earlier captures and tests.
+
+**Cockpit, last 7 days**
+
+`GET /api/v1/admin/cockpit?period=7d    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7c40-73d8-8c2c-b52d423a1c75
+
+{"data":{"generated_at":"2026-10-24T13:38:36+00:00","cache_seconds":60,"period":{"from":"2026-10-17T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00"},"kpis":{"webshops":{"total":2,"active":2,"pending":0,"pending_review":0,"suspended":0,"rejected":0},"consumers":{"registered":4,"new_in_period":4,"active_in_period":2},"offers":{"published":4},"vouchers":{"issued_in_period":5,"redeemed_in_period":2,"outstanding":3,"available_codes":0},"orders":{"received_in_period":0,"confirmed_paid_in_period":0},"answer24":{"requests_in_period":0,"by_status":[]},"affiliate_commissions":{"pending":{"count":0,"by_currency":[]},"approved":{"count":0,"by_currency":[]},"rejected":{"count":0,"by_currency":[]}},"wallets":{"eur_credit":{"issued_in_period":3100,"spent_in_period":3100,"expired_in_period":0,"outstanding":0,"pending":0}},"disputes":{"open":0},"incidents":{"application_errors_in_period":2,"failed_jobs":0,"failed_webhooks_in_period":0,"failed_outbox":0,"open_reconciliation_flags":0,"paid_unfulfilled_checkouts":0,"access_denials_in_period":27}},"trends":{"timezone":"Europe\/Amsterdam","days":[{"date":"2026-10-18","new_webshops":0,"new_consumers":0,"paid_orders":0,"vouchers_issued":0,"vouchers_redeemed":0},{"date":"2026-10-19","new_webshops":0,"new_consumers":0,"paid_orders":0,"vouchers_issued":0,"vouchers_redeemed":0},{"date":"2026-10-20","new_webshops":0,"new_consumers":0,"paid_orders":0,"vouchers_issued":0,"vouchers_redeemed":0},{"date":"2026-10-21","new_webshops":0,"new_consumers":0,"paid_orders":0,"vouchers_issued":0,"vouchers_redeemed":0},{"date":"2026-10-22","new_webshops":0,"new_consumers":0,"paid_orders":0,"vouchers_issued":0,"vouchers_redeemed":0},{"date":"2026-10-23","new_webshops":1,"new_consumers":3,"paid_orders":0,"vouchers_issued":1,"vouchers_redeemed":0},{"date":"2026-10-24","new_webshops":1,"new_consumers":1,"paid_orders":0,"vouchers_issued":4,"vouchers_redeemed":2}]},"attention":{"pending_approvals":[],"integration_failures":[],"failed_jobs":[],"reconciliation_flags":[],"paid_unfulfilled_checkouts":[],"affiliate_problems":0,"security_denials_24h":[{"route":"api\/v1\/banners\/editor\/pair","http_status":401,"count":6},{"route":"api\/v1\/consumer\/email-change","http_status":403,"count":4},{"route":"api\/v1\/admin\/affiliate\/connections","http_status":403,"count":3},{"route":"api\/v1\/banners\/config","http_status":403,"count":3},{"route":"api\/v1\/banners\/editor\/campaigns\/{banner}","http_status":401,"count":3},{"route":"api\/v1\/admin\/support-sessions","http_status":403,"count":2},{"route":"api\/v1\/me","http_status":401,"count":2},{"route":"api\/v1\/consumer\/profile","http_status":401,"count":1},{"route":"api\/v1\/consumer\/wallet","http_status":401,"count":1},{"route":"api\/v1\/admin\/disputes","http_status":403,"count":1}],"recent_admin_actions":[{"action":"admin.webshop_viewed","outcome":"success","occurred_at":"2026-10-24T13:36:54+00:00"},{"action":"admin.webshop_information_requested","outcome":"success","occurred_at":"2026-10-24T13:36:53+00:00"},{"action":"admin.membership_revoked_reason","outcome":"success","occurred_at":"2026-10-24T13:36:53+00:00"},{"action":"admin.user_security_reset","outcome":"success","occurred_at":"2026-10-24T13:36:53+00:00"},{"action":"admin.user_reactivated","outcome":"success","occurred_at":"2026-10-24T13:36:53+00:00"},{"action":"admin.user_suspended","outcome":"success","occurred_at":"2026-10-24T13:36:52+00:00"},{"action":"admin.user_viewed","outcome":"success","occurred_at":"2026-10-24T13:36:52+00:00"},{"action":"admin.webshop_viewed","outcome":"success","occurred_at":"2026-10-24T13:36:26+00:00"},{"action":"admin.webshop_information_requested","outcome":"success","occurred_at":"2026-10-24T13:36:26+00:00"},{"action":"admin.membership_revoked_reason","outcome":"success","occurred_at":"2026-10-24T13:36:26+00:00"}]},"definitions":{"webshops.active":"Status approved.","webshops.pending":"Status draft, awaiting_verification, verification_failed or pending_review; pending_review is waiting for an admin.","consumers.registered":"Accounts that signed up with the consumer intent and are not deleted.","consumers.active_in_period":"Consumers who signed in during the period.","offers.published":"Offers with status active.","vouchers.issued_in_period":"Vouchers whose issued_at is in the period (reserved claims are not issued).","vouchers.outstanding":"Issued, not yet redeemed, expired or cancelled.","vouchers.available_codes":"Codes in inventory that are not reserved, issued, redeemed or invalid.","orders.confirmed_paid_in_period":"Orders whose paid_at (provider-confirmed payment) is in the period.","affiliate_commissions":"Network commissions by our status, summed per currency; pending, approved and rejected are never added together.","wallets":"Consumer wallets per unit: credits issued, debits spent and expiries in the period; outstanding = available + reserved now; pending (not yet credited) is separate.","incidents":"Counts of recorded technical faults and failures; access denials are audited 401\/403 responses."},"period_name":"7d","timezone":"Europe\/Amsterdam"}}
+```
+
+**Custom range over a year → 422**
+
+`GET /api/v1/admin/cockpit?period=custom&from=2025-01-01&to=2026-10-24    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16e22-7cd3-72c8-906f-8491102285b3
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":422,"code":"range_too_long","message":"Choose a range of at most one year.","request_id":"01a16e22-7cd3-72c8-906f-8491102285b3"}}
+```
+
+**Activity (admin category)**
+
+`GET /api/v1/admin/activity?category=admin&per_page=3    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7d40-71b4-8407-74dad65468ba
+
+{"data":[{"occurred_at":"2026-10-24T13:36:54+00:00","category":"admin","action":"admin.webshop_viewed","outcome":"success","actor":{"id":"01m5pchsnh8j21gcjrtd7vvekg","email":"admin.affiliate@example.nl"},"real_actor":null,"webshop":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co"},"http_status":null,"http_method":"GET","route":"api\/v1\/admin\/webshops\/{webshop}","request_id":"01a16e20-ed6e-70f9-a87e-0e8900499472"},{"occurred_at":"2026-10-24T13:36:53+00:00","category":"admin","action":"admin.webshop_information_requested","outcome":"success","actor":{"id":"01m5pchsnh8j21gcjrtd7vvekg","email":"admin.affiliate@example.nl"},"real_actor":null,"webshop":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co"},"http_status":null,"http_method":"POST","route":"api\/v1\/admin\/webshops\/{webshop}\/request-information","request_id":"01a16e20-ecbc-73b4-9010-a60b8e9c1502"},{"occurred_at":"2026-10-24T13:36:53+00:00","category":"admin","action":"admin.membership_revoked_reason","outcome":"success","actor":{"id":"01m5pchsnh8j21gcjrtd7vvekg","email":"admin.affiliate@example.nl"},"real_actor":null,"webshop":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co"},"http_status":null,"http_method":"POST","route":"api\/v1\/admin\/webshops\/{webshop}\/members\/{user}\/revoke","request_id":"01a16e20-ec1b-72b2-ade3-c0da498b7ca0"}],"meta":{"current_page":1,"per_page":3,"total":49,"last_page":17}}
+```
+
+**Users with an active membership**
+
+`GET /api/v1/admin/users?role=merchant    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7dac-7168-bcd3-6676e72291e8
+
+{"data":[{"id":"01m5n6z6zsmygsqghb9z5qx0zc","first_name":"Tess","email":"bob.wallet@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"employee"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:24:21+00:00"},{"id":"01m5n6398s6hzh93gk32h1n1ye","first_name":"Jan","email":"jan@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5n6399tnc5h1vtfyf3gsgv4","name":"Fietsen Utrecht","role":"owner"},{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"owner"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:09:06+00:00"}],"meta":{"current_page":1,"per_page":25,"total":2,"last_page":1}}
+```
+
+**Search**
+
+`GET /api/v1/admin/users?search=bob&per_page=10    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7e0f-7094-9720-d658f02b9cbd
+
+{"data":[{"id":"01m5n6z6zsmygsqghb9z5qx0zc","first_name":"Tess","email":"bob.wallet@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"employee"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:24:21+00:00"}],"meta":{"current_page":1,"per_page":10,"total":1,"last_page":1}}
+```
+
+**User detail**
+
+`GET /api/v1/admin/users/01m5n6z6zsmygsqghb9z5qx0zc    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7e67-71a9-968c-c42f3e8d0ba0
+
+{"data":{"id":"01m5n6z6zsmygsqghb9z5qx0zc","first_name":"Tess","email":"bob.wallet@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"employee"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:24:21+00:00","last_login_at":null,"locale":"nl","platform_roles":[],"memberships":[{"webshop":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved"},"role":"employee","status":"active","joined_at":"2026-10-24T14:38:33+00:00"}],"wallets":[{"id":"01m5pd8fy0qwvmzg42cfq5x20p","unit":"eur_credit","available":0,"reserved":0,"pending":0}],"api_tokens":0}}
+```
+
+**Suspend**
+
+`POST /api/v1/admin/users/01m5n6z6zsmygsqghb9z5qx0zc/suspend {"reason":"Verdachte claims, onderzoek loopt"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7ed3-7194-a936-2136cbb5677b
+
+{"data":{"id":"01m5n6z6zsmygsqghb9z5qx0zc","first_name":"Tess","email":"bob.wallet@example.nl","email_verified":true,"status":"suspended","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"employee"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:24:21+00:00"}}
+```
+
+**Suspend twice → 409**
+
+`POST /api/v1/admin/users/01m5n6z6zsmygsqghb9z5qx0zc/suspend {"reason":"Verdachte claims, onderzoek loopt"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16e22-7f5e-7149-b4f5-e29fc764241d
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":409,"code":"invalid_status_transition","message":"Only active accounts can be suspended.","request_id":"01a16e22-7f5e-7149-b4f5-e29fc764241d"}}
+```
+
+**Reactivate**
+
+`POST /api/v1/admin/users/01m5n6z6zsmygsqghb9z5qx0zc/reactivate {"reason":"Onderzoek afgerond, geen fraude"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-7fd2-73c9-819b-8547ea93c08e
+
+{"data":{"id":"01m5n6z6zsmygsqghb9z5qx0zc","first_name":"Tess","email":"bob.wallet@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"employee"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:24:21+00:00"}}
+```
+
+**Suspend yourself → 409**
+
+`POST /api/v1/admin/users/01m5pchsnh8j21gcjrtd7vvekg/suspend {"reason":"Test op mezelf"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16e22-8067-7110-92a1-fd186c262d01
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":409,"code":"cannot_manage_self","message":"You cannot suspend your own account.","request_id":"01a16e22-8067-7110-92a1-fd186c262d01"}}
+```
+
+**Reset security without the emailed code → 423**
+
+`POST /api/v1/admin/users/01m5n63987h9jnx97myg2ycsny/reset-security {"reason":"Telefoon kwijt, identiteit gecontroleerd"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 423 Locked
+X-Request-Id: 01a16e22-80d4-733e-bddc-43e462a75e84
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"01a16e22-80d4-733e-bddc-43e462a75e84"}}
+```
+
+**Step-up code**
+
+`POST /api/v1/admin/step-up/code    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-8149-707e-b95b-d490f370106a
+
+{"data":{"sent":true,"expires_at":"2026-10-24T13:48:37+00:00"}}
+```
+
+**Verify**
+
+`POST /api/v1/admin/step-up/verify {"code":"<6-digit code>"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-828c-73a0-8a93-1662544c9645
+
+{"data":{"confirmed":true,"valid_until":"2026-10-24T13:48:37+00:00"}}
+```
+
+**Reset security**
+
+`POST /api/v1/admin/users/01m5n63987h9jnx97myg2ycsny/reset-security {"reason":"Telefoon kwijt, identiteit gecontroleerd"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-82e5-71ce-a9be-ecd2d4fd70ac
+
+{"data":{"id":"01m5n63987h9jnx97myg2ycsny","first_name":"Anna","email":"anna.nieuw@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[],"two_factor_enabled":false,"registered_at":"2026-10-23T20:09:06+00:00"}}
+```
+
+**Revoke the last Super Admin → 409**
+
+`POST /api/v1/admin/users/01m5pchsnh8j21gcjrtd7vvekg/revoke-super-admin {"reason":"Verlaat het team"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16e22-8344-7316-92cf-65015e50d22a
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":409,"code":"last_super_admin","message":"The last active Super Admin cannot be removed or suspended.","request_id":"01a16e22-8344-7316-92cf-65015e50d22a"}}
+```
+
+**Revoke another Super Admin**
+
+`POST /api/v1/admin/users/01m5n6z6zsmygsqghb9z5qx0zc/revoke-super-admin {"reason":"Tijdelijke beheerder voor de capture"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-84cb-72dc-9280-fd4397f19995
+
+{"data":{"id":"01m5n6z6zsmygsqghb9z5qx0zc","first_name":"Tess","email":"bob.wallet@example.nl","email_verified":true,"status":"active","onboarding_intent":"consumer","roles":[],"workspaces":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","role":"employee"}],"two_factor_enabled":false,"registered_at":"2026-10-23T20:24:21+00:00"}}
+```
+
+**Revoke a membership**
+
+`POST /api/v1/admin/webshops/01m5pd8djwvb5yyj12nw5esr56/members/01m5n6z6zsmygsqghb9z5qx0zc/revoke {"reason":"Werkt niet meer bij Woon & Co"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-8528-710f-8ced-e1a03ee9b87a
+
+{"data":{"webshop_id":"01m5pd8djwvb5yyj12nw5esr56","user_id":"01m5n6z6zsmygsqghb9z5qx0zc","role":"employee","status":"removed"}}
+```
+
+**Revoke the last owner → 409**
+
+`POST /api/v1/admin/webshops/01m5pd8djwvb5yyj12nw5esr56/members/01m5n6398s6hzh93gk32h1n1ye/revoke {"reason":"Eigendomsgeschil"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16e22-858b-73c0-82fc-d84e90fa927c
+Content-Type: application/json
+Content-Language: en
+
+{"error":{"status":409,"code":"final_owner","message":"The last owner cannot leave or be removed.","request_id":"01a16e22-858b-73c0-82fc-d84e90fa927c"}}
+```
+
+**Request more information**
+
+`POST /api/v1/admin/webshops/01m5pd8djwvb5yyj12nw5esr56/request-information {"message":"Upload een recent KvK-uittreksel (niet ouder dan 3 maanden)."}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-85da-7333-966e-0d35e86f83ae
+
+{"data":{"notification_id":"01m5q251fcfvqgp97qxxe0wqqq","webshop_id":"01m5pd8djwvb5yyj12nw5esr56","status":"approved"}}
+```
+
+**Webshop list with the new columns**
+
+`GET /api/v1/admin/webshops?per_page=2    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-8637-7141-a9ab-3271bc8ba99a
+
+{"data":[{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","platform":"woocommerce","status":"approved","status_reason":null,"review_flags":[],"ownership_verified":false,"ownership_method":null,"verified_domain":"woonenco.nl","website_domain":null,"owners":[{"id":"01m5n6398s6hzh93gk32h1n1ye","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-24T07:33:29+00:00","created_at":"2026-10-24T07:33:29+00:00","integration_status":"not_connected","last_activity_at":"2026-10-24T12:28:25+00:00","active_offers":3},{"id":"01m5n6399tnc5h1vtfyf3gsgv4","name":"Fietsen Utrecht","platform":"shopify","status":"approved","status_reason":null,"review_flags":[],"ownership_verified":true,"ownership_method":"dns_txt","verified_domain":"fietsen-utrecht.nl","website_domain":null,"owners":[{"id":"01m5n6398s6hzh93gk32h1n1ye","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-23T20:09:06+00:00","created_at":"2026-10-23T20:09:06+00:00","integration_status":"not_connected","last_activity_at":"2026-10-24T07:21:08+00:00","active_offers":1}],"links":{"first":"http:\/\/127.0.0.1:8799\/api\/v1\/admin\/webshops?page=1","last":"http:\/\/127.0.0.1:8799\/api\/v1\/admin\/webshops?page=1","prev":null,"next":null},"meta":{"current_page":1,"from":1,"last_page":1,"links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http:\/\/127.0.0.1:8799\/api\/v1\/admin\/webshops?page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"path":"http:\/\/127.0.0.1:8799\/api\/v1\/admin\/webshops","per_page":2,"to":2,"total":2}}
+```
+
+**Webshop detail with the approval checklist**
+
+`GET /api/v1/admin/webshops/01m5pd8djwvb5yyj12nw5esr56    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Language: en
+X-Request-Id: 01a16e22-8690-72ec-8050-1e26bdf983ef
+
+{"data":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","platform":"woocommerce","status":"approved","status_reason":null,"review_flags":[],"ownership_verified":false,"ownership_method":null,"verified_domain":"woonenco.nl","website_domain":null,"owners":[{"id":"01m5n6398s6hzh93gk32h1n1ye","first_name":"Jan","email":"jan@example.nl"}],"review_requested_at":null,"approved_at":"2026-10-24T07:33:29+00:00","created_at":"2026-10-24T07:33:29+00:00","approval_checklist":{"business_identity":false,"ownership_verified":false,"company_information_confirmed":false,"agreement_accepted":true,"owner_account_active":true},"business_profile":null,"verifications":[],"agreement_acceptances":[{"id":"01m5pd8dnaqshg09zve9k2g1cb","version":"2026.1","document_hash":"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881","signatory_name":"x","accepted_at":"2026-10-24T07:33:29+00:00"}]}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

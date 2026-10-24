@@ -75,9 +75,9 @@ class Cockpit
             ->where('wallets.kind', 'consumer_credit'), 'wallet_ledger_entries.created_at')
             ->whereIn('wallet_ledger_entries.type', ['credit', 'debit', 'expire'])
             ->selectRaw('wallets.unit, wallet_ledger_entries.type, COALESCE(SUM(wallet_ledger_entries.amount),0) total')
-            ->groupBy('wallets.unit', 'wallet_ledger_entries.type')->get();
+            ->groupBy('wallets.unit', 'wallet_ledger_entries.type')->toBase()->get();
         $outstanding = Wallet::where('kind', 'consumer_credit')->selectRaw('unit, COALESCE(SUM(available),0) a, COALESCE(SUM(reserved),0) r, COALESCE(SUM(pending),0) p')
-            ->groupBy('unit')->get();
+            ->groupBy('unit')->toBase()->get();
         $units = $outstanding->pluck('unit')->merge($ledger->pluck('unit'))->unique()->sort()->values();
 
         $contacts = $in(ContactOpportunity::query(), 'created_at')->selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
@@ -123,8 +123,8 @@ class Cockpit
                     'issued_in_period' => $sum('credit'),
                     'spent_in_period' => -$sum('debit'),
                     'expired_in_period' => -$sum('expire'),
-                    'outstanding' => (int) $o?->getAttribute('a') + (int) $o?->getAttribute('r'),
-                    'pending' => (int) $o?->getAttribute('p'),
+                    'outstanding' => (int) ($o->a ?? 0) + (int) ($o->r ?? 0),
+                    'pending' => (int) ($o->p ?? 0),
                 ]];
             })->all(),
             'disputes' => ['open' => VoucherDispute::whereIn('status', self::OPEN_DISPUTE)->count()],

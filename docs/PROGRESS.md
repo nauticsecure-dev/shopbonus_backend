@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected). B16a (admin 2FA, step-up code, support sessions) is done; B16b onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected). B16a (admin 2FA, step-up code, support sessions) and B16b (cockpit, user administration) are done; B16c onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -62,6 +62,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-24 | Claude (Opus 5.5) | B15a CMS pages, legal, FAQ | `4604215` | SQLite 410 + 7 skipped; MySQL CMS suite passed after a MySQL-only reorder bug was found and fixed; Pint, PHPStan L6, audit clean; rollback OK; real captures; mutation caught | WIP `ca6ef84` |
 | 2026-10-24 | Claude (Opus 5.5) | B15b cookie consent + NL/EN API | `b2abb82` | MySQL 420 passed; SQLite 413 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures incl. Dutch validation; mutation caught | B15 complete |
 | 2026-10-24 | Claude (Opus 5.5) | B16a admin 2FA, step-up code, support sessions | `4865e34` | MySQL 426 passed; SQLite 419 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (secrets redacted); 9 mutations caught (one survived at first and the test was strengthened); found and fixed: unthrottled 2FA challenge, route-binding 404 before the admin check | WIP `962af29` |
+| 2026-10-24 | Claude (Opus 5.5) | B16b cockpit, user administration, webshop admin | see git log | MySQL 437 passed (407 s, disk 100% full); SQLite 430 + 7 skipped; Pint, PHPStan L6, audit clean; real captures; 10 mutations caught (the affiliate status filter is redundant, an equivalent mutant); found: cockpit period cut off its last minute (fixed), a duplicate last-login listener (removed) | WIP `0d51699` |
 
 ### B01a detail
 

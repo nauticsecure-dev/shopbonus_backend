@@ -24,11 +24,17 @@ class GrantSuperAdminCommandTest extends TestCase
             ->assertJsonPath('data.roles', ['super_admin'])
             ->assertJsonPath('data.destination', 'admin');
 
+        // The last active Super Admin cannot be revoked (B16b); with a second one it can.
+        $this->artisan('shopbonus:grant-super-admin', ['email' => 'admin@shopbonus.nl', '--revoke' => true])->assertFailed();
+        $this->assertTrue($user->fresh()->isSuperAdmin());
+        User::factory()->create(['email' => 'tweede@shopbonus.nl']);
+        $this->artisan('shopbonus:grant-super-admin', ['email' => 'tweede@shopbonus.nl'])->assertSuccessful();
+
         $this->artisan('shopbonus:grant-super-admin', ['email' => 'admin@shopbonus.nl', '--revoke' => true])->assertSuccessful();
         $this->assertFalse($user->fresh()->isSuperAdmin());
 
         $this->assertSame(
-            ['admin.super_admin_granted', 'admin.super_admin_revoked'],
+            ['admin.super_admin_granted', 'admin.super_admin_granted', 'admin.super_admin_revoked'],
             AuditEvent::where('category', 'admin')->orderBy('id')->pluck('action')->all(),
         );
     }
@@ -46,6 +52,7 @@ class GrantSuperAdminCommandTest extends TestCase
     public function test_there_is_no_way_to_become_super_admin_through_the_api(): void
     {
         $this->assertEmpty(collect(app('router')->getRoutes()->getRoutes())
-            ->filter(fn ($r) => str_contains($r->uri(), 'super-admin') || str_contains($r->uri(), 'platform-role')));
+            ->filter(fn ($r) => (str_contains($r->uri(), 'super-admin') || str_contains($r->uri(), 'platform-role'))
+                && ! str_ends_with($r->uri(), '/revoke-super-admin'))); // revoking (B16b) is allowed; granting is console-only
     }
 }

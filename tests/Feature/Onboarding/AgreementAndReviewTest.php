@@ -338,9 +338,13 @@ class AgreementAndReviewTest extends TestCase
         $routes = collect(app('router')->getRoutes()->getRoutes())->filter(fn ($r) => str_starts_with($r->uri(), 'api/v1/admin/'));
         $this->assertGreaterThanOrEqual(11, $routes->count());
 
+        $sent = 0;
         foreach ($routes as $route) {
             $uri = '/'.preg_replace('/\{[^}]+\}/', (string) str()->ulid(), $route->uri());
             foreach (array_diff($route->methods(), ['HEAD']) as $method) {
+                if (++$sent % 50 === 0) {
+                    $this->travel(61)->seconds(); // stay under the per-minute API rate limit
+                }
                 $this->json($method, $uri)->assertForbidden()->assertJsonPath('error.code', 'platform_role_required');
             }
         }

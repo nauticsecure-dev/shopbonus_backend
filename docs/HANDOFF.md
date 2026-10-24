@@ -3,17 +3,17 @@
 **Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
 **Agent:** Claude (Opus 5.5)
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `4865e34` B16a. Earlier: `b2abb82` B15b, `4604215` B15a, `e5df771` B14, `2bfa953` B13, `1edd8d9` B12, `0dc12d6` CI PHP 8.4, `cd48d26` B11b, `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
+**Last code commit:** see `git log` (B16b, after WIP `0d51699`). Earlier: `4865e34` B16a, `b2abb82` B15b, `4604215` B15a, `e5df771` B14, `2bfa953` B13, `1edd8d9` B12, `0dc12d6` CI PHP 8.4, `cd48d26` B11b, `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** B16b IN PROGRESS (WIP commit). **Resume point:** code written, Pint + PHPStan pass: `Services/Admin/{Cockpit,UserAdministration}`, `Admin\{CockpitController,UserController}`, `WebshopController::requestInformation`, `TeamService::adminRevoke`, `AdminWebshopResource` list columns + `approval_checklist`, `Webshop::connections()/offers()`, `Listeners/RecordLastLogin` (last_login_at was never written before), console revoke last-admin guard; routes `admin/cockpit`, `admin/activity`, `admin/users*`, `admin/webshops/{w}/members/{u}/revoke`, `admin/webshops/{w}/request-information`. **Left:** tests (tests/Feature/Admin/CockpitTest.php, UserAdministrationTest.php), real captures + OpenAPI docs, decision D-063 (grant console-only, revoke via API, definitions), tick `### B16b` in CHECKLIST. Expected failures until docs: OpenApiCoverageTest. Then B16c, B16d (see CHECKLIST).
-**Last completed task:** B16a admin TOTP 2FA gate, emailed step-up code, support sessions (impersonation).
+**Active task:** none in progress. **Next:** B16c financial, integration and Answer24 oversight (expand `### B16c` in CHECKLIST first), then B16d incidents/route registry/audit integrity/platform settings. **Local disk is ~100% full (436 MiB free on 2026-10-24): MySQL tests slowed 5×; free space before continuing.**
+**Last completed task:** B16b cockpit, user administration, webshop admin columns/checklist/information request.
 
-## Tests actually executed (at the B16a commit)
+## Tests actually executed (at the B16b commit)
 
 | Command | Result |
 | --- | --- |
-| `php artisan test` (SQLite in-memory) | PASS: 419 + 7 skipped (MySQL-only concurrency) |
-| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 426 tests (incl. forked-process race tests) |
+| `php artisan test` (SQLite in-memory) | PASS: 430 + 7 skipped (MySQL-only concurrency) |
+| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 437 tests (incl. forked-process race tests; 407 s because the disk is full) |
 | `vendor/bin/pint --test` | PASS |
 | `vendor/bin/phpstan analyse --memory-limit=1G` (level 6) | PASS, 0 errors |
 | `composer audit` | No advisories |
@@ -79,13 +79,11 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 ## Next agent's exact first actions
 
 1. `git status -sb && git log --oneline -8 && php artisan test`; `gh run list --limit 3`.
-2. B16b Super Admin cockpit (Trello #21, #6, #23): read card #21 sections "Dashboard", "Users", "Webshops", "Financial", "Monitoring", "Audit" and expand the `### B16b` checklist in `docs/CHECKLIST.md` first. Likely contents:
-   - oversight/search APIs (users, webshops, orders, vouchers, checkouts) and a cockpit summary;
-   - financial overview (wallet liabilities, fees, affiliate revenue, funding);
-   - wallet adjustment requests with four-eyes approval: requester ≠ approver, both need `password.recent` + `step_up.otp`, posted only via `WalletService::adjust`;
-   - deletion request processing (anonymise, retain ledgers, D-013);
-   - user management (suspend/reactivate, platform roles with step-up);
-   - monitoring (application errors, outbox/webhook/affiliate failures, reconciliation flags);
-   - audit search and export plus an integrity check.
-   - New sensitive non-admin routes must go into the `GuardSupportSession` denylist.
+2. B16c (Trello #21 "Financial & voucher oversight", "Integrations & Answer24 monitoring"): expand `### B16c` in `docs/CHECKLIST.md` first. Likely contents:
+   - wallet oversight (ledger per wallet, reconciliation flags list/resolve);
+   - wallet adjustment requests in `admin_approval_requests`: reason, consumer + transaction verification, `password.recent` + `step_up.otp`, a second admin approves above a threshold (four eyes), posted only via `WalletService::adjust`, never a direct balance write;
+   - affiliate mismatches, failed issuance, paid-unfulfilled checkouts, Mollie payments/refunds, suspicious redemptions;
+   - integration overview (per connection: last event, orders today, failed events, auth errors) and Answer24 overview;
+   - safe retries (webhook re-process, outbox re-dispatch) that are idempotent.
+   Then B16d: incidents (`security_incidents`, grouped by fingerprint/route+status, status workflow, assignment; 401/403/419/422/429/500), API route registry (generated from routes + OpenAPI `x-access`), tamper-evident audit (hash chain + verify command), audit export, platform setting versions.
 3. After B16: B17 AI support (needs an AI provider decision), B18 release, B19 blocked (empty card).
