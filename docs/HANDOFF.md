@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `2bfa953` B13. Earlier: `1edd8d9` B12, `0dc12d6` CI PHP 8.4, `cd48d26` B11b, `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B14 campaign/banner backend (Trello #25, #24 §1–2, §6 funnel).
+**Active task:** B14 IN PROGRESS (work-in-progress commit, see "B14 resume point"). **Next:** B14 campaign/banner backend (Trello #25, #24 §1–2, §6 funnel).
 **Last completed task:** B13 merchant dashboard, analytics, notifications, owner dashboard.
 
 ## Tests actually executed (at `2bfa953`)
@@ -71,6 +71,24 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B14 resume point (work-in-progress commit)
+
+Committed:
+- migration `2026_10_24_140000_create_banner_tables` (installations, campaigns, versions, assets, pairings, events, clicks, daily stats; `webshop_orders.attribution_click_id`);
+- `NormalizedOrder::attributionClickId`, read from format v1 `order.attribution.click_id`, Woo `meta_data _shopbonus_click_id` and Shopify `note_attributes shopbonus_click_id` (NOT VERIFIED);
+- `Services\Banners\{BannerConfig, TriggerEngine, BannerService, BannerMeasurement}`;
+- `Workspaces\BannerController` and `Banners\PublicBannerController` (config, events, assets, editor pair/draft);
+- `shopbonus:publish-scheduled-banners`, the `banner-embed` limiter, and config `shopbonus.banners`.
+
+Pint and PHPStan pass.
+
+Remaining:
+1. Write `tests/Feature/Banners/BannerTest.php`:
+   - card #25 E2E 3 (draft privacy vs public config), 4 (schedule/publish/pause/rollback + audit), 5 (triggers + reasons), 6 (cart fallback), 7 (100/70/7/20 → 70 impressions, CTR 0.1, dismissals not clicks; event dedupe; consented click ID → attributed paid order), 8 (other tenant, forged origin, expired/replayed pairing);
+   - schema rejects HTML / http URLs / foreign assets; publish blocked when unfunded.
+2. Fill B13 `banner_metrics` from `banner_daily_stats` (merchant overview): currently `not_available`.
+3. Capture docs, tick the checklist, PROGRESS/TASKS/DECISIONS (D-057 banner model), commit + push.
 
 ## Next agent's exact first actions
 

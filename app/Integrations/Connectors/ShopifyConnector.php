@@ -140,6 +140,9 @@ class ShopifyConnector extends WebhookConnector
             cancelledAt: $cancelledAt,
             refundedAt: in_array($payment, [PaymentStatus::Refunded, PaymentStatus::PartiallyRefunded], true) ? $this->date($payload['updated_at'] ?? null) : null,
             couponCodes: array_values(array_filter(array_map(fn ($l) => is_array($l) ? $this->str($l['code'] ?? null) : null, is_array($payload['discount_codes'] ?? null) ? $payload['discount_codes'] : []))),
+            // NOT VERIFIED: the storefront embed is expected to add a cart attribute "shopbonus_click_id".
+            attributionClickId: GenericSignedWebhookConnector::clickId(collect(is_array($payload['note_attributes'] ?? null) ? $payload['note_attributes'] : [])
+                ->first(fn ($a) => is_array($a) && ($a['name'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
             providerUpdatedAt: $this->date($payload['updated_at'] ?? null),
         );
     }

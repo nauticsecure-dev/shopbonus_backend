@@ -139,6 +139,9 @@ class WooCommerceConnector extends WebhookConnector
             refundedAt: $refunded > 0 ? $this->date($payload['date_modified_gmt'] ?? null) : null,
             refundedMinor: $refunded > 0 ? $refunded : null,
             couponCodes: array_values(array_filter(array_map(fn ($l) => is_array($l) ? $this->str($l['code'] ?? null) : null, is_array($payload['coupon_lines'] ?? null) ? $payload['coupon_lines'] : []))),
+            // NOT VERIFIED: the storefront embed is expected to store order meta "_shopbonus_click_id".
+            attributionClickId: GenericSignedWebhookConnector::clickId(collect(is_array($payload['meta_data'] ?? null) ? $payload['meta_data'] : [])
+                ->first(fn ($m) => is_array($m) && ($m['key'] ?? null) === '_shopbonus_click_id')['value'] ?? null),
             providerUpdatedAt: $this->date($payload['date_modified_gmt'] ?? null),
         );
     }

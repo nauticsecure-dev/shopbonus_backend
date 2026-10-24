@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $paid_at
  * @property CarbonImmutable|null $cancelled_at
  * @property CarbonImmutable|null $refunded_at
+ * @property string|null $attribution_click_id
  * @property CarbonImmutable|null $provider_updated_at
  * @property int|null $last_webhook_event_id
  * @property CarbonImmutable $created_at
@@ -53,7 +54,7 @@ class WebshopOrder extends Model
 
     protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'customer_key', 'last_webhook_event_id'];
 
-    protected $attributes = ['refunded_minor' => 0, 'eligibility_status' => 'not_evaluated', 'contact_status' => 'not_evaluated'];
+    protected $attributes = ['refunded_minor' => 0, 'eligibility_status' => 'not_evaluated', 'contact_status' => 'not_evaluated', 'attribution_click_id' => null];
 
     protected function casts(): array
     {

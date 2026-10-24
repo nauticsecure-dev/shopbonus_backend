@@ -148,6 +148,7 @@ class OrderIngestion
             'customer_key' => WebshopOrder::customerKey($order->webshop_id, $email, PhoneNumber::normalize($phone)),
             // Consent is only ever taken from the provider, never assumed; a later event without it keeps the earlier answer.
             'contact_consent' => $o->contactConsent ?? $order->contact_consent,
+            'attribution_click_id' => $o->attributionClickId ?? $order->attribution_click_id,
             'amount_minor' => $keep($o->amountMinor, $order->amount_minor),
             'currency' => $keep($o->currency, $order->currency),
             'refunded_minor' => $o->refundedMinor ?? $order->refunded_minor ?? 0,

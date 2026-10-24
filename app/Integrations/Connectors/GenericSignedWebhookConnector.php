@@ -112,6 +112,12 @@ class GenericSignedWebhookConnector extends WebhookConnector
         return new VerifiedEvent('evt:'.$eventId, $topic, $topic === 'ping' ? VerifiedEvent::KIND_PING : VerifiedEvent::KIND_ORDER);
     }
 
+    /** A banner click ID has our fixed shape; anything else is ignored. */
+    public static function clickId(mixed $value): ?string
+    {
+        return is_string($value) && preg_match('/^bc_[A-Za-z0-9]{24}$/', $value) === 1 ? $value : null;
+    }
+
     public function normalizeOrder(array $payload): NormalizedOrder
     {
         $order = is_array($payload['order'] ?? null) ? $payload['order'] : [];
@@ -138,6 +144,7 @@ class GenericSignedWebhookConnector extends WebhookConnector
             providerUpdatedAt: $this->date($order['updated_at'] ?? null),
             couponCodes: array_values(array_filter(array_map(fn ($c) => $this->str($c), is_array($order['coupon_codes'] ?? null) ? $order['coupon_codes'] : []))),
             contactConsent: is_bool($customer['contact_consent'] ?? null) ? $customer['contact_consent'] : null,
+            attributionClickId: self::clickId($order['attribution']['click_id'] ?? null),
         );
     }
 }

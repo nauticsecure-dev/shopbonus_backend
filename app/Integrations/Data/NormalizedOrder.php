@@ -35,6 +35,8 @@ final readonly class NormalizedOrder
         public array $couponCodes = [],
         // Explicit contact consent captured at checkout, if the shop reports it (null = unknown).
         public ?bool $contactConsent = null,
+        // ShopBonus banner click ID carried through the shop's checkout (Trello #24 §2), if present.
+        public ?string $attributionClickId = null,
     ) {}
 
     /** @return list<string> */

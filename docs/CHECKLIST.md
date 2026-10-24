@@ -397,7 +397,25 @@ Every number comes from the authoritative tables (offers, codes, vouchers, claim
 - [ ] **MOVED** Banner funnel metrics (impressions, CTR, attribution, A/B, holdout) → B14; Super Admin network dashboard → B16
 - [ ] **BLOCKED** Staging p95 for dashboard endpoints (no staging)
 
-- [ ] B14 Campaign/banner backend
+## B14 Banner campaigns backend (Trello #25, #24 §1–2)
+
+The live editor, renderer and embed script are frontend; the backend owns campaigns, versions, rules, public config, events, attribution and results. Checkout, payment and account pages are always excluded.
+
+- [ ] `banner_campaigns` (draft config with optimistic `draft_revision`, status draft/scheduled/live/paused, linked offer) + immutable `banner_versions` (sanitized published config)
+- [ ] Strict config schema: templates ribbon/inline_card/floating/teaser/popup/exit_intent/cart_progress; anchors; plain-text content with length limits; https CTA URL; colors; fonts; animation; devices; uploaded image asset only (no external URLs)
+- [ ] Trigger engine (nested all/any): URL wildcard, category, product SKU, exclusions, seconds, scroll %, exit intent, device, language, shop-local day/time, frequency once per session, cooldown, prior dismiss, first/returning visitor, verified cart minimum (only with a cart bridge); returns shown/hidden with reasons ("Why shown/hidden"); simulate endpoint marks results as simulated
+- [ ] Merchant API (offers.manage to edit, offers.view to read): list with search/status/placement filters and 30-day stats, create, show, save draft (409 on stale revision), duplicate, publish (blocked when the linked reward is unfunded), schedule (shop-local time; scheduled command publishes), pause, resume, rollback to an earlier version, version history; all audited
+- [ ] Banner assets: image upload (PNG/JPEG/WebP ≤ 2 MB, content-checked), served publicly by opaque ID only
+- [ ] Installation: per-webshop public embed key + allowed origins (verified domain and its subdomains only); `GET /banners/installation` health (last seen origin/time, live campaigns)
+- [ ] Editor pairing: single-use, 10-minute pairing token for a user/webshop/origin; exchange from that origin gives a 30-minute editor token for draft read/save only; replay, wrong origin and expiry refused
+- [ ] Public `GET /api/v1/banners/config?key=` (origin allowlisted, cacheable, ETag): only published versions of live campaigns; never drafts
+- [ ] Public `POST /api/v1/banners/events` (origin allowlisted, throttled, ≤ 50 per batch): eligible, viewable_impression, cta_click, dismiss; event UUID dedupe; no PII (paths stored without query); consented cta_click returns an opaque 30-day click ID
+- [ ] Attribution: the click ID can travel in the order payload (Shopbonus format v1 `order.attribution.click_id`; WooCommerce `meta_data _shopbonus_click_id` and Shopify `note_attributes shopbonus_click_id` NOT VERIFIED); a paid order within 30 days of the click counts once for that campaign; everything else stays unattributed
+- [ ] Results `GET /banners/{id}/results`: eligible, viewable impressions, CTA clicks, dismissals (never clicks), CTR = clicks / viewable, attributed paid orders + revenue; date/device filters; daily rollups; fills B13 `banner_metrics`
+- [ ] Tests: card #25 E2E 3 (draft privacy), 4 (schedule/publish/pause/rollback + audit), 5 (trigger library and reasons), 6 (cart fallback/simulated), 7 (100/70/7/20 → 70 impressions, 10% CTR, 0 clicks from closes; cost €13), 8 (other tenant, visitor, expired pairing, forged origin); card #24 E2E 1–3
+- [ ] Docs with real captures
+- [ ] **BLOCKED** AI Create / AI Insights (no AI provider configured; B17 decides the provider) and A/B + holdout experiments (**MOVED** to a follow-up slice B14b)
+
 - [ ] B15 CMS/legal/cookie API
 - [ ] B16 Super Admin APIs
 - [ ] B17 Customer support backend

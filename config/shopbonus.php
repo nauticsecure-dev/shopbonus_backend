@@ -132,6 +132,15 @@ return [
         'reservation_ttl_minutes' => 30,
     ],
 
+    // Banner campaigns on the merchant's site (Trello #25, #24 §1–2).
+    'banners' => [
+        'attribution_days' => 30,
+        'pairing_ttl_minutes' => 10,
+        'editor_token_ttl_minutes' => 30,
+        'events_per_batch' => 50,
+        'event_retention_days' => 90,
+    ],
+
     // Merchant notifications (Trello #8 §6).
     'notifications' => [
         'low_inventory_threshold' => (int) env('NOTIFY_LOW_INVENTORY_THRESHOLD', 20),

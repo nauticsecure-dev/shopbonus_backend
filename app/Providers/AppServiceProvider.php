@@ -82,6 +82,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by('checkout:'.$request->user()?->getAuthIdentifier()));
 
+        // Banner embed traffic comes from shoppers' browsers: per key + IP.
+        RateLimiter::for('banner-embed', fn (Request $request) => Limit::perMinute(120)->by('banner:'.$request->input('key', $request->query('key')).'|'.$request->ip()));
+
         RateLimiter::for('order-export', fn (Request $request) => Limit::perMinute(5)->by('export:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('code-import', fn (Request $request) => Limit::perMinute(10)->by('code-import:'.$request->user()?->getAuthIdentifier()));

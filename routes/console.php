@@ -32,3 +32,6 @@ Schedule::command('shopbonus:prepare-invoices')->monthlyOn(1, '05:00')->withoutO
 
 // Merchant notifications (Trello #8 §6).
 Schedule::command('shopbonus:merchant-notifications')->everyFifteenMinutes()->withoutOverlapping();
+
+// Banner campaigns scheduled in shop-local time.
+Schedule::command('shopbonus:publish-scheduled-banners')->everyMinute()->withoutOverlapping();

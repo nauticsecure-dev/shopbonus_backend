@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
 use App\Http\Controllers\Api\V1\Affiliate\VisitController;
 use App\Http\Controllers\Api\V1\Answer24\ContactSettingsController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
+use App\Http\Controllers\Api\V1\Banners\PublicBannerController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
 use App\Http\Controllers\Api\V1\Consumer\AffiliateActivityController;
 use App\Http\Controllers\Api\V1\Consumer\BenefitsController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
+use App\Http\Controllers\Api\V1\Workspaces\BannerController;
 use App\Http\Controllers\Api\V1\Workspaces\DashboardController;
 use App\Http\Controllers\Api\V1\Workspaces\FundingController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
@@ -102,6 +104,16 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // Affiliate network postback: secret token in the URL, untrusted (records "tracked" only).
     Route::match(['get', 'post'], 'affiliate/postback/{token}', [PostbackController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('affiliate.postback');
+
+    // Banner embed on the merchant's site (Trello #25 §3): public key + Origin allowlist.
+    Route::prefix('banners')->name('banners.')->withoutMiddleware('throttle:api')->middleware('throttle:banner-embed')->group(function () {
+        Route::get('config', [PublicBannerController::class, 'config'])->name('config');
+        Route::post('events', [PublicBannerController::class, 'events'])->name('events.store');
+        Route::get('assets/{id}', [PublicBannerController::class, 'asset'])->name('assets.show');
+        Route::post('editor/pair', [PublicBannerController::class, 'pair'])->name('editor.pair');
+        Route::get('editor/campaigns/{banner}', [PublicBannerController::class, 'editorDraft'])->name('editor.draft.show');
+        Route::put('editor/campaigns/{banner}', [PublicBannerController::class, 'editorSave'])->name('editor.draft.update');
+    });
 
     // Mollie webhook: only a payment ID; the status is always fetched from Mollie.
     Route::post('payments/mollie/webhook', [MollieWebhookController::class, 'receive'])
@@ -320,6 +332,29 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::put('public-profile', [PublicProfileController::class, 'update'])->name('public-profile.update');
                     Route::post('public-profile/logo', [PublicProfileController::class, 'uploadLogo'])->name('public-profile.logo.store');
                     Route::delete('public-profile/logo', [PublicProfileController::class, 'deleteLogo'])->name('public-profile.logo.destroy');
+                });
+
+                // Banner campaigns on the merchant's own site (Trello #25).
+                Route::middleware('workspace.can:offers.view')->group(function () {
+                    Route::get('banners', [BannerController::class, 'index'])->name('banners.index');
+                    Route::get('banners/installation', [BannerController::class, 'installation'])->name('banners.installation');
+                    Route::get('banners/{banner}', [BannerController::class, 'show'])->name('banners.show');
+                    Route::get('banners/{banner}/versions', [BannerController::class, 'versions'])->name('banners.versions');
+                    Route::get('banners/{banner}/results', [BannerController::class, 'results'])->name('banners.results');
+                    Route::post('banners/{banner}/simulate', [BannerController::class, 'simulate'])->name('banners.simulate');
+                });
+                Route::middleware('workspace.can:offers.manage')->group(function () {
+                    Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
+                    Route::put('banners/installation', [BannerController::class, 'updateInstallation'])->name('banners.installation.update');
+                    Route::post('banners/pairing', [BannerController::class, 'pairing'])->middleware('throttle:checkout')->name('banners.pairing');
+                    Route::post('banners/assets', [BannerController::class, 'uploadAsset'])->middleware('throttle:profile-upload')->name('banners.assets.store');
+                    Route::put('banners/{banner}', [BannerController::class, 'saveDraft'])->name('banners.update');
+                    Route::post('banners/{banner}/duplicate', [BannerController::class, 'duplicate'])->name('banners.duplicate');
+                    Route::post('banners/{banner}/publish', [BannerController::class, 'publish'])->middleware('workspace.commercial')->name('banners.publish');
+                    Route::post('banners/{banner}/schedule', [BannerController::class, 'schedule'])->middleware('workspace.commercial')->name('banners.schedule');
+                    Route::post('banners/{banner}/pause', [BannerController::class, 'pause'])->name('banners.pause');
+                    Route::post('banners/{banner}/resume', [BannerController::class, 'resume'])->middleware('workspace.commercial')->name('banners.resume');
+                    Route::post('banners/{banner}/rollback', [BannerController::class, 'rollback'])->middleware('workspace.commercial')->name('banners.rollback');
                 });
 
                 // Merchant overview (Trello #8).
