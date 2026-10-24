@@ -24,7 +24,7 @@ Tasks further down are listed at headline level. Expand them into concrete items
 - [x] Log redaction on all channels (`a51a9b6`)
 - [x] CORS allowlist from env (`a51a9b6`)
 - [x] Pint, Larastan level 6, CI workflow file (`a51a9b6`)
-- [ ] **BLOCKED** CI actually run green on GitHub (blocked: no git remote)
+- [x] CI run green on GitHub: run 40076266746 at `5da012e` (PHP 8.4 SQLite + MySQL, lint/static analysis); PHP 8.3 dropped (D-055)
 - [x] OpenAPI 3.1 + API reference with real captured examples; coverage test (`a51a9b6`)
 
 ## B01b Foundation: audit and error store
