@@ -4367,6 +4367,255 @@ Content-Type: application/json
 
 ---
 
+## Voucher checkout: wallet + Mollie (B11a, Trello #20, #23)
+
+Captured 2026-10-24 against local MySQL. **Mollie was a local test-mode stub** (`MOLLIE_API_BASE_URL` pointed at it); no real Mollie account was used.
+
+The setup:
+- *Woon & Co* sells "€25 korting op meubels" for €20.00 (`price_minor` 2000).
+- Anna has €31.00 `eur_credit`; Bob has none.
+- Prices are euro cents from the `eur_credit` wallet. Points are never converted (D-051).
+
+What Shopbonus sent to Mollie (key redacted):
+
+```json
+{
+  "headers": {
+    "Authorization": "Bearer test_<redacted>"
+  },
+  "body": {
+    "amount": {
+      "currency": "EUR",
+      "value": "20.00"
+    },
+    "description": "ShopBonus voucher: €25 korting op meubels",
+    "redirectUrl": "http://localhost:3000/checkout/01m5pd8gpxtf8jd7rs1863kk89",
+    "webhookUrl": "http://127.0.0.1:8792/api/v1/payments/mollie/webhook",
+    "metadata": {
+      "checkout_id": "01m5pd8gpxtf8jd7rs1863kk89"
+    }
+  }
+}
+```
+
+**Quote: the wallet covers it**
+
+`POST /api/v1/consumer/checkouts/quote {"offer":"eur25-korting-op-meubels-air4ck"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-3f11-72dd-a5ba-64cb088d54a3
+
+{"data":{"price_minor":2000,"currency":"EUR","wallet_available":3100,"wallet_part_minor":2000,"payment_part_minor":0,"blockers":[]}}
+```
+
+**Bob's quote without the wallet: all via Mollie**
+
+`POST /api/v1/consumer/checkouts/quote {"offer":"eur25-korting-op-meubels-air4ck","use_wallet":false}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-3fa7-706a-9111-37949fdce6ef
+
+{"data":{"price_minor":2000,"currency":"EUR","wallet_available":0,"wallet_part_minor":0,"payment_part_minor":2000,"blockers":[]}}
+```
+
+**Wallet-only purchase: completed in one transaction**
+
+`POST /api/v1/consumer/checkouts {"offer":"eur25-korting-op-meubels-air4ck"}   (Idempotency-Key: checkout-2026-10-24-0001)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cd4-3fe2-7368-a5d2-1d4a6dc38be7
+
+{"data":{"id":"01m5pd8fzpy18bajpnwcqnkecz","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":2000,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:31+00:00"}}
+```
+
+**Same Idempotency-Key again: same checkout, no second debit**
+
+`POST /api/v1/consumer/checkouts {"offer":"eur25-korting-op-meubels-air4ck"}   (Idempotency-Key: checkout-2026-10-24-0001)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-4063-717e-86ea-7f6213ad7475
+
+{"data":{"id":"01m5pd8fzpy18bajpnwcqnkecz","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":2000,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:31+00:00"}}
+```
+
+**No Idempotency-Key → 400**
+
+`POST /api/v1/consumer/checkouts {"offer":"eur25-korting-op-meubels-air4ck"}`
+
+```http
+HTTP/1.1 400 Bad Request
+X-Request-Id: 01a16cd4-4093-72b1-9983-a1d986b110fc
+Content-Type: application/json
+
+{"error":{"status":400,"code":"idempotency_key_required","message":"Send a unique Idempotency-Key header (8\u2013100 characters) with each purchase.","request_id":"01a16cd4-4093-72b1-9983-a1d986b110fc"}}
+```
+
+**Mixed: €11.00 wallet (all that was left) + €9.00 Mollie**
+
+`POST /api/v1/consumer/checkouts {"offer":"eur25-korting-op-meubels-air4ck"}   (Idempotency-Key: checkout-2026-10-24-0002)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cd4-40be-701c-84e9-076b3feb43e7
+
+{"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"pending_payment","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"open","test_mode":true,"checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/f3b34a800b"},"voucher_id":null,"failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":null}}
+```
+
+**Back from Mollie, not paid yet**
+
+`GET /api/v1/consumer/checkouts/01m5pd8g6jxyja6prwr6bcwm98`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-4184-703a-b453-f553e6b12c1c
+
+{"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"pending_payment","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"open","test_mode":true,"checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/f3b34a800b"},"voucher_id":null,"failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":null}}
+```
+
+**Webhook while Mollie still says open: nothing happens**
+
+`POST /api/v1/payments/mollie/webhook id=tr_f3b34a800b   (application/x-www-form-urlencoded, as Mollie sends it)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-41b1-736a-b742-c1be09e66099
+
+{"data":{"received":true}}
+```
+
+**Webhook after Mollie says paid: finalised**
+
+`POST /api/v1/payments/mollie/webhook id=tr_f3b34a800b   (application/x-www-form-urlencoded, as Mollie sends it)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-41dc-71b7-834a-de118eeb1a7b
+
+{"data":{"received":true}}
+```
+
+**Mollie retries: still once**
+
+`POST /api/v1/payments/mollie/webhook id=tr_f3b34a800b   (application/x-www-form-urlencoded, as Mollie sends it)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-4229-7314-b063-5c056790ccb8
+
+{"data":{"received":true}}
+```
+
+**Completed**
+
+`GET /api/v1/consumer/checkouts/01m5pd8g6jxyja6prwr6bcwm98`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-4252-72f0-a0ae-2f04dc82ea45
+
+{"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":"01m5pd8g6wwgnnb2qdty25kc2p","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:32+00:00"}}
+```
+
+**Unknown payment ID: 200, nothing done**
+
+`POST /api/v1/payments/mollie/webhook id=tr_UNKNOWN0000   (application/x-www-form-urlencoded, as Mollie sends it)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-427f-71e9-8869-6a4c10543ece
+
+{"data":{"received":true}}
+```
+
+**Malformed ID → 422**
+
+`POST /api/v1/payments/mollie/webhook id=x'1   (application/x-www-form-urlencoded, as Mollie sends it)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a16cd4-42a3-719e-93ec-5df4b757859b
+
+{"error":{"status":422,"code":"invalid_payment_id","message":"Invalid payment ID.","request_id":"01a16cd4-42a3-719e-93ec-5df4b757859b"}}
+```
+
+**Bob pays everything via Mollie…**
+
+`POST /api/v1/consumer/checkouts {"offer":"eur25-korting-op-meubels-air4ck"}   (Idempotency-Key: checkout-bob-0001)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16cd4-42c3-72fb-8a0e-fca3ddca8103
+
+{"data":{"id":"01m5pd8gpxtf8jd7rs1863kk89","state":"pending_payment","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"open","test_mode":true,"checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/d93237ac6b"},"voucher_id":null,"failure_reason":null,"expires_at":"2026-10-24T08:03:32+00:00","completed_at":null}}
+```
+
+**…and cancels at Mollie**
+
+`POST /api/v1/payments/mollie/webhook id=tr_d93237ac6b   (application/x-www-form-urlencoded, as Mollie sends it)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-433d-7396-bfa7-66dcc818fedc
+
+{"data":{"received":true}}
+```
+
+**Failed: code back in stock, nothing issued**
+
+`GET /api/v1/consumer/checkouts/01m5pd8gpxtf8jd7rs1863kk89`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-4378-72ba-a6ac-856791c4ea06
+
+{"data":{"id":"01m5pd8gpxtf8jd7rs1863kk89","state":"failed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"canceled","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"payment_canceled","expires_at":"2026-10-24T08:03:32+00:00","completed_at":null}}
+```
+
+**Anna's checkout as Bob → 404**
+
+`GET /api/v1/consumer/checkouts/01m5pd8g6jxyja6prwr6bcwm98`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16cd4-43a2-7063-b260-97ac61d3f4a7
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Checkout not found.","request_id":"01a16cd4-43a2-7063-b260-97ac61d3f4a7"}}
+```
+
+**Anna's wallet afterwards (€20 + €11 spent)**
+
+`GET /api/v1/consumer/wallet`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cd4-43c9-7388-97f9-96ea0379a97a
+
+{"data":{"balances":{"eur_credit":{"unit":"eur_credit","available":0,"pending":0,"reserved":0,"total_earned":3100,"total_spent":3100,"total_expired":0,"next_expiry":null},"points":{"unit":"points","available":0,"pending":0,"reserved":0,"total_earned":0,"total_spent":0,"total_expired":0,"next_expiry":null}},"withdrawable":false,"notice":"ShopBonus credit and points are not money: they cannot be withdrawn or transferred."}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

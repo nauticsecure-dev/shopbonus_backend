@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B10 are done (B10 adapters NOT VERIFIED live); B11 onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B10 and B11a are done (B10 adapters NOT VERIFIED live); B11b onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -22,7 +22,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Consumer profile/discovery | VERIFIED_WORKING (B08a discovery, B08b profile/email change/preferences/favourites/My Vouchers/dashboard/privacy requests); wallet in dashboard waits for B09 | `tests/Feature/Discovery/*`, `tests/Feature/Consumer/*` |
 | Wallet ledgers | VERIFIED_WORKING (B09): central consumer wallet, append-only ledger, lots/expiry, reservations, pending, reversal policy, reconcile; merchant funding kind reserved for B12 | `tests/Feature/Wallet/*` |
 | Affiliate (Daisycon/TradeTracker) | PARTIAL: framework, selection, clicks, idempotent processing, rewards, admin review VERIFIED_WORKING against fixtures (B10); live networks NOT VERIFIED; TradeTracker transport missing | `tests/Feature/Affiliate/*` |
-| Mollie checkout, merchant funding, Moneybird | MISSING; live money BLOCKED on OPEN-FINANCIAL-LEGAL | B11–B12 |
+| Mollie checkout, merchant funding, Moneybird | PARTIAL: wallet/Mollie checkout VERIFIED_WORKING against a faked/stubbed Mollie (B11a); real Mollie sandbox NOT RUN; live BLOCKED (OPEN-FINANCIAL-LEGAL); funding/Moneybird MISSING (B12) | `tests/Feature/Checkout/*` |
 | Analytics, banners, CMS, admin, AI support | MISSING | B13–B17 |
 | CI | PARTIAL | `.github/workflows/ci.yml` written but NOT RUN: no git remote configured. |
 | Staging / deployment / backups | MISSING / UNKNOWN | No deployment config or target known. |
@@ -51,6 +51,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-23 | Claude (Opus 5.5) | B08b consumer profile, preferences, benefits, privacy | `c2dfb15` | MySQL 347 passed; SQLite 344 + 3 skipped; Pint, PHPStan L6, audit clean; `migrate:rollback --step=1` + `migrate` OK; real captures (email change via logged mail code, session password throttle); 2 mutations caught; 1 bug found by capture and fixed | B08 complete |
 | 2026-10-23 | Claude (Opus 5.5) | B09 wallet ledger | `862d3d0` | MySQL 363 passed (incl. forked-process wallet races); SQLite 358 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures; lock-removal mutation caught by the race test | |
 | 2026-10-24 | Claude (Opus 5.5) | B10 affiliate tracking | `37edebf` | MySQL 374 passed; SQLite 369 + 5 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Daisycon via a local stub, TradeTracker via import; adapters NOT VERIFIED); 2 mutations caught | WIP checkpoint `93926ee` |
+| 2026-10-24 | Claude (Opus 5.5) | B11a voucher checkout + Mollie | `B11A_SHA` | MySQL 386 passed (incl. forked checkout races, 5 repeat runs); SQLite 379 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures with a local Mollie test-mode stub; mutation caught (after fixing a test that could not fail) | WIP `b175c83`; deadlock found + fixed |
 
 ### B01a detail
 
@@ -140,6 +141,12 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 
 - **Delivered:** migration `2026_10_23_280000_create_affiliate_tables`; `app/Affiliate/*` (contract, `DaisyconAdapter`, `TradeTrackerAdapter`, registry, DTOs); `Services\Affiliate\{ProgramSelector, AffiliateProcessor, AffiliateSync}`; `Affiliate\{Visit,Postback}Controller`, `Consumer\AffiliateActivityController`, `Admin\AffiliateController`; config `shopbonus.affiliate`.
 - **Card mapping:** #19 E2E 2 → `test_card19_e2e2_*`; E2E 3 → `test_card19_e2e3_*`; E2E 4 → `test_card19_e2e4_*` (fixtures); E2E 5 → `test_card19_e2e5_*`; E2E 6 → `test_card19_e2e4_and_e2e6_*`; E2E 7 → `test_card19_e2e7_*`; E2E 9 → `test_card19_e2e9_*` + admin guard test; #23 test 6 → `test_card23_test6_*`. E2E 1 (live connect) and real provider data: BLOCKED.
+
+### B11 detail
+
+- **Delivered (B11a):** migration `2026_10_24_100000_create_checkout_tables`; `Services\Checkout\{MollieClient, CheckoutService}`; `Consumer\CheckoutController`; `Payments\MollieWebhookController`; `shopbonus:expire-checkouts`.
+- **Card mapping:** #20 E2E 1 → `test_card20_e2e1_*`; E2E 2 → `test_card20_e2e2_*`; E2E 3 → `ConcurrentCheckoutTest` (MySQL, forked); E2E 4 → `test_card20_e2e4_*`; E2E 5 → `test_card20_e2e5_*`; E2E 6 → `test_card20_e2e6_*`; E2E 10 → `test_card20_e2e10_*` + `test_a_paid_payment_for_another_amount_*`; #23 tests 7/8 → `ConcurrentCheckoutTest` + `test_card20_e2e5_and_card23_test8_*`.
+- **Bug found:** concurrent checkouts deadlocked (insert's FK shared lock on the offer, then FOR UPDATE); fixed by locking the offer first.
 
 ## How to update
 

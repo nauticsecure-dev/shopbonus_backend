@@ -338,16 +338,18 @@ Prices of `wallet_purchase` offers are euro cents (`price_minor`) paid from the 
 
 ### B11a Checkout and Mollie
 
-- [ ] `voucher_checkouts` (consumer, offer, price, wallet part, payment part, state, idempotency key unique per consumer, expiry) + `voucher_checkout_payments` (provider reference unique, amount, verified status, refunds)
-- [ ] `POST /consumer/checkouts/quote`: server-side price, wallet available, wallet/Mollie split, blockers (inactive, sold out, insufficient, payments unavailable); no mutation
-- [ ] `POST /consumer/checkouts` (`Idempotency-Key` header): wallet-only completes atomically (wallet debit + code + voucher in one transaction); mixed/Mollie reserves wallet part + code (bounded) and returns the Mollie checkout URL; a repeat returns the same result
-- [ ] Mollie client (create payment, get payment, refund) with amounts as exact decimal strings; test keys only by default; no key → 409 `payments_unavailable`
-- [ ] `POST /payments/mollie/webhook`: never trusts the body; fetches the payment from Mollie; paid → finalize exactly once; failed/canceled/expired → release wallet + code, no voucher; unknown ID → 200 with nothing done
-- [ ] Paid but inventory gone → `paid_unfulfilled`, admin alert, recoverable (refund in B11b)
-- [ ] Scheduled `shopbonus:expire-checkouts`: re-checks Mollie, finalizes late payments, releases the rest
-- [ ] `GET /consumer/checkouts/{id}`: own checkout status (redirect page never proves payment)
-- [ ] Tests: card #20 E2E 1, 2, 3 (forked race on the last code), 4 (reusable), 5, 6, 10 (forged webhook, replay, cross-user); card #23 tests 7, 8
-- [ ] Docs with real captures (Mollie via a local test-mode stub)
+- [x] `voucher_checkouts` (consumer, offer, price, wallet part, payment part, state, idempotency key unique per consumer, expiry) + `voucher_checkout_payments` (provider reference unique, amount, verified status, refunds) (`B11A_SHA`)
+- [x] `POST /consumer/checkouts/quote`: server-side price, wallet available, wallet/Mollie split, blockers (inactive, sold out, insufficient, payments unavailable); no mutation (`B11A_SHA`)
+- [x] `POST /consumer/checkouts` (`Idempotency-Key` header): wallet-only completes atomically (wallet debit + code + voucher in one transaction); mixed/Mollie reserves wallet part + code (bounded) and returns the Mollie checkout URL; a repeat returns the same result (`B11A_SHA`)
+- [x] Mollie client (create payment, get payment, refund) with amounts as exact decimal strings; test keys only by default; no key → 409 `payments_unavailable` (`B11A_SHA`)
+- [x] `POST /payments/mollie/webhook`: never trusts the body; fetches the payment from Mollie; paid → finalize exactly once; failed/canceled/expired → release wallet + code, no voucher; unknown ID → 200 with nothing done (`B11A_SHA`)
+- [x] Paid but inventory gone → `paid_unfulfilled`, admin alert, recoverable (refund in B11b) (`B11A_SHA`)
+- [x] Scheduled `shopbonus:expire-checkouts`: re-checks Mollie, finalizes late payments, releases the rest (`B11A_SHA`)
+- [x] `GET /consumer/checkouts/{id}`: own checkout status (redirect page never proves payment) (`B11A_SHA`)
+- [x] Tests: card #20 E2E 1, 2, 3 (forked race on the last code), 4 (reusable), 5, 6, 10 (forged webhook, replay, cross-user); card #23 tests 7, 8 (`B11A_SHA`)
+- [x] Docs with real captures (Mollie via a local test-mode stub) (`B11A_SHA`)
+- [x] Found by the real forked-process test and fixed: concurrent checkouts deadlocked (FK shared lock on the offer, then FOR UPDATE); offer locked first, deadlocks retried (`B11A_SHA`)
+- [ ] **BLOCKED** Real Mollie sandbox evidence (no Mollie test account/key); live payments (OPEN-FINANCIAL-LEGAL)
 
 ### B11b Voucher details, redemption, disputes
 

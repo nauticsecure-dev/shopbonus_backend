@@ -63,7 +63,7 @@ class CheckoutService
         $blockers = array_keys(array_filter([
             'not_for_sale' => $offer->acquisition !== OfferAcquisition::WalletPurchase || $price <= 0,
             'offer_not_active' => $offer->status !== OfferStatus::Active,
-            'webshop_not_active' => $offer->webshop()->value('status') !== WebshopStatus::Approved->value,
+            'webshop_not_active' => $offer->webshop()->firstOrFail()->status !== WebshopStatus::Approved,
             'outside_validity' => ($version?->starts_at?->isFuture() ?? false) || ($version?->ends_at?->isPast() ?? false),
             'sold_out' => ! VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->exists(),
             'payments_unavailable' => $paymentPart > 0 && ! $this->mollie->available(),
@@ -86,7 +86,8 @@ class CheckoutService
         }
 
         try {
-            $checkout = DB::transaction(fn () => $this->open($user, $offer, $key, $quote));
+            // Deadlocks are retried; the lock order in open() makes them rare.
+            $checkout = DB::transaction(fn () => $this->open($user, $offer, $key, $quote), 3);
         } catch (UniqueConstraintViolationException) {
             return $this->byKey($user, $key) ?? throw ApiException::conflict('Checkout conflict, retry.', 'checkout_conflict');
         }
@@ -162,6 +163,13 @@ class CheckoutService
      */
     private function open(User $user, Offer $offer, string $key, array $quote): VoucherCheckout
     {
+        // Lock order: offer → checkout row → code → wallet. Taking the offer lock before
+        // inserting (whose foreign key takes a shared lock on it) avoids an S→X upgrade deadlock.
+        Offer::whereKey($offer->id)->lockForUpdate()->firstOrFail();
+        if (($existing = $this->byKey($user, $key)) !== null) {
+            return $existing; // a concurrent identical request finished while we waited
+        }
+
         $checkout = VoucherCheckout::create([
             'user_id' => $user->id, 'offer_id' => $offer->id, 'webshop_id' => $offer->webshop_id, 'idempotency_key' => $key, 'state' => 'pending_payment',
             'price_minor' => $quote['price_minor'], 'wallet_part_minor' => $quote['wallet_part_minor'], 'payment_part_minor' => $quote['payment_part_minor'],

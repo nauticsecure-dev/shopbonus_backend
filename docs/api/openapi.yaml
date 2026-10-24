@@ -72,6 +72,9 @@ tags:
   - name: Affiliate
     description: |
       Affiliate network callbacks (Trello #19). Untrusted by design.
+  - name: Payments
+    description: |
+      Payment provider callbacks (Mollie, test mode). Never trusted: statuses are fetched from the provider.
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -5281,6 +5284,173 @@ paths:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
         '404': { $ref: '#/components/responses/NotFound' }
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/consumer/checkouts/quote:
+    post:
+      tags: [Consumer]
+      operationId: checkoutQuote
+      summary: "Price and payment split for an offer"
+      description: |
+        Server-side price (`price_minor`, euro cents) and split: `wallet_part_minor` from the `eur_credit` wallet, `payment_part_minor` via Mollie. `blockers` lists why it cannot be bought now: `not_for_sale`, `offer_not_active`, `webshop_not_active`, `outside_validity`, `sold_out`, `payments_unavailable`, `email_not_verified`. Changes nothing: no code or wallet value is reserved.
+      x-access: verified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [offer]
+              properties:
+                offer: { type: string, description: Offer slug (public discovery). }
+                use_wallet: { type: boolean, default: true, description: Pay as much as possible from the eur_credit wallet. }
+            example: {"offer": "eur25-korting-op-meubels-air4ck"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/checkouts/quote' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"offer":"<offer slug>"}'
+      responses:
+        '200':
+          description: "Quote (captured: wallet covers it)."
+          content:
+            application/json:
+              example: {"data":{"price_minor":2000,"currency":"EUR","wallet_available":3100,"wallet_part_minor":2000,"payment_part_minor":0,"blockers":[]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404':
+          description: "Unknown offer."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"offer_not_found","message":"This offer is not available.","request_id":"<id>"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/consumer/checkouts:
+    post:
+      tags: [Consumer]
+      operationId: startCheckout
+      summary: "Buy a voucher (wallet, Mollie or both)"
+      description: |
+        Wallet-only (`payment_part_minor` 0): the wallet debit, the code allocation and the voucher issuance happen in one transaction, and the response is `completed`. Any failure rolls all of it back.
+                Otherwise the wallet part and one code are reserved (bounded) and a Mollie payment is created; send the consumer to `payment.checkout_url`. The voucher is issued only after the Mollie webhook and a server-side check say `paid`; returning from Mollie proves nothing.
+                A repeat with the same `Idempotency-Key` returns the same checkout (200). 409 `checkout_blocked` (with the quote blockers) or `offer_out_of_stock` (lost a race for the last code; nothing changed). Mollie runs in test mode only (`MOLLIE_ALLOW_LIVE`). No code is ever in this response: it appears in My Vouchers.
+      x-access: verified
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 100 }, description: 'Unique per purchase attempt; a repeat returns the same checkout.' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [offer]
+              properties:
+                offer: { type: string, description: Offer slug (public discovery). }
+                use_wallet: { type: boolean, default: true, description: Pay as much as possible from the eur_credit wallet. }
+            example: {"offer": "eur25-korting-op-meubels-air4ck"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/consumer/checkouts' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Idempotency-Key: checkout-2026-10-24-0001' \
+              -H 'Content-Type: application/json' -d '{"offer":"<offer slug>"}'
+      responses:
+        '201':
+          description: "Started (captured: \u20ac11.00 wallet + \u20ac9.00 Mollie)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"pending_payment","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"open","test_mode":true,"checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/f3b34a800b"},"voucher_id":null,"failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":null}}
+        '200':
+          description: "Same Idempotency-Key: same checkout."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pd8fzpy18bajpnwcqnkecz","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":2000,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:31+00:00"}}
+        '400':
+          description: "Idempotency-Key missing or malformed."
+          content:
+            application/json:
+              example: {"error":{"status":400,"code":"idempotency_key_required","message":"Send a unique Idempotency-Key header (8\u2013100 characters) with each purchase.","request_id":"01a16cd4-4093-72b1-9983-a1d986b110fc"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '409':
+          description: "Blocked, sold out or payments unavailable."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"checkout_blocked","message":"This voucher cannot be bought right now.","request_id":"<id>","details":{"blockers":["sold_out"]}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '502':
+          description: "Mollie unreachable or refused (`payment_provider_unavailable` / `payment_provider_error`); the reservations were released."
+          content:
+            application/json:
+              example: {"error":{"status":502,"code":"payment_provider_unavailable","message":"The payment provider could not be reached. Please try again.","request_id":"<id>"}}
+
+  /api/v1/consumer/checkouts/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Consumer]
+      operationId: checkoutStatus
+      summary: "Own checkout status"
+      description: |
+        `pending_payment`, `completed` (`voucher_id` set), `failed`, `expired` or `paid_unfulfilled` (paid after the reservation lapsed; Shopbonus support refunds it, B11b). The page the consumer returns to from Mollie polls this. Another consumer's checkout is 404.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/consumer/checkouts/<id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Status."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":"01m5pd8g6wwgnnb2qdty25kc2p","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:32+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404':
+          description: "Not yours."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Checkout not found.","request_id":"01a16cd4-43a2-7063-b260-97ac61d3f4a7"}}
+
+  /api/v1/payments/mollie/webhook:
+    post:
+      tags: [Payments]
+      operationId: mollieWebhook
+      summary: "Mollie payment webhook"
+      description: |
+        Mollie posts only `id` (form-encoded). The body is never trusted: Shopbonus fetches the payment from Mollie and acts on that. The amount, currency and checkout ID must match, or nothing happens and an error is reported.
+                - `paid` → finalise exactly once;
+                - `failed`, `canceled` or `expired` → release the wallet part and the code;
+                - open → nothing.
+
+                Unknown IDs also answer 200, so nothing is revealed and Mollie stops retrying. A malformed ID answers 422.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string, pattern: '^tr_[A-Za-z0-9]+$' }
+            example: {"id": "tr_WDqYK6vllg"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/payments/mollie/webhook' -d 'id=tr_WDqYK6vllg'
+      responses:
+        '200':
+          description: "Handled (also for unknown IDs)."
+          content:
+            application/json:
+              example: {"data":{"received":true}}
+        '422':
+          description: "Not a payment ID."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"invalid_payment_id","message":"Invalid payment ID.","request_id":"01a16cd4-42a3-719e-93ec-5df4b757859b"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
 components:
   parameters:
