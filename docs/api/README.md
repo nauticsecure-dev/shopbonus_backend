@@ -5030,6 +5030,120 @@ X-Request-Id: 01a16ce7-df6c-7072-86bb-642bcd8b5257
 
 ---
 
+## Merchant dashboard and analytics (B13, Trello #8, #24 §6, #3 §17)
+
+Captured 2026-10-24 against local MySQL, with Jan, owner of *Woon & Co* and *Fietsen Utrecht*, on the data left by the earlier captures. `php artisan shopbonus:merchant-notifications` → `Created 5 notification(s).`
+
+**Overview**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/dashboard`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-001b-7006-b2c0-89f9e8e1b542
+
+{"data":{"webshop":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved"},"greeting":"good_morning","kpis":{"active_offers":3,"available_codes":0,"issued_vouchers":4,"claimed_vouchers":0,"redeemed_vouchers":2},"definitions":{"active_offers":"Offers with status active (draft, paused and ended excluded).","available_codes":"Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).","issued_vouchers":"Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.","claimed_vouchers":"Answer24 claim links accepted by a verified consumer.","redeemed_vouchers":"Vouchers with a verified redemption (paid order containing the code, or merchant verification)."},"offers":[{"id":"01m5pefmgdjxy9q4fa1r7pk7cx","name":"\u20ac10 korting op je volgende bestelling","summary":"\u20ac10.00 from \u20ac50.00","type":"fixed","acquisition":"merchant_reward","min_order_minor":5000,"available_codes":0,"issued":1,"status":"active","attention":["low_inventory"]},{"id":"01m5pdr2s105nre4frgsby7w70","name":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","type":"fixed","acquisition":"wallet_purchase","min_order_minor":10000,"available_codes":0,"issued":0,"status":"active","attention":["low_inventory"]},{"id":"01m5pd8dnmr7zn0gp678fzfrs9","name":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","type":"fixed","acquisition":"wallet_purchase","min_order_minor":10000,"available_codes":0,"issued":3,"status":"active","attention":["low_inventory"]}],"notifications":{"unread":3,"latest":[{"id":"01m5pf7yycjq3ddb2mdp8jaxy6","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac10 korting op je volgende bestelling: 0 codes remaining.","subject":{"type":"offer","id":"01m5pefmgdjxy9q4fa1r7pk7cx"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy7f5qckh026fttxrvv","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pdr2s105nre4frgsby7w70"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"}]},"funding":{"available_minor":47400,"reserved_minor":1300},"generated_at":"2026-10-24T08:08:12+00:00"}}
+```
+
+**Last 7 days**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/analytics/claims?days=7`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-010e-71a2-94e7-a3564ce30b3b
+
+{"data":{"timezone":"Europe\/Amsterdam","from":"2026-10-18","to":"2026-10-24","days":[{"date":"2026-10-18","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-19","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-20","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-21","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-22","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-23","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-24","claims":0,"issued":4,"redeemed":2}],"totals":{"claims":0,"issued":4,"redeemed":2}}}
+```
+
+**Unsupported range → 422**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/analytics/claims?days=12`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16cf4-0186-73de-978d-64c9b14136df
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cf4-0186-73de-978d-64c9b14136df","fields":{"days":["The selected days is invalid."]}}}
+```
+
+**Commercial overview (last 30 days)**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/analytics/overview`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-01ce-71d6-90c4-7ddcfaacb0fb
+
+{"data":{"from":"2026-09-24T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00","orders":[],"vouchers":{"reserved":6,"issued":4,"redeemed":2,"redemption_rate":0.5},"reward_cost":{"currency":"EUR","reward_minor":0,"fee_minor":0,"total_minor":0},"answer24":{"opportunities":[],"claims":0},"funding":{"available_minor":47400,"reserved_minor":1300},"banner_metrics":{"status":"not_available","reason":"Banner impressions and clicks are collected by the banner backend (B14)."},"timezone":"Europe\/Amsterdam"}}
+```
+
+**Unread notifications**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/notifications?unread=1`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-0227-711f-88e5-957e1298b328
+
+{"data":[{"id":"01m5pf7yycjq3ddb2mdp8jaxy6","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac10 korting op je volgende bestelling: 0 codes remaining.","subject":{"type":"offer","id":"01m5pefmgdjxy9q4fa1r7pk7cx"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy7f5qckh026fttxrvv","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pdr2s105nre4frgsby7w70"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":3,"unread":3}}
+```
+
+**Mark one read**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/notifications/01m5pf7yy2fkbtqn1a96kanhxd/read`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-0281-7361-826d-43c246dfd49b
+
+{"data":{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":true,"created_at":"2026-10-24T08:08:11+00:00"}}
+```
+
+**Mark all read**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/notifications/read-all`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-02c1-739f-a152-f61f7fba4df2
+
+{"data":{"marked_read":2,"unread":0}}
+```
+
+**Another workspace's notification → 404**
+
+`POST /api/v1/workspaces/01m5n6399tnc5h1vtfyf3gsgv4/notifications/01m5pf7yy2fkbtqn1a96kanhxd/read`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16cf4-02f7-71d4-8d3c-4c2638ef186e
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"01a16cf4-02f7-71d4-8d3c-4c2638ef186e"}}
+```
+
+**Owner's combined dashboard**
+
+`GET /api/v1/owner/dashboard`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16cf4-032d-7205-a253-4c2413fc66f6
+
+{"data":{"webshops":[{"id":"01m5n6399tnc5h1vtfyf3gsgv4","name":"Fietsen Utrecht","status":"approved","kpis":{"active_offers":1,"available_codes":0,"issued_vouchers":1,"claimed_vouchers":0,"redeemed_vouchers":0}},{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved","kpis":{"active_offers":3,"available_codes":0,"issued_vouchers":4,"claimed_vouchers":0,"redeemed_vouchers":2}}],"totals":{"active_offers":4,"available_codes":0,"issued_vouchers":5,"claimed_vouchers":0,"redeemed_vouchers":2},"definitions":{"active_offers":"Offers with status active (draft, paused and ended excluded).","available_codes":"Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).","issued_vouchers":"Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.","claimed_vouchers":"Answer24 claim links accepted by a verified consumer.","redeemed_vouchers":"Vouchers with a verified redemption (paid order containing the code, or merchant verification)."}}}
+```
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

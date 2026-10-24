@@ -78,6 +78,9 @@ tags:
   - name: Funding
     description: |
       Merchant funding of sponsored rewards: reward + 30% fee on top (Trello #24 §4).
+  - name: Dashboard
+    description: |
+      Merchant overview, lifecycle analytics, notifications and the owner's combined dashboard (Trello #8, #24 §6, #3 §17).
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -6106,6 +6109,203 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/dashboard:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Dashboard]
+      operationId: merchantDashboard
+      summary: "Merchant overview"
+      description: |
+        Trello #8 overview for the selected workspace only: `greeting` key (business timezone), KPIs with their single `definitions` (active offers, available codes, issued, claimed, redeemed vouchers), offers table (available stock, issued count, status; attention-needed first), unread notifications + latest 5, funding balance. Every number is read from the authoritative tables.
+      x-access: verified
+      x-permission: dashboard.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/dashboard' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Overview."
+          content:
+            application/json:
+              example: {"data":{"webshop":{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved"},"greeting":"good_morning","kpis":{"active_offers":3,"available_codes":0,"issued_vouchers":4,"claimed_vouchers":0,"redeemed_vouchers":2},"definitions":{"active_offers":"Offers with status active (draft, paused and ended excluded).","available_codes":"Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).","issued_vouchers":"Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.","claimed_vouchers":"Answer24 claim links accepted by a verified consumer.","redeemed_vouchers":"Vouchers with a verified redemption (paid order containing the code, or merchant verification)."},"offers":[{"id":"01m5pefmgdjxy9q4fa1r7pk7cx","name":"\u20ac10 korting op je volgende bestelling","summary":"\u20ac10.00 from \u20ac50.00","type":"fixed","acquisition":"merchant_reward","min_order_minor":5000,"available_codes":0,"issued":1,"status":"active","attention":["low_inventory"]},{"id":"01m5pdr2s105nre4frgsby7w70","name":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","type":"fixed","acquisition":"wallet_purchase","min_order_minor":10000,"available_codes":0,"issued":0,"status":"active","attention":["low_inventory"]},{"id":"01m5pd8dnmr7zn0gp678fzfrs9","name":"\u20ac25 korting op meubels","summary":"\u20ac25.00 from \u20ac100.00","type":"fixed","acquisition":"wallet_purchase","min_order_minor":10000,"available_codes":0,"issued":3,"status":"active","attention":["low_inventory"]}],"notifications":{"unread":3,"latest":[{"id":"01m5pf7yycjq3ddb2mdp8jaxy6","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac10 korting op je volgende bestelling: 0 codes remaining.","subject":{"type":"offer","id":"01m5pefmgdjxy9q4fa1r7pk7cx"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy7f5qckh026fttxrvv","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pdr2s105nre4frgsby7w70"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"}]},"funding":{"available_minor":47400,"reserved_minor":1300},"generated_at":"2026-10-24T08:08:12+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/analytics/claims:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Dashboard]
+      operationId: claimsSeries
+      summary: "Daily claims, issuance and redemptions"
+      description: |
+        Days in the business timezone (Europe/Amsterdam), zero-filled, chronological. Claims (accepted claim links), issuance and redemptions are separate series: different lifecycle events.
+      x-access: verified
+      x-permission: dashboard.view
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, enum: [7, 30, 90], default: 30 } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date }, description: 'Custom range (with to), at most one year.' }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/analytics/claims?days=30' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Series (captured: 7 days)."
+          content:
+            application/json:
+              example: {"data":{"timezone":"Europe\/Amsterdam","from":"2026-10-18","to":"2026-10-24","days":[{"date":"2026-10-18","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-19","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-20","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-21","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-22","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-23","claims":0,"issued":0,"redeemed":0},{"date":"2026-10-24","claims":0,"issued":4,"redeemed":2}],"totals":{"claims":0,"issued":4,"redeemed":2}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Unsupported range."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cf4-0186-73de-978d-64c9b14136df","fields":{"days":["The selected days is invalid."]}}}
+
+  /api/v1/workspaces/{workspace}/analytics/overview:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Dashboard]
+      operationId: analyticsOverview
+      summary: "Commercial overview for a period"
+      description: |
+        Paid orders only (paid_at in range; a success page is not a paid order), per currency: count, gross, refunded, net, average order. Vouchers reserved/issued/redeemed and redemption rate; reward cost + fees from settled sponsorship obligations; Answer24 opportunities by status and claims; funding balance. `banner_metrics` is `not_available` until the banner backend (B14) collects events.
+      x-access: verified
+      x-permission: dashboard.view
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date }, description: Default 30 days ago. }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/analytics/overview?from=2026-10-01&to=2026-10-24' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Overview."
+          content:
+            application/json:
+              example: {"data":{"from":"2026-09-24T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00","orders":[],"vouchers":{"reserved":6,"issued":4,"redeemed":2,"redemption_rate":0.5},"reward_cost":{"currency":"EUR","reward_minor":0,"fee_minor":0,"total_minor":0},"answer24":{"opportunities":[],"claims":0},"funding":{"available_minor":47400,"reserved_minor":1300},"banner_metrics":{"status":"not_available","reason":"Banner impressions and clicks are collected by the banner backend (B14)."},"timezone":"Europe\/Amsterdam"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/notifications:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Dashboard]
+      operationId: merchantNotifications
+      summary: "Workspace notifications"
+      description: |
+        Generated every 15 minutes (`shopbonus:merchant-notifications`), deduplicated per situation: `low_inventory`, `new_claims` (daily digest), `offer_expiring`, `connector_error`, `low_funding`. `meta.unread` matches the dashboard badge. Read state is shared by the workspace.
+      x-access: verified
+      x-permission: dashboard.view
+      parameters:
+        - { name: unread, in: query, required: false, schema: { type: boolean } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/notifications?unread=1' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Notifications."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pf7yycjq3ddb2mdp8jaxy6","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac10 korting op je volgende bestelling: 0 codes remaining.","subject":{"type":"offer","id":"01m5pefmgdjxy9q4fa1r7pk7cx"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy7f5qckh026fttxrvv","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pdr2s105nre4frgsby7w70"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":3,"unread":3}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/workspaces/{workspace}/notifications/{notification}/read:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: notification, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Dashboard]
+      operationId: readNotification
+      summary: "Mark a notification read"
+      description: |
+        Only notifications of this workspace (404 otherwise).
+      x-access: verified
+      x-permission: dashboard.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/notifications/<id>/read' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Read."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":true,"created_at":"2026-10-24T08:08:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Not in this workspace."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"01a16cf4-02f7-71d4-8d3c-4c2638ef186e"}}
+
+  /api/v1/workspaces/{workspace}/notifications/read-all:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Dashboard]
+      operationId: readAllNotifications
+      summary: "Mark all notifications read"
+      description: |
+        Marks every unread notification of this workspace read.
+      x-access: verified
+      x-permission: dashboard.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/notifications/read-all' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Done."
+          content:
+            application/json:
+              example: {"data":{"marked_read":2,"unread":0}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+
+  /api/v1/owner/dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: ownerDashboard
+      summary: "Owner's combined dashboard"
+      description: |
+        Trello #3 §17: the same KPI definitions for every webshop the user actively owns, plus totals. Webshops where the user is only manager/employee are not included.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/owner/dashboard' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Per webshop and totals."
+          content:
+            application/json:
+              example: {"data":{"webshops":[{"id":"01m5n6399tnc5h1vtfyf3gsgv4","name":"Fietsen Utrecht","status":"approved","kpis":{"active_offers":1,"available_codes":0,"issued_vouchers":1,"claimed_vouchers":0,"redeemed_vouchers":0}},{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved","kpis":{"active_offers":3,"available_codes":0,"issued_vouchers":4,"claimed_vouchers":0,"redeemed_vouchers":2}}],"totals":{"active_offers":4,"available_codes":0,"issued_vouchers":5,"claimed_vouchers":0,"redeemed_vouchers":2},"definitions":{"active_offers":"Offers with status active (draft, paused and ended excluded).","available_codes":"Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).","issued_vouchers":"Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.","claimed_vouchers":"Answer24 claim links accepted by a verified consumer.","redeemed_vouchers":"Vouchers with a verified redemption (paid order containing the code, or merchant verification)."}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
 
 components:
   parameters:
