@@ -5559,6 +5559,375 @@ Content-Security-Policy: default-src 'none'
 
 ---
 
+## CMS: pages, legal documents, FAQ (B15a, Trello #5)
+
+Captured 2026-10-24 against local MySQL. The Super Admin used a session with password confirmation (step-up), and Anna is a consumer. Rich text is a JSON document (Tiptap/ProseMirror-style) with an allowlist of nodes, marks and attributes. There is no HTML.
+
+**Unsafe link → 422**
+
+`POST /api/v1/admin/cms/pages {"key":"x","type":"info","locales":{"nl":{"slug":"x","content":{"title":"X","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"klik","marks":[{"type":"link","attrs":{"href":"javascript:alert(1)"}}]}]}]}}}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16ded-adc5-732d-86de-835fd3e21bdf
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16ded-adc5-732d-86de-835fd3e21bdf","fields":{"content.body.content.0.content.0.marks.0":["Only bold, italic and https or relative links are allowed."]}}}
+```
+
+**Create a page (NL + EN drafts)**
+
+`POST /api/v1/admin/cms/pages {"key":"hoe-het-werkt","type":"info","locales":{"nl":{"slug":"hoe-het-werkt","content":{"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Sparen en korting"}]},{"type":"paragraph","content":[{"type":"text","text":"Koop bij deelnemende webshops en ontvang tegoed."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}},"en":{"slug":"how-it-works","content":{"title":"How ShopBonus works","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Save and get discounts"}]},{"type":"paragraph","content":[{"type":"text","text":"Shop at participating webshops and receive credit."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ded-af44-70f3-ab82-b399564bd01e
+
+{"data":{"id":"01m5pyvbvf2apjnnekn18ghy0x","key":"hoe-het-werkt","type":"info","audience":"public","archived":false,"locales":{"en":{"slug":"how-it-works","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"},"nl":{"slug":"hoe-het-werkt","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"}}}}
+```
+
+**Not published yet → 404**
+
+`GET /api/v1/public/pages/nl/hoe-het-werkt`
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a16ded-aff8-739a-bee1-77e19f04ec28
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Page not found.","request_id":"01a16ded-aff8-739a-bee1-77e19f04ec28"}}
+```
+
+**Publish NL**
+
+`POST /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/locales/nl/publish    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-b0e7-707e-a0db-70c9c9226494
+
+{"data":{"id":"01m5pyvc8qszq81r9grjgngg75","locale":"nl","number":1,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:56+00:00"}}
+```
+
+**Public page**
+
+`GET /api/v1/public/pages/nl/hoe-het-werkt`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-b172-7323-977f-67570e733efe
+
+{"data":{"key":"hoe-het-werkt","type":"info","locale":"nl","slug":"hoe-het-werkt","content":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."},"legal":null,"revision":1,"published_at":"2026-10-24T12:40:56+00:00","alternates":{"nl":"hoe-het-werkt"}}}
+```
+
+**Save a new draft**
+
+`PUT /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/locales/nl {"revision":1,"content":{"title":"Zo werkt ShopBonus (concept)","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Sparen"}]},{"type":"paragraph","content":[{"type":"text","text":"Nieuwe tekst."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-b272-7168-b44d-507308b62fa8
+
+{"data":{"locale":"nl","slug":"hoe-het-werkt","draft_revision":2}}
+```
+
+**Stale revision → 409**
+
+`PUT /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/locales/nl {"revision":1,"content":{"title":"Andere wijziging","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"X"}]},{"type":"paragraph","content":[{"type":"text","text":"Y"},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16ded-b373-7381-a24b-447c5e87677f
+Content-Type: application/json
+
+{"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this page in the meantime. Reload to continue.","request_id":"01a16ded-b373-7381-a24b-447c5e87677f","details":{"current_revision":2}}}
+```
+
+**Preview (admin, no-store, noindex)**
+
+`GET /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/locales/nl/preview    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+X-Robots-Tag: noindex, nofollow
+Content-Type: application/json
+X-Request-Id: 01a16ded-b45f-73fb-a31c-1b60bf952e33
+
+{"data":{"locale":"nl","slug":"hoe-het-werkt","content":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen","type":"text"}]},{"type":"paragraph","content":[{"text":"Nieuwe tekst.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Zo werkt ShopBonus (concept)"},"preview":true}}
+```
+
+**Preview as a consumer → 403**
+
+`GET /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/locales/nl/preview`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16ded-b4c4-70c5-9517-635ccae06f1f
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+```
+
+**Publish again**
+
+`POST /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/locales/nl/publish    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-b5d9-708f-82fa-e6c6b37cb360
+
+{"data":{"id":"01m5pyvdg7e09r8m0sschhpydv","locale":"nl","number":2,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:57+00:00"}}
+```
+
+**Revisions**
+
+`GET /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/revisions    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-b7dd-717c-9b59-3d0fc8daf1aa
+
+{"data":[{"id":"01m5pyvdg7e09r8m0sschhpydv","locale":"nl","number":2,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:57+00:00"},{"id":"01m5pyvc8qszq81r9grjgngg75","locale":"nl","number":1,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:56+00:00"}]}
+```
+
+**Restore revision 1 as a new revision**
+
+`POST /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x/revisions/01m5pyvc8qszq81r9grjgngg75/restore    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-b9e8-7163-bb96-027de56f0231
+
+{"data":{"id":"01m5pyvegtrct4x8x31b7qvq9e","locale":"nl","number":3,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":1,"published_at":"2026-10-24T12:40:58+00:00"}}
+```
+
+**Page detail**
+
+`GET /api/v1/admin/cms/pages/01m5pyvbvf2apjnnekn18ghy0x    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-bb1b-73c7-b772-44131b2affdc
+
+{"data":{"id":"01m5pyvbvf2apjnnekn18ghy0x","key":"hoe-het-werkt","type":"info","audience":"public","archived":false,"locales":{"en":{"slug":"how-it-works","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"},"nl":{"slug":"hoe-het-werkt","published":true,"draft_revision":3,"draft_updated_at":"2026-10-24T12:40:58+00:00"}},"locales_detail":{"en":{"slug":"how-it-works","draft_revision":1,"draft":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Save and get discounts","type":"text"}]},{"type":"paragraph","content":[{"text":"Shop at participating webshops and receive credit.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"How ShopBonus works"},"published":null},"nl":{"slug":"hoe-het-werkt","draft_revision":3,"draft":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."},"published":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."}}}}}
+```
+
+**Create the Terms**
+
+`POST /api/v1/admin/cms/pages {"key":"voorwaarden","type":"terms","locales":{"nl":{"slug":"algemene-voorwaarden","content":{"title":"Algemene voorwaarden","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Artikel 1"}]},{"type":"paragraph","content":[{"type":"text","text":"Definities."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ded-bc36-72dd-b31f-e9fae4eec830
+
+{"data":{"id":"01m5pyvf2tq5wfm12tbmpp7ge2","key":"voorwaarden","type":"terms","audience":"public","archived":false,"locales":{"nl":{"slug":"algemene-voorwaarden","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:59+00:00"}}}}
+```
+
+**Legal publish without approval → 422**
+
+`POST /api/v1/admin/cms/pages/01m5pyvf2tq5wfm12tbmpp7ge2/locales/nl/publish {"legal_version":"2026.11"}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16ded-bd90-70ea-862c-334f8f611c32
+Content-Type: application/json
+
+{"error":{"status":422,"code":"legal_approval_required","message":"Legal pages need a version, an effective date and explicit approval to publish.","request_id":"01a16ded-bd90-70ea-862c-334f8f611c32"}}
+```
+
+**Legal publish (version, effective date, approval)**
+
+`POST /api/v1/admin/cms/pages/01m5pyvf2tq5wfm12tbmpp7ge2/locales/nl/publish {"legal_version":"2026.11","effective_date":"2026-11-01","approve":true}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-be97-71bf-9a27-46c780ef4fa8
+
+{"data":{"id":"01m5pyvfp6wz28e8aap1jq5fhy","locale":"nl","number":1,"legal_version":"2026.11","effective_date":"2026-11-01","approved_by":"Sanne","published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:59+00:00"}}
+```
+
+**Public Terms**
+
+`GET /api/v1/public/pages/nl/algemene-voorwaarden`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-bf2d-730f-b62c-3a3fa73000e3
+
+{"data":{"key":"voorwaarden","type":"terms","locale":"nl","slug":"algemene-voorwaarden","content":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Artikel 1","type":"text"}]},{"type":"paragraph","content":[{"text":"Definities.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Algemene voorwaarden"},"legal":{"version":"2026.11","effective_date":"2026-11-01"},"revision":1,"published_at":"2026-10-24T12:40:59+00:00","alternates":{"nl":"algemene-voorwaarden"}}}
+```
+
+**Public page index**
+
+`GET /api/v1/public/pages?locale=nl`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-bf95-7117-805e-163109de36cb
+
+{"data":[{"key":"hoe-het-werkt","type":"info","slug":"hoe-het-werkt","title":"Hoe ShopBonus werkt"},{"key":"voorwaarden","type":"terms","slug":"algemene-voorwaarden","title":"Algemene voorwaarden"}]}
+```
+
+**Translation status**
+
+`GET /api/v1/admin/cms/translations    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c08d-71a2-bd04-fa5d9ea89a91
+
+{"data":[{"page":"hoe-het-werkt","locale":"nl","status":"published"},{"page":"hoe-het-werkt","locale":"en","status":"unpublished"},{"page":"voorwaarden","locale":"nl","status":"published"},{"page":"voorwaarden","locale":"en","status":"missing"}]}
+```
+
+**Search pages**
+
+`GET /api/v1/admin/cms/pages?search=voorwaarden    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c20b-7209-8582-fa3628df4dce
+
+{"data":[{"id":"01m5pyvf2tq5wfm12tbmpp7ge2","key":"voorwaarden","type":"terms","audience":"public","archived":false,"locales":{"nl":{"slug":"algemene-voorwaarden","published":true,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:59+00:00"}}}]}
+```
+
+**Upload an image (multipart)**
+
+`POST /api/v1/admin/cms/assets (multipart: image=@hero.jpg;type=image/jpeg)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ded-c307-71d9-a461-77d5050df2de
+
+{"data":{"id":"01m5pyvgv6n5w84d2p0a8x63sc","width":800,"height":400,"url":"http:\/\/127.0.0.1:8798\/api\/v1\/public\/content-assets\/01m5pyvgv6n5w84d2p0a8x63sc"}}
+```
+
+**FAQ category**
+
+`POST /api/v1/admin/cms/faq/categories {"key":"vouchers","names":{"nl":"Vouchers","en":"Vouchers"}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ded-c465-722d-953a-4715091ba258
+
+{"data":{"id":"01m5pyvh4nckwv3dg5qj5rb3j4","key":"vouchers","names":{"nl":"Vouchers","en":"Vouchers"},"position":1}}
+```
+
+**Public FAQ item**
+
+`POST /api/v1/admin/cms/faq/items {"category_id":"01m5pyvh4nckwv3dg5qj5rb3j4","audience":"public","published":true,"translations":{"nl":{"question":"Hoe claim ik een voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claimen"}]},{"type":"paragraph","content":[{"type":"text","text":"Open de link en log in."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}},"en":{"question":"How do I claim a voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claiming"}]},{"type":"paragraph","content":[{"type":"text","text":"Open the link and sign in."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ded-c599-701c-805f-77e236acd619
+
+{"data":{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":1,"revision":1,"translations":{"nl":{"question":"Hoe claim ik een voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claimen"}]},{"type":"paragraph","content":[{"type":"text","text":"Open de link en log in."},{"type":"text","text":"Lees meer","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]}},"en":{"question":"How do I claim a voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claiming"}]},{"type":"paragraph","content":[{"type":"text","text":"Open the link and sign in."},{"type":"text","text":"Lees meer","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]}}}}}
+```
+
+**Consumers-only FAQ item**
+
+`POST /api/v1/admin/cms/faq/items {"category_id":"01m5pyvh4nckwv3dg5qj5rb3j4","audience":"consumers","published":true,"translations":{"nl":{"question":"Waar vind ik mijn code?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Code"}]},{"type":"paragraph","content":[{"type":"text","text":"In Mijn vouchers."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16ded-c6e2-728a-b983-c4508da12294
+
+{"data":{"id":"01m5pyvhqshtvd68zgcw6cz71k","audience":"consumers","published":true,"position":2,"revision":1,"translations":{"nl":{"question":"Waar vind ik mijn code?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Code"}]},{"type":"paragraph","content":[{"type":"text","text":"In Mijn vouchers."},{"type":"text","text":"Lees meer","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]}}}}}
+```
+
+**Update with the current revision**
+
+`PUT /api/v1/admin/cms/faq/items/01m5pyvhdybz2f4xm68g2whxen {"revision":1,"translations":{"nl":{"question":"Hoe claim ik mijn voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claimen"}]},{"type":"paragraph","content":[{"type":"text","text":"Open de link en log in met je e-mailadres."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]}]}}}}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c7a2-71e9-926f-b50c41900e3d
+
+{"data":{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":1,"revision":2,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Hoe claim ik mijn voucher?"}}}}
+```
+
+**Stale → 409**
+
+`PUT /api/v1/admin/cms/faq/items/01m5pyvhdybz2f4xm68g2whxen {"revision":1,"published":false}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16ded-c843-73f6-bd1d-e97ecc783c0c
+Content-Type: application/json
+
+{"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else changed this item. Reload to continue.","request_id":"01a16ded-c843-73f6-bd1d-e97ecc783c0c"}}
+```
+
+**Reorder**
+
+`POST /api/v1/admin/cms/faq/reorder {"category_id":"01m5pyvh4nckwv3dg5qj5rb3j4","items":["01m5pyvhqshtvd68zgcw6cz71k","01m5pyvhdybz2f4xm68g2whxen"]}   (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c8d1-711d-b3eb-15cc10d77cee
+
+{"data":[{"id":"01m5pyvh4nckwv3dg5qj5rb3j4","key":"vouchers","names":{"en":"Vouchers","nl":"Vouchers"},"position":1,"items":[{"id":"01m5pyvhqshtvd68zgcw6cz71k","audience":"consumers","published":true,"position":1,"revision":1,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Code","type":"text"}]},{"type":"paragraph","content":[{"text":"In Mijn vouchers.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Waar vind ik mijn code?"}}},{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":2,"revision":2,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Hoe claim ik mijn voucher?"}}}]}]}
+```
+
+**Public FAQ, anonymous (no consumers-only items)**
+
+`GET /api/v1/public/faq?locale=nl`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c917-70c2-8c53-3abaefb63cc3
+
+{"data":[{"key":"vouchers","name":"Vouchers","items":[{"id":"01m5pyvhdybz2f4xm68g2whxen","question":"Hoe claim ik mijn voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"audience":"public","fallback":false}]}]}
+```
+
+**Public FAQ as Anna, searching "code"**
+
+`GET /api/v1/public/faq?locale=nl&search=code`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c94b-7368-a265-a395b34a0cd7
+
+{"data":[{"key":"vouchers","name":"Vouchers","items":[{"id":"01m5pyvhqshtvd68zgcw6cz71k","question":"Waar vind ik mijn code?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Code","type":"text"}]},{"type":"paragraph","content":[{"text":"In Mijn vouchers.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"audience":"consumers","fallback":false}]}]}
+```
+
+**Admin FAQ**
+
+`GET /api/v1/admin/cms/faq    (session cookie + X-XSRF-TOKEN)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16ded-c9de-72d2-bceb-2b67a36403ca
+
+{"data":[{"id":"01m5pyvh4nckwv3dg5qj5rb3j4","key":"vouchers","names":{"en":"Vouchers","nl":"Vouchers"},"position":1,"items":[{"id":"01m5pyvhqshtvd68zgcw6cz71k","audience":"consumers","published":true,"position":1,"revision":1,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Code","type":"text"}]},{"type":"paragraph","content":[{"text":"In Mijn vouchers.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Waar vind ik mijn code?"}}},{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":2,"revision":2,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Hoe claim ik mijn voucher?"}}}]}]}
+```
+
+After the Terms were published as 2026.11, registration requires `terms_version: 2026.11` (`LegalConsents`). The Privacy version still comes from the env config until a Privacy page is published.
+
+---
+
 ## Shared error responses not yet produced by a real endpoint
 
 Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the Auth section above. The generic 403 `forbidden` and the 500 below were rendered through the real application kernel on 2026-10-23 using temporary routes, because no endpoint produces them on purpose yet.

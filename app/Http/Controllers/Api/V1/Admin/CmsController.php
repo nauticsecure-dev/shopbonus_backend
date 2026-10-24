@@ -214,11 +214,14 @@ class CmsController extends Controller
     {
         $data = $request->validate(['category_id' => ['required', 'string', 'max:40'], 'items' => ['required', 'array', 'min:1'], 'items.*' => ['string', 'max:40']]);
         $category = FaqCategory::where('public_id', $data['category_id'])->first() ?? throw new ApiException('Category not found.', 404, 'not_found');
-        DB::transaction(function () use ($data, $category) {
-            foreach (array_values($data['items']) as $i => $id) {
-                if (FaqItem::where('public_id', $id)->where('category_id', $category->id)->update(['position' => $i + 1, 'updated_at' => now()]) !== 1) {
-                    throw new ApiException('Every item must belong to this category.', 422, 'validation_failed');
-                }
+        $ids = array_values(array_unique($data['items']));
+        // Membership is checked up front: MySQL reports 0 affected rows for an unchanged position.
+        if (FaqItem::whereIn('public_id', $ids)->where('category_id', $category->id)->count() !== count($ids)) {
+            throw new ApiException('Every item must belong to this category.', 422, 'validation_failed');
+        }
+        DB::transaction(function () use ($ids, $category) {
+            foreach ($ids as $i => $id) {
+                FaqItem::where('public_id', $id)->where('category_id', $category->id)->update(['position' => $i + 1, 'updated_at' => now()]);
             }
         });
         CmsCache::flush();

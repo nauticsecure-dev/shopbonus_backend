@@ -87,6 +87,12 @@ tags:
   - name: Banner embed
     description: |
       Public endpoints the embed script and live editor call; identified by the public key, restricted by the Origin allowlist.
+  - name: CMS
+    description: |
+      Super Admin content studio (Trello #5): pages, legal versions, FAQ, images. Rich text is a strict JSON document, never HTML.
+  - name: Content
+    description: |
+      Published CMS content for visitors (Trello #5).
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -7200,6 +7206,715 @@ paths:
             application/json:
               example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this banner in the meantime. Reload to continue.","request_id":"01a16de2-ef19-7067-ad86-a4e4839a8a75","details":{"current_revision":2}}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/admin/cms/pages:
+    get:
+      tags: [CMS]
+      operationId: cmsPages
+      summary: "Content studio: pages"
+      description: |
+        Pages with per-locale slug, publication state and draft revision.
+      x-access: admin
+      parameters:
+        - { name: type, in: query, required: false, schema: { type: string, enum: [privacy, terms, cookie_policy, help, faq, info, landing] } }
+        - { name: search, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/pages?search=voorwaarden' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Pages."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pyvf2tq5wfm12tbmpp7ge2","key":"voorwaarden","type":"terms","audience":"public","archived":false,"locales":{"nl":{"slug":"algemene-voorwaarden","published":true,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:59+00:00"}}}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+    post:
+      tags: [CMS]
+      operationId: createCmsPage
+      summary: "Create a page (drafts per locale)"
+      description: |
+        Step-up required. Stable `key`, page `type`, `audience`, and an NL and/or EN draft with a localized slug (unique per locale). Content is validated against the strict rich-text schema (422 on unknown nodes, unsafe links, missing CMS images). Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, type, locales]
+              properties:
+                key: { type: string, pattern: '^[a-z0-9_-]+$' }
+                type: { type: string, enum: [privacy, terms, cookie_policy, help, faq, info, landing] }
+                audience: { type: string, enum: [public, consumers, merchants] }
+                locales:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    nl: { type: object, properties: { slug: { type: string }, content: { type: object, required: [title, body], properties: {  title: { type: string, maxLength: 120 } , seo_title: { type: string, maxLength: 70 } , seo_description: { type: string, maxLength: 160 } , body: { type: object, description: 'Rich-text document: {type: doc, content: [...]} with nodes paragraph, heading (level 2-4), bulletList, orderedList, listItem, text (marks bold, italic, link{href https or /relative}), image {asset_id, alt}, button {label, href}. Anything else is 422; there is no HTML.' } } } } }
+                    en: { type: object }
+            example: {"key": "hoe-het-werkt", "type": "info", "locales": {"nl": {"slug": "hoe-het-werkt", "content": {"title": "Hoe ShopBonus werkt", "seo_title": "Hoe ShopBonus werkt", "seo_description": "Spaar en krijg korting bij webshops.", "body": {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Sparen en korting"}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Koop bij deelnemende webshops en ontvang tegoed."}, {"type": "text", "text": " Lees meer", "marks": [{"type": "link", "attrs": {"href": "/hulp"}}]}]}]}}}, "en": {"slug": "how-it-works", "content": {"title": "How ShopBonus works", "body": {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Save and get discounts"}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Shop at participating webshops and receive credit."}, {"type": "text", "text": " Lees meer", "marks": [{"type": "link", "attrs": {"href": "/hulp"}}]}]}]}}}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/pages' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"key":"hoe-het-werkt","type":"info","locales":{"nl":{"slug":"hoe-het-werkt","content":{...}}}}'
+      responses:
+        '201':
+          description: "Created."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvbvf2apjnnekn18ghy0x","key":"hoe-het-werkt","type":"info","audience":"public","archived":false,"locales":{"en":{"slug":"how-it-works","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"},"nl":{"slug":"hoe-het-werkt","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '422':
+          description: "Unsafe or invalid content (captured: javascript: link)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16ded-adc5-732d-86de-835fd3e21bdf","fields":{"content.body.content.0.content.0.marks.0":["Only bold, italic and https or relative links are allowed."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/pages/{page}:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [CMS]
+      operationId: cmsPage
+      summary: "Page with drafts and published content"
+      description: |
+        Drafts and published content per locale.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/pages/<id>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Page."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvbvf2apjnnekn18ghy0x","key":"hoe-het-werkt","type":"info","audience":"public","archived":false,"locales":{"en":{"slug":"how-it-works","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"},"nl":{"slug":"hoe-het-werkt","published":true,"draft_revision":3,"draft_updated_at":"2026-10-24T12:40:58+00:00"}},"locales_detail":{"en":{"slug":"how-it-works","draft_revision":1,"draft":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Save and get discounts","type":"text"}]},{"type":"paragraph","content":[{"text":"Shop at participating webshops and receive credit.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"How ShopBonus works"},"published":null},"nl":{"slug":"hoe-het-werkt","draft_revision":3,"draft":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."},"published":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."}}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/cms/pages/{page}/locales/{locale}:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+      - { name: locale, in: path, required: true, schema: { type: string, enum: [nl, en] } }
+    put:
+      tags: [CMS]
+      operationId: saveCmsDraft
+      summary: "Save a locale draft"
+      description: |
+        Step-up required. Drafts never change public content. Optimistic locking with `revision` (409 `draft_revision_conflict` with the current revision: never silently overwritten). A new locale needs `slug`.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, content]
+              properties:
+                revision: { type: integer }
+                slug: { type: string }
+                content:
+                  type: object
+                  required: [title, body]
+                  properties:
+                    title: { type: string, maxLength: 120 }
+                    seo_title: { type: string, maxLength: 70 }
+                    seo_description: { type: string, maxLength: 160 }
+                    body: { type: object, description: 'Rich-text document: {type: doc, content: [...]} with nodes paragraph, heading (level 2-4), bulletList, orderedList, listItem, text (marks bold, italic, link{href https or /relative}), image {asset_id, alt}, button {label, href}. Anything else is 422; there is no HTML.' }
+            example: {"revision": 1, "content": {"title": "Zo werkt ShopBonus (concept)", "body": {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Sparen"}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Nieuwe tekst."}, {"type": "text", "text": " Lees meer", "marks": [{"type": "link", "attrs": {"href": "/hulp"}}]}]}]}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/admin/cms/pages/<id>/locales/nl' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"revision":1,"content":{...}}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"locale":"nl","slug":"hoe-het-werkt","draft_revision":2}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Stale revision."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this page in the meantime. Reload to continue.","request_id":"01a16ded-b373-7381-a24b-447c5e87677f","details":{"current_revision":2}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/pages/{page}/locales/{locale}/preview:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+      - { name: locale, in: path, required: true, schema: { type: string, enum: [nl, en] } }
+    get:
+      tags: [CMS]
+      operationId: previewCmsDraft
+      summary: "Preview a draft (admins only)"
+      description: |
+        Never cached (`Cache-Control: private, no-store`) or indexed (`X-Robots-Tag: noindex, nofollow`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/pages/<id>/locales/nl/preview' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Draft."
+          content:
+            application/json:
+              example: {"data":{"locale":"nl","slug":"hoe-het-werkt","content":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen","type":"text"}]},{"type":"paragraph","content":[{"text":"Nieuwe tekst.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Zo werkt ShopBonus (concept)"},"preview":true}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/cms/pages/{page}/locales/{locale}/publish:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+      - { name: locale, in: path, required: true, schema: { type: string, enum: [nl, en] } }
+    post:
+      tags: [CMS]
+      operationId: publishCmsPage
+      summary: "Publish a locale"
+      description: |
+        Step-up required. Creates an immutable revision and switches the public page atomically (public caches are invalidated). Legal pages (privacy, terms, cookie_policy) need `legal_version`, `effective_date` and `approve: true` (422 `legal_approval_required`); a version can be published once (409). The published Terms/Privacy versions become the versions registration requires; earlier acceptances stay as they were. Audited.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                legal_version: { type: string, pattern: '^[A-Za-z0-9._-]+$' }
+                effective_date: { type: string, format: date }
+                approve: { type: boolean }
+            example: {"legal_version": "2026.11", "effective_date": "2026-11-01", "approve": true}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/pages/<id>/locales/nl/publish' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"legal_version":"2026.11","effective_date":"2026-11-01","approve":true}'
+      responses:
+        '200':
+          description: "Published (captured: Terms 2026.11)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvfp6wz28e8aap1jq5fhy","locale":"nl","number":1,"legal_version":"2026.11","effective_date":"2026-11-01","approved_by":"Sanne","published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:59+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Nothing to publish, archived, or legal version already used."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this page in the meantime. Reload to continue.","request_id":"01a16ded-b373-7381-a24b-447c5e87677f","details":{"current_revision":2}}}
+        '422':
+          description: "Legal approval missing."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"legal_approval_required","message":"Legal pages need a version, an effective date and explicit approval to publish.","request_id":"01a16ded-bd90-70ea-862c-334f8f611c32"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/pages/{page}/revisions:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [CMS]
+      operationId: cmsRevisions
+      summary: "Revision history"
+      description: |
+        Every publication with editor, time, legal version/effective date/approver and restore origin.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/pages/<id>/revisions' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Revisions."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pyvdg7e09r8m0sschhpydv","locale":"nl","number":2,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:57+00:00"},{"id":"01m5pyvc8qszq81r9grjgngg75","locale":"nl","number":1,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":null,"published_at":"2026-10-24T12:40:56+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+      - { name: revision, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: restoreCmsRevision
+      summary: "Restore an earlier revision"
+      description: |
+        Step-up required. Re-publishes the old content as a new revision (history preserved). Not for legal pages (publish a new version instead).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/pages/<id>/revisions/<revision>/restore' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Restored as a new revision."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvegtrct4x8x31b7qvq9e","locale":"nl","number":3,"legal_version":null,"effective_date":null,"approved_by":null,"published_by":"Sanne","restored_from":1,"published_at":"2026-10-24T12:40:58+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Legal page."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this page in the meantime. Reload to continue.","request_id":"01a16ded-b373-7381-a24b-447c5e87677f","details":{"current_revision":2}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/pages/{page}/archive:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: archiveCmsPage
+      summary: "Archive a page"
+      description: |
+        Step-up required. Removes it from public content; Terms and Privacy cannot be archived (409).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/pages/<id>/archive' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Archived."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvbvf2apjnnekn18ghy0x","key":"hoe-het-werkt","type":"info","audience":"public","archived":false,"locales":{"en":{"slug":"how-it-works","published":false,"draft_revision":1,"draft_updated_at":"2026-10-24T12:40:55+00:00"},"nl":{"slug":"hoe-het-werkt","published":true,"draft_revision":3,"draft_updated_at":"2026-10-24T12:40:58+00:00"}},"locales_detail":{"en":{"slug":"how-it-works","draft_revision":1,"draft":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Save and get discounts","type":"text"}]},{"type":"paragraph","content":[{"text":"Shop at participating webshops and receive credit.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"How ShopBonus works"},"published":null},"nl":{"slug":"hoe-het-werkt","draft_revision":3,"draft":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."},"published":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Sparen en korting","type":"text"}]},{"type":"paragraph","content":[{"text":"Koop bij deelnemende webshops en ontvang tegoed.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Hoe ShopBonus werkt","seo_title":"Hoe ShopBonus werkt","seo_description":"Spaar en krijg korting bij webshops."}}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Legal page."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this page in the meantime. Reload to continue.","request_id":"01a16ded-b373-7381-a24b-447c5e87677f","details":{"current_revision":2}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/translations:
+    get:
+      tags: [CMS]
+      operationId: cmsTranslations
+      summary: "Missing and stale translations"
+      description: |
+        Per page and locale: `missing`, `unpublished`, `draft_differs` (draft newer than the published text) or `published`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/translations' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Status."
+          content:
+            application/json:
+              example: {"data":[{"page":"hoe-het-werkt","locale":"nl","status":"published"},{"page":"hoe-het-werkt","locale":"en","status":"unpublished"},{"page":"voorwaarden","locale":"nl","status":"published"},{"page":"voorwaarden","locale":"en","status":"missing"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+
+  /api/v1/admin/cms/assets:
+    post:
+      tags: [CMS]
+      operationId: uploadCmsAsset
+      summary: "Upload a CMS image"
+      description: |
+        Step-up required. PNG, JPEG or WebP ≤ 4 MB, content-checked (fake MIME and SVG refused). Referenced from content by `asset_id`.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets' -b cookies.txt -H 'X-XSRF-TOKEN: <token>' -F 'image=@hero.jpg;type=image/jpeg'
+      responses:
+        '201':
+          description: "Stored."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvgv6n5w84d2p0a8x63sc","width":800,"height":400,"url":"http:\/\/127.0.0.1:8798\/api\/v1\/public\/content-assets\/01m5pyvgv6n5w84d2p0a8x63sc"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/faq:
+    get:
+      tags: [CMS]
+      operationId: cmsFaq
+      summary: "FAQ categories and items (all states)"
+      description: |
+        Everything, including unpublished items and their audience.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/faq' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "FAQ."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pyvh4nckwv3dg5qj5rb3j4","key":"vouchers","names":{"en":"Vouchers","nl":"Vouchers"},"position":1,"items":[{"id":"01m5pyvhqshtvd68zgcw6cz71k","audience":"consumers","published":true,"position":1,"revision":1,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Code","type":"text"}]},{"type":"paragraph","content":[{"text":"In Mijn vouchers.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Waar vind ik mijn code?"}}},{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":2,"revision":2,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Hoe claim ik mijn voucher?"}}}]}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+
+  /api/v1/admin/cms/faq/categories:
+    post:
+      tags: [CMS]
+      operationId: createFaqCategory
+      summary: "Create a FAQ category"
+      description: |
+        Step-up required.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, names]
+              properties:
+                key: { type: string }
+                names: { type: object, properties: { nl: { type: string }, en: { type: string } } }
+            example: {"key": "vouchers", "names": {"nl": "Vouchers", "en": "Vouchers"}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/faq/categories' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"key":"vouchers","names":{"nl":"Vouchers","en":"Vouchers"}}'
+      responses:
+        '201':
+          description: "Created."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvh4nckwv3dg5qj5rb3j4","key":"vouchers","names":{"nl":"Vouchers","en":"Vouchers"},"position":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/faq/items:
+    post:
+      tags: [CMS]
+      operationId: createFaqItem
+      summary: "Create a FAQ item"
+      description: |
+        Step-up required. NL and/or EN question + rich-text answer; `audience` public/consumers/merchants (enforced by the public API); `published`.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category_id, translations]
+              properties:
+                category_id: { type: string }
+                audience: { type: string, enum: [public, consumers, merchants] }
+                published: { type: boolean }
+                translations: { type: object, description: '{nl|en: {question, answer (rich-text document)}}' }
+            example: {"category_id": "01m5pyvh4nckwv3dg5qj5rb3j4", "audience": "public", "published": true, "translations": {"nl": {"question": "Hoe claim ik een voucher?", "answer": {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Claimen"}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Open de link en log in."}, {"type": "text", "text": " Lees meer", "marks": [{"type": "link", "attrs": {"href": "/hulp"}}]}]}]}}, "en": {"question": "How do I claim a voucher?", "answer": {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Claiming"}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Open the link and sign in."}, {"type": "text", "text": " Lees meer", "marks": [{"type": "link", "attrs": {"href": "/hulp"}}]}]}]}}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/faq/items' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"category_id":"<id>","translations":{...}}'
+      responses:
+        '201':
+          description: "Created."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":1,"revision":1,"translations":{"nl":{"question":"Hoe claim ik een voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claimen"}]},{"type":"paragraph","content":[{"type":"text","text":"Open de link en log in."},{"type":"text","text":"Lees meer","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]}},"en":{"question":"How do I claim a voucher?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Claiming"}]},{"type":"paragraph","content":[{"type":"text","text":"Open the link and sign in."},{"type":"text","text":"Lees meer","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]}}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/faq/items/{item}:
+    parameters:
+      - { name: item, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [CMS]
+      operationId: updateFaqItem
+      summary: "Update a FAQ item"
+      description: |
+        Step-up required. Optimistic `revision` (409 when stale).
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision]
+              properties:
+                revision: { type: integer }
+                audience: { type: string }
+                published: { type: boolean }
+                translations: { type: object }
+            example: {"revision": 1, "translations": {"nl": {"question": "Hoe claim ik mijn voucher?", "answer": {"type": "doc", "content": [{"type": "heading", "attrs": {"level": 2}, "content": [{"type": "text", "text": "Claimen"}]}, {"type": "paragraph", "content": [{"type": "text", "text": "Open de link en log in met je e-mailadres."}, {"type": "text", "text": " Lees meer", "marks": [{"type": "link", "attrs": {"href": "/hulp"}}]}]}]}}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/admin/cms/faq/items/<id>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"revision":1,"translations":{...}}'
+      responses:
+        '200':
+          description: "Updated."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":1,"revision":2,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Hoe claim ik mijn voucher?"}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Stale revision."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else changed this item. Reload to continue.","request_id":"01a16ded-c843-73f6-bd1d-e97ecc783c0c"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/faq/reorder:
+    post:
+      tags: [CMS]
+      operationId: reorderFaq
+      summary: "Reorder FAQ items"
+      description: |
+        Step-up required. All IDs must belong to the category.
+      x-access: admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category_id, items]
+              properties:
+                category_id: { type: string }
+                items: { type: array, items: { type: string } }
+            example: {"category_id": "01m5pyvh4nckwv3dg5qj5rb3j4", "items": ["01m5pyvhqshtvd68zgcw6cz71k", "01m5pyvhdybz2f4xm68g2whxen"]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/faq/reorder' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"category_id":"<id>","items":["<id>","<id>"]}'
+      responses:
+        '200':
+          description: "New order."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5pyvh4nckwv3dg5qj5rb3j4","key":"vouchers","names":{"en":"Vouchers","nl":"Vouchers"},"position":1,"items":[{"id":"01m5pyvhqshtvd68zgcw6cz71k","audience":"consumers","published":true,"position":1,"revision":1,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Code","type":"text"}]},{"type":"paragraph","content":[{"text":"In Mijn vouchers.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Waar vind ik mijn code?"}}},{"id":"01m5pyvhdybz2f4xm68g2whxen","audience":"public","published":true,"position":2,"revision":2,"translations":{"nl":{"answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Claimen","type":"text"}]},{"type":"paragraph","content":[{"text":"Open de link en log in met je e-mailadres.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"question":"Hoe claim ik mijn voucher?"}}}]}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/public/pages:
+    get:
+      tags: [Content]
+      operationId: publicPages
+      summary: "Published pages (for navigation/footer)"
+      description: |
+        Published, public, non-archived pages in a locale.
+      x-access: public
+      security: []
+      parameters:
+        - { name: locale, in: query, required: false, schema: { type: string, enum: [nl, en], default: nl } }
+        - { name: type, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/public/pages?locale=nl' \
+              -H 'Accept: application/json'
+      responses:
+        '200':
+          description: "Pages."
+          content:
+            application/json:
+              example: {"data":[{"key":"hoe-het-werkt","type":"info","slug":"hoe-het-werkt","title":"Hoe ShopBonus werkt"},{"key":"voorwaarden","type":"terms","slug":"algemene-voorwaarden","title":"Algemene voorwaarden"}]}
+
+  /api/v1/public/pages/{locale}/{slug}:
+    parameters:
+      - { name: locale, in: path, required: true, schema: { type: string, enum: [nl, en] } }
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Content]
+      operationId: publicPage
+      summary: "A published page"
+      description: |
+        The published revision only (drafts never), with SEO fields, legal version/effective date for legal pages, and the other locales' slugs (`alternates`). Images carry a `src`. Cached; invalidated on every publication.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/public/pages/nl/algemene-voorwaarden' \
+              -H 'Accept: application/json'
+      responses:
+        '200':
+          description: "Page (captured: Terms 2026.11)."
+          content:
+            application/json:
+              example: {"data":{"key":"voorwaarden","type":"terms","locale":"nl","slug":"algemene-voorwaarden","content":{"body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Artikel 1","type":"text"}]},{"type":"paragraph","content":[{"text":"Definities.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"title":"Algemene voorwaarden"},"legal":{"version":"2026.11","effective_date":"2026-11-01"},"revision":1,"published_at":"2026-10-24T12:40:59+00:00","alternates":{"nl":"algemene-voorwaarden"}}}
+        '404':
+          description: "Not published, archived or not public."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Page not found.","request_id":"01a16ded-aff8-739a-bee1-77e19f04ec28"}}
+
+  /api/v1/public/faq:
+    get:
+      tags: [Content]
+      operationId: publicFaq
+      summary: "FAQ"
+      description: |
+        Published items by category in order. Audience is enforced here: anonymous visitors get `public` items; verified users also `consumers`; workspace members also `merchants` (responses then `private, no-store`). Search covers questions and answers. Missing translations fall back to NL (`fallback: true`).
+      x-access: public
+      security: []
+      parameters:
+        - { name: locale, in: query, required: false, schema: { type: string, enum: [nl, en], default: nl } }
+        - { name: search, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/public/faq?locale=nl&search=code' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "FAQ (captured: signed-in consumer searching)."
+          content:
+            application/json:
+              example: {"data":[{"key":"vouchers","name":"Vouchers","items":[{"id":"01m5pyvhqshtvd68zgcw6cz71k","question":"Waar vind ik mijn code?","answer":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"text":"Code","type":"text"}]},{"type":"paragraph","content":[{"text":"In Mijn vouchers.","type":"text"},{"text":"Lees meer","type":"text","marks":[{"type":"link","attrs":{"href":"\/hulp"}}]}]}]},"audience":"consumers","fallback":false}]}]}
+
+  /api/v1/public/content-assets/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Content]
+      operationId: publicContentAsset
+      summary: "CMS image"
+      description: |
+        By opaque ID; immutable cache, `nosniff`, `default-src 'none'`.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -o hero.jpg 'http://localhost:8000/api/v1/public/content-assets/<id>'
+      responses:
+        '200':
+          description: "The image."
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        '404':
+          description: "Unknown image."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Image not found.","request_id":"<id>"}}
 
 components:
   parameters:

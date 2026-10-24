@@ -423,15 +423,17 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 
 ### B15a Pages, legal documents, FAQ
 
-- [ ] `cms_pages` (type privacy/terms/cookie_policy/help/faq/info/landing, stable key, audience, archived) + `cms_page_locales` (NL/EN slug unique per locale, private draft with optimistic revision, published revision) + immutable `cms_revisions` (content, SEO, legal version, effective date, approver)
-- [ ] Rich-text schema: doc → paragraph, heading 2–4, bullet/ordered list, list item, text with bold/italic/link (https or relative only), image (own CMS asset + alt), button; unknown nodes, marks, attributes and unsafe URLs → 422
-- [ ] Admin: list/search with translation status (missing, draft newer than published), create, save draft (409 on stale revision), preview (admin only, `no-store`, `noindex`), publish (step-up; legal pages need version, effective date and explicit approval), revisions, restore as a new revision, archive; audited
-- [ ] Public: `GET /public/pages/{locale}/{slug}` (published only, NL fallback flagged), `GET /public/pages?type=&locale=`; cached with version-bump invalidation
-- [ ] Legal: the published Terms/Privacy versions become the versions registration requires (`LegalConsents`), env config as fallback; existing acceptances unchanged
-- [ ] FAQ: categories (NL/EN names, order) and items (NL/EN question + rich-text answer, order, audience public/consumers/merchants, published flag); admin CRUD + reorder; public `GET /public/faq?locale=&search=` where audience restrictions are enforced server-side
-- [ ] CMS image assets (admin upload, PNG/JPEG/WebP, content-checked)
-- [ ] Tests: card #5 E2E 2, 3, 4, 5, 6, 7, 8
-- [ ] Docs with real captures
+- [x] `cms_pages` (type privacy/terms/cookie_policy/help/faq/info/landing, stable key, audience, archived) + `cms_page_locales` (NL/EN slug unique per locale, private draft with optimistic revision, published revision) + immutable `cms_revisions` (content, SEO, legal version, effective date, approver) (`B15A_SHA`)
+- [x] Rich-text schema: doc → paragraph, heading 2–4, bullet/ordered list, list item, text with bold/italic/link (https or relative only), image (own CMS asset + alt), button; unknown nodes, marks, attributes and unsafe URLs → 422 (`B15A_SHA`)
+- [x] Admin: list/search with translation status (missing, draft newer than published), create, save draft (409 on stale revision), preview (admin only, `no-store`, `noindex`), publish (step-up; legal pages need version, effective date and explicit approval), revisions, restore as a new revision, archive; audited (`B15A_SHA`)
+- [x] Public: `GET /public/pages/{locale}/{slug}` (published only, NL fallback flagged), `GET /public/pages?type=&locale=`; cached with version-bump invalidation (`B15A_SHA`)
+- [x] Legal: the published Terms/Privacy versions become the versions registration requires (`LegalConsents`), env config as fallback; existing acceptances unchanged (`B15A_SHA`)
+- [x] FAQ: categories (NL/EN names, order) and items (NL/EN question + rich-text answer, order, audience public/consumers/merchants, published flag); admin CRUD + reorder; public `GET /public/faq?locale=&search=` where audience restrictions are enforced server-side (`B15A_SHA`)
+- [x] CMS image assets (admin upload, PNG/JPEG/WebP, content-checked) (`B15A_SHA`)
+- [x] Tests: card #5 E2E 2, 3, 4, 5, 6, 7, 8 (`B15A_SHA`)
+- [x] Docs with real captures (`B15A_SHA`)
+- [x] Found by the MySQL run and fixed: FAQ reorder treated MySQL's 0 affected rows (unchanged position) as a foreign item (`B15A_SHA`)
+- [ ] **BLOCKED** Assisted translation drafts (needs the AI provider, B17) and staging p95 < 200 ms (no staging)
 
 ### B15b Cookie consent and NL/EN API
 
