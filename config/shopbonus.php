@@ -132,6 +132,16 @@ return [
         'reservation_ttl_minutes' => 30,
     ],
 
+    // Merchant funding of sponsored rewards (Trello #24 §4).
+    'funding' => [
+        // New sponsored vouchers need funding for reward + fee (card #24 "stop new rewards when unfunded").
+        'required' => (bool) env('FUNDING_REQUIRED', true),
+        // Percentage rewards: fee basis until OPEN-PERCENT-REWARD-FEE-BASIS is decided.
+        'percentage_basis' => env('FUNDING_PERCENTAGE_BASIS', 'maximum_discount'),
+        'min_top_up_minor' => 1000,
+        'max_top_up_minor' => 1_000_000,
+    ],
+
     // Voucher checkout (Trello #20). Mollie test mode only unless explicitly allowed (OPEN-FINANCIAL-LEGAL).
     'payments' => [
         'checkout_ttl_minutes' => 30,

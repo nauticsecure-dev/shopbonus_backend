@@ -270,7 +270,8 @@ class AffiliateTest extends TestCase
         $tx = AffiliateTransaction::sole();
         $this->assertSame(['rejected', 'credited', 'network_rejected_after_credit'], [$tx->status, $tx->reward_status, $tx->review_reason]);
         $this->assertSame(475, $this->wallet()->fresh()->available);
-        $this->assertEqualsWithDelta(now()->addMonths(12)->getTimestamp(), DB::table('wallet_credit_lots')->value('expires_at') ? strtotime(DB::table('wallet_credit_lots')->value('expires_at')) : 0, 86400);
+        $lotExpiry = DB::table('wallet_credit_lots')->where('wallet_id', $this->wallet()->id)->value('expires_at');
+        $this->assertEqualsWithDelta(now()->addMonths(12)->getTimestamp(), strtotime((string) $lotExpiry), 86400); // 12-month validity
     }
 
     public function test_rewards_above_the_review_threshold_wait_for_an_admin(): void

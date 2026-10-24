@@ -26,3 +26,6 @@ Schedule::command('shopbonus:wallet-reconcile')->dailyAt('04:00')->withoutOverla
 
 // Voucher checkouts: late Mollie payments and abandoned reservations.
 Schedule::command('shopbonus:expire-checkouts')->everyFiveMinutes()->withoutOverlapping();
+
+// Merchant funding statements (drafts; Moneybird not connected).
+Schedule::command('shopbonus:prepare-invoices')->monthlyOn(1, '05:00')->withoutOverlapping();

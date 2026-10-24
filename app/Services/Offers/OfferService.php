@@ -10,6 +10,7 @@ use App\Models\Offer;
 use App\Models\OfferVersion;
 use App\Models\WebshopMembership;
 use App\Services\Audit\AuditLogger;
+use App\Services\Funding\MerchantFunding;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -152,6 +153,12 @@ class OfferService
 
         if ($v->ends_at !== null && $v->ends_at->isPast()) {
             throw new ApiException('The offer end date is in the past.', 422, 'offer_expired');
+        }
+
+        // Card #24 / #9: a sponsored reward cannot go live unfunded.
+        if ($offer->acquisition === OfferAcquisition::MerchantReward && ! app(MerchantFunding::class)->canFund($offer->webshop_id, $v)) {
+            throw ApiException::conflict('Top up the reward funding before activating this offer.', 'funding_insufficient',
+                ['required_minor' => app(MerchantFunding::class)->costOf($v)['total_minor']]);
         }
     }
 }

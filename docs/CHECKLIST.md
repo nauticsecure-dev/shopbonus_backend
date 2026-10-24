@@ -364,7 +364,21 @@ Prices of `wallet_purchase` offers are euro cents (`price_minor`) paid from the 
 - [ ] **BLOCKED** Provider redemption confirmation beyond order coupon matching (needs platform coupon APIs; see B06b)
 - [ ] **MOVED** Dispute evidence uploads and email notifications to merchants/consumers (B15 templates)
 
-- [ ] B12 Merchant wallet/funding
+## B12 Merchant funding, 30% fee, invoices (Trello #24 §4, #7 E2E 8, #9)
+
+Fee = 30% **on top of** the consumer reward (card #24: €10 + €3 = €13; €4 + €1.20 = €5.20), via `FeeCalculator`. Percentage rewards use the maximum discount as the basis (`FUNDING_PERCENTAGE_BASIS=maximum_discount`, provisional; OPEN-PERCENT-REWARD-FEE-BASIS stays open). Mollie test mode only; Moneybird is not connected (no credentials; OPEN-FINANCIAL-LEGAL): invoices are prepared as drafts only.
+
+- [ ] Merchant funding wallet per webshop (`WalletKind::MerchantFunding`, `eur_credit`, owner webshop) through `WalletService`; credit never expires; no cash-out
+- [ ] `sponsorship_obligations` (one per merchant-funded voucher, unique): reward, fee, total, status reserved/settled/released, wallet reservation, invoice link
+- [ ] Reserving a merchant-funded voucher (merchant reward, Answer24 claim) reserves reward + fee in the same transaction; insufficient funding → 409 `merchant_funding_insufficient` and no voucher (stop new rewards when unfunded)
+- [ ] Redemption settles once (captured = billed); release/expiry of an unredeemed voucher releases the funding; all audited
+- [ ] Activating a merchant-reward offer requires funding for at least one reward + fee (409 `funding_insufficient`)
+- [ ] Top-up via Mollie (iDEAL, test mode): `POST /workspaces/{w}/funding/top-ups` (finance.manage), webhook shared with checkouts, verified by fetching the payment, credited exactly once
+- [ ] `GET /workspaces/{w}/funding` (finance.view): available, reserved, settled, released, top-ups, fee rate; `/funding/transactions`; `/funding/obligations`
+- [ ] Monthly invoice drafts of settled rewards + fees per webshop (`funding_invoices`, `shopbonus:prepare-invoices`); Moneybird push disabled until configured; admin and merchant can list them
+- [ ] Tests: card #24 E2E 7 (fashion €10+€3, electronics €4+€1.20 once; empty wallet blocks), #7 E2E 8 (funding enforcement), top-up webhook once, cross-tenant isolation, invoice draft totals
+- [ ] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated
+
 - [ ] B13 Merchant analytics
 - [ ] B14 Campaign/banner backend
 - [ ] B15 CMS/legal/cookie API

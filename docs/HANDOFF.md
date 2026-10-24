@@ -5,7 +5,7 @@
 **Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
 **Last code commit:** `cd48d26` B11b. Earlier: `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
 **Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B12 merchant funding: sponsor obligation, 30% fees, merchant top-up via Mollie, Moneybird invoices (Trello #24, #7, #6).
+**Active task:** B12 IN PROGRESS (work-in-progress commit, see "B12 resume point"). **Next:** B12 merchant funding: sponsor obligation, 30% fees, merchant top-up via Mollie, Moneybird invoices (Trello #24, #7, #6).
 **Last completed task:** B11b voucher details, merchant redemption, disputes and compensation (B11 complete).
 
 ## Tests actually executed (at `cd48d26`)
@@ -44,7 +44,7 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 ## Blockers / open decisions
 
 - OPEN-SIGNUP-ENUMERATION (new), OPEN-AFFILIATE-CREDIT-TIMING, OPEN-REWARD-UNITS, OPEN-FINANCIAL-LEGAL, OPEN-MARKETING-CONSENT, OPEN-PROVIDER-CAPABILITIES, OPEN-EMPTY-CARD-27 (see `docs/DECISIONS.md`). None block B03.
-- No git remote (CI unverified); no staging (p95 unverified).
+- Remote: `origin` = https://github.com/nauticsecure-dev/shopbonus_backend (owner-requested one-time force push on 2026-10-24 replaced an unrelated "first commit" `7d7790c`, kept locally as tag `backup/remote-first-commit-7d7790c`). Normal pushes only from now on. GitHub CI runs; PHP 8.4 only (D-055). No staging (p95 unverified).
 
 ## Workspace conventions (B03a)
 
@@ -68,6 +68,24 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - **Never write a denial/security audit inside a DB transaction that then throws**: it rolls back with it. Audit before the transaction, or after commit.
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
+
+## B12 resume point (work-in-progress commit)
+
+Committed:
+- migration `2026_10_24_120000_create_funding_tables` (`funding_invoices`, `sponsorship_obligations`, `funding_top_ups`); models;
+- `Services\Funding\MerchantFunding`: cost (reward + 30% fee; percentage → max discount), `reserveFor`/`settle`/`release` called by `VoucherInventory` for merchant_reward + answer24_claim origins; top-ups via Mollie; `prepareInvoices`;
+- the `OfferService` activation check (`funding_insufficient`); top-up routing in the Mollie webhook;
+- `Workspaces\FundingController` (funding, transactions, obligations, top-ups, invoices); `shopbonus:prepare-invoices` (monthly);
+- config `shopbonus.funding`; `CreatesActiveWebshops` now funds every test webshop with €10,000.
+
+Pint and PHPStan pass. Expected failure: `OpenApiCoverageTest` until the funding routes are documented.
+
+Remaining:
+1. Write `tests/Feature/Funding/FundingTest.php`:
+   - card #24 E2E 7: a fashion €10 reward books €10 + €3 = €13 reserved once and settled at redemption; electronics 4%, max €4 → €4 + €1.20;
+   - an empty wallet → handoff/reservation 409 `merchant_funding_insufficient` and offer activation 409 `funding_insufficient`;
+   - release on expiry; top-up webhook credits once; draft invoice totals; cross-tenant 404/403.
+2. Capture docs (Mollie stub as in B11a), tick the checklist, D-055 (PHP 8.4 / CI) + D-056 (funding model, percentage basis provisional), PROGRESS/TASKS, commit and push.
 
 ## Next agent's exact first actions
 

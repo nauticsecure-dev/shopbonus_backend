@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
+use App\Http\Controllers\Api\V1\Workspaces\FundingController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
 use App\Http\Controllers\Api\V1\Workspaces\MemberController;
 use App\Http\Controllers\Api\V1\Workspaces\PublicProfileController;
@@ -317,6 +318,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('public-profile/logo', [PublicProfileController::class, 'uploadLogo'])->name('public-profile.logo.store');
                     Route::delete('public-profile/logo', [PublicProfileController::class, 'deleteLogo'])->name('public-profile.logo.destroy');
                 });
+
+                // Reward funding (Trello #24 §4).
+                Route::middleware('workspace.can:finance.view')->group(function () {
+                    Route::get('funding', [FundingController::class, 'show'])->name('funding.show');
+                    Route::get('funding/transactions', [FundingController::class, 'transactions'])->name('funding.transactions');
+                    Route::get('funding/obligations', [FundingController::class, 'obligations'])->name('funding.obligations');
+                    Route::get('funding/top-ups/{topUp}', [FundingController::class, 'showTopUp'])->name('funding.top-ups.show');
+                    Route::get('invoices', [FundingController::class, 'invoices'])->name('invoices.index');
+                });
+                Route::post('funding/top-ups', [FundingController::class, 'topUp'])
+                    ->middleware(['workspace.can:finance.manage', 'workspace.commercial', 'throttle:checkout'])->name('funding.top-ups.store');
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])

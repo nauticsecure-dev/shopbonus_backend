@@ -16,6 +16,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\VoucherEvent;
 use App\Models\WebshopOrder;
+use App\Services\Funding\MerchantFunding;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,11 @@ use Illuminate\Support\Facades\DB;
 class VoucherInventory
 {
     private const PICK_ATTEMPTS = 5;
+
+    /** Origins whose reward the merchant funds (Trello #24 §4). */
+    private const SPONSORED = [VoucherOrigin::MerchantReward, VoucherOrigin::Answer24Claim];
+
+    public function __construct(private readonly MerchantFunding $funding) {}
 
     /**
      * Idempotent by `$idempotencyKey` (unique per webshop): repeating a call
@@ -96,6 +102,7 @@ class VoucherInventory
             $v->forceFill(['status' => VoucherStatus::Cancelled, 'cancelled_at' => now(), 'cancel_reason' => $reason])->save();
             $this->moveCode($v, [VoucherCodeStatus::Reserved], VoucherCodeStatus::Available, ['reserved_at' => null]);
             $this->event($v, 'released', VoucherStatus::Reserved, VoucherStatus::Cancelled, $actorUserId, ['reason' => $reason]);
+            $this->funding->release($v, $reason);
 
             return $v;
         });
@@ -149,6 +156,7 @@ class VoucherInventory
             $v = Voucher::findOrFail($voucher->id);
             $this->moveCode($v, [VoucherCodeStatus::Issued], VoucherCodeStatus::Redeemed, ['redeemed_at' => now()]);
             $this->event($v, 'redeemed', VoucherStatus::Issued, VoucherStatus::Redeemed, $actorUserId, $summary);
+            $this->funding->settle($v);
 
             return $v;
         });
@@ -181,6 +189,7 @@ class VoucherInventory
                     if (Voucher::whereKey($v->id)->where('status', VoucherStatus::Issued)->update(['status' => VoucherStatus::Expired->value, 'updated_at' => now()]) === 1) {
                         $this->moveCode($v, [VoucherCodeStatus::Issued], VoucherCodeStatus::Expired, []);
                         $this->event($v, 'expired', VoucherStatus::Issued, VoucherStatus::Expired, null);
+                        $this->funding->release($v, 'voucher_expired');
                         $expired++;
                     }
                 });
@@ -222,6 +231,10 @@ class VoucherInventory
         ]);
 
         $this->event($voucher, 'reserved', null, VoucherStatus::Reserved, $actorUserId, ['origin' => $origin->value, 'version' => $version->version]);
+
+        if (in_array($origin, self::SPONSORED, true)) {
+            $this->funding->reserveFor($voucher, $version); // throws 409 when unfunded: the whole reservation rolls back
+        }
 
         return $voucher;
     }

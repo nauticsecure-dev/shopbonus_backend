@@ -7,6 +7,8 @@ use App\Enums\MembershipRole;
 use App\Models\AgreementTemplate;
 use App\Models\User;
 use App\Models\Webshop;
+use App\Services\Funding\MerchantFunding;
+use App\Services\Wallet\WalletService;
 
 /**
  * An approved webshop whose owner accepted the current merchant agreement,
@@ -30,6 +32,9 @@ trait CreatesActiveWebshops
             'agreement_template_id' => $template->id, 'version' => $template->version, 'rendered_body' => 'Test agreement',
             'document_hash' => hash('sha256', 'Test agreement'), 'signatory_name' => 'Test', 'accepted_by' => $owner->id, 'accepted_at' => now(),
         ]);
+
+        // Commercially active shops in tests can sponsor rewards (B12); funding tests start from zero explicitly.
+        app(WalletService::class)->credit(app(MerchantFunding::class)->wallet($webshop), 1_000_000, 'test-funding:'.$webshop->id, neverExpires: true);
 
         return $webshop;
     }
