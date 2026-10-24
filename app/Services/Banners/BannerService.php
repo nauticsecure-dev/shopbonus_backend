@@ -34,6 +34,7 @@ class BannerService
     {
         $config = $this->schema->validate($config, $webshop->id);
         $c = BannerCampaign::create(['webshop_id' => $webshop->id, 'offer_id' => $offer?->id, 'name' => $name, 'status' => 'draft', 'draft_config' => $config, 'created_by' => $actorId]);
+        $this->installation($webshop); // the embed key exists as soon as there is something to embed
         $this->audit->record('banner.created', category: AuditCategory::Workspace, resource: $c, webshopId: $webshop->id, actorUserId: $actorId);
 
         return $c;

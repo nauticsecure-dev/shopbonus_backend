@@ -5,6 +5,7 @@ namespace App\Services\Analytics;
 use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherStatus;
+use App\Models\BannerCampaign;
 use App\Models\ContactOpportunity;
 use App\Models\Offer;
 use App\Models\SponsorshipObligation;
@@ -17,6 +18,7 @@ use App\Services\Funding\MerchantFunding;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Merchant dashboard figures (Trello #8, #24 §6), always read from the
@@ -131,7 +133,27 @@ class MerchantAnalytics
                 'total_minor' => (int) $settled?->getAttribute('r') + (int) $settled?->getAttribute('f')],
             'answer24' => ['opportunities' => array_map('intval', $funnel->all()), 'claims' => VoucherClaim::where('webshop_id', $webshop->id)->whereBetween('claimed_at', [$from, $to])->count()],
             'funding' => ['available_minor' => $this->funding->wallet($webshop)->available, 'reserved_minor' => $this->funding->wallet($webshop)->reserved],
-            'banner_metrics' => ['status' => 'not_available', 'reason' => 'Banner impressions and clicks are collected by the banner backend (B14).'],
+            'banner_metrics' => $this->bannerMetrics($webshop->id, $from, $to),
         ];
+    }
+
+    /**
+     * Totals over all banners of the webshop (B14 daily rollups); CTR = clicks / viewable.
+     *
+     * @return array<string, mixed>
+     */
+    private function bannerMetrics(int $webshopId, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $tz = (string) config('shopbonus.business_timezone');
+        $campaigns = BannerCampaign::where('webshop_id', $webshopId)->pluck('id');
+        if ($campaigns->isEmpty()) {
+            return ['status' => 'no_banners'];
+        }
+        $r = DB::table('banner_daily_stats')->whereIn('campaign_id', $campaigns)
+            ->whereBetween('day', [$from->setTimezone($tz)->format('Y-m-d'), $to->setTimezone($tz)->format('Y-m-d')])
+            ->selectRaw('COALESCE(SUM(eligible),0) e, COALESCE(SUM(viewable_impressions),0) v, COALESCE(SUM(cta_clicks),0) k, COALESCE(SUM(dismissals),0) d')->first();
+
+        return ['status' => 'available', 'eligible' => (int) $r->e, 'viewable_impressions' => (int) $r->v, 'cta_clicks' => (int) $r->k, 'dismissals' => (int) $r->d,
+            'ctr' => (int) $r->v === 0 ? null : round((int) $r->k / (int) $r->v, 4)];
     }
 }

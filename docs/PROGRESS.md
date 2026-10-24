@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B13 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected); B14 onwards are not started. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B14 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected); B15 onwards are not started. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -24,7 +24,8 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Affiliate (Daisycon/TradeTracker) | PARTIAL: framework, selection, clicks, idempotent processing, rewards, admin review VERIFIED_WORKING against fixtures (B10); live networks NOT VERIFIED; TradeTracker transport missing | `tests/Feature/Affiliate/*` |
 | Mollie checkout, merchant funding, Moneybird | PARTIAL: checkout (B11) and merchant funding with 30% fee (B12) VERIFIED_WORKING against faked/stubbed Mollie; real Mollie sandbox NOT RUN; Moneybird not connected; live BLOCKED (OPEN-FINANCIAL-LEGAL) | `tests/Feature/Checkout/*` |
 | Analytics | VERIFIED_WORKING (B13): merchant dashboard, lifecycle chart, overview, notifications, owner dashboard; banner metrics depend on B14 | `tests/Feature/Analytics/*` |
-| Banners, CMS, admin, AI support | MISSING | B14–B17 |
+| Banners | VERIFIED_WORKING (B14) backend: campaigns, versions, rules, embed config/events, attribution, results, pairing; editor/embed frontend and AI not built | `tests/Feature/Banners/*` |
+| CMS, admin, AI support | MISSING | B15–B17 |
 | CI | VERIFIED on GitHub (nauticsecure-dev/shopbonus_backend): PHP 8.4 × SQLite/MySQL + lint/static analysis | `.github/workflows/ci.yml` |
 | Staging / deployment / backups | MISSING / UNKNOWN | No deployment config or target known. |
 
@@ -56,6 +57,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | 2026-10-24 | Claude (Opus 5.5) | B11b vouchers detail, redemption, disputes | `cd48d26` | MySQL 391 passed; SQLite 384 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie refunds via the local stub); 2 mutations caught | WIP `3b58e93`; B11 complete |
 | 2026-10-24 | Claude (Opus 5.5) | B12 merchant funding | `1edd8d9` | MySQL 396 passed; SQLite 389 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (Mollie stub); mutation caught; first GitHub CI run: 8.4 jobs green, 8.3 failed → fixed (D-055) | WIP `f419888` |
 | 2026-10-24 | Claude (Opus 5.5) | B13 merchant dashboard + analytics | `2bfa953` | SQLite 395 + 7 skipped; MySQL 402 passed (a first MySQL run hit error 3675 from a 99%-full disk, passed on re-run); Pint, PHPStan L6, audit clean; rollback OK; real captures; mutation caught | WIP `716993e` |
+| 2026-10-24 | Claude (Opus 5.5) | B14 banner campaigns backend | `B14_SHA` | MySQL 410 passed; SQLite 403 + 7 skipped; Pint, PHPStan L6, audit clean; rollback OK; real captures (embed simulated with Origin headers); mutation caught; capture found `draft_revision` null on create (fixed) | WIP `641e86d` |
 
 ### B01a detail
 

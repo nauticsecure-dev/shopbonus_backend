@@ -32,6 +32,8 @@ class BannerCampaign extends Model
 
     protected $hidden = ['id', 'webshop_id', 'offer_id', 'published_version_id', 'created_by'];
 
+    protected $attributes = ['draft_revision' => 1];
+
     protected function casts(): array
     {
         return ['draft_config' => 'array', 'draft_revision' => 'integer', 'scheduled_at' => 'immutable_datetime', 'updated_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];

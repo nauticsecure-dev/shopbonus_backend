@@ -5070,16 +5070,16 @@ Content-Type: application/json
 {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16cf4-0186-73de-978d-64c9b14136df","fields":{"days":["The selected days is invalid."]}}}
 ```
 
-**Commercial overview (last 30 days)**
+**Commercial overview (last 30 days)** (re-captured in B14 with banner metrics)
 
 `GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/analytics/overview`
 
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Request-Id: 01a16cf4-01ce-71d6-90c4-7ddcfaacb0fb
+X-Request-Id: 01a16de3-2d87-730f-8c75-70d26759aaf3
 
-{"data":{"from":"2026-09-24T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00","orders":[],"vouchers":{"reserved":6,"issued":4,"redeemed":2,"redemption_rate":0.5},"reward_cost":{"currency":"EUR","reward_minor":0,"fee_minor":0,"total_minor":0},"answer24":{"opportunities":[],"claims":0},"funding":{"available_minor":47400,"reserved_minor":1300},"banner_metrics":{"status":"not_available","reason":"Banner impressions and clicks are collected by the banner backend (B14)."},"timezone":"Europe\/Amsterdam"}}
+{"data":{"from":"2026-09-24T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00","orders":[],"vouchers":{"reserved":6,"issued":4,"redeemed":2,"redemption_rate":0.5},"reward_cost":{"currency":"EUR","reward_minor":0,"fee_minor":0,"total_minor":0},"answer24":{"opportunities":[],"claims":0},"funding":{"available_minor":47400,"reserved_minor":1300},"banner_metrics":{"status":"available","eligible":1,"viewable_impressions":2,"cta_clicks":1,"dismissals":1,"ctr":0.5},"timezone":"Europe\/Amsterdam"}}
 ```
 
 **Unread notifications**
@@ -5140,6 +5140,421 @@ Content-Type: application/json
 X-Request-Id: 01a16cf4-032d-7205-a253-4c2413fc66f6
 
 {"data":{"webshops":[{"id":"01m5n6399tnc5h1vtfyf3gsgv4","name":"Fietsen Utrecht","status":"approved","kpis":{"active_offers":1,"available_codes":0,"issued_vouchers":1,"claimed_vouchers":0,"redeemed_vouchers":0}},{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved","kpis":{"active_offers":3,"available_codes":0,"issued_vouchers":4,"claimed_vouchers":0,"redeemed_vouchers":2}}],"totals":{"active_offers":4,"available_codes":0,"issued_vouchers":5,"claimed_vouchers":0,"redeemed_vouchers":2},"definitions":{"active_offers":"Offers with status active (draft, paused and ended excluded).","available_codes":"Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).","issued_vouchers":"Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.","claimed_vouchers":"Answer24 claim links accepted by a verified consumer.","redeemed_vouchers":"Vouchers with a verified redemption (paid order containing the code, or merchant verification)."}}}
+```
+
+---
+
+## Banner campaigns on the merchant's site (B14, Trello #25, #24 §1–2)
+
+Captured 2026-10-24 against local MySQL. *Woon & Co* has the verified domain `woonenco.nl` and a funded €10 reward offer. The embed and editor were simulated with curl, sending an `Origin` header. The real embed script and editor UI are frontend. Pairing and editor tokens are redacted.
+
+**Upload an image (multipart `image=@banner.png`)**
+
+`POST /api/v1/workspaces/{workspace}/banners/assets (multipart: image=@banner.png;type=image/png)`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16de2-ec0f-70c9-a090-91b63b6b3ba0
+
+{"data":{"id":"01m5py5v603t7kwb89trg52nrq","width":600,"height":200,"url":"http:\/\/127.0.0.1:8796\/api\/v1\/banners\/assets\/01m5py5v603t7kwb89trg52nrq"}}
+```
+
+**Unsafe config → 422**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners {"name":"X","config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"<b>x</b>","cta_label":"Go","cta_url":"http://woonenco.nl"},"style":{"background":"red","text":"#FFFFFF","font":"inter","animation":"none"},"devices":["desktop"],"frequency":{"per_session":1},"triggers":{"all":[{"type":"url_match","value":"/*"}]}}}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16de2-ece3-700b-802e-f418f92e4652
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16de2-ece3-700b-802e-f418f92e4652","fields":{"content.heading":["The content.heading field format is invalid."],"content.cta_url":["The content.cta url field must be a valid URL."],"style.background":["The style.background field format is invalid."]}}}
+```
+
+**Create a draft**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners {"name":"Najaar - €10 terug","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Besteed €100, krijg €10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","cta_url":"https://www.woonenco.nl/shopbonus","terms":"Min. besteding €100","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"style":{"background":"#1D4ED8","text":"#FFFFFF","font":"inter","animation":"fade_in"},"devices":["desktop","mobile"],"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]}}}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16de2-ed71-720f-9dcc-3894d4a4e385
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"draft","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":null,"scheduled_at":null,"updated_at":"2026-10-24T12:29:10+00:00"}}
+```
+
+**Installation (embed key, origins, health)**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/installation`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-edae-7214-92e1-50c06c97e039
+
+{"data":{"public_key":"pk_4dhphng2rpstr7qw2wybjton","allowed_origins":["https:\/\/woonenco.nl","https:\/\/www.woonenco.nl"],"status":"not_seen","last_seen":null,"live_campaigns":0,"snippet":"<script async src=\"http:\/\/localhost:8000\/embed\/v1.js\" data-shopbonus-key=\"pk_4dhphng2rpstr7qw2wybjton\"><\/script>"}}
+```
+
+**Origin outside the verified domain → 422**
+
+`PUT /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/installation {"origins":["https://evil.example"]}`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a16de2-edd8-72ea-b2cc-57ad046392fb
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16de2-edd8-72ea-b2cc-57ad046392fb","fields":{"origins.0":["Use https origins on woonenco.nl or its subdomains."]}}}
+```
+
+**Allow a subdomain**
+
+`PUT /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/installation {"origins":["https://woonenco.nl","https://www.woonenco.nl","https://shop.woonenco.nl"]}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-edfe-72fd-9b2d-ccc8dc99c826
+
+{"data":{"public_key":"pk_4dhphng2rpstr7qw2wybjton","allowed_origins":["https:\/\/woonenco.nl","https:\/\/www.woonenco.nl","https:\/\/shop.woonenco.nl"],"status":"not_seen","last_seen":null,"live_campaigns":0,"snippet":"<script async src=\"http:\/\/localhost:8000\/embed\/v1.js\" data-shopbonus-key=\"pk_4dhphng2rpstr7qw2wybjton\"><\/script>"}}
+```
+
+**Simulation: shown, with reasons**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/simulate {"path":"/collections/jurken","category":"fashion","seconds":25,"device":"desktop"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-ee28-7201-9b43-dea2e3832500
+
+{"data":{"shown":true,"reasons":["matched: url_match \/collections\/*","matched: category fashion","matched: min_seconds 20","shown"],"cart_progress":null,"fallback":null,"simulated":true}}
+```
+
+**Simulation: hidden (too early)**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/simulate {"path":"/collections/jurken","category":"fashion","seconds":5,"device":"desktop"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-ee52-7045-b4b3-09e02eb548d3
+
+{"data":{"shown":false,"reasons":["matched: url_match \/collections\/*","matched: category fashion","not matched: min_seconds 20"],"cart_progress":null,"fallback":null,"simulated":true}}
+```
+
+**Public config before publishing (draft invisible)**
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: max-age=60, public
+ETag: "9a6c952e7ee82f175c6320b7fa9179fe"
+Content-Type: application/json
+X-Request-Id: 01a16de2-ee7f-7127-a88b-a550586c4a1f
+
+{"data":{"campaigns":[]}}
+```
+
+**Publish**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/publish`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-eea6-73c9-9d1d-d32ecdeca300
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+```
+
+**Save a new draft (live version unchanged)**
+
+`PUT /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw {"revision":1,"config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Nieuw concept: €10 terug","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","cta_url":"https://www.woonenco.nl/shopbonus","terms":"Min. besteding €100","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"style":{"background":"#1D4ED8","text":"#FFFFFF","font":"inter","animation":"fade_in"},"devices":["desktop","mobile"],"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]}}}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-eeed-72ef-9c6f-9d42e123a058
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+```
+
+**Stale revision → 409**
+
+`PUT /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw {"revision":1,"config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Besteed €100, krijg €10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","cta_url":"https://www.woonenco.nl/shopbonus","terms":"Min. besteding €100","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"style":{"background":"#1D4ED8","text":"#FFFFFF","font":"inter","animation":"fade_in"},"devices":["desktop","mobile"],"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]}}}`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16de2-ef19-7067-ad86-a4e4839a8a75
+Content-Type: application/json
+
+{"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this banner in the meantime. Reload to continue.","request_id":"01a16de2-ef19-7067-ad86-a4e4839a8a75","details":{"current_revision":2}}}
+```
+
+**Draft vs published**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-ef3f-7066-bc18-72d5e82d2e99
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00","draft_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Nieuw concept: \u20ac10 terug","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}},"published_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}},"notice":"Customers see the published version until you publish the draft."}}
+```
+
+**Public config (published v1 only; ETag + 60 s cache)**
+
+`GET /api/v1/banners/config?key=pk_4dhphng2rpstr7qw2wybjton   (Origin: https://www.woonenco.nl)`
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: max-age=60, public
+ETag: "011772b89ec300ca5226b43b5f582745"
+Vary: Origin
+Content-Type: application/json
+X-Request-Id: 01a16de2-ef64-71a2-81ea-0973ad1e6e30
+
+{"data":{"campaigns":[{"campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_url":"http:\/\/127.0.0.1:8796\/api\/v1\/banners\/assets\/01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}}}]}}
+```
+
+**Origin not allowed → 403**
+
+`GET /api/v1/banners/config?key=pk_4dhphng2rpstr7qw2wybjton   (Origin: https://evil.example)`
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a16de2-ef83-71e5-bc6a-de9690c35167
+Content-Type: application/json
+
+{"error":{"status":403,"code":"origin_not_allowed","message":"Unknown key or origin not allowed.","request_id":"01a16de2-ef83-71e5-bc6a-de9690c35167"}}
+```
+
+**Events: eligible, 2 viewable, a consented click (gets a click ID), a dismissal**
+
+`POST /api/v1/banners/events {"key":"pk_4dhphng2rpstr7qw2wybjton","events":[{"id":"96875328-8eb8-4fcd-94eb-9c1deb4b1e73","campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"type":"eligible","occurred_at":"2026-10-24T12:29:11Z","device":"desktop","path":"/collections/jurken?utm_source=x","category":"fashion","consent":true},{"id":"c0dceeb6-0574-432f-b57f-8561767f8d0e","campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"type":"viewable_impression","occurred_at":"2026-10-24T12:29:11Z","device":"desktop","path":"/collections/jurken?utm_source=x","category":"fashion","consent":true},{"id":"e8fecc9c-399b-400e-87fd-1a4093e08d33","campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"type":"viewable_impression","occurred_at":"2026-10-24T12:29:11Z","device":"mobile","path":"/collections/jurken?utm_source=x","category":"fashion","consent":false},{"id":"b51b04aa-93f8-4597-955a-36e4eead25b6","campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"type":"cta_click","occurred_at":"2026-10-24T12:29:11Z","device":"desktop","path":"/collections/jurken?utm_source=x","category":"fashion","consent":true},{"id":"7d053be8-51fb-4ade-a083-fa58ef784f02","campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"type":"dismiss","occurred_at":"2026-10-24T12:29:11Z","device":"mobile","path":"/collections/jurken?utm_source=x","category":"fashion","consent":false}]}   (Origin: https://www.woonenco.nl)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a16de2-efd4-70d0-af8f-d01bca5ee3ea
+
+{"data":{"accepted":5,"duplicates":0,"rejected":0,"click_ids":{"b51b04aa-93f8-4597-955a-36e4eead25b6":"bc_QkPRc69KHHtHC595p7ZkITHV"}}}
+```
+
+**Same batch again: all duplicates**
+
+`POST /api/v1/banners/events (same batch again)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a16de2-f015-70fa-ba0c-cbe28e3116bd
+
+{"data":{"accepted":0,"duplicates":5,"rejected":0,"click_ids":[]}}
+```
+
+**Results: CTR = 1/2; the dismissal is not a click**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/results`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f048-7083-aa5b-07103ad5c442
+
+{"data":{"from":"2026-09-25","to":"2026-10-24","device":null,"timezone":"Europe\/Amsterdam","eligible":1,"viewable_impressions":2,"cta_clicks":1,"dismissals":1,"ctr":0.5,"attributed_orders":0,"attributed_revenue_minor":0,"definitions":{"viewable_impression":"\u226550% visible for \u22651 second, deduplicated by the embed","ctr":"CTA clicks \/ viewable impressions; closing (X) is a dismissal, never a click","attributed_orders":"Paid orders carrying a consented click ID of this banner, within 30 days of the click; all other orders are unattributed"}}}
+```
+
+**Overview list**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners?status=live`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f089-737f-8443-e042f92ee975
+
+{"data":[{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00","stats_30d":{"viewable_impressions":2,"cta_clicks":1,"ctr":0.5,"attributed_orders":0}}]}
+```
+
+**Pause**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/pause`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f0cd-7319-bc76-41c50b694812
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"paused","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+```
+
+**Pause again → 409**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/pause`
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a16de2-f10a-731a-b26a-42128deae628
+Content-Type: application/json
+
+{"error":{"status":409,"code":"banner_not_live","message":"Only a live banner can be paused.","request_id":"01a16de2-f10a-731a-b26a-42128deae628"}}
+```
+
+**Resume**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/resume`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f139-731b-8e19-82e7e542f023
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+```
+
+**Roll back to v1 (as a new version)**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/rollback {"version":1}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f184-72c0-8685-7d0af3325913
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":3,"live_version":2,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+```
+
+**Versions**
+
+`GET /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/versions`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f1d6-7241-a4b7-e0af9a578566
+
+{"data":[{"version":2,"live":true,"published_at":"2026-10-24T12:29:11+00:00","published_by":"Jan"},{"version":1,"live":false,"published_at":"2026-10-24T12:29:11+00:00","published_by":"Jan"}]}
+```
+
+**Duplicate**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5vc56hm2adbhwxvrfztw/duplicate`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16de2-f215-7309-82d0-287a13704cb3
+
+{"data":{"id":"01m5py5wh7e1wscf83vsk0z36t","name":"Najaar - \u20ac10 terug (copy)","status":"draft","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":null,"scheduled_at":null,"updated_at":"2026-10-24T12:29:12+00:00"}}
+```
+
+**Schedule the copy (shop-local time)**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/01m5py5wh7e1wscf83vsk0z36t/schedule {"publish_at":"2026-10-25T10:00"}`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f2bc-72b2-8e7e-bf991b72e25b
+
+{"data":{"id":"01m5py5wh7e1wscf83vsk0z36t","name":"Najaar - \u20ac10 terug (copy)","status":"scheduled","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":null,"scheduled_at":"2026-10-25T09:00:00+00:00","updated_at":"2026-10-24T12:29:12+00:00"}}
+```
+
+**Pairing token for the live editor**
+
+`POST /api/v1/workspaces/01m5pd8djwvb5yyj12nw5esr56/banners/pairing {"origin":"https://www.woonenco.nl"}`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a16de2-f30e-73d2-944c-3724951dc2ce
+
+{"data":{"pairing_token":"<pairing token>","expires_in":600,"origin":"https:\/\/www.woonenco.nl"}}
+```
+
+**Exchange from the wrong origin → 401**
+
+`POST /api/v1/banners/editor/pair {"pairing_token":"<pairing token>"}   (Origin: https://evil.example)`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16de2-f35e-732e-bcc9-d9dc59e6f865
+Content-Type: application/json
+
+{"error":{"status":401,"code":"pairing_invalid","message":"This pairing link is not valid any more. Start the editor again from ShopBonus.","request_id":"01a16de2-f35e-732e-bcc9-d9dc59e6f865"}}
+```
+
+**Exchange from the shop origin**
+
+`POST /api/v1/banners/editor/pair {"pairing_token":"<pairing token>"}   (Origin: https://www.woonenco.nl)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f397-731f-af4f-34bd14b722b6
+
+{"data":{"editor_token":"<editor token>","expires_in":1800,"scope":"banner_drafts"}}
+```
+
+**Replay → 401**
+
+`POST /api/v1/banners/editor/pair {"pairing_token":"<pairing token>"}   (Origin: https://www.woonenco.nl)`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16de2-f3ce-720c-9977-4d02e7cc7193
+Content-Type: application/json
+
+{"error":{"status":401,"code":"pairing_invalid","message":"This pairing link is not valid any more. Start the editor again from ShopBonus.","request_id":"01a16de2-f3ce-720c-9977-4d02e7cc7193"}}
+```
+
+**Editor reads the draft**
+
+`GET /api/v1/banners/editor/campaigns/01m5py5vc56hm2adbhwxvrfztw    (Origin: https://www.woonenco.nl, X-Banner-Editor-Token: <editor token>)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f400-7351-b379-af16e8079b45
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","draft_revision":3,"draft_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}}}}
+```
+
+**Editor saves the draft**
+
+`PUT /api/v1/banners/editor/campaigns/01m5py5vc56hm2adbhwxvrfztw {"revision":3,"config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Besteed €100, krijg €10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","cta_url":"https://www.woonenco.nl/shopbonus","terms":"Min. besteding €100","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"style":{"background":"#1D4ED8","text":"#FFFFFF","font":"inter","animation":"fade_in"},"devices":["desktop","mobile"],"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]}}}   (Origin: https://www.woonenco.nl, X-Banner-Editor-Token: <editor token>)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a16de2-f438-736c-9ab4-985e1cb33d59
+
+{"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","draft_revision":4}}
+```
+
+**Without editor token → 401**
+
+`GET /api/v1/banners/editor/campaigns/01m5py5vc56hm2adbhwxvrfztw    (Origin: https://www.woonenco.nl)`
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a16de2-f47c-72f4-b4ea-d23ba68befd3
+Content-Type: application/json
+
+{"error":{"status":401,"code":"editor_token_invalid","message":"Editor session expired or not valid for this site.","request_id":"01a16de2-f47c-72f4-b4ea-d23ba68befd3"}}
+```
+
+**Banner image** (headers only)
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Cache-Control: immutable, max-age=31536000, public
+X-Content-Type-Options: nosniff
+Content-Security-Policy: default-src 'none'
 ```
 
 ---

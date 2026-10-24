@@ -81,6 +81,12 @@ tags:
   - name: Dashboard
     description: |
       Merchant overview, lifecycle analytics, notifications and the owner's combined dashboard (Trello #8, #24 §6, #3 §17).
+  - name: Banners
+    description: |
+      Banner campaigns on the merchant's own website (Trello #25): drafts, versions, rules, results. The editor/renderer are frontend.
+  - name: Banner embed
+    description: |
+      Public endpoints the embed script and live editor call; identified by the public key, restricted by the Origin allowlist.
   - name: Admin
     description: |
       Super Admin API (`x-access: admin`; platform role granted only by the `shopbonus:grant-super-admin` console
@@ -6179,7 +6185,7 @@ paths:
       operationId: analyticsOverview
       summary: "Commercial overview for a period"
       description: |
-        Paid orders only (paid_at in range; a success page is not a paid order), per currency: count, gross, refunded, net, average order. Vouchers reserved/issued/redeemed and redemption rate; reward cost + fees from settled sponsorship obligations; Answer24 opportunities by status and claims; funding balance. `banner_metrics` is `not_available` until the banner backend (B14) collects events.
+        Paid orders only (paid_at in range; a success page is not a paid order), per currency: count, gross, refunded, net, average order. Vouchers reserved/issued/redeemed and redemption rate; reward cost + fees from settled sponsorship obligations; Answer24 opportunities by status and claims; funding balance. `banner_metrics` totals all banners' daily rollups (B14): eligible, viewable, clicks, dismissals, CTR; `no_banners` when the webshop has none.
       x-access: verified
       x-permission: dashboard.view
       parameters:
@@ -6195,7 +6201,7 @@ paths:
           description: "Overview."
           content:
             application/json:
-              example: {"data":{"from":"2026-09-24T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00","orders":[],"vouchers":{"reserved":6,"issued":4,"redeemed":2,"redemption_rate":0.5},"reward_cost":{"currency":"EUR","reward_minor":0,"fee_minor":0,"total_minor":0},"answer24":{"opportunities":[],"claims":0},"funding":{"available_minor":47400,"reserved_minor":1300},"banner_metrics":{"status":"not_available","reason":"Banner impressions and clicks are collected by the banner backend (B14)."},"timezone":"Europe\/Amsterdam"}}
+              example: {"data":{"from":"2026-09-24T22:00:00+00:00","to":"2026-10-24T21:59:59+00:00","orders":[],"vouchers":{"reserved":6,"issued":4,"redeemed":2,"redemption_rate":0.5},"reward_cost":{"currency":"EUR","reward_minor":0,"fee_minor":0,"total_minor":0},"answer24":{"opportunities":[],"claims":0},"funding":{"available_minor":47400,"reserved_minor":1300},"banner_metrics":{"status":"available","eligible":1,"viewable_impressions":2,"cta_clicks":1,"dismissals":1,"ctr":0.5},"timezone":"Europe\/Amsterdam"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
@@ -6306,6 +6312,894 @@ paths:
             application/json:
               example: {"data":{"webshops":[{"id":"01m5n6399tnc5h1vtfyf3gsgv4","name":"Fietsen Utrecht","status":"approved","kpis":{"active_offers":1,"available_codes":0,"issued_vouchers":1,"claimed_vouchers":0,"redeemed_vouchers":0}},{"id":"01m5pd8djwvb5yyj12nw5esr56","name":"Woon & Co","status":"approved","kpis":{"active_offers":3,"available_codes":0,"issued_vouchers":4,"claimed_vouchers":0,"redeemed_vouchers":2}}],"totals":{"active_offers":4,"available_codes":0,"issued_vouchers":5,"claimed_vouchers":0,"redeemed_vouchers":2},"definitions":{"active_offers":"Offers with status active (draft, paused and ended excluded).","available_codes":"Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).","issued_vouchers":"Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.","claimed_vouchers":"Answer24 claim links accepted by a verified consumer.","redeemed_vouchers":"Vouchers with a verified redemption (paid order containing the code, or merchant verification)."}}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
+
+  /api/v1/workspaces/{workspace}/banners:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Banners]
+      operationId: bannerCampaigns
+      summary: "Banner campaigns"
+      description: |
+        Campaign overview with template, placement, live version and 30-day results (viewable impressions, CTA clicks, CTR, attributed orders).
+      x-access: verified
+      x-permission: offers.view
+      parameters:
+        - { name: status, in: query, required: false, schema: { type: string, enum: [draft, scheduled, live, paused] } }
+        - { name: search, in: query, required: false, schema: { type: string } }
+        - { name: placement, in: query, required: false, schema: { type: string } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/banners?status=live' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Campaigns."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00","stats_30d":{"viewable_impressions":2,"cta_clicks":1,"ctr":0.5,"attributed_orders":0}}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    post:
+      tags: [Banners]
+      operationId: createBanner
+      summary: "Create a banner campaign (draft)"
+      description: |
+        Creates a private draft; also creates the webshop's embed key if needed. `offer_id` links the reward the banner promotes (its cost is checked at publish).
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, config]
+              properties:
+                name: { type: string, maxLength: 120 }
+                offer_id: { type: string, nullable: true }
+                config:
+                  type: object
+                  required: [template, placement, content, style, devices, frequency, triggers]
+                  description: 'Strict schema (BannerConfig): plain text only, https links, hex colours, images only from this webshop''s uploaded assets.'
+                  properties:
+                    template: { type: string, enum: [ribbon, inline_card, floating, teaser, popup, exit_intent, cart_progress] }
+                    placement: { type: object, properties: { anchor: { type: string, enum: [top, bottom, top_left, top_right, bottom_left, bottom_right, inline] }, offset_x: { type: integer }, offset_y: { type: integer }, selector_hint: { type: string } } }
+                    content: { type: object, properties: { heading: { type: string, maxLength: 80 }, subtitle: { type: string, maxLength: 160 }, cta_label: { type: string, maxLength: 30 }, cta_url: { type: string, format: uri }, terms: { type: string, maxLength: 200 }, image_asset_id: { type: string } } }
+                    style: { type: object, properties: { background: { type: string, pattern: '^#[0-9a-fA-F]{6}$' }, text: { type: string }, accent: { type: string }, font: { type: string, enum: [system, inter, roboto, open_sans, lato, montserrat] }, animation: { type: string, enum: [none, fade_in, slide_in] }, radius: { type: integer } } }
+                    devices: { type: array, items: { type: string, enum: [desktop, tablet, mobile] } }
+                    frequency: { type: object, properties: { per_session: { type: integer, minimum: 1, maximum: 10 }, cooldown_hours: { type: integer }, hide_after_dismiss: { type: boolean } } }
+                    priority: { type: integer }
+                    triggers: { type: object, description: 'Nested {all:[...]} / {any:[...]} (≤ 3 levels) of conditions {type, value, negate?}: url_match, category, product_sku, min_seconds, min_scroll_pct, exit_intent, device, language, weekday, hour_between, visitor, cart_min_minor.' }
+            example: {"name": "Najaar - €10 terug", "offer_id": "01m5pefmgdjxy9q4fa1r7pk7cx", "config": {"template": "ribbon", "placement": {"anchor": "top"}, "content": {"heading": "Besteed €100, krijg €10", "subtitle": "Voor je volgende aankoop", "cta_label": "Meer info", "cta_url": "https://www.woonenco.nl/shopbonus", "terms": "Min. besteding €100", "image_asset_id": "01m5py5v603t7kwb89trg52nrq"}, "style": {"background": "#1D4ED8", "text": "#FFFFFF", "font": "inter", "animation": "fade_in"}, "devices": ["desktop", "mobile"], "frequency": {"per_session": 1, "cooldown_hours": 24, "hide_after_dismiss": true}, "triggers": {"all": [{"type": "url_match", "value": "/collections/*"}, {"type": "category", "value": ["fashion"]}, {"type": "min_seconds", "value": 20}]}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"name":"...","offer_id":"<offer>","config":{...}}'
+      responses:
+        '201':
+          description: "Draft created."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"draft","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":null,"scheduled_at":null,"updated_at":"2026-10-24T12:29:10+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Schema violation (captured: HTML, http link, bad colour)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16de2-ece3-700b-802e-f418f92e4652","fields":{"content.heading":["The content.heading field format is invalid."],"content.cta_url":["The content.cta url field must be a valid URL."],"style.background":["The style.background field format is invalid."]}}}
+
+  /api/v1/workspaces/{workspace}/banners/installation:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Banners]
+      operationId: bannerInstallation
+      summary: "Embed installation and health"
+      description: |
+        Public embed key, allowed origins, the snippet, and health: `not_seen`, `installed` (config fetched in the last 24 h) or `stale`, with the last origin seen.
+      x-access: verified
+      x-permission: offers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/banners/installation' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Installation."
+          content:
+            application/json:
+              example: {"data":{"public_key":"pk_4dhphng2rpstr7qw2wybjton","allowed_origins":["https:\/\/woonenco.nl","https:\/\/www.woonenco.nl"],"status":"not_seen","last_seen":null,"live_campaigns":0,"snippet":"<script async src=\"http:\/\/localhost:8000\/embed\/v1.js\" data-shopbonus-key=\"pk_4dhphng2rpstr7qw2wybjton\"><\/script>"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    put:
+      tags: [Banners]
+      operationId: updateBannerInstallation
+      summary: "Set allowed origins"
+      description: |
+        Only https origins on the webshop's verified domain (B03c) or its subdomains.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [origins]
+              properties:
+                origins: { type: array, maxItems: 10, items: { type: string } }
+            example: {"origins": ["https://woonenco.nl", "https://www.woonenco.nl", "https://shop.woonenco.nl"]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/workspaces/current/banners/installation' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"origins":["https://www.woonenco.nl"]}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"public_key":"pk_4dhphng2rpstr7qw2wybjton","allowed_origins":["https:\/\/woonenco.nl","https:\/\/www.woonenco.nl","https:\/\/shop.woonenco.nl"],"status":"not_seen","last_seen":null,"live_campaigns":0,"snippet":"<script async src=\"http:\/\/localhost:8000\/embed\/v1.js\" data-shopbonus-key=\"pk_4dhphng2rpstr7qw2wybjton\"><\/script>"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '409':
+          description: "Domain not verified yet."
+          content:
+            application/json:
+              example: {"error": {"status": 409, "code": "domain_not_verified", "message": "Verify the webshop domain first.", "request_id": "<id>"}}
+        '422':
+          description: "Origin not on the verified domain."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16de2-edd8-72ea-b2cc-57ad046392fb","fields":{"origins.0":["Use https origins on woonenco.nl or its subdomains."]}}}
+
+  /api/v1/workspaces/{workspace}/banners/pairing:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Banners]
+      operationId: bannerPairing
+      summary: "Start the live editor on the shop (pairing token)"
+      description: |
+        Single-use pairing token (10 minutes) for this user, webshop and an allowed origin. The editor on the shop exchanges it at `POST /api/v1/banners/editor/pair` from that origin. No session token ever reaches the shop's page. Audited.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [origin]
+              properties:
+                origin: { type: string }
+            example: {"origin": "https://www.woonenco.nl"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/pairing' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"origin":"https://www.woonenco.nl"}'
+      responses:
+        '201':
+          description: "Token issued (shown here redacted)."
+          content:
+            application/json:
+              example: {"data":{"pairing_token":"<pairing token>","expires_in":600,"origin":"https:\/\/www.woonenco.nl"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+        '422':
+          description: "Origin not allowed."
+          content:
+            application/json:
+              example: {"error": {"status": 422, "code": "origin_not_allowed", "message": "This origin is not allowed for your webshop.", "request_id": "<id>"}}
+
+  /api/v1/workspaces/{workspace}/banners/assets:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Banners]
+      operationId: uploadBannerAsset
+      summary: "Upload a banner image"
+      description: |
+        PNG, JPEG or WebP ≤ 2 MB, content-checked. Served publicly by opaque ID only; banners can reference only this webshop's assets.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image: { type: string, format: binary }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/assets' -H 'Authorization: Bearer <token>' -F 'image=@banner.png;type=image/png'
+      responses:
+        '201':
+          description: "Stored."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5v603t7kwb89trg52nrq","width":600,"height":200,"url":"http:\/\/127.0.0.1:8796\/api\/v1\/banners\/assets\/01m5py5v603t7kwb89trg52nrq"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banners]
+      operationId: bannerCampaign
+      summary: "One banner: draft and published config"
+      description: |
+        The private draft and the published config side by side; customers see the published version until the draft is published.
+      x-access: verified
+      x-permission: offers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/banners/<id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Banner."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00","draft_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Nieuw concept: \u20ac10 terug","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}},"published_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}},"notice":"Customers see the published version until you publish the draft."}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+    put:
+      tags: [Banners]
+      operationId: saveBannerDraft
+      summary: "Save the draft"
+      description: |
+        Optimistic locking: send the `revision` you started from; a stale revision is 409 `draft_revision_conflict` with the current revision. The live version is unaffected.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, config]
+              properties:
+                revision: { type: integer }
+                name: { type: string }
+                config: { type: object, description: 'Same schema as on create.' }
+            example: {"revision": 1, "config": {"template": "ribbon", "placement": {"anchor": "top"}, "content": {"heading": "Besteed €100, krijg €10", "subtitle": "Voor je volgende aankoop", "cta_label": "Meer info", "cta_url": "https://www.woonenco.nl/shopbonus", "terms": "Min. besteding €100", "image_asset_id": "01m5py5v603t7kwb89trg52nrq"}, "style": {"background": "#1D4ED8", "text": "#FFFFFF", "font": "inter", "animation": "fade_in"}, "devices": ["desktop", "mobile"], "frequency": {"per_session": 1, "cooldown_hours": 24, "hide_after_dismiss": true}, "triggers": {"all": [{"type": "url_match", "value": "/collections/*"}, {"type": "category", "value": ["fashion"]}, {"type": "min_seconds", "value": 20}]}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/workspaces/current/banners/<id>' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"revision":1,"config":{...}}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '409':
+          description: "Stale revision."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this banner in the meantime. Reload to continue.","request_id":"01a16de2-ef19-7067-ad86-a4e4839a8a75","details":{"current_revision":2}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/duplicate:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: duplicateBanner
+      summary: "Duplicate as a new draft"
+      description: |
+        Copies the draft into a new draft campaign.
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/duplicate' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '201':
+          description: "Copy."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5wh7e1wscf83vsk0z36t","name":"Najaar - \u20ac10 terug (copy)","status":"draft","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":null,"scheduled_at":null,"updated_at":"2026-10-24T12:29:12+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/publish:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: publishBanner
+      summary: "Publish the draft"
+      description: |
+        Creates an immutable version and makes it live. Needs a commercially active webshop, an active linked offer, and funding for one reward + 30% fee of a sponsored offer (409 `funding_insufficient`, card #25 "block unfunded Publish"). Audited.
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/publish' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Live."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '409':
+          description: "Offer inactive or unfunded."
+          content:
+            application/json:
+              example: {"error": {"status": 409, "code": "funding_insufficient", "message": "Top up the reward funding before publishing this banner.", "request_id": "<id>", "details": {"required_minor": 1300}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/schedule:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: scheduleBanner
+      summary: "Schedule publication (shop-local time)"
+      description: |
+        `publish_at` in Europe/Amsterdam (`YYYY-MM-DDTHH:MM`); the scheduler publishes it (checks run again then). Past times are refused.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [publish_at]
+              properties:
+                publish_at: { type: string, example: '2026-10-25T10:00' }
+            example: {"publish_at": "2026-10-25T10:00"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/schedule' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"publish_at":"2026-10-25T10:00"}'
+      responses:
+        '200':
+          description: "Scheduled."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5wh7e1wscf83vsk0z36t","name":"Najaar - \u20ac10 terug (copy)","status":"scheduled","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":1,"live_version":null,"scheduled_at":"2026-10-25T09:00:00+00:00","updated_at":"2026-10-24T12:29:12+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '409':
+          description: "Offer inactive or unfunded."
+          content:
+            application/json:
+              example: {"error": {"status": 409, "code": "funding_insufficient", "message": "Top up the reward funding before publishing this banner.", "request_id": "<id>", "details": {"required_minor": 1300}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/pause:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: pauseBanner
+      summary: "Pause"
+      description: |
+        Removes it from the public config immediately (within the 60 s cache).
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/pause' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Paused."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"paused","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '409':
+          description: "Not live."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"banner_not_live","message":"Only a live banner can be paused.","request_id":"01a16de2-f10a-731a-b26a-42128deae628"}}
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/resume:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: resumeBanner
+      summary: "Resume"
+      description: |
+        Publishing checks apply again.
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/resume' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Live again."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":2,"live_version":1,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '409':
+          description: "Not paused, or unfunded."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"banner_not_live","message":"Only a live banner can be paused.","request_id":"01a16de2-f10a-731a-b26a-42128deae628"}}
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/rollback:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: rollbackBanner
+      summary: "Roll back to an earlier version"
+      description: |
+        Re-publishes the chosen version's config as a new version (history stays immutable) and resets the draft to it.
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version: { type: integer }
+            example: {"version": 1}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/rollback' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"version":1}'
+      responses:
+        '200':
+          description: "Rolled back."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","status":"live","template":"ribbon","placement":"top","offer_id":"01m5pefmgdjxy9q4fa1r7pk7cx","draft_revision":3,"live_version":2,"scheduled_at":null,"updated_at":"2026-10-24T12:29:11+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/versions:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banners]
+      operationId: bannerVersions
+      summary: "Version history"
+      description: |
+        Who published which version and when (`schedule` for scheduled publications).
+      x-access: verified
+      x-permission: offers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/versions' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Versions."
+          content:
+            application/json:
+              example: {"data":[{"version":2,"live":true,"published_at":"2026-10-24T12:29:11+00:00","published_by":"Jan"},{"version":1,"live":false,"published_at":"2026-10-24T12:29:11+00:00","published_by":"Jan"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/simulate:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: simulateBanner
+      summary: "Why shown / hidden (simulation)"
+      description: |
+        Evaluates the draft's rules against a visitor context and lists the reasons; results are marked `simulated`. Checkout/payment/account pages are always excluded. Without a verified `cart_total_minor` a cart-progress banner falls back to a static offer (no fake progress).
+      x-access: verified
+      x-permission: offers.view
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path: { type: string }
+                category: { type: string }
+                product_sku: { type: string }
+                seconds: { type: integer }
+                scroll_pct: { type: integer }
+                exit_intent: { type: boolean }
+                device: { type: string, enum: [desktop, tablet, mobile] }
+                language: { type: string }
+                local_time: { type: string, format: date-time }
+                visitor: { type: string, enum: [first, returning] }
+                shown_this_session: { type: integer }
+                last_shown_at: { type: string, format: date-time }
+                dismissed: { type: boolean }
+                cart_total_minor: { type: integer, nullable: true }
+            example: {"path": "/collections/jurken", "category": "fashion", "seconds": 25, "device": "desktop"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/simulate' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
+              -H 'Content-Type: application/json' -d '{"path":"/collections/jurken","category":"fashion","seconds":25}'
+      responses:
+        '200':
+          description: "Decision with reasons."
+          content:
+            application/json:
+              example: {"data":{"shown":true,"reasons":["matched: url_match \/collections\/*","matched: category fashion","matched: min_seconds 20","shown"],"cart_progress":null,"fallback":null,"simulated":true}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/results:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banners]
+      operationId: bannerResults
+      summary: "Banner results"
+      description: |
+        Eligible, viewable impressions, CTA clicks, dismissals (never clicks), CTR = clicks / viewable, and attributed paid orders + net revenue (orders carrying a consented click ID of this banner, within 30 days). Daily rollups in the business timezone.
+      x-access: verified
+      x-permission: offers.view
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+        - { name: device, in: query, required: false, schema: { type: string, enum: [desktop, tablet, mobile, unknown] } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/banners/<id>/results?device=desktop' \
+              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+      responses:
+        '200':
+          description: "Results."
+          content:
+            application/json:
+              example: {"data":{"from":"2026-09-25","to":"2026-10-24","device":null,"timezone":"Europe\/Amsterdam","eligible":1,"viewable_impressions":2,"cta_clicks":1,"dismissals":1,"ctr":0.5,"attributed_orders":0,"attributed_revenue_minor":0,"definitions":{"viewable_impression":"\u226550% visible for \u22651 second, deduplicated by the embed","ctr":"CTA clicks \/ viewable impressions; closing (X) is a dismissal, never a click","attributed_orders":"Paid orders carrying a consented click ID of this banner, within 30 days of the click; all other orders are unattributed"}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/banners/config:
+    get:
+      tags: [Banner embed]
+      operationId: publicBannerConfig
+      summary: "Published banners for the embed"
+      description: |
+        Only published versions of live campaigns of an approved webshop; never drafts. The `Origin` must be on the key's allowlist (403 otherwise). `Cache-Control: public, max-age=60` and `ETag` (304 on `If-None-Match`). Updates the installation's last-seen health.
+      x-access: public
+      security: []
+      parameters:
+        - { name: key, in: query, required: true, schema: { type: string }, description: 'Public embed key (pk_...).' }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/banners/config?key=pk_...' \
+              -H 'Accept: application/json' -H 'Origin: https://www.woonenco.nl'
+      responses:
+        '200':
+          description: "Published config."
+          content:
+            application/json:
+              example: {"data":{"campaigns":[{"campaign":"01m5py5vc56hm2adbhwxvrfztw","version":1,"config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_url":"http:\/\/127.0.0.1:8796\/api\/v1\/banners\/assets\/01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}}}]}}
+        '403':
+          description: "Unknown key or origin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"origin_not_allowed","message":"Unknown key or origin not allowed.","request_id":"01a16de2-ef83-71e5-bc6a-de9690c35167"}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/banners/events:
+    post:
+      tags: [Banner embed]
+      operationId: publicBannerEvents
+      summary: "Report banner events"
+      description: |
+        Up to 50 events per batch: `eligible`, `viewable_impression` (≥ 50 % visible ≥ 1 s, deduplicated by the embed), `cta_click`, `dismiss` (never a click). Each event has a client UUID: a retried batch counts once (`duplicates`). Paths are stored without query strings; no PII. A consented `cta_click` returns an opaque 30-day click ID for the shop's checkout to pass back with the order (`order.attribution.click_id`). Events older than 2 days or from the future are rejected. Origin allowlisted.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, events]
+              properties:
+                key: { type: string }
+                events:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [id, campaign, version, type, occurred_at, consent]
+                    properties:
+                      id: { type: string, format: uuid }
+                      campaign: { type: string }
+                      version: { type: integer }
+                      type: { type: string, enum: [eligible, viewable_impression, cta_click, dismiss] }
+                      occurred_at: { type: string, format: date-time }
+                      device: { type: string, enum: [desktop, tablet, mobile] }
+                      path: { type: string }
+                      category: { type: string }
+                      consent: { type: boolean }
+            example: {"key": "pk_4dhphng2rpstr7qw2wybjton", "events": [{"id": "96875328-8eb8-4fcd-94eb-9c1deb4b1e73", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "eligible", "occurred_at": "2026-10-24T12:29:11Z", "device": "desktop", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": true}, {"id": "c0dceeb6-0574-432f-b57f-8561767f8d0e", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "viewable_impression", "occurred_at": "2026-10-24T12:29:11Z", "device": "desktop", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": true}, {"id": "e8fecc9c-399b-400e-87fd-1a4093e08d33", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "viewable_impression", "occurred_at": "2026-10-24T12:29:11Z", "device": "mobile", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": false}, {"id": "b51b04aa-93f8-4597-955a-36e4eead25b6", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "cta_click", "occurred_at": "2026-10-24T12:29:11Z", "device": "desktop", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": true}, {"id": "7d053be8-51fb-4ade-a083-fa58ef784f02", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "dismiss", "occurred_at": "2026-10-24T12:29:11Z", "device": "mobile", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": false}]}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/banners/events' \
+              -H 'Accept: application/json' -H 'Origin: https://www.woonenco.nl' \
+              -H 'Content-Type: application/json' -d '{"key":"pk_...","events":[...]}'
+      responses:
+        '202':
+          description: "Accepted (captured: 5 events, one consented click)."
+          content:
+            application/json:
+              example: {"data":{"accepted":5,"duplicates":0,"rejected":0,"click_ids":{"b51b04aa-93f8-4597-955a-36e4eead25b6":"bc_QkPRc69KHHtHC595p7ZkITHV"}}}
+        '403':
+          description: "Unknown key or origin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"origin_not_allowed","message":"Unknown key or origin not allowed.","request_id":"01a16de2-ef83-71e5-bc6a-de9690c35167"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/banners/assets/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banner embed]
+      operationId: publicBannerAsset
+      summary: "Banner image"
+      description: |
+        By opaque ID; immutable (one-year cache), `nosniff`, `default-src 'none'`.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -o banner.png 'http://localhost:8000/api/v1/banners/assets/<id>'
+      responses:
+        '200':
+          description: "The image (captured: image/png)."
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        '404':
+          description: "Unknown image."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Image not found.","request_id":"<id>"}}
+
+  /api/v1/banners/editor/pair:
+    post:
+      tags: [Banner embed]
+      operationId: bannerEditorPair
+      summary: "Exchange a pairing token (from the shop origin)"
+      description: |
+        From the origin the pairing token was issued for, once, within 10 minutes: returns a 30-minute editor token that can only read and save drafts of that webshop's banners. Wrong origin, replay or expiry → 401 `pairing_invalid`.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pairing_token]
+              properties:
+                pairing_token: { type: string }
+            example: {"pairing_token": "<pairing token>"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/banners/editor/pair' \
+              -H 'Accept: application/json' -H 'Origin: https://www.woonenco.nl' \
+              -H 'Content-Type: application/json' -d '{"pairing_token":"<pairing token>"}'
+      responses:
+        '200':
+          description: "Editor token."
+          content:
+            application/json:
+              example: {"data":{"editor_token":"<editor token>","expires_in":1800,"scope":"banner_drafts"}}
+        '401':
+          description: "Invalid, used, expired or wrong origin."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"pairing_invalid","message":"This pairing link is not valid any more. Start the editor again from ShopBonus.","request_id":"01a16de2-f3ce-720c-9977-4d02e7cc7193"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/banners/editor/campaigns/{banner}:
+    parameters:
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banner embed]
+      operationId: bannerEditorDraft
+      summary: "Editor: read a draft"
+      description: |
+        Needs `X-Banner-Editor-Token` and the paired `Origin`.
+      x-access: public
+      security: []
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/banners/editor/campaigns/<id>' \
+              -H 'Accept: application/json' -H 'Origin: https://www.woonenco.nl' -H 'X-Banner-Editor-Token: <editor token>'
+      responses:
+        '200':
+          description: "Draft."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","draft_revision":3,"draft_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}}}}
+        '401':
+          description: "Missing/expired token or other origin."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"editor_token_invalid","message":"Editor session expired or not valid for this site.","request_id":"01a16de2-f47c-72f4-b4ea-d23ba68befd3"}}
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+    put:
+      tags: [Banner embed]
+      operationId: bannerEditorSave
+      summary: "Editor: save a draft"
+      description: |
+        Same rules as the merchant draft save (schema, optimistic `revision`). Publishing stays in ShopBonus.
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, config]
+              properties:
+                revision: { type: integer }
+                config: { type: object }
+            example: {"revision": 3, "config": {"template": "ribbon", "placement": {"anchor": "top"}, "content": {"heading": "Besteed €100, krijg €10", "subtitle": "Voor je volgende aankoop", "cta_label": "Meer info", "cta_url": "https://www.woonenco.nl/shopbonus", "terms": "Min. besteding €100", "image_asset_id": "01m5py5v603t7kwb89trg52nrq"}, "style": {"background": "#1D4ED8", "text": "#FFFFFF", "font": "inter", "animation": "fade_in"}, "devices": ["desktop", "mobile"], "frequency": {"per_session": 1, "cooldown_hours": 24, "hide_after_dismiss": true}, "triggers": {"all": [{"type": "url_match", "value": "/collections/*"}, {"type": "category", "value": ["fashion"]}, {"type": "min_seconds", "value": 20}]}}}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/banners/editor/campaigns/<id>' \
+              -H 'Accept: application/json' -H 'Origin: https://www.woonenco.nl' -H 'X-Banner-Editor-Token: <editor token>' \
+              -H 'Content-Type: application/json' -d '{"revision":3,"config":{...}}'
+      responses:
+        '200':
+          description: "Saved."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","draft_revision":4}}
+        '401':
+          description: "Token invalid."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"editor_token_invalid","message":"Editor session expired or not valid for this site.","request_id":"01a16de2-f47c-72f4-b4ea-d23ba68befd3"}}
+        '404':
+          description: "Unknown banner (or another workspace's)."
+          content:
+            application/json:
+              example: {"error": {"status": 404, "code": "not_found", "message": "Banner not found.", "request_id": "<id>"}}
+        '409':
+          description: "Stale revision."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this banner in the meantime. Reload to continue.","request_id":"01a16de2-ef19-7067-ad86-a4e4839a8a75","details":{"current_revision":2}}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
 components:
   parameters:

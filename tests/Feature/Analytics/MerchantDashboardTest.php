@@ -157,7 +157,7 @@ class MerchantDashboardTest extends TestCase
         Sanctum::actingAs($this->owner);
         $data = $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/analytics/overview")->assertOk()->json('data');
         $this->assertSame(['paid_orders' => 1, 'gross_minor' => 10000, 'refunded_minor' => 2000, 'net_minor' => 8000, 'average_order_minor' => 10000], $data['orders']['EUR']);
-        $this->assertSame('not_available', $data['banner_metrics']['status']);
+        $this->assertSame('no_banners', $data['banner_metrics']['status']); // filled from B14 rollups once banners exist
     }
 
     public function test_owner_dashboard_combines_only_owned_webshops(): void
