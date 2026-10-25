@@ -22,7 +22,7 @@ class PlatformSettingController extends Controller
             fn ($q, $key) => $q->where('setting_id', DB::table('platform_settings')->where('key', $key)->value('id') ?? 0))->orderByDesc('id')->paginate($data['per_page'] ?? 25);
 
         return response()->json(['data' => $page->getCollection()->map(fn (PlatformSettingVersion $v) => $this->present($v))->all(),
-            'published' => $settings->published(), 'allowed_keys' => PlatformSettings::KEYS,
+            'published' => $settings->published(publicOnly: false), 'allowed_keys' => PlatformSettings::KEYS,
             'meta' => ['current_page' => $page->currentPage(), 'total' => $page->total(), 'per_page' => $page->perPage(), 'last_page' => $page->lastPage()]]);
     }
 

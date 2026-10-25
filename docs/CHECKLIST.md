@@ -496,6 +496,15 @@ Evidence: `4786e65` (CI run `40195059904` passed); 2026-10-25 SQLite 445 pass + 
 
 Evidence: `7b2c8d1`, pushed; implementation CI `40196742388` passed; SQLite 459 passed + 10 skipped, MySQL 467 passed + 2 skipped, 3 MySQL process races passed, 9 B16d guard mutations detected/restored; 11 real-server API captures; 256 generated route contracts match; migrations/verify/Pint/PHPStan/audit passed.
 
+### B16e Card #21 AI-assisted incident diagnostics (OpenAI selected by owner, 2026-10-25)
+
+- [x] Eligible technical incidents only; server-built allowlisted evidence excludes messages, raw payloads, credentials, customer/user/workspace/request IDs and unknown routes.
+- [x] Disabled-by-default OpenAI Responses transport, configurable model/key, strict structured output, no tools, no automatic retries, bounded token/time and global daily request quota.
+- [x] Idempotent audited queued requests and single provider execution; immutable context/result evidence and safe failed states; append-only human review; no business/security/deployment/incident-closing capabilities.
+- [x] Admin-only list/detail/request/review routes, password + OTP on mutations, rate limits, validation, stale-context indicator and negative/security/race tests.
+- [ ] Running-server API captures, OpenAPI and frontend handoff; SQLite/MySQL, Pint/PHPStan/audit, migration rollback/reapply, guard mutation tests, commits/push/CI.
+- [ ] Real OpenAI verification (requires API credentials + model/budget); staging p95/recovery (owner confirms no staging) — NOT RUN until prerequisites exist.
+
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)

@@ -2,16 +2,22 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Jobs\AnalyzeIncident;
 use App\Models\AdminApprovalRequest;
+use App\Models\IncidentDiagnostic;
 use App\Models\PlatformSettingVersion;
+use App\Models\SecurityIncident;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Admin\Diagnostics\IncidentDiagnostics;
 use App\Services\Admin\PlatformSettings;
 use App\Services\Admin\WalletAdjustments;
 use App\Services\Audit\AuditIntegrity;
 use App\Services\Audit\AuditLogger;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\RacesProcesses;
 use Tests\TestCase;
 
@@ -41,6 +47,23 @@ class ConcurrentAdminAdjustmentTest extends TestCase
     {
         $this->truncateAfterRace();
         parent::tearDown();
+    }
+
+    public function test_simultaneous_diagnostic_requests_reserve_one_global_quota_slot(): void
+    {
+        $this->skipUnlessRealDatabase();
+        config(['diagnostics.enabled' => true, 'diagnostics.api_key' => 'fixture-key', 'diagnostics.model' => 'fixture-model', 'diagnostics.daily_request_limit' => 1]);
+        Bus::fake([AnalyzeIncident::class]);
+        $admin = User::factory()->create();
+        $admin->platformRoles()->create(['role' => 'super_admin', 'granted_via' => 'console', 'granted_at' => now()]);
+        $incident = SecurityIncident::create(['fingerprint' => hash('sha256', 'diagnostic-race'), 'category' => 'application', 'severity' => 'error',
+            'service' => 'api', 'http_status' => 500, 'status' => 'new', 'occurrences' => 1, 'first_seen_at' => now(), 'last_seen_at' => now()]);
+        $results = $this->race(2, fn (int $worker) => 'ok:'.app(IncidentDiagnostics::class)->request(
+            SecurityIncident::findOrFail($incident->id), User::findOrFail($admin->id), 'race-diagnostic-'.$worker)->public_id);
+        $this->assertSame(1, count(array_filter($results, fn ($r) => str_starts_with($r, 'ok:'))), implode(', ', $results));
+        $this->assertContains('err:diagnostic_daily_limit', $results);
+        $this->assertSame(1, IncidentDiagnostic::count());
+        $this->assertSame(1, DB::table('incident_diagnostic_quotas')->value('requests'));
     }
 
     public function test_concurrent_review_posts_exactly_one_adjustment(): void

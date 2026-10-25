@@ -7443,3 +7443,233 @@ X-Request-Id: 01a17328-4352-715b-973b-80b90f052328
 
 {"data":{"values":{"public.brand_name":"Shopbonus NL","public.support_email":null,"public.languages":["nl","en"]},"versions":{"public.brand_name":"01m5sjggbvkq9g48e7ha2dz3b2"}}}
 ```
+
+## Card #21 incident diagnostics and operational budget
+
+Captured 2026-10-25 against a real local Laravel server (port 8079), isolated SQLite + database sessions/queue/cache, MAIL_MAILER=log and ADMIN_MFA_REQUIRED=false. Baseline e523098 plus this working slice. Fake fixture data only. API login/password/email-OTP flows were real. Queued and completed responses were fetched over HTTP; completed analysis was generated through the real validator/service with an explicit Http::fake OpenAI response in an isolated fixture CLI. **Live OpenAI is NOT VERIFIED**; no real key/model/budget configured. Staging performance/recovery NOT RUN (owner confirms no staging).
+
+OpenAI Responses integration uses structured output and store=false, with a fixed official API host, 20s timeout, one attempt and 256–4000 output-token bounds (default 1500). This does not promise zero provider retention. Provider/model credentials stay server-side. No tools are supplied; tool/refusal/incomplete/invalid outputs are refused. Sources: [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) and [Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create).
+
+Operational setting operations.diagnostics_daily_request_limit reuses draft → review → independent publish → new-draft rollback. Integer 0–1000; 0 pauses requests; environment cap remains authoritative. Operational values/versions are never in GET /public/settings. Credentials/model/enable switch cannot be changed through generic settings.
+
+### `POST /api/v1/admin/incidents/{incident}/diagnostics`
+
+GET lists diagnostics and availability/effective global daily quota. POST requires recent password + emailed OTP and request_key (8–64 ASCII letters/numbers/._:-). The key is idempotent per requester; changed incident conflicts. Only unresolved/unignored HTTP 500 or background-job failures are eligible. One queued provider attempt, no automatic retry. Global UTC-day requests are reserved atomically, including failed runs. Effective daily limit is the lower of the environment cap (0–1000) and independently published operational limit. Disabled/unconfigured returns 503 without reserving quota. Per-admin throttle is 3 requests/minute. Snapshots contain only predefined evidence, no customer/actor/workspace/request IDs, raw logs, errors, private URLs or payloads.
+
+```bash
+curl -i -X POST 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb9ph6rcv/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"request_key":"capture-diagnostic"}'
+```
+
+**Response 503**
+
+```http
+HTTP/1.1 503
+X-Request-Id: 01a17351-f8d7-7216-aecc-076fb74ebab7
+Content-Type: application/json
+
+{"error":{"status":503,"code":"diagnostics_not_configured","message":"Incident diagnostics is not configured.","request_id":"01a17351-f8d7-7216-aecc-076fb74ebab7"}}
+```
+
+**Response 422**
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17352-052f-7269-afe2-f8ebad400ce1
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17352-052f-7269-afe2-f8ebad400ce1","fields":{"request_key":["The request key field is required."]}}}
+```
+
+**Response 202**
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: 01a17352-0697-72ab-9afb-81d1d21ccbee
+
+{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}}
+```
+
+**Response 429**
+
+```http
+HTTP/1.1 429
+X-Request-Id: 01a17352-133d-73fa-9b0b-6e1ac88755b1
+Content-Type: application/json
+
+{"error":{"status":429,"code":"diagnostic_daily_limit","message":"The daily diagnostic request limit has been reached.","request_id":"01a17352-133d-73fa-9b0b-6e1ac88755b1"}}
+```
+
+### `GET /api/v1/admin/incidents/{incident}/diagnostics`
+
+GET lists diagnostics and availability/effective global daily quota. POST requires recent password + emailed OTP and request_key (8–64 ASCII letters/numbers/._:-). The key is idempotent per requester; changed incident conflicts. Only unresolved/unignored HTTP 500 or background-job failures are eligible. One queued provider attempt, no automatic retry. Global UTC-day requests are reserved atomically, including failed runs. Effective daily limit is the lower of the environment cap (0–1000) and independently published operational limit. Disabled/unconfigured returns 503 without reserving quota. Per-admin throttle is 3 requests/minute. Snapshots contain only predefined evidence, no customer/actor/workspace/request IDs, raw logs, errors, private URLs or payloads.
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb9ph6rcv/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-0bdf-73f1-a1f2-93fed9d86d1e
+
+{"data":[{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}],"availability":{"configured":true,"provider":"openai","effective_daily_request_limit":10},"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### `GET /api/v1/admin/incident-diagnostics/{diagnostic}`
+
+Admin-only polling endpoint. status queued|running|completed|failed. AI analysis is an unverified advisory hypothesis: likely_cause, evidence_refs (validated against snapshot E1–E5), impacted_component, suggested_investigation, proposed_fix, self-assessed confidence and uncertainty. context_stale flags changed occurrence counts. Results never execute tools, deploy, change permissions, refund, mutate ledgers or close incidents. No raw provider errors/refusals are stored or returned. Context hashes and immutable results preserve source evidence. Check reviews separately; human_review_required/advisory_only always remain true.
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42r9vath46q50qjxwg11' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-0c46-705f-a185-820d22ffa514
+
+{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}}
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-10f5-72f1-97cb-af419f419f32
+
+{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"completed","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":"2026-10-25T13:48:40+00:00","failure_code":null,"analysis":{"likely_cause":"A server failure needs investigation.","impacted_component":"api","proposed_fix":"Investigate before proposing a production change.","confidence":"low","uncertainty":"No stack trace or confirmed root cause is available.","evidence_refs":["E1","E5"],"suggested_investigation":["Inspect authorized server logs locally."]},"human_review_required":true,"advisory_only":true,"reviews":[]}}
+```
+
+### `POST /api/v1/admin/incident-diagnostics/{diagnostic}/review`
+
+Recent password + emailed OTP required. Record accepted|dismissed with a 5–500 character note. Only completed diagnostics can be reviewed. One append-only review per admin/result; repeats return 409. Acceptance records human assessment only and performs no production or business action.
+
+```bash
+curl -i -X POST 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42r9vath46q50qjxwg11/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"decision":"accepted","note":"Independent investigation review"}'
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17352-0c9a-7097-9571-1e618d247f3a
+Content-Type: application/json
+
+{"error":{"status":409,"code":"diagnostic_not_completed","message":"Only completed diagnostics can be reviewed.","request_id":"01a17352-0c9a-7097-9571-1e618d247f3a"}}
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-1138-7039-94bd-2b82014f4e23
+
+{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"completed","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":"2026-10-25T13:48:40+00:00","failure_code":null,"analysis":{"likely_cause":"A server failure needs investigation.","impacted_component":"api","proposed_fix":"Investigate before proposing a production change.","confidence":"low","uncertainty":"No stack trace or confirmed root cause is available.","evidence_refs":["E1","E5"],"suggested_investigation":["Inspect authorized server logs locally."]},"human_review_required":true,"advisory_only":true,"reviews":[{"id":"01m5sn44am1wwm6vx9rhpe2822","reviewed_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","decision":"accepted","note":"Independent investigation review","created_at":"2026-10-25T13:48:40+00:00"}]}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17352-118c-73fe-9a16-6dd241d627f3
+Content-Type: application/json
+
+{"error":{"status":409,"code":"diagnostic_already_reviewed","message":"You have already reviewed this diagnostic result.","request_id":"01a17352-118c-73fe-9a16-6dd241d627f3"}}
+```
+
+### `POST /api/v1/admin/platform-settings`
+
+Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
+
+```bash
+curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"key":"operations.diagnostics_daily_request_limit","value":0,"reason":"Pause diagnostic requests for investigation"}'
+```
+
+**Response 201**
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: 01a17352-11cf-7288-9cbd-1ec52e1c1cfe
+
+{"data":{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"draft","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+```
+
+### `POST /api/v1/admin/platform-settings/{version}/review`
+
+Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
+
+```bash
+curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe5xr81nqxj95csekt/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-1220-71e1-897a-bd4ebd76da49
+
+{"data":{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"review","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+```
+
+### `POST /api/v1/admin/platform-settings/{version}/publish`
+
+Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
+
+```bash
+curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe5xr81nqxj95csekt/publish' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"note":"Independent budget review completed"}'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-1269-7073-8780-0d3218c2c196
+
+{"data":{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"published","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":"01m5sn3fw7snnwjngbgsvcz5ff","review_note":"Independent budget review completed","published_at":"2026-10-25T13:48:40+00:00","is_current":true,"rollback_of":null}}
+```
+
+### `GET /api/v1/admin/platform-settings`
+
+Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/admin/platform-settings' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-12bc-7372-b2f5-854767b012c5
+
+{"data":[{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"published","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":"01m5sn3fw7snnwjngbgsvcz5ff","review_note":"Independent budget review completed","published_at":"2026-10-25T13:48:40+00:00","is_current":true,"rollback_of":null}],"published":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"],"operations.diagnostics_daily_request_limit":0},"versions":{"operations.diagnostics_daily_request_limit":"01m5sn44fe5xr81nqxj95csekt"}},"allowed_keys":["public.brand_name","public.support_email","public.languages","operations.diagnostics_daily_request_limit"],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### `GET /api/v1/public/settings`
+
+Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/public/settings' -H 'Accept: application/json'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17352-12fb-707c-85b7-c212387e6c3a
+
+{"data":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"]},"versions":[]}}
+```

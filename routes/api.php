@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolic
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
 use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
+use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncidentDiagnosticController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
@@ -182,6 +183,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             // confirmation; the most sensitive ones also an emailed step-up code (B16a).
             Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
                 Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
+                Route::get('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'index'])->name('incident-diagnostics.index');
+                Route::get('incident-diagnostics/{diagnostic}', [AdminIncidentDiagnosticController::class, 'show'])->name('incident-diagnostics.show');
                 Route::get('incidents', [AdminIncidentController::class, 'index'])->name('incidents.index');
                 Route::get('incidents/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
                 Route::get('api-routes', [AdminApiRouteRegistryController::class, 'index'])->name('api-routes');
@@ -228,6 +231,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
+                    Route::post('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'store'])->middleware(['step_up.otp', 'throttle:admin-diagnostics'])->name('incident-diagnostics.store');
+                    Route::post('incident-diagnostics/{diagnostic}/review', [AdminIncidentDiagnosticController::class, 'review'])->middleware('step_up.otp')->name('incident-diagnostics.review');
                     Route::post('audit/export', [AdminAuditExportController::class, 'export'])->middleware(['step_up.otp', 'throttle:order-export'])->name('audit.export');
                     Route::post('platform-settings', [AdminPlatformSettingController::class, 'store'])->name('platform-settings.store');
                     Route::post('platform-settings/{version}/review', [AdminPlatformSettingController::class, 'submit'])->name('platform-settings.review');

@@ -43,5 +43,11 @@
     "A newer version is already published. Create a rollback draft instead.": "Er is al een nieuwere versie gepubliceerd. Maak een herstelconcept aan.",
     "Setting version integrity verification failed.": "De integriteitscontrole van de instellingsversie is mislukt.",
     "Only published history can be used for a rollback draft.": "Alleen gepubliceerde geschiedenis kan als basis voor een herstelconcept worden gebruikt.",
-    "Audit exports are limited to 31 days per request.": "Auditexports zijn beperkt tot 31 dagen per aanvraag."
+    "Audit exports are limited to 31 days per request.": "Auditexports zijn beperkt tot 31 dagen per aanvraag.",
+    "Only active technical failure incidents can be analyzed.": "Alleen actieve incidenten met technische fouten kunnen worden geanalyseerd.",
+    "The diagnostic request key was already used for another incident.": "De diagnostiekaanvraagsleutel is al gebruikt voor een ander incident.",
+    "Incident diagnostics is not configured.": "Incidentdiagnostiek is niet geconfigureerd.",
+    "The daily diagnostic request limit has been reached.": "De dagelijkse limiet voor diagnostiekaanvragen is bereikt.",
+    "Only completed diagnostics can be reviewed.": "Alleen voltooide diagnostiek kan worden beoordeeld.",
+    "You have already reviewed this diagnostic result.": "U heeft dit diagnostische resultaat al beoordeeld."
 }

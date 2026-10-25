@@ -1,34 +1,34 @@
 # Latest Agent Handoff
 
-**Session:** 2026-10-25, Codex; Laravel backend only.
-**Branch:** `main` (direct commits/normal push authorized). **Last committed code:** `7b2c8d1` B16d, pushed; CI `40196742388` passed (MySQL, SQLite, lint/static/audit). Earlier `4786e65` B16c; CI `40195059904` passed. This final documentation checkpoint follows those implementation commits.
-**Working tree:** clean at `7b2c8d1`; final documentation-only checkpoint updates continuity and the Frank-card report. After committing, `git status -sb` must be clean. No pre-existing user changes were overwritten.
-**Current work:** B16c/B16d backend implementation complete within documented safe scope; implementation CI passed. Final documentation-only commit/push and its CI check are the closing actions. Owner additionally asked which Frank cards can be ticked from a newly downloaded Trello export. Read-only report: `docs/TRELLO_FRANK_AUDIT_2026-10-25.md`. None of 14 full Frank cards meet all acceptance criteria; several backend slices are done. New #29–#32 and revised #1 must be triaged separately; old requirements file was not silently replaced.
-**Disk:** last measured 6.3 GiB free, fluctuates between 5.3 and 6.3. Always run `df -h /System/Volumes/Data` first; below about 5 GiB STOP and ask owner. Never purge binlogs or other projects' data.
-**Decisions:** D-064 dual-admin-v1 for every wallet adjustment (owner delegated choice); D-065 audit chain/anchoring limits; D-066 safe public metadata allowlist; D-067 incident grouping/no raw payloads. All provider/legal/marketing/affiliate OPEN decisions remain.
+**Session:** 2026-10-25, Codex, owner requested work on Trello #21. Laravel backend only.
+**Branch / committed baseline:** `main` / `e523098` (clean and origin-synced at start; previous B16c/B16d code `4786e65` / `7b2c8d1`, CI passed). B16e WIP checkpoint is being committed; record its SHA after commit.
+**Working tree:** intended B16e code, tests, contracts, .env.example and continuity docs; no pre-existing uncommitted work overwritten. No frontend files changed.
+**Task:** #21 AI-assisted incident diagnostics + reviewed private operational quota, implementation tested locally; WIP/final commits and CI pending. Whole card remains PARTIAL pending live API configuration, UI and staging evidence.
+**Owner answers:** "chatgpt" for provider (implemented OpenAI Responses); "there isn't" for staging. No API key/model configured. Never infer ChatGPT session access supplies API credentials. Keep disabled until local/deployment API project/key, supported model and budget are configured. No live provider request was made.
+**Disk:** started 6.2 GiB free; after full MySQL QA about 5.2 GiB, fluctuates. Run `df -h /System/Volumes/Data` first; below ~5 GiB STOP and ask owner. No binlogs purged, no other project/Redis data deleted.
 
-## Delivered and limitations
+## B16e implementation / contracts
 
-- B16c (13 routes): wallet/ledger/flags, dual-admin source-linked corrections, financial evidence, connection/Answer24 oversight and locked original-identity retries. Current consent/suppression/payment eligibility rechecked before contact dispatch. No payouts; WalletService remains the sole wallet writer; dispatch off/test-only settings preserved.
-- B16d (11 routes): grouped incident/status/assignment/history API; occurrence request IDs for HTTP 401/403/419/422/429/500 and queue failures; generated runtime/OpenAPI registry with 256 matching operations and CLI; SHA256 chain companion seals/head, verify command and bounded authorized export; immutable public-setting draft/review/independent publish/new-draft rollback with public published settings output.
-- Settings allowlist only public.brand_name, public.support_email, public.languages; sensitive legal/consent/provider/financial policies remain in existing systems, never generic settings activation. UI/AI/staging not delivered; whole Trello #21 is still PARTIAL.
-- Audit migration seals historical rows as observed, not retrospectively authenticated. Exported heads need independent off-host retention to detect a privileged DB administrator rewriting every row/hash/head. No retention deletion policy invented. Export is a bounded safe projection (≤500/page, ≤31 UTC days), not an unbounded bulk-report job; metadata/internal resource IDs/private payloads omitted.
-- No live provider claims: Answer24/Mollie/affiliate NOT VERIFIED; Moneybird not connected; AI diagnostics B17/provider decision blocked; new centralized-notification/reliability cards not implemented by existing merchant notification/incident slices.
+- Migration `2026_10_25_150000_create_incident_diagnostics`: runs, immutable results, append-only reviews and global UTC-day request quota. Applied/rolled back/reapplied on local MySQL successfully.
+- `Services/Admin/Diagnostics/{DiagnosticContext,OpenAiDiagnostics,IncidentDiagnostics,ProviderFailure}`, `Jobs/AnalyzeIncident`, three models and `Admin/IncidentDiagnosticController`; uses existing AuditLogger, incident/public IDs, admin/MFA/password/email-OTP gates, queue and platform-setting workflow.
+- New routes: GET/POST `/api/v1/admin/incidents/{incident}/diagnostics`, GET `/api/v1/admin/incident-diagnostics/{diagnostic}`, POST `/api/v1/admin/incident-diagnostics/{diagnostic}/review`. Mutations require password + OTP; request throttle 3/min/admin; private read/list are admin-only. GuardSupportSession already denies all admin routes.
+- Strict context allowlist excludes user/customer/workspace/request IDs, arbitrary errors/logs/payloads and private URLs. Only status, known service, registered route/method and count are forwarded, indexed E1–E5. Context hash verified before egress. Strict response/evidence schema; raw tool/refusal/error/incomplete output rejected. No tools, execution, refunds, ledgers, permissions, deployment or auto-close capabilities. Accepted/dismissed reviews are assessment only; results remain unverified advisory hypotheses.
+- Single queued provider attempt (no HTTP/queue retry); duplicate execution guarded; current requester/incident eligibility rechecked. Request key scoped per admin, changed incident 409. Daily quota reservation serialized globally; failed runs count; repeats don't. Safe failure codes only, never raw provider errors.
+- `operations.diagnostics_daily_request_limit` reuses independent draft/review/publish/rollback. Integer 0–1000; 0 pauses. Effective value ≤ environment hard cap. Operational values/versions excluded from anonymous public settings. No generic provider/model/credential/enable settings and no existing legal/financial/marketing policy activated.
+- Config names only: `ADMIN_DIAGNOSTICS_ENABLED=false`, `OPENAI_API_KEY`, `ADMIN_DIAGNOSTICS_MODEL` (empty), `ADMIN_DIAGNOSTICS_DAILY_REQUEST_LIMIT=10`, `ADMIN_DIAGNOSTICS_MAX_OUTPUT_TOKENS=1500` (256–4000 clamp). Fixed official Responses host; 20s HTTP timeout; job 30s, tries=1; persistent workers need same config and retry-after > timeout.
+- D-068/D-069; full frontend/config handoff: `docs/admin/INCIDENT_DIAGNOSTICS.md`. B17 support chat remains unbuilt, distinct from #21 diagnostics.
 
-## Tests actually executed
+## Executed verification
 
-B16c: SQLite **445 passed + 8 skipped**; MySQL **453 passed**; Pint/PHPStan clean; composer audit clear; two migrations rollback/reapply passed; nine guard mutation checks detected/restored; real-server captures for 13 routes; pushed CI passed.
-
-B16d final executed evidence (`7b2c8d1`, implementation CI passed):
-- Final SQLite **459 passed + 10 skipped**, 6676 assertions. Ten SQLite skips are MySQL-only process races (8 B16c races + 2 new B16d races).
-- Final MySQL suite **467 passed + 2 skipped**, 6711 assertions, 129 s. The two skips are explicit destructive trigger-bypass simulations exercised on SQLite; MySQL tests trigger enforcement without dropping protections. Two old audit-outage tests now inject a QueryException instead of dropping an FK-referenced shared table; targeted MySQL rerun 9 passed.
-- Focused B16d MySQL **14 passed + 2 skipped**; destructive trigger-bypass tamper simulations use transactional SQLite only. MySQL separately tests trigger enforcement and unsealed/head-corruption detection.
-- Real-process MySQL race group **3 passed**: wallet approval, eight audit appends, same-version concurrent setting publication. Initial INSERT IGNORE → FOR UPDATE shared-lock upgrade deadlock found and fixed by exclusive no-op head upsert; rerun passed.
-- Pint/PHPStan pass; composer audit no advisories. Nine B16d guard mutations detected failures; original source restored.
-- Local MySQL migrations `120000` incidents, `130000` audit chain/backfill, `140000` platform settings all applied/rolled back/reapplied; `shopbonus:audit-verify` passed (230 historical entries at check).
-- Runtime `shopbonus:api-routes` command generated **256 operations**, all x-access/permission contracts match. Real HTTP captures for all 11 B16d operations and domain conflicts, in OpenAPI/README.
-- Capture server stopped; task-owned temporary SQLite fixture, generated passwords, email-code log and helper artifacts removed. Main application log was not used for mail. No secrets/capture fixtures committed.
-- Staging p95, encrypted backup/restore, production alerting, PostgreSQL and real providers NOT RUN.
+- `php artisan test`: **469 passed + 11 skipped**, 6839 assertions (MySQL process races skipped).
+- `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test`: **478 passed + 2 skipped**, 6878 assertions, 141s. Two skips are existing destructive trigger-bypass tests run on transactional SQLite; MySQL trigger protections tested without dropping them.
+- Pint --test, PHPStan L6 --memory-limit=1G and composer audit: PASS/no advisories.
+- Migration `150000` apply/rollback --step=1/reapply: PASS local MySQL.
+- Focused diagnostics/settings/contract suite 19 passed; 10 diagnostics feature cases plus one new real MySQL quota race. Privacy, unknown evidence/tool/incomplete/refusal/malformed output, disabled provider, exhausted quota, stale context, duplicate calls/reviews, request-key conflict, changed requester, context-integrity checks and public/private setting separation tested.
+- Eight guard mutation checks detected failures and were restored (configuration, quota, execution guard, context hash, review status, eligibility, evidence refs, environment cap).
+- Real local-server HTTP captures: isolated SQLite/database sessions/queue/cache, logged mail, MFA bypass only in capture environment. Requests/login/password/OTP/poll/review/settings were real HTTP. Completion generated through the real validator/service using Http::fake; explicitly NOT live OpenAI evidence. OpenAPI/README updated for all new/changed endpoints.
+- Capture server stopped and logged email-code suffix removed while preserving pre-existing app log content. Temporary `/tmp/shopbonus-21.2DRdZz` fixtures/scripts still need deletion at this checkpoint (generated test passwords/SQLite); `/tmp/shopbonus21-mutations.py` is task-owned. Never commit them.
+- Live OpenAI/key/model/account capability: NOT VERIFIED. Staging p95, production alerts and backup/restore: NOT RUN (owner confirms no staging). No frontend implementation.
 
 ## Environment / migrations / config
 
@@ -84,8 +84,8 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 - Never use database `NOW()` in queries or scripts: local MySQL runs in the server's timezone while the app writes UTC. Use PHP `now()`.
 - The agent shell is zsh: never name a shell variable `path` (it is tied to `PATH`). Capture scripts are bash files using `caplib.sh` (see the scratchpad pattern described in PROGRESS); keep that pattern.
 
-## Next agent's exact first actions
+## Next exact actions
 
-1. Disk cutoff and git status/log first. B16c/B16d local suites, migrations, captures and implementation CI passed. Final doc checkpoint must be pushed/CI checked; inspect latest git log and CI if resuming during that final action. Capture server/temp credentials already removed.
-2. Owner's requested Frank-card audit is `docs/TRELLO_FRANK_AUDIT_2026-10-25.md`: none of 14 full cards Done; list completed backend subtasks separately. No Trello changes were authorized or made.
-3. After this checkpoint, B17 is blocked on AI provider/model decision; B18 needs staging/provider/backup evidence; B19 has empty requirements. New downloaded cards #29–#32 and revised #1 need explicit queue triage; do not silently call them done or implement UI. Maintain all OPEN decisions; no live money/marketing activation.
+1. Check disk cutoff and git status/log. Complete B16e WIP/final commits, normal push, and CI verification; record exact code SHA. Tests above passed; don't tick the live-provider/staging checklist item.
+2. Remove remaining task-owned temporary capture fixtures/scripts; update clean/uncommitted status. Handoff API/config docs to Hassan; #21 remains PARTIAL until real API setup/verification and UI/staging acceptance.
+3. For live verification, owner must configure an OpenAI API key, supported Responses/Structured Outputs model and budget in the environment; do not ask for secrets in chat or invent a default production model. There is no staging; do not claim performance/backup/provider checks passed. B17 support chat/new cards are separate scope. Existing financial/legal/marketing/affiliate OPEN decisions remain unchanged.

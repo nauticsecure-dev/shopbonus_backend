@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-/** Public metadata only. Legal/CMS/consent, financial policies and provider secrets retain their existing owners. */
+/** Versioned public metadata and bounded operational limits. Sensitive business/provider policies retain their existing owners. */
 class PlatformSettings
 {
-    public const KEYS = ['public.brand_name', 'public.support_email', 'public.languages'];
+    public const PUBLIC_KEYS = ['public.brand_name', 'public.support_email', 'public.languages'];
+
+    public const KEYS = [...self::PUBLIC_KEYS, 'operations.diagnostics_daily_request_limit'];
 
     public function __construct(private readonly AuditLogger $audit) {}
 
@@ -92,6 +94,7 @@ class PlatformSettings
     {
         Validator::make(['key' => $key], ['key' => ['required', Rule::in(self::KEYS)]])->validate();
         $rules = match ($key) {
+            'operations.diagnostics_daily_request_limit' => ['value' => ['required', 'integer', 'min:0', 'max:1000']],
             'public.brand_name' => ['value' => ['required', 'string', 'min:1', 'max:100', 'regex:/^[\pL\pN .&\'-]+$/u']],
             'public.support_email' => ['value' => ['required', 'email:rfc', 'max:254']],
             'public.languages' => ['value' => ['required', 'array', 'min:1', 'max:2'], 'value.*' => ['required', 'string', 'distinct', Rule::in(User::SUPPORTED_LOCALES)]],
@@ -101,16 +104,31 @@ class PlatformSettings
     }
 
     /** @return array<string, mixed> */
-    public function published(): array
+    public function published(bool $publicOnly = true): array
     {
         $values = ['public.brand_name' => 'Shopbonus', 'public.support_email' => null, 'public.languages' => User::SUPPORTED_LOCALES];
+        if (! $publicOnly) {
+            $values['operations.diagnostics_daily_request_limit'] = max(0, min(1000, (int) config('diagnostics.daily_request_limit')));
+        }
         $versions = [];
-        foreach (DB::table('platform_settings')->whereIn('key', self::KEYS)->whereNotNull('published_version_id')->get() as $setting) {
+        foreach (DB::table('platform_settings')->whereIn('key', $publicOnly ? self::PUBLIC_KEYS : self::KEYS)->whereNotNull('published_version_id')->get() as $setting) {
             $version = PlatformSettingVersion::findOrFail($setting->published_version_id);
             $values[$setting->key] = $version->value;
             $versions[$setting->key] = $version->public_id;
         }
 
         return ['values' => $values, 'versions' => $versions];
+    }
+
+    public function diagnosticDailyLimit(): int
+    {
+        $cap = max(0, min(1000, (int) config('diagnostics.daily_request_limit')));
+        $setting = DB::table('platform_settings')->where('key', 'operations.diagnostics_daily_request_limit')->first();
+        if ($setting === null || $setting->published_version_id === null) {
+            return $cap;
+        }
+        $value = PlatformSettingVersion::findOrFail($setting->published_version_id)->value;
+
+        return is_int($value) ? max(0, min($cap, $value)) : 0;
     }
 }
