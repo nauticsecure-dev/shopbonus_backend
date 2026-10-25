@@ -19,6 +19,20 @@ abstract class BaseAffiliateAdapter implements AffiliateNetworkAdapter
         return str_replace('{click_ref}', rawurlencode($clickReference), $program->tracking_url_template);
     }
 
+    protected function trackingTemplate(string $url, string $parameter): string
+    {
+        $parts = parse_url($url);
+        if ($parts === false || ! in_array($parts['scheme'] ?? null, ['http', 'https'], true) || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+        $fragment = isset($parts['fragment']) ? '#'.$parts['fragment'] : '';
+        $url = explode('#', $url, 2)[0];
+        $url = preg_replace('/([?&])'.preg_quote($parameter, '/').'=[^&]*(&|$)/', '$1', $url) ?? $url;
+        $separator = str_contains($url, '?') ? (str_ends_with($url, '?') || str_ends_with($url, '&') ? '' : '&') : '?';
+
+        return $url.$separator.$parameter.'={click_ref}'.$fragment;
+    }
+
     /**
      * Network amounts arrive as decimals (often JSON numbers). Converted
      * exactly; extra decimals beyond the currency's are truncated toward

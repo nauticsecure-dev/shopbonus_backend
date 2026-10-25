@@ -33,9 +33,11 @@ Neither adapter has been run against a live account. Before enabling production 
 
 | Check | Daisycon (`DaisyconAdapter`) | TradeTracker (`TradeTrackerAdapter`) |
 | --- | --- | --- |
-| Auth works; bad credentials → `reauthentication_required` | NOT RUN (stub only) | NOT RUN: SOAP transport not shipped, connection is `limited` |
-| Program list paths/fields: `id`, `name`, `url`, `commission.type/value/restricted`, `cashback_allowed`, `tracking_url` | NOT VERIFIED | Export fields `ID`, `URL`, `info.commission.saleCommissionVariable/Fixed`, `info.policyCashbackStatus`, `info.trackingURL`: NOT VERIFIED |
+| Auth works; bad credentials → `reauthentication_required` | NOT RUN (stub only) | NOT RUN live: SOAP transport shipped in B10b; disabled by default until senior developer configures access |
+| Program list paths/fields: `id`, `name`, `url`, `commission.type/value/restricted`, `cashback_allowed`, `tracking_url` | NOT VERIFIED | Pinned-WSDL/export fields `ID`, `URL`, `info.commission.saleCommissionVariable/Fixed`, `info.policyCashbackStatus`, `info.trackingURL`: NOT VERIFIED |
 | Sub-ID parameter on the tracking link (`ws` / `r`) reaches conversions as `parts[].subid` / `reference` | NOT VERIFIED | NOT VERIFIED |
 | Transaction statuses mapped (`approved/pending/open/disapproved` → approved/pending/rejected; TradeTracker `accepted/pending/rejected/cancelled`) | NOT VERIFIED | NOT VERIFIED |
 | Cashback/sub-ID use permitted by each program's terms | Check per program | Check per program |
 | Postback format and source IPs | NOT VERIFIED | NOT VERIFIED |
+
+B10b implementation/configuration handoff: [TRADETRACKER.md](TRADETRACKER.md). Owner explicitly assigned credentials to the senior developer. Main transport is fixture-tested; live verification remains NOT RUN and is not a prerequisite for writing the adapter code.

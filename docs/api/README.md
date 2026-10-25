@@ -7683,3 +7683,108 @@ X-Request-Id: 01a17359-9543-73dd-aa00-6123e60454c2
 
 {"data":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"]},"versions":[]}}
 ```
+
+
+## Affiliate transport update — B10b, 2026-10-25
+
+TradeTracker SOAP transport is now implemented. Earlier examples above are historical B10 captures. `TRADETRACKER_API_ENABLED=false` keeps API calls paused (`limited`, safe code `transport_disabled`); imports remain available. The senior developer supplies encrypted connection credentials and enables it after deployment checks. See [TradeTracker setup](../integrations/TRADETRACKER.md). No new routes or migrations.
+
+The following requests/responses were captured through a real local HTTP server, isolated SQLite database and actual login/password-confirmation/CSRF flow. **The upstream SOAP responses were synthetic WSDL-shaped fixtures, not a live TradeTracker account.** PHP 8.4 / Laravel 13, implementation based on `a9edfb3`. Capture-only MFA bypass; production MFA rules unchanged.
+
+### `POST /api/v1/admin/affiliate/connections`
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8078/api/v1/admin/affiliate/connections' -b cookies.txt \
+  -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:8078' \
+  -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+  -H 'Content-Type: application/json' \
+  --data '{"network":"tradetracker","name":"TradeTracker fixture","credentials":{"customer_id":"123","passphrase":"<configured passphrase>","site_id":"456"}}'
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a1736c-cbcd-7393-8045-d0c7ca89f06c
+
+{"data":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":null,"last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES).","postback_url":"http://127.0.0.1:8078/api/v1/affiliate/postback/<postback token>","postback_url_notice":"Shown once. Postbacks can only record conversions as tracked; rewards need the network API or an import."}}
+```
+
+### `POST /api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/test`
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8078/api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/test' -b cookies.txt \
+  -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:8078' \
+  -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1736c-cc45-701e-aaf1-a74d9f249e59
+
+{"data":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":null,"last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+```
+
+### `POST /api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/sync`
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8078/api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/sync' -b cookies.txt \
+  -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:8078' \
+  -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1736c-cc67-70c0-9948-8d9f567b8414
+
+{"data":{"programs":1,"transactions":0,"error":null,"connection":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":"2026-10-25T14:17:52+00:00","last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}}
+```
+
+### `GET /api/v1/admin/affiliate/connections`
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8078/api/v1/admin/affiliate/connections' -b cookies.txt \
+  -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:8078' \
+  -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1736c-cc9d-72ed-ab42-54a83e6a255d
+
+{"data":[{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":"2026-10-25T14:17:52+00:00","last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}]}
+```
+
+### `POST /api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/disable`
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8078/api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/disable' -b cookies.txt \
+  -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:8078' \
+  -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1736c-ccba-723f-a806-077bda6408d6
+
+{"data":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"disabled","last_synced_at":"2026-10-25T14:17:52+00:00","last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+```
+
+### `POST /api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/sync`
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8078/api/v1/admin/affiliate/connections/01m5spsjzasjnkpxrpaxrc2a4x/sync' -b cookies.txt \
+  -H 'Accept: application/json' -H 'Origin: http://127.0.0.1:8078' \
+  -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+```
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a1736c-ccdd-70bc-b779-2dc1c3eaae66
+Content-Type: application/json
+
+{"error":{"status":409,"code":"connection_disabled","message":"This connection is disabled.","request_id":"01a1736c-ccdd-70bc-b779-2dc1c3eaae66"}}
+```

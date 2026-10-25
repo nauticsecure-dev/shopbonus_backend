@@ -4,11 +4,13 @@ namespace App\Services\Affiliate;
 
 use App\Affiliate\AffiliateNetworkRegistry;
 use App\Affiliate\Data\AffiliateProgramData;
+use App\Affiliate\NetworkFailure;
 use App\Enums\AuditCategory;
 use App\Models\AffiliateConnection;
 use App\Models\AffiliateProgram;
 use App\Models\Webshop;
 use App\Services\Audit\AuditLogger;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -30,31 +32,48 @@ class AffiliateSync
      */
     public function sync(AffiliateConnection $connection): array
     {
+        if ($connection->status === 'disabled') {
+            return ['programs' => 0, 'transactions' => 0, 'error' => 'connection_disabled'];
+        }
         $adapter = $this->registry->for($connection->network);
 
         try {
             $programs = $adapter->fetchPrograms($connection);
             $transactions = $adapter->fetchTransactions($connection, $connection->last_synced_at?->subDays(7));
         } catch (Throwable $e) {
-            $error = mb_substr($e->getMessage(), 0, 255);
-            $connection->forceFill(['status' => $connection->status === 'disabled' ? 'disabled' : ($connection->network === 'tradetracker' ? 'limited' : 'error'), 'last_error' => $error])->save();
+            $error = $e instanceof NetworkFailure ? $e->error : 'provider_sync_failed';
+            // Conditional update also preserves a disable committed while a failed pull was in flight.
+            AffiliateConnection::whereKey($connection->id)->where('status', '!=', 'disabled')->update([
+                'status' => $e instanceof NetworkFailure ? $e->status : 'error', 'last_error' => $error,
+            ]);
+            $connection->refresh();
             $this->audit->recordSafely('affiliate.sync_failed', category: AuditCategory::Integration, resource: $connection, metadata: ['error' => $error]);
 
             return ['programs' => 0, 'transactions' => 0, 'error' => $error];
         }
 
-        $this->upsertPrograms($connection, $programs);
-        foreach ($transactions as $data) {
-            $this->processor->ingest($connection, $data, 'sync');
-        }
-        $connection->forceFill(['last_synced_at' => now(), 'last_error' => null, 'status' => 'connected'])->save();
+        return DB::transaction(function () use ($connection, $programs, $transactions): array {
+            $locked = AffiliateConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            // A disable while the provider was responding must stop ingestion too.
+            if ($locked->status === 'disabled') {
+                return ['programs' => 0, 'transactions' => 0, 'error' => 'connection_disabled'];
+            }
+            if ($locked->network === 'tradetracker') {
+                // The completed SOAP pull is an authoritative full program snapshot.
+                AffiliateProgram::where('connection_id', $locked->id)->update(['active' => false]);
+            }
+            $this->upsertPrograms($locked, $programs);
+            foreach ($transactions as $data) {
+                $this->processor->ingest($locked, $data, 'sync');
+            }
+            $locked->forceFill(['last_synced_at' => now(), 'last_error' => null, 'status' => 'connected'])->save();
 
-        return ['programs' => count($programs), 'transactions' => count($transactions), 'error' => null];
+            return ['programs' => count($programs), 'transactions' => count($transactions), 'error' => null];
+        });
     }
 
     /**
-     * Admin import of the network's own export rows (e.g. TradeTracker, whose
-     * API transport is not verified yet).
+     * Admin import of the network's own export rows (also available without API access).
      *
      * @param  list<array<string, mixed>>  $programs
      * @param  list<array<string, mixed>>  $transactions

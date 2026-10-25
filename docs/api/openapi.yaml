@@ -4787,7 +4787,7 @@ paths:
           description: "Connections."
           content:
             application/json:
-              example: {"data":[{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."},{"id":"01m5pcjrhbp0asmpwtj19hjnzk","network":"tradetracker","name":"TradeTracker NL","status":"limited","last_synced_at":null,"last_error":"soap_transport_not_verified","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}]}
+              example: {"data":[{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":"2026-10-25T14:17:52+00:00","last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}]}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -4800,7 +4800,7 @@ paths:
       summary: "Connect an affiliate network"
       description: |
         Step-up required. Credentials are validated per network (Daisycon: `publisher_id`, `access_token`, `media_id`; TradeTracker: `customer_id`, `passphrase`, `site_id`), stored encrypted and tested immediately (401/403 from the network → `reauthentication_required`).
-                TradeTracker is `limited`: its SOAP transport is not shipped (not verifiable without an account); use the import. The postback URL is shown once. Captured with Daisycon pointed at a local stub that rejects the token. Adapters are NOT VERIFIED against live network accounts.
+                TradeTracker has a pinned-WSDL SOAP transport, enabled by `TRADETRACKER_API_ENABLED` (default false → `limited`/`transport_disabled`). Authorized credentials are configured by the senior developer. Imports remain available. The postback URL is shown once. Captured with Daisycon pointed at a local stub that rejects the token. Adapters are NOT VERIFIED against live network accounts.
       x-access: admin
       requestBody:
         required: true
@@ -4859,7 +4859,7 @@ paths:
           description: "Status updated."
           content:
             application/json:
-              example: {"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"reauthentication_required","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+              example: {"data":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":null,"last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -4889,7 +4889,7 @@ paths:
           description: "Disabled."
           content:
             application/json:
-              example: {"data":{"id":"01m5pcjrd3segw8wk28cdw83nq","network":"daisycon","name":"Daisycon NL","status":"disabled","last_synced_at":null,"last_error":"credentials_rejected","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
+              example: {"data":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"disabled","last_synced_at":"2026-10-25T14:17:52+00:00","last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -4916,10 +4916,10 @@ paths:
               -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
       responses:
         '200':
-          description: "Result (captured: TradeTracker, transport not available \u2192 limited)."
+          description: "Result (local HTTP capture with an explicitly synthetic SOAP upstream; not live provider evidence)."
           content:
             application/json:
-              example: {"data":{"programs":0,"transactions":0,"error":"TradeTracker sync is not available yet (SOAP transport not verified); use the import.","connection":{"id":"01m5pcjrhbp0asmpwtj19hjnzk","network":"tradetracker","name":"TradeTracker NL","status":"limited","last_synced_at":null,"last_error":"TradeTracker sync is not available yet (SOAP transport not verified); use the import.","verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}}
+              example: {"data":{"programs":1,"transactions":0,"error":null,"connection":{"id":"01m5spsjzasjnkpxrpaxrc2a4x","network":"tradetracker","name":"TradeTracker fixture","status":"connected","last_synced_at":"2026-10-25T14:17:52+00:00","last_error":null,"verified":false,"verification_note":"Adapter not verified against a live account (OPEN-PROVIDER-CAPABILITIES)."}}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -4931,7 +4931,7 @@ paths:
           description: "Connection disabled."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"not_in_review","message":"Only unmatched, disputed or tracked conversions need review.","request_id":"01a16cc9-67ba-7269-bb33-913f5f8c9735","details":{"status":"approved"}}}
+              example: {"error":{"status":409,"code":"connection_disabled","message":"This connection is disabled.","request_id":"01a1736c-ccdd-70bc-b779-2dc1c3eaae66"}}
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
   /api/v1/admin/affiliate/connections/{connection}/import:

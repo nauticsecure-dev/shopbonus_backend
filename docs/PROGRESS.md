@@ -21,7 +21,7 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 | Answer24 | VERIFIED_WORKING on the Shopbonus side (B07a+B07b): eligibility, grouping, cancellation, outbox, signed inbound channel, handoff → reserved code + single-use claim, consumer claim, reminder slots, dispatcher. Outbound dispatch disabled by default; real Answer24 NOT VERIFIED (no API) | `tests/Feature/Answer24/*` |
 | Consumer profile/discovery | VERIFIED_WORKING (B08a discovery, B08b profile/email change/preferences/favourites/My Vouchers/dashboard/privacy requests); wallet in dashboard waits for B09 | `tests/Feature/Discovery/*`, `tests/Feature/Consumer/*` |
 | Wallet ledgers | VERIFIED_WORKING (B09): central consumer wallet, append-only ledger, lots/expiry, reservations, pending, reversal policy, reconcile; merchant funding kind reserved for B12 | `tests/Feature/Wallet/*` |
-| Affiliate (Daisycon/TradeTracker) | PARTIAL: framework, selection, clicks, idempotent processing, rewards, admin review VERIFIED_WORKING against fixtures (B10); live networks NOT VERIFIED; TradeTracker transport missing | `tests/Feature/Affiliate/*` |
+| Affiliate (Daisycon/TradeTracker) | PARTIAL: framework, selection, clicks, idempotent processing, rewards, admin review VERIFIED_WORKING against fixtures (B10); live networks NOT VERIFIED; TradeTracker transport implemented/fixture-tested in B10b | `tests/Feature/Affiliate/*` |
 | Mollie checkout, merchant funding, Moneybird | PARTIAL: checkout (B11) and merchant funding with 30% fee (B12) VERIFIED_WORKING against faked/stubbed Mollie; real Mollie sandbox NOT RUN; Moneybird not connected; live BLOCKED (OPEN-FINANCIAL-LEGAL) | `tests/Feature/Checkout/*` |
 | Analytics | VERIFIED_WORKING (B13): merchant dashboard, lifecycle chart, overview, notifications, owner dashboard; banner metrics depend on B14 | `tests/Feature/Analytics/*` |
 | Banners | VERIFIED_WORKING (B14) backend: campaigns, versions, rules, embed config/events, attribution, results, pairing; editor/embed frontend and AI not built | `tests/Feature/Banners/*` |
@@ -171,3 +171,19 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 ## How to update
 
 For each changed module include: evidence (paths/test names), actual test command/result, commit SHA, resolved/unresolved issues, permissions impact, migration impact, and exact next action. Do not use percentages without an auditable denominator.
+
+## B10b checkpoint — #19 main backend transport, 2026-10-25
+
+Owner: “just work on the MAIN CODE; the senior dev will configure credentials.” Started clean `main` / `a9edfb3`. Official HTTPS WSDL retrieved without credentials and pinned (source/hash in `integrations/TRADETRACKER.md`). Implemented native SOAP serialization over Laravel HTTP, per-client cookie jar, read-only authentication, fixed TLS host, disabled-by-default transport, bounded paginated programs/conversions and dual registration/assessment-date queries. Fixed cashback enum truthiness, preserved exact decimal parsing, rejected negative commission, guarded against repeated pages and disable-during-fetch; atomic ingestion preserves watermark on failed pulls. Raw provider exceptions no longer enter shared sync errors/audits. Imports and wallet policy reused. No migrations/new routes/frontend/provider calls.
+
+Focused affiliate suite: 23 passed, 149 assertions. Real local-server captures of create/list/test/sync/disable/disabled-sync use explicitly synthetic SOAP fixtures and real login/password/CSRF. Captures are not live-provider evidence. Full final checks running. Senior developer deployment/account verification instructions in `docs/integrations/TRADETRACKER.md`.
+
+Validation note: concurrently executing SQLite/MySQL suites interfered with shared `Storage::fake` upload folders (PublicDiscovery logo replacement / AgreementAndReview evidence serving). No affiliate failures. Final suites are rerun sequentially; do not use the interrupted/interfered results as final acceptance.
+
+### B10b executed final evidence
+
+- Sequential full SQLite: **483 passed + 11 skipped**, 6939 assertions, 51s. Sequential full MySQL: **492 passed + 2 skipped**, 6978 assertions, 138s (494 total each). SQLite skips MySQL-only races; MySQL skips two existing destructive trigger-bypass simulations.
+- Focused affiliate: **25 passed**, 193 assertions; 14 new native-SOAP transport cases. The strengthened exact-decimal/assessment polling test also passed separately (8 assertions).
+- Pint --test, PHPStan L6 --memory-limit=1G, composer audit, composer validate, git diff --check: PASS. OpenAPI/registry/security coverage is included in full suites.
+- Six actual local HTTP captures: create/list/test/sync/disable/disabled409, with actual authentication/password/CSRF and explicitly synthetic SOAP upstream. Capture server and task-owned temporary credentials/fixture DB/helpers removed. No shared Redis operations or live account calls.
+- No migrations; apply/rollback N/A. D-070; ext-soap required and installed in CI; default-disabled deployment flag and senior-developer instructions in `integrations/TRADETRACKER.md`. Commit/push/CI next.

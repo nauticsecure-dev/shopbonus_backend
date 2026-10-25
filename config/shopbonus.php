@@ -195,6 +195,7 @@ return [
         // A conversion must cite a click from this many days back.
         'attribution_window_days' => 30,
         'networks' => [
+            'tradetracker' => ['enabled' => (bool) env('TRADETRACKER_API_ENABLED', false)],
             'daisycon' => ['base_url' => env('DAISYCON_API_BASE_URL', 'https://services.daisycon.com')],
         ],
     ],

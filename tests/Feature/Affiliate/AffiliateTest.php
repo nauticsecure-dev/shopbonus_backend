@@ -316,7 +316,7 @@ class AffiliateTest extends TestCase
         $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'eur_credit', 'share_bps' => 10000])->assertCreated()->assertJsonPath('data.version', 2);
         $this->getJson('/api/v1/admin/affiliate/reward-rules')->assertJsonPath('current', 2);
 
-        // TradeTracker sync is honestly unavailable.
+        // TradeTracker transport stays disabled until configured by the deployment owner.
         $this->postJson("/api/v1/admin/affiliate/connections/{$this->tradetracker->public_id}/sync")->assertOk()->assertJsonPath('data.connection.status', 'limited');
 
         // Consumer view: own activity, no commission data.

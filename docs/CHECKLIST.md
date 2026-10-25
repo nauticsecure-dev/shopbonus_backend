@@ -328,7 +328,7 @@ No Daisycon/TradeTracker credentials or sandbox: adapters map the networks' docu
 - [x] Consumer `GET /consumer/affiliate-activity` (own matched transactions, status explained, reward; never commission data) (`37edebf`)
 - [x] Tests: card #19 E2E 2, 3, 4 (fixtures), 5, 6, 7, 9; card #23 test 6 (instant mode) (`37edebf`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`37edebf`)
-- [ ] **BLOCKED** Live Daisycon/TradeTracker verification and the TradeTracker SOAP transport (no accounts; see docs/integrations/VERIFICATION.md)
+- [ ] **HANDOFF** Live Daisycon/TradeTracker verification (senior developer configures accounts; B10b ships the SOAP transport; see docs/integrations/VERIFICATION.md)
 - [ ] **BLOCKED** Card #19 E2E 1 and 4 against real provider data; staging p95 (no staging)
 - [ ] **MOVED** Affiliate fraud dashboards, network health monitoring and alerts (B16)
 
@@ -510,3 +510,15 @@ Evidence: implementation `dea03b5`, CI `40199851559` passed; final strict-quota 
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)
+
+## B10b — #19 credential-independent TradeTracker transport (2026-10-25)
+
+Owner: implement main backend code; senior developer configures credentials. No schema/new routes planned.
+
+- [x] Pin official HTTPS WSDL and implement bounded, read-only SOAP transport with isolated authentication cookies, no redirects/retries and safe errors. (B10b code checkpoint; resolved SHA in HANDOFF.)
+- [x] Page campaigns/conversions, include old conversions assessed since last sync, validate provider shapes and reject incomplete pagination. (B10b code checkpoint; resolved SHA in HANDOFF.)
+- [x] Correct WSDL policy/status mappings; preserve existing admin imports and wallet/idempotency rules. (B10b code checkpoint; resolved SHA in HANDOFF.)
+- [x] Test serialized SOAP, authentication failure, pagination, late assessment, malformed data, secret redaction and disabled connections. (B10b code checkpoint; resolved SHA in HANDOFF.)
+- [x] Run SQLite/MySQL suites, Pint, PHPStan, composer audit; capture changed API behavior from real local server. (B10b code checkpoint; resolved SHA in HANDOFF.)
+- [ ] Update API docs/configuration/verification instructions, TASKS/PROGRESS/HANDOFF; commit/push and verify CI.
+- [ ] Senior developer: configure credentials and record genuine provider verification (NOT RUN here).
