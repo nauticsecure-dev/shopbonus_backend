@@ -7199,3 +7199,247 @@ Content-Type: application/json
 
 {"error":{"status":409,"code":"outbox_not_retryable","message":"Only failed Answer24 messages can be retried.","request_id":"01a1731c-dd6c-704d-a48b-d7e1ac8ba735"}}
 ```
+
+## B16d incidents, audit integrity and platform settings
+
+Captured 2026-10-25 from a real local Laravel server on port 8076, isolated SQLite + database sessions, QUEUE_CONNECTION=sync, MAIL_MAILER=log and ADMIN_MFA_REQUIRED=false. Fake fixtures only. Source: baseline 4786e65 plus B16d working changes. Both admins completed real password and emailed OTP verification; secrets omitted.
+
+Public settings is anonymous. All admin operations require active verified Super Admin access and MFA when enabled. Mutations require recent password; export/publish/rollback additionally require email OTP. Common 401/403/419/422/423/429/500 examples reuse earlier real captures in this reference. Domain conflicts below were captured from these operations. Per-page defaults to 25 (1–100); page starts at 1.
+
+### `GET /api/v1/admin/incidents`
+
+Grouped incidents, newest occurrence first. Status new|investigating|resolved|ignored; filters severity, service, method, request_category read|write, webshop_id, request_id, from/to UTC dates. Every occurrence is retained with request ID and sanitized technical code.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/incidents' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-3cf0-71e2-befc-c83429abdbf0
+
+{"data":[{"id":"01m5sjgf6epbacp2072ra89enz","category":"security","severity":"warning","service":"api","route":"api/v1/admin/incidents","method":"GET","http_status":401,"status":"new","assigned_to":null,"occurrences":1,"first_seen_at":"2026-10-25T13:02:59+00:00","last_seen_at":"2026-10-25T13:02:59+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### `PATCH /api/v1/admin/incidents/{incident}`
+
+GET includes paginated occurrences and latest 100 audited status/assignment changes. PATCH requires recent password, a reason and explicit assigned_to (active Super Admin public ID or null); status new|investigating|resolved|ignored. No messages, headers, query strings or private payloads are stored in incidents.
+
+```bash
+curl -i -X PATCH 'http://localhost:8076/api/v1/admin/incidents/01m5sjgf6epbacp2072ra89enz' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"status":"investigating","assigned_to":"01m5shsg3jkn7wrp9pe1a2f539","reason":"Investigating repeated API denials"}'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-3d73-7131-8b3b-0325db8e6d4c
+
+{"data":{"id":"01m5sjgf6epbacp2072ra89enz","category":"security","severity":"warning","service":"api","route":"api/v1/admin/incidents","method":"GET","http_status":401,"status":"investigating","assigned_to":"01m5shsg3jkn7wrp9pe1a2f539","occurrences":1,"first_seen_at":"2026-10-25T13:02:59+00:00","last_seen_at":"2026-10-25T13:02:59+00:00"}}
+```
+
+### `GET /api/v1/admin/incidents/{incident}`
+
+GET includes paginated occurrences and latest 100 audited status/assignment changes. PATCH requires recent password, a reason and explicit assigned_to (active Super Admin public ID or null); status new|investigating|resolved|ignored. No messages, headers, query strings or private payloads are stored in incidents.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/incidents/01m5sjgf6epbacp2072ra89enz' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-3da8-72ab-8a58-991687b2f799
+
+{"data":{"id":"01m5sjgf6epbacp2072ra89enz","category":"security","severity":"warning","service":"api","route":"api/v1/admin/incidents","method":"GET","http_status":401,"status":"investigating","assigned_to":"01m5shsg3jkn7wrp9pe1a2f539","occurrences":1,"first_seen_at":"2026-10-25T13:02:59+00:00","last_seen_at":"2026-10-25T13:02:59+00:00"},"history":[{"request_id":"01a17328-3d73-7131-8b3b-0325db8e6d4c","actor_id":"01m5shsg3jkn7wrp9pe1a2f539","occurred_at":"2026-10-25T13:02:59+00:00","change":{"before":{"status":"new","assigned_to":null},"after":{"status":"investigating","assigned_to":"01m5shsg3jkn7wrp9pe1a2f539"},"reason":"Investigating repeated API denials"}}],"occurrences":[{"id":"01m5sjgf6n73reeddz897wj6sx","request_id":"01a17328-3cb7-7024-8c92-e6bcf6910304","actor_id":null,"webshop_id":null,"scope_public_id":null,"error_code":"unauthenticated","occurred_at":"2026-10-25T13:02:59+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### `GET /api/v1/admin/api-routes`
+
+Generated from runtime /api/v1 routes and OpenAPI x-access/x-permission. No mutable duplicate catalogue. Filter access/method. Includes rights, scope, audit/monitoring category, documented error statuses and password/OTP gates. CLI: php artisan shopbonus:api-routes exits nonzero on mismatches.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/api-routes?access=admin&per_page=1' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-3de1-707f-a22c-bd17a0649790
+
+{"data":[{"method":"GET","route":"/api/v1/admin/platform-settings","name":"api.v1.admin.platform-settings.index","access":"admin","documented_access":"admin","permission":null,"contract_matches":true,"scope":"platform","roles":["super_admin"],"audit_category":"admin","monitoring_category":["api"],"monitoring_owner":"backend","error_statuses":[],"authentication_types":["session_cookie","bearer_token"],"password_recent":false,"email_otp":false}],"meta":{"current_page":1,"total":93,"per_page":1,"last_page":93}}
+```
+
+### `POST /api/v1/admin/audit/export`
+
+Recent password and email OTP required. UTC from/to dates required, maximum 31 inclusive days; per_page 1–500, default 100. Bounded synchronous JSON pages; bulk unbounded export unsupported. Export itself is audited. Safe projection omits raw metadata, infrastructure details, resource integer IDs and private contact fields. SHA256-chain-v1 hashes refer to canonical raw events and are verified server-side with php artisan shopbonus:audit-verify. Retain exported heads off-host; a database administrator able to rewrite all hashes and the head requires an independent anchor. Historical rows were sealed as observed at migration time, not authenticated retrospectively.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/audit/export' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"from":"2026-10-25","to":"2026-10-25","per_page":1}'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-4088-7254-bb03-d31fd5e0ce0f
+
+{"data":[{"id":"01m5sjg76ja9dbk90gc9hskkr6","occurred_at":"2026-10-25T12:50:27+00:00","request_id":"01a1731c-c35e-7276-ad6f-7dbfd038a780","category":"identity","action":"identity.login_succeeded","outcome":"success","actor_id":"01m5shsg3jkn7wrp9pe1a2f539","real_actor_id":"01m5shsg3jkn7wrp9pe1a2f539","webshop_id":null,"route":"login","method":"POST","http_status":null,"integrity":{"previous_hash":"0000000000000000000000000000000000000000000000000000000000000000","event_hash":"a0b481c12c1cfb8353f6f6c491887bc96af00ad6b48f681ab453f047ba50c1df","chain_hash":"c7835e270423bcafbec89c7a33aca416cbd73e474725f45be214a982989eeb2a"}}],"meta":{"current_page":1,"total":37,"per_page":1,"last_page":37},"integrity":{"algorithm":"sha256-chain-v1","head":"dcafccdc60755d2d2fb5812ba1634a0286585fe70b6601f3e69bec7dbe2b89fd","verification_command":"php artisan shopbonus:audit-verify","projection":"Safe projection; verify raw event digests on the server. Retain exported heads off-host for independent anchoring."}}
+```
+
+### `GET /api/v1/admin/platform-settings`
+
+Versioned allowlisted public metadata only: public.brand_name (plain text 1–100), public.support_email (valid email), public.languages (unique nonempty subset of nl/en). POST creates immutable draft evidence; GET filters key. Provider credentials/activation, finance, legal, CMS, agreements and consent remain in their existing guarded systems. Drafts never affect public output.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/platform-settings' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-411f-7248-83a2-4d34e205b3df
+
+{"data":[],"published":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"]},"versions":[]},"allowed_keys":["public.brand_name","public.support_email","public.languages"],"meta":{"current_page":1,"total":0,"per_page":25,"last_page":1}}
+```
+
+### `POST /api/v1/admin/platform-settings`
+
+Versioned allowlisted public metadata only: public.brand_name (plain text 1–100), public.support_email (valid email), public.languages (unique nonempty subset of nl/en). POST creates immutable draft evidence; GET filters key. Provider credentials/activation, finance, legal, CMS, agreements and consent remain in their existing guarded systems. Drafts never affect public output.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/platform-settings' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"key":"public.brand_name","value":"Shopbonus NL","reason":"Reviewed public branding change"}'
+```
+
+**Response 201**
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: 01a17328-415e-7061-95bf-a3f85555a861
+
+{"data":{"id":"01m5sjggbvkq9g48e7ha2dz3b2","key":"public.brand_name","version":1,"value":"Shopbonus NL","checksum":"02f472ce51e0ac3a9b8d0a48a252361a326b3b7a42c2dba2506e12f664c17160","status":"draft","reason":"Reviewed public branding change","created_by":"01m5shsg3jkn7wrp9pe1a2f539","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+```
+
+### `POST /api/v1/admin/platform-settings/{version}/review`
+
+Recent password required. Submit draft to review; other states return 409. Evidence is immutable; revise by making another draft.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/platform-settings/01m5sjggbvkq9g48e7ha2dz3b2/review' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-41a1-718a-9a19-cd14fc3e7a02
+
+{"data":{"id":"01m5sjggbvkq9g48e7ha2dz3b2","key":"public.brand_name","version":1,"value":"Shopbonus NL","checksum":"02f472ce51e0ac3a9b8d0a48a252361a326b3b7a42c2dba2506e12f664c17160","status":"review","reason":"Reviewed public branding change","created_by":"01m5shsg3jkn7wrp9pe1a2f539","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17328-41de-730a-92be-189dcf806721
+Content-Type: application/json
+
+{"error":{"status":409,"code":"setting_not_draft","message":"Only draft settings can be submitted for review.","request_id":"01a17328-41de-730a-92be-189dcf806721"}}
+```
+
+### `POST /api/v1/admin/platform-settings/{version}/publish`
+
+Recent password and email OTP required. A different Super Admin reviews and publishes with a note. Only review state can publish; stale versions cannot overwrite a newer published version. Snapshot checksum is verified. Public output changes atomically; history is retained.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/platform-settings/01m5sjggbvkq9g48e7ha2dz3b2/publish' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"note":"Independent review completed"}'
+```
+
+**Response 403**
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17328-420e-726a-b9b1-ddc6d1c49bc2
+Content-Type: application/json
+
+{"error":{"status":403,"code":"second_admin_required","message":"A different administrator must publish this setting.","request_id":"01a17328-420e-726a-b9b1-ddc6d1c49bc2"}}
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-4251-704a-94c0-36b09990d782
+
+{"data":{"id":"01m5sjggbvkq9g48e7ha2dz3b2","key":"public.brand_name","version":1,"value":"Shopbonus NL","checksum":"02f472ce51e0ac3a9b8d0a48a252361a326b3b7a42c2dba2506e12f664c17160","status":"published","reason":"Reviewed public branding change","created_by":"01m5shsg3jkn7wrp9pe1a2f539","reviewed_by":"01m5shsgc59xkqzakxaqf2yy05","review_note":"Independent review completed","published_at":"2026-10-25T13:03:00+00:00","is_current":true,"rollback_of":null}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17328-428f-736c-854b-b83b2e9cb3c2
+Content-Type: application/json
+
+{"error":{"status":409,"code":"setting_not_in_review","message":"Only reviewed settings can be published.","request_id":"01a17328-428f-736c-854b-b83b2e9cb3c2"}}
+```
+
+### `POST /api/v1/admin/platform-settings/{version}/rollback`
+
+Recent password and email OTP required. Source must be a historical published version. Creates a NEW draft with incremented version and rollback_of reference, preserving history/current output; it must separately pass review and independent publication.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/platform-settings/01m5sjggbvkq9g48e7ha2dz3b2/rollback' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"reason":"Restore previously reviewed public branding"}'
+```
+
+**Response 201**
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: 01a17328-42bf-730a-8f4f-444e639c60a8
+
+{"data":{"id":"01m5sjggpmm3mztpvkmg31s1b5","key":"public.brand_name","version":2,"value":"Shopbonus NL","checksum":"02f472ce51e0ac3a9b8d0a48a252361a326b3b7a42c2dba2506e12f664c17160","status":"draft","reason":"Restore previously reviewed public branding","created_by":"01m5shsg3jkn7wrp9pe1a2f539","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":"01m5sjggbvkq9g48e7ha2dz3b2"}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17328-4311-7038-ae3c-c64546903713
+Content-Type: application/json
+
+{"error":{"status":409,"code":"setting_not_published","message":"Only published history can be used for a rollback draft.","request_id":"01a17328-4311-7038-ae3c-c64546903713"}}
+```
+
+### `GET /api/v1/public/settings`
+
+Public published branding/support/display-language metadata plus version public IDs. Drafts are never exposed; supported server locales remain nl/en. Safe defaults are Shopbonus, null support email and [nl,en] before publication.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/public/settings' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a17328-4352-715b-973b-80b90f052328
+
+{"data":{"values":{"public.brand_name":"Shopbonus NL","public.support_email":null,"public.languages":["nl","en"]},"versions":{"public.brand_name":"01m5sjggbvkq9g48e7ha2dz3b2"}}}
+```

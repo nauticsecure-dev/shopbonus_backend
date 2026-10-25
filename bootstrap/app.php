@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsurePlatformRole;
 use App\Http\Middleware\EnsureWorkspaceCommerciallyActive;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\GuardSupportSession;
+use App\Http\Middleware\RecordSecurityIncidents;
 use App\Http\Middleware\RejectAuthenticatedJsonRequests;
 use App\Http\Middleware\RequireRecentPassword;
 use App\Http\Middleware\RequireStepUpCode;
@@ -38,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum', 'account.active']])
     ->withMiddleware(function (Middleware $middleware): void {
         // First in the stack so even routing/auth failures carry a request ID.
-        $middleware->prepend(AssignRequestId::class);
+        $middleware->prepend([AssignRequestId::class, RecordSecurityIncidents::class]);
         $middleware->prependToGroup('api', [ForceJsonResponse::class, AuditAccessDenials::class, SetRequestLocale::class]);
 
         // Sanctum SPA cookie auth for first-party frontends (SANCTUM_STATEFUL_DOMAINS).

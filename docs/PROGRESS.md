@@ -2,7 +2,7 @@
 
 ## Project status as of 2026-10-23
 
-Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected). B16a (admin 2FA, step-up code, support sessions) and B16b (cockpit, user administration) are done; B16c is implemented/tested locally (2026-10-25); B16d is next. Statuses below come from committed code and commands actually run.
+Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected). B16a (admin 2FA, step-up code, support sessions) and B16b (cockpit, user administration) are done; B16c is committed/CI-green (`4786e65`); B16d is implemented/tested locally (2026-10-25), checkpoint/CI pending. Statuses below come from committed code and commands actually run.
 
 ## B00 audit inventory (2026-10-23, Claude)
 
@@ -34,7 +34,8 @@ Audit method: checked this folder, every Laravel project under `/Users/kcoder/Pr
 
 | Date | Agent | Task | Git SHA | Tests/results | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-25 | Codex | B16c oversight and dual-admin corrections | WIP checkpoint (SHA to record after commit) | SQLite 445 pass + 8 skip; MySQL 453 pass; Pint/PHPStan pass; composer audit clear; both new migrations rollback/reapply OK; 9 guard mutations detected/restored; real HTTP captures for 13 new routes | D-064 owner delegated risk policy: second admin for every adjustment; source-linked request, locked single ledger post; safe retries retain identities and recheck consent. Provider behaviour NOT VERIFIED. |
+| 2026-10-25 | Codex | B16d + owner Frank-card audit | WIP checkpoint pending | SQLite 459 pass + 10 skip; MySQL 467 pass + 2 skip; Pint/PHPStan pass; composer audit clear; 3 migrations apply/rollback/reapply + audit verify pass; 9 guard mutations detected/restored; 11 routes captured from running server | Incident workflow, 256-operation generated registry, audit chain/export, versioned safe public metadata. MySQL concurrent initialization deadlock fixed via exclusive no-op upsert. New downloaded Frank cards: no full card Done; detailed audit report added. |
+| 2026-10-25 | Codex | B16c oversight and dual-admin corrections | `4786e65` (CI green) | SQLite 445 pass + 8 skip; MySQL 453 pass; Pint/PHPStan pass; composer audit clear; both new migrations rollback/reapply OK; 9 guard mutations detected/restored; real HTTP captures for 13 new routes | D-064 owner delegated risk policy: second admin for every adjustment; source-linked request, locked single ledger post; safe retries retain identities and recheck consent. Provider behaviour NOT VERIFIED. |
 | 2026-10-23 | Requirements author | Requirements & handoff pack only | N/A | NOT RUN | |
 | 2026-10-23 | Claude (Opus 5.5) | B00 audit | `7cc47a8` (pack commit) | N/A | Nothing to audit; greenfield chosen by owner |
 | 2026-10-23 | Claude (Opus 5.5) | Scaffold | `48520b7` | 2 stock tests PASS | `laravel/laravel` 13 + `install:api` (Sanctum) |

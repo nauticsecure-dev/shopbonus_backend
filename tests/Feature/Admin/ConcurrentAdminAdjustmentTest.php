@@ -3,9 +3,13 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\AdminApprovalRequest;
+use App\Models\PlatformSettingVersion;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Admin\PlatformSettings;
 use App\Services\Admin\WalletAdjustments;
+use App\Services\Audit\AuditIntegrity;
+use App\Services\Audit\AuditLogger;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Tests\Concerns\RacesProcesses;
@@ -58,5 +62,34 @@ class ConcurrentAdminAdjustmentTest extends TestCase
         $this->assertSame(600, $wallet->fresh()->available);
         $this->assertSame(2, $wallet->entries()->count());
         $this->assertSame([], app(WalletService::class)->reconcile());
+    }
+
+    public function test_concurrent_audit_appends_form_one_complete_chain(): void
+    {
+        $this->skipUnlessRealDatabase();
+        $results = $this->race(8, fn (int $worker) => 'ok:'.app(AuditLogger::class)->record('race.audit.'.$worker)->id);
+        $this->assertSame(8, count(array_filter($results, fn ($r) => str_starts_with($r, 'ok:'))), implode(', ', $results));
+        $result = app(AuditIntegrity::class)->verify();
+        $this->assertTrue($result['valid']);
+        $this->assertSame(8, $result['entries']);
+    }
+
+    public function test_concurrent_setting_publish_has_one_winner_and_one_current_version(): void
+    {
+        $this->skipUnlessRealDatabase();
+        $author = User::factory()->create();
+        $reviewers = User::factory()->count(2)->create();
+        foreach ($reviewers->push($author) as $user) {
+            $user->platformRoles()->create(['role' => 'super_admin', 'granted_via' => 'console', 'granted_at' => now()]);
+        }
+        $settings = app(PlatformSettings::class);
+        $version = $settings->draft($author, 'public.brand_name', 'Shopbonus NL', 'Verified branding change');
+        $settings->submit($version, $author);
+        $results = $this->race(2, fn (int $worker) => 'ok:'.app(PlatformSettings::class)->publish(
+            PlatformSettingVersion::findOrFail($version->id), User::findOrFail($reviewers[$worker]->id), 'Independent review')->public_id);
+        $this->assertSame(1, count(array_filter($results, fn ($r) => str_starts_with($r, 'ok:'))), implode(', ', $results));
+        $this->assertContains('err:setting_not_in_review', $results);
+        $this->assertSame($version->public_id, $settings->published()['versions']['public.brand_name']);
+        $this->assertTrue(app(AuditIntegrity::class)->verify()['valid']);
     }
 }

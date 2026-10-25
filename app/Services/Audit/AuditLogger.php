@@ -35,6 +35,7 @@ class AuditLogger
     public function __construct(
         private readonly AuthFactory $auth,
         private readonly SensitiveDataProcessor $redactor,
+        private readonly AuditIntegrity $integrity,
     ) {}
 
     /**
@@ -62,7 +63,7 @@ class AuditLogger
         $actorUserId ??= $this->currentUserId();
         $realActorId = Context::get(self::CONTEXT_REAL_ACTOR_ID);
 
-        return AuditEvent::create([
+        return $this->integrity->record(fn () => AuditEvent::create([
             'occurred_at' => now(),
             'request_id' => Context::get('request_id'),
             'category' => $category,
@@ -78,7 +79,7 @@ class AuditLogger
             'route' => $request?->route()?->uri(),
             'ip_hash' => $this->hashIp($request?->ip()),
             'metadata' => $metadata === [] ? null : $this->redactor->redactArray($metadata),
-        ]);
+        ]));
     }
 
     /**

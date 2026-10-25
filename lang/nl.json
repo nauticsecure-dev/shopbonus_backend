@@ -35,5 +35,13 @@
     "This adjustment has already been reviewed.": "Deze correctie is al beoordeeld.",
     "The consumer or requesting administrator is no longer eligible.": "De consument of aanvragende beheerder voldoet niet meer aan de voorwaarden.",
     "Only failed events with a retained payload and active connection can be retried.": "Alleen mislukte gebeurtenissen met bewaarde inhoud en een actieve koppeling kunnen opnieuw worden verwerkt.",
-    "Only failed Answer24 messages can be retried.": "Alleen mislukte Answer24-berichten kunnen opnieuw worden aangeboden."
+    "Only failed Answer24 messages can be retried.": "Alleen mislukte Answer24-berichten kunnen opnieuw worden aangeboden.",
+    "Assign incidents only to an active Super Admin.": "Wijs incidenten alleen toe aan een actieve Super Admin.",
+    "Only draft settings can be submitted for review.": "Alleen conceptinstellingen kunnen ter beoordeling worden ingediend.",
+    "A different administrator must publish this setting.": "Een andere beheerder moet deze instelling publiceren.",
+    "Only reviewed settings can be published.": "Alleen instellingen ter beoordeling kunnen worden gepubliceerd.",
+    "A newer version is already published. Create a rollback draft instead.": "Er is al een nieuwere versie gepubliceerd. Maak een herstelconcept aan.",
+    "Setting version integrity verification failed.": "De integriteitscontrole van de instellingsversie is mislukt.",
+    "Only published history can be used for a rollback draft.": "Alleen gepubliceerde geschiedenis kan als basis voor een herstelconcept worden gebruikt.",
+    "Audit exports are limited to 31 days per request.": "Auditexports zijn beperkt tot 31 dagen per aanvraag."
 }

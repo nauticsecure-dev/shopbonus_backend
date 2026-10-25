@@ -6,12 +6,12 @@ use App\Enums\AuditCategory;
 use App\Enums\AuditOutcome;
 use App\Models\AuditEvent;
 use App\Models\User;
+use App\Services\Audit\AuditIntegrity;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class AuditLoggerTest extends TestCase
@@ -84,7 +84,11 @@ class AuditLoggerTest extends TestCase
 
     public function test_record_throws_but_record_safely_swallows_storage_failure(): void
     {
-        Schema::drop('audit_events');
+        $this->mock(AuditIntegrity::class, function ($mock) {
+            $mock->shouldReceive('record')->andThrow(new QueryException(
+                'testing', 'insert into audit_events', [], new \PDOException('Simulated audit storage outage')
+            ));
+        });
         Log::spy();
 
         $this->assertNull($this->logger()->recordSafely('auth.forbidden'));

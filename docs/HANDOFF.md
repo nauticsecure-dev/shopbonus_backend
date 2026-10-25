@@ -1,27 +1,34 @@
 # Latest Agent Handoff
 
-**Session:** 2026-10-25, Codex continuing B16c; backend only.
-**Repo / branch:** `/Users/kcoder/Projects/Shopbonus` / `main`; direct commits and normal pushes authorized.
-**Baseline SHA:** `856244f` (origin/main at start); B16c WIP checkpoint being committed; obtain exact checkpoint SHA with `git log -1 --oneline`.
-**Working tree:** B16c implementation, tests, API captures and continuity docs are the intended checkpoint changes; no pre-existing uncommitted work was present.
-**Active task:** B16c locally verified; WIP/final commit and CI checkpoint pending. Then B16d.
-**Disk:** started at 6.1 GiB free; after QA about 5.3 GiB. Run `df -h /System/Volumes/Data` BEFORE further work; if below about 5 GiB STOP and ask owner. Do not purge binlogs or other projects' data.
-**Decision:** D-064, owner answered "whatever you think": all wallet adjustments require a different Super Admin reviewer, for every amount/unit (`dual-admin-v1`). No numeric risk threshold/points conversion invented.
-**B16c delivered:** 13 admin routes for wallet/ledger/flags, dual-admin requests/reviews, financial evidence, connection/Answer24 monitoring and safe retries. Two migrations `2026_10_25_100000` (flag ULIDs/backfill/review fields) and `110000` (`admin_approval_requests`) applied locally and rollback/reapply verified. Current consent/payment/suppression eligibility rechecked by dispatcher. Existing affiliate/dispute/checkout flows reused. Original outbox identity, payload and attempts preserved on retry; dispatch remains off by config. Redemption transition denials are safely audited outside the failed transaction.
-**Acceptance:** Trello #21 E2E 5/6 covered locally; real Answer24/Mollie/affiliate providers and staging NOT VERIFIED. B16d/E2E 7–9 remain; AI belongs to B17, blocked on provider choice. UI/E2E 10 frontend/staging parts out of backend scope.
+**Session:** 2026-10-25, Codex; Laravel backend only.
+**Branch:** `main` (direct commits/normal push authorized). **Last committed code:** `4786e65` B16c, pushed; CI `40195059904` passed. B16d WIP checkpoint is being prepared; record its SHA after commit.
+**Working tree:** intended B16d implementation/tests/contracts, continuity docs and Frank-card audit report; no pre-existing user changes were overwritten.
+**Current work:** B16c finished; B16d implemented, final QA passed; WIP/final commit and CI pending. Owner additionally asked which Frank cards can be ticked from a newly downloaded Trello export. Read-only report: `docs/TRELLO_FRANK_AUDIT_2026-10-25.md`. None of 14 full Frank cards meet all acceptance criteria; several backend slices are done. New #29–#32 and revised #1 must be triaged separately; old requirements file was not silently replaced.
+**Disk:** last measured 6.3 GiB free, fluctuates between 5.3 and 6.3. Always run `df -h /System/Volumes/Data` first; below about 5 GiB STOP and ask owner. Never purge binlogs or other projects' data.
+**Decisions:** D-064 dual-admin-v1 for every wallet adjustment (owner delegated choice); D-065 audit chain/anchoring limits; D-066 safe public metadata allowlist; D-067 incident grouping/no raw payloads. All provider/legal/marketing/affiliate OPEN decisions remain.
 
-## Tests actually executed (B16c checkpoint)
+## Delivered and limitations
 
-- `php artisan test`: **445 passed + 8 skipped**, 6380 assertions (MySQL-only races skipped).
-- `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test`: **453 passed**, 6413 assertions, 117 s.
-- `vendor/bin/pint --test`, `vendor/bin/phpstan analyse --memory-limit=1G`: PASS.
-- `composer audit`: no security advisories.
-- `php artisan migrate --force && php artisan migrate:rollback --step=2 --force && php artisan migrate --force`: both B16c migrations OK on local MySQL.
-- Focused MySQL admin/race tests: 15 passed. Concurrent approvals by different admins post one compensating entry and reconcile.
-- Nine guard mutation checks: self-review, consumer/source matching, unresolved mismatch, resolved flag replay, recent password, OTP, current consent, webhook retry, outbox retry all detected failures; source restored.
-- Real running-server capture: isolated temporary SQLite, database sessions, port 8076; two real password/emailed-OTP sessions; 13 routes and domain conflicts. Committed to `docs/api/{README.md,openapi.yaml}`. Secrets excluded; temporary mail log must be truncated/removed at cleanup.
-- Local server process still needs cleanup at this checkpoint (port 8076; created only for captures). Temporary fixtures/scripts in `/tmp/shopbonus-b16.h1xjUO` contain generated test passwords, DB and email codes: remove after capture verification. Do not commit them. Existing application log was not used for email; capture log is `server.log` in that temporary directory.
-- B16c GitHub CI pending push/check; staging p95, live providers and PostgreSQL NOT RUN.
+- B16c (13 routes): wallet/ledger/flags, dual-admin source-linked corrections, financial evidence, connection/Answer24 oversight and locked original-identity retries. Current consent/suppression/payment eligibility rechecked before contact dispatch. No payouts; WalletService remains the sole wallet writer; dispatch off/test-only settings preserved.
+- B16d (11 routes): grouped incident/status/assignment/history API; occurrence request IDs for HTTP 401/403/419/422/429/500 and queue failures; generated runtime/OpenAPI registry with 256 matching operations and CLI; SHA256 chain companion seals/head, verify command and bounded authorized export; immutable public-setting draft/review/independent publish/new-draft rollback with public published settings output.
+- Settings allowlist only public.brand_name, public.support_email, public.languages; sensitive legal/consent/provider/financial policies remain in existing systems, never generic settings activation. UI/AI/staging not delivered; whole Trello #21 is still PARTIAL.
+- Audit migration seals historical rows as observed, not retrospectively authenticated. Exported heads need independent off-host retention to detect a privileged DB administrator rewriting every row/hash/head. No retention deletion policy invented. Export is a bounded safe projection (≤500/page, ≤31 UTC days), not an unbounded bulk-report job; metadata/internal resource IDs/private payloads omitted.
+- No live provider claims: Answer24/Mollie/affiliate NOT VERIFIED; Moneybird not connected; AI diagnostics B17/provider decision blocked; new centralized-notification/reliability cards not implemented by existing merchant notification/incident slices.
+
+## Tests actually executed
+
+B16c: SQLite **445 passed + 8 skipped**; MySQL **453 passed**; Pint/PHPStan clean; composer audit clear; two migrations rollback/reapply passed; nine guard mutation checks detected/restored; real-server captures for 13 routes; pushed CI passed.
+
+B16d current checkpoint:
+- Final SQLite **459 passed + 10 skipped**, 6676 assertions. Ten SQLite skips are MySQL-only process races (8 B16c races + 2 new B16d races).
+- Final MySQL suite **467 passed + 2 skipped**, 6711 assertions, 129 s. The two skips are explicit destructive trigger-bypass simulations exercised on SQLite; MySQL tests trigger enforcement without dropping protections. Two old audit-outage tests now inject a QueryException instead of dropping an FK-referenced shared table; targeted MySQL rerun 9 passed.
+- Focused B16d MySQL **14 passed + 2 skipped**; destructive trigger-bypass tamper simulations use transactional SQLite only. MySQL separately tests trigger enforcement and unsealed/head-corruption detection.
+- Real-process MySQL race group **3 passed**: wallet approval, eight audit appends, same-version concurrent setting publication. Initial INSERT IGNORE → FOR UPDATE shared-lock upgrade deadlock found and fixed by exclusive no-op head upsert; rerun passed.
+- Pint/PHPStan pass; composer audit no advisories. Nine B16d guard mutations detected failures; original source restored.
+- Local MySQL migrations `120000` incidents, `130000` audit chain/backfill, `140000` platform settings all applied/rolled back/reapplied; `shopbonus:audit-verify` passed (230 historical entries at check).
+- Runtime `shopbonus:api-routes` command generated **256 operations**, all x-access/permission contracts match. Real HTTP captures for all 11 B16d operations and domain conflicts, in OpenAPI/README.
+- Capture server stopped; task-owned temporary SQLite fixture, generated passwords, email-code log and helper artifacts removed. Main application log was not used for mail. No secrets/capture fixtures committed.
+- Staging p95, encrypted backup/restore, production alerting, PostgreSQL and real providers NOT RUN.
 
 ## Environment / migrations / config
 
@@ -79,6 +86,6 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 ## Next agent's exact first actions
 
-1. Check disk cutoff, git status/log. Finish B16c WIP/final commit and normal push/CI verification, record exact SHAs and tick CHECKLIST only for executed acceptance evidence. Full QA above passed; final flag unit field/capture refresh passed the targeted OpenAPI/wallet/dispute regression check (12 tests).
-2. B16d: expand its checklist before implementation. Reuse audit_events/application_errors; incidents grouped by fingerprint or route+status, preserve request-ID occurrences for every 401/403/419/422/429/500; assignment and New/Investigating/Resolved/Ignored workflow. Generate API route registry from runtime routes + OpenAPI x-access. Tamper-evident audit chain and verification command, authorized audit export. Versioned platform settings draft/review/publish/rollback; reuse CMS/agreement systems and keep sensitive provider/financial/consent policy disabled until explicit versioned owner decisions. AI diagnostics B17 only.
-3. Keep all existing provider/legal/marketing/affiliate open decisions; outbound Answer24 off, Mollie test-only, Moneybird not connected. Do not implement client UI.
+1. Disk cutoff and git status/log first. Final full suites passed. Complete B16d WIP/final commits and normal push/CI verification; tick only implemented/tested checklist evidence and record exact SHAs.
+2. Capture fixtures already cleaned; update this handoff with clean/uncommitted status, exact SHA and tests. Owner's immediate requested answer is the Frank-card completion audit report: none of 14 full cards Done, list completed backend subtasks separately.
+3. After B16d checkpoint, B17 is blocked on AI provider/model decision; B18 needs staging/provider/backup evidence; B19 has empty requirements. New downloaded cards #29–#32 and revised #1 need explicit queue triage; do not silently call them done or implement UI. Maintain all OPEN decisions; no live money/marketing activation.

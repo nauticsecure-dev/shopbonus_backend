@@ -2,12 +2,16 @@
 
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
+use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
+use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
+use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
+use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -56,6 +60,7 @@ use App\Http\Controllers\Api\V1\Workspaces\OwnerDashboardController;
 use App\Http\Controllers\Api\V1\Workspaces\PublicProfileController;
 use App\Http\Controllers\Api\V1\Workspaces\VoucherOperationsController;
 use App\Http\Controllers\Api\V1\Workspaces\WorkspaceController;
+use App\Services\Admin\PlatformSettings;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -123,6 +128,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('cookie-consents/{consentId}', [CookieConsentController::class, 'show'])->name('cookie-consents.show');
     });
 
+    Route::get('public/settings', fn (PlatformSettings $settings) => response()->json(['data' => $settings->published()]))->name('public.settings');
+
     // Affiliate network postback: secret token in the URL, untrusted (records "tracked" only).
     Route::match(['get', 'post'], 'affiliate/postback/{token}', [PostbackController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('affiliate.postback');
@@ -174,6 +181,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             // Super Admin (privately provisioned; confirmed 2FA required). Mutations need a recent password
             // confirmation; the most sensitive ones also an emailed step-up code (B16a).
             Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
+                Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
+                Route::get('incidents', [AdminIncidentController::class, 'index'])->name('incidents.index');
+                Route::get('incidents/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
+                Route::get('api-routes', [AdminApiRouteRegistryController::class, 'index'])->name('api-routes');
                 Route::get('financial-oversight', [AdminFinancialOversightController::class, 'show'])->name('financial-oversight');
                 Route::get('integrations', [AdminOperationsController::class, 'connections'])->name('integrations.index');
                 Route::get('integrations/failed-events', [AdminOperationsController::class, 'events'])->name('integrations.failed-events');
@@ -217,6 +228,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
+                    Route::post('audit/export', [AdminAuditExportController::class, 'export'])->middleware(['step_up.otp', 'throttle:order-export'])->name('audit.export');
+                    Route::post('platform-settings', [AdminPlatformSettingController::class, 'store'])->name('platform-settings.store');
+                    Route::post('platform-settings/{version}/review', [AdminPlatformSettingController::class, 'submit'])->name('platform-settings.review');
+                    Route::post('platform-settings/{version}/publish', [AdminPlatformSettingController::class, 'publish'])->middleware('step_up.otp')->name('platform-settings.publish');
+                    Route::post('platform-settings/{version}/rollback', [AdminPlatformSettingController::class, 'rollback'])->middleware('step_up.otp')->name('platform-settings.rollback');
+                    Route::patch('incidents/{incident}', [AdminIncidentController::class, 'update'])->name('incidents.update');
                     Route::post('integrations/events/{event}/retry', [AdminOperationsController::class, 'retryWebhook'])->middleware('step_up.otp')->name('integrations.events.retry');
                     Route::post('answer24/messages/{message}/retry', [AdminOperationsController::class, 'retryOutbox'])->middleware('step_up.otp')->name('answer24.messages.retry');
                     Route::post('wallet-adjustments', [AdminWalletAdjustmentController::class, 'store'])->middleware('step_up.otp')->name('wallet-adjustments.store');

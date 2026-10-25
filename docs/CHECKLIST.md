@@ -480,13 +480,21 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 - [x] Answer24 monitoring: grouped contact states, eligibility/suppression failures, failed dispatch/callback evidence; no raw contact payloads.
 - [x] Safe retries: locked failed webhook requeue with retained verified payload; locked failed outbox requeue with original idempotency key; current consent/eligibility rechecked before dispatch; dispatch-off remains respected.
 - [x] Every new endpoint documented with captured running-server examples and access metadata; error/security negative tests and mutation checks.
-- [ ] SQLite + MySQL suites, Pint, PHPStan, composer audit, migration rollback/reapply; WIP/final commits and CI; handoff/task/progress evidence.
+- [x] SQLite + MySQL suites, Pint, PHPStan, composer audit, migration rollback/reapply; WIP/final commits and CI; handoff/task/progress evidence.
 
-Evidence: B16c WIP implementation commit (record exact SHA in the following checkpoint); 2026-10-25 SQLite 445 pass + 8 skip, MySQL 453 pass, 9 guard mutations detected/restored; focused contract/wallet/dispute rerun 12 pass. API captures and test names are in HANDOFF/PROGRESS. Final push/CI checkbox remains pending.
+Evidence: `4786e65` (CI run `40195059904` passed); 2026-10-25 SQLite 445 pass + 8 skip, MySQL 453 pass, 9 guard mutations detected/restored; focused contract/wallet/dispute rerun 12 pass. API captures and test names are in HANDOFF/PROGRESS. Implementation pushed; CI passed. This checkpoint finalizes B16c documentation.
 
 ### B16d Incidents, route registry, audit integrity, platform settings (Trello #21 "Central errors & security", "Audit & security controls", "Platform content & settings")
 
-- [ ] Expand when started
+- [x] Group security incidents by route/method/status or technical fingerprint; append-only sanitized occurrences with request IDs for 401/403/419/422/429/500; correlate queue failures; avoid duplicate HTTP recording.
+- [x] Admin incident search, detail, filters, assignment and New/Investigating/Resolved/Ignored workflow; reasoned audited transitions and authorization/negative tests.
+- [x] Generate API route registry from actual runtime routes and OpenAPI access/permission metadata, including scope, audit and monitoring categories; detect undocumented/mismatched entries.
+- [x] Append-only audit hash chain, historical backfill, serialized writer, verify command detecting content edits/gaps/tail deletion; authorized bounded export preserving safe IDs and integrity evidence.
+- [x] Allowlisted platform settings versions: immutable draft evidence, independent review, publish, rollback by new version; retain historical snapshots and existing CMS/agreement ownership; no secrets/live-provider/financial/consent activation.
+- [x] Real HTTP examples for all added endpoints, OpenAPI/access coverage; mutation/security/concurrency tests and full SQLite/MySQL/Pint/PHPStan/audit/migration gates.
+- [ ] WIP/final commits, normal push, CI and self-contained handoff; AI remains B17/provider-blocked.
+
+Evidence: B16d WIP implementation checkpoint (SHA recorded in the following final checkpoint); SQLite 459 passed + 10 skipped, MySQL 467 passed + 2 skipped, 3 MySQL process races passed, 9 B16d guard mutations detected/restored; 11 real-server API captures; 256 generated route contracts match; migrations/verify/Pint/PHPStan/audit passed.
 
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release

@@ -5,10 +5,11 @@ namespace Tests\Feature\Audit;
 use App\Enums\AuditOutcome;
 use App\Models\AuditEvent;
 use App\Models\User;
+use App\Services\Audit\AuditIntegrity;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -67,7 +68,11 @@ class AccessDenialAuditTest extends TestCase
 
     public function test_audit_storage_failure_does_not_change_the_response(): void
     {
-        Schema::drop('audit_events');
+        $this->mock(AuditIntegrity::class, function ($mock) {
+            $mock->shouldReceive('record')->andThrow(new QueryException(
+                'testing', 'insert into audit_events', [], new \PDOException('Simulated audit storage outage')
+            ));
+        });
 
         $this->getJson('/api/v1/_test/orders/1')
             ->assertStatus(401)
