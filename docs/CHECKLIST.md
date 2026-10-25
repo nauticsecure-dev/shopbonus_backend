@@ -492,9 +492,9 @@ Evidence: `4786e65` (CI run `40195059904` passed); 2026-10-25 SQLite 445 pass + 
 - [x] Append-only audit hash chain, historical backfill, serialized writer, verify command detecting content edits/gaps/tail deletion; authorized bounded export preserving safe IDs and integrity evidence.
 - [x] Allowlisted platform settings versions: immutable draft evidence, independent review, publish, rollback by new version; retain historical snapshots and existing CMS/agreement ownership; no secrets/live-provider/financial/consent activation.
 - [x] Real HTTP examples for all added endpoints, OpenAPI/access coverage; mutation/security/concurrency tests and full SQLite/MySQL/Pint/PHPStan/audit/migration gates.
-- [ ] WIP/final commits, normal push, CI and self-contained handoff; AI remains B17/provider-blocked.
+- [x] WIP/final commits, normal push, CI and self-contained handoff; AI remains B17/provider-blocked.
 
-Evidence: B16d WIP implementation checkpoint (SHA recorded in the following final checkpoint); SQLite 459 passed + 10 skipped, MySQL 467 passed + 2 skipped, 3 MySQL process races passed, 9 B16d guard mutations detected/restored; 11 real-server API captures; 256 generated route contracts match; migrations/verify/Pint/PHPStan/audit passed.
+Evidence: `7b2c8d1`, pushed; implementation CI `40196742388` passed; SQLite 459 passed + 10 skipped, MySQL 467 passed + 2 skipped, 3 MySQL process races passed, 9 B16d guard mutations detected/restored; 11 real-server API captures; 256 generated route contracts match; migrations/verify/Pint/PHPStan/audit passed.
 
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release

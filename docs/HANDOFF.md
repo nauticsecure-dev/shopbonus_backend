@@ -1,9 +1,9 @@
 # Latest Agent Handoff
 
 **Session:** 2026-10-25, Codex; Laravel backend only.
-**Branch:** `main` (direct commits/normal push authorized). **Last committed code:** `4786e65` B16c, pushed; CI `40195059904` passed. B16d WIP checkpoint is being prepared; record its SHA after commit.
-**Working tree:** intended B16d implementation/tests/contracts, continuity docs and Frank-card audit report; no pre-existing user changes were overwritten.
-**Current work:** B16c finished; B16d implemented, final QA passed; WIP/final commit and CI pending. Owner additionally asked which Frank cards can be ticked from a newly downloaded Trello export. Read-only report: `docs/TRELLO_FRANK_AUDIT_2026-10-25.md`. None of 14 full Frank cards meet all acceptance criteria; several backend slices are done. New #29–#32 and revised #1 must be triaged separately; old requirements file was not silently replaced.
+**Branch:** `main` (direct commits/normal push authorized). **Last committed code:** `7b2c8d1` B16d, pushed; CI `40196742388` passed (MySQL, SQLite, lint/static/audit). Earlier `4786e65` B16c; CI `40195059904` passed. This final documentation checkpoint follows those implementation commits.
+**Working tree:** clean at `7b2c8d1`; final documentation-only checkpoint updates continuity and the Frank-card report. After committing, `git status -sb` must be clean. No pre-existing user changes were overwritten.
+**Current work:** B16c/B16d backend implementation complete within documented safe scope; implementation CI passed. Final documentation-only commit/push and its CI check are the closing actions. Owner additionally asked which Frank cards can be ticked from a newly downloaded Trello export. Read-only report: `docs/TRELLO_FRANK_AUDIT_2026-10-25.md`. None of 14 full Frank cards meet all acceptance criteria; several backend slices are done. New #29–#32 and revised #1 must be triaged separately; old requirements file was not silently replaced.
 **Disk:** last measured 6.3 GiB free, fluctuates between 5.3 and 6.3. Always run `df -h /System/Volumes/Data` first; below about 5 GiB STOP and ask owner. Never purge binlogs or other projects' data.
 **Decisions:** D-064 dual-admin-v1 for every wallet adjustment (owner delegated choice); D-065 audit chain/anchoring limits; D-066 safe public metadata allowlist; D-067 incident grouping/no raw payloads. All provider/legal/marketing/affiliate OPEN decisions remain.
 
@@ -19,7 +19,7 @@
 
 B16c: SQLite **445 passed + 8 skipped**; MySQL **453 passed**; Pint/PHPStan clean; composer audit clear; two migrations rollback/reapply passed; nine guard mutation checks detected/restored; real-server captures for 13 routes; pushed CI passed.
 
-B16d current checkpoint:
+B16d final executed evidence (`7b2c8d1`, implementation CI passed):
 - Final SQLite **459 passed + 10 skipped**, 6676 assertions. Ten SQLite skips are MySQL-only process races (8 B16c races + 2 new B16d races).
 - Final MySQL suite **467 passed + 2 skipped**, 6711 assertions, 129 s. The two skips are explicit destructive trigger-bypass simulations exercised on SQLite; MySQL tests trigger enforcement without dropping protections. Two old audit-outage tests now inject a QueryException instead of dropping an FK-referenced shared table; targeted MySQL rerun 9 passed.
 - Focused B16d MySQL **14 passed + 2 skipped**; destructive trigger-bypass tamper simulations use transactional SQLite only. MySQL separately tests trigger enforcement and unsealed/head-corruption detection.
@@ -86,6 +86,6 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 ## Next agent's exact first actions
 
-1. Disk cutoff and git status/log first. Final full suites passed. Complete B16d WIP/final commits and normal push/CI verification; tick only implemented/tested checklist evidence and record exact SHAs.
-2. Capture fixtures already cleaned; update this handoff with clean/uncommitted status, exact SHA and tests. Owner's immediate requested answer is the Frank-card completion audit report: none of 14 full cards Done, list completed backend subtasks separately.
-3. After B16d checkpoint, B17 is blocked on AI provider/model decision; B18 needs staging/provider/backup evidence; B19 has empty requirements. New downloaded cards #29–#32 and revised #1 need explicit queue triage; do not silently call them done or implement UI. Maintain all OPEN decisions; no live money/marketing activation.
+1. Disk cutoff and git status/log first. B16c/B16d local suites, migrations, captures and implementation CI passed. Final doc checkpoint must be pushed/CI checked; inspect latest git log and CI if resuming during that final action. Capture server/temp credentials already removed.
+2. Owner's requested Frank-card audit is `docs/TRELLO_FRANK_AUDIT_2026-10-25.md`: none of 14 full cards Done; list completed backend subtasks separately. No Trello changes were authorized or made.
+3. After this checkpoint, B17 is blocked on AI provider/model decision; B18 needs staging/provider/backup evidence; B19 has empty requirements. New downloaded cards #29–#32 and revised #1 need explicit queue triage; do not silently call them done or implement UI. Maintain all OPEN decisions; no live money/marketing activation.
