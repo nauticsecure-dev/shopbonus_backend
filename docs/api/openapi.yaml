@@ -10603,17 +10603,17 @@ paths:
               example:
                 data:
                   -
-                    id: 01m5sn44fe5xr81nqxj95csekt
+                    id: 01m5snk55bt6tt46x40jqcw89p
                     key: operations.diagnostics_daily_request_limit
                     version: 1
                     value: 0
                     checksum: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
                     status: published
                     reason: 'Pause diagnostic requests for investigation'
-                    created_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                    reviewed_by: 01m5sn3fw7snnwjngbgsvcz5ff
+                    created_by: 01m5snjy6qe86wqmn826dy0bdv
+                    reviewed_by: 01m5snjygdg9mdbqq1jw5677b4
                     review_note: 'Independent budget review completed'
-                    published_at: '2026-10-25T13:48:40+00:00'
+                    published_at: '2026-10-25T13:56:53+00:00'
                     is_current: true
                     rollback_of: null
                 published:
@@ -10625,7 +10625,7 @@ paths:
                       - en
                     operations.diagnostics_daily_request_limit: 0
                   versions:
-                    operations.diagnostics_daily_request_limit: 01m5sn44fe5xr81nqxj95csekt
+                    operations.diagnostics_daily_request_limit: 01m5snk55bt6tt46x40jqcw89p
                 allowed_keys:
                   - public.brand_name
                   - public.support_email
@@ -10713,14 +10713,14 @@ paths:
             application/json:
               example:
                 data:
-                  id: 01m5sn44fe5xr81nqxj95csekt
+                  id: 01m5snk55bt6tt46x40jqcw89p
                   key: operations.diagnostics_daily_request_limit
                   version: 1
                   value: 0
                   checksum: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
                   status: draft
                   reason: 'Pause diagnostic requests for investigation'
-                  created_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
+                  created_by: 01m5snjy6qe86wqmn826dy0bdv
                   reviewed_by: null
                   review_note: null
                   published_at: null
@@ -10772,7 +10772,7 @@ paths:
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe5xr81nqxj95csekt/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'"
+          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5snk55bt6tt46x40jqcw89p/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'"
       responses:
         200:
           description: 'Captured from the real local HTTP server; simulated provider completion is explicitly labelled in README.'
@@ -10780,14 +10780,14 @@ paths:
             application/json:
               example:
                 data:
-                  id: 01m5sn44fe5xr81nqxj95csekt
+                  id: 01m5snk55bt6tt46x40jqcw89p
                   key: operations.diagnostics_daily_request_limit
                   version: 1
                   value: 0
                   checksum: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
                   status: review
                   reason: 'Pause diagnostic requests for investigation'
-                  created_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
+                  created_by: 01m5snjy6qe86wqmn826dy0bdv
                   reviewed_by: null
                   review_note: null
                   published_at: null
@@ -10857,7 +10857,7 @@ paths:
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe5xr81nqxj95csekt/publish' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"note\":\"Independent budget review completed\"}'"
+          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5snk55bt6tt46x40jqcw89p/publish' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"note\":\"Independent budget review completed\"}'"
       responses:
         403:
           description: 'Captured real HTTP response.'
@@ -10875,17 +10875,17 @@ paths:
             application/json:
               example:
                 data:
-                  id: 01m5sn44fe5xr81nqxj95csekt
+                  id: 01m5snk55bt6tt46x40jqcw89p
                   key: operations.diagnostics_daily_request_limit
                   version: 1
                   value: 0
                   checksum: 5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9
                   status: published
                   reason: 'Pause diagnostic requests for investigation'
-                  created_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                  reviewed_by: 01m5sn3fw7snnwjngbgsvcz5ff
+                  created_by: 01m5snjy6qe86wqmn826dy0bdv
+                  reviewed_by: 01m5snjygdg9mdbqq1jw5677b4
                   review_note: 'Independent budget review completed'
-                  published_at: '2026-10-25T13:48:40+00:00'
+                  published_at: '2026-10-25T13:56:53+00:00'
                   is_current: true
                   rollback_of: null
         409:
@@ -11071,8 +11071,8 @@ paths:
               example:
                 data:
                   -
-                    id: 01m5sn42r9vath46q50qjxwg11
-                    incident_id: 01m5sn3fx0171kmq7eb9ph6rcv
+                    id: 01m5snk4cr70jm64hj7h49e43c
+                    incident_id: 01m5snjygkt9cxdj2qpnbyd3my
                     status: queued
                     provider: openai
                     model: fixture-model
@@ -11096,8 +11096,8 @@ paths:
                           value: 3
                     context_hash: 3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0
                     context_stale: false
-                    requested_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                    created_at: '2026-10-25T13:48:39+00:00'
+                    requested_by: 01m5snjy6qe86wqmn826dy0bdv
+                    created_at: '2026-10-25T13:56:52+00:00'
                     finished_at: null
                     failure_code: null
                     analysis: null
@@ -11128,7 +11128,7 @@ paths:
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X GET 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb9ph6rcv/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'"
+          source: "curl -i -X GET 'http://localhost:8079/api/v1/admin/incidents/01m5snjygkt9cxdj2qpnbyd3my/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'"
     post:
       x-access: admin
       tags:
@@ -11172,7 +11172,7 @@ paths:
                   status: 503
                   code: diagnostics_not_configured
                   message: 'Incident diagnostics is not configured.'
-                  request_id: 01a17351-f8d7-7216-aecc-076fb74ebab7
+                  request_id: 01a17359-8b75-7219-a466-0d6e84800558
         422:
           description: 'Captured from the real local HTTP server; simulated provider completion is explicitly labelled in README.'
           content:
@@ -11182,7 +11182,7 @@ paths:
                   status: 422
                   code: validation_failed
                   message: 'The given data was invalid.'
-                  request_id: 01a17352-052f-7269-afe2-f8ebad400ce1
+                  request_id: 01a17359-8f82-71cb-85b2-044ccd6d04e9
                   fields:
                     request_key:
                       - 'The request key field is required.'
@@ -11192,8 +11192,8 @@ paths:
             application/json:
               example:
                 data:
-                  id: 01m5sn42r9vath46q50qjxwg11
-                  incident_id: 01m5sn3fx0171kmq7eb9ph6rcv
+                  id: 01m5snk4cr70jm64hj7h49e43c
+                  incident_id: 01m5snjygkt9cxdj2qpnbyd3my
                   status: queued
                   provider: openai
                   model: fixture-model
@@ -11217,8 +11217,8 @@ paths:
                         value: 3
                   context_hash: 3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0
                   context_stale: false
-                  requested_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                  created_at: '2026-10-25T13:48:39+00:00'
+                  requested_by: 01m5snjy6qe86wqmn826dy0bdv
+                  created_at: '2026-10-25T13:56:52+00:00'
                   finished_at: null
                   failure_code: null
                   analysis: null
@@ -11234,7 +11234,17 @@ paths:
                   status: 429
                   code: diagnostic_daily_limit
                   message: 'The daily diagnostic request limit has been reached.'
-                  request_id: 01a17352-133d-73fa-9b0b-6e1ac88755b1
+                  request_id: 01a17359-9567-7070-be12-b56b3b63e06b
+        409:
+          description: 'Captured from the real local HTTP server; simulated provider completion is explicitly labelled in README.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 409
+                  code: diagnostic_key_conflict
+                  message: 'The diagnostic request key was already used for another incident.'
+                  request_id: 01a17359-9599-72f3-bbfb-79437fd7ff4c
         401:
           $ref: '#/components/responses/Unauthenticated'
         403:
@@ -11250,7 +11260,7 @@ paths:
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb9ph6rcv/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"request_key\":\"capture-diagnostic\"}'"
+          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/incidents/01m5snjygkt9cxdj2qpnbyd3my/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"request_key\":\"capture-diagnostic\"}'"
 
   '/api/v1/admin/incident-diagnostics/{diagnostic}':
     get:
@@ -11281,8 +11291,8 @@ paths:
                 capture_0:
                   value:
                     data:
-                      id: 01m5sn42r9vath46q50qjxwg11
-                      incident_id: 01m5sn3fx0171kmq7eb9ph6rcv
+                      id: 01m5snk4cr70jm64hj7h49e43c
+                      incident_id: 01m5snjygkt9cxdj2qpnbyd3my
                       status: queued
                       provider: openai
                       model: fixture-model
@@ -11306,8 +11316,8 @@ paths:
                             value: 3
                       context_hash: 3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0
                       context_stale: false
-                      requested_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                      created_at: '2026-10-25T13:48:39+00:00'
+                      requested_by: 01m5snjy6qe86wqmn826dy0bdv
+                      created_at: '2026-10-25T13:56:52+00:00'
                       finished_at: null
                       failure_code: null
                       analysis: null
@@ -11317,8 +11327,8 @@ paths:
                 capture_1:
                   value:
                     data:
-                      id: 01m5sn42r9vath46q50qjxwg11
-                      incident_id: 01m5sn3fx0171kmq7eb9ph6rcv
+                      id: 01m5snk4cr70jm64hj7h49e43c
+                      incident_id: 01m5snjygkt9cxdj2qpnbyd3my
                       status: completed
                       provider: openai
                       model: fixture-model
@@ -11342,9 +11352,9 @@ paths:
                             value: 3
                       context_hash: 3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0
                       context_stale: false
-                      requested_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                      created_at: '2026-10-25T13:48:39+00:00'
-                      finished_at: '2026-10-25T13:48:40+00:00'
+                      requested_by: 01m5snjy6qe86wqmn826dy0bdv
+                      created_at: '2026-10-25T13:56:52+00:00'
+                      finished_at: '2026-10-25T13:56:52+00:00'
                       failure_code: null
                       analysis:
                         likely_cause: 'A server failure needs investigation.'
@@ -11375,7 +11385,7 @@ paths:
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X GET 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42r9vath46q50qjxwg11' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'"
+          source: "curl -i -X GET 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5snk4cr70jm64hj7h49e43c' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'"
 
   '/api/v1/admin/incident-diagnostics/{diagnostic}/review':
     post:
@@ -11431,22 +11441,22 @@ paths:
                       status: 409
                       code: diagnostic_not_completed
                       message: 'Only completed diagnostics can be reviewed.'
-                      request_id: 01a17352-0c9a-7097-9571-1e618d247f3a
+                      request_id: 01a17359-923a-7397-ad82-bf969e9f9a53
                 capture_1:
                   value:
                     error:
                       status: 409
                       code: diagnostic_already_reviewed
                       message: 'You have already reviewed this diagnostic result.'
-                      request_id: 01a17352-118c-73fe-9a16-6dd241d627f3
+                      request_id: 01a17359-9479-722a-a31c-b998938e1d27
         200:
           description: 'Captured from the real local HTTP server; simulated provider completion is explicitly labelled in README.'
           content:
             application/json:
               example:
                 data:
-                  id: 01m5sn42r9vath46q50qjxwg11
-                  incident_id: 01m5sn3fx0171kmq7eb9ph6rcv
+                  id: 01m5snk4cr70jm64hj7h49e43c
+                  incident_id: 01m5snjygkt9cxdj2qpnbyd3my
                   status: completed
                   provider: openai
                   model: fixture-model
@@ -11470,9 +11480,9 @@ paths:
                         value: 3
                   context_hash: 3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0
                   context_stale: false
-                  requested_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
-                  created_at: '2026-10-25T13:48:39+00:00'
-                  finished_at: '2026-10-25T13:48:40+00:00'
+                  requested_by: 01m5snjy6qe86wqmn826dy0bdv
+                  created_at: '2026-10-25T13:56:52+00:00'
+                  finished_at: '2026-10-25T13:56:52+00:00'
                   failure_code: null
                   analysis:
                     likely_cause: 'A server failure needs investigation.'
@@ -11489,11 +11499,11 @@ paths:
                   advisory_only: true
                   reviews:
                     -
-                      id: 01m5sn44am1wwm6vx9rhpe2822
-                      reviewed_by: 01m5sn3ehbtcsbxwzjwqr7bqw8
+                      id: 01m5snk52v1qh4bvr29893eq16
+                      reviewed_by: 01m5snjy6qe86wqmn826dy0bdv
                       decision: accepted
                       note: 'Independent investigation review'
-                      created_at: '2026-10-25T13:48:40+00:00'
+                      created_at: '2026-10-25T13:56:52+00:00'
         401:
           $ref: '#/components/responses/Unauthenticated'
         403:
@@ -11513,7 +11523,7 @@ paths:
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42r9vath46q50qjxwg11/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"decision\":\"accepted\",\"note\":\"Independent investigation review\"}'"
+          source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5snk4cr70jm64hj7h49e43c/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"decision\":\"accepted\",\"note\":\"Independent investigation review\"}'"
 
 components:
   parameters:

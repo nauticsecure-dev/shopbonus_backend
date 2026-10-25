@@ -502,8 +502,10 @@ Evidence: `7b2c8d1`, pushed; implementation CI `40196742388` passed; SQLite 459 
 - [x] Disabled-by-default OpenAI Responses transport, configurable model/key, strict structured output, no tools, no automatic retries, bounded token/time and global daily request quota.
 - [x] Idempotent audited queued requests and single provider execution; immutable context/result evidence and safe failed states; append-only human review; no business/security/deployment/incident-closing capabilities.
 - [x] Admin-only list/detail/request/review routes, password + OTP on mutations, rate limits, validation, stale-context indicator and negative/security/race tests.
-- [ ] Running-server API captures, OpenAPI and frontend handoff; SQLite/MySQL, Pint/PHPStan/audit, migration rollback/reapply, guard mutation tests, commits/push/CI.
+- [x] Running-server API captures, OpenAPI and frontend handoff; SQLite/MySQL, Pint/PHPStan/audit, migration rollback/reapply, guard mutation tests, commits/push/CI.
 - [ ] Real OpenAI verification (requires API credentials + model/budget); staging p95/recovery (owner confirms no staging) — NOT RUN until prerequisites exist.
+
+Evidence: implementation `dea03b5`, CI `40199851559` passed; final strict-quota validation full rerun SQLite 469 pass + 11 skip, MySQL 478 pass + 2 skip; 8 guard mutants detected/restored, migration rollback/reapply and Pint/PHPStan/audit passed. Final checkpoint records refreshed real domain-conflict captures. Live provider and staging checkbox intentionally remains unchecked.
 
 - [ ] B17 Customer support backend
 - [ ] B18 E2E/security/load/release

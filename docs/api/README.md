@@ -7457,27 +7457,27 @@ Operational setting operations.diagnostics_daily_request_limit reuses draft → 
 GET lists diagnostics and availability/effective global daily quota. POST requires recent password + emailed OTP and request_key (8–64 ASCII letters/numbers/._:-). The key is idempotent per requester; changed incident conflicts. Only unresolved/unignored HTTP 500 or background-job failures are eligible. One queued provider attempt, no automatic retry. Global UTC-day requests are reserved atomically, including failed runs. Effective daily limit is the lower of the environment cap (0–1000) and independently published operational limit. Disabled/unconfigured returns 503 without reserving quota. Per-admin throttle is 3 requests/minute. Snapshots contain only predefined evidence, no customer/actor/workspace/request IDs, raw logs, errors, private URLs or payloads.
 
 ```bash
-curl -i -X POST 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb9ph6rcv/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"request_key":"capture-diagnostic"}'
+curl -i -X POST 'http://localhost:8079/api/v1/admin/incidents/01m5snjygkt9cxdj2qpnbyd3my/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"request_key":"capture-diagnostic"}'
 ```
 
 **Response 503**
 
 ```http
 HTTP/1.1 503
-X-Request-Id: 01a17351-f8d7-7216-aecc-076fb74ebab7
+X-Request-Id: 01a17359-8b75-7219-a466-0d6e84800558
 Content-Type: application/json
 
-{"error":{"status":503,"code":"diagnostics_not_configured","message":"Incident diagnostics is not configured.","request_id":"01a17351-f8d7-7216-aecc-076fb74ebab7"}}
+{"error":{"status":503,"code":"diagnostics_not_configured","message":"Incident diagnostics is not configured.","request_id":"01a17359-8b75-7219-a466-0d6e84800558"}}
 ```
 
 **Response 422**
 
 ```http
 HTTP/1.1 422
-X-Request-Id: 01a17352-052f-7269-afe2-f8ebad400ce1
+X-Request-Id: 01a17359-8f82-71cb-85b2-044ccd6d04e9
 Content-Type: application/json
 
-{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17352-052f-7269-afe2-f8ebad400ce1","fields":{"request_key":["The request key field is required."]}}}
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17359-8f82-71cb-85b2-044ccd6d04e9","fields":{"request_key":["The request key field is required."]}}}
 ```
 
 **Response 202**
@@ -7485,19 +7485,29 @@ Content-Type: application/json
 ```http
 HTTP/1.1 202
 Content-Type: application/json
-X-Request-Id: 01a17352-0697-72ab-9afb-81d1d21ccbee
+X-Request-Id: 01a17359-8ff9-734f-ab44-13478b74457a
 
-{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}}
+{"data":{"id":"01m5snk4cr70jm64hj7h49e43c","incident_id":"01m5snjygkt9cxdj2qpnbyd3my","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5snjy6qe86wqmn826dy0bdv","created_at":"2026-10-25T13:56:52+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}}
 ```
 
 **Response 429**
 
 ```http
 HTTP/1.1 429
-X-Request-Id: 01a17352-133d-73fa-9b0b-6e1ac88755b1
+X-Request-Id: 01a17359-9567-7070-be12-b56b3b63e06b
 Content-Type: application/json
 
-{"error":{"status":429,"code":"diagnostic_daily_limit","message":"The daily diagnostic request limit has been reached.","request_id":"01a17352-133d-73fa-9b0b-6e1ac88755b1"}}
+{"error":{"status":429,"code":"diagnostic_daily_limit","message":"The daily diagnostic request limit has been reached.","request_id":"01a17359-9567-7070-be12-b56b3b63e06b"}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17359-9599-72f3-bbfb-79437fd7ff4c
+Content-Type: application/json
+
+{"error":{"status":409,"code":"diagnostic_key_conflict","message":"The diagnostic request key was already used for another incident.","request_id":"01a17359-9599-72f3-bbfb-79437fd7ff4c"}}
 ```
 
 ### `GET /api/v1/admin/incidents/{incident}/diagnostics`
@@ -7505,7 +7515,7 @@ Content-Type: application/json
 GET lists diagnostics and availability/effective global daily quota. POST requires recent password + emailed OTP and request_key (8–64 ASCII letters/numbers/._:-). The key is idempotent per requester; changed incident conflicts. Only unresolved/unignored HTTP 500 or background-job failures are eligible. One queued provider attempt, no automatic retry. Global UTC-day requests are reserved atomically, including failed runs. Effective daily limit is the lower of the environment cap (0–1000) and independently published operational limit. Disabled/unconfigured returns 503 without reserving quota. Per-admin throttle is 3 requests/minute. Snapshots contain only predefined evidence, no customer/actor/workspace/request IDs, raw logs, errors, private URLs or payloads.
 
 ```bash
-curl -i -X GET 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb9ph6rcv/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
+curl -i -X GET 'http://localhost:8079/api/v1/admin/incidents/01m5snjygkt9cxdj2qpnbyd3my/diagnostics' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
 ```
 
 **Response 200**
@@ -7513,9 +7523,9 @@ curl -i -X GET 'http://localhost:8079/api/v1/admin/incidents/01m5sn3fx0171kmq7eb
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-0bdf-73f1-a1f2-93fed9d86d1e
+X-Request-Id: 01a17359-91ee-7295-b482-fae6d5f7b6e3
 
-{"data":[{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}],"availability":{"configured":true,"provider":"openai","effective_daily_request_limit":10},"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+{"data":[{"id":"01m5snk4cr70jm64hj7h49e43c","incident_id":"01m5snjygkt9cxdj2qpnbyd3my","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5snjy6qe86wqmn826dy0bdv","created_at":"2026-10-25T13:56:52+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}],"availability":{"configured":true,"provider":"openai","effective_daily_request_limit":10},"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
 ```
 
 ### `GET /api/v1/admin/incident-diagnostics/{diagnostic}`
@@ -7523,7 +7533,7 @@ X-Request-Id: 01a17352-0bdf-73f1-a1f2-93fed9d86d1e
 Admin-only polling endpoint. status queued|running|completed|failed. AI analysis is an unverified advisory hypothesis: likely_cause, evidence_refs (validated against snapshot E1–E5), impacted_component, suggested_investigation, proposed_fix, self-assessed confidence and uncertainty. context_stale flags changed occurrence counts. Results never execute tools, deploy, change permissions, refund, mutate ledgers or close incidents. No raw provider errors/refusals are stored or returned. Context hashes and immutable results preserve source evidence. Check reviews separately; human_review_required/advisory_only always remain true.
 
 ```bash
-curl -i -X GET 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42r9vath46q50qjxwg11' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
+curl -i -X GET 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5snk4cr70jm64hj7h49e43c' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000'
 ```
 
 **Response 200**
@@ -7531,9 +7541,9 @@ curl -i -X GET 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-0c46-705f-a185-820d22ffa514
+X-Request-Id: 01a17359-9214-7298-af47-bb314cdea7b7
 
-{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}}
+{"data":{"id":"01m5snk4cr70jm64hj7h49e43c","incident_id":"01m5snjygkt9cxdj2qpnbyd3my","status":"queued","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5snjy6qe86wqmn826dy0bdv","created_at":"2026-10-25T13:56:52+00:00","finished_at":null,"failure_code":null,"analysis":null,"human_review_required":true,"advisory_only":true,"reviews":[]}}
 ```
 
 **Response 200**
@@ -7541,9 +7551,9 @@ X-Request-Id: 01a17352-0c46-705f-a185-820d22ffa514
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-10f5-72f1-97cb-af419f419f32
+X-Request-Id: 01a17359-9428-738e-b486-5693921617b0
 
-{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"completed","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":"2026-10-25T13:48:40+00:00","failure_code":null,"analysis":{"likely_cause":"A server failure needs investigation.","impacted_component":"api","proposed_fix":"Investigate before proposing a production change.","confidence":"low","uncertainty":"No stack trace or confirmed root cause is available.","evidence_refs":["E1","E5"],"suggested_investigation":["Inspect authorized server logs locally."]},"human_review_required":true,"advisory_only":true,"reviews":[]}}
+{"data":{"id":"01m5snk4cr70jm64hj7h49e43c","incident_id":"01m5snjygkt9cxdj2qpnbyd3my","status":"completed","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5snjy6qe86wqmn826dy0bdv","created_at":"2026-10-25T13:56:52+00:00","finished_at":"2026-10-25T13:56:52+00:00","failure_code":null,"analysis":{"likely_cause":"A server failure needs investigation.","impacted_component":"api","proposed_fix":"Investigate before proposing a production change.","confidence":"low","uncertainty":"No stack trace or confirmed root cause is available.","evidence_refs":["E1","E5"],"suggested_investigation":["Inspect authorized server logs locally."]},"human_review_required":true,"advisory_only":true,"reviews":[]}}
 ```
 
 ### `POST /api/v1/admin/incident-diagnostics/{diagnostic}/review`
@@ -7551,17 +7561,17 @@ X-Request-Id: 01a17352-10f5-72f1-97cb-af419f419f32
 Recent password + emailed OTP required. Record accepted|dismissed with a 5–500 character note. Only completed diagnostics can be reviewed. One append-only review per admin/result; repeats return 409. Acceptance records human assessment only and performs no production or business action.
 
 ```bash
-curl -i -X POST 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5sn42r9vath46q50qjxwg11/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"decision":"accepted","note":"Independent investigation review"}'
+curl -i -X POST 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5snk4cr70jm64hj7h49e43c/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"decision":"accepted","note":"Independent investigation review"}'
 ```
 
 **Response 409**
 
 ```http
 HTTP/1.1 409
-X-Request-Id: 01a17352-0c9a-7097-9571-1e618d247f3a
+X-Request-Id: 01a17359-923a-7397-ad82-bf969e9f9a53
 Content-Type: application/json
 
-{"error":{"status":409,"code":"diagnostic_not_completed","message":"Only completed diagnostics can be reviewed.","request_id":"01a17352-0c9a-7097-9571-1e618d247f3a"}}
+{"error":{"status":409,"code":"diagnostic_not_completed","message":"Only completed diagnostics can be reviewed.","request_id":"01a17359-923a-7397-ad82-bf969e9f9a53"}}
 ```
 
 **Response 200**
@@ -7569,19 +7579,19 @@ Content-Type: application/json
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-1138-7039-94bd-2b82014f4e23
+X-Request-Id: 01a17359-944c-722b-a72c-76c7f97faebd
 
-{"data":{"id":"01m5sn42r9vath46q50qjxwg11","incident_id":"01m5sn3fx0171kmq7eb9ph6rcv","status":"completed","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","created_at":"2026-10-25T13:48:39+00:00","finished_at":"2026-10-25T13:48:40+00:00","failure_code":null,"analysis":{"likely_cause":"A server failure needs investigation.","impacted_component":"api","proposed_fix":"Investigate before proposing a production change.","confidence":"low","uncertainty":"No stack trace or confirmed root cause is available.","evidence_refs":["E1","E5"],"suggested_investigation":["Inspect authorized server logs locally."]},"human_review_required":true,"advisory_only":true,"reviews":[{"id":"01m5sn44am1wwm6vx9rhpe2822","reviewed_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","decision":"accepted","note":"Independent investigation review","created_at":"2026-10-25T13:48:40+00:00"}]}}
+{"data":{"id":"01m5snk4cr70jm64hj7h49e43c","incident_id":"01m5snjygkt9cxdj2qpnbyd3my","status":"completed","provider":"openai","model":"fixture-model","context":{"schema_version":"incident-context-v1","evidence":{"E1":{"fact":"http_status","value":500},"E2":{"fact":"service","value":"api"},"E3":{"fact":"registered_route","value":"/api/v1/consumer/wallet"},"E4":{"fact":"method","value":"GET"},"E5":{"fact":"occurrence_count","value":3}}},"context_hash":"3c1a6764838da5b763619f81b6947ba4b0fc474b40a6f1eea2f27689505f20c0","context_stale":false,"requested_by":"01m5snjy6qe86wqmn826dy0bdv","created_at":"2026-10-25T13:56:52+00:00","finished_at":"2026-10-25T13:56:52+00:00","failure_code":null,"analysis":{"likely_cause":"A server failure needs investigation.","impacted_component":"api","proposed_fix":"Investigate before proposing a production change.","confidence":"low","uncertainty":"No stack trace or confirmed root cause is available.","evidence_refs":["E1","E5"],"suggested_investigation":["Inspect authorized server logs locally."]},"human_review_required":true,"advisory_only":true,"reviews":[{"id":"01m5snk52v1qh4bvr29893eq16","reviewed_by":"01m5snjy6qe86wqmn826dy0bdv","decision":"accepted","note":"Independent investigation review","created_at":"2026-10-25T13:56:52+00:00"}]}}
 ```
 
 **Response 409**
 
 ```http
 HTTP/1.1 409
-X-Request-Id: 01a17352-118c-73fe-9a16-6dd241d627f3
+X-Request-Id: 01a17359-9479-722a-a31c-b998938e1d27
 Content-Type: application/json
 
-{"error":{"status":409,"code":"diagnostic_already_reviewed","message":"You have already reviewed this diagnostic result.","request_id":"01a17352-118c-73fe-9a16-6dd241d627f3"}}
+{"error":{"status":409,"code":"diagnostic_already_reviewed","message":"You have already reviewed this diagnostic result.","request_id":"01a17359-9479-722a-a31c-b998938e1d27"}}
 ```
 
 ### `POST /api/v1/admin/platform-settings`
@@ -7597,9 +7607,9 @@ curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings' -H 'Accep
 ```http
 HTTP/1.1 201
 Content-Type: application/json
-X-Request-Id: 01a17352-11cf-7288-9cbd-1ec52e1c1cfe
+X-Request-Id: 01a17359-949b-72ed-9775-b544da06f979
 
-{"data":{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"draft","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+{"data":{"id":"01m5snk55bt6tt46x40jqcw89p","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"draft","reason":"Pause diagnostic requests for investigation","created_by":"01m5snjy6qe86wqmn826dy0bdv","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
 ```
 
 ### `POST /api/v1/admin/platform-settings/{version}/review`
@@ -7607,7 +7617,7 @@ X-Request-Id: 01a17352-11cf-7288-9cbd-1ec52e1c1cfe
 Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
 
 ```bash
-curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe5xr81nqxj95csekt/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'
+curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5snk55bt6tt46x40jqcw89p/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'
 ```
 
 **Response 200**
@@ -7615,9 +7625,9 @@ curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-1220-71e1-897a-bd4ebd76da49
+X-Request-Id: 01a17359-94c9-7179-b8da-df2419e7f83e
 
-{"data":{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"review","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+{"data":{"id":"01m5snk55bt6tt46x40jqcw89p","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"review","reason":"Pause diagnostic requests for investigation","created_by":"01m5snjy6qe86wqmn826dy0bdv","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
 ```
 
 ### `POST /api/v1/admin/platform-settings/{version}/publish`
@@ -7625,7 +7635,7 @@ X-Request-Id: 01a17352-1220-71e1-897a-bd4ebd76da49
 Supplemental live capture for the reviewed operational diagnostics budget. Existing authentication, draft/review/independent-publish guards remain unchanged; public settings exclude operational configuration.
 
 ```bash
-curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe5xr81nqxj95csekt/publish' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"note":"Independent budget review completed"}'
+curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5snk55bt6tt46x40jqcw89p/publish' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"note":"Independent budget review completed"}'
 ```
 
 **Response 200**
@@ -7633,9 +7643,9 @@ curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5sn44fe
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-1269-7073-8780-0d3218c2c196
+X-Request-Id: 01a17359-94f2-70fd-9347-d1e0c74ef869
 
-{"data":{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"published","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":"01m5sn3fw7snnwjngbgsvcz5ff","review_note":"Independent budget review completed","published_at":"2026-10-25T13:48:40+00:00","is_current":true,"rollback_of":null}}
+{"data":{"id":"01m5snk55bt6tt46x40jqcw89p","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"published","reason":"Pause diagnostic requests for investigation","created_by":"01m5snjy6qe86wqmn826dy0bdv","reviewed_by":"01m5snjygdg9mdbqq1jw5677b4","review_note":"Independent budget review completed","published_at":"2026-10-25T13:56:53+00:00","is_current":true,"rollback_of":null}}
 ```
 
 ### `GET /api/v1/admin/platform-settings`
@@ -7651,9 +7661,9 @@ curl -i -X GET 'http://localhost:8079/api/v1/admin/platform-settings' -H 'Accept
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-12bc-7372-b2f5-854767b012c5
+X-Request-Id: 01a17359-9520-7170-8010-67b40fcf63ed
 
-{"data":[{"id":"01m5sn44fe5xr81nqxj95csekt","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"published","reason":"Pause diagnostic requests for investigation","created_by":"01m5sn3ehbtcsbxwzjwqr7bqw8","reviewed_by":"01m5sn3fw7snnwjngbgsvcz5ff","review_note":"Independent budget review completed","published_at":"2026-10-25T13:48:40+00:00","is_current":true,"rollback_of":null}],"published":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"],"operations.diagnostics_daily_request_limit":0},"versions":{"operations.diagnostics_daily_request_limit":"01m5sn44fe5xr81nqxj95csekt"}},"allowed_keys":["public.brand_name","public.support_email","public.languages","operations.diagnostics_daily_request_limit"],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+{"data":[{"id":"01m5snk55bt6tt46x40jqcw89p","key":"operations.diagnostics_daily_request_limit","version":1,"value":0,"checksum":"5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9","status":"published","reason":"Pause diagnostic requests for investigation","created_by":"01m5snjy6qe86wqmn826dy0bdv","reviewed_by":"01m5snjygdg9mdbqq1jw5677b4","review_note":"Independent budget review completed","published_at":"2026-10-25T13:56:53+00:00","is_current":true,"rollback_of":null}],"published":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"],"operations.diagnostics_daily_request_limit":0},"versions":{"operations.diagnostics_daily_request_limit":"01m5snk55bt6tt46x40jqcw89p"}},"allowed_keys":["public.brand_name","public.support_email","public.languages","operations.diagnostics_daily_request_limit"],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
 ```
 
 ### `GET /api/v1/public/settings`
@@ -7669,7 +7679,7 @@ curl -i -X GET 'http://localhost:8079/api/v1/public/settings' -H 'Accept: applic
 ```http
 HTTP/1.1 200
 Content-Type: application/json
-X-Request-Id: 01a17352-12fb-707c-85b7-c212387e6c3a
+X-Request-Id: 01a17359-9543-73dd-aa00-6123e60454c2
 
 {"data":{"values":{"public.brand_name":"Shopbonus","public.support_email":null,"public.languages":["nl","en"]},"versions":[]}}
 ```

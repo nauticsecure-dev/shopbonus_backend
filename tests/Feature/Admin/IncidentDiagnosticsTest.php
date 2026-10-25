@@ -204,6 +204,8 @@ class IncidentDiagnosticsTest extends TestCase
 
     public function test_operational_budget_requires_published_reviewed_version_and_never_leaks_to_public_settings(): void
     {
+        $this->asAdmin();
+        $this->postJson('/api/v1/admin/platform-settings', ['key' => 'operations.diagnostics_daily_request_limit', 'value' => '5', 'reason' => 'Reject string-valued quota'])->assertUnprocessable();
         $settings = app(PlatformSettings::class);
         $version = $settings->draft($this->admin, 'operations.diagnostics_daily_request_limit', 0, 'Pause diagnostic requests for investigation');
         $this->assertSame(10, $settings->diagnosticDailyLimit());

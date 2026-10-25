@@ -1,9 +1,9 @@
 # Latest Agent Handoff
 
 **Session:** 2026-10-25, Codex, owner requested work on Trello #21. Laravel backend only.
-**Branch / committed baseline:** `main` / `e523098` (clean and origin-synced at start; previous B16c/B16d code `4786e65` / `7b2c8d1`, CI passed). B16e WIP checkpoint is being committed; record its SHA after commit.
-**Working tree:** intended B16e code, tests, contracts, .env.example and continuity docs; no pre-existing uncommitted work overwritten. No frontend files changed.
-**Task:** #21 AI-assisted incident diagnostics + reviewed private operational quota, implementation tested locally; WIP/final commits and CI pending. Whole card remains PARTIAL pending live API configuration, UI and staging evidence.
+**Branch / code checkpoint:** `main` / `dea03b5` (pushed; implementation CI `40199851559` passed). Started clean at `e523098`; previous B16c/B16d code `4786e65` / `7b2c8d1` also CI-green. Final checkpoint tightens operational quota to strict JSON integer and refreshes domain-conflict API captures; full rerun passed (details below); final commit/push/CI is the closing action.
+**Working tree:** only final strict-quota validation/test, refreshed real API captures and continuity docs after `dea03b5`; final commit contains these. No pre-existing uncommitted work overwritten. No frontend files changed.
+**Task:** #21 AI-assisted incident diagnostics + reviewed private operational quota, implementation tested locally; WIP pushed/CI passed; final local validation passed; final documentation/code checkpoint is being committed. Whole card remains PARTIAL pending live API configuration, UI and staging evidence.
 **Owner answers:** "chatgpt" for provider (implemented OpenAI Responses); "there isn't" for staging. No API key/model configured. Never infer ChatGPT session access supplies API credentials. Keep disabled until local/deployment API project/key, supported model and budget are configured. No live provider request was made.
 **Disk:** started 6.2 GiB free; after full MySQL QA about 5.2 GiB, fluctuates. Run `df -h /System/Volumes/Data` first; below ~5 GiB STOP and ask owner. No binlogs purged, no other project/Redis data deleted.
 
@@ -20,14 +20,14 @@
 
 ## Executed verification
 
-- `php artisan test`: **469 passed + 11 skipped**, 6839 assertions (MySQL process races skipped).
-- `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test`: **478 passed + 2 skipped**, 6878 assertions, 141s. Two skips are existing destructive trigger-bypass tests run on transactional SQLite; MySQL trigger protections tested without dropping them.
+- `php artisan test`: **469 passed + 11 skipped**, 6841 assertions (MySQL process races skipped).
+- `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test`: **478 passed + 2 skipped**, 6880 assertions, 138s. Two skips are existing destructive trigger-bypass tests run on transactional SQLite; MySQL trigger protections tested without dropping them.
 - Pint --test, PHPStan L6 --memory-limit=1G and composer audit: PASS/no advisories.
 - Migration `150000` apply/rollback --step=1/reapply: PASS local MySQL.
 - Focused diagnostics/settings/contract suite 19 passed; 10 diagnostics feature cases plus one new real MySQL quota race. Privacy, unknown evidence/tool/incomplete/refusal/malformed output, disabled provider, exhausted quota, stale context, duplicate calls/reviews, request-key conflict, changed requester, context-integrity checks and public/private setting separation tested.
 - Eight guard mutation checks detected failures and were restored (configuration, quota, execution guard, context hash, review status, eligibility, evidence refs, environment cap).
 - Real local-server HTTP captures: isolated SQLite/database sessions/queue/cache, logged mail, MFA bypass only in capture environment. Requests/login/password/OTP/poll/review/settings were real HTTP. Completion generated through the real validator/service using Http::fake; explicitly NOT live OpenAI evidence. OpenAPI/README updated for all new/changed endpoints.
-- Capture server stopped and logged email-code suffix removed while preserving pre-existing app log content. Temporary `/tmp/shopbonus-21.2DRdZz` fixtures/scripts still need deletion at this checkpoint (generated test passwords/SQLite); `/tmp/shopbonus21-mutations.py` is task-owned. Never commit them.
+- Capture server stopped; task-owned temporary fixture DB, generated passwords, capture/mutation helpers removed. Logged email-code suffix removed while preserving pre-existing application log content. No capture secrets/fixtures committed.
 - Live OpenAI/key/model/account capability: NOT VERIFIED. Staging p95, production alerts and backup/restore: NOT RUN (owner confirms no staging). No frontend implementation.
 
 ## Environment / migrations / config
@@ -86,6 +86,6 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 ## Next exact actions
 
-1. Check disk cutoff and git status/log. Complete B16e WIP/final commits, normal push, and CI verification; record exact code SHA. Tests above passed; don't tick the live-provider/staging checklist item.
-2. Remove remaining task-owned temporary capture fixtures/scripts; update clean/uncommitted status. Handoff API/config docs to Hassan; #21 remains PARTIAL until real API setup/verification and UI/staging acceptance.
+1. Check disk cutoff and git status/log. B16e WIP `dea03b5` is pushed/CI-green; strict JSON-integer quota validation and final full-suite rerun passed; final checkpoint must be pushed/CI checked (inspect latest git log/CI if resuming during that closing action). Tests above passed; don't tick the live-provider/staging checklist item.
+2. Temporary capture credentials/server/helpers already cleaned; update final clean/uncommitted status. Handoff API/config docs to Hassan; #21 remains PARTIAL until real API setup/verification and UI/staging acceptance.
 3. For live verification, owner must configure an OpenAI API key, supported Responses/Structured Outputs model and budget in the environment; do not ask for secrets in chat or invent a default production model. There is no staging; do not claim performance/backup/provider checks passed. B17 support chat/new cards are separate scope. Existing financial/legal/marketing/affiliate OPEN decisions remain unchanged.

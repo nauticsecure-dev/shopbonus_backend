@@ -94,7 +94,7 @@ class PlatformSettings
     {
         Validator::make(['key' => $key], ['key' => ['required', Rule::in(self::KEYS)]])->validate();
         $rules = match ($key) {
-            'operations.diagnostics_daily_request_limit' => ['value' => ['required', 'integer', 'min:0', 'max:1000']],
+            'operations.diagnostics_daily_request_limit' => ['value' => ['required', 'integer:strict', 'min:0', 'max:1000']],
             'public.brand_name' => ['value' => ['required', 'string', 'min:1', 'max:100', 'regex:/^[\pL\pN .&\'-]+$/u']],
             'public.support_email' => ['value' => ['required', 'email:rfc', 'max:254']],
             'public.languages' => ['value' => ['required', 'array', 'min:1', 'max:2'], 'value.*' => ['required', 'string', 'distinct', Rule::in(User::SUPPORTED_LOCALES)]],
