@@ -2,6 +2,8 @@
 
 namespace App\Services\Vouchers;
 
+use App\Enums\AuditCategory;
+use App\Enums\AuditOutcome;
 use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherOrigin;
@@ -16,6 +18,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\VoucherEvent;
 use App\Models\WebshopOrder;
+use App\Services\Audit\AuditLogger;
 use App\Services\Funding\MerchantFunding;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -39,7 +42,7 @@ class VoucherInventory
     /** Origins whose reward the merchant funds (Trello #24 §4). */
     private const SPONSORED = [VoucherOrigin::MerchantReward, VoucherOrigin::Answer24Claim];
 
-    public function __construct(private readonly MerchantFunding $funding) {}
+    public function __construct(private readonly MerchantFunding $funding, private readonly AuditLogger $audit) {}
 
     /**
      * Idempotent by `$idempotencyKey` (unique per webshop): repeating a call
@@ -144,22 +147,31 @@ class VoucherInventory
      */
     private function markRedeemed(Voucher $voucher, array $fields, ?int $actorUserId, array $summary): Voucher
     {
-        return DB::transaction(function () use ($voucher, $fields, $actorUserId, $summary) {
-            $updated = Voucher::whereKey($voucher->id)->where('status', VoucherStatus::Issued)
-                ->update(['status' => VoucherStatus::Redeemed->value, 'redeemed_at' => now(), 'updated_at' => now(), ...$fields]);
+        try {
+            return DB::transaction(function () use ($voucher, $fields, $actorUserId, $summary) {
+                $updated = Voucher::whereKey($voucher->id)->where('status', VoucherStatus::Issued)
+                    ->update(['status' => VoucherStatus::Redeemed->value, 'redeemed_at' => now(), 'updated_at' => now(), ...$fields]);
 
-            if ($updated !== 1) {
-                $status = Voucher::whereKey($voucher->id)->value('status');
-                throw ApiException::conflict('This voucher was already redeemed or is not issued.', 'voucher_not_redeemable', ['status' => $status]);
+                if ($updated !== 1) {
+                    $status = Voucher::whereKey($voucher->id)->value('status');
+                    throw ApiException::conflict('This voucher was already redeemed or is not issued.', 'voucher_not_redeemable', ['status' => $status]);
+                }
+
+                $v = Voucher::findOrFail($voucher->id);
+                $this->moveCode($v, [VoucherCodeStatus::Issued], VoucherCodeStatus::Redeemed, ['redeemed_at' => now()]);
+                $this->event($v, 'redeemed', VoucherStatus::Issued, VoucherStatus::Redeemed, $actorUserId, $summary);
+                $this->funding->settle($v);
+
+                return $v;
+            });
+        } catch (ApiException $e) {
+            if ($e->errorCode === 'voucher_not_redeemable') {
+                $this->audit->recordSafely('voucher.redemption_denied', category: AuditCategory::Voucher,
+                    outcome: AuditOutcome::Denied, resource: $voucher, webshopId: $voucher->webshop_id,
+                    actorUserId: $actorUserId, httpStatus: 409, metadata: ['error_code' => $e->errorCode]);
             }
-
-            $v = Voucher::findOrFail($voucher->id);
-            $this->moveCode($v, [VoucherCodeStatus::Issued], VoucherCodeStatus::Redeemed, ['redeemed_at' => now()]);
-            $this->event($v, 'redeemed', VoucherStatus::Issued, VoucherStatus::Redeemed, $actorUserId, $summary);
-            $this->funding->settle($v);
-
-            return $v;
-        });
+            throw $e;
+        }
     }
 
     /**

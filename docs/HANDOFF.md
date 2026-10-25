@@ -1,26 +1,27 @@
 # Latest Agent Handoff
 
-**Session:** 2026-10-23, first implementation session (continued; owner said "continue and don't stop")
-**Agent:** Claude (Opus 5.5)
-**Repo / branch:** this local repo (no remote) / `main` (direct commits authorized, D-002)
-**Last code commit:** `6d782d8` B16b. Earlier: `4865e34` B16a, `b2abb82` B15b, `4604215` B15a, `e5df771` B14, `2bfa953` B13, `1edd8d9` B12, `0dc12d6` CI PHP 8.4, `cd48d26` B11b, `5fca11a` B11a, `37edebf` B10, `862d3d0` B09, `c2dfb15` B08b, `4c4e26c` B08a, `0c6c035` B07b, `5c24240` B07a, `c07f778` B06b, `c6485dc` B06a, `7e391be` B05, `820c6b5` B04, `5acdfbd` B03d, `b230455` B03c, `ec20038` B03b, `2fe8db6` B03a, `c95e1e4` B02, `088fb20` B01b, `a51a9b6` B01a.
-**Working tree state at handoff:** clean (verify with `git status -sb`).
-**Active task:** none in progress. **Next:** B16c financial, integration and Answer24 oversight (expand `### B16c` in CHECKLIST first), then B16d incidents/route registry/audit integrity/platform settings. **Local disk is ~100% full (436 MiB free on 2026-10-24): MySQL tests slowed 5×; free space before continuing.**
-**Last completed task:** B16b cockpit, user administration, webshop admin columns/checklist/information request.
+**Session:** 2026-10-25, Codex continuing B16c; backend only.
+**Repo / branch:** `/Users/kcoder/Projects/Shopbonus` / `main`; direct commits and normal pushes authorized.
+**Baseline SHA:** `856244f` (origin/main at start); B16c WIP checkpoint being committed; obtain exact checkpoint SHA with `git log -1 --oneline`.
+**Working tree:** B16c implementation, tests, API captures and continuity docs are the intended checkpoint changes; no pre-existing uncommitted work was present.
+**Active task:** B16c locally verified; WIP/final commit and CI checkpoint pending. Then B16d.
+**Disk:** started at 6.1 GiB free; after QA about 5.3 GiB. Run `df -h /System/Volumes/Data` BEFORE further work; if below about 5 GiB STOP and ask owner. Do not purge binlogs or other projects' data.
+**Decision:** D-064, owner answered "whatever you think": all wallet adjustments require a different Super Admin reviewer, for every amount/unit (`dual-admin-v1`). No numeric risk threshold/points conversion invented.
+**B16c delivered:** 13 admin routes for wallet/ledger/flags, dual-admin requests/reviews, financial evidence, connection/Answer24 monitoring and safe retries. Two migrations `2026_10_25_100000` (flag ULIDs/backfill/review fields) and `110000` (`admin_approval_requests`) applied locally and rollback/reapply verified. Current consent/payment/suppression eligibility rechecked by dispatcher. Existing affiliate/dispute/checkout flows reused. Original outbox identity, payload and attempts preserved on retry; dispatch remains off by config. Redemption transition denials are safely audited outside the failed transaction.
+**Acceptance:** Trello #21 E2E 5/6 covered locally; real Answer24/Mollie/affiliate providers and staging NOT VERIFIED. B16d/E2E 7–9 remain; AI belongs to B17, blocked on provider choice. UI/E2E 10 frontend/staging parts out of backend scope.
 
-## Tests actually executed (at the B16b commit)
+## Tests actually executed (B16c checkpoint)
 
-| Command | Result |
-| --- | --- |
-| `php artisan test` (SQLite in-memory) | PASS: 430 + 7 skipped (MySQL-only concurrency) |
-| `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test` | PASS: 437 tests (incl. forked-process race tests; 407 s because the disk is full) |
-| `vendor/bin/pint --test` | PASS |
-| `vendor/bin/phpstan analyse --memory-limit=1G` (level 6) | PASS, 0 errors |
-| `composer audit` | No advisories |
-| `php artisan migrate:rollback --step=1 && php artisan migrate` (local MySQL, B16a) | OK |
-| Real HTTP capture of the whole auth flow (MySQL + Redis sessions) | Done; in `docs/api/README.md` → Auth |
-| GitHub Actions CI | PASS for PHP 8.4 (SQLite, MySQL) + lint/static (see `gh run list`) |
-| Staging p95, PostgreSQL trigger | NOT RUN (no staging, no PG) |
+- `php artisan test`: **445 passed + 8 skipped**, 6380 assertions (MySQL-only races skipped).
+- `DB_CONNECTION=mysql DB_DATABASE=shopbonus_testing DB_HOST=127.0.0.1 DB_USERNAME=root DB_PASSWORD= php artisan test`: **453 passed**, 6413 assertions, 117 s.
+- `vendor/bin/pint --test`, `vendor/bin/phpstan analyse --memory-limit=1G`: PASS.
+- `composer audit`: no security advisories.
+- `php artisan migrate --force && php artisan migrate:rollback --step=2 --force && php artisan migrate --force`: both B16c migrations OK on local MySQL.
+- Focused MySQL admin/race tests: 15 passed. Concurrent approvals by different admins post one compensating entry and reconcile.
+- Nine guard mutation checks: self-review, consumer/source matching, unresolved mismatch, resolved flag replay, recent password, OTP, current consent, webhook retry, outbox retry all detected failures; source restored.
+- Real running-server capture: isolated temporary SQLite, database sessions, port 8076; two real password/emailed-OTP sessions; 13 routes and domain conflicts. Committed to `docs/api/{README.md,openapi.yaml}`. Secrets excluded; temporary mail log must be truncated/removed at cleanup.
+- Local server process still needs cleanup at this checkpoint (port 8076; created only for captures). Temporary fixtures/scripts in `/tmp/shopbonus-b16.h1xjUO` contain generated test passwords, DB and email codes: remove after capture verification. Do not commit them. Existing application log was not used for email; capture log is `server.log` in that temporary directory.
+- B16c GitHub CI pending push/check; staging p95, live providers and PostgreSQL NOT RUN.
 
 ## Environment / migrations / config
 
@@ -78,12 +79,6 @@ While capturing docs, an early script ran `redis-cli FLUSHDB` on local Redis **d
 
 ## Next agent's exact first actions
 
-1. `git status -sb && git log --oneline -8 && php artisan test`; `gh run list --limit 3`.
-2. B16c (Trello #21 "Financial & voucher oversight", "Integrations & Answer24 monitoring"): expand `### B16c` in `docs/CHECKLIST.md` first. Likely contents:
-   - wallet oversight (ledger per wallet, reconciliation flags list/resolve);
-   - wallet adjustment requests in `admin_approval_requests`: reason, consumer + transaction verification, `password.recent` + `step_up.otp`, a second admin approves above a threshold (four eyes), posted only via `WalletService::adjust`, never a direct balance write;
-   - affiliate mismatches, failed issuance, paid-unfulfilled checkouts, Mollie payments/refunds, suspicious redemptions;
-   - integration overview (per connection: last event, orders today, failed events, auth errors) and Answer24 overview;
-   - safe retries (webhook re-process, outbox re-dispatch) that are idempotent.
-   Then B16d: incidents (`security_incidents`, grouped by fingerprint/route+status, status workflow, assignment; 401/403/419/422/429/500), API route registry (generated from routes + OpenAPI `x-access`), tamper-evident audit (hash chain + verify command), audit export, platform setting versions.
-3. After B16: B17 AI support (needs an AI provider decision), B18 release, B19 blocked (empty card).
+1. Check disk cutoff, git status/log. Finish B16c WIP/final commit and normal push/CI verification, record exact SHAs and tick CHECKLIST only for executed acceptance evidence. Full QA above passed; final flag unit field/capture refresh passed the targeted OpenAPI/wallet/dispute regression check (12 tests).
+2. B16d: expand its checklist before implementation. Reuse audit_events/application_errors; incidents grouped by fingerprint or route+status, preserve request-ID occurrences for every 401/403/419/422/429/500; assignment and New/Investigating/Resolved/Ignored workflow. Generate API route registry from runtime routes + OpenAPI x-access. Tamper-evident audit chain and verification command, authorized audit export. Versioned platform settings draft/review/publish/rollback; reuse CMS/agreement systems and keep sensitive provider/financial/consent policy disabled until explicit versioned owner decisions. AI diagnostics B17 only.
+3. Keep all existing provider/legal/marketing/affiliate open decisions; outbound Answer24 off, Mollie test-only, Moneybird not connected. Do not implement client UI.

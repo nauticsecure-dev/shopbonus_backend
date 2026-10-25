@@ -9050,6 +9050,997 @@ paths:
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
+  /api/v1/admin/wallets:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletsGet
+      summary: wallets
+      description: 'Wallet balances with explicit kind and unit. Filters: consumer_id, kind, unit. Audited inspection.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        -
+          name: consumer_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: ulid
+        -
+          name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - consumer_credit
+              - merchant_funding
+        -
+          name: unit
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - eur_credit
+              - points
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/wallets' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  -
+                    id: 01m5shsgcw0s9p7gqjf6kkr8d9
+                    kind: consumer_credit
+                    unit: eur_credit
+                    available: 500
+                    reserved: 0
+                    pending: 0
+                meta:
+                  current_page: 1
+                  per_page: 25
+                  total: 1
+                  last_page: 1
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+  '/api/v1/admin/wallets/{wallet}/ledger':
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletsWalletLedgerGet
+      summary: 'wallets/{wallet}/ledger'
+      description: 'Append-only ledger, newest first, with explicit wallet unit. Internal owner/actor IDs and idempotency keys omitted. Audited inspection.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: wallet
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/wallets/01m5shsgcw0s9p7gqjf6kkr8d9/ledger' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  -
+                    id: 01m5shsgd3kgj7e3qzbcv4rq9x
+                    type: credit
+                    unit: eur_credit
+                    amount: 500
+                    available_delta: 500
+                    reserved_delta: 0
+                    available_after: 500
+                    reserved_after: 0
+                    reason: null
+                    origin: system
+                    source_type: null
+                    created_at: '2026-10-25T12:50:26+00:00'
+                meta:
+                  current_page: 1
+                  per_page: 25
+                  total: 1
+                  last_page: 1
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /api/v1/admin/wallet-reconciliation-flags:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletReconciliationFlagsGet
+      summary: wallet-reconciliation-flags
+      description: 'Flags with stable public IDs. Filter status=open|resolved and wallet_id.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        -
+          name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - open
+              - resolved
+        -
+          name: wallet_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: ulid
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/wallet-reconciliation-flags' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  -
+                    id: 01m5shsgd9twtss0t6vk46wr4c
+                    wallet_id: 01m5shsgcw0s9p7gqjf6kkr8d9
+                    unit: eur_credit
+                    reason: balance_mismatch
+                    amount: 0
+                    status: open
+                    resolved_at: null
+                    resolution_reason: null
+                    resolved_by: null
+                meta:
+                  current_page: 1
+                  per_page: 25
+                  total: 1
+                  last_page: 1
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+  /api/v1/admin/wallet-adjustments:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletAdjustmentsGet
+      summary: wallet-adjustments
+      description: 'Dual-admin-v1 requires a different reviewer for EVERY amount/unit. Immutable request verifies a matching active verified consumer, wallet and source entry. request_key is idempotent per requester; different evidence returns 409. No credit posts when requesting. GET filters status=pending|approved|rejected.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        -
+          name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - pending
+              - approved
+              - rejected
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/wallet-adjustments' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data: {}
+                meta:
+                  current_page: 1
+                  per_page: 25
+                  total: 0
+                  last_page: 1
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletAdjustmentsPost
+      summary: wallet-adjustments
+      description: 'Dual-admin-v1 requires a different reviewer for EVERY amount/unit. Immutable request verifies a matching active verified consumer, wallet and source entry. request_key is idempotent per requester; different evidence returns 409. No credit posts when requesting. GET filters status=pending|approved|rejected.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wallet_id
+                - consumer_id
+                - source_entry_id
+                - amount
+                - reason
+                - verification_note
+                - request_key
+              properties:
+                wallet_id:
+                  type: string
+                  format: ulid
+                consumer_id:
+                  type: string
+                  format: ulid
+                source_entry_id:
+                  type: string
+                  format: ulid
+                amount:
+                  type: integer
+                  minimum: -2147483647
+                  maximum: 2147483647
+                  not:
+                    const: 0
+                reason:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+                verification_note:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+                request_key:
+                  type: string
+                  pattern: '^[A-Za-z0-9._:-]{8,64}$'
+            example:
+              wallet_id: 01m5shsgcw0s9p7gqjf6kkr8d9
+              consumer_id: 01m5shsgcjk4ccftfne5p57vq5
+              source_entry_id: 01m5shsgd3kgj7e3qzbcv4rq9x
+              amount: 100
+              reason: 'Verified missing credit'
+              verification_note: 'Consumer identity and original transaction verified'
+              request_key: capture-adjustment-001
+      x-codeSamples:
+        -
+          lang: curl
+          source: 'curl -i -X POST ''http://localhost:8076/api/v1/admin/wallet-adjustments'' -b cookies.txt -H ''Accept: application/json'' -H ''Origin: http://localhost:3000'' -H ''Content-Type: application/json'' -H ''X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'' --data ''{"wallet_id":"01m5shsgcw0s9p7gqjf6kkr8d9","consumer_id":"01m5shsgcjk4ccftfne5p57vq5","source_entry_id":"01m5shsgd3kgj7e3qzbcv4rq9x","amount":100,"reason":"Verified missing credit","verification_note":"Consumer identity and original transaction verified","request_key":"capture-adjustment-001"}'''
+      responses:
+        201:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  id: 01m5shsm5bsyr3gwy06b7g4721
+                  wallet_id: 01m5shsgcw0s9p7gqjf6kkr8d9
+                  consumer_id: 01m5shsgcjk4ccftfne5p57vq5
+                  source_entry_id: 01m5shsgd3kgj7e3qzbcv4rq9x
+                  amount: 100
+                  unit: eur_credit
+                  reason: 'Verified missing credit'
+                  verification_note: 'Consumer identity and original transaction verified'
+                  policy_version: dual-admin-v1
+                  status: pending
+                  requested_by: 01m5shsg3jkn7wrp9pe1a2f539
+                  reviewed_by: null
+                  posted_entry_id: null
+                  review_note: null
+                  reviewed_at: null
+        409:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 409
+                  code: approval_key_conflict
+                  message: 'The request key was already used for different evidence.'
+                  request_id: 01a1731c-eb02-70ba-b431-4112194c1af3
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          $ref: '#/components/responses/PasswordConfirmationRequired'
+  /api/v1/admin/integrations:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminIntegrationsGet
+      summary: integrations
+      description: 'Per-connection measured status, business-timezone order count, last processed event, failed/incomplete events and oldest pending timestamp. auth_error is the latest recorded connection auth failure, not a count of all unsigned requests. Provider capabilities remain NOT VERIFIED.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        -
+          name: webshop_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: ulid
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/integrations' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  -
+                    id: 01m5shsgdhkgmywh2mvavphebh
+                    webshop:
+                      id: 01m5shsgdcv6knc9h75a2ec5qw
+                      name: 'Capture Shop'
+                    platform: prestashop
+                    status: connected
+                    last_event_at: null
+                    last_successful_event_at: null
+                    orders_today: 0
+                    failed_events: 1
+                    incomplete_orders: 0
+                    oldest_pending_event_at: null
+                    auth_error: null
+                    last_error_code: null
+                    limitations: null
+                    required_action: null
+                meta:
+                  current_page: 1
+                  total: 1
+                  per_page: 25
+                  last_page: 1
+                definitions:
+                  orders_today: 'Orders first received since the start of the current business-timezone day.'
+                  delay: 'oldest_pending_event_at is the start of the unprocessed verified-event backlog; null means none.'
+                  auth_error: 'Latest recorded connection authentication error, not a count of all rejected inbound requests.'
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+  /api/v1/admin/integrations/failed-events:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminIntegrationsFailedEventsGet
+      summary: integrations/failed-events
+      description: 'Failed verified events with retained-payload indicator. Omits raw customer payloads and credentials.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/integrations/failed-events' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  -
+                    id: 01m5shsgdqk6rphg05cxxc52a4
+                    connection_id: 01m5shsgdhkgmywh2mvavphebh
+                    status: failed
+                    error_code: null
+                    received_at: '2026-10-25T12:50:26+00:00'
+                    payload_retained: true
+                meta:
+                  current_page: 1
+                  total: 1
+                  per_page: 25
+                  last_page: 1
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+  /api/v1/admin/answer24:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminAnswerGet
+      summary: answer24
+      description: 'Grouped contact states, current eligibility-failure reasons, failed dispatches and authenticated failed contact results. Reasons may overlap. Rejected unsigned callbacks remain in security audit. Dispatch configuration is reported, never enabled here.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/answer24' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  dispatch_enabled: false
+                  eligible_paid_orders: 0
+                  contacts_by_status: {}
+                  eligibility_failures: {}
+                  failed_dispatches: 1
+                  failed_contact_results: 0
+                  failed_messages:
+                    -
+                      id: 01m5shsgdtde6gjab0wsvfdyw5
+                      type: answer24.contact_requested
+                      status: failed
+                      attempts: 0
+                      last_error: null
+                definitions:
+                  eligibility_failures: 'Current stored order eligibility reasons, counted per order/reason; may overlap.'
+                  failed_contact_results: 'Authenticated Answer24 contact results reporting failure; rejected unsigned requests are security audit events.'
+                  provider_verification: 'NOT VERIFIED; dispatch remains controlled by configuration.'
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+  /api/v1/admin/financial-oversight:
+    get:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminFinancialOversightGet
+      summary: financial-oversight
+      description: 'Required category: affiliate_mismatches|failed_issuance|payments|funding_payments|redemption_signals. Read-only evidence; existing affiliate, checkout and dispute APIs handle mutations. Failed checkouts include payment and inventory failures distinguished by failure_reason. Denied redemptions are investigation signals, not proven fraud. No payouts or provider calls.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        -
+          name: category
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - affiliate_mismatches
+              - failed_issuance
+              - payments
+              - funding_payments
+              - redemption_signals
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/financial-oversight?category=payments' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data: {}
+                meta:
+                  current_page: 1
+                  total: 0
+                  per_page: 25
+                  last_page: 1
+                definitions:
+                  failed_issuance: 'Failed or paid-unfulfilled voucher checkouts; failure_reason distinguishes payment and inventory failures.'
+                  redemption_signals: 'Denied redemption transitions recorded since B16c; signals for investigation, not confirmed fraud.'
+                  related_workflows: '/admin/affiliate/transactions, /admin/checkouts, /admin/disputes; no payouts or new provider calls.'
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+  '/api/v1/admin/wallet-reconciliation-flags/{flag}/resolve':
+    post:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletReconciliationFlagsFlagResolvePost
+      summary: 'wallet-reconciliation-flags/{flag}/resolve'
+      description: 'Recent password and email OTP required. Reasoned audited resolution only. A balance_mismatch cannot be resolved while cached balances disagree with ledger, lots, pending or active reservations. Never writes balances.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: flag
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+            example:
+              reason: 'Ledger and cached balances verified'
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST 'http://localhost:8076/api/v1/admin/wallet-reconciliation-flags/01m5shsgd9twtss0t6vk46wr4c/resolve' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"reason\":\"Ledger and cached balances verified\"}'"
+      responses:
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  id: 01m5shsgd9twtss0t6vk46wr4c
+                  wallet_id: 01m5shsgcw0s9p7gqjf6kkr8d9
+                  unit: eur_credit
+                  reason: balance_mismatch
+                  amount: 0
+                  status: resolved
+                  resolved_at: '2026-10-25T12:50:30+00:00'
+                  resolution_reason: 'Ledger and cached balances verified'
+                  resolved_by: 01m5shsg3jkn7wrp9pe1a2f539
+        409:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 409
+                  code: flag_already_resolved
+                  message: 'This reconciliation flag is already resolved.'
+                  request_id: 01a1731c-eb24-70c6-a8d2-2d8dbd0741eb
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          $ref: '#/components/responses/PasswordConfirmationRequired'
+        404:
+          $ref: '#/components/responses/NotFound'
+  '/api/v1/admin/wallet-adjustments/{approval}/review':
+    post:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminWalletAdjustmentsApprovalReviewPost
+      summary: 'wallet-adjustments/{approval}/review'
+      description: 'Recent password and email OTP required. Requester cannot review their own request. Review rechecks consumer/requester eligibility. Approved posts once through WalletService::adjust; rejected posts nothing. Negative balances refused. Same completed review by the same reviewer replays; conflicting decision/reviewer returns 409.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: approval
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - decision
+                - note
+              properties:
+                decision:
+                  type: string
+                  enum:
+                    - approved
+                    - rejected
+                note:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+            example:
+              decision: approved
+              note: 'Independent verification completed'
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST 'http://localhost:8076/api/v1/admin/wallet-adjustments/01m5shsm5bsyr3gwy06b7g4721/review' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"decision\":\"approved\",\"note\":\"Independent verification completed\"}'"
+      responses:
+        403:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 403
+                  code: second_admin_required
+                  message: 'A different administrator must review this adjustment.'
+                  request_id: 01a1731c-eb41-70f5-9c82-c52db7f21722
+        200:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  id: 01m5shsm5bsyr3gwy06b7g4721
+                  wallet_id: 01m5shsgcw0s9p7gqjf6kkr8d9
+                  consumer_id: 01m5shsgcjk4ccftfne5p57vq5
+                  source_entry_id: 01m5shsgd3kgj7e3qzbcv4rq9x
+                  amount: 100
+                  unit: eur_credit
+                  reason: 'Verified missing credit'
+                  verification_note: 'Consumer identity and original transaction verified'
+                  policy_version: dual-admin-v1
+                  status: approved
+                  requested_by: 01m5shsg3jkn7wrp9pe1a2f539
+                  reviewed_by: 01m5shsgc59xkqzakxaqf2yy05
+                  posted_entry_id: 01m5shsq7bjewmre72b74qtzz8
+                  review_note: 'Independent verification completed'
+                  reviewed_at: '2026-10-25T12:50:33+00:00'
+        409:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 409
+                  code: approval_already_reviewed
+                  message: 'This adjustment has already been reviewed.'
+                  request_id: 01a1731c-f770-73d0-abbc-ea82cddd62f7
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          $ref: '#/components/responses/PasswordConfirmationRequired'
+        404:
+          $ref: '#/components/responses/NotFound'
+  '/api/v1/admin/integrations/events/{event}/retry':
+    post:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminIntegrationsEventsEventRetryPost
+      summary: 'integrations/events/{event}/retry'
+      description: 'Recent password and email OTP required. Requeue an existing failed technical operation using the original identity/idempotency key. Webhooks require retained verified payload and non-disconnected connection. Outbox retries retain attempt history and never enable dispatch. Current consent/suppression/payment/eligibility rechecked before contact dispatch. Provider-side idempotency remains NOT VERIFIED.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: event
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+            example:
+              reason: 'Technical failure investigated and corrected'
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST 'http://localhost:8076/api/v1/admin/integrations/events/01m5shsgdqk6rphg05cxxc52a4/retry' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"reason\":\"Technical failure investigated and corrected\"}'"
+      responses:
+        202:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  id: 01m5shsgdqk6rphg05cxxc52a4
+                  status: ignored
+        409:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 409
+                  code: event_not_retryable
+                  message: 'Only failed events with a retained payload and active connection can be retried.'
+                  request_id: 01a1731c-dd2f-7154-bb5a-cc63bd8ae326
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          $ref: '#/components/responses/PasswordConfirmationRequired'
+        404:
+          $ref: '#/components/responses/NotFound'
+  '/api/v1/admin/answer24/messages/{message}/retry':
+    post:
+      tags:
+        - Admin
+      operationId: b16cApiVAdminAnswerMessagesMessageRetryPost
+      summary: 'answer24/messages/{message}/retry'
+      description: 'Recent password and email OTP required. Requeue an existing failed technical operation using the original identity/idempotency key. Webhooks require retained verified payload and non-disconnected connection. Outbox retries retain attempt history and never enable dispatch. Current consent/suppression/payment/eligibility rechecked before contact dispatch. Provider-side idempotency remains NOT VERIFIED.'
+      x-access: admin
+      security:
+        -
+          sessionCookie: {}
+      parameters:
+        -
+          name: message
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+            example:
+              reason: 'Technical failure investigated and corrected'
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST 'http://localhost:8076/api/v1/admin/answer24/messages/01m5shsgdtde6gjab0wsvfdyw5/retry' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"reason\":\"Technical failure investigated and corrected\"}'"
+      responses:
+        202:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                data:
+                  id: 01m5shsgdtde6gjab0wsvfdyw5
+                  status: pending
+        409:
+          description: 'Captured real HTTP response.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 409
+                  code: outbox_not_retryable
+                  message: 'Only failed Answer24 messages can be retried.'
+                  request_id: 01a1731c-dd6c-704d-a48b-d7e1ac8ba735
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/PlatformRoleRequired'
+        422:
+          $ref: '#/components/responses/ValidationFailed'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          $ref: '#/components/responses/PasswordConfirmationRequired'
+        404:
+          $ref: '#/components/responses/NotFound'
+
 components:
   parameters:
     Workspace:

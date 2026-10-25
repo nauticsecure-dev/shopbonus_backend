@@ -472,7 +472,17 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 
 ### B16c Financial, integration and Answer24 oversight (Trello #21 "Financial & voucher oversight", "Integrations & Answer24 monitoring")
 
-- [ ] Expand when started
+- [x] Wallet list and per-wallet ledger: paginated, explicit units, public IDs, Super Admin only; audit inspection; no secrets/internal IDs.
+- [x] Reconciliation flags: stable public IDs/backfill, list/filter, reasoned audited resolution; reject unresolved balance mismatches; preserve history.
+- [x] Adjustment approval requests: immutable amount/unit/source verification and reason; password + OTP on request/approval; requester cannot self-approve; dual-admin-v1 for every amount/unit (D-064); WalletService::adjust only; replay/race tests.
+- [x] Financial exceptions: affiliate mismatches, failed issuance, paid-unfulfilled checkout and Mollie payment/refund evidence, suspicious redemption signals; reuse dispute/affiliate APIs.
+- [x] Connection monitoring: last successful event, business-day order counts, failed/incomplete events, delay, auth errors and required action; sanitized evidence.
+- [x] Answer24 monitoring: grouped contact states, eligibility/suppression failures, failed dispatch/callback evidence; no raw contact payloads.
+- [x] Safe retries: locked failed webhook requeue with retained verified payload; locked failed outbox requeue with original idempotency key; current consent/eligibility rechecked before dispatch; dispatch-off remains respected.
+- [x] Every new endpoint documented with captured running-server examples and access metadata; error/security negative tests and mutation checks.
+- [ ] SQLite + MySQL suites, Pint, PHPStan, composer audit, migration rollback/reapply; WIP/final commits and CI; handoff/task/progress evidence.
+
+Evidence: B16c WIP implementation commit (record exact SHA in the following checkpoint); 2026-10-25 SQLite 445 pass + 8 skip, MySQL 453 pass, 9 guard mutations detected/restored; focused contract/wallet/dispute rerun 12 pass. API captures and test names are in HANDOFF/PROGRESS. Final push/CI checkbox remains pending.
 
 ### B16d Incidents, route registry, audit integrity, platform settings (Trello #21 "Central errors & security", "Audit & security controls", "Platform content & settings")
 

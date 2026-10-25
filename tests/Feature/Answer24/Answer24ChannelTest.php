@@ -87,6 +87,19 @@ class Answer24ChannelTest extends TestCase
         $this->app['auth']->forgetGuards();
     }
 
+    public function test_dispatch_rechecks_revoked_consent_after_outbox_was_queued(): void
+    {
+        $this->order('consent-revoked')->assertAccepted();
+        $this->travel(61)->minutes();
+        $this->artisan('shopbonus:close-contact-windows')->assertSuccessful();
+        $message = OutboxMessage::where('type', 'answer24.contact_requested')->sole();
+        WebshopOrder::where('external_order_id', 'consent-revoked')->update(['contact_consent' => false]);
+        Http::fake();
+        $this->artisan('shopbonus:dispatch-outbox')->assertSuccessful();
+        Http::assertNothingSent();
+        $this->assertSame('cancelled', $message->fresh()->status);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private function order(string $id, array $overrides = []): TestResponse

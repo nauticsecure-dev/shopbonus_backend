@@ -4,6 +4,7 @@ namespace App\Services\Answer24;
 
 use App\Models\ContactOpportunity;
 use App\Models\OutboxMessage;
+use App\Models\Webshop;
 use App\Models\WebshopOrder;
 use Illuminate\Support\Facades\DB;
 
@@ -24,7 +25,7 @@ class OutboxDispatcher
 {
     private const STUCK_MINUTES = 10;
 
-    public function __construct(private readonly Answer24Client $client, private readonly Outbox $outbox) {}
+    public function __construct(private readonly Answer24Client $client, private readonly Outbox $outbox, private readonly OrderEligibility $eligibility) {}
 
     /**
      * @return array{sent: int, failed: int, retried: int, skipped: int}
@@ -100,7 +101,16 @@ class OutboxDispatcher
             return false;
         }
 
-        $active = WebshopOrder::whereIn('id', $opportunity->links()->where('status', 'active')->pluck('order_id'))->pluck('reference')->all();
+        $webshop = Webshop::find($opportunity->webshop_id);
+        if ($webshop === null) {
+            return false;
+        }
+        $active = WebshopOrder::whereIn('id', $opportunity->links()->where('status', 'active')->pluck('order_id'))
+            ->get()->filter(function (WebshopOrder $order) use ($webshop) {
+                $result = $this->eligibility->evaluate($order, $webshop);
+
+                return $result['eligible'] && $result['callable'];
+            })->pluck('reference')->all();
         $payload = $message->payload;
         $payload['orders'] = array_values(array_filter($payload['orders'] ?? [], fn ($o) => in_array($o['reference'], $active, true)));
 

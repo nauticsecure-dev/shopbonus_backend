@@ -26,5 +26,14 @@
     "Please wait before requesting a new code.": "Wacht even voordat je een nieuwe code aanvraagt.",
     "This webshop is not available.": "Deze webshop is niet beschikbaar.",
     "This offer is not available.": "Deze aanbieding is niet beschikbaar.",
-    "Page not found.": "Pagina niet gevonden."
+    "Page not found.": "Pagina niet gevonden.",
+    "This reconciliation flag is already resolved.": "Deze reconciliatiemelding is al opgelost.",
+    "The wallet still has a balance mismatch.": "Het walletsaldo komt nog niet overeen met het grootboek.",
+    "The request key was already used for different evidence.": "De aanvraagsleutel is al gebruikt voor andere bewijsgegevens.",
+    "Verify an active consumer and a transaction from this consumer wallet.": "Controleer een actieve consument en een transactie uit diens wallet.",
+    "A different administrator must review this adjustment.": "Een andere beheerder moet deze correctie beoordelen.",
+    "This adjustment has already been reviewed.": "Deze correctie is al beoordeeld.",
+    "The consumer or requesting administrator is no longer eligible.": "De consument of aanvragende beheerder voldoet niet meer aan de voorwaarden.",
+    "Only failed events with a retained payload and active connection can be retried.": "Alleen mislukte gebeurtenissen met bewaarde inhoud en een actieve koppeling kunnen opnieuw worden verwerkt.",
+    "Only failed Answer24 messages can be retried.": "Alleen mislukte Answer24-berichten kunnen opnieuw worden aangeboden."
 }

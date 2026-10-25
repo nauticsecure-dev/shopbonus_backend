@@ -118,7 +118,13 @@ class VoucherDisputeTest extends TestCase
         $this->postJson($this->ws('/vouchers/redeem'), ['code' => 'meubel-000'.substr($v->code->code, -1), 'reference' => 'Order 5531'])
             ->assertOk()->assertJsonPath('data.status', 'redeemed')->assertJsonPath('data.source', 'merchant');
         $this->postJson($this->ws('/vouchers/redeem'), ['code' => $v->code->code])->assertStatus(409)->assertJsonPath('error.code', 'voucher_not_redeemable');
+        $this->assertDatabaseHas('audit_events', ['action' => 'voucher.redemption_denied', 'resource_id' => (string) $v->id]);
         $this->postJson($this->ws('/vouchers/redeem'), ['code' => 'NOPE'])->assertNotFound();
+        $this->asAdmin();
+        $this->getJson('/api/v1/admin/financial-oversight?category=redemption_signals')->assertOk()
+            ->assertJsonPath('data.0.id', $v->public_id)->assertJsonPath('data.0.denied_attempts', 1);
+        Sanctum::actingAs($this->owner);
+
         $this->assertSame([$this->owner->id, 'Order 5531'], [$v->fresh()->redeemed_by, $v->fresh()->redemption_reference]);
 
         $expired = $this->issued();

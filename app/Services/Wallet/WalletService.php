@@ -338,14 +338,7 @@ class WalletService
         $bad = [];
 
         Wallet::orderBy('id')->each(function (Wallet $w) use (&$bad) {
-            $sums = WalletLedgerEntry::where('wallet_id', $w->id)->selectRaw('COALESCE(SUM(available_delta),0) a, COALESCE(SUM(reserved_delta),0) r')->first();
-            $lots = (int) WalletCreditLot::where('wallet_id', $w->id)->sum('remaining');
-            $pending = (int) WalletPendingCredit::where('wallet_id', $w->id)->where('status', 'pending')->sum('amount');
-            $reserved = (int) WalletReservation::where('wallet_id', $w->id)->where('status', 'active')->sum('amount');
-
-            $checks = ['available' => [(int) $sums->getAttribute('a'), $w->available], 'reserved' => [(int) $sums->getAttribute('r'), $w->reserved],
-                'lots' => [$lots, $w->available], 'pending' => [$pending, $w->pending], 'active_reservations' => [$reserved, $w->reserved]];
-            $mismatch = array_filter($checks, fn ($pair) => $pair[0] !== $pair[1]);
+            $mismatch = $this->mismatches($w);
 
             if ($mismatch !== []) {
                 $bad[] = $w->id;
@@ -355,6 +348,21 @@ class WalletService
         });
 
         return $bad;
+    }
+
+    /** @return array<string, array{int, int}> */
+    public function mismatches(Wallet $w): array
+    {
+        $sums = WalletLedgerEntry::where('wallet_id', $w->id)->selectRaw('COALESCE(SUM(available_delta),0) a, COALESCE(SUM(reserved_delta),0) r')->first();
+        $lots = (int) WalletCreditLot::where('wallet_id', $w->id)->sum('remaining');
+        $pending = (int) WalletPendingCredit::where('wallet_id', $w->id)->where('status', 'pending')->sum('amount');
+        $reserved = (int) WalletReservation::where('wallet_id', $w->id)->where('status', 'active')->sum('amount');
+
+        $checks = ['available' => [(int) $sums->getAttribute('a'), $w->available], 'reserved' => [(int) $sums->getAttribute('r'), $w->reserved],
+            'lots' => [$lots, $w->available], 'pending' => [$pending, $w->pending], 'active_reservations' => [$reserved, $w->reserved]];
+        $mismatch = array_filter($checks, fn ($pair) => $pair[0] !== $pair[1]);
+
+        return $mismatch;
     }
 
     // ------------------------------------------------------------------ internals

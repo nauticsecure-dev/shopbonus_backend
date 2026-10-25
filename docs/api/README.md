@@ -6889,3 +6889,313 @@ Real per-endpoint captures for 401, 403, 409, 419, 422 and 429 now exist in the 
 422 {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a168bd-f895-73d8-881b-0f4ac0620658","fields":{"email":["The email field must be a valid email address."]}}}
 500 {"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a168bd-f8b0-725d-912b-fc7c412e64d5"}}
 ```
+
+## B16c financial and operational oversight
+
+Captured 2026-10-25 from a real local Laravel server on port 8076, isolated SQLite + database sessions, QUEUE_CONNECTION=sync, MAIL_MAILER=log and ADMIN_MFA_REQUIRED=false. Fake fixtures only. Source: baseline 856244f plus B16c working changes. Both admins completed real password and emailed OTP verification; secrets omitted.
+
+All operations require active verified Super Admin access and MFA when enabled. Mutations additionally require recent password and email OTP. Common 401/403/419/422/423/429/500 examples reuse earlier real captures in this reference. Domain conflicts below were captured from these operations. Per-page defaults to 25 (1–100); page starts at 1.
+
+### `GET /api/v1/admin/wallets`
+
+Wallet balances with explicit kind and unit. Filters: consumer_id, kind, unit. Audited inspection.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/wallets' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cf1f-7046-bd02-4aa5ebe237d5
+
+{"data":[{"id":"01m5shsgcw0s9p7gqjf6kkr8d9","kind":"consumer_credit","unit":"eur_credit","available":500,"reserved":0,"pending":0}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallets/{wallet}/ledger`
+
+Append-only ledger, newest first, with explicit wallet unit. Internal owner/actor IDs and idempotency keys omitted. Audited inspection.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/wallets/01m5shsgcw0s9p7gqjf6kkr8d9/ledger' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cf3d-71b5-b3ed-2f329b54ff5b
+
+{"data":[{"id":"01m5shsgd3kgj7e3qzbcv4rq9x","type":"credit","unit":"eur_credit","amount":500,"available_delta":500,"reserved_delta":0,"available_after":500,"reserved_after":0,"reason":null,"origin":"system","source_type":null,"created_at":"2026-10-25T12:50:26+00:00"}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallet-reconciliation-flags`
+
+Flags with stable public IDs. Filter status=open|resolved and wallet_id.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/wallet-reconciliation-flags' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cf5c-718a-8abe-0a85a19001fd
+
+{"data":[{"id":"01m5shsgd9twtss0t6vk46wr4c","wallet_id":"01m5shsgcw0s9p7gqjf6kkr8d9","unit":"eur_credit","reason":"balance_mismatch","amount":0,"status":"open","resolved_at":null,"resolution_reason":null,"resolved_by":null}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallet-adjustments`
+
+Dual-admin-v1 requires a different reviewer for EVERY amount/unit. Immutable request verifies a matching active verified consumer, wallet and source entry. request_key is idempotent per requester; different evidence returns 409. No credit posts when requesting. GET filters status=pending|approved|rejected.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/wallet-adjustments' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cf77-73e1-af54-9b793882a996
+
+{"data":[],"meta":{"current_page":1,"per_page":25,"total":0,"last_page":1}}
+```
+
+### `GET /api/v1/admin/integrations`
+
+Per-connection measured status, business-timezone order count, last processed event, failed/incomplete events and oldest pending timestamp. auth_error is the latest recorded connection auth failure, not a count of all unsigned requests. Provider capabilities remain NOT VERIFIED.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/integrations' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cf92-7278-8050-b236b37ea4e1
+
+{"data":[{"id":"01m5shsgdhkgmywh2mvavphebh","webshop":{"id":"01m5shsgdcv6knc9h75a2ec5qw","name":"Capture Shop"},"platform":"prestashop","status":"connected","last_event_at":null,"last_successful_event_at":null,"orders_today":0,"failed_events":1,"incomplete_orders":0,"oldest_pending_event_at":null,"auth_error":null,"last_error_code":null,"limitations":null,"required_action":null}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1},"definitions":{"orders_today":"Orders first received since the start of the current business-timezone day.","delay":"oldest_pending_event_at is the start of the unprocessed verified-event backlog; null means none.","auth_error":"Latest recorded connection authentication error, not a count of all rejected inbound requests."}}
+```
+
+### `GET /api/v1/admin/integrations/failed-events`
+
+Failed verified events with retained-payload indicator. Omits raw customer payloads and credentials.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/integrations/failed-events' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cfb1-722a-91a4-44e9fd6cacbc
+
+{"data":[{"id":"01m5shsgdqk6rphg05cxxc52a4","connection_id":"01m5shsgdhkgmywh2mvavphebh","status":"failed","error_code":null,"received_at":"2026-10-25T12:50:26+00:00","payload_retained":true}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### `GET /api/v1/admin/answer24`
+
+Grouped contact states, current eligibility-failure reasons, failed dispatches and authenticated failed contact results. Reasons may overlap. Rejected unsigned callbacks remain in security audit. Dispatch configuration is reported, never enabled here.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/answer24' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cfce-73c0-8a5b-92f31273e2fd
+
+{"data":{"dispatch_enabled":false,"eligible_paid_orders":0,"contacts_by_status":[],"eligibility_failures":[],"failed_dispatches":1,"failed_contact_results":0,"failed_messages":[{"id":"01m5shsgdtde6gjab0wsvfdyw5","type":"answer24.contact_requested","status":"failed","attempts":0,"last_error":null}]},"definitions":{"eligibility_failures":"Current stored order eligibility reasons, counted per order/reason; may overlap.","failed_contact_results":"Authenticated Answer24 contact results reporting failure; rejected unsigned requests are security audit events.","provider_verification":"NOT VERIFIED; dispatch remains controlled by configuration."}}
+```
+
+### `GET /api/v1/admin/financial-oversight`
+
+Required category: affiliate_mismatches|failed_issuance|payments|funding_payments|redemption_signals. Read-only evidence; existing affiliate, checkout and dispute APIs handle mutations. Failed checkouts include payment and inventory failures distinguished by failure_reason. Denied redemptions are investigation signals, not proven fraud. No payouts or provider calls.
+
+```bash
+curl -i -X GET 'http://localhost:8076/api/v1/admin/financial-oversight?category=payments' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-cfea-735e-b089-a943f2a2a17f
+
+{"data":[],"meta":{"current_page":1,"total":0,"per_page":25,"last_page":1},"definitions":{"failed_issuance":"Failed or paid-unfulfilled voucher checkouts; failure_reason distinguishes payment and inventory failures.","redemption_signals":"Denied redemption transitions recorded since B16c; signals for investigation, not confirmed fraud.","related_workflows":"/admin/affiliate/transactions, /admin/checkouts, /admin/disputes; no payouts or new provider calls."}}
+```
+
+### `POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve`
+
+Recent password and email OTP required. Reasoned audited resolution only. A balance_mismatch cannot be resolved while cached balances disagree with ledger, lots, pending or active reservations. Never writes balances.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/wallet-reconciliation-flags/01m5shsgd9twtss0t6vk46wr4c/resolve' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"reason":"Ledger and cached balances verified"}'
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-d07c-73ac-9bf1-0edb30a57095
+
+{"data":{"id":"01m5shsgd9twtss0t6vk46wr4c","wallet_id":"01m5shsgcw0s9p7gqjf6kkr8d9","unit":"eur_credit","reason":"balance_mismatch","amount":0,"status":"resolved","resolved_at":"2026-10-25T12:50:30+00:00","resolution_reason":"Ledger and cached balances verified","resolved_by":"01m5shsg3jkn7wrp9pe1a2f539"}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a1731c-eb24-70c6-a8d2-2d8dbd0741eb
+Content-Type: application/json
+
+{"error":{"status":409,"code":"flag_already_resolved","message":"This reconciliation flag is already resolved.","request_id":"01a1731c-eb24-70c6-a8d2-2d8dbd0741eb"}}
+```
+
+### `POST /api/v1/admin/wallet-adjustments`
+
+Dual-admin-v1 requires a different reviewer for EVERY amount/unit. Immutable request verifies a matching active verified consumer, wallet and source entry. request_key is idempotent per requester; different evidence returns 409. No credit posts when requesting. GET filters status=pending|approved|rejected.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/wallet-adjustments' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"wallet_id":"01m5shsgcw0s9p7gqjf6kkr8d9","consumer_id":"01m5shsgcjk4ccftfne5p57vq5","source_entry_id":"01m5shsgd3kgj7e3qzbcv4rq9x","amount":100,"reason":"Verified missing credit","verification_note":"Consumer identity and original transaction verified","request_key":"capture-adjustment-001"}'
+```
+
+**Response 201**
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: 01a1731c-d09e-709d-9b46-cf0f079ca1bf
+
+{"data":{"id":"01m5shsm5bsyr3gwy06b7g4721","wallet_id":"01m5shsgcw0s9p7gqjf6kkr8d9","consumer_id":"01m5shsgcjk4ccftfne5p57vq5","source_entry_id":"01m5shsgd3kgj7e3qzbcv4rq9x","amount":100,"unit":"eur_credit","reason":"Verified missing credit","verification_note":"Consumer identity and original transaction verified","policy_version":"dual-admin-v1","status":"pending","requested_by":"01m5shsg3jkn7wrp9pe1a2f539","reviewed_by":null,"posted_entry_id":null,"review_note":null,"reviewed_at":null}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a1731c-eb02-70ba-b431-4112194c1af3
+Content-Type: application/json
+
+{"error":{"status":409,"code":"approval_key_conflict","message":"The request key was already used for different evidence.","request_id":"01a1731c-eb02-70ba-b431-4112194c1af3"}}
+```
+
+### `POST /api/v1/admin/wallet-adjustments/{approval}/review`
+
+Recent password and email OTP required. Requester cannot review their own request. Review rechecks consumer/requester eligibility. Approved posts once through WalletService::adjust; rejected posts nothing. Negative balances refused. Same completed review by the same reviewer replays; conflicting decision/reviewer returns 409.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/wallet-adjustments/01m5shsm5bsyr3gwy06b7g4721/review' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"decision":"approved","note":"Independent verification completed"}'
+```
+
+**Response 403**
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a1731c-d0c0-72f7-bd7d-d5af0dfc2f26
+Content-Type: application/json
+
+{"error":{"status":403,"code":"second_admin_required","message":"A different administrator must review this adjustment.","request_id":"01a1731c-d0c0-72f7-bd7d-d5af0dfc2f26"}}
+```
+
+**Response 200**
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a1731c-dcdd-7290-8c63-7adc25076485
+
+{"data":{"id":"01m5shsm5bsyr3gwy06b7g4721","wallet_id":"01m5shsgcw0s9p7gqjf6kkr8d9","consumer_id":"01m5shsgcjk4ccftfne5p57vq5","source_entry_id":"01m5shsgd3kgj7e3qzbcv4rq9x","amount":100,"unit":"eur_credit","reason":"Verified missing credit","verification_note":"Consumer identity and original transaction verified","policy_version":"dual-admin-v1","status":"approved","requested_by":"01m5shsg3jkn7wrp9pe1a2f539","reviewed_by":"01m5shsgc59xkqzakxaqf2yy05","posted_entry_id":"01m5shsq7bjewmre72b74qtzz8","review_note":"Independent verification completed","reviewed_at":"2026-10-25T12:50:33+00:00"}}
+```
+
+**Response 403**
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a1731c-eb41-70f5-9c82-c52db7f21722
+Content-Type: application/json
+
+{"error":{"status":403,"code":"second_admin_required","message":"A different administrator must review this adjustment.","request_id":"01a1731c-eb41-70f5-9c82-c52db7f21722"}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a1731c-f770-73d0-abbc-ea82cddd62f7
+Content-Type: application/json
+
+{"error":{"status":409,"code":"approval_already_reviewed","message":"This adjustment has already been reviewed.","request_id":"01a1731c-f770-73d0-abbc-ea82cddd62f7"}}
+```
+
+### `POST /api/v1/admin/integrations/events/{event}/retry`
+
+Recent password and email OTP required. Requeue an existing failed technical operation using the original identity/idempotency key. Webhooks require retained verified payload and non-disconnected connection. Outbox retries retain attempt history and never enable dispatch. Current consent/suppression/payment/eligibility rechecked before contact dispatch. Provider-side idempotency remains NOT VERIFIED.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/integrations/events/01m5shsgdqk6rphg05cxxc52a4/retry' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"reason":"Technical failure investigated and corrected"}'
+```
+
+**Response 202**
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: 01a1731c-dd07-701c-bbfb-d00f74bb232e
+
+{"data":{"id":"01m5shsgdqk6rphg05cxxc52a4","status":"ignored"}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a1731c-dd2f-7154-bb5a-cc63bd8ae326
+Content-Type: application/json
+
+{"error":{"status":409,"code":"event_not_retryable","message":"Only failed events with a retained payload and active connection can be retried.","request_id":"01a1731c-dd2f-7154-bb5a-cc63bd8ae326"}}
+```
+
+### `POST /api/v1/admin/answer24/messages/{message}/retry`
+
+Recent password and email OTP required. Requeue an existing failed technical operation using the original identity/idempotency key. Webhooks require retained verified payload and non-disconnected connection. Outbox retries retain attempt history and never enable dispatch. Current consent/suppression/payment/eligibility rechecked before contact dispatch. Provider-side idempotency remains NOT VERIFIED.
+
+```bash
+curl -i -X POST 'http://localhost:8076/api/v1/admin/answer24/messages/01m5shsgdtde6gjab0wsvfdyw5/retry' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{"reason":"Technical failure investigated and corrected"}'
+```
+
+**Response 202**
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: 01a1731c-dd4b-72ac-9208-477135c70769
+
+{"data":{"id":"01m5shsgdtde6gjab0wsvfdyw5","status":"pending"}}
+```
+
+**Response 409**
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a1731c-dd6c-704d-a48b-d7e1ac8ba735
+Content-Type: application/json
+
+{"error":{"status":409,"code":"outbox_not_retryable","message":"Only failed Answer24 messages can be retried.","request_id":"01a1731c-dd6c-704d-a48b-d7e1ac8ba735"}}
+```

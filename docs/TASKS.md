@@ -24,7 +24,7 @@ Statuses allowed: `UNVERIFIED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `PARTIAL`, `V
 | B13 | Merchant analytics | #8 #17 #24 #6 | B05 B06 B07 B10 B11 | Scoped KPI/claims/order reports, real paid-order metrics, no cross-workspace leakage, accurate rollups | **DONE** (`2bfa953`); banner metrics wait for B14 |
 | B14 | Campaign/banner backend | #25 #24 | B03 B06 B05 | Versioned banner configs, publish/pause/rollback, signed pairing API, consent-aware events, attribution/holdouts, public configs only | **DONE** (backend, `e5df771`); AI and A/B holdout open |
 | B15 | CMS/legal/cookie API | #5 #4 #18 | B02 | NL/EN page/FAQ revisions, secure publication/rollback, cookie categories/consent, content access controls | **DONE**: B15a `4604215`, B15b `b2abb82` |
-| B16 | Super Admin APIs | #21 #6 #23 #24 | B03 B05 B06 B09 | Audited support access, oversight, search, financial/provider health, alerts, content/settings, permission and PII isolation | UNVERIFIED |
+| B16 | Super Admin APIs | #21 #6 #23 #24 | B03 B05 B06 B09 | Audited support access, oversight, search, financial/provider health, alerts, content/settings, permission and PII isolation | **PARTIAL**: B16a/b committed; B16c implemented and tested (checkpoint below); B16d next. |
 | B17 | Customer support backend | #26 #10 #21 | B08 B09 B11 B13 | Verified-answer tool allowlist, evidence checks, 1 retry, safe Reverb, feedback/human review, admin settings, 100 regression questions | UNVERIFIED |
 | B18 | E2E/security/load/release | #22 #23 plus all cards | B01–B17 | Evidence-backed E2E/backups/staging, permission matrix, race/replay/load, provider sandbox, rollback/runbooks | UNVERIFIED |
 | B19 | Integration marketplace listing | #27 | B04, owner clarification | **UNSPECIFIED — empty Trello card**. Do not implement until a description exists | BLOCKED |
@@ -32,3 +32,9 @@ Statuses allowed: `UNVERIFIED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `PARTIAL`, `V
 ## Work ticket procedure
 
 For EACH task, append an entry to `docs/PROGRESS.md` or a subtask: Trello link, dependency confirmation, actual code paths, test names, negative tests, integration fixtures, performance/cost outcomes, commit SHA and state. Split large tasks into small slices by route/adapter/transaction. Mark BLOCKED on missing owner decisions or credentials, not fabricated PASS. Frontend screenshot/manual UI E2Es are outside backend scope; document associated backend tests/contracts and hand over to frontend owner.
+
+## B16c checkpoint — 2026-10-25
+
+**VERIFIED_WORKING locally; final commit/CI pending.** Trello #21 E2E 5/6: wallet/ledger and flag review; dual-admin adjustment requests (D-064), original source evidence, idempotent compensating posting; financial exception/payment/refund/redemption-denial oversight; connection/Answer24 monitoring; original-identity webhook/outbox retries. Existing affiliate/dispute/checkout APIs reused. No provider activation, consent override or payout.
+
+Evidence: `tests/Feature/Admin/{WalletOversightTest,WalletAdjustmentTest,OperationsTest,ConcurrentAdminAdjustmentTest}.php`, consent-revocation test in `Answer24ChannelTest`, denied redemption signal assertion in `VoucherDisputeTest`. SQLite 445 passed + 8 skipped; MySQL 453 passed; Pint/PHPStan clean, composer audit clear. Both migrations applied/rolled back/reapplied locally. Nine guard mutation checks detected failures and were restored. Thirteen new routes have real HTTP captures (isolated SQLite + database sessions). Live providers and staging remain NOT VERIFIED/NOT RUN. B16d has not started.

@@ -6,9 +6,13 @@ use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
+use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
+use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\V1\Admin\WalletAdjustmentController as AdminWalletAdjustmentController;
+use App\Http\Controllers\Api\V1\Admin\WalletController as AdminWalletController;
 use App\Http\Controllers\Api\V1\Admin\WebshopController as AdminWebshopController;
 use App\Http\Controllers\Api\V1\Affiliate\PostbackController;
 use App\Http\Controllers\Api\V1\Affiliate\VisitController;
@@ -170,6 +174,14 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             // Super Admin (privately provisioned; confirmed 2FA required). Mutations need a recent password
             // confirmation; the most sensitive ones also an emailed step-up code (B16a).
             Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
+                Route::get('financial-oversight', [AdminFinancialOversightController::class, 'show'])->name('financial-oversight');
+                Route::get('integrations', [AdminOperationsController::class, 'connections'])->name('integrations.index');
+                Route::get('integrations/failed-events', [AdminOperationsController::class, 'events'])->name('integrations.failed-events');
+                Route::get('answer24', [AdminOperationsController::class, 'answer24'])->name('answer24');
+                Route::get('wallet-adjustments', [AdminWalletAdjustmentController::class, 'index'])->name('wallet-adjustments.index');
+                Route::get('wallets', [AdminWalletController::class, 'index'])->name('wallets.index');
+                Route::get('wallets/{wallet}/ledger', [AdminWalletController::class, 'ledger'])->name('wallets.ledger');
+                Route::get('wallet-reconciliation-flags', [AdminWalletController::class, 'flags'])->name('wallet-flags.index');
                 Route::get('cockpit', [AdminCockpitController::class, 'show'])->name('cockpit');
                 Route::get('activity', [AdminCockpitController::class, 'activity'])->name('activity');
                 Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
@@ -205,6 +217,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
+                    Route::post('integrations/events/{event}/retry', [AdminOperationsController::class, 'retryWebhook'])->middleware('step_up.otp')->name('integrations.events.retry');
+                    Route::post('answer24/messages/{message}/retry', [AdminOperationsController::class, 'retryOutbox'])->middleware('step_up.otp')->name('answer24.messages.retry');
+                    Route::post('wallet-adjustments', [AdminWalletAdjustmentController::class, 'store'])->middleware('step_up.otp')->name('wallet-adjustments.store');
+                    Route::post('wallet-adjustments/{approval}/review', [AdminWalletAdjustmentController::class, 'review'])->middleware('step_up.otp')->name('wallet-adjustments.review');
+                    Route::post('wallet-reconciliation-flags/{flag}/resolve', [AdminWalletController::class, 'resolveFlag'])->middleware('step_up.otp')->name('wallet-flags.resolve');
                     Route::post('step-up/code', [AdminStepUpController::class, 'code'])->middleware('throttle:admin-step-up')->name('step-up.code');
                     Route::post('step-up/verify', [AdminStepUpController::class, 'verify'])->middleware('throttle:identity-verify-code')->name('step-up.verify');
                     Route::post('support-sessions', [AdminSupportSessionController::class, 'store'])->middleware('step_up.otp')->name('support-sessions.store');
