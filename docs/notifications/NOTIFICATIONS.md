@@ -117,3 +117,5 @@ Implementation `911e053`, CI `40412989638` SUCCESS all3jobs. Exact719tests/datab
 | 10 Permissions/docs | Inbox/template/admin/negative role/support/channel tests, guarded delivery deletion, full OpenAPI/registry coverage and104 actual HTTP captures. |
 
 These are backend/API/worker tests and explicitly synthetic provider transports. Hassan's actual frontend/screenshots and senior real provider/deployed Reverb/production/staging acceptance remain separate; whole-card Done is not inferred from backend completion.
+
+Final approval-scope follow-up `5a8c36d` is also CI-verified: run `40414186822` SUCCESS all3jobs;719tests/database, SQLite701pass+18skip/9281assertions/43.05s and MySQL717pass+2skip/9341assertions/101.94s. Actual password/OTP approval-to-owner-notice/admin-only-review checks pass on both. Main backend has no remaining implementation work; application code remains911e053, this final change only records evidence.
