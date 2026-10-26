@@ -123,3 +123,12 @@ Support campaign tools reuse actual banner impressions/clicks/complete paid or p
 ### D-080 — executable human regressions and immutable FAQ rollback (2026-10-26)
 
 Final #26 review closes the remaining knowledge/quality gaps: approved human correction cases execute alongside100 static cases in subsequent policy tests (bounded500 most recent human cases). A corpus fingerprint invalidates stale unpublished test reports; failed approved cases block independent publication without training/changing production. FAQ create/update retain immutable canonical-hashed snapshots; approved same-document rollback verifies checksum and expected current revision, publishes a new revision with reason/audit, and preserves history. Migration130000 backfills current revisions with unknown author/publication time explicitly null; approved_at is only a known recorded admin publication, never an inferred historical timestamp. No new general CMS or duplicated business content system. Two additional admin endpoints have15 real running-server captures, including101 cases/1 deliberate human-regression failure and rollback409/423.
+
+
+### D-081 — #29 disk cutoff override (2026-10-26)
+
+Owner explicitly selected “Continue #29 below the limit” with3.9GiB free. Continue this task below the default~5GiB cutoff without asking again for that condition. No unrelated deletion, Redis flush or binlog purge authorized.
+
+### D-082 — #29 first notification boundary
+
+Reuse Laravel database notifications with user-owned read state and encrypted payloads; retain existing merchant endpoints unchanged until an explicit compatibility bridge is tested. First slice wires only actual persisted human support replies, with generic server-written NL/EN text and fixed internal links, inside the reply transaction. No transcript, voucher secret or financial facts in notifications/broadcasts. Reverb is an invalidation hint; authenticated HTTP is authoritative after reconnect. Remaining event/email/reminder/template scopes stay unchecked rather than claiming a full notification centre. Existing optional consent remains authoritative; preference toggles never grant marketing consent.

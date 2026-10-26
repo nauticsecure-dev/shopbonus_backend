@@ -13,6 +13,7 @@ use App\Models\SupportReply;
 use App\Models\SupportReview;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Notifications\NotificationInbox;
 use Illuminate\Support\Facades\DB;
 
 final class SupportReviews
@@ -92,6 +93,7 @@ final class SupportReviews
 
         return DB::transaction(function () use ($actor, $c, $body) {
             $r = SupportReply::create(['conversation_id' => $c->id, 'created_by' => $actor->id, 'body' => $body]);
+            app(NotificationInbox::class)->supportReply($c, $r);
             $this->audit->record('support.human_replied', category: AuditCategory::Admin, resource: $r, actorUserId: $actor->id);
             $m = SupportMessage::where('conversation_id', $c->id)->latest('id')->first();
             if ($m !== null) {

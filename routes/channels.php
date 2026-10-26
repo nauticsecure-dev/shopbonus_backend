@@ -41,3 +41,10 @@ Broadcast::channel('shopbonus.support.conversation.{conversationId}', function (
         return false;
     }
 });
+
+Broadcast::channel('shopbonus.user.{userId}.notifications', function (User $user, string $userId) {
+    $token = $user->currentAccessToken();
+
+    return $user->isActive() && $user->email_verified_at !== null && $user->public_id === $userId
+        && ! ($token instanceof PersonalAccessToken && ($token->name === SupportSessions::TOKEN_NAME || app(SupportSessions::class)->forToken($token) !== null));
+});

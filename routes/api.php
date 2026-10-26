@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Notifications\InboxController;
 use App\Http\Controllers\Api\V1\Offers\OfferController;
 use App\Http\Controllers\Api\V1\Offers\VoucherCodeController;
 use App\Http\Controllers\Api\V1\Onboarding\AgreementController;
@@ -170,6 +171,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
+            Route::get('notifications', [InboxController::class, 'index'])->name('notifications.index');
+            Route::patch('notifications/{notification}/read', [InboxController::class, 'read'])->name('notifications.read');
+            Route::post('notifications/read-all', [InboxController::class, 'readAll'])->name('notifications.read-all');
+            Route::get('notification-preferences', [InboxController::class, 'preferences'])->name('notification-preferences.show');
+            Route::put('notification-preferences', [InboxController::class, 'updatePreferences'])->name('notification-preferences.update');
             Route::prefix('ai')->name('ai.')->group(function () {
                 Route::post('chat', [ChatController::class, 'store'])->middleware('throttle:ai-support')->name('chat');
                 Route::get('conversations', [ChatController::class, 'index'])->name('conversations.index');

@@ -24,6 +24,8 @@ servers:
   - url: http://localhost:8000
     description: Local development
 tags:
+  - name: Notifications
+    description: Owned persistent inbox, mandatory support notifications and preferences.
   - name: Support
     description: Authorized evidence-based support, private history and human review.
   - name: Health
@@ -12461,6 +12463,661 @@ paths:
         422: { $ref: '#/components/responses/ValidationFailed' }
         429: { $ref: '#/components/responses/TooManyRequests' }
         500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/notifications:
+    get:
+      tags:
+        - Notifications
+      operationId: notificationInbox
+      summary: 'Read owned notification inbox'
+      x-access: verified
+      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      security:
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=unread&page=1&per_page=20' -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'"
+      responses:
+        200:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                inbox:
+                  value:
+                    data:
+                      -
+                        id: d87ef802-14ee-41ab-b06e-b1c49992df63
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        locale: nl
+                        action_label: 'Bekijk gesprek'
+                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
+                        template_version: support-reply-v1
+                        delivery_channels:
+                          database: delivered
+                          email: not_implemented
+                        read_at: null
+                        created_at: '2026-10-26T20:45:48+00:00'
+                      -
+                        id: c615ff79-9256-4ec5-bce9-f5ae9b83776c
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        locale: nl
+                        action_label: 'Bekijk gesprek'
+                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
+                        template_version: support-reply-v1
+                        delivery_channels:
+                          database: delivered
+                          email: not_implemented
+                        read_at: null
+                        created_at: '2026-10-26T20:45:48+00:00'
+                    meta:
+                      unread_count: 2
+                      current_page: 1
+                      per_page: 20
+                      total: 2
+                reconnect:
+                  value:
+                    data:
+                      -
+                        id: d87ef802-14ee-41ab-b06e-b1c49992df63
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        locale: nl
+                        action_label: 'Bekijk gesprek'
+                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
+                        template_version: support-reply-v1
+                        delivery_channels:
+                          database: delivered
+                          email: not_implemented
+                        read_at: '2026-10-26T20:45:50+00:00'
+                        created_at: '2026-10-26T20:45:48+00:00'
+                      -
+                        id: c615ff79-9256-4ec5-bce9-f5ae9b83776c
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        locale: nl
+                        action_label: 'Bekijk gesprek'
+                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
+                        template_version: support-reply-v1
+                        delivery_channels:
+                          database: delivered
+                          email: not_implemented
+                        read_at: '2026-10-26T20:45:50+00:00'
+                        created_at: '2026-10-26T20:45:48+00:00'
+                    meta:
+                      unread_count: 0
+                      current_page: 1
+                      per_page: 20
+                      total: 2
+        401:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                unauthorized-inbox:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b20-capture-unauthorized-inbox
+        403:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                support-denied:
+                  value:
+                    error:
+                      status: 403
+                      code: blocked_during_impersonation
+                      message: 'This action is not available during a support session.'
+                      request_id: b20-capture-support-denied
+        429:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                rate-limit:
+                  value:
+                    error:
+                      status: 429
+                      code: too_many_requests
+                      message: 'Too many requests. Please slow down.'
+                      request_id: b20-capture-rate-limit
+        500:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                storage-failure:
+                  value:
+                    error:
+                      status: 500
+                      code: server_error
+                      message: 'An unexpected error occurred.'
+                      request_id: b20-capture-storage-failure
+        422:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                invalid-filter:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b20-capture-invalid-filter
+                      fields:
+                        filter:
+                          - 'The selected filter is invalid.'
+      parameters:
+        -
+          name: filter
+          in: query
+          schema:
+            type: string
+            enum:
+              - all
+              - unread
+            default: all
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+            default: 1
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+  '/api/v1/notifications/{notification}/read':
+    patch:
+      tags:
+        - Notifications
+      operationId: notificationRead
+      summary: 'Mark one owned notification read'
+      x-access: verified
+      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      security:
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
+      responses:
+        200:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                mark-read:
+                  value:
+                    data:
+                      id: d87ef802-14ee-41ab-b06e-b1c49992df63
+                      type: support_reply
+                      recipient_type: consumer
+                      title: 'Nieuw antwoord van support'
+                      body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                      locale: nl
+                      action_label: 'Bekijk gesprek'
+                      action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
+                      template_version: support-reply-v1
+                      delivery_channels:
+                        database: delivered
+                        email: not_implemented
+                      read_at: '2026-10-26T20:45:50+00:00'
+                      created_at: '2026-10-26T20:45:48+00:00'
+                mark-read-idempotent:
+                  value:
+                    data:
+                      id: d87ef802-14ee-41ab-b06e-b1c49992df63
+                      type: support_reply
+                      recipient_type: consumer
+                      title: 'Nieuw antwoord van support'
+                      body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                      locale: nl
+                      action_label: 'Bekijk gesprek'
+                      action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
+                      template_version: support-reply-v1
+                      delivery_channels:
+                        database: delivered
+                        email: not_implemented
+                      read_at: '2026-10-26T20:45:50+00:00'
+                      created_at: '2026-10-26T20:45:48+00:00'
+        401:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                unauthorized-read:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b20-capture-unauthorized-read
+        403:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                support-denied:
+                  value:
+                    error:
+                      status: 403
+                      code: blocked_during_impersonation
+                      message: 'This action is not available during a support session.'
+                      request_id: b20-capture-support-denied
+        429:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                rate-limit:
+                  value:
+                    error:
+                      status: 429
+                      code: too_many_requests
+                      message: 'Too many requests. Please slow down.'
+                      request_id: b20-capture-rate-limit
+        500:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                storage-failure:
+                  value:
+                    error:
+                      status: 500
+                      code: server_error
+                      message: 'An unexpected error occurred.'
+                      request_id: b20-capture-storage-failure
+        419:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                browser-csrf:
+                  value:
+                    error:
+                      status: 419
+                      code: csrf_token_mismatch
+                      message: 'The session or CSRF token has expired. Refresh and try again.'
+                      request_id: b20-capture-browser-csrf
+        404:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                foreign-notification:
+                  value:
+                    error:
+                      status: 404
+                      code: not_found
+                      message: 'Notification not found.'
+                      request_id: b20-capture-foreign-notification
+      parameters:
+        -
+          name: notification
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 'Owned notification UUID. Missing, hidden and foreign identifiers return the same 404.'
+  /api/v1/notifications/read-all:
+    post:
+      tags:
+        - Notifications
+      operationId: notificationReadAll
+      summary: 'Mark all currently visible owned notifications read'
+      x-access: verified
+      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      security:
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
+      responses:
+        200:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                read-all:
+                  value:
+                    data:
+                      marked_read: 1
+        401:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                unauthorized-read-all:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b20-capture-unauthorized-read-all
+        403:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                support-denied:
+                  value:
+                    error:
+                      status: 403
+                      code: blocked_during_impersonation
+                      message: 'This action is not available during a support session.'
+                      request_id: b20-capture-support-denied
+        429:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                rate-limit:
+                  value:
+                    error:
+                      status: 429
+                      code: too_many_requests
+                      message: 'Too many requests. Please slow down.'
+                      request_id: b20-capture-rate-limit
+        500:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                storage-failure:
+                  value:
+                    error:
+                      status: 500
+                      code: server_error
+                      message: 'An unexpected error occurred.'
+                      request_id: b20-capture-storage-failure
+        419:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                browser-csrf:
+                  value:
+                    error:
+                      status: 419
+                      code: csrf_token_mismatch
+                      message: 'The session or CSRF token has expired. Refresh and try again.'
+                      request_id: b20-capture-browser-csrf
+  /api/v1/notification-preferences:
+    get:
+      tags:
+        - Notifications
+      operationId: notificationPreferences
+      summary: 'Read notification preferences'
+      x-access: verified
+      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      security:
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'"
+      responses:
+        200:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                preferences:
+                  value:
+                    data:
+                      locale: nl
+                      email_enabled: true
+                      preferences:
+                        support_reply:
+                          in_app: true
+                          email: false
+                        workspace_support_reply:
+                          in_app: true
+                          email: false
+                      email_delivery_available: false
+        401:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                unauthorized-preferences:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b20-capture-unauthorized-preferences
+        403:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                support-preferences-denied:
+                  value:
+                    error:
+                      status: 403
+                      code: blocked_during_impersonation
+                      message: 'This action is not available during a support session.'
+                      request_id: b20-capture-support-preferences-denied
+        429:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                rate-limit:
+                  value:
+                    error:
+                      status: 429
+                      code: too_many_requests
+                      message: 'Too many requests. Please slow down.'
+                      request_id: b20-capture-rate-limit
+        500:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                storage-failure:
+                  value:
+                    error:
+                      status: 500
+                      code: server_error
+                      message: 'An unexpected error occurred.'
+                      request_id: b20-capture-storage-failure
+    put:
+      tags:
+        - Notifications
+      operationId: notificationPreferencesUpdate
+      summary: 'Update notification preferences and account locale'
+      x-access: verified
+      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      security:
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: 'curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H ''Accept: application/json'' -H ''Authorization: Bearer <API_TOKEN>'' -H ''Content-Type: application/json'' --data ''{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"email":false,"in_app":true}}}'''
+      responses:
+        200:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                update-preferences:
+                  value:
+                    data:
+                      locale: en
+                      email_enabled: false
+                      preferences:
+                        support_reply:
+                          in_app: true
+                          email: false
+                        workspace_support_reply:
+                          in_app: true
+                          email: false
+                      email_delivery_available: false
+        401:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                unauthorized-update:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b20-capture-unauthorized-update
+        403:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                support-preferences-denied:
+                  value:
+                    error:
+                      status: 403
+                      code: blocked_during_impersonation
+                      message: 'This action is not available during a support session.'
+                      request_id: b20-capture-support-preferences-denied
+        429:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                rate-limit:
+                  value:
+                    error:
+                      status: 429
+                      code: too_many_requests
+                      message: 'Too many requests. Please slow down.'
+                      request_id: b20-capture-rate-limit
+        500:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                storage-failure:
+                  value:
+                    error:
+                      status: 500
+                      code: server_error
+                      message: 'An unexpected error occurred.'
+                      request_id: b20-capture-storage-failure
+        419:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                browser-csrf:
+                  value:
+                    error:
+                      status: 419
+                      code: csrf_token_mismatch
+                      message: 'The session or CSRF token has expired. Refresh and try again.'
+                      request_id: b20-capture-browser-csrf
+        422:
+          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          content:
+            application/json:
+              examples:
+                mandatory-in-app:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b20-capture-mandatory-in-app
+                      fields:
+                        preferences.support_reply.in_app:
+                          - 'The preferences.support_reply.in_app field must be accepted.'
+                unknown-event:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b20-capture-unknown-event
+                      fields:
+                        preferences:
+                          - 'The preferences field must be an array.'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                locale:
+                  type: string
+                  enum:
+                    - nl
+                    - en
+                email_enabled:
+                  type: boolean
+                preferences:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    support_reply:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                          description: 'Mandatory support inbox notifications cannot be disabled.'
+                        email:
+                          type: boolean
+                          description: 'Optional preference only; delivery unavailable in B20a.'
+                    workspace_support_reply:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                          description: 'Mandatory support inbox notifications cannot be disabled.'
+                        email:
+                          type: boolean
+                          description: 'Optional preference only; delivery unavailable in B20a.'
+            example:
+              locale: en
+              email_enabled: false
+              preferences:
+                support_reply:
+                  email: false
+                  in_app: true
 
 components:
   parameters:

@@ -555,3 +555,20 @@ Owner explicitly asks to finish remaining backend; credentials/model configured 
 - [x] B17e: human review/resolution and executed approved regression cases, operational metrics; reuse independently reviewed settings, preserve immutable FAQ snapshots and published rollback; test-before-publish critical restrictions and immutable server safeguards. (`d63f616` + `7616e88`; CI `40388179684` passed.)
 - [x] B17f:100 distinct EN/NL regression questions, ten card backend E2E cases, isolation/error/provider/race tests; real HTTP captures for every endpoint and changed settings; SQLite/MySQL sequential suites, migration apply/rollback/reapply, quality/security checks, commit/push/CI/handoff. (`7616e88`; CI `40388179684` SUCCESS, SQLite658+15skip/MySQL671+2skip.)
 - [ ] Senior developer: genuine configured OpenAI/Reverb deployment/provider/production monitoring and staging/frontend acceptance (NOT RUN locally; no credentials requested).
+
+
+## B20 — #29 central notifications (2026-10-26)
+
+Owner authorizes #29 below the ~5 GiB disk cutoff; senior configures credentials. One tested boundary at a time. Whole card remains PARTIAL until all slices have evidence.
+
+- [x] B20a: reuse Laravel database notifications for an owned persistent inbox, strict pagination/filtering, individual/all read state and NL/EN support-reply templates. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: persist human-support notifications atomically with replies; stable recipient/event deduplication, no message/code/financial content in payloads. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: preferences reuse user locale and existing communication consent; mandatory in-app rules cannot be disabled. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: private minimal Reverb invalidations, owner-only subscription, revoked membership/admin-role filtering and support-token denial. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: executed security/rollback/idempotency/read/preferences/realtime tests on SQLite/MySQL, real HTTP examples, quality checks and migration rollback/reapply. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [ ] B20a closeout: push implementation, verify CI and record SHA/test evidence in handoff.
+- [ ] B20b: migrate/bridge merchant notifications without duplicate inbox systems or changed legacy read semantics; connect full consumer/workspace/admin event catalogue.
+- [ ] B20c: durable queued email delivery/outbox, bounded retries/failure recovery, mandatory/optional rules, actual render tests and retention.
+- [ ] B20d: deduplicated 30/7/1 voucher and offer reminders; eligibility and consent rechecked at dispatch.
+- [ ] B20e: Super Admin NL/EN AI template drafts/test/approval/publish/rollback, strict placeholders, budgets, delivery/settings APIs and audit.
+- [ ] B20f: full ten backend E2Es, event/API inventory and handoff; genuine mail/model/deployed Reverb/frontend acceptance remains senior/Hassan-owned.

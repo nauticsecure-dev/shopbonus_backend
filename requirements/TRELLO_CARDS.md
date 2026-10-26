@@ -5934,3 +5934,511 @@ List: **Frank**. Card: https://trello.com/c/OqUwpiPu/27-app-store-for-platforms.
 _No description in the supplied export; do not infer requirements._
 
 ---
+
+
+## Trello #29: CENTRAL NOTIFICATION CENTER, EMAIL, REMINDERS & AI TEMPLATES
+
+Downloaded export 2026-10-25. Card: https://trello.com/c/WcPlsK8w. Ownership list is not completion evidence.
+
+Build one centralized notification system for ShopBonus consumers, Workspace users and Super Admins.
+
+Reuse existing Laravel Notifications, Reverb, Echo, queues, mail, authentication, Policies, audit, translation and monitoring systems. Inspect current implementation first; repair missing functionality without duplicating existing modules.
+
+**Goal:** Every important ShopBonus event creates the correct notification, delivered through the appropriate channels, with persistent history and configurable preferences.
+
+## 1. CENTRAL NOTIFICATION INBOX
+
+Add a notification bell to the existing ShopBonus top navbar.
+
+Required:
+
+- Unread count.
+- Compact dropdown showing recent notifications.
+- "View all" opens notification center.
+- Mark individual notification as read.
+- Mark all as read.
+- Notification detail/action.
+- Pagination.
+- Filter: All / Unread.
+- Relative timestamps.
+- Correct icons and colors.
+- Empty/loading/error states.
+- Mobile-responsive layout.
+
+The same component must work for consumers, Workspace users and Super Admins, with role-specific content.
+
+Notifications must persist after logout, refresh and reconnect.
+
+Do not create separate notification systems for individual modules.
+
+## 2. REQUIRED NOTIFICATION EVENTS
+
+Implement the following event catalog.
+
+### Consumer
+
+Event codeTriggerIn-appEmail`account_welcome`Registration completedYesYes`email_verified`Email confirmedYesOptional`cashback_credited`Valid conversion creditedYesOptional`voucher_received`Voucher successfully issuedYesYes`voucher_expiring`Configured reminder before expiryYesOptional`voucher_used`Redemption confirmedYesOptional`voucher_cancelled`Voucher invalidatedYesYes`cashback_adjusted`Ledger correction/reversalYesYes`support_reply`New human support responseYesOptional`favorite_merchant_offer`New eligible favorite-store promotionOptionalOptional
+
+### Workspace
+
+Event codeTriggerIn-appEmail`workspace_approved`Workspace approvedYesYes`workspace_rejected`Workspace rejectedYesYes`offer_published`Offer activatedYesOptional`offer_expiring`Offer approaching expirationYesOptional`commission_changed`Approved commission configuration changedYesYes`integration_attention`Workspace integration requires actionYesOptional`workspace_support_reply`New support responseYesOptional
+
+### Super Admin
+
+Event codeTriggerIn-appEmail`workspace_review_required`Workspace requires approvalYesOptional`ai_support_escalated`AI support requires human reviewYesOptional`affiliate_import_failed`Daisycon/TradeTracker import failedYesCritical only`notification_delivery_failed`Delivery exhausted retriesYesCritical only`critical_notification_failure`Important transactional notification unavailableYesYes
+
+Do not notify users for routine clicks, page visits or internal API calls.
+
+Never create a cashback notification before an actual verified wallet credit.
+
+## 3. NOTIFICATION DATA MODEL
+
+Use Laravel's existing database notification infrastructure.
+
+Required normalized payload:
+
+```
+{
+  "id": "ntf_9021",
+  "type": "cashback_credited",
+  "event_key": "cashback:tx_123:credited",
+  "recipient_type": "consumer",
+  "title": "€7,00 ShopBonus-tegoed ontvangen",
+  "body": "Je aankoop bij Woon & Co is geregistreerd.",
+  "locale": "nl",
+  "action_label": "Bekijk mijn voordelen",
+  "action_route": "/app/benefits",
+  "read_at": null,
+  "created_at": "2026-10-23T12:00:00Z"
+}
+```
+
+Requirements:
+
+- Unique notification ID.
+- Idempotent event key.
+- Authorized recipient.
+- Event type.
+- Template version.
+- Locale.
+- Safe internal action.
+- Read timestamp.
+- Creation timestamp.
+- Delivery-channel status.
+
+Use the existing database model where possible.
+
+## 4. EXACT API CONTRACTS
+
+Audit existing routes first and reuse matching functionality.
+
+### GET /api/v1/notifications
+
+Query:
+
+`?filter=unread&page=1&per_page=20`
+
+Response:
+
+```
+{
+  "data": [
+    {
+      "id": "ntf_9021",
+      "type": "cashback_credited",
+      "title": "€7,00 ShopBonus-tegoed ontvangen",
+      "body": "Je aankoop bij Woon & Co is geregistreerd.",
+      "action_route": "/app/benefits",
+      "read_at": null
+    }
+  ],
+  "meta": {
+    "unread_count": 3,
+    "current_page": 1,
+    "total": 18
+  }
+}
+```
+
+### PATCH /api/v1/notifications/{id}/read
+
+Mark one owned notification as read.
+
+### POST /api/v1/notifications/read-all
+
+Mark all owned notifications as read.
+
+### GET /api/v1/notification-preferences
+
+Retrieve authenticated user's preferences.
+
+### PUT /api/v1/notification-preferences
+
+Example:
+
+```
+{
+  "locale": "nl",
+  "email_enabled": true,
+  "preferences": {
+    "cashback_credited": {
+      "in_app": true,
+      "email": false
+    },
+    "voucher_expiring": {
+      "in_app": true,
+      "email": true
+    },
+    "favorite_merchant_offer": {
+      "in_app": false,
+      "email": false
+    }
+  }
+}
+```
+
+Preferences must respect mandatory transactional/security communications and applicable consent requirements.
+
+Do not allow client input to override mandatory delivery rules.
+
+## 5. REAL-TIME REVERB
+
+Use existing Laravel Reverb/Echo broadcasting.
+
+Private user channel:
+
+`private-shopbonus.user.{userId}.notifications`
+
+Authorize subscription using the existing authenticated user and Policies.
+
+Broadcast:
+
+- `NotificationCreated`
+- `NotificationRead`
+- `NotificationReadAll`
+- `NotificationCountUpdated`
+
+After receiving an event:
+
+1. Update notification bell.
+2. Update unread count.
+3. Display relevant toast.
+4. Refresh the affected notification list.
+
+Keep broadcast payload minimal.
+
+Never include secrets, voucher codes or financial API responses in broadcast events.
+
+After reconnect, fetch unread count and missed notifications from Laravel.
+
+## 6. EMAIL NOTIFICATIONS
+
+Reuse the existing Laravel mail configuration, queues and templates.
+
+Requirements:
+
+- Branded ShopBonus emails.
+- NL/EN language support.
+- Responsive HTML.
+- Plain-text alternative.
+- Correct subject and sender.
+- Safe internal links.
+- No tracking parameters.
+- No AI/OpenAI references in customer-facing messages.
+- Transactional and optional promotional notifications handled separately.
+- Respect preferences and consent.
+- Queue sending.
+- Track delivery attempts and failures.
+- Avoid duplicate emails for the same recipient/event/channel.
+
+Email sending must not delay wallet credit or voucher issuance.
+
+## 7. AUTOMATIC REMINDERS
+
+Use Laravel Scheduler and queues.
+
+Required reminder types:
+
+### Voucher expiry
+
+Configurable example:
+
+- 30 days before expiration.
+- 7 days before expiration.
+- 1 day before expiration.
+
+Only send reminders for active vouchers that are still usable.
+
+A voucher already used, expired or cancelled must not receive an expiry reminder.
+
+### Workspace offer expiry
+
+Notify Workspace owner before an active offer expires.
+
+### Unresolved support cases
+
+Notify appropriate users when a human support reply becomes available. Internal overdue-support alerts may use configurable thresholds.
+
+### Favorite merchant offers
+
+Optional notifications for consumers following a webshop, only when the relevant preference/consent is enabled.
+
+Prevent duplicate reminders for the same event and reminder stage.
+
+## 8. OPENAI 6 — AUTOMATIC NOTIFICATION TEMPLATES
+
+Create centralized notification template management.
+
+**Super Admin route:**
+
+`/app/platform/notifications`
+
+Tabs:
+
+- Overview.
+- Templates.
+- Events.
+- Reminders.
+- Delivery logs.
+- Settings.
+
+Use the existing OpenAI integration to draft professional notification templates.
+
+The AI receives a structured event definition, allowed variables, audience, purpose and locale.
+
+Example input:
+
+```
+{
+  "event_type": "cashback_credited",
+  "audience": "consumer",
+  "locale": "nl",
+  "channels": ["database", "mail"],
+  "allowed_variables": [
+    "merchant_name",
+    "amount_formatted",
+    "action_url"
+  ],
+  "tone": "friendly_professional",
+  "max_title_chars": 70,
+  "max_body_chars": 180
+}
+```
+
+Example AI output:
+
+```
+{
+  "event_type": "cashback_credited",
+  "locale": "nl",
+  "title": "{{amount_formatted}} ShopBonus-tegoed ontvangen",
+  "body": "Je hebt ShopBonus-tegoed verdiend met je aankoop bij {{merchant_name}}.",
+  "action_label": "Bekijk mijn voordelen"
+}
+```
+
+### Template rules
+
+- Use OpenAI structured output.
+- Generate NL and EN variants.
+- Use only approved variables.
+- Never invent amounts, deadlines or transaction statuses.
+- Validate placeholders against the event schema.
+- Validate character limits.
+- Escape/sanitize rendered content.
+- Preview with realistic sample values.
+- Super Admin reviews and approves.
+- Draft → Test → Publish → Rollback.
+- Record template versions and audit history.
+
+**AI-generated templates must never publish automatically.**
+
+AI is used for writing templates, not deciding whether a financial event occurred.
+
+## 9. SUPER ADMIN TEMPLATE API
+
+Required contracts, mapped to existing routes if present:
+
+`GET /api/v1/platform/notifications/templates`
+
+`POST /api/v1/platform/notifications/templates/generate`
+
+`GET /api/v1/platform/notifications/templates/{id}`
+
+`PUT /api/v1/platform/notifications/templates/{id}`
+
+`POST /api/v1/platform/notifications/templates/{id}/test`
+
+`POST /api/v1/platform/notifications/templates/{id}/publish`
+
+`POST /api/v1/platform/notifications/templates/{id}/rollback`
+
+Additional administration:
+
+`GET /api/v1/platform/notifications/deliveries`
+
+`GET /api/v1/platform/notifications/events`
+
+`GET /api/v1/platform/notifications/settings`
+
+`PUT /api/v1/platform/notifications/settings`
+
+All mutations require existing Super Admin Policies and audit logging.
+
+Test actions must never send emails to real customers unless an explicitly authorized test recipient is selected.
+
+## 10. CENTRAL API DOCUMENTATION
+
+Register every notification API and event in the existing central API documentation.
+
+For every endpoint document:
+
+- HTTP method and path.
+- Purpose.
+- Authentication.
+- Allowed roles.
+- Consumer/Workspace/Admin scope.
+- Request JSON.
+- Response JSON.
+- Field definitions.
+- Example values.
+- Validation.
+- 401/403/404/422/429/500 handling.
+- Rate limits.
+- Audit requirements.
+- Idempotency behavior.
+- Performance expectations.
+
+For every notification event document:
+
+- Triggering business event.
+- Event code.
+- Recipient.
+- Channels.
+- Variables.
+- Template version.
+- Reminder rules.
+- Preference requirements.
+- Delivery/retry behavior.
+
+Example:
+
+`cashback_credited`
+
+Trigger: verified wallet ledger credit committed.
+
+Required variables:
+
+```
+{
+  "merchant_name": "Woon & Co",
+  "amount_minor": 700,
+  "currency": "EUR"
+}
+```
+
+Formatted template variable:
+
+`amount_formatted = "€7,00"`
+
+Do not expose raw internal IDs or financial secrets in user-facing templates.
+
+## 11. I18N & LANGUAGE MANAGEMENT
+
+Use the existing Laravel/frontend internationalization architecture.
+
+Requirements:
+
+- NL default.
+- EN supported.
+- Locale follows user preference.
+- Fallback to published default locale when translation is missing.
+- Correct currency/date formatting.
+- One event schema shared across languages.
+- Separate approved template versions per locale.
+- No untranslated variable keys shown.
+- No runtime AI calls required for ordinary notification delivery.
+
+Add missing-translation monitoring.
+
+## 12. RELIABILITY & SECURITY
+
+Reuse existing global authentication, Policies, rate limiting, 401/403 handling and monitoring.
+
+Notification-specific requirements:
+
+- Durable database persistence.
+- Idempotent notification dispatch.
+- Unique event/recipient/channel delivery keys.
+- Dispatch after successful business transaction commit.
+- Queue retries with bounded attempts.
+- Failed delivery review/retry.
+- Separate in-app and email delivery status.
+- Recipient isolation.
+- Safe action routes.
+- Duplicate reminder prevention.
+- Configurable retention and deletion.
+- No sensitive information in Reverb events.
+- No duplicate notifications after reconnect.
+- Audit template/settings changes.
+
+Use a durable outbox for financially critical events if the current architecture does not already guarantee reliable publication after commit.
+
+## 13. TEN END-TO-END TESTS
+
+1. **Cashback notification**
+
+Verified €7 wallet credit generates one persistent notification, correctly formatted in NL, and updates the navbar badge.
+
+1. **Voucher issued**
+
+Successful voucher redemption creates in-app/email notifications using the approved template, without exposing voucher secrets.
+
+1. **Read status**
+
+Open notification center, mark one item and then all items as read. Verify counters and persistence after login.
+
+1. **User preferences**
+
+Disable optional cashback emails. Confirm in-app delivery continues and mandatory transactional rules remain enforced.
+
+1. **Voucher reminders**
+
+Generate 30/7/1-day reminders. Verify correct schedule, no duplicates and no reminders for used/expired vouchers.
+
+1. **Workspace events**
+
+Approve a Workspace and publish an offer. Verify correct owner notifications and no consumer/admin recipient confusion.
+
+1. **AI template generation**
+
+Generate NL/EN templates with OpenAI, validate placeholders, preview values, approve and publish. Verify unapproved drafts are never sent.
+
+1. **Template rollback**
+
+Publish a new version, send a test notification, roll back and confirm the previous version is active with full audit history.
+
+1. **Delivery failure and recovery**
+
+Simulate mail provider failure, queue retry and Reverb disconnect. Verify persistent inbox delivery, accurate failure logs and successful recovery.
+
+**10. Permissions and documentation**
+Verify consumer/Workspace/Admin isolation, all notification endpoints documented, correct error responses, locale fallback and valid action links.
+
+## ACCEPTANCE CRITERIA
+
+- One central notification infrastructure.
+- Persistent notification inbox and navbar bell.
+- All specified consumer/Workspace/Admin events connected.
+- Reverb real-time delivery.
+- Configurable emails and preferences.
+- Scheduled reminders without duplicates.
+- Super Admin notification management.
+- OpenAI-generated NL/EN templates with human approval.
+- Template versioning, testing and rollback.
+- Every endpoint/event documented in the central API documentation.
+- Notification delivery resilient to queue and WebSocket failures.
+- Existing security systems reused.
+- All 10 E2E tests passing.
+
+**Deliver:** Final API/event inventory, published templates, notification screenshots, queue/delivery test evidence and E2E results.

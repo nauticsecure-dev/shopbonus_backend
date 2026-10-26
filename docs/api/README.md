@@ -10708,3 +10708,379 @@ Content-Type: application/json
   }
 }
 ```
+
+
+## #29 central notifications — B20a support-reply inbox
+
+2026-10-26 local actual Laravel HTTP server, isolated SQLite/database sessions/queue; main base d2fb5ed plus B20a working tree; synthetic users/reply and local Reverb auth configuration; actual owner200/other403/support403 channel authorization, no live mail/model/deployed WebSocket claim. All examples below were captured via actual HTTP. Email delivery, the remaining event catalogue, reminders and AI templates are not implemented in this slice. [Client contract and limits](../notifications/NOTIFICATIONS.md).
+
+### `GET /api/v1/notifications?filter=unread&page=1&per_page=20` — inbox
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=unread&page=1&per_page=20' -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-inbox' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-Request-Id: b20-capture-inbox
+
+{"data":[{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":null,"created_at":"2026-10-26T20:45:48+00:00"},{"id":"c615ff79-9256-4ec5-bce9-f5ae9b83776c","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":null,"created_at":"2026-10-26T20:45:48+00:00"}],"meta":{"unread_count":2,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `GET /api/v1/notification-preferences` — preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-preferences' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 98
+X-Request-Id: b20-capture-preferences
+
+{"data":{"locale":"nl","email_enabled":true,"preferences":{"support_reply":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false}},"email_delivery_available":false}}
+```
+
+### `PUT /api/v1/notification-preferences` — update-preferences
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-update-preferences' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"email":false,"in_app":true}}}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 97
+X-Request-Id: b20-capture-update-preferences
+
+{"data":{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false}},"email_delivery_available":false}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — mark-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mark-read' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 96
+X-Request-Id: b20-capture-mark-read
+
+{"data":{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — mark-read-idempotent
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mark-read-idempotent' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-Request-Id: b20-capture-mark-read-idempotent
+
+{"data":{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}}
+```
+
+### `POST /api/v1/notifications/read-all` — read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-read-all' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 94
+X-Request-Id: b20-capture-read-all
+
+{"data":{"marked_read":1}}
+```
+
+### `GET /api/v1/notifications` — reconnect
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-reconnect' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 93
+X-Request-Id: b20-capture-reconnect
+
+{"data":[{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"},{"id":"c615ff79-9256-4ec5-bce9-f5ae9b83776c","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}],"meta":{"unread_count":0,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — foreign-notification
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-foreign-notification' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: b20-capture-foreign-notification
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+
+{"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b20-capture-foreign-notification"}}
+```
+
+### `GET /api/v1/notifications?filter=invalid` — invalid-filter
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=invalid' -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-invalid-filter' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-invalid-filter
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 92
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-invalid-filter","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+### `PUT /api/v1/notification-preferences` — mandatory-in-app
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mandatory-in-app' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"support_reply":{"in_app":false}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-mandatory-in-app
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 91
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-mandatory-in-app","fields":{"preferences.support_reply.in_app":["The preferences.support_reply.in_app field must be accepted."]}}}
+```
+
+### `PUT /api/v1/notification-preferences` — unknown-event
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unknown-event' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"unknown":{"email":true}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-unknown-event
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 90
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-unknown-event","fields":{"preferences":["The preferences field must be an array."]}}}
+```
+
+### `GET /api/v1/notifications` — unauthorized-inbox
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-inbox'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-inbox
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-inbox"}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — unauthorized-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-read' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-read
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-read"}}
+```
+
+### `POST /api/v1/notifications/read-all` — unauthorized-read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-read-all' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-read-all
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-read-all"}}
+```
+
+### `GET /api/v1/notification-preferences` — unauthorized-preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-preferences'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-preferences
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-preferences"}}
+```
+
+### `PUT /api/v1/notification-preferences` — unauthorized-update
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-update' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-update
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-update"}}
+```
+
+### `GET /api/v1/notifications` — support-denied
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-support-denied' -H 'Authorization: Bearer <SUPPORT_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-support-denied
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 89
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"b20-capture-support-denied"}}
+```
+
+### `PUT /api/v1/notification-preferences` — support-preferences-denied
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-support-preferences-denied' -H 'Authorization: Bearer <SUPPORT_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-support-preferences-denied
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 88
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"b20-capture-support-preferences-denied"}}
+```
+
+### `POST /api/v1/notifications/read-all` — browser-csrf
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-browser-csrf' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: b20-capture-browser-csrf
+Content-Type: application/json
+
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"b20-capture-browser-csrf"}}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-owner
+
+Ephemeral channel authorization signature redacted.
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-owner' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: b20-capture-broadcast-owner
+
+{"auth":"<REDACTED_EPHEMERAL_CHANNEL_AUTH>"}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-other
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-other' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-broadcast-other
+Content-Type: application/json
+
+{"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-other"}}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-support
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-support' -H 'Authorization: Bearer <SUPPORT_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-broadcast-support
+Content-Type: application/json
+
+{"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-support"}}
+```
+
+### `GET /api/v1/notifications` — rate-limit
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-rate-limit' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 429
+X-RateLimit-Limit: 1
+X-RateLimit-Remaining: 0
+Retry-After: 57
+X-Request-Id: b20-capture-rate-limit
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"b20-capture-rate-limit"}}
+```
+
+### `GET /api/v1/notifications` — storage-failure
+
+Temporary local router injects a storage-service failure through the actual Laravel kernel; router is not shipped.
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-storage-failure' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: b20-capture-storage-failure
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 987
+
+{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"b20-capture-storage-failure"}}
+```
