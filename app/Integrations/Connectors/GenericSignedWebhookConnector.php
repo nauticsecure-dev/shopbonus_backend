@@ -118,6 +118,11 @@ class GenericSignedWebhookConnector extends WebhookConnector
         return is_string($value) && preg_match('/^bc_[A-Za-z0-9]{24}$/', $value) === 1 ? $value : null;
     }
 
+    public static function assignmentToken(mixed $value): ?string
+    {
+        return is_string($value) && preg_match('/^bx_[a-f0-9]{64}$/D', $value) === 1 ? $value : null;
+    }
+
     public function normalizeOrder(array $payload): NormalizedOrder
     {
         $order = is_array($payload['order'] ?? null) ? $payload['order'] : [];
@@ -145,6 +150,7 @@ class GenericSignedWebhookConnector extends WebhookConnector
             couponCodes: array_values(array_filter(array_map(fn ($c) => $this->str($c), is_array($order['coupon_codes'] ?? null) ? $order['coupon_codes'] : []))),
             contactConsent: is_bool($customer['contact_consent'] ?? null) ? $customer['contact_consent'] : null,
             attributionClickId: self::clickId($order['attribution']['click_id'] ?? null),
+            bannerAssignmentToken: self::assignmentToken($order['attribution']['assignment_token'] ?? null),
         );
     }
 }

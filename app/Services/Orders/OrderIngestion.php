@@ -9,6 +9,7 @@ use App\Models\OrderEvent;
 use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
+use App\Services\Banners\BannerExperiments;
 use App\Support\PhoneNumber;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -149,6 +150,7 @@ class OrderIngestion
             // Consent is only ever taken from the provider, never assumed; a later event without it keeps the earlier answer.
             'contact_consent' => $o->contactConsent ?? $order->contact_consent,
             'attribution_click_id' => $o->attributionClickId ?? $order->attribution_click_id,
+            'banner_assignment_id' => $order->getAttribute('banner_assignment_id') ?? app(BannerExperiments::class)->orderAssignment($order->webshop_id, $o->bannerAssignmentToken),
             'amount_minor' => $keep($o->amountMinor, $order->amount_minor),
             'currency' => $keep($o->currency, $order->currency),
             'refunded_minor' => $o->refundedMinor ?? $order->refunded_minor ?? 0,

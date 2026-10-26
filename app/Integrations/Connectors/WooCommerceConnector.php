@@ -142,6 +142,8 @@ class WooCommerceConnector extends WebhookConnector
             // NOT VERIFIED: the storefront embed is expected to store order meta "_shopbonus_click_id".
             attributionClickId: GenericSignedWebhookConnector::clickId(collect(is_array($payload['meta_data'] ?? null) ? $payload['meta_data'] : [])
                 ->first(fn ($m) => is_array($m) && ($m['key'] ?? null) === '_shopbonus_click_id')['value'] ?? null),
+            bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect(is_array($payload['meta_data'] ?? null) ? $payload['meta_data'] : [])
+                ->first(fn ($m) => is_array($m) && ($m['key'] ?? null) === '_shopbonus_assignment_token')['value'] ?? null),
             providerUpdatedAt: $this->date($payload['date_modified_gmt'] ?? null),
         );
     }

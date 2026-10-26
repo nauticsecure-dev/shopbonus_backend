@@ -31,20 +31,21 @@ class BannerMeasurement
     /**
      * Published config of live campaigns, for the public embed. Never drafts.
      *
+     * @param  array<string, string>  $assignments
      * @return list<array<string, mixed>>
      */
-    public function publishedConfig(BannerInstallation $installation): array
+    public function publishedConfig(BannerInstallation $installation, array $assignments = []): array
     {
         if (DB::table('webshops')->where('id', $installation->webshop_id)->value('status') !== WebshopStatus::Approved->value) {
             return [];
         }
 
         return BannerCampaign::where('webshop_id', $installation->webshop_id)->where('status', 'live')->whereNotNull('published_version_id')->orderBy('id')->get()
-            ->map(function (BannerCampaign $c) {
-                $v = BannerVersion::findOrFail($c->published_version_id);
+            ->map(function (BannerCampaign $c) use ($assignments) {
+                $v = app(BannerExperiments::class)->selected($c, $assignments[$c->public_id] ?? null);
 
-                return ['campaign' => $c->public_id, 'version' => $v->version, 'config' => $this->publicConfig($v->config)];
-            })->all();
+                return $v === null ? null : ['campaign' => $c->public_id, 'version' => $v['version'], 'config' => $this->publicConfig($v['config'])];
+            })->filter()->values()->all();
     }
 
     /**
@@ -66,11 +67,30 @@ class BannerMeasurement
                 continue;
             }
 
+            $experiments = app(BannerExperiments::class);
+            $assignment = empty($e['assignment_token']) ? null : $experiments->assignment($campaignId, $e['assignment_token']);
+            $hasToken = ! empty($e['assignment_token']);
+            $valid = true;
+            if ($hasToken) {
+                $versionId = $assignment === null ? null : ($assignment->arm === 'variant' ? $assignment->variant_version_id : $assignment->control_version_id);
+                $expected = $versionId === null ? 0 : BannerVersion::findOrFail($versionId)->version;
+                $valid = $assignment !== null && ! empty($e['consent']) && (int) $e['version'] === $expected
+                    && ($versionId !== null || $e['type'] === 'eligible')
+                    && $at->greaterThanOrEqualTo(CarbonImmutable::parse($assignment->created_at))
+                    && ($assignment->stopped_at === null || $at->lessThanOrEqualTo(CarbonImmutable::parse($assignment->stopped_at)));
+            } elseif ($experiments->active($campaignId) !== null || ! BannerVersion::where('campaign_id', $campaignId)->where('version', $e['version'])->exists()) {
+                $valid = false;
+            }
+            if (! $valid) {
+                $out['rejected']++;
+
+                continue;
+            }
             try {
-                DB::transaction(function () use ($e, $installation, $campaignId, $at, $tz, &$out) {
+                DB::transaction(function () use ($e, $installation, $campaignId, $at, $tz, $assignment, &$out) {
                     DB::table('banner_events')->insert([
                         'event_id' => $e['id'], 'webshop_id' => $installation->webshop_id, 'campaign_id' => $campaignId, 'version' => (int) $e['version'],
-                        'type' => $e['type'], 'device' => $e['device'] ?? null, 'path' => isset($e['path']) ? mb_substr((string) strtok((string) $e['path'], '?#'), 0, 255) : null,
+                        'banner_assignment_id' => $assignment?->id, 'type' => $e['type'], 'device' => $e['device'] ?? null, 'path' => isset($e['path']) ? mb_substr((string) strtok((string) $e['path'], '?#'), 0, 255) : null,
                         'category' => $e['category'] ?? null, 'consent' => (bool) ($e['consent'] ?? false), 'occurred_at' => $at, 'created_at' => now(),
                     ]);
                     $day = $at->setTimezone($tz)->format('Y-m-d');
@@ -81,7 +101,7 @@ class BannerMeasurement
                     if ($e['type'] === 'cta_click' && ! empty($e['consent'])) {
                         $clickId = 'bc_'.Str::random(24);
                         DB::table('banner_clicks')->insert(['click_id' => $clickId, 'webshop_id' => $installation->webshop_id, 'campaign_id' => $campaignId,
-                            'expires_at' => now()->addDays((int) config('shopbonus.banners.attribution_days', 30)), 'created_at' => now()]);
+                            'banner_assignment_id' => $assignment?->id, 'expires_at' => now()->addDays((int) config('shopbonus.banners.attribution_days', 30)), 'created_at' => now()]);
                         $out['click_ids'][$e['id']] = $clickId;
                     }
                     $out['accepted']++;

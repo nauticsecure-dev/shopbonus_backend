@@ -52,7 +52,7 @@ class WebshopOrder extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'customer_key', 'last_webhook_event_id'];
+    protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'customer_key', 'last_webhook_event_id', 'banner_assignment_id'];
 
     protected $attributes = ['refunded_minor' => 0, 'eligibility_status' => 'not_evaluated', 'contact_status' => 'not_evaluated', 'attribution_click_id' => null];
 

@@ -207,6 +207,9 @@ class BannerService
     /** @param array<string, mixed> $config */
     private function newVersion(BannerCampaign $c, array $config, ?int $actorId): BannerVersion
     {
+        if (app(BannerExperiments::class)->active($c->id) !== null) {
+            throw ApiException::conflict('Stop the experiment before publishing another version.', 'banner_experiment_active');
+        }
         $next = (int) BannerVersion::where('campaign_id', $c->id)->max('version') + 1;
 
         return BannerVersion::create(['campaign_id' => $c->id, 'version' => $next, 'config' => $config, 'published_by' => $actorId]);

@@ -143,6 +143,8 @@ class ShopifyConnector extends WebhookConnector
             // NOT VERIFIED: the storefront embed is expected to add a cart attribute "shopbonus_click_id".
             attributionClickId: GenericSignedWebhookConnector::clickId(collect(is_array($payload['note_attributes'] ?? null) ? $payload['note_attributes'] : [])
                 ->first(fn ($a) => is_array($a) && ($a['name'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
+            bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect(is_array($payload['note_attributes'] ?? null) ? $payload['note_attributes'] : [])
+                ->first(fn ($m) => is_array($m) && ($m['name'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
             providerUpdatedAt: $this->date($payload['updated_at'] ?? null),
         );
     }

@@ -43,6 +43,27 @@ class ConnectorTest extends TestCase
         }
     }
 
+    public function test_existing_adapters_preserve_well_formed_assignment_metadata_without_inventing_payment(): void
+    {
+        $token = 'bx_'.str_repeat('a', 64);
+        $woo = (new WooCommerceConnector)->normalizeOrder(['meta_data' => [['key' => '_shopbonus_assignment_token', 'value' => $token]]]);
+        $shopify = (new ShopifyConnector)->normalizeOrder(['note_attributes' => [['name' => 'shopbonus_assignment_token', 'value' => $token]]]);
+        $generic = (new GenericSignedWebhookConnector)->normalizeOrder(['order' => ['attribution' => ['assignment_token' => $token]]]);
+        foreach ([$woo, $shopify, $generic] as $order) {
+            $this->assertSame($token, $order->bannerAssignmentToken);
+            $this->assertNotSame(PaymentStatus::Paid, $order->paymentStatus);
+        }
+    }
+
+    public function test_assignment_metadata_rejects_malformed_values_in_all_adapters(): void
+    {
+        foreach (['<script>', ['token' => 'value'], 'bx_short', null] as $value) {
+            $this->assertNull((new WooCommerceConnector)->normalizeOrder(['meta_data' => [['key' => '_shopbonus_assignment_token', 'value' => $value]]])->bannerAssignmentToken);
+            $this->assertNull((new ShopifyConnector)->normalizeOrder(['note_attributes' => [['name' => 'shopbonus_assignment_token', 'value' => $value]]])->bannerAssignmentToken);
+            $this->assertNull((new GenericSignedWebhookConnector)->normalizeOrder(['order' => ['attribution' => ['assignment_token' => $value]]])->bannerAssignmentToken);
+        }
+    }
+
     // ---------------------------------------------------------------- WooCommerce
 
     public function test_woocommerce_signature_and_dedupe_key(): void

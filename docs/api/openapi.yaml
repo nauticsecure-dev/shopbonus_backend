@@ -6986,11 +6986,12 @@ paths:
       operationId: publicBannerConfig
       summary: "Published banners for the embed"
       description: |
-        Only published versions of live campaigns of an approved webshop; never drafts. The `Origin` must be on the key's allowlist (403 otherwise). `Cache-Control: public, max-age=60` and `ETag` (304 on `If-None-Match`). Updates the installation's last-seen health.
+        Only published versions of live campaigns of an approved webshop; never drafts. Active experiments require assignments[CAMPAIGN_ULID]=ASSIGNMENT_TOKEN; unassigned and holdout campaigns are omitted. Assigned responses are private/no-store. The `Origin` must be on the key's allowlist (403 otherwise). `Cache-Control: public, max-age=60` and `ETag` (304 on `If-None-Match`). Updates the installation's last-seen health.
       x-access: public
       security: []
       parameters:
         - { name: key, in: query, required: true, schema: { type: string }, description: 'Public embed key (pk_...).' }
+        - { name: assignments, in: query, required: false, style: deepObject, explode: true, schema: { type: object, maxProperties: 50, additionalProperties: { type: string, maxLength: 80 } }, description: 'Consented campaign-to-token map; assigned responses are private/no-store.' }
       x-codeSamples:
         - lang: curl
           source: |
@@ -7015,6 +7016,7 @@ paths:
       operationId: publicBannerEvents
       summary: "Report banner events"
       description: |
+        Experiment events require assignment_token, consent and the exact assigned published version (version0 + eligible only for holdout). Unknown or mismatched tokens/versions are rejected per event. Ordinary events require an existing published version. Existing ledger and daily stats are reused.
         Up to 50 events per batch: `eligible`, `viewable_impression` (≥ 50 % visible ≥ 1 s, deduplicated by the embed), `cta_click`, `dismiss` (never a click). Each event has a client UUID: a retried batch counts once (`duplicates`). Paths are stored without query strings; no PII. A consented `cta_click` returns an opaque 30-day click ID for the shop's checkout to pass back with the order (`order.attribution.click_id`). Events older than 2 days or from the future are rejected. Origin allowlisted.
       x-access: public
       security: []
@@ -7036,13 +7038,14 @@ paths:
                     properties:
                       id: { type: string, format: uuid }
                       campaign: { type: string }
-                      version: { type: integer }
+                      version: { type: integer, minimum: 0 }
                       type: { type: string, enum: [eligible, viewable_impression, cta_click, dismiss] }
                       occurred_at: { type: string, format: date-time }
                       device: { type: string, enum: [desktop, tablet, mobile] }
                       path: { type: string }
                       category: { type: string }
                       consent: { type: boolean }
+                      assignment_token: { type: [string, "null"], maxLength: 80, description: Required for experimental events; must bind campaign/version/arm and consent. }
             example: {"key": "pk_4dhphng2rpstr7qw2wybjton", "events": [{"id": "96875328-8eb8-4fcd-94eb-9c1deb4b1e73", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "eligible", "occurred_at": "2026-10-24T12:29:11Z", "device": "desktop", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": true}, {"id": "c0dceeb6-0574-432f-b57f-8561767f8d0e", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "viewable_impression", "occurred_at": "2026-10-24T12:29:11Z", "device": "desktop", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": true}, {"id": "e8fecc9c-399b-400e-87fd-1a4093e08d33", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "viewable_impression", "occurred_at": "2026-10-24T12:29:11Z", "device": "mobile", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": false}, {"id": "b51b04aa-93f8-4597-955a-36e4eead25b6", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "cta_click", "occurred_at": "2026-10-24T12:29:11Z", "device": "desktop", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": true}, {"id": "7d053be8-51fb-4ade-a083-fa58ef784f02", "campaign": "01m5py5vc56hm2adbhwxvrfztw", "version": 1, "type": "dismiss", "occurred_at": "2026-10-24T12:29:11Z", "device": "mobile", "path": "/collections/jurken?utm_source=x", "category": "fashion", "consent": false}]}
       x-codeSamples:
         - lang: curl
@@ -7123,10 +7126,10 @@ paths:
             application/json:
               example: {"data":{"editor_token":"<editor token>","expires_in":1800,"scope":"banner_drafts"}}
         '401':
-          description: "Invalid, used, expired or wrong origin."
+          description: Invalid, expired or revoked editor capability; current active membership is rechecked.
           content:
             application/json:
-              example: {"error":{"status":401,"code":"pairing_invalid","message":"This pairing link is not valid any more. Start the editor again from ShopBonus.","request_id":"01a16de2-f3ce-720c-9977-4d02e7cc7193"}}
+              example: {"error":{"status":401,"code":"editor_access_revoked","message":"Editor access is no longer authorized.","request_id":"01a176ef-76cb-73be-abc6-534182a720c7"}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
@@ -7153,10 +7156,10 @@ paths:
             application/json:
               example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","name":"Najaar - \u20ac10 terug","draft_revision":3,"draft_config":{"style":{"font":"inter","text":"#FFFFFF","animation":"fade_in","background":"#1D4ED8"},"content":{"terms":"Min. besteding \u20ac100","cta_url":"https:\/\/www.woonenco.nl\/shopbonus","heading":"Besteed \u20ac100, krijg \u20ac10","subtitle":"Voor je volgende aankoop","cta_label":"Meer info","image_asset_id":"01m5py5v603t7kwb89trg52nrq"},"devices":["desktop","mobile"],"template":"ribbon","triggers":{"all":[{"type":"url_match","value":"\/collections\/*"},{"type":"category","value":["fashion"]},{"type":"min_seconds","value":20}]},"frequency":{"per_session":1,"cooldown_hours":24,"hide_after_dismiss":true},"placement":{"anchor":"top"}}}}
         '401':
-          description: "Missing/expired token or other origin."
+          description: Invalid, expired or revoked editor capability; current active membership is rechecked.
           content:
             application/json:
-              example: {"error":{"status":401,"code":"editor_token_invalid","message":"Editor session expired or not valid for this site.","request_id":"01a16de2-f47c-72f4-b4ea-d23ba68befd3"}}
+              example: {"error":{"status":401,"code":"editor_access_revoked","message":"Editor access is no longer authorized.","request_id":"01a176ef-76f1-71f7-bd1f-17337630d90d"}}
         '404':
           description: "Unknown banner (or another workspace's)."
           content:
@@ -7194,10 +7197,10 @@ paths:
             application/json:
               example: {"data":{"id":"01m5py5vc56hm2adbhwxvrfztw","draft_revision":4}}
         '401':
-          description: "Token invalid."
+          description: Invalid, expired or revoked editor capability; current active membership is rechecked.
           content:
             application/json:
-              example: {"error":{"status":401,"code":"editor_token_invalid","message":"Editor session expired or not valid for this site.","request_id":"01a16de2-f47c-72f4-b4ea-d23ba68befd3"}}
+              example: {"error":{"status":401,"code":"editor_access_revoked","message":"Editor access is no longer authorized.","request_id":"01a176ef-7711-738d-a236-5a2c0b6cd0b7"}}
         '404':
           description: "Unknown banner (or another workspace's)."
           content:
@@ -11524,6 +11527,277 @@ paths:
         -
           lang: curl
           source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/incident-diagnostics/01m5snk4cr70jm64hj7h49e43c/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{\"decision\":\"accepted\",\"note\":\"Independent investigation review\"}'"
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banners]
+      operationId: bannerAiIndex
+      summary: "List private banner AI requests"
+      description: "Tenant-scoped, support-session blocked. Immutable source/version evidence; no automatic publication. Results expose counts and net EUR revenue, never a claimed causal uplift. Missing provider assignment metadata stays unattributed. Real local HTTP captures use synthetic provider data."
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+      responses:
+        '200':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"current_page":1,"data":[{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}],"review":null,"human_review_required":true,"measured_uplift":null}],"first_page_url":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests?page=1","from":1,"last_page":1,"last_page_url":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests?page=1","links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests?page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"next_page_url":null,"path":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests","per_page":20,"prev_page_url":null,"to":1,"total":1}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Banners]
+      operationId: bannerAiRequest
+      summary: "Queue three banner design or insight proposals"
+      description: "Disabled until BANNER_AI_ENABLED, OPENAI_API_KEY and BANNER_AI_MODEL are configured by the senior developer. Globally serialized UTC request cap; failed runs count. Workspace-scoped UUID request key retries return the existing request; changed actor/kind/campaign conflicts. Exactly three structured editable proposals; one queued provider attempt. Insights additionally requires orders.view and at least ten complete verified paid/partial-refund EUR orders in the latest90-day window, up to1000. No PII, URLs, customer IDs or source copy is sent. No tools or automatic publication."
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type": "object", "required": ["kind", "request_key"], "properties": {"kind": {"type": "string", "enum": ["designs", "insights"]}, "request_key": {"type": "string", "format": "uuid"}}}
+            example: {"kind": "designs", "request_key": "4d0f2dec-e09e-4a73-86aa-36f61d76d0be"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"designs","request_key":"4d0f2dec-e09e-4a73-86aa-36f61d76d0be"}'
+      responses:
+        '202':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"queued","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[],"review":null,"human_review_required":true,"measured_uplift":null}}
+        '503':
+          description: Provider not configured.
+          content:
+            application/json:
+              example: {"error":{"status":503,"code":"banner_ai_unavailable","message":"Banner AI is not configured.","request_id":"01a176e0-92db-71f1-a4c8-41f61a56ee95"}}
+        '429':
+          description: Global daily request cap reached.
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"banner_ai_limit","message":"The banner AI daily request limit has been reached.","request_id":"01a176e0-92f9-71b0-81d2-71dc0dd35c7e"}}
+        '409':
+          description: Source changed, review already recorded, or experiment state conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"request_key_conflict","message":"The request key belongs to another AI request.","request_id":"01a176e5-dba0-719d-84cb-2116d639676e"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+      - { name: run, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banners]
+      operationId: bannerAiShow
+      summary: "Read banner AI evidence and editable proposals"
+      description: "Tenant-scoped, support-session blocked. Immutable source/version evidence; no automatic publication. Results expose counts and net EUR revenue, never a claimed causal uplift. Missing provider assignment metadata stays unattributed. Real local HTTP captures use synthetic provider data."
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+      responses:
+        '200':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}],"review":null,"human_review_required":true,"measured_uplift":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+      - { name: run, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: bannerAiReview
+      summary: "Review an AI proposal and create a private draft"
+      description: "Only completed, unreviewed runs. Accept requires proposal0..2 and unchanged source draft/offer version; creates a separate private draft, never publishes. Reject prohibits proposal and creates no draft. Existing publish/funding/offer validation remains mandatory. Insights evidence reads/reviews additionally require orders.view. Support sessions denied."
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type": "object", "required": ["decision", "note"], "properties": {"decision": {"type": "string", "enum": ["accept", "reject"]}, "proposal": {"type": "integer", "minimum": 0, "maximum": 2}, "note": {"type": "string", "maxLength": 500}}}
+            example: {"decision": "accept", "proposal": 0, "note": "Human review of synthetic provider layout for a private draft."}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc/review' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"decision":"accept","proposal":0,"note":"Human review of synthetic provider layout for a private draft."}'
+      responses:
+        '200':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":{"request":{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}],"review":{"decision":"accept","proposal":0},"human_review_required":true,"measured_uplift":null},"draft_campaign":"01m5ve144tgsp2w3nztt1qf879","published":false}}
+        '409':
+          description: Source changed, review already recorded, or experiment state conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"banner_ai_review_conflict","message":"Only an unreviewed completed request can be reviewed.","request_id":"01a176e0-90b3-73c9-bfdb-1e83d6193f4a"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/experiment:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Banners]
+      operationId: bannerExperimentShow
+      summary: "Read current or most recent experiment results"
+      description: "Tenant-scoped, support-session blocked. Immutable source/version evidence; no automatic publication. Results expose counts and net EUR revenue, never a claimed causal uplift. Missing provider assignment metadata stays unattributed. Real local HTTP captures use synthetic provider data."
+      x-access: verified
+      x-permission: offers.view
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+      responses:
+        '200':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Banners]
+      operationId: bannerExperimentStart
+      summary: "Human launch of a pinned published-version experiment"
+      description: "Requires workspace.commercial and a live campaign with no active experiment. Pin two different existing published versions, or null control for a true holdout. Allocation is variant basis points. One active experiment per campaign; new publication/rollback conflicts until stopped. No AI automatic launch."
+      x-access: verified
+      x-permission: offers.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type": "object", "required": ["control_version", "variant_version", "variant_bps"], "properties": {"control_version": {"type": ["integer", "null"], "minimum": 1}, "variant_version": {"type": "integer", "minimum": 1}, "variant_bps": {"type": "integer", "minimum": 1000, "maximum": 9000}}}
+            example: {"control_version": null, "variant_version": 2, "variant_bps": 5000}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"control_version":null,"variant_version":2,"variant_bps":5000}'
+      responses:
+        '201':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+        '409':
+          description: Source changed, review already recorded, or experiment state conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"banner_experiment_conflict","message":"Start experiments on a live banner without another active experiment.","request_id":"01a176e5-dbf8-734e-86b2-0eca1b011dce"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+      - { name: banner, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Banners]
+      operationId: bannerExperimentStop
+      summary: "Stop assignment and return to normal published config"
+      description: "Tenant-scoped, support-session blocked. Immutable source/version evidence; no automatic publication. Results expose counts and net EUR revenue, never a claimed causal uplift. Missing provider assignment metadata stays unattributed. Real local HTTP captures use synthetic provider data."
+      x-access: verified
+      x-permission: offers.manage
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+      responses:
+        '200':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":false,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+        '409':
+          description: Source changed, review already recorded, or experiment state conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"banner_experiment_missing","message":"This banner has no active experiment.","request_id":"01a176e5-de31-7260-81d7-e94cf579ee92"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/banners/assignments:
+    post:
+      tags: [Banner embed]
+      operationId: bannerAssignments
+      summary: "Assign or revoke consented anonymous experiment participation"
+      description: "Origin must match the public key allowlist and shop must be approved. consent=true assigns an unpredictable stable arm for this opaque UUID (shop-scoped HMAC; raw UUID not stored). Returns a 30-day assignment token. consent=false revokes assignments for that UUID and returns an empty array; revoked assignments do not resurrect. Use a fresh consented visitor UUID after re-consent. This endpoint has no customer identity/authentication. Carry token with config/events and signed provider order metadata. Responses private/no-store."
+      x-access: public
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type": "object", "required": ["key", "visitor_key", "consent"], "properties": {"key": {"type": "string", "maxLength": 40}, "visitor_key": {"type": "string", "format": "uuid"}, "consent": {"type": "boolean"}}}
+            example: {"key": "pk_n1r4ixzensd4liy5ykwiazo0", "visitor_key": "d47767ba-2df5-42af-86d3-4752961cec27", "consent": true}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/assignments' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"key":"pk_n1r4ixzensd4liy5ykwiazo0","visitor_key":"d47767ba-2df5-42af-86d3-4752961cec27","consent":true}'
+      responses:
+        '200':
+          description: Real local HTTP capture; simulated provider only.
+          content:
+            application/json:
+              example: {"data":[{"campaign":"01m5ve13bshvn74mecqq9bq5kc","assignment_token":"<ASSIGNMENT_TOKEN>","arm":"variant","version":2,"holdout":false,"expires_at":"2026-11-25T06:23:11+00:00"}]}
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
 
 components:
   parameters:

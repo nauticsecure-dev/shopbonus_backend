@@ -52,7 +52,9 @@ use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
+use App\Http\Controllers\Api\V1\Workspaces\BannerAiController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerController;
+use App\Http\Controllers\Api\V1\Workspaces\BannerExperimentController;
 use App\Http\Controllers\Api\V1\Workspaces\DashboardController;
 use App\Http\Controllers\Api\V1\Workspaces\FundingController;
 use App\Http\Controllers\Api\V1\Workspaces\InvitationController;
@@ -137,6 +139,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
     // Banner embed on the merchant's site (Trello #25 §3): public key + Origin allowlist.
     Route::prefix('banners')->name('banners.')->withoutMiddleware('throttle:api')->middleware('throttle:banner-embed')->group(function () {
+        Route::post('assignments', [PublicBannerController::class, 'assignments'])->name('assignments');
         Route::get('config', [PublicBannerController::class, 'config'])->name('config');
         Route::post('events', [PublicBannerController::class, 'events'])->name('events.store');
         Route::get('assets/{id}', [PublicBannerController::class, 'asset'])->name('assets.show');
@@ -443,9 +446,16 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('banners/{banner}', [BannerController::class, 'show'])->name('banners.show');
                     Route::get('banners/{banner}/versions', [BannerController::class, 'versions'])->name('banners.versions');
                     Route::get('banners/{banner}/results', [BannerController::class, 'results'])->name('banners.results');
+                    Route::get('banners/{banner}/experiment', [BannerExperimentController::class, 'show'])->name('banners.experiment.show');
                     Route::post('banners/{banner}/simulate', [BannerController::class, 'simulate'])->name('banners.simulate');
                 });
                 Route::middleware('workspace.can:offers.manage')->group(function () {
+                    Route::get('banners/{banner}/ai-requests', [BannerAiController::class, 'index'])->name('banners.ai.index');
+                    Route::get('banners/{banner}/ai-requests/{run}', [BannerAiController::class, 'show'])->name('banners.ai.show');
+                    Route::post('banners/{banner}/ai-requests', [BannerAiController::class, 'store'])->middleware('throttle:checkout')->name('banners.ai.store');
+                    Route::post('banners/{banner}/ai-requests/{run}/review', [BannerAiController::class, 'review'])->name('banners.ai.review');
+                    Route::post('banners/{banner}/experiment', [BannerExperimentController::class, 'store'])->middleware('workspace.commercial')->name('banners.experiment.store');
+                    Route::post('banners/{banner}/experiment/stop', [BannerExperimentController::class, 'stop'])->name('banners.experiment.stop');
                     Route::post('banners', [BannerController::class, 'store'])->name('banners.store');
                     Route::put('banners/installation', [BannerController::class, 'updateInstallation'])->name('banners.installation.update');
                     Route::post('banners/pairing', [BannerController::class, 'pairing'])->middleware('throttle:checkout')->name('banners.pairing');

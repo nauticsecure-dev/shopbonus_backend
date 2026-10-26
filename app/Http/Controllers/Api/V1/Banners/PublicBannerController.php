@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers\Api\V1\Banners;
 
+use App\Enums\UserStatus;
+use App\Enums\WorkspacePermission;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\BannerAsset;
 use App\Models\BannerCampaign;
 use App\Models\BannerInstallation;
 use App\Models\BannerPairing;
+use App\Models\User;
+use App\Models\WebshopMembership;
+use App\Services\Banners\BannerExperiments;
 use App\Services\Banners\BannerMeasurement;
 use App\Services\Banners\BannerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -30,13 +36,31 @@ class PublicBannerController extends Controller
         $installation = $this->installation($request, (string) $request->query('key', ''));
         $installation->forceFill(['last_seen_origin' => $request->header('Origin'), 'last_seen_at' => now()])->saveQuietly();
 
-        $body = ['data' => ['campaigns' => $measurement->publishedConfig($installation)]];
+        $data = $request->validate(['assignments' => ['sometimes', 'array', 'max:50'], 'assignments.*' => ['string', 'max:80']]);
+        $body = ['data' => ['campaigns' => $measurement->publishedConfig($installation, $data['assignments'] ?? [])]];
         $etag = '"'.md5((string) json_encode($body)).'"';
         if ($request->header('If-None-Match') === $etag) {
             return response()->json(null, 304, ['ETag' => $etag]);
         }
 
-        return response()->json($body, 200, ['Cache-Control' => 'public, max-age=60', 'ETag' => $etag, 'Vary' => 'Origin']);
+        return response()->json($body, 200, ['Cache-Control' => empty($data['assignments']) ? 'public, max-age=60' : 'private, no-store', 'ETag' => $etag, 'Vary' => 'Origin']);
+    }
+
+    public function assignments(Request $request, BannerExperiments $experiments): JsonResponse
+    {
+        $data = $request->validate(['key' => ['required', 'string', 'max:40'], 'visitor_key' => ['required', 'uuid'], 'consent' => ['required', 'boolean']]);
+        $installation = $this->installation($request, $data['key']);
+        if ($data['consent'] && DB::table('webshops')->where('id', $installation->webshop_id)->value('status') !== 'approved') {
+            throw new ApiException('Unknown key or origin not allowed.', 403, 'origin_not_allowed');
+        }
+
+        if (! $data['consent']) {
+            $experiments->revoke($installation, $data['visitor_key']);
+
+            return response()->json(['data' => []], 200, ['Cache-Control' => 'private, no-store']);
+        }
+
+        return response()->json(['data' => $experiments->assign($installation, $data['visitor_key'])], 200, ['Cache-Control' => 'private, no-store']);
     }
 
     public function events(Request $request, BannerMeasurement $measurement): JsonResponse
@@ -46,13 +70,14 @@ class PublicBannerController extends Controller
             'events' => ['required', 'array', 'min:1', 'max:'.config('shopbonus.banners.events_per_batch', 50)],
             'events.*.id' => ['required', 'uuid'],
             'events.*.campaign' => ['required', 'string', 'max:40'],
-            'events.*.version' => ['required', 'integer', 'min:1'],
+            'events.*.version' => ['required', 'integer', 'min:0'],
             'events.*.type' => ['required', Rule::in(BannerMeasurement::TYPES)],
             'events.*.occurred_at' => ['required', 'date'],
             'events.*.device' => ['sometimes', 'nullable', Rule::in(['desktop', 'tablet', 'mobile'])],
             'events.*.path' => ['sometimes', 'nullable', 'string', 'max:500', 'starts_with:/'],
             'events.*.category' => ['sometimes', 'nullable', 'string', 'max:40'],
             'events.*.consent' => ['required', 'boolean'],
+            'events.*.assignment_token' => ['sometimes', 'nullable', 'string', 'max:80'],
         ]);
         $installation = $this->installation($request, $data['key']);
 
@@ -77,6 +102,7 @@ class PublicBannerController extends Controller
         if ($pairing === null || $pairing->used_at !== null || $pairing->expires_at->isPast() || $pairing->origin !== $origin) {
             throw new ApiException('This pairing link is not valid any more. Start the editor again from ShopBonus.', 401, 'pairing_invalid');
         }
+        $this->assertEditorAccess($pairing);
         if (BannerPairing::whereKey($pairing->id)->whereNull('used_at')->update(['used_at' => now(), 'updated_at' => now()]) !== 1) {
             throw new ApiException('This pairing link was already used.', 401, 'pairing_invalid');
         }
@@ -122,7 +148,18 @@ class PublicBannerController extends Controller
             throw new ApiException('Editor session expired or not valid for this site.', 401, 'editor_token_invalid');
         }
 
+        $this->assertEditorAccess($pairing);
+
         return $pairing;
+    }
+
+    private function assertEditorAccess(BannerPairing $pairing): void
+    {
+        $user = User::find($pairing->user_id);
+        $membership = WebshopMembership::where('webshop_id', $pairing->webshop_id)->where('user_id', $pairing->user_id)->first();
+        if ($user?->status !== UserStatus::Active || $user->email_verified_at === null || $membership === null || ! $membership->allows(WorkspacePermission::OffersManage)) {
+            throw new ApiException('Editor access is no longer authorized.', 401, 'editor_access_revoked');
+        }
     }
 
     private function editable(Request $request, string $banner): BannerCampaign

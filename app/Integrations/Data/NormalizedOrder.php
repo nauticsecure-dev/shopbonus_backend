@@ -37,6 +37,7 @@ final readonly class NormalizedOrder
         public ?bool $contactConsent = null,
         // ShopBonus banner click ID carried through the shop's checkout (Trello #24 §2), if present.
         public ?string $attributionClickId = null,
+        public ?string $bannerAssignmentToken = null,
     ) {}
 
     /** @return list<string> */

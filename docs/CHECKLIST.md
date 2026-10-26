@@ -414,7 +414,7 @@ The live editor, renderer and embed script are frontend; the backend owns campai
 - [x] Results `GET /banners/{id}/results`: eligible, viewable impressions, CTA clicks, dismissals (never clicks), CTR = clicks / viewable, attributed paid orders + revenue; date/device filters; daily rollups; fills B13 `banner_metrics` (`e5df771`)
 - [x] Tests: card #25 E2E 3 (draft privacy), 4 (schedule/publish/pause/rollback + audit), 5 (trigger library and reasons), 6 (cart fallback/simulated), 7 (100/70/7/20 → 70 impressions, 10% CTR, 0 clicks from closes; cost €13), 8 (other tenant, visitor, expired pairing, forged origin); card #24 E2E 1–3 (`e5df771`)
 - [x] Docs with real captures (`e5df771`)
-- [ ] **BLOCKED** AI Create / AI Insights (no AI provider configured; B17 decides the provider) and A/B + holdout experiments (**MOVED** to a follow-up slice B14b)
+- [x] AI Create / AI Insights and A/B + holdout backend implemented/tested in B14b; provider credentials/model and storefront/staging verification remain senior/frontend handoff (see B14b evidence below).
 - [ ] **BLOCKED** Card #25 E2E 1, 2, 9, 10: real storefront editor, AI designs, platform install checks (frontend/plugins, AI provider, store access)
 
 ## B15 CMS, legal pages, FAQ, cookie consent, NL/EN (Trello #5, #4, #18)
@@ -522,3 +522,15 @@ Owner: implement main backend code; senior developer configures credentials. No 
 - [x] Run SQLite/MySQL suites, Pint, PHPStan, composer audit; capture changed API behavior from real local server. (`50957b4`; CI `40202694616` passed.)
 - [x] Update API docs/configuration/verification instructions, TASKS/PROGRESS/HANDOFF; commit/push and verify CI. (`50957b4`; CI `40202694616` passed.)
 - [ ] Senior developer: configure credentials and record genuine provider verification (NOT RUN here).
+
+## B14b — #25 AI proposals and experiments (2026-10-26)
+
+Owner authorizes main backend implementation; credentials configured by senior developer. Owner explicitly overrides the ~5 GiB disk cutoff for this task ("continue anyways"); no unrelated cleanup authorized.
+
+- [x] Queue idempotent AI Create/Insights with globally serialized request limits, configured model/key, minimal aggregate context and one provider attempt. (B14b code checkpoint; SHA recorded after commit.)
+- [x] Validate exactly three editable proposals; preserve offer terms, costs and asset ownership; human review creates private drafts only. (B14b code checkpoint; SHA recorded after commit.)
+- [x] Recheck workspace membership/permissions/account state before execution; privacy, schema/refusal/tool/timeout, stale review and tenant-negative tests. (B14b code checkpoint; SHA recorded after commit.)
+- [x] Add immutable experiment versions, consented randomized assignment, validated event linkage and honest A/B/holdout results. (B14b code checkpoint; SHA recorded after commit.)
+- [x] Document all changed/new APIs using actual local HTTP captures with clearly labelled simulated provider output. (B14b code checkpoint; SHA recorded after commit.)
+- [ ] Execute SQLite/MySQL sequentially, quality/security checks, migration rollback/reapply; checkpoint docs, commits/push and CI.
+- [ ] Senior developer: live OpenAI and storefront/cart/provider attribution/staging verification (NOT RUN here).

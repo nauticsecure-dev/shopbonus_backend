@@ -49,5 +49,18 @@
     "Incident diagnostics is not configured.": "Incidentdiagnostiek is niet geconfigureerd.",
     "The daily diagnostic request limit has been reached.": "De dagelijkse limiet voor diagnostiekaanvragen is bereikt.",
     "Only completed diagnostics can be reviewed.": "Alleen voltooide diagnostiek kan worden beoordeeld.",
-    "You have already reviewed this diagnostic result.": "U heeft dit diagnostische resultaat al beoordeeld."
+    "You have already reviewed this diagnostic result.": "U heeft dit diagnostische resultaat al beoordeeld.",
+    "This action requires current banner and order permissions.": "Voor deze actie zijn actuele banner- en orderrechten vereist.",
+    "The request key belongs to another AI request.": "De aanvraagsleutel hoort bij een andere AI-aanvraag.",
+    "Banner AI is not configured.": "Banner-AI is niet ingesteld.",
+    "The banner AI daily request limit has been reached.": "De dagelijkse limiet voor banner-AI is bereikt.",
+    "Only an unreviewed completed request can be reviewed.": "Alleen een voltooide, nog niet beoordeelde aanvraag kan worden beoordeeld.",
+    "The source draft changed. Generate a fresh proposal.": "Het bronconcept is gewijzigd. Genereer een nieuw voorstel.",
+    "At least ten verified paid EUR orders are needed for insights.": "Voor inzichten zijn minimaal tien geverifieerde, betaalde EUR-bestellingen nodig.",
+    "Banner AI request not found.": "Banner-AI-aanvraag niet gevonden.",
+    "Editor access is no longer authorized.": "De toegang tot de editor is niet meer toegestaan.",
+    "Start experiments on a live banner without another active experiment.": "Start experimenten op een live banner zonder een ander actief experiment.",
+    "Choose different published versions of this banner, or a holdout control.": "Kies verschillende gepubliceerde versies van deze banner of een controlegroep zonder banner.",
+    "This banner has no active experiment.": "Deze banner heeft geen actief experiment.",
+    "Stop the experiment before publishing another version.": "Stop het experiment voordat je een andere versie publiceert."
 }

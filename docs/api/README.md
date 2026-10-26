@@ -7788,3 +7788,501 @@ Content-Type: application/json
 
 {"error":{"status":409,"code":"connection_disabled","message":"This connection is disabled.","request_id":"01a1736c-ccdd-70bc-b779-2dc1c3eaae66"}}
 ```
+
+
+## #25 AI proposals and experiments — B14b, 2026-10-26
+
+Backend-only extension; see [configuration and frontend handoff](../banners/AI_EXPERIMENTS.md). Real HTTP captures below use an isolated SQLite database, actual Sanctum bearer authentication, actual queued Laravel worker and explicitly **synthetic OpenAI Responses fixtures**. Base commit `5f0823d`. No live provider/storefront/staging acceptance is claimed. Merchant reward fixture cost is 1000 + 300 fee =1300 minor units, computed through MerchantFunding. Hypotheses are rendered from validated fields, not free-form AI claims.
+
+All AI operations require offers.manage; insight reads/reviews additionally require orders.view. Support sessions cannot use AI or experiment operations. A reviewed proposal creates a private draft only. Publish is still an explicit existing action. Experiments use already published immutable versions. Public config accepts assignments[CAMPAIGN]=TOKEN and is private/no-store when assigned. Event assignment_token is optional outside experiments, required inside; holdout version0 accepts eligible only. Signed Shopbonus order format supports order.attribution.assignment_token; it is not proof of payment.
+
+### ai_request — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"designs","request_key":"4d0f2dec-e09e-4a73-86aa-36f61d76d0be"}'
+```
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a176e0-8e58-72cd-b1ef-f0a6b8fb9bcd
+
+{"data":{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"queued","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[],"review":null,"human_review_required":true,"measured_uplift":null}}
+```
+
+### ai_show — `GET /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-9048-72a8-b26c-c8cf620b52de
+
+{"data":{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}],"review":null,"human_review_required":true,"measured_uplift":null}}
+```
+
+### ai_index — `GET /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-9066-7374-918f-d4f10d72be23
+
+{"current_page":1,"data":[{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}],"review":null,"human_review_required":true,"measured_uplift":null}],"first_page_url":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests?page=1","from":1,"last_page":1,"last_page_url":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests?page=1","links":[{"url":null,"label":"&laquo; Previous","page":null,"active":false},{"url":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests?page=1","label":"1","page":1,"active":true},{"url":null,"label":"Next &raquo;","page":null,"active":false}],"next_page_url":null,"path":"http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests","per_page":20,"prev_page_url":null,"to":1,"total":1}
+```
+
+### ai_review — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc/review`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc/review' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"decision":"accept","proposal":0,"note":"Human review of synthetic provider layout for a private draft."}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-9086-705e-b884-a2414a559455
+
+{"data":{"request":{"id":"01m5ve13kg3n3jh4gr2q7cnyzc","kind":"designs","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 0 seconds delay. No measured uplift is established.","evidence_refs":["E1"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}],"review":{"decision":"accept","proposal":0},"human_review_required":true,"measured_uplift":null},"draft_campaign":"01m5ve144tgsp2w3nztt1qf879","published":false}}
+```
+
+### ai_review_conflict — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc/review`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve13kg3n3jh4gr2q7cnyzc/review' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"decision":"accept","proposal":1,"note":"Repeated review"}'
+```
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+X-Request-Id: 01a176e0-90b3-73c9-bfdb-1e83d6193f4a
+
+{"error":{"status":409,"code":"banner_ai_review_conflict","message":"Only an unreviewed completed request can be reviewed.","request_id":"01a176e0-90b3-73c9-bfdb-1e83d6193f4a"}}
+```
+
+### ai_insights_request — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"insights","request_key":"84f657e0-737d-446a-a4c4-ad7e295b027e"}'
+```
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a176e0-90d5-7048-80dc-e65c981649af
+
+{"data":{"id":"01m5ve1477w2z043r74s0ewjsq","kind":"insights","status":"queued","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"},"E3":{"sample_size":10,"window_days":90,"currency":"EUR","net_revenue_minor":100000},"E4":{"viewable_impressions":0,"cta_clicks":0,"ctr":null,"attributed_orders":0,"attributed_revenue_minor":0}},"proposals":[],"review":null,"human_review_required":true,"measured_uplift":null}}
+```
+
+### ai_insights_show — `GET /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve1477w2z043r74s0ewjsq`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests/01m5ve1477w2z043r74s0ewjsq' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-92bc-7267-a104-ebc34b829c73
+
+{"data":{"id":"01m5ve1477w2z043r74s0ewjsq","kind":"insights","status":"completed","failure_code":null,"source_revision":2,"evidence":{"E1":{"template":"ribbon","anchor":"bottom","style":{"background":"#123456","text":"#FFFFFF","font":"inter"}},"E2":{"reward_minor":1000,"fee_minor":300,"total_minor":1300,"basis":"fixed","min_order_minor":10000,"currency":"EUR"},"E3":{"sample_size":10,"window_days":90,"currency":"EUR","net_revenue_minor":100000},"E4":{"viewable_impressions":0,"cta_clicks":0,"ctr":null,"attributed_orders":0,"attributed_revenue_minor":0}},"proposals":[{"index":0,"hypothesis":"Test placement bottom with 20 seconds delay. No measured uplift is established.","evidence_refs":["E3"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"min_seconds","value":20}]},"devices":["desktop","mobile"]}},{"index":1,"hypothesis":"Test placement top with 20 seconds delay. No measured uplift is established.","evidence_refs":["E3"],"editable_config":{"template":"ribbon","placement":{"anchor":"top"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"min_seconds","value":20}]},"devices":["desktop","mobile"]}},{"index":2,"hypothesis":"Test placement bottom_right with 20 seconds delay. No measured uplift is established.","evidence_refs":["E3"],"editable_config":{"template":"ribbon","placement":{"anchor":"bottom_right"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"},{"type":"min_seconds","value":20}]},"devices":["desktop","mobile"]}}],"review":null,"human_review_required":true,"measured_uplift":null}}
+```
+
+### ai_disabled — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"designs","request_key":"d5fdfd35-0a1d-4754-a059-7dce4f031ec0"}'
+```
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+X-Request-Id: 01a176e0-92db-71f1-a4c8-41f61a56ee95
+
+{"error":{"status":503,"code":"banner_ai_unavailable","message":"Banner AI is not configured.","request_id":"01a176e0-92db-71f1-a4c8-41f61a56ee95"}}
+```
+
+### ai_quota — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"designs","request_key":"349bfdd4-1a15-4866-a021-067e3d1cf350"}'
+```
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+X-Request-Id: 01a176e0-92f9-71b0-81d2-71dc0dd35c7e
+
+{"error":{"status":429,"code":"banner_ai_limit","message":"The banner AI daily request limit has been reached.","request_id":"01a176e0-92f9-71b0-81d2-71dc0dd35c7e"}}
+```
+
+### ai_401 — `GET /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json'
+```
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a176e0-931c-728d-86d7-4fa91defd308
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a176e0-931c-728d-86d7-4fa91defd308"}}
+```
+
+### ai_422 — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"invalid","request_key":"bad"}'
+```
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a176e0-933c-7368-bfc1-dadddda26c2e
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a176e0-933c-7368-bfc1-dadddda26c2e","fields":{"kind":["The selected kind is invalid."],"request_key":["The request key field must be a valid UUID."]}}}
+```
+
+### experiment_start — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"control_version":null,"variant_version":2,"variant_bps":5000}'
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a176e0-935c-734c-ab2e-6220c3b3907f
+
+{"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+```
+
+### assignment — `POST /api/v1/banners/assignments`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/assignments' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"key":"pk_n1r4ixzensd4liy5ykwiazo0","visitor_key":"d47767ba-2df5-42af-86d3-4752961cec27","consent":true}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-9383-72c9-b474-3ffb46e89766
+
+{"data":[{"campaign":"01m5ve13bshvn74mecqq9bq5kc","assignment_token":"<ASSIGNMENT_TOKEN>","arm":"variant","version":2,"holdout":false,"expires_at":"2026-11-25T06:23:11+00:00"}]}
+```
+
+### experiment_config — `GET /api/v1/banners/config`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/banners/config?key=pk_n1r4ixzensd4liy5ykwiazo0&assignments%5B01m5ve13bshvn74mecqq9bq5kc%5D=%3CASSIGNMENT_TOKEN%3E' -H 'Accept: application/json' -H 'Origin: https://example.nl'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-939d-7063-8f79-1e67d1be3f32
+
+{"data":{"campaigns":[{"campaign":"01m5ve13bshvn74mecqq9bq5kc","version":2,"config":{"template":"ribbon","placement":{"anchor":"bottom"},"content":{"heading":"Next-purchase reward","subtitle":"Approved offer terms apply","cta_label":"View offer","cta_url":"https://example.nl/rewards","terms":"Original terms"},"style":{"background":"#123456","text":"#FFFFFF","font":"inter","animation":"none"},"frequency":{"per_session":1,"hide_after_dismiss":true},"triggers":{"all":[{"type":"url_match","value":"/collections/*"}]},"devices":["desktop","mobile"]}}]}}
+```
+
+### experiment_event — `POST /api/v1/banners/events`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/events' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"key":"pk_n1r4ixzensd4liy5ykwiazo0","events":[{"id":"5bef92cc-b899-4591-ac69-29ec1573abb1","campaign":"01m5ve13bshvn74mecqq9bq5kc","version":2,"type":"eligible","consent":true,"assignment_token":"<ASSIGNMENT_TOKEN>","occurred_at":"2026-10-26T06:23:11Z","device":"desktop"}]}'
+```
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a176e0-93b7-709b-8a90-36dca9cae0b5
+
+{"data":{"accepted":1,"duplicates":0,"rejected":0,"click_ids":[]}}
+```
+
+### experiment_show — `GET /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-93d2-7224-be6a-78a42be53837
+
+{"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+```
+
+### assignment_revoke — `POST /api/v1/banners/assignments`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/assignments' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"key":"pk_n1r4ixzensd4liy5ykwiazo0","visitor_key":"d47767ba-2df5-42af-86d3-4752961cec27","consent":false}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-93ee-717c-8ddd-9c3a1f4bb738
+
+{"data":[]}
+```
+
+### assignment_origin — `POST /api/v1/banners/assignments`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/assignments' -H 'Accept: application/json' -H 'Origin: https://wrong.example' -H 'Content-Type: application/json' --data '{"key":"pk_n1r4ixzensd4liy5ykwiazo0","visitor_key":"5d8fb846-e27e-41d2-804b-cbd38dbd83eb","consent":true}'
+```
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a176e0-9406-7122-a26a-ef23e468f675
+
+{"error":{"status":403,"code":"origin_not_allowed","message":"Unknown key or origin not allowed.","request_id":"01a176e0-9406-7122-a26a-ef23e468f675"}}
+```
+
+### experiment_stop — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e0-9426-727e-bace-ee4361ca3f32
+
+{"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":false,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+```
+
+### ai_key_conflict — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"insights","request_key":"4d0f2dec-e09e-4a73-86aa-36f61d76d0be"}'
+```
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+X-Request-Id: 01a176e5-dba0-719d-84cb-2116d639676e
+
+{"error":{"status":409,"code":"request_key_conflict","message":"The request key belongs to another AI request.","request_id":"01a176e5-dba0-719d-84cb-2116d639676e"}}
+```
+
+### experiment_restart — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"control_version":1,"variant_version":2,"variant_bps":5000}'
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a176e5-dbcd-7057-b146-d6109fe4a14e
+
+{"data":{"experiment":"01m5vebpyy05yhvxd2rcrzjxqh","active":true,"holdout":false,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+```
+
+### experiment_conflict — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"control_version":1,"variant_version":2,"variant_bps":5000}'
+```
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+X-Request-Id: 01a176e5-dbf8-734e-86b2-0eca1b011dce
+
+{"error":{"status":409,"code":"banner_experiment_conflict","message":"Start experiments on a live banner without another active experiment.","request_id":"01a176e5-dbf8-734e-86b2-0eca1b011dce"}}
+```
+
+### assignment_for_order — `POST /api/v1/banners/assignments`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/assignments' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"key":"pk_n1r4ixzensd4liy5ykwiazo0","visitor_key":"b630f663-4a4b-428f-a060-f5aac0e4b947","consent":true}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e5-dc13-7141-ad15-d51fb3c7667e
+
+{"data":[{"campaign":"01m5ve13bshvn74mecqq9bq5kc","assignment_token":"<ASSIGNMENT_TOKEN>","arm":"variant","version":2,"holdout":false,"expires_at":"2026-11-25T06:28:58+00:00"}]}
+```
+
+### order_forged — `POST /api/v1/webhooks/prestashop/<WEBHOOK_TOKEN>`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/webhooks/prestashop/<WEBHOOK_TOKEN>' -H 'Accept: application/json' -H 'X-Shopbonus-Event-Id: fixture-experiment-capture' -H 'X-Shopbonus-Topic: order.paid' -H 'X-Shopbonus-Signature: <SIGNATURE_V1>' -H 'Content-Type: application/json' --data '{"order":{"id":"fixture-experiment-paid","reference":"FIXTURE-ORDER","customer":{"first_name":"Fixture","email":"fixture@example.test"},"total_minor":10000,"currency":"EUR","payment_status":"paid","created_at":"2026-10-26T06:28:58Z","paid_at":"2026-10-26T06:28:58Z","attribution":{"assignment_token":"<ASSIGNMENT_TOKEN>"}}}'
+```
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a176e5-dc35-73b5-8690-f79e4e673e13
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a176e5-dc35-73b5-8690-f79e4e673e13","details":{"reason":"invalid_signature"}}}
+```
+
+### order_signed — `POST /api/v1/webhooks/prestashop/<WEBHOOK_TOKEN>`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/webhooks/prestashop/<WEBHOOK_TOKEN>' -H 'Accept: application/json' -H 'X-Shopbonus-Event-Id: fixture-experiment-capture' -H 'X-Shopbonus-Topic: order.paid' -H 'X-Shopbonus-Signature: <SIGNATURE_V1>' -H 'Content-Type: application/json' --data '{"order":{"id":"fixture-experiment-paid","reference":"FIXTURE-ORDER","customer":{"first_name":"Fixture","email":"fixture@example.test"},"total_minor":10000,"currency":"EUR","payment_status":"paid","created_at":"2026-10-26T06:28:58Z","paid_at":"2026-10-26T06:28:58Z","attribution":{"assignment_token":"<ASSIGNMENT_TOKEN>"}}}'
+```
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a176e5-dc5b-7313-bdd5-6dca31817fb1
+
+{"data":{"received":true,"duplicate":false,"event_id":"01m5vebq32wapvxeb5jwwf77np"}}
+```
+
+### experiment_after_order — `GET /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e5-ddf6-723b-8796-a8d40d07c4fb
+
+{"data":{"experiment":"01m5vebpyy05yhvxd2rcrzjxqh","active":true,"holdout":false,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":1,"converted_visitors":1,"net_revenue_minor":10000,"conversion_rate":1}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+```
+
+### experiment_stop_final — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176e5-de12-7026-9bed-bcfb0b28af7b
+
+{"data":{"experiment":"01m5vebpyy05yhvxd2rcrzjxqh","active":false,"holdout":false,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":1,"converted_visitors":1,"net_revenue_minor":10000,"conversion_rate":1}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+```
+
+### experiment_stop_conflict — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/experiment/stop' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+X-Request-Id: 01a176e5-de31-7260-81d7-e94cf579ee92
+
+{"error":{"status":409,"code":"banner_experiment_missing","message":"This banner has no active experiment.","request_id":"01a176e5-de31-7260-81d7-e94cf579ee92"}}
+```
+
+### editor_pairing — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/pairing`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/pairing' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"origin":"https://example.nl"}'
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a176ef-7533-7126-8c76-37abeda69449
+
+{"data":{"pairing_token":"<PAIRING_TOKEN>","expires_in":600,"origin":"https://example.nl"}}
+```
+
+### editor_exchange — `POST /api/v1/banners/editor/pair`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/editor/pair' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"pairing_token":"<PAIRING_TOKEN>"}'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a176ef-7569-71b2-bef0-2d238936d276
+
+{"data":{"editor_token":"<EDITOR_TOKEN>","expires_in":1800,"scope":"banner_drafts"}}
+```
+
+### editor_pairing_pending — `POST /api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/pairing`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/pairing' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"origin":"https://example.nl"}'
+```
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a176ef-7584-7334-93e0-fc94d258d6ab
+
+{"data":{"pairing_token":"<PAIRING_TOKEN>","expires_in":600,"origin":"https://example.nl"}}
+```
+
+### editor_exchange_revoked — `POST /api/v1/banners/editor/pair`
+
+```bash
+curl --globoff -i -X POST 'http://127.0.0.1:8078/api/v1/banners/editor/pair' -H 'Accept: application/json' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"pairing_token":"<PAIRING_TOKEN>"}'
+```
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a176ef-76cb-73be-abc6-534182a720c7
+
+{"error":{"status":401,"code":"editor_access_revoked","message":"Editor access is no longer authorized.","request_id":"01a176ef-76cb-73be-abc6-534182a720c7"}}
+```
+
+### editor_get_revoked — `GET /api/v1/banners/editor/campaigns/01m5ve13bshvn74mecqq9bq5kc`
+
+```bash
+curl --globoff -i -X GET 'http://127.0.0.1:8078/api/v1/banners/editor/campaigns/01m5ve13bshvn74mecqq9bq5kc' -H 'Accept: application/json' -H 'X-Banner-Editor-Token: <EDITOR_TOKEN>' -H 'Origin: https://example.nl'
+```
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a176ef-76f1-71f7-bd1f-17337630d90d
+
+{"error":{"status":401,"code":"editor_access_revoked","message":"Editor access is no longer authorized.","request_id":"01a176ef-76f1-71f7-bd1f-17337630d90d"}}
+```
+
+### editor_put_revoked — `PUT /api/v1/banners/editor/campaigns/01m5ve13bshvn74mecqq9bq5kc`
+
+```bash
+curl --globoff -i -X PUT 'http://127.0.0.1:8078/api/v1/banners/editor/campaigns/01m5ve13bshvn74mecqq9bq5kc' -H 'Accept: application/json' -H 'X-Banner-Editor-Token: <EDITOR_TOKEN>' -H 'Origin: https://example.nl' -H 'Content-Type: application/json' --data '{"revision":2,"config":{"template":"ribbon"}}'
+```
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a176ef-7711-738d-a236-5a2c0b6cd0b7
+
+{"error":{"status":401,"code":"editor_access_revoked","message":"Editor access is no longer authorized.","request_id":"01a176ef-7711-738d-a236-5a2c0b6cd0b7"}}
+```
+
+### Banner AI quota — Retry-After capture
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8078/api/v1/workspaces/01m5ve138qmb5dwat98jsz4dkx/banners/01m5ve13bshvn74mecqq9bq5kc/ai-requests' -H 'Accept: application/json' -H 'Authorization: Bearer <WORKSPACE_TOKEN>' -H 'Content-Type: application/json' --data '{"kind":"designs","request_key":"ff42db9e-26b5-4f72-b4ae-7a6f5d2463ab"}'
+```
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+X-Request-Id: 01a176f1-ea1a-7167-9ad2-c5202a6a966c
+Retry-After: 62271
+
+{"error":{"status":429,"code":"banner_ai_limit","message":"The banner AI daily request limit has been reached.","request_id":"01a176f1-ea1a-7167-9ad2-c5202a6a966c"}}
+```
