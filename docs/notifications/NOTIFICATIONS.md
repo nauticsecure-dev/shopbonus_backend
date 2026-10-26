@@ -1,6 +1,6 @@
 # #29 central notification backend
 
-Main implementation is locally verified; final exact-code MySQL/CI verification is pending before completion. [Card #29](https://trello.com/c/WcPlsK8w); full requirements in `requirements/TRELLO_CARDS.md`. Laravel/API/mail views only. Hassan owns the inbox bell, pages, visual states, browser reconnect and screenshots. Senior developer owns actual mail/OpenAI/Reverb deployment credentials and live verification. No live-provider/customer delivery is claimed here.
+Main backend **DONE** at `911e053`; CI `40412989638` passed all3jobs. Ready for Hassan frontend integration. [Card #29](https://trello.com/c/WcPlsK8w); full requirements in `requirements/TRELLO_CARDS.md`. Laravel/API/mail views only. Hassan owns the inbox bell, pages, visual states, browser reconnect and screenshots. Senior developer owns actual mail/OpenAI/Reverb deployment credentials and live verification. No live-provider/customer delivery is claimed here.
 
 ## Client APIs
 
@@ -98,3 +98,22 @@ Actual responses: `B29_HTTP_CAPTURE.json`, API README/OpenAPI. Temporary router-
 ## Local verification checkpoint
 
 Full SQLite718tests:700passed+18skipped,9262assertions,75.523s. Final added outbox failure/reviewed retry regression passed9 source tests/45assertions; total719 is expected in CI. Final API+diagnostics13passed/3669assertions. Full Pint/PHPStan/composer audit/diff checks pass. Three new migrations pass local MySQL apply/rollback/reapply plus SQLite down/up regression. Full local MySQL/races NOT RUN due low disk; CI must verify them before main backend completion.104 real HTTP captures include actual browser step-up and DB queue/array-mail acceptance; live provider/customer/staging verification stays separate. Exact commit and CI results follow in HANDOFF.
+
+## Final executed CI and backend acceptance mapping
+
+Implementation `911e053`, CI `40412989638` SUCCESS all3jobs. Exact719tests/database: SQLite701passed+18skipped/9278assertions/40.77s; MySQL717passed+2skipped/9340assertions/144.63s. Actual MySQL publication/quota/mail-claim process races and new migration down/up pass; full quality/audit green. Follow-up actual approval scope assertions pass locally in14 AgreementAndReview tests/375assertions without app-code changes. The closing docs/test commit is checked in CI separately.104 real HTTP captures support all current/changed routes.
+
+| Card backend acceptance group | Executed evidence |
+| --- | --- |
+| 1 Cashback | NotificationJourneyTest: settled attributed conversion→ledger→one exact NL €7,00 notice; pending/arbitrary credits excluded in SourcesTest. |
+| 2 Voucher issued | JourneyTest actual reserve/issue/redemption sources; DeliveryTest actual multipart array transport and stable single-attempt ID. No voucher secret egress. |
+| 3 Read state | InboxTest owned reads/read-all/replay/pagination/unread counts; SourcesTest shared legacy compatibility and read-before-projection receipts. |
+| 4 Preferences | Inbox/Sources/Delivery tests: mandatory vs optional switches, existing consent, revocation and email-only promotions. |
+| 5 Reminders | JourneyTest30/7/1 stages, replay, actual redemption stop, changed expiry/late mail suppression and published custom windows. |
+| 6 Workspace | Actual stepped-up AgreementAndReview approval→owner notice with workspace ref/admin-only review; JourneyTest actual offer activation→owner notice; negative membership/admin isolation. |
+| 7 AI templates | TemplateTest strict schema/privacy/budget/UUID replay, malformed/refusal/tool/invented values and actor revocation; MySQL global-cap race. |
+| 8 Rollback | TemplateTest immutable edit/stale conflict, synthetic render test, independent publication and fresh historical rollback/version/fallback. |
+| 9 Failure/recovery | SourceTest actual injected dispatch failure→3attempt exhaustion→critical alert→stepped-up admin retry→one recovered inbox entry; DeliveryTest pre-send retry/uncertain no-auto-resend/review/retention and actual DB worker capture. |
+| 10 Permissions/docs | Inbox/template/admin/negative role/support/channel tests, guarded delivery deletion, full OpenAPI/registry coverage and104 actual HTTP captures. |
+
+These are backend/API/worker tests and explicitly synthetic provider transports. Hassan's actual frontend/screenshots and senior real provider/deployed Reverb/production/staging acceptance remain separate; whole-card Done is not inferred from backend completion.

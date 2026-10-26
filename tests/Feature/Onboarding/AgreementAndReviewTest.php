@@ -12,6 +12,7 @@ use App\Models\AgreementTemplate;
 use App\Models\AuditEvent;
 use App\Models\User;
 use App\Models\Webshop;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Onboarding\Network\HostResolver;
 use App\Services\Onboarding\Network\WebsiteFileFetcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -259,6 +260,13 @@ class AgreementAndReviewTest extends TestCase
             ->assertOk()->assertJsonPath('data.status', 'approved')->assertJsonPath('data.ownership_method', 'manual_review');
 
         $this->assertSame(WebshopStatus::Approved, $this->shop->fresh()->status);
+        // #29: an actual stepped-up approval reaches only its owner's central inbox.
+        app(NotificationDispatcher::class)->drain();
+        $notice = $this->owner->notifications()->where('event_type', 'workspace_approved')->sole();
+        $this->assertSame($this->shop->public_id, $notice->data['workspace_id']);
+        $this->assertSame(0, $this->admin->notifications()->where('event_type', 'workspace_approved')->count());
+        $this->assertSame(1, $this->admin->notifications()->where('event_type', 'workspace_review_required')->count());
+        $this->assertSame(0, $this->owner->notifications()->where('event_type', 'workspace_review_required')->count());
         foreach (['admin.webshop_viewed', 'admin.evidence_downloaded', 'workspace.approved'] as $action) {
             $this->assertTrue(AuditEvent::where('action', $action)->exists(), $action);
         }
