@@ -515,10 +515,10 @@ Evidence: implementation `dea03b5`, CI `40199851559` passed; final strict-quota 
 
 Owner: implement main backend code; senior developer configures credentials. No schema/new routes planned.
 
-- [x] Pin official HTTPS WSDL and implement bounded, read-only SOAP transport with isolated authentication cookies, no redirects/retries and safe errors. (B10b code checkpoint; resolved SHA in HANDOFF.)
-- [x] Page campaigns/conversions, include old conversions assessed since last sync, validate provider shapes and reject incomplete pagination. (B10b code checkpoint; resolved SHA in HANDOFF.)
-- [x] Correct WSDL policy/status mappings; preserve existing admin imports and wallet/idempotency rules. (B10b code checkpoint; resolved SHA in HANDOFF.)
-- [x] Test serialized SOAP, authentication failure, pagination, late assessment, malformed data, secret redaction and disabled connections. (B10b code checkpoint; resolved SHA in HANDOFF.)
-- [x] Run SQLite/MySQL suites, Pint, PHPStan, composer audit; capture changed API behavior from real local server. (B10b code checkpoint; resolved SHA in HANDOFF.)
-- [ ] Update API docs/configuration/verification instructions, TASKS/PROGRESS/HANDOFF; commit/push and verify CI.
+- [x] Pin official HTTPS WSDL and implement bounded, read-only SOAP transport with isolated authentication cookies, no redirects/retries and safe errors. (`50957b4`; CI `40202694616` passed.)
+- [x] Page campaigns/conversions, include old conversions assessed since last sync, validate provider shapes and reject incomplete pagination. (`50957b4`; CI `40202694616` passed.)
+- [x] Correct WSDL policy/status mappings; preserve existing admin imports and wallet/idempotency rules. (`50957b4`; CI `40202694616` passed.)
+- [x] Test serialized SOAP, authentication failure, pagination, late assessment, malformed data, secret redaction and disabled connections. (`50957b4`; CI `40202694616` passed.)
+- [x] Run SQLite/MySQL suites, Pint, PHPStan, composer audit; capture changed API behavior from real local server. (`50957b4`; CI `40202694616` passed.)
+- [x] Update API docs/configuration/verification instructions, TASKS/PROGRESS/HANDOFF; commit/push and verify CI. (`50957b4`; CI `40202694616` passed.)
 - [ ] Senior developer: configure credentials and record genuine provider verification (NOT RUN here).

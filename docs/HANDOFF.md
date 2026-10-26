@@ -1,14 +1,14 @@
 # Latest Agent Handoff
 
 **Session:** 2026-10-25, Codex, owner requests #19 main backend code; senior developer configures credentials.
-**Branch/base:** `main` / `a9edfb3` (clean start); B10b implementation checkpoint is being committed. No pre-existing work overwritten.
+**Branch/base:** `main` / `a9edfb3` (clean start); B10b implementation `50957b4` pushed; GitHub CI `40202694616` passed all three jobs. Final documentation-only evidence checkpoint follows. No pre-existing work overwritten.
 **Status:** B10b TradeTracker main-code slice DONE locally; whole #19 PARTIAL pending genuine provider/staging acceptance. No migrations/new routes/frontend.
 **Tests:** sequential SQLite **483 passed + 11 skipped**, 6939 assertions; MySQL **492 passed + 2 skipped**, 6978 assertions (494 total each). Focused affiliate 25 pass/193 assertions; strengthened precision test passed separately. Pint/PHPStan L6/composer audit/composer validation/diff check pass. Concurrent database suite attempts interfered with shared Storage::fake folders; sequential final runs above passed. Run these suites sequentially locally.
 **Implementation:** pinned official HTTPS WSDL; native SOAP through Laravel HTTP; per-client cookie isolation; fixed host/no redirects/no retries; 5s connect/20s request; max100 pages of100 per query; registration + assessment polling; safe errors; strict provider data/negative commission checks; cashback enum fix; legacy minimal callbacks/imports retained; atomic snapshot/ingestion and conditional failure update preserve concurrent disables. No new reward policy/activation.
 **Configuration:** `TRADETRACKER_API_ENABLED=false`, PHP ext-soap required in composer/CI; encrypted customer_id/passphrase/site_id through existing admin API. Senior developer supplies these, not owner chat. EUR program-mapping limitation and all deployment/verification steps: `docs/integrations/TRADETRACKER.md`. D-070. Genuine network verification NOT RUN.
 **Capture cleanup:** six real local HTTP captures used isolated SQLite/database sessions/queue, array cache/mail, stderr logs and synthetic SOAP upstream. Local port8078 server stopped; task-owned temporary credentials/DB/helpers removed. Capture-only MFA bypass. No shared Redis operations.
-**Disk:** last6.1 GiB free; check first and stop below ~5 GiB.
-**Next exact action:** commit/push B10b on main and verify GitHub CI, then record SHA/CI and final clean status here. Senior developer configures authorized account access and records genuine provider/attribution evidence; no owner credentials requested. Existing financial/legal/affiliate-unit decisions unchanged.
+**Disk:** last 6.1 GiB free; check first and stop below ~5 GiB.
+**Next exact action:** final documentation checkpoint push/CI/status check, then hand off configuration to the senior developer. No B10b main-code implementation remains. Senior developer configures authorized account access and records genuine provider/attribution evidence; no owner credentials requested. Existing financial/legal/affiliate-unit decisions unchanged.
 
 ---
 

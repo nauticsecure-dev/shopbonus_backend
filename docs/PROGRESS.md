@@ -187,3 +187,5 @@ Validation note: concurrently executing SQLite/MySQL suites interfered with shar
 - Pint --test, PHPStan L6 --memory-limit=1G, composer audit, composer validate, git diff --check: PASS. OpenAPI/registry/security coverage is included in full suites.
 - Six actual local HTTP captures: create/list/test/sync/disable/disabled409, with actual authentication/password/CSRF and explicitly synthetic SOAP upstream. Capture server and task-owned temporary credentials/fixture DB/helpers removed. No shared Redis operations or live account calls.
 - No migrations; apply/rollback N/A. D-070; ext-soap required and installed in CI; default-disabled deployment flag and senior-developer instructions in `integrations/TRADETRACKER.md`. Commit/push/CI next.
+
+B10b closeout (2026-10-26): implementation `50957b4` pushed on main; GitHub CI `40202694616` **SUCCESS** (MySQL, SQLite, lint/static/audit). All code/config/API documentation implementation items are checked with that SHA. Genuine account verification remains assigned to the senior developer and unchecked. Final documentation checkpoint only; no further code changes.
