@@ -127,6 +127,23 @@ class SupportAdminTest extends TestCase
         $report = $policy->testVersion($fresh, $a);
         $this->assertSame(101, $report['total']);
         $this->assertSame(1, $report['failed']); // Intent correction is not silently applied to production.
+        $racing = $settings->draft($a, 'support.ai', $this->policy(), 'Concurrent corpus change test');
+        $changed = false;
+        DB::listen(function ($event) use (&$changed, $a, $m) {
+            if (! $changed && str_contains($event->sql, 'support_regressions') && str_contains($event->sql, 'join')) {
+                $changed = true;
+                $additional = SupportReview::create(['message_id' => $m->id, 'trigger' => 'negative_feedback']);
+                app(SupportReviews::class)->resolve($a, $additional, ['outcome' => 'CONFIRMED_ERROR', 'note' => 'Approved during test retrieval', 'expected_intent' => 'wallet']);
+            }
+        });
+        try {
+            $policy->testVersion($racing, $a);
+            $this->fail('Changing corpus was tested as a stable snapshot');
+        } catch (ApiException $e) {
+            $this->assertSame('support_policy_corpus_changed', $e->errorCode);
+        }
+        $this->assertTrue($changed);
+
         $settings->submit($fresh, $a);
         try {
             $settings->publish($fresh, $b, 'Must reject failed human case');

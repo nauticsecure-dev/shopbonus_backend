@@ -69,8 +69,11 @@ final class SupportPolicy
         if ($key !== 'support.ai' || ! in_array($v->status, ['draft', 'review'], true)) {
             throw ApiException::conflict('Only a support policy draft can be tested.', 'support_policy_not_draft');
         }
-        $cases = $this->cases();
         $fingerprint = self::regressionFingerprint();
+        $cases = $this->cases();
+        if (! hash_equals($fingerprint, self::regressionFingerprint())) {
+            throw ApiException::conflict('The regression cases changed. Create a new support policy draft and test it.', 'support_policy_corpus_changed');
+        }
         $prior = DB::table('support_policy_tests')->where('version_id', $v->id)->first();
         if ($prior !== null && (json_decode($prior->report, true)['corpus_fingerprint'] ?? null) !== $fingerprint) {
             throw ApiException::conflict('The regression cases changed. Create a new support policy draft and test it.', 'support_policy_corpus_changed');
