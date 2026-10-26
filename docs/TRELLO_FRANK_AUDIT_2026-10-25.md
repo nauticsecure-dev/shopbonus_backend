@@ -47,3 +47,7 @@ B16e adds advisory-only OpenAI incident diagnostics and reviewed operational bud
 ## Card #19 main-code continuation — B10b
 
 Owner assigned credentials to the senior developer and requested main backend code. TradeTracker SOAP transport is now implemented against the pinned official WSDL, with fixture-tested authentication/cookie isolation/pagination/assessment-date updates/safe errors and guarded atomic ingestion. See `integrations/TRADETRACKER.md`. Live account/attribution and staging evidence remain separate; no claim that fixture captures prove provider acceptance.
+
+## Card #25 main-code continuation — 2026-10-26
+
+B14b `d561f8d` implements queued AI Create/Insights, strict evidence/privacy/budgets, reviewed editable private drafts, immutable A/B/holdout launch, consented assignment/withdrawal, validated event linkage and generic/WooCommerce/Shopify assignment metadata. Current editor membership revocation is enforced. CI `40281914885` passed full SQLite503+13skip / MySQL514+2skip and quality checks. Main documented backend slice can be handed to Hassan; senior developer configures credentials and validates live model/storefront/provider propagation. Whole-card Done still requires frontend, genuine site/cart/provider and staging acceptance. See `banners/AI_EXPERIMENTS.md`.

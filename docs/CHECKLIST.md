@@ -527,10 +527,10 @@ Owner: implement main backend code; senior developer configures credentials. No 
 
 Owner authorizes main backend implementation; credentials configured by senior developer. Owner explicitly overrides the ~5 GiB disk cutoff for this task ("continue anyways"); no unrelated cleanup authorized.
 
-- [x] Queue idempotent AI Create/Insights with globally serialized request limits, configured model/key, minimal aggregate context and one provider attempt. (B14b code checkpoint; SHA recorded after commit.)
-- [x] Validate exactly three editable proposals; preserve offer terms, costs and asset ownership; human review creates private drafts only. (B14b code checkpoint; SHA recorded after commit.)
-- [x] Recheck workspace membership/permissions/account state before execution; privacy, schema/refusal/tool/timeout, stale review and tenant-negative tests. (B14b code checkpoint; SHA recorded after commit.)
-- [x] Add immutable experiment versions, consented randomized assignment, validated event linkage and honest A/B/holdout results. (B14b code checkpoint; SHA recorded after commit.)
-- [x] Document all changed/new APIs using actual local HTTP captures with clearly labelled simulated provider output. (B14b code checkpoint; SHA recorded after commit.)
-- [ ] Execute SQLite/MySQL sequentially, quality/security checks, migration rollback/reapply; checkpoint docs, commits/push and CI.
+- [x] Queue idempotent AI Create/Insights with globally serialized request limits, configured model/key, minimal aggregate context and one provider attempt. (`d561f8d`; CI `40281914885` passed.)
+- [x] Validate exactly three editable proposals; preserve offer terms, costs and asset ownership; human review creates private drafts only. (`d561f8d`; CI `40281914885` passed.)
+- [x] Recheck workspace membership/permissions/account state before execution; privacy, schema/refusal/tool/timeout, stale review and tenant-negative tests. (`d561f8d`; CI `40281914885` passed.)
+- [x] Add immutable experiment versions, consented randomized assignment, validated event linkage and honest A/B/holdout results. (`d561f8d`; CI `40281914885` passed.)
+- [x] Document all changed/new APIs using actual local HTTP captures with clearly labelled simulated provider output. (`d561f8d`; CI `40281914885` passed.)
+- [x] Execute SQLite/MySQL sequentially, quality/security checks, migration rollback/reapply; checkpoint docs, commits/push and CI. (`d561f8d`; CI `40281914885`: SQLite503 pass+13 skip, MySQL514 pass+2 skip.)
 - [ ] Senior developer: live OpenAI and storefront/cart/provider attribution/staging verification (NOT RUN here).
