@@ -128,6 +128,7 @@ class BannerMeasurement
         // Attributed: paid orders of this webshop carrying a click ID of this campaign, paid within the click's window. Each order once.
         $tz = (string) config('shopbonus.business_timezone');
         $orders = WebshopOrder::query()->join('banner_clicks', 'banner_clicks.click_id', '=', 'webshop_orders.attribution_click_id')
+            ->whereIn('webshop_orders.payment_status', ['paid', 'partially_refunded'])->where('webshop_orders.ingestion_status', 'complete')
             ->where('banner_clicks.campaign_id', $c->id)->where('webshop_orders.webshop_id', $c->webshop_id)->whereNotNull('webshop_orders.paid_at')
             ->whereColumn('webshop_orders.paid_at', '>=', 'banner_clicks.created_at')->whereColumn('webshop_orders.paid_at', '<=', 'banner_clicks.expires_at')
             ->whereBetween('webshop_orders.paid_at', [$fromDay->setTimezone($tz)->startOfDay()->utc(), $toDay->setTimezone($tz)->endOfDay()->utc()])

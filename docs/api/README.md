@@ -8286,3 +8286,2425 @@ Retry-After: 62271
 
 {"error":{"status":429,"code":"banner_ai_limit","message":"The banner AI daily request limit has been reached.","request_id":"01a176f1-ea1a-7167-9ad2-c5202a6a966c"}}
 ```
+
+## B17 — verified support chat (#26), 2026-10-26
+Captured against real local Laravel13/PHP8.4 HTTP server8079, isolated synthetic SQLite fixtures, actual bearer or first-party browser authentication, recent password and a seeded OTP challenge verified through the real step-up endpoint. A real database queue worker processed each request. **OpenAI completions are synthetic HTTP fixtures; no live OpenAI/account/model evidence is claimed.** Broadcast driver was null for these HTTP captures; separate local Reverb evidence is in SUPPORT_CHAT.md. No customer/provider secrets appear below. Code base7c1657d plus B17 working changes.
+Contracts/setup/limitations and all ten acceptance mappings: [SUPPORT_CHAT.md](../support/SUPPORT_CHAT.md). POST chat returns202 with a durable conversation/message ID; poll message or conversation for progress/result. Statuses PENDING/RESEARCHING/RETRYING/VERIFYING then VERIFIED/PARTIALLY_VERIFIED/NEEDS_CLARIFICATION/ESCALATED/UNAVAILABLE. Never display a question or intermediate provider output as a verified answer. `result.checked_at` denotes historical evidence verification; balances can subsequently change.
+Consumers and workspaces use one chat API. Workspace/locale are pinned to the owned conversation; continuation infers them if omitted. Tool IDs/required evidence/permissions are server-owned. No financial writes or code disclosure. Knowledge search uses published audience-scoped FAQ; CMS publication/rollback and existing admin FAQ revision workflow remain authoritative. Feedback is immutable; downvotes open reviews. Human reply is labelled human_support. Approved errors add regressions and can link already-published corrections; votes never retrain/change behavior. Policies use existing /admin/platform-settings APIs with private key support.ai, a test endpoint, independent review/publication and rollback draft; all admin mutations need recent password+OTP. Existing step-up423/MFA403/CSRF419/security/error envelopes apply.
+
+### Capture 1 — `POST /api/v1/admin/platform-settings`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support.ai","value":{"enabled":true,"model":null,"languages":["en","nl"],"daily_request_limit":100,"timeout_seconds":20,"max_retry":1,"restrictions":[]},"reason":"Enable reviewed support capture policy"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: capture-b17-93c7124d-afba-4c09-a741-09e4c630770d
+
+{
+  "data": {
+    "id": "01m5vk0b8knw7zyfk8tkhjyjr1",
+    "key": "support.ai",
+    "version": 1,
+    "value": {
+      "enabled": true,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 100,
+      "timeout_seconds": 20,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "status": "draft",
+    "reason": "Enable reviewed support capture policy",
+    "created_by": "01m5vk0a27asz682vehdtfk917",
+    "reviewed_by": null,
+    "review_note": null,
+    "published_at": null,
+    "is_current": false,
+    "rollback_of": null
+  }
+}
+```
+
+### Capture 2 — `POST /api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/review`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/review -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-c06e332c-673e-4907-9b25-2ba8f9e551e9
+
+{
+  "data": {
+    "id": "01m5vk0b8knw7zyfk8tkhjyjr1",
+    "key": "support.ai",
+    "version": 1,
+    "value": {
+      "enabled": true,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 100,
+      "timeout_seconds": 20,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "status": "review",
+    "reason": "Enable reviewed support capture policy",
+    "created_by": "01m5vk0a27asz682vehdtfk917",
+    "reviewed_by": null,
+    "review_note": null,
+    "published_at": null,
+    "is_current": false,
+    "rollback_of": null
+  }
+}
+```
+
+### Capture 3 — `POST /api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/publish`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/publish -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Independent review before required test"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: capture-b17-8b0f3d71-7700-470b-8c57-729aa0c5673f
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_policy_test_required",
+    "message": "Test the support policy before publication.",
+    "request_id": "capture-b17-8b0f3d71-7700-470b-8c57-729aa0c5673f"
+  }
+}
+```
+
+### Capture 4 — `POST /api/v1/admin/ai/settings/01m5vk0b8knw7zyfk8tkhjyjr1/test`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/settings/01m5vk0b8knw7zyfk8tkhjyjr1/test -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-c1e34a54-69d3-4ede-8d16-1f74f50cb1f0
+
+{
+  "data": {
+    "total": 100,
+    "passed": 100,
+    "failed": 0,
+    "policy_checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "scope": "server_intent_and_immutable_safety_guards",
+    "provider_verified": false
+  }
+}
+```
+
+### Capture 5 — `POST /api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/publish`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/publish -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Independent review after successful regression test"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-486f4ac4-cf26-46ad-a8b7-ea72b944d255
+
+{
+  "data": {
+    "id": "01m5vk0b8knw7zyfk8tkhjyjr1",
+    "key": "support.ai",
+    "version": 1,
+    "value": {
+      "enabled": true,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 100,
+      "timeout_seconds": 20,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "status": "published",
+    "reason": "Enable reviewed support capture policy",
+    "created_by": "01m5vk0a27asz682vehdtfk917",
+    "reviewed_by": "01m5vk0a2bkpv948gbxczptnvf",
+    "review_note": "Independent review after successful regression test",
+    "published_at": "2026-10-26T07:50:08+00:00",
+    "is_current": true,
+    "rollback_of": null
+  }
+}
+```
+
+### Capture 6 — `GET /api/v1/admin/platform-settings?key=support.ai`
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/admin/platform-settings?key=support.ai' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-baf8f1b6-ecef-4b2a-b515-080602b36dab
+
+{
+  "data": [
+    {
+      "id": "01m5vk0b8knw7zyfk8tkhjyjr1",
+      "key": "support.ai",
+      "version": 1,
+      "value": {
+        "enabled": true,
+        "model": null,
+        "languages": [
+          "en",
+          "nl"
+        ],
+        "daily_request_limit": 100,
+        "timeout_seconds": 20,
+        "max_retry": 1,
+        "restrictions": []
+      },
+      "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+      "status": "published",
+      "reason": "Enable reviewed support capture policy",
+      "created_by": "01m5vk0a27asz682vehdtfk917",
+      "reviewed_by": "01m5vk0a2bkpv948gbxczptnvf",
+      "review_note": "Independent review after successful regression test",
+      "published_at": "2026-10-26T07:50:08+00:00",
+      "is_current": true,
+      "rollback_of": null
+    }
+  ],
+  "published": {
+    "values": {
+      "public.brand_name": "Shopbonus",
+      "public.support_email": null,
+      "public.languages": [
+        "nl",
+        "en"
+      ],
+      "operations.diagnostics_daily_request_limit": 10,
+      "support.ai": {
+        "enabled": true,
+        "model": null,
+        "languages": [
+          "en",
+          "nl"
+        ],
+        "daily_request_limit": 100,
+        "timeout_seconds": 20,
+        "max_retry": 1,
+        "restrictions": []
+      }
+    },
+    "versions": {
+      "support.ai": "01m5vk0b8knw7zyfk8tkhjyjr1"
+    }
+  },
+  "allowed_keys": [
+    "public.brand_name",
+    "public.support_email",
+    "public.languages",
+    "operations.diagnostics_daily_request_limit",
+    "support.ai"
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 1,
+    "per_page": 25,
+    "last_page": 1
+  }
+}
+```
+
+### Capture 7 — `GET /api/v1/admin/ai/reviews`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/admin/ai/reviews -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: capture-b17-239863b5-8a33-4120-a416-cfb277b8c6aa
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 403,
+    "code": "platform_role_required",
+    "message": "This action requires a platform administrator.",
+    "request_id": "capture-b17-239863b5-8a33-4120-a416-cfb277b8c6aa"
+  }
+}
+```
+
+### Capture 8 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Idempotency-Key: 160a5d0d-9468-448c-a503-40040596291c' -H 'Content-Type: application/json' --data '{"message":"wallet"}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: capture-b17-c845a2da-5431-4be2-b223-3154c6f573e6
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "capture-b17-c845a2da-5431-4be2-b223-3154c6f573e6"
+  }
+}
+```
+
+### Capture 9 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: c16be3ac-b58f-4d03-b063-caa0f2a6341e' -H 'Content-Type: application/json' --data '{"message":"wallet","workspace_id":"01m5vk0a30gq47m00rtddg746q"}'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: capture-b17-4d8338a3-eaa3-4930-ad5e-7ea643593c54
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Support evidence is unavailable.",
+    "request_id": "capture-b17-4d8338a3-eaa3-4930-ad5e-7ea643593c54"
+  }
+}
+```
+
+### Capture 10 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: f6fb11b3-219a-48e1-b396-bcf4b10d0b1e' -H 'Content-Type: application/json' --data '{"message":"","role":"super_admin"}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: capture-b17-494af70e-ae9d-4212-a6fd-e3500b712874
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "capture-b17-494af70e-ae9d-4212-a6fd-e3500b712874",
+    "fields": {
+      "message": [
+        "The message field is required."
+      ],
+      "role": [
+        "The role field is prohibited."
+      ]
+    }
+  }
+}
+```
+
+### Capture 11 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 5134753e-d996-4cd2-ad09-c43613000b97' -H 'Content-Type: application/json' --data '{"message":"What is my wallet balance?","locale":"en"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-f0859b8a-ac4f-4791-8ff5-83043f483546
+
+{
+  "data": {
+    "id": "01m5vk0bmew1h6k705kgns5rmf",
+    "conversation_id": "01m5vk0bmbrmc7dbq482bw9fvm",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 12 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 485e13de-372a-4869-b5c1-82fd92f994ea' -H 'Content-Type: application/json' --data '{"message":"wallet","conversation_id":"01m5vk0bmbrmc7dbq482bw9fvm"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: capture-b17-f8199a3c-f15f-475e-b9b1-3bedb7876cc0
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_conversation_busy",
+    "message": "Wait for the current support answer.",
+    "request_id": "capture-b17-f8199a3c-f15f-475e-b9b1-3bedb7876cc0"
+  }
+}
+```
+
+### Capture 13 — `GET /api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-32bba6ae-7cb2-47fb-9578-09d0e2d0f1c2
+
+{
+  "data": {
+    "id": "01m5vk0bmew1h6k705kgns5rmf",
+    "conversation_id": "01m5vk0bmbrmc7dbq482bw9fvm",
+    "question": "What is my wallet balance?",
+    "status": "VERIFIED",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+      "evidence_ids": [
+        "01m5vk0c2ec3695es6pwbcg0xe"
+      ],
+      "checked_at": "2026-10-26T07:50:09+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/wallet"
+      }
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:08+00:00",
+    "completed_at": "2026-10-26T07:50:09+00:00"
+  }
+}
+```
+
+### Capture 14 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 5134753e-d996-4cd2-ad09-c43613000b97' -H 'Content-Type: application/json' --data '{"message":"Different question"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: capture-b17-011a5e02-1ee7-409a-b7ab-c50d23703fd4
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_idempotency_conflict",
+    "message": "This support request key was already used.",
+    "request_id": "capture-b17-011a5e02-1ee7-409a-b7ab-c50d23703fd4"
+  }
+}
+```
+
+### Capture 15 — `GET /api/v1/ai/conversations`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/conversations -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-5eb21522-68ab-4688-88ee-f8080441cd11
+
+{
+  "data": [
+    {
+      "id": "01m5vk0bmbrmc7dbq482bw9fvm",
+      "locale": "en",
+      "workspace_id": null,
+      "expires_at": "2026-11-25T07:50:08+00:00"
+    }
+  ]
+}
+```
+
+### Capture 16 — `GET /api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-30db6b79-1b73-44ab-8a94-a90ed3eab03e
+
+{
+  "data": {
+    "id": "01m5vk0bmbrmc7dbq482bw9fvm",
+    "messages": [
+      {
+        "id": "01m5vk0bmew1h6k705kgns5rmf",
+        "conversation_id": "01m5vk0bmbrmc7dbq482bw9fvm",
+        "question": "What is my wallet balance?",
+        "status": "VERIFIED",
+        "result": {
+          "status": "VERIFIED",
+          "answer": "Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+          "evidence_ids": [
+            "01m5vk0c2ec3695es6pwbcg0xe"
+          ],
+          "checked_at": "2026-10-26T07:50:09+00:00",
+          "action": {
+            "label": "View details",
+            "route": "/app/wallet"
+          }
+        },
+        "retry_used": false,
+        "created_at": "2026-10-26T07:50:08+00:00",
+        "completed_at": "2026-10-26T07:50:09+00:00"
+      }
+    ],
+    "replies": [],
+    "next_before": "01m5vk0bmew1h6k705kgns5rmf"
+  }
+}
+```
+
+### Capture 17 — `GET /api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: capture-b17-9aadd3bd-f8f8-4e2e-9015-60022f64257a
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Support message not found.",
+    "request_id": "capture-b17-9aadd3bd-f8f8-4e2e-9015-60022f64257a"
+  }
+}
+```
+
+### Capture 18 — `POST /api/v1/ai/knowledge/search`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/knowledge/search -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{"query":"wallet","locale":"en"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-2c70f502-552c-4f31-aaa4-294e3260aa47
+
+{
+  "data": [
+    {
+      "document_id": "01m5vk0a6s1dfzp90vt9na1c43",
+      "scope": "consumers",
+      "version": 1,
+      "locale": "en",
+      "content": "ShopBonus credit cannot be withdrawn or transferred.",
+      "checked_at": "2026-10-26T07:50:09+00:00"
+    }
+  ]
+}
+```
+
+### Capture 19 — `POST /api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf/feedback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf/feedback -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{"rating":"down","reason":"unclear","comment":"Please clarify the explanation."}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-fd6b64ed-53f0-4023-b1c9-b503ffcbffad
+
+{
+  "data": {
+    "id": "01m5vk0cba8cd78qxjw7gxvn6e",
+    "rating": "down",
+    "review_required": true
+  }
+}
+```
+
+### Capture 20 — `POST /api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf/escalate`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf/escalate -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-9c3ef704-b803-4009-88f5-3ebca679106a
+
+{
+  "data": {
+    "id": "01m5vk0ccg7jvw5sdqcs35c33w",
+    "status": "ESCALATED",
+    "notice": "A human support review has been requested."
+  }
+}
+```
+
+### Capture 21 — `GET /api/v1/admin/ai/reviews?outcome=open`
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/admin/ai/reviews?outcome=open' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-d5fdf0ce-3d89-47e4-9beb-42dff63ac48d
+
+{
+  "data": [
+    {
+      "id": "01m5vk0ccg7jvw5sdqcs35c33w",
+      "message_id": "01m5vk0bmew1h6k705kgns5rmf",
+      "trigger": "customer_request",
+      "outcome": null,
+      "reviewed_at": null
+    },
+    {
+      "id": "01m5vk0cbcyt07y2mxdh21ttx1",
+      "message_id": "01m5vk0bmew1h6k705kgns5rmf",
+      "trigger": "negative_feedback",
+      "outcome": null,
+      "reviewed_at": null
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "total": 2
+  }
+}
+```
+
+### Capture 22 — `GET /api/v1/admin/ai/reviews/01m5vk0ccg7jvw5sdqcs35c33w`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/admin/ai/reviews/01m5vk0ccg7jvw5sdqcs35c33w -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-c10734ea-2814-4ee1-96b6-9e455d3a599e
+
+{
+  "data": {
+    "id": "01m5vk0ccg7jvw5sdqcs35c33w",
+    "conversation_id": "01m5vk0bmbrmc7dbq482bw9fvm",
+    "message_id": "01m5vk0bmew1h6k705kgns5rmf",
+    "question": "What is my wallet balance?",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+      "evidence_ids": [
+        "01m5vk0c2ec3695es6pwbcg0xe"
+      ],
+      "checked_at": "2026-10-26T07:50:09+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/wallet"
+      }
+    },
+    "evidence": {
+      "snapshots": [
+        {
+          "id": "01m5vk0c2ec3695es6pwbcg0xe",
+          "tool": "get_my_wallet",
+          "arguments": {
+            "unit": "eur_credit"
+          },
+          "source": "consumer_wallet:eur_credit",
+          "facts": {
+            "available": 1000,
+            "reserved": 0,
+            "pending": 500,
+            "spent": 0,
+            "unit": "eur_credit",
+            "currency": "EUR"
+          },
+          "checked_at": "2026-10-26T07:50:09+00:00"
+        }
+      ],
+      "trace": [
+        {
+          "tool": "get_my_wallet",
+          "outcome": "retrieved"
+        }
+      ]
+    },
+    "research": {
+      "intent": "wallet",
+      "tool": "get_my_wallet",
+      "arguments": {
+        "unit": "eur_credit"
+      },
+      "reference": null,
+      "unit": "eur_credit",
+      "missing_reference": false,
+      "wrong_scope": false
+    },
+    "retry_used": false,
+    "metrics": {
+      "policy_version": "01m5vk0b8knw7zyfk8tkhjyjr1",
+      "restriction_action": null,
+      "input_tokens": 20,
+      "output_tokens": 10,
+      "model": "fixture-model",
+      "latency_ms": 63,
+      "additional_retrieval_rounds": 0
+    },
+    "failure_code": null,
+    "feedback": [
+      {
+        "rating": "down",
+        "reason": "unclear",
+        "comment": "Please clarify the explanation."
+      }
+    ],
+    "outcome": null,
+    "note": null,
+    "regression_added": false
+  }
+}
+```
+
+### Capture 23 — `POST /api/v1/admin/ai/reviews/01m5vk0ccg7jvw5sdqcs35c33w/resolve`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/reviews/01m5vk0ccg7jvw5sdqcs35c33w/resolve -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"outcome":"CONFIRMED_ERROR","note":"Approved explanatory correction linked to published knowledge","expected_intent":"wallet","knowledge_id":"01m5vk0a6s1dfzp90vt9na1c43"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-73f4d38a-803e-4e84-8399-aa29c805bfa2
+
+{
+  "data": {
+    "id": "01m5vk0ccg7jvw5sdqcs35c33w",
+    "outcome": "CONFIRMED_ERROR",
+    "regression_added": true
+  }
+}
+```
+
+### Capture 24 — `POST /api/v1/admin/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm/reply`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm/reply -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"body":"A human reviewed your question. Wallet credit cannot be withdrawn or transferred."}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: capture-b17-280e32be-3c3b-4b83-a9aa-ab192d45d9d4
+
+{
+  "data": {
+    "id": "01m5vk0cgwtrs2h2e0s6yekx4t",
+    "sender": "human_support",
+    "body": "A human reviewed your question. Wallet credit cannot be withdrawn or transferred.",
+    "created_at": "2026-10-26T07:50:09+00:00"
+  }
+}
+```
+
+### Capture 25 — `GET /api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-a38c967f-8f37-4861-9d3f-e4b01da75f01
+
+{
+  "data": {
+    "id": "01m5vk0bmbrmc7dbq482bw9fvm",
+    "messages": [
+      {
+        "id": "01m5vk0bmew1h6k705kgns5rmf",
+        "conversation_id": "01m5vk0bmbrmc7dbq482bw9fvm",
+        "question": "What is my wallet balance?",
+        "status": "VERIFIED",
+        "result": {
+          "status": "VERIFIED",
+          "answer": "Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+          "evidence_ids": [
+            "01m5vk0c2ec3695es6pwbcg0xe"
+          ],
+          "checked_at": "2026-10-26T07:50:09+00:00",
+          "action": {
+            "label": "View details",
+            "route": "/app/wallet"
+          }
+        },
+        "retry_used": false,
+        "created_at": "2026-10-26T07:50:08+00:00",
+        "completed_at": "2026-10-26T07:50:09+00:00"
+      }
+    ],
+    "replies": [
+      {
+        "id": "01m5vk0cgwtrs2h2e0s6yekx4t",
+        "sender": "human_support",
+        "body": "A human reviewed your question. Wallet credit cannot be withdrawn or transferred.",
+        "created_at": "2026-10-26T07:50:09+00:00"
+      }
+    ],
+    "next_before": "01m5vk0bmew1h6k705kgns5rmf"
+  }
+}
+```
+
+### Capture 26 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: bf8568af-8e84-4037-8882-a784267d4170' -H 'Content-Type: application/json' --data '{"message":"Where is my reward?","locale":"en","reference":"01m5vk0a5hzfygtvhf3744mvg6"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-444b66c5-b92d-4d3b-be6c-15d77d4ddeb7
+
+{
+  "data": {
+    "id": "01m5vk0ckb25mf0whts8eqvb3v",
+    "conversation_id": "01m5vk0ck90cepsvccbs1z0phq",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 27 — `GET /api/v1/ai/messages/01m5vk0ckb25mf0whts8eqvb3v`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0ckb25mf0whts8eqvb3v -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-85dfe767-40d4-4688-a07f-10c4f129a031
+
+{
+  "data": {
+    "id": "01m5vk0ckb25mf0whts8eqvb3v",
+    "conversation_id": "01m5vk0ck90cepsvccbs1z0phq",
+    "question": "Where is my reward?",
+    "status": "VERIFIED",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.\nRecorded payment status: unknown; wallet reward: pending; fixed reward value: 500 minor units EUR. No release date has been confirmed.",
+      "evidence_ids": [
+        "01m5vk0d0jgcz5nwq7anncm8d9",
+        "01m5vk0d0wsb0c6n6qy8ezebfb"
+      ],
+      "checked_at": "2026-10-26T07:50:10+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/wallet"
+      }
+    },
+    "retry_used": true,
+    "created_at": "2026-10-26T07:50:09+00:00",
+    "completed_at": "2026-10-26T07:50:10+00:00"
+  }
+}
+```
+
+### Capture 28 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 419cbcb9-3623-4ca3-a8f0-d873c1c94d4c' -H 'Content-Type: application/json' --data '{"message":"Give a voucher quote","locale":"en","reference":"01m5vk0a4mxccz1st2p0aq0rfk"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-e017ff79-8306-4a7c-872b-b4535fcc30f9
+
+{
+  "data": {
+    "id": "01m5vk0d5n3t9t0t9398pkwn7c",
+    "conversation_id": "01m5vk0d5mgps65avrnhxav8bz",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 29 — `GET /api/v1/ai/messages/01m5vk0d5n3t9t0t9398pkwn7c`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0d5n3t9t0t9398pkwn7c -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-b9b211e9-96c8-4ea9-9eff-bf56beca7212
+
+{
+  "data": {
+    "id": "01m5vk0d5n3t9t0t9398pkwn7c",
+    "conversation_id": "01m5vk0d5mgps65avrnhxav8bz",
+    "question": "Give a voucher quote",
+    "status": "VERIFIED",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Current quote in EUR: price 2000 minor units; wallet 1000 minor units; Mollie 1000 minor units; stock available; purchasable yes. No payment or voucher issuance has occurred.",
+      "evidence_ids": [
+        "01m5vk0dk5ryfesa2g4yz2978r"
+      ],
+      "checked_at": "2026-10-26T07:50:10+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/vouchers"
+      }
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:10+00:00",
+    "completed_at": "2026-10-26T07:50:10+00:00"
+  }
+}
+```
+
+### Capture 30 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 9518504f-55b9-498a-a3bd-668a71f7ca20' -H 'Content-Type: application/json' --data '{"message":"Show the offer cost","locale":"en","workspace_id":"01m5vk0a30gq47m00rtddg746q","reference":"01m5vk0a3wr5ry1a0c1jey6313"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-77201541-9ff3-452d-98a7-0013d2593ca0
+
+{
+  "data": {
+    "id": "01m5vk0dqrmeqcpk37p51dmmsw",
+    "conversation_id": "01m5vk0dqp1s1hpdewr39nmkz1",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 31 — `GET /api/v1/ai/messages/01m5vk0dqrmeqcpk37p51dmmsw`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0dqrmeqcpk37p51dmmsw -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-1045ed58-bc36-43ae-9944-5a3db3a69f87
+
+{
+  "data": {
+    "id": "01m5vk0dqrmeqcpk37p51dmmsw",
+    "conversation_id": "01m5vk0dqp1s1hpdewr39nmkz1",
+    "question": "Show the offer cost",
+    "status": "VERIFIED",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Cost preview per voucher in EUR: reward 1000 minor units; platform fee 300 minor units; total 1300 minor units; basis fixed_value. Preview only; nothing has been charged.",
+      "evidence_ids": [
+        "01m5vk0e545xnzv5r9nkz4wpyz"
+      ],
+      "checked_at": "2026-10-26T07:50:11+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/workspaces/01m5vk0a30gq47m00rtddg746q/offers"
+      }
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:10+00:00",
+    "completed_at": "2026-10-26T07:50:11+00:00"
+  }
+}
+```
+
+### Capture 32 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 8a28ec94-7d5a-42f0-a643-d01bd5297b2a' -H 'Content-Type: application/json' --data '{"message":"Show campaign sales","locale":"en","workspace_id":"01m5vk0a30gq47m00rtddg746q","reference":"01m5vk0a7e004ympqmtxgms6nw"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-a6820ce0-0ab0-4e4f-80f2-6cba8dd416f2
+
+{
+  "data": {
+    "id": "01m5vk0e9hzrgqbfd55y2zvwjt",
+    "conversation_id": "01m5vk0e9fvzrsj0s1rdgmr146",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 33 — `GET /api/v1/ai/messages/01m5vk0e9hzrgqbfd55y2zvwjt`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0e9hzrgqbfd55y2zvwjt -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-416008e0-68af-494a-a391-20a00881a13d
+
+{
+  "data": {
+    "id": "01m5vk0e9hzrgqbfd55y2zvwjt",
+    "conversation_id": "01m5vk0e9fvzrsj0s1rdgmr146",
+    "question": "Show campaign sales",
+    "status": "VERIFIED",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Campaign from 2026-09-27 to 2026-10-26: 10000 viewable impressions; 420 clicks; 0 attributed paid orders. Tracked order starts are unavailable; attribution does not establish causal uplift.",
+      "evidence_ids": [
+        "01m5vk0eq29pzj1ew18hncb9db"
+      ],
+      "checked_at": "2026-10-26T07:50:11+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/workspaces/01m5vk0a30gq47m00rtddg746q/banners"
+      }
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:11+00:00",
+    "completed_at": "2026-10-26T07:50:11+00:00"
+  }
+}
+```
+
+### Capture 34 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 6a8c29f4-74e5-4841-8a24-2b71b71b2b82' -H 'Content-Type: application/json' --data '{"message":"Show integration health","locale":"en","workspace_id":"01m5vk0a30gq47m00rtddg746q","reference":"01m5vk0a5m6zcz0gpttndkr7c9"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-15d5f5d2-afb5-49e0-bc15-41192cc19e35
+
+{
+  "data": {
+    "id": "01m5vk0evrk85bhqcfst0jrfa0",
+    "conversation_id": "01m5vk0evntk7sr511hv4n8aer",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 35 — `GET /api/v1/ai/messages/01m5vk0evrk85bhqcfst0jrfa0`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0evrk85bhqcfst0jrfa0 -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-29026571-c189-412f-98e6-213a8df583a6
+
+{
+  "data": {
+    "id": "01m5vk0evrk85bhqcfst0jrfa0",
+    "conversation_id": "01m5vk0evntk7sr511hv4n8aer",
+    "question": "Show integration health",
+    "status": "VERIFIED",
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Integration woocommerce: testing; last received event: unknown; error none recorded. Capabilities: {\"order_ingestion_available\":true,\"verification\":\"unverified\",\"method\":\"webhook\"}.",
+      "evidence_ids": [
+        "01m5vk0f9tq4hvz99kjz9yzp33"
+      ],
+      "checked_at": "2026-10-26T07:50:12+00:00",
+      "action": {
+        "label": "View details",
+        "route": "/app/workspaces/01m5vk0a30gq47m00rtddg746q/integrations"
+      }
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:12+00:00",
+    "completed_at": "2026-10-26T07:50:12+00:00"
+  }
+}
+```
+
+### Capture 36 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 05c3828d-90fb-4a9e-bcc9-ae1d810a901b' -H 'Content-Type: application/json' --data '{"message":"Show webshop wallet","locale":"en","workspace_id":"01m5vk0a30gq47m00rtddg746q"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-914ea6b4-6ccb-435d-820d-fb291590d570
+
+{
+  "data": {
+    "id": "01m5vk0fegp1sye38s8cc9g7zs",
+    "conversation_id": "01m5vk0fee6vzvnef70275q1nr",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 37 — `GET /api/v1/ai/messages/01m5vk0fegp1sye38s8cc9g7zs`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0fegp1sye38s8cc9g7zs -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-2146fd17-faac-4909-b8f8-653c136ea7bc
+
+{
+  "data": {
+    "id": "01m5vk0fegp1sye38s8cc9g7zs",
+    "conversation_id": "01m5vk0fee6vzvnef70275q1nr",
+    "question": "Show webshop wallet",
+    "status": "UNAVAILABLE",
+    "result": {
+      "status": "UNAVAILABLE",
+      "answer": null,
+      "evidence_ids": [],
+      "checked_at": "2026-10-26T07:50:13+00:00",
+      "action": null
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:12+00:00",
+    "completed_at": "2026-10-26T07:50:13+00:00"
+  }
+}
+```
+
+### Capture 38 — `POST /api/v1/consumer/checkouts/quote`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/consumer/checkouts/quote -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{"offer":"capture-wallet-voucher-y2m0hf"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-73d12788-1d4f-4555-ab42-37e5cb7c2b1f
+
+{
+  "data": {
+    "price_minor": 2000,
+    "currency": "EUR",
+    "wallet_available": 1000,
+    "wallet_part_minor": 1000,
+    "payment_part_minor": 1000,
+    "blockers": []
+  }
+}
+```
+
+### Capture 39 — `GET /api/v1/workspaces/01m5vk0a30gq47m00rtddg746q/banners/01m5vk0a7e004ympqmtxgms6nw/results`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/workspaces/01m5vk0a30gq47m00rtddg746q/banners/01m5vk0a7e004ympqmtxgms6nw/results -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-fcff08f1-21e9-47f9-ad93-0a1c0fa25331
+
+{
+  "data": {
+    "from": "2026-09-27",
+    "to": "2026-10-26",
+    "device": null,
+    "timezone": "Europe/Amsterdam",
+    "eligible": 10000,
+    "viewable_impressions": 10000,
+    "cta_clicks": 420,
+    "dismissals": 0,
+    "ctr": 0.042,
+    "attributed_orders": 0,
+    "attributed_revenue_minor": 0,
+    "definitions": {
+      "viewable_impression": "≥50% visible for ≥1 second, deduplicated by the embed",
+      "ctr": "CTA clicks / viewable impressions; closing (X) is a dismissal, never a click",
+      "attributed_orders": "Paid orders carrying a consented click ID of this banner, within 30 days of the click; all other orders are unattributed"
+    }
+  }
+}
+```
+
+### Capture 40 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 7fd48be2-e22c-4cd1-9064-87be158eec19' -H 'Content-Type: application/json' --data '{"message":"wallet","locale":"en"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-b0490613-75b0-4a5c-acb6-01fcec6c47bb
+
+{
+  "data": {
+    "id": "01m5vk0g2caanpv98m436vydmk",
+    "conversation_id": "01m5vk0g2azenx0e7s6d5k8s68",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 41 — `GET /api/v1/ai/messages/01m5vk0g2caanpv98m436vydmk`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0g2caanpv98m436vydmk -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-43807c04-0d7f-475e-a9d1-05dd836eae75
+
+{
+  "data": {
+    "id": "01m5vk0g2caanpv98m436vydmk",
+    "conversation_id": "01m5vk0g2azenx0e7s6d5k8s68",
+    "question": "wallet",
+    "status": "UNAVAILABLE",
+    "result": {
+      "status": "UNAVAILABLE",
+      "answer": null,
+      "evidence_ids": [],
+      "checked_at": "2026-10-26T07:50:13+00:00",
+      "action": null
+    },
+    "retry_used": false,
+    "created_at": "2026-10-26T07:50:13+00:00",
+    "completed_at": "2026-10-26T07:50:13+00:00"
+  }
+}
+```
+
+### Capture 42 — `DELETE /api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm`
+
+```bash
+curl -i -X DELETE http://localhost:8079/api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 204
+X-Request-Id: capture-b17-e3b85490-285a-4da3-a476-73fba5d76fb2
+
+
+```
+
+### Capture 43 — `GET /api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: capture-b17-e07d1992-dae3-4b05-a579-ca50592d9af2
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Support message not found.",
+    "request_id": "capture-b17-e07d1992-dae3-4b05-a579-ca50592d9af2"
+  }
+}
+```
+
+### Capture 44 — `GET /api/v1/admin/ai/operations`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/admin/ai/operations -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-164aa982-b35f-4db4-86ed-ea2ad69508f7
+
+{
+  "data": {
+    "from": "2026-10-25T07:50:13+00:00",
+    "checked_at": "2026-10-26T07:50:13+00:00",
+    "sample_limit": 500,
+    "sample_size": 7,
+    "statuses": {
+      "UNAVAILABLE": 2,
+      "VERIFIED": 5
+    },
+    "failures": {
+      "provider_unavailable": 1,
+      "support_access_denied": 1
+    },
+    "retrieval_retries": 1,
+    "latency_p95_ms": 82,
+    "input_tokens": 100,
+    "output_tokens": 50,
+    "provider_cost": null,
+    "cost_notice": "Token usage is measured; billed provider cost is not available here.",
+    "open_reviews": 2,
+    "approved_regressions": 0,
+    "daily_requests": 7,
+    "circuit_open": false,
+    "broadcaster": null,
+    "last_successful_broadcast_at": null,
+    "broadcast_failures_last_24h": 0,
+    "policy_version": "01m5vk0b8knw7zyfk8tkhjyjr1"
+  }
+}
+```
+
+### Capture 45 — `GET /api/v1/admin/ai/operations?fixture_fault=1`
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/admin/ai/operations?fixture_fault=1' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: capture-b17-de6bec98-8ce8-446e-ac78-d41a8549ba3a
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 500,
+    "code": "server_error",
+    "message": "An unexpected error occurred.",
+    "request_id": "capture-b17-de6bec98-8ce8-446e-ac78-d41a8549ba3a"
+  }
+}
+```
+
+### Capture 46 — `POST /api/v1/admin/ai/settings/01m5vk0b8knw7zyfk8tkhjyjr1/test`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/settings/01m5vk0b8knw7zyfk8tkhjyjr1/test -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: capture-b17-e0961a5f-3b1f-4f93-be7e-d5415f36a101
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 419,
+    "code": "csrf_token_mismatch",
+    "message": "The session or CSRF token has expired. Refresh and try again.",
+    "request_id": "capture-b17-e0961a5f-3b1f-4f93-be7e-d5415f36a101"
+  }
+}
+```
+
+### Capture 47 — `POST /api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/rollback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5vk0b8knw7zyfk8tkhjyjr1/rollback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"reason":"Restore reviewed historical support policy"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: capture-b17-e9285f10-47a8-4e7f-a485-3d5e8c1dc7a3
+
+{
+  "data": {
+    "id": "01m5vk0gtxv679w4j4h1bpzp3g",
+    "key": "support.ai",
+    "version": 2,
+    "value": {
+      "enabled": true,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 100,
+      "timeout_seconds": 20,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "status": "draft",
+    "reason": "Restore reviewed historical support policy",
+    "created_by": "01m5vk0a2bkpv948gbxczptnvf",
+    "reviewed_by": null,
+    "review_note": null,
+    "published_at": null,
+    "is_current": false,
+    "rollback_of": "01m5vk0b8knw7zyfk8tkhjyjr1"
+  }
+}
+```
+
+### Capture 48 — `POST /api/v1/admin/ai/settings/01m5vk0gtxv679w4j4h1bpzp3g/test`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/settings/01m5vk0gtxv679w4j4h1bpzp3g/test -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-995b3343-e8e9-43cb-87f5-068e611d2b03
+
+{
+  "data": {
+    "total": 100,
+    "passed": 100,
+    "failed": 0,
+    "policy_checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "scope": "server_intent_and_immutable_safety_guards",
+    "provider_verified": false
+  }
+}
+```
+
+### Capture 49 — `POST /api/v1/admin/platform-settings/01m5vk0gtxv679w4j4h1bpzp3g/review`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5vk0gtxv679w4j4h1bpzp3g/review -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-82a996d1-4db5-4f17-92bf-6f48330ae3fd
+
+{
+  "data": {
+    "id": "01m5vk0gtxv679w4j4h1bpzp3g",
+    "key": "support.ai",
+    "version": 2,
+    "value": {
+      "enabled": true,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 100,
+      "timeout_seconds": 20,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "status": "review",
+    "reason": "Restore reviewed historical support policy",
+    "created_by": "01m5vk0a2bkpv948gbxczptnvf",
+    "reviewed_by": null,
+    "review_note": null,
+    "published_at": null,
+    "is_current": false,
+    "rollback_of": "01m5vk0b8knw7zyfk8tkhjyjr1"
+  }
+}
+```
+
+### Capture 50 — `POST /api/v1/admin/platform-settings/01m5vk0gtxv679w4j4h1bpzp3g/publish`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5vk0gtxv679w4j4h1bpzp3g/publish -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Independent approval of rollback draft"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-7b1bb71e-1872-4593-822b-ed7e5593b605
+
+{
+  "data": {
+    "id": "01m5vk0gtxv679w4j4h1bpzp3g",
+    "key": "support.ai",
+    "version": 2,
+    "value": {
+      "enabled": true,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 100,
+      "timeout_seconds": 20,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1",
+    "status": "published",
+    "reason": "Restore reviewed historical support policy",
+    "created_by": "01m5vk0a2bkpv948gbxczptnvf",
+    "reviewed_by": "01m5vk0a27asz682vehdtfk917",
+    "review_note": "Independent approval of rollback draft",
+    "published_at": "2026-10-26T07:50:14+00:00",
+    "is_current": true,
+    "rollback_of": "01m5vk0b8knw7zyfk8tkhjyjr1"
+  }
+}
+```
+
+### Capture 51 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 0df0b60b-73c1-47b1-ac29-fda1773ca64c' -H 'Content-Type: application/json' --data '{"message":"wallet"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-43d19f52-289d-4e65-953e-d4044eb9c602
+
+{
+  "data": {
+    "id": "01m5vk0h1ggkhvczw7a96h0q62",
+    "conversation_id": "01m5vk0h1dbgpdk1s8jw8b4q6g",
+    "status": "PENDING"
+  }
+}
+```
+
+### Capture 52 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 2f7401f9-76c1-41fb-be51-173bd9896e83' -H 'Content-Type: application/json' --data '{"message":"wallet"}'
+```
+
+```http
+HTTP/1.1 429
+Retry-After: 54
+X-Request-Id: capture-b17-3327442e-e60f-44c8-bc3f-fd3cac70e6cb
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 429,
+    "code": "too_many_requests",
+    "message": "Too many requests. Please slow down.",
+    "request_id": "capture-b17-3327442e-e60f-44c8-bc3f-fd3cac70e6cb"
+  }
+}
+```
+
+The500 operations capture uses a fixture-only injected exception in the temporary local router; the real application renderer produced the HTTP response. This injection is not shipped. The419 request intentionally omitted the CSRF header. The429 response came from the actual10/minute support limiter. Seeded OTP/authentication communication is not live email-delivery evidence.
+
+## B17 final knowledge history and approved regression execution — 2026-10-26
+
+These additional15 captures ran against a real local Laravel HTTP server8079 with isolated synthetic SQLite fixtures and actual browser login/password/seeded OTP verification. No external model request was made; support was disabled. Existing FAQ create/update now preserve immutable snapshots; rollback creates a new revision and verifies the expected current revision/checksum. `approved_at` is an actual recorded admin publication timestamp when known; backfilled legacy sources return null. Human-approved regression cases execute in future policy tests; this deliberately mismatched synthetic human expectation yields101total/1failure and blocks publication, without training/changing production. The earlier52 captures remain real historical examples from this implementation session.
+
+### Knowledge capture 1 — `POST /api/v1/admin/cms/faq/categories`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/cms/faq/categories -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support-history","names":{"en":"Support","nl":"Hulp"}}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-c74ce12d-2196-42fe-90ce-fe74147c5c1d
+
+{
+  "data": {
+    "id": "01m5wt1y8v8f43d09bjh795mk8",
+    "key": "support-history",
+    "names": {
+      "en": "Support",
+      "nl": "Hulp"
+    },
+    "position": 1
+  }
+}
+```
+
+### Knowledge capture 2 — `POST /api/v1/admin/cms/faq/items`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/cms/faq/items -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"category_id":"01m5wt1y8v8f43d09bjh795mk8","audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit cannot be withdrawn or transferred."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed kan niet worden opgenomen of overgedragen."}]}]}}}}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-9b5a8e0c-98e9-4dc6-892b-7839b5385812
+
+{
+  "data": {
+    "id": "01m5wt1y9yendawfrtec572emw",
+    "audience": "consumers",
+    "published": true,
+    "position": 1,
+    "revision": 1,
+    "translations": {
+      "en": {
+        "question": "How does credit work?",
+        "answer": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Credit cannot be withdrawn or transferred."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "nl": {
+        "question": "Hoe werkt tegoed?",
+        "answer": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Tegoed kan niet worden opgenomen of overgedragen."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+### Knowledge capture 3 — `GET /api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-5149b847-c313-488d-8008-f677c09bec73
+
+{
+  "data": [
+    {
+      "id": "01m5wt1ya2ggrn14fk4edasvrg",
+      "revision": 1,
+      "snapshot": {
+        "audience": "consumers",
+        "published": true,
+        "translations": {
+          "en": {
+            "question": "How does credit work?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Credit cannot be withdrawn or transferred."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "nl": {
+            "question": "Hoe werkt tegoed?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tegoed kan niet worden opgenomen of overgedragen."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "checksum": "b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2",
+      "origin": "published",
+      "recorded_at": "2026-10-26T19:12:35+00:00"
+    }
+  ]
+}
+```
+
+### Knowledge capture 4 — `PUT /api/v1/admin/cms/faq/items/01m5wt1y9yendawfrtec572emw`
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/admin/cms/faq/items/01m5wt1y9yendawfrtec572emw -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"revision":1,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit is reserved for voucher redemption and cannot be withdrawn."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed is bedoeld voor vouchers en kan niet worden opgenomen."}]}]}}}}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-7109002e-e8f7-47e6-aeed-d17103b82034
+
+{
+  "data": {
+    "id": "01m5wt1y9yendawfrtec572emw",
+    "audience": "consumers",
+    "published": true,
+    "position": 1,
+    "revision": 2,
+    "translations": {
+      "en": {
+        "question": "How does credit work?",
+        "answer": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Credit is reserved for voucher redemption and cannot be withdrawn."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "nl": {
+        "question": "Hoe werkt tegoed?",
+        "answer": {
+          "type": "doc",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Tegoed is bedoeld voor vouchers en kan niet worden opgenomen."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+### Knowledge capture 5 — `GET /api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-0f026155-817d-41f1-873c-edd540afb7b5
+
+{
+  "data": [
+    {
+      "id": "01m5wt1yc1qgt5khyseet53zh6",
+      "revision": 2,
+      "snapshot": {
+        "audience": "consumers",
+        "published": true,
+        "translations": {
+          "en": {
+            "question": "How does credit work?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Credit is reserved for voucher redemption and cannot be withdrawn."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "nl": {
+            "question": "Hoe werkt tegoed?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tegoed is bedoeld voor vouchers en kan niet worden opgenomen."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "checksum": "280115826f45ec18b9ddc8f66a34078bced0094dd438a16b59a75f794282d65f",
+      "origin": "published",
+      "recorded_at": "2026-10-26T19:12:35+00:00"
+    },
+    {
+      "id": "01m5wt1ya2ggrn14fk4edasvrg",
+      "revision": 1,
+      "snapshot": {
+        "audience": "consumers",
+        "published": true,
+        "translations": {
+          "en": {
+            "question": "How does credit work?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Credit cannot be withdrawn or transferred."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "nl": {
+            "question": "Hoe werkt tegoed?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tegoed kan niet worden opgenomen of overgedragen."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "checksum": "b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2",
+      "origin": "published",
+      "recorded_at": "2026-10-26T19:12:35+00:00"
+    }
+  ]
+}
+```
+
+### Knowledge capture 6 — `POST /api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"version_id":"01m5wt1ya2ggrn14fk4edasvrg","revision":1,"reason":"Reject stale expected revision"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: capture-b17-knowledge-3ecea7ea-121c-4ef3-af8f-849cf90f9f49
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "draft_revision_conflict",
+    "message": "Someone else changed this item. Reload to continue.",
+    "request_id": "capture-b17-knowledge-3ecea7ea-121c-4ef3-af8f-849cf90f9f49"
+  }
+}
+```
+
+### Knowledge capture 7 — `POST /api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"version_id":"01m5wt1ya2ggrn14fk4edasvrg","revision":2,"reason":"Restore previously published approved explanation"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-7f85f5e4-f501-49ef-b611-5eadb034ab71
+
+{
+  "data": {
+    "document_id": "01m5wt1y9yendawfrtec572emw",
+    "revision": 3,
+    "published": true,
+    "audience": "consumers"
+  }
+}
+```
+
+### Knowledge capture 8 — `GET /api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions`
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-13dc668a-e6d9-4f08-aeb0-edf063e5c23a
+
+{
+  "data": [
+    {
+      "id": "01m5wt1yexwtbkv23gekz4s7hg",
+      "revision": 3,
+      "snapshot": {
+        "audience": "consumers",
+        "published": true,
+        "translations": {
+          "en": {
+            "question": "How does credit work?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Credit cannot be withdrawn or transferred."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "nl": {
+            "question": "Hoe werkt tegoed?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tegoed kan niet worden opgenomen of overgedragen."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "checksum": "b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2",
+      "origin": "rollback",
+      "recorded_at": "2026-10-26T19:12:35+00:00"
+    },
+    {
+      "id": "01m5wt1yc1qgt5khyseet53zh6",
+      "revision": 2,
+      "snapshot": {
+        "audience": "consumers",
+        "published": true,
+        "translations": {
+          "en": {
+            "question": "How does credit work?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Credit is reserved for voucher redemption and cannot be withdrawn."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "nl": {
+            "question": "Hoe werkt tegoed?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tegoed is bedoeld voor vouchers en kan niet worden opgenomen."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "checksum": "280115826f45ec18b9ddc8f66a34078bced0094dd438a16b59a75f794282d65f",
+      "origin": "published",
+      "recorded_at": "2026-10-26T19:12:35+00:00"
+    },
+    {
+      "id": "01m5wt1ya2ggrn14fk4edasvrg",
+      "revision": 1,
+      "snapshot": {
+        "audience": "consumers",
+        "published": true,
+        "translations": {
+          "en": {
+            "question": "How does credit work?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Credit cannot be withdrawn or transferred."
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "nl": {
+            "question": "Hoe werkt tegoed?",
+            "answer": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Tegoed kan niet worden opgenomen of overgedragen."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "checksum": "b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2",
+      "origin": "published",
+      "recorded_at": "2026-10-26T19:12:35+00:00"
+    }
+  ]
+}
+```
+
+### Knowledge capture 9 — `POST /api/v1/ai/knowledge/search`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/knowledge/search -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"query":"credit","locale":"en"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-7cd9ae51-ecb4-428c-bcb7-58fff13c77e2
+
+{
+  "data": [
+    {
+      "document_id": "01m5wt1y9yendawfrtec572emw",
+      "scope": "consumers",
+      "version": 3,
+      "approved_at": "2026-10-26T19:12:35+00:00",
+      "locale": "en",
+      "content": "Credit cannot be withdrawn or transferred.",
+      "checked_at": "2026-10-26T19:12:35+00:00"
+    }
+  ]
+}
+```
+
+### Knowledge capture 10 — `POST /api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"version_id":"01m5wt1ya2ggrn14fk4edasvrg","revision":3,"reason":"Sensitive rollback requires OTP"}'
+```
+
+```http
+HTTP/1.1 423
+X-Request-Id: capture-b17-knowledge-7717d1e2-bbeb-4b04-ba5a-915543e80de8
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 423,
+    "code": "step_up_code_required",
+    "message": "Confirm this action with the code sent to your email.",
+    "request_id": "capture-b17-knowledge-7717d1e2-bbeb-4b04-ba5a-915543e80de8"
+  }
+}
+```
+
+### Knowledge capture 11 — `POST /api/v1/ai/chat`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Idempotency-Key: af340a5b-9ba3-4444-ab50-06149299cc21' -H 'Content-Type: application/json' --data '{"message":"wallet"}'
+```
+
+```http
+HTTP/1.1 202
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-66f7b707-414b-443c-bc45-0359259b3e82
+
+{
+  "data": {
+    "id": "01m5wt1yp2nmr2y1nb9j4kmwh1",
+    "conversation_id": "01m5wt1yp0t47wz72eevakxpyy",
+    "status": "UNAVAILABLE"
+  }
+}
+```
+
+### Knowledge capture 12 — `POST /api/v1/ai/messages/01m5wt1yp2nmr2y1nb9j4kmwh1/escalate`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5wt1yp2nmr2y1nb9j4kmwh1/escalate -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-ed84a2a9-af2f-477b-91e3-e8236bfccba3
+
+{
+  "data": {
+    "id": "01m5wt1yqxnp04mtfcr88x79xm",
+    "status": "ESCALATED",
+    "notice": "A human support review has been requested."
+  }
+}
+```
+
+### Knowledge capture 13 — `POST /api/v1/admin/ai/reviews/01m5wt1yqxnp04mtfcr88x79xm/resolve`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/reviews/01m5wt1yqxnp04mtfcr88x79xm/resolve -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"outcome":"CONFIRMED_ERROR","note":"Human correction must participate in policy regressions","expected_intent":"reward","knowledge_id":"01m5wt1y9yendawfrtec572emw"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-a09013f3-b77b-4eb2-88cc-f92635ee8753
+
+{
+  "data": {
+    "id": "01m5wt1yqxnp04mtfcr88x79xm",
+    "outcome": "CONFIRMED_ERROR",
+    "regression_added": true
+  }
+}
+```
+
+### Knowledge capture 14 — `POST /api/v1/admin/platform-settings`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support.ai","value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[]},"reason":"Run the approved human regression"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-12961100-92e7-4b73-a477-0931ae706a41
+
+{
+  "data": {
+    "id": "01m5wt1yt3h3d18wvxb05mb3be",
+    "key": "support.ai",
+    "version": 1,
+    "value": {
+      "enabled": false,
+      "model": null,
+      "languages": [
+        "en",
+        "nl"
+      ],
+      "daily_request_limit": 10,
+      "timeout_seconds": 10,
+      "max_retry": 1,
+      "restrictions": []
+    },
+    "checksum": "bc4a4fac3af7907173cdc3e4e1598f29e1de446acd2d0b33b0d2ace6bdcd6c67",
+    "status": "draft",
+    "reason": "Run the approved human regression",
+    "created_by": "01m5wt1xgqgnc9e6sp8nw9anfk",
+    "reviewed_by": null,
+    "review_note": null,
+    "published_at": null,
+    "is_current": false,
+    "rollback_of": null
+  }
+}
+```
+
+### Knowledge capture 15 — `POST /api/v1/admin/ai/settings/01m5wt1yt3h3d18wvxb05mb3be/test`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/settings/01m5wt1yt3h3d18wvxb05mb3be/test -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: capture-b17-knowledge-c1a26fc1-07e8-495b-908c-b88e0ffa2199
+
+{
+  "data": {
+    "total": 101,
+    "passed": 100,
+    "failed": 1,
+    "policy_checksum": "bc4a4fac3af7907173cdc3e4e1598f29e1de446acd2d0b33b0d2ace6bdcd6c67",
+    "scope": "server_intent_and_immutable_safety_guards",
+    "provider_verified": false
+  }
+}
+```
+
+## B17 final domain-conflict captures — 2026-10-26
+
+Eight further real local HTTP requests exercised active-conversation deletion, immutable votes/reviews, non-draft policy testing, expired human replies and oversized approved knowledge. Synthetic isolated SQLite records; actual browser login/password/seeded OTP verification; no external provider call. These cover actual operation-specific409 codes rather than fabricated error examples.
+
+### Domain capture 1 — `DELETE /api/v1/ai/conversations/01m5wth2r1h9pszbzz6pcghyg5`
+
+```bash
+curl -i -X DELETE http://localhost:8079/api/v1/ai/conversations/01m5wth2r1h9pszbzz6pcghyg5 -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a179a8-8e8f-709d-a53d-c924336f8b78
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_conversation_busy",
+    "message": "Wait for the current support answer.",
+    "request_id": "01a179a8-8e8f-709d-a53d-c924336f8b78"
+  }
+}
+```
+
+### Domain capture 2 — `POST /api/v1/ai/messages/01m5wth2qzqyf1s1qdm3bn3hxe/feedback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5wth2qzqyf1s1qdm3bn3hxe/feedback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"rating":"up"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a179a8-8ebb-7160-9952-346e0e3414ff
+
+{
+  "data": {
+    "id": "01m5wth3pbsnjazqexpb6hwvbj",
+    "rating": "up",
+    "review_required": false
+  }
+}
+```
+
+### Domain capture 3 — `POST /api/v1/ai/messages/01m5wth2qzqyf1s1qdm3bn3hxe/feedback`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5wth2qzqyf1s1qdm3bn3hxe/feedback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"rating":"down","reason":"unclear"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a179a8-8eeb-7175-88de-e58e2dae92a9
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_feedback_conflict",
+    "message": "Feedback is already recorded.",
+    "request_id": "01a179a8-8eeb-7175-88de-e58e2dae92a9"
+  }
+}
+```
+
+### Domain capture 4 — `POST /api/v1/admin/ai/reviews/01m5wth2r8055dea4t9m45c7fy/resolve`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/reviews/01m5wth2r8055dea4t9m45c7fy/resolve -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"outcome":"ANSWER_CORRECT","note":"Reviewed synthetic unavailable answer"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: 01a179a8-8f08-7150-ab77-52ec249339f0
+
+{
+  "data": {
+    "id": "01m5wth2r8055dea4t9m45c7fy",
+    "outcome": "ANSWER_CORRECT",
+    "regression_added": false
+  }
+}
+```
+
+### Domain capture 5 — `POST /api/v1/admin/ai/reviews/01m5wth2r8055dea4t9m45c7fy/resolve`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/reviews/01m5wth2r8055dea4t9m45c7fy/resolve -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"outcome":"ANSWER_CORRECT","note":"Cannot overwrite resolved history"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a179a8-8f34-71b8-9030-5ac4f1fa3f19
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_review_resolved",
+    "message": "This support review is resolved.",
+    "request_id": "01a179a8-8f34-71b8-9030-5ac4f1fa3f19"
+  }
+}
+```
+
+### Domain capture 6 — `POST /api/v1/admin/ai/settings/01m5wth2sc45z8v7dfnt277rxy/test`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/settings/01m5wth2sc45z8v7dfnt277rxy/test -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a179a8-8f50-7096-98e1-7ea0aa5c2a2b
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_policy_not_draft",
+    "message": "Only a support policy draft can be tested.",
+    "request_id": "01a179a8-8f50-7096-98e1-7ea0aa5c2a2b"
+  }
+}
+```
+
+### Domain capture 7 — `POST /api/v1/admin/ai/conversations/01m5wth2r5yhbw20cc80e7ah1h/reply`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/ai/conversations/01m5wth2r5yhbw20cc80e7ah1h/reply -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"body":"Expired conversation cannot receive a reply."}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a179a8-8f6d-72a4-b11b-4f075040e12b
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_conversation_expired",
+    "message": "This support conversation has expired.",
+    "request_id": "01a179a8-8f6d-72a4-b11b-4f075040e12b"
+  }
+}
+```
+
+### Domain capture 8 — `POST /api/v1/ai/knowledge/search`
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/ai/knowledge/search -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"query":"oversized","locale":"en"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a179a8-8f88-70eb-a84e-be809780a556
+Content-Type: application/json
+
+{
+  "error": {
+    "status": 409,
+    "code": "support_evidence_unavailable",
+    "message": "Support evidence is unavailable.",
+    "request_id": "01a179a8-8f88-70eb-a84e-be809780a556"
+  }
+}
+```

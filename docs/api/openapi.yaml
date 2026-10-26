@@ -24,6 +24,8 @@ servers:
   - url: http://localhost:8000
     description: Local development
 tags:
+  - name: Support
+    description: Authorized evidence-based support, private history and human review.
   - name: Health
     description: Liveness and readiness probes for load balancers and monitoring.
   - name: Workspaces
@@ -10562,8 +10564,8 @@ paths:
       operationId: b16cApiVAdminPlatformSettingsGet
       summary: platform-settings
       description: |-
-        Versioned allowlisted public metadata only: public.brand_name (plain text 1–100), public.support_email (valid email), public.languages (unique nonempty subset of nl/en). POST creates immutable draft evidence; GET filters key. Provider credentials/activation, finance, legal, CMS, agreements and consent remain in their existing guarded systems. Drafts never affect public output.
-        Operational diagnostics budget is also allowlisted: integer 0–1000, independent review/publication, environment hard cap; excluded from public settings.
+        Versioned allowlisted public metadata and private operational/support settings: public.brand_name (plain text 1–100), public.support_email (valid email), public.languages (unique nonempty subset of nl/en). POST creates immutable draft evidence; GET filters key. Provider credentials/activation, finance, legal, CMS, agreements and consent remain in their existing guarded systems. Drafts never affect public output.
+        Private support.ai is also allowlisted: enabled/model/languages, daily request limit, timeout5–20seconds, max_retry0–1, and bounded predefined semantic restrictions. Environment enablement/key/model/request/token limits still gate execution; policy must pass the100 static server regressions plus up to500 recent human-approved cases before independent publication; changed regression corpus requires a new draft/test. Existing CMS handles published knowledge and versioned page rollback. Canonical object-key hashing supports MySQL JSON without weakening immutable snapshots. Operational diagnostics budget is also allowlisted: integer 0–1000, independent review/publication, environment hard cap; excluded from public settings.
       x-access: admin
       security:
         -
@@ -10594,6 +10596,7 @@ paths:
               - public.support_email
               - public.languages
               - operations.diagnostics_daily_request_limit
+              - support.ai
       x-codeSamples:
         -
           lang: curl
@@ -10655,8 +10658,8 @@ paths:
       operationId: b16cApiVAdminPlatformSettingsPost
       summary: platform-settings
       description: |-
-        Versioned allowlisted public metadata only: public.brand_name (plain text 1–100), public.support_email (valid email), public.languages (unique nonempty subset of nl/en). POST creates immutable draft evidence; GET filters key. Provider credentials/activation, finance, legal, CMS, agreements and consent remain in their existing guarded systems. Drafts never affect public output.
-        Operational diagnostics budget is also allowlisted: integer 0–1000, independent review/publication, environment hard cap; excluded from public settings.
+        Versioned allowlisted public metadata and private operational/support settings: public.brand_name (plain text 1–100), public.support_email (valid email), public.languages (unique nonempty subset of nl/en). POST creates immutable draft evidence; GET filters key. Provider credentials/activation, finance, legal, CMS, agreements and consent remain in their existing guarded systems. Drafts never affect public output.
+        Private support.ai is also allowlisted: enabled/model/languages, daily request limit, timeout5–20seconds, max_retry0–1, and bounded predefined semantic restrictions. Environment enablement/key/model/request/token limits still gate execution; policy must pass the100 static server regressions plus up to500 recent human-approved cases before independent publication; changed regression corpus requires a new draft/test. Existing CMS handles published knowledge and versioned page rollback. Canonical object-key hashing supports MySQL JSON without weakening immutable snapshots. Operational diagnostics budget is also allowlisted: integer 0–1000, independent review/publication, environment hard cap; excluded from public settings.
       x-access: admin
       security:
         -
@@ -10679,8 +10682,10 @@ paths:
                     - public.support_email
                     - public.languages
                     - operations.diagnostics_daily_request_limit
+                    - support.ai
                 value:
                   oneOf:
+                    - { $ref: "#/components/schemas/SupportPolicy" }
                     -
                       type: string
                     -
@@ -11799,6 +11804,664 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '500': { $ref: '#/components/responses/ServerError' }
 
+  /api/v1/ai/chat:
+    post:
+      tags: [Support]
+      operationId: SubmitVerifiedSupportResearch
+      summary: "Submit verified support research"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      parameters: [{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"},"description":"Per-user UUID, one immutable request. Exact replay returns same message; changed payload409. Conversation permits one active request."}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type":"object","required":["message"],"properties":{"message":{"type":"string","maxLength":2000},"conversation_id":{"type":["string","null"],"description":"Owned conversation ULID. Existing scope/locale inferred when omitted."},"workspace_id":{"type":["string","null"],"description":"Optional initial workspace ULID; active membership and individual tool permissions rechecked server-side."},"reference":{"type":["string","null"],"maxLength":64,"pattern":"^[a-zA-Z0-9._-]+$","description":"Owned order reference or pending credit/voucher/offer/campaign/connection/FAQ public ID appropriate to the question."},"locale":{"type":"string","enum":["en","nl"],"default":"en"},"current_page":{"type":["string","null"],"maxLength":200,"description":"Optional /app path without query/fragment; never grants scope or selects actions."},"user_id":false,"role":false,"allowed_tools":false}}
+            example: {"message":"What is my wallet balance?","locale":"en"}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/ai/chat -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Idempotency-Key: 5134753e-d996-4cd2-ad09-c43613000b97' -H 'Content-Type: application/json' --data '{\"message\":\"What is my wallet balance?\",\"locale\":\"en\"}'"
+      responses:
+        401:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"capture-b17-c845a2da-5431-4be2-b223-3154c6f573e6"}}
+        404:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":404,"code":"not_found","message":"Support evidence is unavailable.","request_id":"capture-b17-4d8338a3-eaa3-4930-ad5e-7ea643593c54"}}
+        422:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"capture-b17-494af70e-ae9d-4212-a6fd-e3500b712874","fields":{"message":["The message field is required."],"role":["The role field is prohibited."]}}}
+        202:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0bmew1h6k705kgns5rmf","conversation_id":"01m5vk0bmbrmc7dbq482bw9fvm","status":"PENDING"}}
+                capture2:
+                  value: {"data":{"id":"01m5vk0ckb25mf0whts8eqvb3v","conversation_id":"01m5vk0ck90cepsvccbs1z0phq","status":"PENDING"}}
+                capture3:
+                  value: {"data":{"id":"01m5vk0d5n3t9t0t9398pkwn7c","conversation_id":"01m5vk0d5mgps65avrnhxav8bz","status":"PENDING"}}
+                capture4:
+                  value: {"data":{"id":"01m5vk0dqrmeqcpk37p51dmmsw","conversation_id":"01m5vk0dqp1s1hpdewr39nmkz1","status":"PENDING"}}
+                capture5:
+                  value: {"data":{"id":"01m5vk0e9hzrgqbfd55y2zvwjt","conversation_id":"01m5vk0e9fvzrsj0s1rdgmr146","status":"PENDING"}}
+                capture6:
+                  value: {"data":{"id":"01m5vk0evrk85bhqcfst0jrfa0","conversation_id":"01m5vk0evntk7sr511hv4n8aer","status":"PENDING"}}
+                capture7:
+                  value: {"data":{"id":"01m5vk0fegp1sye38s8cc9g7zs","conversation_id":"01m5vk0fee6vzvnef70275q1nr","status":"PENDING"}}
+                capture8:
+                  value: {"data":{"id":"01m5vk0g2caanpv98m436vydmk","conversation_id":"01m5vk0g2azenx0e7s6d5k8s68","status":"PENDING"}}
+                capture9:
+                  value: {"data":{"id":"01m5vk0h1ggkhvczw7a96h0q62","conversation_id":"01m5vk0h1dbgpdk1s8jw8b4q6g","status":"PENDING"}}
+        409:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":409,"code":"support_conversation_busy","message":"Wait for the current support answer.","request_id":"capture-b17-f8199a3c-f15f-475e-b9b1-3bedb7876cc0"}}
+                capture2:
+                  value: {"error":{"status":409,"code":"support_idempotency_conflict","message":"This support request key was already used.","request_id":"capture-b17-011a5e02-1ee7-409a-b7ab-c50d23703fd4"}}
+        429:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"capture-b17-3327442e-e60f-44c8-bc3f-fd3cac70e6cb"}}
+        403: { $ref: '#/components/responses/Forbidden' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/ai/conversations:
+    get:
+      tags: [Support]
+      operationId: ListRetainedOwnedConversations
+      summary: "List retained owned conversations"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/ai/conversations -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":[{"id":"01m5vk0bmbrmc7dbq482bw9fvm","locale":"en","workspace_id":null,"expires_at":"2026-11-25T07:50:08+00:00"}]}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/ai/conversations/{conversation}:
+    get:
+      tags: [Support]
+      operationId: ReadOwnedHistoryAndHumanReplies
+      summary: "Read owned history and human replies"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      parameters: [{"name":"conversation","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}},{"name":"before","in":"query","schema":{"type":"string"},"description":"Owned message ULID, older-page cursor. Max50 messages/replies. Poll message URL for in-flight updates."}]
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0bmbrmc7dbq482bw9fvm","messages":[{"id":"01m5vk0bmew1h6k705kgns5rmf","conversation_id":"01m5vk0bmbrmc7dbq482bw9fvm","question":"What is my wallet balance?","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.","evidence_ids":["01m5vk0c2ec3695es6pwbcg0xe"],"checked_at":"2026-10-26T07:50:09+00:00","action":{"label":"View details","route":"/app/wallet"}},"retry_used":false,"created_at":"2026-10-26T07:50:08+00:00","completed_at":"2026-10-26T07:50:09+00:00"}],"replies":[],"next_before":"01m5vk0bmew1h6k705kgns5rmf"}}
+                capture2:
+                  value: {"data":{"id":"01m5vk0bmbrmc7dbq482bw9fvm","messages":[{"id":"01m5vk0bmew1h6k705kgns5rmf","conversation_id":"01m5vk0bmbrmc7dbq482bw9fvm","question":"What is my wallet balance?","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.","evidence_ids":["01m5vk0c2ec3695es6pwbcg0xe"],"checked_at":"2026-10-26T07:50:09+00:00","action":{"label":"View details","route":"/app/wallet"}},"retry_used":false,"created_at":"2026-10-26T07:50:08+00:00","completed_at":"2026-10-26T07:50:09+00:00"}],"replies":[{"id":"01m5vk0cgwtrs2h2e0s6yekx4t","sender":"human_support","body":"A human reviewed your question. Wallet credit cannot be withdrawn or transferred.","created_at":"2026-10-26T07:50:09+00:00"}],"next_before":"01m5vk0bmew1h6k705kgns5rmf"}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+    delete:
+      tags: [Support]
+      operationId: DeletePrivateConversationHistory
+      summary: "Delete private conversation history"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      parameters: [{"name":"conversation","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X DELETE http://localhost:8079/api/v1/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'"
+      responses:
+        204:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+        409:
+          description: Actual running-server operation-specific domain conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"support_conversation_busy","message":"Wait for the current support answer.","request_id":"01a179a8-8e8f-709d-a53d-c924336f8b78"}}
+
+  /api/v1/ai/messages/{message}:
+    get:
+      tags: [Support]
+      operationId: PollAuthorizedSupportResult
+      summary: "Poll authorized support result"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      parameters: [{"name":"message","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0bmew1h6k705kgns5rmf","conversation_id":"01m5vk0bmbrmc7dbq482bw9fvm","question":"What is my wallet balance?","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.","evidence_ids":["01m5vk0c2ec3695es6pwbcg0xe"],"checked_at":"2026-10-26T07:50:09+00:00","action":{"label":"View details","route":"/app/wallet"}},"retry_used":false,"created_at":"2026-10-26T07:50:08+00:00","completed_at":"2026-10-26T07:50:09+00:00"}}
+                capture2:
+                  value: {"data":{"id":"01m5vk0ckb25mf0whts8eqvb3v","conversation_id":"01m5vk0ck90cepsvccbs1z0phq","question":"Where is my reward?","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.\nRecorded payment status: unknown; wallet reward: pending; fixed reward value: 500 minor units EUR. No release date has been confirmed.","evidence_ids":["01m5vk0d0jgcz5nwq7anncm8d9","01m5vk0d0wsb0c6n6qy8ezebfb"],"checked_at":"2026-10-26T07:50:10+00:00","action":{"label":"View details","route":"/app/wallet"}},"retry_used":true,"created_at":"2026-10-26T07:50:09+00:00","completed_at":"2026-10-26T07:50:10+00:00"}}
+                capture3:
+                  value: {"data":{"id":"01m5vk0d5n3t9t0t9398pkwn7c","conversation_id":"01m5vk0d5mgps65avrnhxav8bz","question":"Give a voucher quote","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Current quote in EUR: price 2000 minor units; wallet 1000 minor units; Mollie 1000 minor units; stock available; purchasable yes. No payment or voucher issuance has occurred.","evidence_ids":["01m5vk0dk5ryfesa2g4yz2978r"],"checked_at":"2026-10-26T07:50:10+00:00","action":{"label":"View details","route":"/app/vouchers"}},"retry_used":false,"created_at":"2026-10-26T07:50:10+00:00","completed_at":"2026-10-26T07:50:10+00:00"}}
+                capture4:
+                  value: {"data":{"id":"01m5vk0dqrmeqcpk37p51dmmsw","conversation_id":"01m5vk0dqp1s1hpdewr39nmkz1","question":"Show the offer cost","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Cost preview per voucher in EUR: reward 1000 minor units; platform fee 300 minor units; total 1300 minor units; basis fixed_value. Preview only; nothing has been charged.","evidence_ids":["01m5vk0e545xnzv5r9nkz4wpyz"],"checked_at":"2026-10-26T07:50:11+00:00","action":{"label":"View details","route":"/app/workspaces/01m5vk0a30gq47m00rtddg746q/offers"}},"retry_used":false,"created_at":"2026-10-26T07:50:10+00:00","completed_at":"2026-10-26T07:50:11+00:00"}}
+                capture5:
+                  value: {"data":{"id":"01m5vk0e9hzrgqbfd55y2zvwjt","conversation_id":"01m5vk0e9fvzrsj0s1rdgmr146","question":"Show campaign sales","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Campaign from 2026-09-27 to 2026-10-26: 10000 viewable impressions; 420 clicks; 0 attributed paid orders. Tracked order starts are unavailable; attribution does not establish causal uplift.","evidence_ids":["01m5vk0eq29pzj1ew18hncb9db"],"checked_at":"2026-10-26T07:50:11+00:00","action":{"label":"View details","route":"/app/workspaces/01m5vk0a30gq47m00rtddg746q/banners"}},"retry_used":false,"created_at":"2026-10-26T07:50:11+00:00","completed_at":"2026-10-26T07:50:11+00:00"}}
+                capture6:
+                  value: {"data":{"id":"01m5vk0evrk85bhqcfst0jrfa0","conversation_id":"01m5vk0evntk7sr511hv4n8aer","question":"Show integration health","status":"VERIFIED","result":{"status":"VERIFIED","answer":"Integration woocommerce: testing; last received event: unknown; error none recorded. Capabilities: {\"order_ingestion_available\":true,\"verification\":\"unverified\",\"method\":\"webhook\"}.","evidence_ids":["01m5vk0f9tq4hvz99kjz9yzp33"],"checked_at":"2026-10-26T07:50:12+00:00","action":{"label":"View details","route":"/app/workspaces/01m5vk0a30gq47m00rtddg746q/integrations"}},"retry_used":false,"created_at":"2026-10-26T07:50:12+00:00","completed_at":"2026-10-26T07:50:12+00:00"}}
+                capture7:
+                  value: {"data":{"id":"01m5vk0fegp1sye38s8cc9g7zs","conversation_id":"01m5vk0fee6vzvnef70275q1nr","question":"Show webshop wallet","status":"UNAVAILABLE","result":{"status":"UNAVAILABLE","answer":null,"evidence_ids":[],"checked_at":"2026-10-26T07:50:13+00:00","action":null},"retry_used":false,"created_at":"2026-10-26T07:50:12+00:00","completed_at":"2026-10-26T07:50:13+00:00"}}
+                capture8:
+                  value: {"data":{"id":"01m5vk0g2caanpv98m436vydmk","conversation_id":"01m5vk0g2azenx0e7s6d5k8s68","question":"wallet","status":"UNAVAILABLE","result":{"status":"UNAVAILABLE","answer":null,"evidence_ids":[],"checked_at":"2026-10-26T07:50:13+00:00","action":null},"retry_used":false,"created_at":"2026-10-26T07:50:13+00:00","completed_at":"2026-10-26T07:50:13+00:00"}}
+        404:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":404,"code":"not_found","message":"Support message not found.","request_id":"capture-b17-9aadd3bd-f8f8-4e2e-9015-60022f64257a"}}
+                capture2:
+                  value: {"error":{"status":404,"code":"not_found","message":"Support message not found.","request_id":"capture-b17-e07d1992-dae3-4b05-a579-ca50592d9af2"}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/ai/messages/{message}/feedback:
+    post:
+      tags: [Support]
+      operationId: RecordImmutableFeedbackAndRequestHumanReview
+      summary: "Record immutable feedback and request human review"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      parameters: [{"name":"message","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type":"object","required":["rating"],"properties":{"rating":{"enum":["up","down"]},"reason":{"enum":["incorrect_information","did_not_answer","outdated_information","unclear","other",null],"description":"Required for downvotes."},"comment":{"type":["string","null"],"maxLength":2000}}}
+            example: {"rating":"down","reason":"unclear","comment":"Please clarify the explanation."}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf/feedback -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{\"rating\":\"down\",\"reason\":\"unclear\",\"comment\":\"Please clarify the explanation.\"}'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0cba8cd78qxjw7gxvn6e","rating":"down","review_required":true}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+        409:
+          description: Actual running-server operation-specific domain conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"support_feedback_conflict","message":"Feedback is already recorded.","request_id":"01a179a8-8eeb-7175-88de-e58e2dae92a9"}}
+
+  /api/v1/ai/messages/{message}/escalate:
+    post:
+      tags: [Support]
+      operationId: CreateARealHumanSupportReview
+      summary: "Create a real human support review"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      parameters: [{"name":"message","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {"type":"object","additionalProperties":false}
+            example: {}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/ai/messages/01m5vk0bmew1h6k705kgns5rmf/escalate -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0ccg7jvw5sdqcs35c33w","status":"ESCALATED","notice":"A human support review has been requested."}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/ai/knowledge/search:
+    post:
+      tags: [Support]
+      operationId: SearchPublishedAuthorizedFaqKnowledge
+      summary: "Search published authorized FAQ knowledge"
+      x-access: verified
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - bearerToken: {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type":"object","required":["query"],"properties":{"query":{"type":"string","minLength":2,"maxLength":100},"workspace_id":{"type":["string","null"]},"locale":{"enum":["en","nl"]}}}
+            example: {"query":"wallet","locale":"en"}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/ai/knowledge/search -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' --data '{\"query\":\"wallet\",\"locale\":\"en\"}'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":[{"document_id":"01m5vk0a6s1dfzp90vt9na1c43","scope":"consumers","version":1,"locale":"en","content":"ShopBonus credit cannot be withdrawn or transferred.","checked_at":"2026-10-26T07:50:09+00:00"}]}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+        409:
+          description: Actual running-server operation-specific domain conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"support_evidence_unavailable","message":"Support evidence is unavailable.","request_id":"01a179a8-8f88-70eb-a84e-be809780a556"}}
+
+  /api/v1/admin/ai/reviews:
+    get:
+      tags: [Support]
+      operationId: ListHumanReviewQueue
+      summary: "List human review queue"
+      x-access: admin
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - sessionCookie: {}
+      parameters: [{"name":"outcome","in":"query","schema":{"enum":["open","CONFIRMED_ERROR","ANSWER_CORRECT","NEEDS_INVESTIGATION"]}}]
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET 'http://localhost:8079/api/v1/admin/ai/reviews?outcome=open' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'"
+      responses:
+        403:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"capture-b17-239863b5-8a33-4120-a416-cfb277b8c6aa"}}
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":[{"id":"01m5vk0ccg7jvw5sdqcs35c33w","message_id":"01m5vk0bmew1h6k705kgns5rmf","trigger":"customer_request","outcome":null,"reviewed_at":null},{"id":"01m5vk0cbcyt07y2mxdh21ttx1","message_id":"01m5vk0bmew1h6k705kgns5rmf","trigger":"negative_feedback","outcome":null,"reviewed_at":null}],"meta":{"page":1,"total":2}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/admin/ai/reviews/{review}:
+    get:
+      tags: [Support]
+      operationId: InspectQuestionEvidenceAndFeedback
+      summary: "Inspect question evidence and feedback"
+      x-access: admin
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - sessionCookie: {}
+      parameters: [{"name":"review","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/admin/ai/reviews/01m5vk0ccg7jvw5sdqcs35c33w -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0ccg7jvw5sdqcs35c33w","conversation_id":"01m5vk0bmbrmc7dbq482bw9fvm","message_id":"01m5vk0bmew1h6k705kgns5rmf","question":"What is my wallet balance?","result":{"status":"VERIFIED","answer":"Available ShopBonus credit: EUR 10.00; reserved: EUR 0.00; pending: EUR 5.00; spent: EUR 0.00. Cannot be withdrawn or transferred.","evidence_ids":["01m5vk0c2ec3695es6pwbcg0xe"],"checked_at":"2026-10-26T07:50:09+00:00","action":{"label":"View details","route":"/app/wallet"}},"evidence":{"snapshots":[{"id":"01m5vk0c2ec3695es6pwbcg0xe","tool":"get_my_wallet","arguments":{"unit":"eur_credit"},"source":"consumer_wallet:eur_credit","facts":{"available":1000,"reserved":0,"pending":500,"spent":0,"unit":"eur_credit","currency":"EUR"},"checked_at":"2026-10-26T07:50:09+00:00"}],"trace":[{"tool":"get_my_wallet","outcome":"retrieved"}]},"research":{"intent":"wallet","tool":"get_my_wallet","arguments":{"unit":"eur_credit"},"reference":null,"unit":"eur_credit","missing_reference":false,"wrong_scope":false},"retry_used":false,"metrics":{"policy_version":"01m5vk0b8knw7zyfk8tkhjyjr1","restriction_action":null,"input_tokens":20,"output_tokens":10,"model":"fixture-model","latency_ms":63,"additional_retrieval_rounds":0},"failure_code":null,"feedback":[{"rating":"down","reason":"unclear","comment":"Please clarify the explanation."}],"outcome":null,"note":null,"regression_added":false}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/admin/ai/reviews/{review}/resolve:
+    post:
+      tags: [Support]
+      operationId: ResolveOnceAndApproveARegressionCase
+      summary: "Resolve once and approve a regression case"
+      x-access: admin
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Recent password plus emailed OTP required; confirmed admin MFA in production.
+      security:
+        - sessionCookie: {}
+      parameters: [{"name":"review","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type":"object","required":["outcome","note"],"properties":{"outcome":{"enum":["CONFIRMED_ERROR","ANSWER_CORRECT","NEEDS_INVESTIGATION"]},"note":{"type":"string","minLength":5,"maxLength":2000},"expected_intent":{"enum":["wallet","reward","release_date","vouchers","quote","funding","offer_cost","campaign","integration","knowledge","escalate","unknown"],"description":"Required for CONFIRMED_ERROR. Appends approved regression; never changes production automatically."},"knowledge_id":{"type":["string","null"],"description":"Optional already-published FAQ ULID; publish corrections through existing CMS first."}}}
+            example: {"outcome":"CONFIRMED_ERROR","note":"Approved explanatory correction linked to published knowledge","expected_intent":"wallet","knowledge_id":"01m5vk0a6s1dfzp90vt9na1c43"}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/admin/ai/reviews/01m5vk0ccg7jvw5sdqcs35c33w/resolve -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{\"outcome\":\"CONFIRMED_ERROR\",\"note\":\"Approved explanatory correction linked to published knowledge\",\"expected_intent\":\"wallet\",\"knowledge_id\":\"01m5vk0a6s1dfzp90vt9na1c43\"}'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0ccg7jvw5sdqcs35c33w","outcome":"CONFIRMED_ERROR","regression_added":true}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+        409:
+          description: Actual running-server operation-specific domain conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"support_review_resolved","message":"This support review is resolved.","request_id":"01a179a8-8f34-71b8-9030-5ac4f1fa3f19"}}
+
+  /api/v1/admin/ai/conversations/{conversation}/reply:
+    post:
+      tags: [Support]
+      operationId: AppendAHumanSupportReply
+      summary: "Append a human support reply"
+      x-access: admin
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Recent password plus emailed OTP required; confirmed admin MFA in production.
+      security:
+        - sessionCookie: {}
+      parameters: [{"name":"conversation","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {"type":"object","required":["body"],"properties":{"body":{"type":"string","minLength":2,"maxLength":4000}}}
+            example: {"body":"A human reviewed your question. Wallet credit cannot be withdrawn or transferred."}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/admin/ai/conversations/01m5vk0bmbrmc7dbq482bw9fvm/reply -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{\"body\":\"A human reviewed your question. Wallet credit cannot be withdrawn or transferred.\"}'"
+      responses:
+        201:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"id":"01m5vk0cgwtrs2h2e0s6yekx4t","sender":"human_support","body":"A human reviewed your question. Wallet credit cannot be withdrawn or transferred.","created_at":"2026-10-26T07:50:09+00:00"}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+        409:
+          description: Actual running-server operation-specific domain conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"support_conversation_expired","message":"This support conversation has expired.","request_id":"01a179a8-8f6d-72a4-b11b-4f075040e12b"}}
+
+  /api/v1/admin/ai/settings/{version}/test:
+    post:
+      tags: [Support]
+      operationId: TestADraftSupportPolicyBeforePublication
+      summary: "Test a draft support policy before publication"
+      x-access: admin
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Recent password plus emailed OTP required; confirmed admin MFA in production.
+      security:
+        - sessionCookie: {}
+      parameters: [{"name":"version","in":"path","required":true,"schema":{"type":"string","description":"Public ULID; owner/scope checked server-side."}}]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {"type":"object","additionalProperties":false}
+            example: {}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/admin/ai/settings/01m5vk0b8knw7zyfk8tkhjyjr1/test -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"total":100,"passed":100,"failed":0,"policy_checksum":"1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1","scope":"server_intent_and_immutable_safety_guards","provider_verified":false}}
+                capture2:
+                  value: {"data":{"total":100,"passed":100,"failed":0,"policy_checksum":"1a913d84164719e1a6b17707aab995471b7bfdb9b65c44fbfe15b2003b5b7ac1","scope":"server_intent_and_immutable_safety_guards","provider_verified":false}}
+        419:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"capture-b17-e0961a5f-3b1f-4f93-be7e-d5415f36a101"}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+        409:
+          description: Actual running-server operation-specific domain conflict.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"support_policy_not_draft","message":"Only a support policy draft can be tested.","request_id":"01a179a8-8f50-7096-98e1-7ea0aa5c2a2b"}}
+
+  /api/v1/admin/ai/operations:
+    get:
+      tags: [Support]
+      operationId: ReadBoundedMeasuredSupportOperations
+      summary: "Read bounded measured support operations"
+      x-access: admin
+      description: >-
+        Captured on a real local Laravel HTTP server with SQLite and a real database queue worker; upstream OpenAI completion is explicitly synthetic, never live provider evidence. All private data is ownership/workspace scoped. Bearer or first-party SPA session authentication.
+      security:
+        - sessionCookie: {}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/admin/ai/operations -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'"
+      responses:
+        200:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"from":"2026-10-25T07:50:13+00:00","checked_at":"2026-10-26T07:50:13+00:00","sample_limit":500,"sample_size":7,"statuses":{"UNAVAILABLE":2,"VERIFIED":5},"failures":{"provider_unavailable":1,"support_access_denied":1},"retrieval_retries":1,"latency_p95_ms":82,"input_tokens":100,"output_tokens":50,"provider_cost":null,"cost_notice":"Token usage is measured; billed provider cost is not available here.","open_reviews":2,"approved_regressions":0,"daily_requests":7,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"policy_version":"01m5vk0b8knw7zyfk8tkhjyjr1"}}
+        500:
+          description: "Actual local HTTP capture; see README for synthetic-upstream and fixture caveats."
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"capture-b17-de6bec98-8ce8-446e-ac78-d41a8549ba3a"}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+
+  /api/v1/admin/ai/knowledge/{document}/versions:
+    get:
+      tags: [Support]
+      operationId: supportKnowledgeVersions
+      summary: "Inspect immutable FAQ publication history"
+      x-access: admin
+      description: >-
+        Super Admin only. Existing FAQ publication writes preserve immutable canonical-hashed snapshots. Rollback restores only a published version of the same document, verifies checksum and expected current revision, then appends a new revision/audit reason. Historical backfills never invent an approver or publication timestamp. POST additionally requires recent password plus OTP.
+      security: [{sessionCookie: {}}]
+      parameters: [{name: document, in: path, required: true, schema: {type: string, description: Public FAQ ULID}}]
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/versions -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>'"
+      responses:
+        200:
+          description: Actual running-server HTTP capture with synthetic FAQ records and real authenticated browser session.
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":[{"id":"01m5wt1ya2ggrn14fk4edasvrg","revision":1,"snapshot":{"audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit cannot be withdrawn or transferred."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed kan niet worden opgenomen of overgedragen."}]}]}}}},"checksum":"b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2","origin":"published","recorded_at":"2026-10-26T19:12:35+00:00"}]}
+                capture2:
+                  value: {"data":[{"id":"01m5wt1yc1qgt5khyseet53zh6","revision":2,"snapshot":{"audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit is reserved for voucher redemption and cannot be withdrawn."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed is bedoeld voor vouchers en kan niet worden opgenomen."}]}]}}}},"checksum":"280115826f45ec18b9ddc8f66a34078bced0094dd438a16b59a75f794282d65f","origin":"published","recorded_at":"2026-10-26T19:12:35+00:00"},{"id":"01m5wt1ya2ggrn14fk4edasvrg","revision":1,"snapshot":{"audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit cannot be withdrawn or transferred."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed kan niet worden opgenomen of overgedragen."}]}]}}}},"checksum":"b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2","origin":"published","recorded_at":"2026-10-26T19:12:35+00:00"}]}
+                capture3:
+                  value: {"data":[{"id":"01m5wt1yexwtbkv23gekz4s7hg","revision":3,"snapshot":{"audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit cannot be withdrawn or transferred."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed kan niet worden opgenomen of overgedragen."}]}]}}}},"checksum":"b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2","origin":"rollback","recorded_at":"2026-10-26T19:12:35+00:00"},{"id":"01m5wt1yc1qgt5khyseet53zh6","revision":2,"snapshot":{"audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit is reserved for voucher redemption and cannot be withdrawn."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed is bedoeld voor vouchers en kan niet worden opgenomen."}]}]}}}},"checksum":"280115826f45ec18b9ddc8f66a34078bced0094dd438a16b59a75f794282d65f","origin":"published","recorded_at":"2026-10-26T19:12:35+00:00"},{"id":"01m5wt1ya2ggrn14fk4edasvrg","revision":1,"snapshot":{"audience":"consumers","published":true,"translations":{"en":{"question":"How does credit work?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Credit cannot be withdrawn or transferred."}]}]}},"nl":{"question":"Hoe werkt tegoed?","answer":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Tegoed kan niet worden opgenomen of overgedragen."}]}]}}}},"checksum":"b771ad5de3bf7e1150a09df55bdb05486ce24403fd24f4647baf53859d97b4f2","origin":"published","recorded_at":"2026-10-26T19:12:35+00:00"}]}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/admin/ai/knowledge/{document}/rollback:
+    post:
+      tags: [Support]
+      operationId: supportKnowledgeRollback
+      summary: "Restore a published FAQ version as a new revision"
+      x-access: admin
+      description: >-
+        Super Admin only. Existing FAQ publication writes preserve immutable canonical-hashed snapshots. Rollback restores only a published version of the same document, verifies checksum and expected current revision, then appends a new revision/audit reason. Historical backfills never invent an approver or publication timestamp. POST additionally requires recent password plus OTP.
+      security: [{sessionCookie: {}}]
+      parameters: [{name: document, in: path, required: true, schema: {type: string, description: Public FAQ ULID}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [version_id, revision, reason], properties: {version_id: {type: string}, revision: {type: integer, minimum: 1}, reason: {type: string, minLength: 5, maxLength: 500}}}
+            example: {"version_id": "01m5wt1ya2ggrn14fk4edasvrg", "revision": 2, "reason": "Restore previously published approved explanation"}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/admin/ai/knowledge/01m5wt1y9yendawfrtec572emw/rollback -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{\"version_id\":\"01m5wt1ya2ggrn14fk4edasvrg\",\"revision\":2,\"reason\":\"Restore previously published approved explanation\"}'"
+      responses:
+        200:
+          description: Actual running-server HTTP capture with synthetic FAQ records and real authenticated browser session.
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"data":{"document_id":"01m5wt1y9yendawfrtec572emw","revision":3,"published":true,"audience":"consumers"}}
+        409:
+          description: Actual running-server HTTP capture with synthetic FAQ records and real authenticated browser session.
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else changed this item. Reload to continue.","request_id":"capture-b17-knowledge-3ecea7ea-121c-4ef3-af8f-849cf90f9f49"}}
+        423:
+          description: Actual running-server HTTP capture with synthetic FAQ records and real authenticated browser session.
+          content:
+            application/json:
+              examples:
+                capture1:
+                  value: {"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"capture-b17-knowledge-7717d1e2-bbeb-4b04-ba5a-915543e80de8"}}
+        401: { $ref: '#/components/responses/Unauthenticated' }
+        403: { $ref: '#/components/responses/Forbidden' }
+        404: { $ref: '#/components/responses/NotFound' }
+        419: { $ref: '#/components/responses/CsrfMismatch' }
+        422: { $ref: '#/components/responses/ValidationFailed' }
+        429: { $ref: '#/components/responses/TooManyRequests' }
+        500: { $ref: '#/components/responses/ServerError' }
+
 components:
   parameters:
     Workspace:
@@ -11844,6 +12507,7 @@ components:
       example: 43
 
   schemas:
+    SupportPolicy: {"type":"object","additionalProperties":false,"required":["enabled","model","languages","daily_request_limit","timeout_seconds","max_retry","restrictions"],"properties":{"enabled":{"type":"boolean"},"model":{"type":["string","null"],"pattern":"^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$"},"languages":{"type":"array","minItems":1,"maxItems":2,"uniqueItems":true,"items":{"enum":["en","nl"]}},"daily_request_limit":{"type":"integer","minimum":0,"maximum":1000},"timeout_seconds":{"type":"integer","minimum":5,"maximum":20},"max_retry":{"type":"integer","minimum":0,"maximum":1},"restrictions":{"type":"array","maxItems":3,"items":{"type":"object","additionalProperties":false,"required":["rule_code","match_type","action","enabled"],"properties":{"rule_code":{"enum":["NO_UNVERIFIED_REFUND_PROMISE","NO_UNVERIFIED_RELEASE_DATE","BLOCK_GENERAL_ASSISTANT"]},"match_type":{"const":"semantic_claim"},"action":{"enum":["BLOCK","REWRITE","ESCALATE","REVIEW"]},"enabled":{"type":"boolean"}}}}}}
     Workspace:
       type: object
       properties:

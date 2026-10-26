@@ -39,6 +39,7 @@ class GuardSupportSession
     /** Refused for every method. */
     private const BLOCKED_ALWAYS = [
         'api.v1.admin.*',
+        'api.v1.ai.*',
         'api.v1.workspaces.banners.ai.*',
         'api.v1.workspaces.banners.experiment.*',
         'api.v1.consumer.vouchers.show',   // reveals a voucher code

@@ -115,7 +115,7 @@ class SupportEvidenceTest extends TestCase
     public static function badTools(): array
     {
         return [
-            ['refund', []], ['wallet.credit', ['amount' => '999']], ['get_my_order_reward_status', ['order_reference' => 'guess']],
+            ['refund', []], ['wallet.credit', ['amount' => '999']], ['get_unknown_reward', ['order_reference' => 'guess']],
             ['get_my_wallet', []], ['get_my_wallet', ['unit' => 'EUR']], ['get_my_wallet', ['unit' => 'eur_credit', 'user_id' => 'other']],
             ['get_my_wallet', ['unit' => 'eur_credit', 'workspace_id' => 'other']], ['get_my_wallet', ['unit' => 'eur_credit', 'role' => 'super_admin']],
             ['get_my_wallet', ['unit' => 'eur_credit', 'url' => 'https://example.com']], ['get_my_wallet', ['unit' => ['points']]],
@@ -229,6 +229,7 @@ class SupportEvidenceTest extends TestCase
         $item = $this->faq();
         $e = $this->tools()->retrieve($user, 'get_approved_knowledge', ['document_id' => $item->public_id]);
         $this->assertSame('nl', $e->facts['locale']);
+        $this->assertNull($e->facts['approved_at']);
         $this->assertStringContainsString('Published FAQ (nl): Gepubliceerde uitleg.', $this->answer($user, [$e])['answer']);
         $item->update(['published' => false]);
         $this->fails('not_found', fn () => $this->answer($user, [$e]), 404);

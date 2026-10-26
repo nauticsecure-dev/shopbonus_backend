@@ -7,6 +7,7 @@ use App\Exceptions\ApiException;
 use App\Models\PlatformSettingVersion;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Support\SupportPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -16,7 +17,7 @@ class PlatformSettings
 {
     public const PUBLIC_KEYS = ['public.brand_name', 'public.support_email', 'public.languages'];
 
-    public const KEYS = [...self::PUBLIC_KEYS, 'operations.diagnostics_daily_request_limit'];
+    public const KEYS = [...self::PUBLIC_KEYS, 'operations.diagnostics_daily_request_limit', 'support.ai'];
 
     public function __construct(private readonly AuditLogger $audit) {}
 
@@ -28,7 +29,7 @@ class PlatformSettings
             DB::table('platform_settings')->insertOrIgnore(['key' => $key, 'last_version' => 0, 'created_at' => now(), 'updated_at' => now()]);
             $setting = DB::table('platform_settings')->where('key', $key)->lockForUpdate()->first();
             $version = PlatformSettingVersion::create(['setting_id' => $setting->id, 'version' => $setting->last_version + 1,
-                'value' => $value, 'checksum' => hash('sha256', json_encode($value, JSON_THROW_ON_ERROR)), 'status' => 'draft',
+                'value' => $value, 'checksum' => self::checksum($value), 'status' => 'draft',
                 'created_by' => $actor->id, 'reason' => $reason, 'rollback_of_id' => $rollback?->id]);
             DB::table('platform_settings')->where('id', $setting->id)->update(['last_version' => $version->version, 'updated_at' => now()]);
             $this->audit->record('admin.setting_drafted', category: AuditCategory::Admin, resource: $version,
@@ -67,7 +68,15 @@ class PlatformSettings
                 throw ApiException::conflict('A newer version is already published. Create a rollback draft instead.', 'setting_stale');
             }
             $this->validateValue($setting->key, $version->value);
-            if (! hash_equals($version->checksum, hash('sha256', json_encode($version->value, JSON_THROW_ON_ERROR)))) {
+            if ($setting->key === 'support.ai') {
+                $test = DB::table('support_policy_tests')->where('version_id', $version->id)->where('checksum', $version->checksum)->first();
+                $report = $test === null ? null : json_decode($test->report, true);
+                if (! is_array($report) || ($report['failed'] ?? 1) !== 0 || ($report['total'] ?? 0) < 100
+                    || ($report['corpus_fingerprint'] ?? null) !== SupportPolicy::regressionFingerprint()) {
+                    throw ApiException::conflict('Test the support policy before publication.', 'support_policy_test_required');
+                }
+            }
+            if (! hash_equals($version->checksum, self::checksum($version->value))) {
                 throw ApiException::conflict('Setting version integrity verification failed.', 'setting_integrity_failed');
             }
             $version->forceFill(['status' => 'published', 'reviewed_by' => $actor->id, 'review_note' => $note, 'published_at' => now()])->save();
@@ -90,10 +99,28 @@ class PlatformSettings
         return $this->draft($actor, $key, $version->value, $reason, $version);
     }
 
+    /** Canonical object keys: MySQL JSON does not preserve insertion order. Lists retain their semantic order. */
+    public static function checksum(mixed $value): string
+    {
+        $normalize = function (mixed $v) use (&$normalize): mixed {
+            if (! is_array($v)) {
+                return $v;
+            }
+            if (! array_is_list($v)) {
+                ksort($v);
+            }
+
+            return array_map($normalize, $v);
+        };
+
+        return hash('sha256', json_encode($normalize($value), JSON_THROW_ON_ERROR));
+    }
+
     private function validateValue(string $key, mixed $value): void
     {
         Validator::make(['key' => $key], ['key' => ['required', Rule::in(self::KEYS)]])->validate();
         $rules = match ($key) {
+            'support.ai' => SupportPolicy::rules(),
             'operations.diagnostics_daily_request_limit' => ['value' => ['required', 'integer:strict', 'min:0', 'max:1000']],
             'public.brand_name' => ['value' => ['required', 'string', 'min:1', 'max:100', 'regex:/^[\pL\pN .&\'-]+$/u']],
             'public.support_email' => ['value' => ['required', 'email:rfc', 'max:254']],

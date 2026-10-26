@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
+use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
 use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
@@ -52,6 +53,7 @@ use App\Http\Controllers\Api\V1\Onboarding\OnboardingController;
 use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
+use App\Http\Controllers\Api\V1\Support\ChatController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerAiController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerExperimentController;
@@ -168,6 +170,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
+            Route::prefix('ai')->name('ai.')->group(function () {
+                Route::post('chat', [ChatController::class, 'store'])->middleware('throttle:ai-support')->name('chat');
+                Route::get('conversations', [ChatController::class, 'index'])->name('conversations.index');
+                Route::get('conversations/{conversation}', [ChatController::class, 'show'])->name('conversations.show');
+                Route::delete('conversations/{conversation}', [ChatController::class, 'destroy'])->name('conversations.destroy');
+                Route::get('messages/{message}', [ChatController::class, 'message'])->name('messages.show');
+                Route::post('messages/{message}/feedback', [ChatController::class, 'feedback'])->name('messages.feedback');
+                Route::post('messages/{message}/escalate', [ChatController::class, 'escalate'])->name('messages.escalate');
+                Route::post('knowledge/search', [ChatController::class, 'knowledge'])->middleware('throttle:ai-support')->name('knowledge.search');
+            });
+
             // Workspaces. {workspace} is a webshop public ID or `current`; the
             // `workspace` middleware resolves it to the user's own membership.
             Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
@@ -185,6 +198,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             // Super Admin (privately provisioned; confirmed 2FA required). Mutations need a recent password
             // confirmation; the most sensitive ones also an emailed step-up code (B16a).
             Route::prefix('admin')->name('admin.')->middleware('platform:super_admin')->group(function () {
+                Route::get('ai/knowledge/{document}/versions', [AiSupportController::class, 'knowledgeVersions'])->name('ai.knowledge.versions');
+                Route::get('ai/reviews', [AiSupportController::class, 'index'])->name('ai.reviews.index');
+                Route::get('ai/reviews/{review}', [AiSupportController::class, 'show'])->name('ai.reviews.show');
+                Route::get('ai/operations', [AiSupportController::class, 'operations'])->name('ai.operations');
+                Route::middleware(['password.recent', 'step_up.otp'])->group(function () {
+                    Route::post('ai/knowledge/{document}/rollback', [AiSupportController::class, 'rollbackKnowledge'])->name('ai.knowledge.rollback');
+                    Route::post('ai/reviews/{review}/resolve', [AiSupportController::class, 'resolve'])->name('ai.reviews.resolve');
+                    Route::post('ai/conversations/{conversation}/reply', [AiSupportController::class, 'reply'])->name('ai.conversations.reply');
+                    Route::post('ai/settings/{version}/test', [AiSupportController::class, 'testPolicy'])->name('ai.settings.test');
+                });
+
                 Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
                 Route::get('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'index'])->name('incident-diagnostics.index');
                 Route::get('incident-diagnostics/{diagnostic}', [AdminIncidentDiagnosticController::class, 'show'])->name('incident-diagnostics.show');

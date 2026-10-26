@@ -5,7 +5,10 @@ use App\Enums\WorkspacePermission;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Models\WebshopMembership;
+use App\Services\Admin\SupportSessions;
+use App\Services\Support\SupportChat;
 use Illuminate\Support\Facades\Broadcast;
+use Laravel\Sanctum\PersonalAccessToken;
 
 /*
 | Private channel authorisation. Revalidated on every subscription: a
@@ -23,4 +26,18 @@ Broadcast::channel('webshops.{webshopPublicId}.orders', function (User $user, st
         ->where('status', MembershipStatus::Active)->first();
 
     return $membership?->allows(WorkspacePermission::OrdersView) ?? false;
+});
+
+Broadcast::channel('shopbonus.support.conversation.{conversationId}', function (User $user, string $conversationId) {
+    $token = $user->currentAccessToken();
+    if ($token instanceof PersonalAccessToken && app(SupportSessions::class)->forToken($token) !== null) {
+        return false;
+    }
+    try {
+        app(SupportChat::class)->conversation($user, $conversationId);
+
+        return true;
+    } catch (Throwable) {
+        return false;
+    }
 });

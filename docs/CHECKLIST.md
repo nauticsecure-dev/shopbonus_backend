@@ -544,3 +544,14 @@ Owner authorizes main backend implementation; credentials configured by senior d
 - [x] Document all changed/new APIs using actual local HTTP captures with clearly labelled simulated provider output. (`d561f8d`; CI `40281914885` passed.)
 - [x] Execute SQLite/MySQL sequentially, quality/security checks, migration rollback/reapply; checkpoint docs, commits/push and CI. (`d561f8d`; CI `40281914885`: SQLite503 pass+13 skip, MySQL514 pass+2 skip.)
 - [ ] Senior developer: live OpenAI and storefront/cart/provider attribution/staging verification (NOT RUN here).
+
+## B17b–f — complete #26 main backend (2026-10-26)
+
+Owner explicitly asks to finish remaining backend; credentials/model configured by senior developer. D-075 disk override persists for #26. One coherent boundary at a time; boxes remain open until executed checks.
+
+- [x] B17b: extend read-only tools for owned order/reward status, vouchers, quotes, campaign and integration health; typed server research plan, missing-reference clarification and one distinct targeted retry; no email-based ownership guesses. (Executed local checks PASS; implementation SHA recorded in closeout.)
+- [x] B17c: encrypted persisted owned conversations/messages/evidence, request idempotency, queued single execution, strict Responses evidence selector, global/per-user quotas, circuit breaker and retention/deletion. (Executed local checks PASS; implementation SHA recorded in closeout.)
+- [x] B17d: authenticated chat/history/knowledge/feedback/escalation APIs, private minimal progress events and Reverb backend configuration; reconnect HTTP sync and negative subscription tests. (Executed local checks PASS; implementation SHA recorded in closeout.)
+- [x] B17e: human review/resolution and executed approved regression cases, operational metrics; reuse independently reviewed settings, preserve immutable FAQ snapshots and published rollback; test-before-publish critical restrictions and immutable server safeguards. (Executed local checks PASS; implementation SHA recorded in closeout.)
+- [ ] B17f:100 distinct EN/NL regression questions, ten card backend E2E cases, isolation/error/provider/race tests; real HTTP captures for every endpoint and changed settings; SQLite/MySQL sequential suites, migration apply/rollback/reapply, quality/security checks, commit/push/CI/handoff.
+- [ ] Senior developer: genuine configured OpenAI/Reverb deployment/provider/production monitoring and staging/frontend acceptance (NOT RUN locally; no credentials requested).

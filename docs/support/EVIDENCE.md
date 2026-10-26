@@ -1,6 +1,6 @@
 # Verified support evidence — B17a / Trello #26
 
-Card: https://trello.com/c/aWBrCkQK. This checkpoint is an internal Laravel service boundary, **not a working chat API**. There are no added routes, migrations, provider calls, jobs, configuration flags or client changes. The existing OpenAPI contract remains unchanged. OpenAI remains the owner's selected provider; the senior developer configures model/key/budget when the transport is implemented.
+Card: https://trello.com/c/aWBrCkQK. **Historical B17a checkpoint:** the completed chat/history/model/review/policy/knowledge/realtime implementation is documented in [SUPPORT_CHAT.md](SUPPORT_CHAT.md); the original inventory below describes the earlier foundation only. This checkpoint is an internal Laravel service boundary, **not a working chat API**. There are no added routes, migrations, provider calls, jobs, configuration flags or client changes. The existing OpenAPI contract remains unchanged. OpenAI remains the owner's selected provider; the senior developer configures model/key/budget when the transport is implemented.
 
 ## Current inventory
 

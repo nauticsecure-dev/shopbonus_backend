@@ -35,3 +35,6 @@ Schedule::command('shopbonus:merchant-notifications')->everyFifteenMinutes()->wi
 
 // Banner campaigns scheduled in shop-local time.
 Schedule::command('shopbonus:publish-scheduled-banners')->everyMinute()->withoutOverlapping();
+
+// Private support history retention and recovery of stopped/timed-out research.
+Schedule::command('shopbonus:prune-support')->everyFiveMinutes()->withoutOverlapping();

@@ -9,13 +9,22 @@ use App\Enums\WalletUnit;
 use App\Enums\WorkspacePermission;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
+use App\Integrations\ConnectorRegistry;
+use App\Models\BannerCampaign;
 use App\Models\FaqItem;
 use App\Models\Offer;
+use App\Models\SupportKnowledgeVersion;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use App\Models\Wallet;
+use App\Models\WalletPendingCredit;
 use App\Models\Webshop;
+use App\Models\WebshopConnection;
+use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
+use App\Services\Banners\BannerMeasurement;
+use App\Services\Checkout\CheckoutService;
 use App\Services\Cms\RichText;
 use App\Services\Finance\FeeCalculator;
 use Carbon\CarbonImmutable;
@@ -28,6 +37,11 @@ final class SupportTools
     /** Exact arguments; user, workspace, role and permission are never model arguments. */
     public const ARGUMENTS = [
         'get_my_wallet' => ['unit'],
+        'get_my_order_reward_status' => ['order_reference'],
+        'get_my_vouchers' => [],
+        'get_voucher_quote' => ['offer_id'],
+        'get_campaign_performance' => ['campaign_id'],
+        'get_integration_health' => ['connection_id'],
         'get_my_voucher' => ['voucher_id'],
         'get_workspace_wallet' => [],
         'get_offer_cost' => ['offer_id'],
@@ -57,6 +71,11 @@ final class SupportTools
         // Validate the conversation scope even when retrieving audience/public knowledge.
         $shop = $workspace === null ? null : $this->workspace($actor, $workspace);
         [$source, $facts] = match ($tool) {
+            'get_my_order_reward_status' => $this->reward($actor, $arguments['order_reference'], $shop),
+            'get_my_vouchers' => $this->vouchers($actor, $shop),
+            'get_voucher_quote' => $this->quote($actor, $arguments['offer_id'], $shop),
+            'get_campaign_performance' => $this->campaign($actor, $shop, $arguments['campaign_id']),
+            'get_integration_health' => $this->integration($actor, $shop, $arguments['connection_id']),
             'get_my_wallet' => $this->wallet($actor, $arguments['unit'], $shop),
             'get_my_voucher' => $this->voucher($actor, $arguments['voucher_id'], $shop),
             'get_workspace_wallet' => $this->funding($actor, $shop),
@@ -150,9 +169,123 @@ final class SupportTools
             throw new ApiException('Support evidence is unavailable.', 409, 'support_evidence_unavailable');
         }
 
+        $version = SupportKnowledgeVersion::where('faq_id', $item->id)->where('revision', $item->revision)->first();
+        $approvedAt = $version !== null && $version->origin !== 'backfill' && $version->recorded_by !== null && ($version->snapshot['published'] ?? false)
+            ? $version->created_at->toIso8601String() : null;
+
         return ['faq:'.$item->public_id.':v'.$item->revision, ['scope' => $item->audience, 'version' => $item->revision,
             'locale' => isset($item->translations[$locale]) ? $locale : 'nl',
-            'question' => $translation['question'], 'content' => $content]];
+            'approved_at' => $approvedAt, 'question' => $translation['question'], 'content' => $content]];
+    }
+
+    /** @return array{string, array<string, int|string|bool|null>} */
+    private function reward(User $actor, string $reference, ?Webshop $shop): array
+    {
+        if ($shop !== null) {
+            $this->deny($actor, 403);
+        }
+        // Ownership is proven by an existing issued/claimed voucher relation, not an email match.
+        $order = WebshopOrder::whereIn('id', Voucher::where('consumer_user_id', $actor->id)->whereNotNull('source_order_id')->select('source_order_id'))
+            ->where(fn ($q) => $q->where('public_id', strtolower($reference))->orWhere('reference', $reference))->limit(2)->get();
+        if ($order->isEmpty()) {
+            $pending = Str::isUlid($reference) ? WalletPendingCredit::where('public_id', strtolower($reference))
+                ->whereIn('wallet_id', Wallet::where('owner_type', 'user')->where('owner_id', $actor->id)->where('kind', WalletKind::ConsumerCredit)->where('unit', WalletUnit::EurCredit)->select('id'))->first() : null;
+            if ($pending !== null) {
+                return ['wallet_reward:'.$pending->public_id, ['payment_status' => null, 'reward_status' => $pending->status,
+                    'reward_eligible' => null, 'reward_minor' => $pending->amount, 'currency' => 'EUR', 'source_type' => 'wallet_pending_credit',
+                    'claimed_at' => null, 'release_date' => null]];
+            }
+        }
+        if ($order->count() !== 1) {
+            $this->deny($actor, 404);
+        }
+        $order = $order->sole();
+        $v = Voucher::where('consumer_user_id', $actor->id)->where('source_order_id', $order->id)->orderByDesc('id')->firstOrFail();
+        $claim = VoucherClaim::where('voucher_id', $v->id)->where('claimed_by', $actor->id)->first();
+
+        return ['order_reward:'.$order->public_id.':'.$v->public_id, [
+            'payment_status' => $order->payment_status->value, 'reward_status' => $v->status->value,
+            'reward_eligible' => $order->eligibility_status === 'eligible',
+            'reward_minor' => ($v->terms_snapshot['discount_type'] ?? null) === 'fixed' ? ($v->terms_snapshot['discount_value'] ?? null) : null,
+            'currency' => $v->terms_snapshot['currency'] ?? null, 'source_type' => $v->origin->value,
+            'claimed_at' => $claim?->claimed_at?->toIso8601String(), 'release_date' => null,
+        ]];
+    }
+
+    /** @return array{string, array<string, int|string|bool|null>} */
+    private function vouchers(User $actor, ?Webshop $shop): array
+    {
+        if ($shop !== null) {
+            $this->deny($actor, 403);
+        }
+        $q = Voucher::where('consumer_user_id', $actor->id);
+
+        return ['owned_vouchers', ['issued' => (clone $q)->where('status', 'issued')->count(),
+            'redeemed' => (clone $q)->where('status', 'redeemed')->count(), 'expired' => (clone $q)->where('status', 'expired')->count(),
+            'cancelled' => (clone $q)->where('status', 'cancelled')->count()]];
+    }
+
+    /** @return array{string, array<string, int|string|bool|null>} */
+    private function quote(User $actor, string $id, ?Webshop $shop): array
+    {
+        if ($shop !== null) {
+            $this->deny($actor, 403);
+        }
+        $offer = Str::isUlid($id) ? Offer::where('public_id', strtolower($id))->with('currentVersion')->first() : null;
+        if ($offer === null || $offer->status->value !== 'active' || $offer->webshop()->firstOrFail()->status->value !== 'approved') {
+            $this->deny($actor, 404);
+        }
+        $q = app(CheckoutService::class)->quote($actor, $offer);
+
+        return ['quote:'.$offer->public_id.':v'.$offer->currentVersion?->version, ['price_minor' => $q['price_minor'],
+            'wallet_usable_minor' => $q['wallet_part_minor'], 'mollie_due_minor' => $q['payment_part_minor'],
+            'currency' => $q['currency'], 'stock_available' => ! in_array('sold_out', $q['blockers'], true),
+            'purchasable' => $q['blockers'] === []]];
+    }
+
+    /** @return array{string, array<string, int|string|bool|null>} */
+    private function campaign(User $actor, ?Webshop $shop, string $id): array
+    {
+        $shop = $this->permission($actor, $shop, WorkspacePermission::OrdersView);
+        $this->permission($actor, $shop, WorkspacePermission::OffersView);
+        $c = Str::isUlid($id) ? BannerCampaign::where('public_id', strtolower($id))->where('webshop_id', $shop->id)->first() : null;
+        if ($c === null) {
+            $this->deny($actor, 404);
+        }
+        $today = CarbonImmutable::now((string) config('shopbonus.business_timezone'))->startOfDay();
+        $r = app(BannerMeasurement::class)->results($c, $today->subDays(29), $today, null);
+
+        return ['campaign:'.$c->public_id, ['impressions' => $r['viewable_impressions'], 'clicks' => $r['cta_clicks'],
+            'tracked_order_starts' => null, 'attributed_paid_orders' => $r['attributed_orders'], 'from' => $r['from'], 'to' => $r['to']]];
+    }
+
+    /** @return array{string, array<string, int|string|bool|null>} */
+    private function integration(User $actor, ?Webshop $shop, string $id): array
+    {
+        $shop = $this->permission($actor, $shop, WorkspacePermission::IntegrationsView);
+        $c = Str::isUlid($id) ? WebshopConnection::where('public_id', strtolower($id))->where('webshop_id', $shop->id)->first() : null;
+        if ($c === null) {
+            $this->deny($actor, 404);
+        }
+        $registry = app(ConnectorRegistry::class);
+        $entry = $registry->entry($c->platform);
+        $cap = ['order_ingestion_available' => $registry->isAvailable($c->platform), 'verification' => $entry['verification'] ?? 'unverified', 'method' => $c->method->value];
+
+        return ['integration:'.$c->public_id, ['platform' => $c->platform->value, 'status' => $c->status->value,
+            'capabilities' => json_encode($cap, JSON_THROW_ON_ERROR), 'last_sync_at' => $c->last_event_at?->toIso8601String(),
+            'last_error_code' => $c->last_error_code === null ? null : 'integration_error']];
+    }
+
+    /** Revalidate conversation scope independently of any individual research tool. */
+    public function authorize(User $actor, ?string $workspace): void
+    {
+        $fresh = User::find($actor->id);
+        if ($fresh === null || ! $fresh->isActive() || $fresh->email_verified_at === null || Context::has(AuditLogger::CONTEXT_REAL_ACTOR_ID)) {
+            $this->deny($actor, 403);
+        }
+        if ($workspace !== null) {
+            $this->workspace($fresh, $workspace);
+        }
     }
 
     private function workspace(User $actor, string $reference): Webshop

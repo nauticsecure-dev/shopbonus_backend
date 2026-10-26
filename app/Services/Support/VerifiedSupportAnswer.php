@@ -91,10 +91,19 @@ final class VerifiedSupportAnswer
     {
         $f = $e->facts;
         $nl = $e->locale === 'nl';
+        $minor = $nl ? ' kleinste munteenheden' : ' minor units';
         $amount = fn (int $value) => $f['unit'] === 'points' ? $value.($nl ? ' punten' : ' points')
             : 'EUR '.intdiv($value, 100).'.'.str_pad((string) ($value % 100), 2, '0', STR_PAD_LEFT);
 
         return match ($e->tool) {
+            'get_my_order_reward_status' => ($nl ? 'Geregistreerde betaalstatus: ' : 'Recorded payment status: ').($f['payment_status'] ?? ($nl ? 'onbekend' : 'unknown')).'; '
+                .($f['source_type'] === 'wallet_pending_credit' ? ($nl ? 'walletbeloning: ' : 'wallet reward: ') : ($nl ? 'voucherbeloning: ' : 'voucher reward: ')).$f['reward_status'].'; '
+                .($nl ? 'vaste beloningswaarde: ' : 'fixed reward value: ').($f['reward_minor'] === null ? ($nl ? 'onbekend' : 'unknown') : $f['reward_minor'].$minor.' '.$f['currency']).'. '
+                .($nl ? 'Er is geen vrijgavedatum bevestigd.' : 'No release date has been confirmed.'),
+            'get_my_vouchers' => ($nl ? 'Uw vouchers: ' : 'Your vouchers: ').$f['issued'].($nl ? ' uitgegeven; ' : ' issued; ').$f['redeemed'].($nl ? ' ingewisseld; ' : ' redeemed; ').$f['expired'].($nl ? ' verlopen; ' : ' expired; ').$f['cancelled'].($nl ? ' geannuleerd.' : ' cancelled.'),
+            'get_voucher_quote' => ($nl ? 'Actuele prijsopgave in ' : 'Current quote in ').$f['currency'].($nl ? ': prijs ' : ': price ').$f['price_minor'].$minor.'; wallet '.$f['wallet_usable_minor'].$minor.'; Mollie '.$f['mollie_due_minor'].$minor.($nl ? '; voorraad ' : '; stock ').($f['stock_available'] ? ($nl ? 'beschikbaar' : 'available') : ($nl ? 'niet beschikbaar' : 'unavailable')).($nl ? '; te koop ' : '; purchasable ').($f['purchasable'] ? ($nl ? 'ja' : 'yes') : ($nl ? 'nee' : 'no')).'. '.($nl ? 'Er is niets betaald of uitgegeven.' : 'No payment or voucher issuance has occurred.'),
+            'get_campaign_performance' => ($nl ? 'Campagne van ' : 'Campaign from ').$f['from'].($nl ? ' tot ' : ' to ').$f['to'].': '.$f['impressions'].($nl ? ' zichtbare vertoningen; ' : ' viewable impressions; ').$f['clicks'].($nl ? ' klikken; ' : ' clicks; ').$f['attributed_paid_orders'].($nl ? ' toegeschreven betaalde orders. Gestarte bestellingen zijn niet beschikbaar; attributie bewijst geen oorzakelijke omzetstijging.' : ' attributed paid orders. Tracked order starts are unavailable; attribution does not establish causal uplift.'),
+            'get_integration_health' => ($nl ? 'Integratie ' : 'Integration ').$f['platform'].': '.$f['status'].'; '.($nl ? 'laatste ontvangen event: ' : 'last received event: ').($f['last_sync_at'] ?? ($nl ? 'onbekend' : 'unknown')).($nl ? '; fout ' : '; error ').($f['last_error_code'] ?? ($nl ? 'geen geregistreerd' : 'none recorded')).($nl ? '. Mogelijkheden: ' : '. Capabilities: ').$f['capabilities'].'.',
             'get_my_wallet' => $nl
                 ? 'Beschikbaar ShopBonus-tegoed: '.$amount($f['available']).'; gereserveerd: '.$amount($f['reserved']).'; in behandeling: '.$amount($f['pending']).'; besteed: '.$amount($f['spent']).'. Geen geldopname of overdracht.'
                 : 'Available ShopBonus credit: '.$amount($f['available']).'; reserved: '.$amount($f['reserved']).'; pending: '.$amount($f['pending']).'; spent: '.$amount($f['spent']).'. Cannot be withdrawn or transferred.',
@@ -108,9 +117,9 @@ final class VerifiedSupportAnswer
             'get_offer_cost' => ! $f['available']
                 ? ($nl ? 'De actuele directe beloningskosten konden niet worden vastgesteld.' : 'The current direct reward cost is unavailable.')
                 : ($nl ? 'Kostenvoorbeeld per voucher in ' : 'Cost preview per voucher in ').$f['currency'].': '
-                    .($nl ? 'beloning ' : 'reward ').$f['consumer_reward_minor'].' minor units; '
-                    .($nl ? 'platformkosten ' : 'platform fee ').$f['shopbonus_fee_minor'].' minor units; '
-                    .($nl ? 'totaal ' : 'total ').$f['merchant_total_economic_cost_minor'].' minor units; '
+                    .($nl ? 'beloning ' : 'reward ').$f['consumer_reward_minor'].$minor.'; '
+                    .($nl ? 'platformkosten ' : 'platform fee ').$f['shopbonus_fee_minor'].$minor.'; '
+                    .($nl ? 'totaal ' : 'total ').$f['merchant_total_economic_cost_minor'].$minor.'; '
                     .($nl ? 'basis ' : 'basis ').$f['basis'].'. '
                     .($nl ? 'Alleen een voorbeeld; er is niets afgeschreven.' : 'Preview only; nothing has been charged.'),
             'get_approved_knowledge' => ($nl ? 'Gepubliceerde FAQ ('.$f['locale'].'): ' : 'Published FAQ ('.$f['locale'].'): ').$f['content'],

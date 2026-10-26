@@ -8,6 +8,7 @@ use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
+use App\Enums\WalletKind;
 use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
 use App\Exceptions\ApiException;
@@ -17,6 +18,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCheckout;
 use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherCode;
+use App\Models\Wallet;
 use App\Models\WalletReservation;
 use App\Services\Audit\AuditLogger;
 use App\Services\Vouchers\VoucherInventory;
@@ -56,7 +58,7 @@ class CheckoutService
     {
         $version = $offer->currentVersion;
         $price = (int) ($version->price_minor ?? 0);
-        $available = $this->wallets->consumerWallet($user, WalletUnit::EurCredit)->available;
+        $available = Wallet::where('owner_type', 'user')->where('owner_id', $user->id)->where('kind', WalletKind::ConsumerCredit)->where('unit', WalletUnit::EurCredit)->value('available') ?? 0;
         $walletPart = $useWallet ? min($available, $price) : 0;
         $paymentPart = $price - $walletPart;
 

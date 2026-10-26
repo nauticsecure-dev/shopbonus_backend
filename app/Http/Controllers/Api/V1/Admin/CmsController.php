@@ -15,6 +15,7 @@ use App\Services\Audit\AuditLogger;
 use App\Services\Cms\CmsCache;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\RichText;
+use App\Services\Support\SupportKnowledge;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -185,10 +186,7 @@ class CmsController extends Controller
     {
         $data = $this->validateFaq($request, $rich, creating: true);
         $category = FaqCategory::where('public_id', $data['category_id'])->first() ?? throw new ApiException('Category not found.', 404, 'not_found');
-        $item = FaqItem::create(['category_id' => $category->id, 'audience' => $data['audience'] ?? 'public', 'published' => (bool) ($data['published'] ?? false),
-            'translations' => $data['translations'], 'position' => (int) FaqItem::where('category_id', $category->id)->max('position') + 1]);
-        CmsCache::flush();
-        $this->audit->record('cms.faq_created', category: AuditCategory::Admin, resource: $item, actorUserId: $request->user()->id);
+        $item = app(SupportKnowledge::class)->create($category, $data, $request->user());
 
         return response()->json(['data' => $this->faqItem($item)], 201);
     }
@@ -196,18 +194,10 @@ class CmsController extends Controller
     public function updateFaqItem(Request $request, string $item, RichText $rich): JsonResponse
     {
         $data = $this->validateFaq($request, $rich, creating: false);
-        $updated = FaqItem::where('public_id', $item)->where('revision', $data['revision'])->update(array_filter([
-            'translations' => isset($data['translations']) ? json_encode($data['translations']) : null, 'audience' => $data['audience'] ?? null,
-            'published' => isset($data['published']) ? (bool) $data['published'] : null, 'revision' => $data['revision'] + 1, 'updated_at' => now(),
-        ], fn ($v) => $v !== null));
-        if ($updated !== 1) {
-            FaqItem::where('public_id', $item)->firstOr(fn () => throw new ApiException('FAQ item not found.', 404, 'not_found'));
-            throw ApiException::conflict('Someone else changed this item. Reload to continue.', 'draft_revision_conflict');
-        }
-        CmsCache::flush();
-        $this->audit->record('cms.faq_updated', category: AuditCategory::Admin, resource: FaqItem::where('public_id', $item)->firstOrFail(), actorUserId: $request->user()->id);
+        $model = FaqItem::where('public_id', strtolower($item))->first() ?? throw new ApiException('FAQ item not found.', 404, 'not_found');
+        $model = app(SupportKnowledge::class)->update($model, $data, $data['revision'], $request->user());
 
-        return response()->json(['data' => $this->faqItem(FaqItem::where('public_id', $item)->firstOrFail())]);
+        return response()->json(['data' => $this->faqItem($model)]);
     }
 
     public function reorderFaq(Request $request): JsonResponse

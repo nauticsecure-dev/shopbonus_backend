@@ -7,12 +7,13 @@
     "license": "proprietary",
     "require": {
         "php": "^8.4",
+        "ext-soap": "*",
         "laravel/fortify": "^1.41",
         "laravel/framework": "^13.17",
+        "laravel/reverb": "^1.12",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
-        "predis/predis": "^3.7",
-        "ext-soap": "*"
+        "predis/predis": "^3.7"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

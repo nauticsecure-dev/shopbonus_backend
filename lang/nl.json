@@ -68,5 +68,21 @@
     "Support evidence conflicts.": "De ondersteuningsgegevens zijn tegenstrijdig.",
     "Support evidence has expired.": "De ondersteuningsgegevens zijn verouderd.",
     "Support evidence has changed.": "De ondersteuningsgegevens zijn gewijzigd.",
-    "The support answer could not be verified.": "Het ondersteuningsantwoord kon niet worden gecontroleerd."
+    "The support answer could not be verified.": "Het ondersteuningsantwoord kon niet worden gecontroleerd.",
+    "Support conversation not found.": "Ondersteuningsgesprek niet gevonden.",
+    "Support message not found.": "Ondersteuningsbericht niet gevonden.",
+    "Support review not found.": "Ondersteuningsbeoordeling niet gevonden.",
+    "Setting version not found.": "Instellingenversie niet gevonden.",
+    "Wait for the current support answer.": "Wacht op het huidige ondersteuningsantwoord.",
+    "Conversation scope cannot change.": "De context van het gesprek kan niet worden gewijzigd.",
+    "This support request key was already used.": "Deze sleutel voor het ondersteuningsverzoek is al gebruikt.",
+    "Feedback is already recorded.": "De feedback is al vastgelegd.",
+    "This support review is resolved.": "Deze ondersteuningsbeoordeling is afgerond.",
+    "Published knowledge not found.": "Gepubliceerde kennis niet gevonden.",
+    "This support conversation has expired.": "Dit ondersteuningsgesprek is verlopen.",
+    "Only a support policy draft can be tested.": "Alleen een concept van het ondersteuningsbeleid kan worden getest.",
+    "Test the support policy before publication.": "Test het ondersteuningsbeleid voordat u het publiceert.",
+    "The regression cases changed. Create a new support policy draft and test it.": "De regressiegevallen zijn gewijzigd. Maak een nieuw beleidsconcept en test dit.",
+    "Choose a published version of this knowledge item.": "Kies een gepubliceerde versie van dit kennisartikel.",
+    "Knowledge integrity verification failed.": "De integriteitscontrole van de kennis is mislukt."
 }

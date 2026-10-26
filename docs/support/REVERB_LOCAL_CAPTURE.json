@@ -1,0 +1,36 @@
+{
+  "transport": "actual local Reverb websocket + real signed broadcaster publish",
+  "owner_auth": 200,
+  "other_user_auth": 403,
+  "subscription": "succeeded",
+  "events": [
+    {
+      "event": "ChatResearchStarted",
+      "keys": [
+        "conversation_id",
+        "message_id",
+        "status"
+      ],
+      "status": "RESEARCHING"
+    },
+    {
+      "event": "ChatVerificationStarted",
+      "keys": [
+        "conversation_id",
+        "message_id",
+        "status"
+      ],
+      "status": "VERIFYING"
+    },
+    {
+      "event": "ChatAnswerVerified",
+      "keys": [
+        "conversation_id",
+        "message_id",
+        "status"
+      ],
+      "status": "VERIFIED"
+    }
+  ],
+  "provider": "synthetic Responses fixture, no live OpenAI"
+}
