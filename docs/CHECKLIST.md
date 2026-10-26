@@ -511,11 +511,11 @@ Evidence: implementation `dea03b5`, CI `40199851559` passed; final strict-quota 
 
 First small backend boundary; no chat route/model activation yet. Existing wallet, voucher, fee and FAQ records remain authoritative.
 
-- [x] Audit and reuse existing reads; implement a closed read-only tool registry for consumer wallet/voucher, workspace funding/offer costs and published FAQ. (B17a implementation checkpoint; SHA recorded in closeout.)
-- [x] Recheck active verified identity, membership, workspace state and individual permissions on each retrieval and answer verification; audit denials without data leakage. (B17a implementation checkpoint; SHA recorded in closeout.)
-- [x] Keep private scope/source metadata separate from minimal provider context; exclude voucher codes, customer/contact/payment identifiers and arbitrary actions. (B17a implementation checkpoint; SHA recorded in closeout.)
-- [x] Independently render selected facts from freshly authorized evidence; reject invented fields, values, links, stale/conflicting evidence and unknown tools. (B17a implementation checkpoint; SHA recorded in closeout.)
-- [ ] Execute SQLite/MySQL tests and quality/API contract checks; update TASKS/PROGRESS/HANDOFF and commit/push/verify CI.
+- [x] Audit and reuse existing reads; implement a closed read-only tool registry for consumer wallet/voucher, workspace funding/offer costs and published FAQ. (`9caa4fd`; CI `40284066219` passed.)
+- [x] Recheck active verified identity, membership, workspace state and individual permissions on each retrieval and answer verification; audit denials without data leakage. (`9caa4fd`; CI `40284066219` passed.)
+- [x] Keep private scope/source metadata separate from minimal provider context; exclude voucher codes, customer/contact/payment identifiers and arbitrary actions. (`9caa4fd`; CI `40284066219` passed.)
+- [x] Independently render selected facts from freshly authorized evidence; reject invented fields, values, links, stale/conflicting evidence and unknown tools. (`9caa4fd`; CI `40284066219` passed.)
+- [x] Execute SQLite/MySQL tests and quality/API contract checks; update TASKS/PROGRESS/HANDOFF and commit/push/verify CI. (`9caa4fd`; CI `40284066219` passed.)
 - [ ] B17b+: chat orchestration, OpenAI transport, one targeted retry, persisted history, private broadcasts, feedback/review, settings and full 100-question/E2E acceptance.
 
 - [ ] B18 E2E/security/load/release
