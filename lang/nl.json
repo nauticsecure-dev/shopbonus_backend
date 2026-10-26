@@ -62,5 +62,11 @@
     "Start experiments on a live banner without another active experiment.": "Start experimenten op een live banner zonder een ander actief experiment.",
     "Choose different published versions of this banner, or a holdout control.": "Kies verschillende gepubliceerde versies van deze banner of een controlegroep zonder banner.",
     "This banner has no active experiment.": "Deze banner heeft geen actief experiment.",
-    "Stop the experiment before publishing another version.": "Stop het experiment voordat je een andere versie publiceert."
+    "Stop the experiment before publishing another version.": "Stop het experiment voordat je een andere versie publiceert.",
+    "Invalid support tool arguments.": "Ongeldige argumenten voor het hulpprogramma.",
+    "Support evidence is unavailable.": "De benodigde ondersteuningsgegevens zijn niet beschikbaar.",
+    "Support evidence conflicts.": "De ondersteuningsgegevens zijn tegenstrijdig.",
+    "Support evidence has expired.": "De ondersteuningsgegevens zijn verouderd.",
+    "Support evidence has changed.": "De ondersteuningsgegevens zijn gewijzigd.",
+    "The support answer could not be verified.": "Het ondersteuningsantwoord kon niet worden gecontroleerd."
 }

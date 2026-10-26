@@ -1,0 +1,132 @@
+<?php
+
+namespace App\Services\Support;
+
+use App\Enums\AuditCategory;
+use App\Enums\AuditOutcome;
+use App\Exceptions\ApiException;
+use App\Models\User;
+use App\Services\Audit\AuditLogger;
+use Carbon\CarbonImmutable;
+
+/**
+ * A model may only select opaque evidence IDs, never supply prose, values or links.
+ * Reauthorize and re-read sources, compare exact snapshots, then render server templates.
+ * This is a verification boundary, not intent classification or a general chat engine.
+ */
+final class VerifiedSupportAnswer
+{
+    public function __construct(private readonly SupportTools $tools, private readonly AuditLogger $audit) {}
+
+    /**
+     * Required tools are determined by Laravel's research plan, never by a model.
+     *
+     * @param  array<string, mixed>  $selection
+     * @param  list<ToolEvidence>  $evidence
+     * @param  list<string>  $requiredTools
+     * @return array<string, mixed>
+     */
+    public function verify(User $actor, array $selection, array $evidence, array $requiredTools): array
+    {
+        $ids = $selection['evidence_ids'] ?? null;
+        if (array_keys($selection) !== ['evidence_ids'] || ! is_array($ids) || ! array_is_list($ids)
+            || count($ids) < 1 || count($ids) > 5 || count($evidence) > 5 || $requiredTools === []
+            || count($requiredTools) > 5 || array_diff($requiredTools, array_keys(SupportTools::ARGUMENTS)) !== []) {
+            $this->invalid($actor);
+        }
+        $indexed = [];
+        $scopes = [];
+        $sources = [];
+        foreach ($evidence as $item) {
+            // Reject even unselected conflicting snapshots: a model cannot hide a conflict.
+            if ($item->actorId !== $actor->id || isset($indexed[$item->id])) {
+                $this->invalid($actor);
+            }
+            $scopes[json_encode([$item->workspace, $item->locale], JSON_THROW_ON_ERROR)] = true;
+            $source = json_encode([$item->workspace, $item->locale, $item->tool, $item->arguments], JSON_THROW_ON_ERROR);
+            if (isset($sources[$source]) && ! $sources[$source]->matches($item)) {
+                $this->reject($actor, 'support_evidence_conflict', 'Support evidence conflicts.');
+            }
+            $sources[$source] = $item;
+            $indexed[$item->id] = $item;
+        }
+        if (count($scopes) !== 1) {
+            $this->invalid($actor);
+        }
+        $selected = [];
+        foreach ($ids as $id) {
+            if (! is_string($id) || ! isset($indexed[$id]) || isset($selected[$id])) {
+                $this->invalid($actor);
+            }
+            $item = $indexed[$id];
+            $now = CarbonImmutable::now();
+            if ($item->retrievedAt->greaterThan($now) || $item->retrievedAt->lessThan($now->subSeconds(30))) {
+                $this->reject($actor, 'support_evidence_expired', 'Support evidence has expired.');
+            }
+            $fresh = $this->tools->retrieve($actor, $item->tool, $item->arguments, $item->workspace, $item->locale);
+            if (! $item->matches($fresh)) {
+                $this->reject($actor, 'support_evidence_changed', 'Support evidence has changed.');
+            }
+            $selected[$id] = $fresh;
+        }
+        if (array_diff($requiredTools, array_map(fn (ToolEvidence $item) => $item->tool, array_values($selected))) !== []) {
+            $this->audit->recordSafely('support.answer_incomplete', outcome: AuditOutcome::Failure, category: AuditCategory::Security, actorUserId: $actor->id);
+
+            return ['status' => 'NEEDS_CLARIFICATION', 'answer' => null, 'evidence_ids' => [], 'checked_at' => CarbonImmutable::now()->toIso8601String(), 'action' => null];
+        }
+        // One conversation locale; caller supplies that locale through the trusted context.
+        $parts = array_map(fn (ToolEvidence $item) => $this->render($item), array_values($selected));
+        $partial = count(array_filter($selected, fn (ToolEvidence $item) => $item->tool === 'get_offer_cost' && ! $item->facts['available'])) > 0;
+
+        $this->audit->recordSafely('support.answer_verified', category: AuditCategory::Security, actorUserId: $actor->id,
+            metadata: ['status' => $partial ? 'PARTIALLY_VERIFIED' : 'VERIFIED', 'tools' => array_values(array_unique(array_map(fn (ToolEvidence $e) => $e->tool, array_values($selected))))]);
+
+        return ['status' => $partial ? 'PARTIALLY_VERIFIED' : 'VERIFIED', 'answer' => implode("\n", $parts),
+            'evidence_ids' => array_keys($selected), 'checked_at' => CarbonImmutable::now()->toIso8601String(),
+            // Actions need an authorized conversation/intent contract; do not accept model URLs.
+            'action' => null];
+    }
+
+    private function render(ToolEvidence $e): string
+    {
+        $f = $e->facts;
+        $nl = $e->locale === 'nl';
+        $amount = fn (int $value) => $f['unit'] === 'points' ? $value.($nl ? ' punten' : ' points')
+            : 'EUR '.intdiv($value, 100).'.'.str_pad((string) ($value % 100), 2, '0', STR_PAD_LEFT);
+
+        return match ($e->tool) {
+            'get_my_wallet' => $nl
+                ? 'Beschikbaar ShopBonus-tegoed: '.$amount($f['available']).'; gereserveerd: '.$amount($f['reserved']).'; in behandeling: '.$amount($f['pending']).'; besteed: '.$amount($f['spent']).'. Geen geldopname of overdracht.'
+                : 'Available ShopBonus credit: '.$amount($f['available']).'; reserved: '.$amount($f['reserved']).'; pending: '.$amount($f['pending']).'; spent: '.$amount($f['spent']).'. Cannot be withdrawn or transferred.',
+            'get_workspace_wallet' => $nl
+                ? 'Beschikbare webshopfinanciering: '.$amount($f['available']).'; gereserveerd: '.$amount($f['reserved']).'.'
+                : 'Available merchant funding: '.$amount($f['available']).'; reserved: '.$amount($f['reserved']).'.',
+            'get_my_voucher' => ($nl ? 'Geregistreerde voucherstatus: ' : 'Recorded voucher status: ').$f['status'].'. '
+                .($f['redeemed_at'] === null ? ($nl ? 'Geen bevestigde inwisseling geregistreerd.' : 'No confirmed redemption is recorded.')
+                    : ($nl ? 'Inwisseling geregistreerd op ' : 'Redemption recorded at ').$f['redeemed_at'].'.')
+                .($f['expires_at'] === null ? '' : ($nl ? ' Vervaldatum: ' : ' Expires at: ').$f['expires_at'].'.'),
+            'get_offer_cost' => ! $f['available']
+                ? ($nl ? 'De actuele directe beloningskosten konden niet worden vastgesteld.' : 'The current direct reward cost is unavailable.')
+                : ($nl ? 'Kostenvoorbeeld per voucher in ' : 'Cost preview per voucher in ').$f['currency'].': '
+                    .($nl ? 'beloning ' : 'reward ').$f['consumer_reward_minor'].' minor units; '
+                    .($nl ? 'platformkosten ' : 'platform fee ').$f['shopbonus_fee_minor'].' minor units; '
+                    .($nl ? 'totaal ' : 'total ').$f['merchant_total_economic_cost_minor'].' minor units; '
+                    .($nl ? 'basis ' : 'basis ').$f['basis'].'. '
+                    .($nl ? 'Alleen een voorbeeld; er is niets afgeschreven.' : 'Preview only; nothing has been charged.'),
+            'get_approved_knowledge' => ($nl ? 'Gepubliceerde FAQ ('.$f['locale'].'): ' : 'Published FAQ ('.$f['locale'].'): ').$f['content'],
+            default => throw new \LogicException('Unsupported verified support tool.'),
+        };
+    }
+
+    private function invalid(User $actor): never
+    {
+        $this->reject($actor, 'support_answer_invalid', 'The support answer could not be verified.', 422);
+    }
+
+    private function reject(User $actor, string $code, string $message, int $status = 409): never
+    {
+        $this->audit->recordSafely('support.answer_rejected', outcome: AuditOutcome::Denied, category: AuditCategory::Security,
+            actorUserId: $actor->id, metadata: ['reason' => $code], httpStatus: $status);
+        throw new ApiException($message, $status, $code);
+    }
+}

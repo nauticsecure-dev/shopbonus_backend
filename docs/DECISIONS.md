@@ -95,3 +95,11 @@ All items below are OPEN unless supported by existing owner-approved implementat
 | OPEN-SIGNUP-ENUMERATION | OPEN | Registration returns 422 "email already taken", which reveals that an account exists. Card #4 requires generic responses for login/reset but is silent on signup. The alternative is "always 201 + email the existing owner", which complicates the UX. | Kept Laravel's standard 422. Owner to decide. |
 
 New decisions: append with owner approval, effective rule version, migrations/compatibility impact, tests and rollback. Never erase previous business-rule versions used by issued vouchers or posted ledger entries.
+
+### D-074 — #26 support evidence before chat activation (2026-10-26)
+
+Owner requests the next task; selected B17 / Trello #26. Apply AGENTS small-boundary rule: B17a implements the read-only authorized evidence/independent renderer before public chat/model activation. Existing wallets, voucher ownership, fees and published multilingual FAQ remain authoritative; no duplicate routes/tables. The model will select opaque evidence IDs, never supply user-facing financial prose/amounts/dates/actions. Verify against freshly reauthorized source snapshots, bounded30s/5items; render server templates. Scope/relevance/completeness, one targeted retry, conversation retention, critical policy restrictions, transport and human review remain subsequent B17 boundaries. Published FAQ revisions are reused without inventing approval timestamps. No consumer order ownership is inferred from email. Credentials/model/budget remain senior-developer configuration, not an owner coding prerequisite. No financial/legal/affiliate/contact policy activation.
+
+### D-075 — #26 disk cutoff override (2026-10-26)
+
+Owner explicitly selected “Continue #26 below the limit” after disk space dropped from5.2GiB to3.2GiB during sequential full database testing. Continue this #26 work below the previous~5GiB cutoff; no repeated permission request on that same condition, and no unrelated cleanup/Redis flush/binlog purge authorized.
