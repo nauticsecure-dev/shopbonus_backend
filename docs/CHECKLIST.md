@@ -516,7 +516,7 @@ First small backend boundary; no chat route/model activation yet. Existing walle
 - [x] Keep private scope/source metadata separate from minimal provider context; exclude voucher codes, customer/contact/payment identifiers and arbitrary actions. (`9caa4fd`; CI `40284066219` passed.)
 - [x] Independently render selected facts from freshly authorized evidence; reject invented fields, values, links, stale/conflicting evidence and unknown tools. (`9caa4fd`; CI `40284066219` passed.)
 - [x] Execute SQLite/MySQL tests and quality/API contract checks; update TASKS/PROGRESS/HANDOFF and commit/push/verify CI. (`9caa4fd`; CI `40284066219` passed.)
-- [ ] B17b+: chat orchestration, OpenAI transport, one targeted retry, persisted history, private broadcasts, feedback/review, settings and full 100-question/E2E acceptance.
+- [x] B17b–f main backend chat/provider/retry/history/private progress/feedback/review/settings/knowledge and100-question/backend E2E coverage delivered. (`d63f616` + `7616e88`; CI `40388179684` passed.) Frontend/live/deployed acceptance remains separate.
 
 - [ ] B18 E2E/security/load/release
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)
@@ -549,9 +549,9 @@ Owner authorizes main backend implementation; credentials configured by senior d
 
 Owner explicitly asks to finish remaining backend; credentials/model configured by senior developer. D-075 disk override persists for #26. One coherent boundary at a time; boxes remain open until executed checks.
 
-- [x] B17b: extend read-only tools for owned order/reward status, vouchers, quotes, campaign and integration health; typed server research plan, missing-reference clarification and one distinct targeted retry; no email-based ownership guesses. (Executed local checks PASS; implementation SHA recorded in closeout.)
-- [x] B17c: encrypted persisted owned conversations/messages/evidence, request idempotency, queued single execution, strict Responses evidence selector, global/per-user quotas, circuit breaker and retention/deletion. (Executed local checks PASS; implementation SHA recorded in closeout.)
-- [x] B17d: authenticated chat/history/knowledge/feedback/escalation APIs, private minimal progress events and Reverb backend configuration; reconnect HTTP sync and negative subscription tests. (Executed local checks PASS; implementation SHA recorded in closeout.)
-- [x] B17e: human review/resolution and executed approved regression cases, operational metrics; reuse independently reviewed settings, preserve immutable FAQ snapshots and published rollback; test-before-publish critical restrictions and immutable server safeguards. (Executed local checks PASS; implementation SHA recorded in closeout.)
-- [ ] B17f:100 distinct EN/NL regression questions, ten card backend E2E cases, isolation/error/provider/race tests; real HTTP captures for every endpoint and changed settings; SQLite/MySQL sequential suites, migration apply/rollback/reapply, quality/security checks, commit/push/CI/handoff.
+- [x] B17b: extend read-only tools for owned order/reward status, vouchers, quotes, campaign and integration health; typed server research plan, missing-reference clarification and one distinct targeted retry; no email-based ownership guesses. (`d63f616` + `7616e88`; CI `40388179684` passed.)
+- [x] B17c: encrypted persisted owned conversations/messages/evidence, request idempotency, queued single execution, strict Responses evidence selector, global/per-user quotas, circuit breaker and retention/deletion. (`d63f616` + `7616e88`; CI `40388179684` passed.)
+- [x] B17d: authenticated chat/history/knowledge/feedback/escalation APIs, private minimal progress events and Reverb backend configuration; reconnect HTTP sync and negative subscription tests. (`d63f616` + `7616e88`; CI `40388179684` passed.)
+- [x] B17e: human review/resolution and executed approved regression cases, operational metrics; reuse independently reviewed settings, preserve immutable FAQ snapshots and published rollback; test-before-publish critical restrictions and immutable server safeguards. (`d63f616` + `7616e88`; CI `40388179684` passed.)
+- [x] B17f:100 distinct EN/NL regression questions, ten card backend E2E cases, isolation/error/provider/race tests; real HTTP captures for every endpoint and changed settings; SQLite/MySQL sequential suites, migration apply/rollback/reapply, quality/security checks, commit/push/CI/handoff. (`7616e88`; CI `40388179684` SUCCESS, SQLite658+15skip/MySQL671+2skip.)
 - [ ] Senior developer: genuine configured OpenAI/Reverb deployment/provider/production monitoring and staging/frontend acceptance (NOT RUN locally; no credentials requested).
