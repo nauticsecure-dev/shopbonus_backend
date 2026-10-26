@@ -56,3 +56,5 @@ B20b: bridge merchant events/legacy reads and wire the complete consumer/workspa
 ## B20a executed verification
 
 Full SQLite688tests:672passed+16skipped,8873assertions,71.284s. Sequential MySQL688tests:686passed+2skipped,8927assertions,273.128s. Includes15 new tests and one real4-process publication race (SQLite skip). Full Pint, PHPStan L6, composer audit and OpenAPI coverage pass. Migration140000 apply/rollback/reapply PASS locally on MySQL. Implementation commit/push/CI SHA recorded in latest HANDOFF after closeout; these local checks establish only the B20a boundary.
+
+Implementation `5c1d8cc` is pushed; CI `40399876856` SUCCESS all3jobs. Exact688tests/database: SQLite672pass+16skip/8877assertions/39.76s; MySQL686pass+2skip/8927assertions/126.47s; quality checks green. Dispatch-failure recovery is a simulated throwing event listener at the dispatch boundary; genuine deployed queue/mail/Reverb outage recovery is NOT RUN.

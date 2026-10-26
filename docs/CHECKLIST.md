@@ -561,12 +561,12 @@ Owner explicitly asks to finish remaining backend; credentials/model configured 
 
 Owner authorizes #29 below the ~5 GiB disk cutoff; senior configures credentials. One tested boundary at a time. Whole card remains PARTIAL until all slices have evidence.
 
-- [x] B20a: reuse Laravel database notifications for an owned persistent inbox, strict pagination/filtering, individual/all read state and NL/EN support-reply templates. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
-- [x] B20a: persist human-support notifications atomically with replies; stable recipient/event deduplication, no message/code/financial content in payloads. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
-- [x] B20a: preferences reuse user locale and existing communication consent; mandatory in-app rules cannot be disabled. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
-- [x] B20a: private minimal Reverb invalidations, owner-only subscription, revoked membership/admin-role filtering and support-token denial. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
-- [x] B20a: executed security/rollback/idempotency/read/preferences/realtime tests on SQLite/MySQL, real HTTP examples, quality checks and migration rollback/reapply. (`this commit`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
-- [ ] B20a closeout: push implementation, verify CI and record SHA/test evidence in handoff.
+- [x] B20a: reuse Laravel database notifications for an owned persistent inbox, strict pagination/filtering, individual/all read state and NL/EN support-reply templates. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: persist human-support notifications atomically with replies; stable recipient/event deduplication, no message/code/financial content in payloads. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: preferences reuse user locale and existing communication consent; mandatory in-app rules cannot be disabled. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: private minimal Reverb invalidations, owner-only subscription, revoked membership/admin-role filtering and support-token denial. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a: executed security/rollback/idempotency/read/preferences/realtime tests on SQLite/MySQL, real HTTP examples, quality checks and migration rollback/reapply. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
+- [x] B20a closeout: push implementation, verify CI and record SHA/test evidence in handoff. (`5c1d8cc`; CI `40399876856` SUCCESS all3jobs; this docs-only closeout.)
 - [ ] B20b: migrate/bridge merchant notifications without duplicate inbox systems or changed legacy read semantics; connect full consumer/workspace/admin event catalogue.
 - [ ] B20c: durable queued email delivery/outbox, bounded retries/failure recovery, mandatory/optional rules, actual render tests and retention.
 - [ ] B20d: deduplicated 30/7/1 voucher and offer reminders; eligibility and consent rechecked at dispatch.
