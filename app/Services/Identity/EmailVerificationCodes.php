@@ -9,6 +9,7 @@ use App\Models\EmailVerificationChallenge;
 use App\Models\User;
 use App\Notifications\EmailVerificationCode;
 use App\Services\Audit\AuditLogger;
+use App\Services\Notifications\NotificationSources;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -121,6 +122,8 @@ class EmailVerificationCodes
 
             User::query()->whereKey($user->id)->whereNull('email_verified_at')
                 ->update(['email_verified_at' => now()]);
+
+            app(NotificationSources::class)->capture('email_verified', 'email-verified:'.$user->public_id, [$user->id]);
 
             return null;
         });

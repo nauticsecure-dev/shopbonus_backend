@@ -11084,3 +11084,1658 @@ X-RateLimit-Remaining: 987
 
 {"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"b20-capture-storage-failure"}}
 ```
+
+## #29 remaining notification backend — actual HTTP captures
+
+2026-10-26 actual local Laravel HTTP/SQLite/database sessions and queue; main base deea998 plus #29 implementation. Synthetic users, seeded OTP verification through real sessions. Temporary router simulates strict OpenAI completion/malformed output and one storage failure; not shipped. Actual queue worker uses array mail only; no external customer/provider/deployed Reverb proof. All secrets/cookies/OTP omitted. Six extra requests use a second isolated fixture for updated read/legacy/deletion behavior. See [event/field/configuration handoff](../notifications/NOTIFICATIONS.md). The earlier B20a examples above are historical. These captures reflect the remaining main backend. All provider successes are synthetic; array-mail sent means local transport accepted, not customer delivery.
+
+### `GET /api/v1/platform/notifications/events` — events
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/events -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-events
+
+{"data":[{"event_type":"account_welcome","audience":"consumer","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"email_verified","audience":"consumer","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"cashback_credited","audience":"consumer","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":["amount_formatted"],"locales":["nl","en"],"reminder_days":[]},{"event_type":"voucher_received","audience":"consumer","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"voucher_expiring","audience":"consumer","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[30,7,1]},{"event_type":"voucher_used","audience":"consumer","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"voucher_cancelled","audience":"consumer","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"cashback_adjusted","audience":"consumer","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"support_reply","audience":"consumer","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"favorite_merchant_offer","audience":"consumer","mandatory_in_app":false,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"workspace_approved","audience":"workspace","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"workspace_rejected","audience":"workspace","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"offer_published","audience":"workspace","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"offer_expiring","audience":"workspace","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"commission_changed","audience":"workspace","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"integration_attention","audience":"workspace","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"workspace_support_reply","audience":"workspace","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"workspace_review_required","audience":"admin","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"ai_support_escalated","audience":"admin","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"affiliate_import_failed","audience":"admin","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"notification_delivery_failed","audience":"admin","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"critical_notification_failure","audience":"admin","mandatory_in_app":true,"mandatory_email":true,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]},{"event_type":"merchant_attention","audience":"workspace","mandatory_in_app":true,"mandatory_email":false,"allowed_variables":[],"locales":["nl","en"],"reminder_days":[]}],"failures":[{"id":"01m5x2dxnmrmdstab31stbzggp","event_type":"email_verified","attempts":3,"error_code":"synthetic_inbox_failure"}]}
+```
+
+### `GET /api/v1/platform/notifications/deliveries` — deliveries
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-deliveries
+
+{"data":[{"id":"01m5x2dxv818ry5cxgw5vnmcbh","notification_id":"45c0e627-f377-4595-bdf9-1c6a98745aba","channel":"mail","status":"uncertain","attempts":1,"error_code":null,"sent_at":null},{"id":"01m5x2dxryb5cpqmsdrp7j1zc7","notification_id":"083c78b7-aa66-4ee1-a38f-2f54c49c2419","channel":"mail","status":"pending","attempts":0,"error_code":null,"sent_at":null}],"meta":{"current_page":1,"total":2},"operations":{"failed_events":1,"locale_fallbacks":0}}
+```
+
+### `GET /api/v1/platform/notifications/settings` — settings
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+X-Request-Id: b29-settings
+
+{"data":{"retention_days":90,"email_enabled":true},"email_delivery_available":true}
+```
+
+### `POST /api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry` — retry-event
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic source failure reviewed"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-Request-Id: b29-retry-event
+
+{"data":{"id":"01m5x2dxnmrmdstab31stbzggp","status":"pending"}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry` — retry-no-ack
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic transport evidence reviewed"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-retry-no-ack
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 994
+
+{"error":{"status":409,"code":"notification_duplicate_risk","message":"Review the uncertain transport result before retrying.","request_id":"b29-retry-no-ack"}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry` — retry-delivery
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic transport evidence reviewed","duplicate_risk_acknowledged":true}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 993
+X-Request-Id: b29-retry-delivery
+
+{"data":{"id":"01m5x2dxv818ry5cxgw5vnmcbh","notification_id":"45c0e627-f377-4595-bdf9-1c6a98745aba","channel":"mail","status":"retry","attempts":1,"error_code":null,"sent_at":null}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve` — resolve-delivery
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic verified transport record","outcome":"do_not_resend"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 992
+X-Request-Id: b29-resolve-delivery
+
+{"data":{"id":"01m5x2dxv818ry5cxgw5vnmcbh","notification_id":"45c0e627-f377-4595-bdf9-1c6a98745aba","channel":"mail","status":"skipped","attempts":1,"error_code":"human_reviewed","sent_at":null}}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — generate
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 61cc4fda-19f5-4a4c-b516-fb09c4443068' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 991
+X-Request-Id: b29-generate
+
+{"data":[{"id":"01m5x2eex18gkm57fz39b23sfv","key":"notifications.template.support_reply.nl","version":1,"status":"draft","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":false,"published_at":null,"rollback_of":null},{"id":"01m5x2eexykppbe99z8jq9x4m5","key":"notifications.template.support_reply.en","version":1,"status":"draft","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"checksum":"2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a","is_current":false,"published_at":null,"rollback_of":null}]}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — generate-replay
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 61cc4fda-19f5-4a4c-b516-fb09c4443068' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 990
+X-Request-Id: b29-generate-replay
+
+{"data":[{"id":"01m5x2eex18gkm57fz39b23sfv","key":"notifications.template.support_reply.nl","version":1,"status":"draft","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":false,"published_at":null,"rollback_of":null},{"id":"01m5x2eexykppbe99z8jq9x4m5","key":"notifications.template.support_reply.en","version":1,"status":"draft","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"checksum":"2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a","is_current":false,"published_at":null,"rollback_of":null}]}
+```
+
+### `GET /api/v1/platform/notifications/templates` — template-list
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 989
+X-Request-Id: b29-template-list
+
+{"data":[{"id":"01m5x2eexykppbe99z8jq9x4m5","key":"notifications.template.support_reply.en","version":1,"status":"draft","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"checksum":"2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a","is_current":false,"published_at":null,"rollback_of":null},{"id":"01m5x2eex18gkm57fz39b23sfv","key":"notifications.template.support_reply.nl","version":1,"status":"draft","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":false,"published_at":null,"rollback_of":null}],"meta":{"current_page":1,"total":2}}
+```
+
+### `GET /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — template-show
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 988
+X-Request-Id: b29-template-show
+
+{"data":{"id":"01m5x2eex18gkm57fz39b23sfv","key":"notifications.template.support_reply.nl","version":1,"status":"draft","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":false,"published_at":null,"rollback_of":null}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish` — publish-needs-test
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic independent review"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-publish-needs-test
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+
+{"error":{"status":409,"code":"notification_template_test_required","message":"Test the notification template before publication.","request_id":"b29-publish-needs-test"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test` — template-test
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 987
+X-Request-Id: b29-template-test
+
+{"data":{"failed":0,"checks":["schema","variables","lengths","plain_text","html_render","text_render"],"preview":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"synthetic":true,"render_sha256":"6f867f138e61fd657a4d73623bc8d4ae0a99bb1b587f4a0dd2588ee44890d227"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish` — self-publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic self review refused"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-self-publish
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 986
+
+{"error":{"status":403,"code":"second_admin_required","message":"A different administrator must publish this setting.","request_id":"b29-self-publish"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish` — publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic independent review"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-publish
+
+{"data":{"id":"01m5x2eex18gkm57fz39b23sfv","key":"notifications.template.support_reply.nl","version":1,"status":"published","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":true,"published_at":"2026-10-26T21:39:15+00:00","rollback_of":null}}
+```
+
+### `PUT /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — edit
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"expected_checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","value":{"title":"Supportbericht","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"reason":"Synthetic reviewed text update"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 985
+X-Request-Id: b29-edit
+
+{"data":{"id":"01m5x2egt83hzypkgr6jmd4b6e","key":"notifications.template.support_reply.nl","version":2,"status":"draft","value":{"title":"Supportbericht","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b42060b58718e16a8b6af35afd6528b5ade161891cc4072d141436378cf5f2ca","is_current":false,"published_at":null,"rollback_of":null}}
+```
+
+### `PUT /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — edit-stale
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"expected_checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","value":{"title":"Supportbericht","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"reason":"Synthetic stale text update"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-edit-stale
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 984
+
+{"error":{"status":409,"code":"notification_template_stale","message":"Template changed. Refresh before editing.","request_id":"b29-edit-stale"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2egt83hzypkgr6jmd4b6e/test` — edit-test
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2egt83hzypkgr6jmd4b6e/test -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 983
+X-Request-Id: b29-edit-test
+
+{"data":{"failed":0,"checks":["schema","variables","lengths","plain_text","html_render","text_render"],"preview":{"title":"Supportbericht","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"synthetic":true,"render_sha256":"1bc619952c86f410ede09e699baa6b763ff359e3c6261d81d0a9b6b1b66e3e0f"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2egt83hzypkgr6jmd4b6e/publish` — edit-publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2egt83hzypkgr6jmd4b6e/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic independent review"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+X-Request-Id: b29-edit-publish
+
+{"data":{"id":"01m5x2egt83hzypkgr6jmd4b6e","key":"notifications.template.support_reply.nl","version":2,"status":"published","value":{"title":"Supportbericht","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b42060b58718e16a8b6af35afd6528b5ade161891cc4072d141436378cf5f2ca","is_current":true,"published_at":"2026-10-26T21:39:17+00:00","rollback_of":null}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback` — rollback
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"reason":"Synthetic restore historical template"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 982
+X-Request-Id: b29-rollback
+
+{"data":{"id":"01m5x2ej4jaaffhkebtys72hk1","key":"notifications.template.support_reply.nl","version":3,"status":"draft","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":false,"published_at":null,"rollback_of":"01m5x2eex18gkm57fz39b23sfv"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2ej4jaaffhkebtys72hk1/test` — rollback-test
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2ej4jaaffhkebtys72hk1/test -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 981
+X-Request-Id: b29-rollback-test
+
+{"data":{"failed":0,"checks":["schema","variables","lengths","plain_text","html_render","text_render"],"preview":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"synthetic":true,"render_sha256":"6f867f138e61fd657a4d73623bc8d4ae0a99bb1b587f4a0dd2588ee44890d227"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2ej4jaaffhkebtys72hk1/publish` — rollback-publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2ej4jaaffhkebtys72hk1/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic rollback independent review"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-Request-Id: b29-rollback-publish
+
+{"data":{"id":"01m5x2ej4jaaffhkebtys72hk1","key":"notifications.template.support_reply.nl","version":3,"status":"published","value":{"title":"Supportnieuws","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","is_current":true,"published_at":"2026-10-26T21:39:17+00:00","rollback_of":"01m5x2eex18gkm57fz39b23sfv"}}
+```
+
+### `POST /api/v1/platform/notifications/templates` — store
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"voucher_received","locale":"en","value":{"title":"Your voucher is ready","body":"View current details in your account.","action_label":"View details"},"reason":"Synthetic reviewed manual template"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 980
+X-Request-Id: b29-store
+
+{"data":{"id":"01m5x2ejythfveh5mdp5mfs5wa","key":"notifications.template.voucher_received.en","version":1,"status":"draft","value":{"title":"Your voucher is ready","body":"View current details in your account.","action_label":"View details"},"checksum":"3f253ef448b49c782fabe7b9ea202d23cf046d42178b4e3790c3807d0e6277d4","is_current":false,"published_at":null,"rollback_of":null}}
+```
+
+### `PUT /api/v1/platform/notifications/settings` — settings-draft
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"value":{"retention_days":90,"email_enabled":true},"reason":"Synthetic reviewed delivery policy"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 979
+X-Request-Id: b29-settings-draft
+
+{"data":{"id":"01m5x2ek7x0hp0zhmbdzc2ae89","status":"draft","value":{"retention_days":90,"email_enabled":true}},"publication":"Use existing platform-settings submit and independent publish endpoints."}
+```
+
+### `POST /api/v1/admin/platform-settings/01m5x2ek7x0hp0zhmbdzc2ae89/review` — settings-review
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5x2ek7x0hp0zhmbdzc2ae89/review -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 978
+X-Request-Id: b29-settings-review
+
+{"data":{"id":"01m5x2ek7x0hp0zhmbdzc2ae89","key":"notifications.policy","version":1,"value":{"retention_days":90,"email_enabled":true},"checksum":"484d7b4584374c945b7138effc8637ced380c3e3ed38b7616cdd67ff080a3e05","status":"review","reason":"Synthetic reviewed delivery policy","created_by":"01m5x2dwrtnza2hgde66tp93k1","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+```
+
+### `POST /api/v1/admin/platform-settings/01m5x2ek7x0hp0zhmbdzc2ae89/publish` — settings-publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5x2ek7x0hp0zhmbdzc2ae89/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic independent policy review"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 994
+X-Request-Id: b29-settings-publish
+
+{"data":{"id":"01m5x2ek7x0hp0zhmbdzc2ae89","key":"notifications.policy","version":1,"value":{"retention_days":90,"email_enabled":true},"checksum":"484d7b4584374c945b7138effc8637ced380c3e3ed38b7616cdd67ff080a3e05","status":"published","reason":"Synthetic reviewed delivery policy","created_by":"01m5x2dwrtnza2hgde66tp93k1","reviewed_by":"01m5x2dxjsdgv7yn0w01q1jsas","review_note":"Synthetic independent policy review","published_at":"2026-10-26T21:39:18+00:00","is_current":true,"rollback_of":null}}
+```
+
+### `GET /api/v1/platform/notifications/settings` — settings-published
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 977
+X-Request-Id: b29-settings-published
+
+{"data":{"retention_days":90,"email_enabled":true},"email_delivery_available":true}
+```
+
+### `GET /api/v1/notifications` — current-inbox
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-Request-Id: b29-current-inbox
+
+{"data":[{"id":"45c0e627-f377-4595-bdf9-1c6a98745aba","type":"voucher_received","recipient_type":"consumer","title":"Je voucher staat klaar","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-voucher_received-v1","locale":"nl","locale_fallback":false,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"skipped"},"read_at":null,"created_at":"2026-10-26T21:38:56+00:00"},{"id":"083c78b7-aa66-4ee1-a38f-2f54c49c2419","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-support_reply-v1","locale":"nl","locale_fallback":false,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"pending"},"read_at":null,"created_at":"2026-10-26T21:38:56+00:00"}],"meta":{"unread_count":2,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `GET /api/v1/notification-preferences` — current-preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-current-preferences
+
+{"data":{"locale":"nl","email_enabled":true,"preferences":{"account_welcome":{"in_app":true,"email":true},"email_verified":{"in_app":true,"email":false},"cashback_credited":{"in_app":true,"email":false},"voucher_received":{"in_app":true,"email":true},"voucher_expiring":{"in_app":true,"email":false},"voucher_used":{"in_app":true,"email":false},"voucher_cancelled":{"in_app":true,"email":true},"cashback_adjusted":{"in_app":true,"email":true},"support_reply":{"in_app":true,"email":false},"favorite_merchant_offer":{"in_app":false,"email":false},"workspace_approved":{"in_app":true,"email":true},"workspace_rejected":{"in_app":true,"email":true},"offer_published":{"in_app":true,"email":false},"offer_expiring":{"in_app":true,"email":false},"commission_changed":{"in_app":true,"email":true},"integration_attention":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false},"workspace_review_required":{"in_app":true,"email":false},"ai_support_escalated":{"in_app":true,"email":false},"affiliate_import_failed":{"in_app":true,"email":false},"notification_delivery_failed":{"in_app":true,"email":false},"critical_notification_failure":{"in_app":true,"email":true},"merchant_attention":{"in_app":true,"email":false}},"email_delivery_available":true}}
+```
+
+### `PUT /api/v1/notification-preferences` — current-preferences-update
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"email_enabled":false,"preferences":{"favorite_merchant_offer":{"in_app":true,"email":false}}}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-current-preferences-update
+
+{"data":{"locale":"nl","email_enabled":false,"preferences":{"account_welcome":{"in_app":true,"email":true},"email_verified":{"in_app":true,"email":false},"cashback_credited":{"in_app":true,"email":false},"voucher_received":{"in_app":true,"email":true},"voucher_expiring":{"in_app":true,"email":false},"voucher_used":{"in_app":true,"email":false},"voucher_cancelled":{"in_app":true,"email":true},"cashback_adjusted":{"in_app":true,"email":true},"support_reply":{"in_app":true,"email":false},"favorite_merchant_offer":{"in_app":true,"email":false},"workspace_approved":{"in_app":true,"email":true},"workspace_rejected":{"in_app":true,"email":true},"offer_published":{"in_app":true,"email":false},"offer_expiring":{"in_app":true,"email":false},"commission_changed":{"in_app":true,"email":true},"integration_attention":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false},"workspace_review_required":{"in_app":true,"email":false},"ai_support_escalated":{"in_app":true,"email":false},"affiliate_import_failed":{"in_app":true,"email":false},"notification_delivery_failed":{"in_app":true,"email":false},"critical_notification_failure":{"in_app":true,"email":true},"merchant_attention":{"in_app":true,"email":false}},"email_delivery_available":true}}
+```
+
+### `PUT /api/v1/notification-preferences` — mandatory-mail
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"voucher_received":{"email":false}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b29-mandatory-mail
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b29-mandatory-mail","fields":{"preferences.voucher_received":["Mandatory notification channels cannot be disabled."]}}}
+```
+
+### `DELETE /api/v1/notifications/083c78b7-aa66-4ee1-a38f-2f54c49c2419` — delete-foreign
+
+```bash
+curl -i -X DELETE http://localhost:8079/api/v1/notifications/083c78b7-aa66-4ee1-a38f-2f54c49c2419 -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: b29-delete-foreign
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+
+{"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b29-delete-foreign"}}
+```
+
+### `DELETE /api/v1/notifications/083c78b7-aa66-4ee1-a38f-2f54c49c2419` — delete-owned
+
+```bash
+curl -i -X DELETE http://localhost:8079/api/v1/notifications/083c78b7-aa66-4ee1-a38f-2f54c49c2419 -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-Request-Id: b29-delete-owned
+
+{"data":{"deleted":true}}
+```
+
+### `POST /api/v1/platform/notifications/templates` — invalid-copy
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply","locale":"en","value":{"title":"Unsafe","body":"Pay €999 today","action_label":"View details"},"reason":"Synthetic invalid copy rejected"}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b29-invalid-copy
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 976
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b29-invalid-copy","fields":{"value":["Use approved placeholders and plain text without literal amounts, deadlines, links or provider references."]}}}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — generation-failure
+
+Temporary local fixture header; never shipped or accepted as a production behavior switch.
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: bce0ffb7-7175-42bb-b06b-b93b73bc6cd6' -H 'X-B29-Provider-Mode: malformed' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply"}'
+```
+
+```http
+HTTP/1.1 503
+X-Request-Id: b29-generation-failure
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 975
+
+{"error":{"status":503,"code":"notification_generation_failed","message":"Template generation failed safely. No template was published.","request_id":"b29-generation-failure"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — generation-failed-replay
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: bce0ffb7-7175-42bb-b06b-b93b73bc6cd6' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-generation-failed-replay
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 974
+
+{"error":{"status":409,"code":"notification_generation_pending","message":"This generation is pending or failed; no provider retry was made.","request_id":"b29-generation-failed-replay"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — generation-cap
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: ad559742-36cc-4fe9-aa4d-c9528cb29a50' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply"}'
+```
+
+```http
+HTTP/1.1 429
+X-Request-Id: b29-generation-cap
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 973
+
+{"error":{"status":429,"code":"notification_ai_daily_limit","message":"Daily template generation limit reached.","request_id":"b29-generation-cap"}}
+```
+
+### `POST /api/v1/platform/notifications/templates` — admin-unauth-0
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-0
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-0"}}
+```
+
+### `POST /api/v1/platform/notifications/templates` — admin-forbidden-0
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-0
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 994
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-0"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — admin-unauth-1
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-1
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-1"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/generate` — admin-forbidden-1
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-1
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 993
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-1"}}
+```
+
+### `PUT /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — admin-unauth-2
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-2
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-2"}}
+```
+
+### `PUT /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — admin-forbidden-2
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-2
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 992
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-2"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test` — admin-unauth-3
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-3
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-3"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test` — admin-forbidden-3
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-3
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 991
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-3"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish` — admin-unauth-4
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-4
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-4"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish` — admin-forbidden-4
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-4
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 990
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-4"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback` — admin-unauth-5
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-5
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-5"}}
+```
+
+### `POST /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback` — admin-forbidden-5
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-5
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 989
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-5"}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry` — admin-unauth-6
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-6
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-6"}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry` — admin-forbidden-6
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-6
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 988
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-6"}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve` — admin-unauth-7
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-7
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-7"}}
+```
+
+### `POST /api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve` — admin-forbidden-7
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-7
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 987
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-7"}}
+```
+
+### `PUT /api/v1/platform/notifications/settings` — admin-unauth-8
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-8
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-8"}}
+```
+
+### `PUT /api/v1/platform/notifications/settings` — admin-forbidden-8
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-8
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 986
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-8"}}
+```
+
+### `POST /api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry` — admin-unauth-9
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-admin-unauth-9
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-admin-unauth-9"}}
+```
+
+### `POST /api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry` — admin-forbidden-9
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-admin-forbidden-9
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 985
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-admin-forbidden-9"}}
+```
+
+### `GET /api/v1/platform/notifications/templates` — read-unauth-0
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-read-unauth-0
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-read-unauth-0"}}
+```
+
+### `GET /api/v1/platform/notifications/templates` — read-forbidden-0
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-read-forbidden-0
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 984
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-read-forbidden-0"}}
+```
+
+### `GET /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — read-unauth-1
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-read-unauth-1
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-read-unauth-1"}}
+```
+
+### `GET /api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv` — read-forbidden-1
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-read-forbidden-1
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 983
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-read-forbidden-1"}}
+```
+
+### `GET /api/v1/platform/notifications/events` — read-unauth-2
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/events -H 'Accept: application/json'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-read-unauth-2
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-read-unauth-2"}}
+```
+
+### `GET /api/v1/platform/notifications/events` — read-forbidden-2
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/events -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-read-forbidden-2
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 982
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-read-forbidden-2"}}
+```
+
+### `GET /api/v1/platform/notifications/deliveries` — read-unauth-3
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-read-unauth-3
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-read-unauth-3"}}
+```
+
+### `GET /api/v1/platform/notifications/deliveries` — read-forbidden-3
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-read-forbidden-3
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 981
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-read-forbidden-3"}}
+```
+
+### `GET /api/v1/platform/notifications/settings` — read-unauth-4
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b29-read-unauth-4
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b29-read-unauth-4"}}
+```
+
+### `GET /api/v1/platform/notifications/settings` — read-forbidden-4
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b29-read-forbidden-4
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 980
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"b29-read-forbidden-4"}}
+```
+
+### `POST /api/v1/platform/notifications/templates` — password-required
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Authorization: Bearer <API_TOKEN>' --data '{}'
+```
+
+```http
+HTTP/1.1 423
+X-Request-Id: b29-password-required
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 972
+
+{"error":{"status":423,"code":"password_confirmation_required","message":"Confirm your password to continue.","request_id":"b29-password-required"}}
+```
+
+### `POST /api/v1/platform/notifications/templates` — browser-csrf
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: b29-browser-csrf
+Content-Type: application/json
+
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"b29-browser-csrf"}}
+```
+
+### `GET /api/v1/platform/notifications/templates/00000000000000000000000000` — template-missing
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates/00000000000000000000000000 -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: b29-template-missing
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 971
+
+{"error":{"status":404,"code":"not_found","message":"Template not found.","request_id":"b29-template-missing"}}
+```
+
+### `GET /api/v1/platform/notifications/deliveries?status=unknown` — delivery-invalid-status
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/platform/notifications/deliveries?status=unknown' -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b29-delivery-invalid-status
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 970
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b29-delivery-invalid-status","fields":{"status":["The selected status is invalid."]}}}
+```
+
+### `GET /api/v1/notifications` — post-worker-inbox
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 979
+X-Request-Id: b29-post-worker-inbox
+
+{"data":[{"id":"eba4a2a2-4c81-417f-8860-c506dc5d7bb0","type":"email_verified","recipient_type":"consumer","title":"E-mailadres bevestigd","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-email_verified-v1","locale":"nl","locale_fallback":false,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"skipped"},"read_at":null,"created_at":"2026-10-26T21:39:32+00:00"},{"id":"45c0e627-f377-4595-bdf9-1c6a98745aba","type":"voucher_received","recipient_type":"consumer","title":"Je voucher staat klaar","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-voucher_received-v1","locale":"nl","locale_fallback":false,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"skipped"},"read_at":null,"created_at":"2026-10-26T21:38:56+00:00"}],"meta":{"unread_count":2,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `GET /api/v1/platform/notifications/deliveries` — post-worker-deliveries
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 969
+X-Request-Id: b29-post-worker-deliveries
+
+{"data":[{"id":"01m5x2f1ckdf73j2eggbg1r1pz","notification_id":"eba4a2a2-4c81-417f-8860-c506dc5d7bb0","channel":"mail","status":"skipped","attempts":0,"error_code":"recipient_or_preferences_changed","sent_at":null},{"id":"01m5x2dxv818ry5cxgw5vnmcbh","notification_id":"45c0e627-f377-4595-bdf9-1c6a98745aba","channel":"mail","status":"skipped","attempts":1,"error_code":"human_reviewed","sent_at":null}],"meta":{"current_page":1,"total":2},"operations":{"failed_events":0,"locale_fallbacks":0}}
+```
+
+### `GET /api/v1/notifications` — inbox-storage-failure
+
+Temporary local fixture header; never shipped or accepted as a production behavior switch.
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'X-B29-Failure: storage'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: b29-inbox-storage-failure
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 978
+
+{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"b29-inbox-storage-failure"}}
+```
+
+### `PATCH /api/v1/notifications/5826b1f5-f2e3-4531-aa4f-16d5ad0865fd/read` — current-mark-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/5826b1f5-f2e3-4531-aa4f-16d5ad0865fd/read -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-Request-Id: b29-current-mark-read
+
+{"data":{"id":"5826b1f5-f2e3-4531-aa4f-16d5ad0865fd","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-support_reply-v1","locale":"nl","locale_fallback":false,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"pending"},"read_at":"2026-10-26T21:43:28+00:00","created_at":"2026-10-26T21:43:19+00:00"}}
+```
+
+### `POST /api/v1/notifications/read-all` — current-read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-current-read-all
+
+{"data":{"marked_read":2}}
+```
+
+### `GET /api/v1/workspaces/01m5x2ny1rern462kbng81pjbk/notifications` — legacy-list
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/workspaces/01m5x2ny1rern462kbng81pjbk/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-legacy-list
+
+{"data":[{"id":"01m5x2ny4h06mwe77956je6251","type":"new_claims","severity":"info","title":"Synthetic legacy notice","body":"Synthetic legacy content","subject":null,"read":false,"created_at":"2026-10-26T21:43:18+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":1,"unread":1}}
+```
+
+### `POST /api/v1/workspaces/01m5x2ny1rern462kbng81pjbk/notifications/01m5x2ny4h06mwe77956je6251/read` — legacy-read
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/workspaces/01m5x2ny1rern462kbng81pjbk/notifications/01m5x2ny4h06mwe77956je6251/read -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+X-Request-Id: b29-legacy-read
+
+{"data":{"id":"01m5x2ny4h06mwe77956je6251","type":"new_claims","severity":"info","title":"Synthetic legacy notice","body":"Synthetic legacy content","subject":null,"read":true,"created_at":"2026-10-26T21:43:18+00:00"}}
+```
+
+### `POST /api/v1/workspaces/01m5x2ny1rern462kbng81pjbk/notifications/read-all` — legacy-read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/workspaces/01m5x2ny1rern462kbng81pjbk/notifications/read-all -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-Request-Id: b29-legacy-read-all
+
+{"data":{"marked_read":0,"unread":0}}
+```
+
+### `DELETE /api/v1/notifications/f3a81a7d-0ee4-4b1c-8549-71832b366bb4` — mandatory-delete-conflict
+
+```bash
+curl -i -X DELETE http://localhost:8079/api/v1/notifications/f3a81a7d-0ee4-4b1c-8549-71832b366bb4 -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-mandatory-delete-conflict
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 994
+
+{"error":{"status":409,"code":"notification_delivery_active","message":"Delivery outcome must be resolved before deletion.","request_id":"b29-mandatory-delete-conflict"}}
+```
+
+
+### Additional actual reminder-policy and workspace-context captures
+
+Five requests in a separate isolated local fixture prove reviewed configurable windows and owned public workspace context. Same real session/password/seededOTP workflow; no live mail/model calls.
+
+#### `PUT /api/v1/platform/notifications/settings` — custom-reminders-draft
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"value":{"retention_days":90,"email_enabled":true,"voucher_reminder_days":[14,3],"offer_expiry_days":5},"reason":"Synthetic reviewed custom reminder windows"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-custom-reminders-draft
+
+{"data":{"id":"01m5x3y45z12xfz473zsgfg127","status":"draft","value":{"retention_days":90,"email_enabled":true,"voucher_reminder_days":[14,3],"offer_expiry_days":5}},"publication":"Use existing platform-settings submit and independent publish endpoints."}
+```
+
+#### `POST /api/v1/admin/platform-settings/01m5x3y45z12xfz473zsgfg127/review` — custom-reminders-review
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5x3y45z12xfz473zsgfg127/review -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-custom-reminders-review
+
+{"data":{"id":"01m5x3y45z12xfz473zsgfg127","key":"notifications.policy","version":1,"value":{"retention_days":90,"email_enabled":true,"voucher_reminder_days":[14,3],"offer_expiry_days":5},"checksum":"a9bc108970c1ff3d589558ac1cc0377dae5ad9bd4e23278a80120523b0a93c97","status":"review","reason":"Synthetic reviewed custom reminder windows","created_by":"01m5x3y03myc0beyb32r17c04r","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}
+```
+
+#### `POST /api/v1/admin/platform-settings/01m5x3y45z12xfz473zsgfg127/publish` — custom-reminders-publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/admin/platform-settings/01m5x3y45z12xfz473zsgfg127/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic independent configuration review"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-custom-reminders-publish
+
+{"data":{"id":"01m5x3y45z12xfz473zsgfg127","key":"notifications.policy","version":1,"value":{"retention_days":90,"email_enabled":true,"voucher_reminder_days":[14,3],"offer_expiry_days":5},"checksum":"a9bc108970c1ff3d589558ac1cc0377dae5ad9bd4e23278a80120523b0a93c97","status":"published","reason":"Synthetic reviewed custom reminder windows","created_by":"01m5x3y03myc0beyb32r17c04r","reviewed_by":"01m5x3y0dnpa3fygbc4ghfz0wk","review_note":"Synthetic independent configuration review","published_at":"2026-10-26T22:05:15+00:00","is_current":true,"rollback_of":null}}
+```
+
+#### `GET /api/v1/platform/notifications/settings` — custom-reminders-active
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+X-Request-Id: b29-custom-reminders-active
+
+{"data":{"retention_days":90,"email_enabled":true,"voucher_reminder_days":[14,3],"offer_expiry_days":5},"email_delivery_available":true}
+```
+
+#### `GET /api/v1/notifications` — workspace-context
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-Request-Id: b29-workspace-context
+
+{"data":[{"id":"4632e7fa-e8fd-4f76-858b-fc6ef476db22","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-support_reply-v1","locale":"nl","locale_fallback":false,"workspace_id":null,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"pending"},"read_at":null,"created_at":"2026-10-26T22:05:12+00:00"},{"id":"3faddfae-743f-4fd6-b8a8-bd5bf7de7cc2","type":"voucher_received","recipient_type":"consumer","title":"Je voucher staat klaar","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-voucher_received-v1","locale":"nl","locale_fallback":false,"workspace_id":null,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"uncertain"},"read_at":null,"created_at":"2026-10-26T22:05:12+00:00"},{"id":"3676a718-de5a-4900-b302-682c8e4e2e43","type":"merchant_attention","recipient_type":"workspace","title":"Webshopmelding","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-merchant_attention-v1","locale":"nl","locale_fallback":false,"workspace_id":"01m5x3y0e9g0rscg8bswbt1f31","action_route":"/app/workspaces?workspace=01m5x3y0e9g0rscg8bswbt1f31","delivery_channels":{"database":"delivered","email":"pending"},"read_at":null,"created_at":"2026-10-26T22:05:12+00:00"}],"meta":{"unread_count":3,"current_page":1,"per_page":20,"total":3}}
+```
+
+
+### Actual queue-worker mail recovery captures
+
+Separate isolated fixture: an uncertain record with one synthetic prior attempt is explicitly reviewed through the actual stepped-up API. The real DB queue worker accepts one local array-transport mail (status sent, attempts2); this is not external customer delivery.
+
+#### `GET /api/v1/notifications` — worker-inbox-before
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-Request-Id: b29-worker-inbox-before
+
+{"data":[{"id":"c2821351-7aa0-4ce1-9a34-8387e51279e9","type":"voucher_received","recipient_type":"consumer","title":"Je voucher staat klaar","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-voucher_received-v1","locale":"nl","locale_fallback":false,"workspace_id":null,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"uncertain"},"read_at":null,"created_at":"2026-10-26T22:15:34+00:00"},{"id":"2e671058-7391-475c-b5cb-3c4be8002d20","type":"merchant_attention","recipient_type":"workspace","title":"Webshopmelding","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-merchant_attention-v1","locale":"nl","locale_fallback":false,"workspace_id":"01m5x4h0c79n1zvkb49n92cwnt","action_route":"/app/workspaces?workspace=01m5x4h0c79n1zvkb49n92cwnt","delivery_channels":{"database":"delivered","email":"pending"},"read_at":null,"created_at":"2026-10-26T22:15:34+00:00"},{"id":"1054241b-501d-47f5-8da6-b01efa98dd04","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-support_reply-v1","locale":"nl","locale_fallback":false,"workspace_id":null,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"pending"},"read_at":null,"created_at":"2026-10-26T22:15:34+00:00"}],"meta":{"unread_count":3,"current_page":1,"per_page":20,"total":3}}
+```
+
+#### `POST /api/v1/platform/notifications/deliveries/01m5x4h0jeg7qb0evss79ff13g/retry` — worker-approved-retry
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x4h0jeg7qb0evss79ff13g/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic uncertain fixture reviewed before retry","duplicate_risk_acknowledged":true}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-worker-approved-retry
+
+{"data":{"id":"01m5x4h0jeg7qb0evss79ff13g","notification_id":"c2821351-7aa0-4ce1-9a34-8387e51279e9","channel":"mail","status":"retry","attempts":1,"error_code":null,"sent_at":null}}
+```
+
+#### `GET /api/v1/platform/notifications/deliveries` — worker-deliveries-before
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-worker-deliveries-before
+
+{"data":[{"id":"01m5x4h0jeg7qb0evss79ff13g","notification_id":"c2821351-7aa0-4ce1-9a34-8387e51279e9","channel":"mail","status":"retry","attempts":1,"error_code":null,"sent_at":null},{"id":"01m5x4h0j1gvene5hjv1c1znbt","notification_id":"1054241b-501d-47f5-8da6-b01efa98dd04","channel":"mail","status":"pending","attempts":0,"error_code":null,"sent_at":null},{"id":"01m5x4h0h25hwq9cwkny7f7rhn","notification_id":"2e671058-7391-475c-b5cb-3c4be8002d20","channel":"mail","status":"pending","attempts":0,"error_code":null,"sent_at":null}],"meta":{"current_page":1,"total":3},"operations":{"failed_events":1,"locale_fallbacks":0}}
+```
+
+#### `GET /api/v1/platform/notifications/deliveries` — worker-deliveries-sent
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+X-Request-Id: b29-worker-deliveries-sent
+
+{"data":[{"id":"01m5x4h0jeg7qb0evss79ff13g","notification_id":"c2821351-7aa0-4ce1-9a34-8387e51279e9","channel":"mail","status":"sent","attempts":2,"error_code":null,"sent_at":"2026-10-26T22:15:41+00:00"},{"id":"01m5x4h0j1gvene5hjv1c1znbt","notification_id":"1054241b-501d-47f5-8da6-b01efa98dd04","channel":"mail","status":"skipped","attempts":0,"error_code":"recipient_or_preferences_changed","sent_at":null},{"id":"01m5x4h0h25hwq9cwkny7f7rhn","notification_id":"2e671058-7391-475c-b5cb-3c4be8002d20","channel":"mail","status":"skipped","attempts":0,"error_code":"recipient_or_preferences_changed","sent_at":null}],"meta":{"current_page":1,"total":3},"operations":{"failed_events":1,"locale_fallbacks":0}}
+```
+
+#### `GET /api/v1/notifications` — worker-inbox-after
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-worker-inbox-after
+
+{"data":[{"id":"c2821351-7aa0-4ce1-9a34-8387e51279e9","type":"voucher_received","recipient_type":"consumer","title":"Je voucher staat klaar","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-voucher_received-v1","locale":"nl","locale_fallback":false,"workspace_id":null,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"sent"},"read_at":null,"created_at":"2026-10-26T22:15:34+00:00"},{"id":"2e671058-7391-475c-b5cb-3c4be8002d20","type":"merchant_attention","recipient_type":"workspace","title":"Webshopmelding","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-merchant_attention-v1","locale":"nl","locale_fallback":false,"workspace_id":"01m5x4h0c79n1zvkb49n92cwnt","action_route":"/app/workspaces?workspace=01m5x4h0c79n1zvkb49n92cwnt","delivery_channels":{"database":"delivered","email":"skipped"},"read_at":null,"created_at":"2026-10-26T22:15:34+00:00"},{"id":"1054241b-501d-47f5-8da6-b01efa98dd04","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Bekijk de actuele gegevens in je ShopBonus-account.","action_label":"Bekijk details","template_version":"builtin-support_reply-v1","locale":"nl","locale_fallback":false,"workspace_id":null,"action_route":"/app/benefits","delivery_channels":{"database":"delivered","email":"skipped"},"read_at":null,"created_at":"2026-10-26T22:15:34+00:00"}],"meta":{"unread_count":3,"current_page":1,"per_page":20,"total":3}}
+```
+
+
+### Additional actual route-specific conflict and validation captures
+
+Fourteen real requests in an isolated synthetic fixture include the prerequisite draft/test/publication/retry steps. No production fixture switch or live provider/customer message.
+
+#### `POST /api/v1/platform/notifications/templates` — error-fixture-draft
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply","locale":"nl","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"reason":"Synthetic conflict capture fixture"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-error-fixture-draft
+
+{"data":{"id":"01m5x52kdaqxdwxp2jc37844t2","key":"notifications.template.support_reply.nl","version":1,"status":"draft","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"checksum":"2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a","is_current":false,"published_at":null,"rollback_of":null}}
+```
+
+#### `POST /api/v1/platform/notifications/templates/01m5x52kdaqxdwxp2jc37844t2/test` — error-fixture-test
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x52kdaqxdwxp2jc37844t2/test -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+X-Request-Id: b29-error-fixture-test
+
+{"data":{"failed":0,"checks":["schema","variables","lengths","plain_text","html_render","text_render"],"preview":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"synthetic":true,"render_sha256":"d96ed44a4a72498d2363a66593cf337bf386fb7030d639c6a852d5edb69eefe5"}}
+```
+
+#### `POST /api/v1/platform/notifications/templates/01m5x52kdaqxdwxp2jc37844t2/publish` — error-fixture-publish
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x52kdaqxdwxp2jc37844t2/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic independent review"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+X-Request-Id: b29-error-fixture-publish
+
+{"data":{"id":"01m5x52kdaqxdwxp2jc37844t2","key":"notifications.template.support_reply.nl","version":1,"status":"published","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"checksum":"2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a","is_current":true,"published_at":"2026-10-26T22:25:11+00:00","rollback_of":null}}
+```
+
+#### `POST /api/v1/platform/notifications/templates/01m5x52kdaqxdwxp2jc37844t2/test` — published-template-test-conflict
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x52kdaqxdwxp2jc37844t2/test -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-published-template-test-conflict
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+
+{"error":{"status":409,"code":"template_not_draft","message":"Only unpublished templates can be tested.","request_id":"b29-published-template-test-conflict"}}
+```
+
+#### `POST /api/v1/platform/notifications/templates` — error-fixture-unpublished
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"event_type":"support_reply","locale":"en","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"reason":"Synthetic unpublished conflict fixture"}'
+```
+
+```http
+HTTP/1.1 201
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-Request-Id: b29-error-fixture-unpublished
+
+{"data":{"id":"01m5x52knrx8z54ycpswqyjyzy","key":"notifications.template.support_reply.en","version":1,"status":"draft","value":{"title":"Support update","body":"View current details in your account.","action_label":"View details"},"checksum":"2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a","is_current":false,"published_at":null,"rollback_of":null}}
+```
+
+#### `POST /api/v1/platform/notifications/templates/01m5x52knrx8z54ycpswqyjyzy/rollback` — draft-rollback-conflict
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x52knrx8z54ycpswqyjyzy/rollback -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"reason":"Synthetic draft cannot roll back"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-draft-rollback-conflict
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 994
+
+{"error":{"status":409,"code":"setting_not_published","message":"Only published history can be used for a rollback draft.","request_id":"b29-draft-rollback-conflict"}}
+```
+
+#### `POST /api/v1/platform/notifications/events/01m5x52fv508e5vvbcgk6qc4rh/retry` — error-fixture-event-retry
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/events/01m5x52fv508e5vvbcgk6qc4rh/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic failed event reviewed"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 993
+X-Request-Id: b29-error-fixture-event-retry
+
+{"data":{"id":"01m5x52fv508e5vvbcgk6qc4rh","status":"pending"}}
+```
+
+#### `POST /api/v1/platform/notifications/events/01m5x52fv508e5vvbcgk6qc4rh/retry` — event-retry-conflict
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/events/01m5x52fv508e5vvbcgk6qc4rh/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic repeated retry rejected"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-event-retry-conflict
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 992
+
+{"error":{"status":409,"code":"notification_event_not_retryable","message":"Event cannot be retried.","request_id":"b29-event-retry-conflict"}}
+```
+
+#### `POST /api/v1/platform/notifications/deliveries/01m5x52fwgdv8szqwwrg3xjese/resolve` — error-fixture-resolution
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x52fwgdv8szqwwrg3xjese/resolve -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic reviewed uncertain record","outcome":"do_not_resend"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 991
+X-Request-Id: b29-error-fixture-resolution
+
+{"data":{"id":"01m5x52fwgdv8szqwwrg3xjese","notification_id":"be6aa3e3-f337-4c7c-abe7-54a4b7079d64","channel":"mail","status":"skipped","attempts":1,"error_code":"human_reviewed","sent_at":null}}
+```
+
+#### `POST /api/v1/platform/notifications/deliveries/01m5x52fwgdv8szqwwrg3xjese/resolve` — delivery-resolve-conflict
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x52fwgdv8szqwwrg3xjese/resolve -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"note":"Synthetic repeated resolution rejected","outcome":"do_not_resend"}'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: b29-delivery-resolve-conflict
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 990
+
+{"error":{"status":409,"code":"notification_delivery_not_uncertain","message":"Only uncertain deliveries require resolution.","request_id":"b29-delivery-resolve-conflict"}}
+```
+
+#### `PUT /api/v1/platform/notifications/settings` — settings-validation
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{"value":{"retention_days":0,"email_enabled":true},"reason":"Synthetic invalid policy rejected"}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b29-settings-validation
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 989
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b29-settings-validation","fields":{"value.retention_days":["The value.retention days field must be between 1 and 365."]}}}
+```
+
+#### `GET /api/v1/platform/notifications/templates?per_page=101` — template-pagination-validation
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/platform/notifications/templates?per_page=101' -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b29-template-pagination-validation
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 988
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b29-template-pagination-validation","fields":{"per_page":["The per page field must be between 1 and 100."]}}}
+```
+
+#### `GET /api/v1/notifications?filter=invalid` — notification-filter-validation
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=invalid' -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b29-notification-filter-validation
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b29-notification-filter-validation","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+#### `PATCH /api/v1/notifications/fa139eeb-6ef1-43a7-a69c-d27fbee137f0/read` — foreign-read-not-found
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/fa139eeb-6ef1-43a7-a69c-d27fbee137f0/read -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: b29-foreign-read-not-found
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+
+{"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b29-foreign-read-not-found"}}
+```

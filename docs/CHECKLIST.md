@@ -567,8 +567,29 @@ Owner authorizes #29 below the ~5 GiB disk cutoff; senior configures credentials
 - [x] B20a: private minimal Reverb invalidations, owner-only subscription, revoked membership/admin-role filtering and support-token denial. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
 - [x] B20a: executed security/rollback/idempotency/read/preferences/realtime tests on SQLite/MySQL, real HTTP examples, quality checks and migration rollback/reapply. (`5c1d8cc`; full SQLite672+16skip / MySQL686+2skip; quality and API coverage pass.)
 - [x] B20a closeout: push implementation, verify CI and record SHA/test evidence in handoff. (`5c1d8cc`; CI `40399876856` SUCCESS all3jobs; this docs-only closeout.)
-- [ ] B20b: migrate/bridge merchant notifications without duplicate inbox systems or changed legacy read semantics; connect full consumer/workspace/admin event catalogue.
-- [ ] B20c: durable queued email delivery/outbox, bounded retries/failure recovery, mandatory/optional rules, actual render tests and retention.
-- [ ] B20d: deduplicated 30/7/1 voucher and offer reminders; eligibility and consent rechecked at dispatch.
-- [ ] B20e: Super Admin NL/EN AI template drafts/test/approval/publish/rollback, strict placeholders, budgets, delivery/settings APIs and audit.
+- [x] B20b: migrate/bridge merchant notifications without duplicate inbox systems or changed legacy read semantics; connect full consumer/workspace/admin event catalogue. (`this commit`; local SQLite/backend/HTTP evidence below; full MySQL CI pending.)
+- [x] B20c: durable queued email delivery/outbox, bounded retries/failure recovery, mandatory/optional rules, actual render tests and retention. (`this commit`; local SQLite/backend/HTTP evidence below; full MySQL CI pending.)
+- [x] B20d: deduplicated 30/7/1 voucher and offer reminders; eligibility and consent rechecked at dispatch. (`this commit`; local SQLite/backend/HTTP evidence below; full MySQL CI pending.)
+- [x] B20e: Super Admin NL/EN AI template drafts/test/approval/publish/rollback, strict placeholders, budgets, delivery/settings APIs and audit. (`this commit`; local SQLite/backend/HTTP evidence below; full MySQL CI pending.)
 - [ ] B20f: full ten backend E2Es, event/API inventory and handoff; genuine mail/model/deployed Reverb/frontend acceptance remains senior/Hassan-owned.
+
+### B20b detailed boundary — source outbox and merchant bridge
+
+- [x] Persist event intents in the source transaction; no mail/network/fanout while holding wallet/audit locks. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Wire registration/verification, posted consumer credit/correction, voucher state events, workspace decisions/review, offer publication/favorites, integration/affiliate failures and support escalations. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Capture recipient snapshots, safely revalidate current recipient/workspace/admin eligibility, reject unknown event schemas and preserve source references. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Project existing merchant alerts into the owned inbox once; keep legacy shared-read API behavior and synchronize the acting user's central read state. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Recover pending events with an idempotent bounded scheduler/command; prove source rollback, replay, failures and permission isolation. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [ ] Capture changed HTTP contracts; execute local SQLite checks, feasible MySQL checks and CI; update TASKS/PROGRESS/HANDOFF, commit/push and record SHAs.
+
+### B20c–f remaining detailed acceptance
+
+- [x] Mail: same-transaction delivery rows, single-worker claim/stable message ID, real HTML/plain-text render, mandatory/optional consent recheck and honest ambiguous transport outcome review. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Reminders:30/7/1 calendar stages pinned to expiry, replay/eligibility checks at generation and delivery; reused deduplicated merchant expiry source. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Retention: preserve active/unresolved deliveries and dedupe tombstones; owned deletion with409 safety and recovery of stale sending claims. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Templates: immutable existing settings versions, strict variables/plain text/lengths, synthetic preview, checksum-bound test-before-independent-publish, fresh-version rollback and locale fallback monitoring. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] OpenAI: disabled/configured model, fixed HTTPS strict schema/no redirects/retry/no PII, global UTC budget and per-admin UUID idempotency, safe failures and no auto publication. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [x] Admin: exact template/event/delivery/settings API contracts, existing platform/password/OTP/support-session guards, audited retries without claiming ambiguous mail was unsent. (`this commit`; executed local tests/HTTP captures; real MySQL races await CI.)
+- [ ] Complete source/event inventory and ten backend E2Es; real running-server captures for all APIs, SQLite/MySQL/CI and migration evidence, checkpoint docs and clean committed handoff.
+
+- [ ] B20 final CI: complete exact-code SQLite/MySQL suites, including real4-process publication/mail claims and serialized generation quota; record SHA/results and clean handoff.

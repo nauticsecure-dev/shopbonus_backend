@@ -7,6 +7,8 @@ use App\Exceptions\ApiException;
 use App\Models\PlatformSettingVersion;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Notifications\NotificationPolicy;
+use App\Services\Notifications\NotificationTemplates;
 use App\Services\Support\SupportPolicy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +19,54 @@ class PlatformSettings
 {
     public const PUBLIC_KEYS = ['public.brand_name', 'public.support_email', 'public.languages'];
 
-    public const KEYS = [...self::PUBLIC_KEYS, 'operations.diagnostics_daily_request_limit', 'support.ai'];
+    public const KEYS = [...self::PUBLIC_KEYS, 'operations.diagnostics_daily_request_limit', 'support.ai', 'notifications.policy',
+        'notifications.template.account_welcome.nl',
+        'notifications.template.account_welcome.en',
+        'notifications.template.email_verified.nl',
+        'notifications.template.email_verified.en',
+        'notifications.template.cashback_credited.nl',
+        'notifications.template.cashback_credited.en',
+        'notifications.template.voucher_received.nl',
+        'notifications.template.voucher_received.en',
+        'notifications.template.voucher_expiring.nl',
+        'notifications.template.voucher_expiring.en',
+        'notifications.template.voucher_used.nl',
+        'notifications.template.voucher_used.en',
+        'notifications.template.voucher_cancelled.nl',
+        'notifications.template.voucher_cancelled.en',
+        'notifications.template.cashback_adjusted.nl',
+        'notifications.template.cashback_adjusted.en',
+        'notifications.template.support_reply.nl',
+        'notifications.template.support_reply.en',
+        'notifications.template.favorite_merchant_offer.nl',
+        'notifications.template.favorite_merchant_offer.en',
+        'notifications.template.workspace_approved.nl',
+        'notifications.template.workspace_approved.en',
+        'notifications.template.workspace_rejected.nl',
+        'notifications.template.workspace_rejected.en',
+        'notifications.template.offer_published.nl',
+        'notifications.template.offer_published.en',
+        'notifications.template.offer_expiring.nl',
+        'notifications.template.offer_expiring.en',
+        'notifications.template.commission_changed.nl',
+        'notifications.template.commission_changed.en',
+        'notifications.template.integration_attention.nl',
+        'notifications.template.integration_attention.en',
+        'notifications.template.workspace_support_reply.nl',
+        'notifications.template.workspace_support_reply.en',
+        'notifications.template.workspace_review_required.nl',
+        'notifications.template.workspace_review_required.en',
+        'notifications.template.ai_support_escalated.nl',
+        'notifications.template.ai_support_escalated.en',
+        'notifications.template.affiliate_import_failed.nl',
+        'notifications.template.affiliate_import_failed.en',
+        'notifications.template.notification_delivery_failed.nl',
+        'notifications.template.notification_delivery_failed.en',
+        'notifications.template.critical_notification_failure.nl',
+        'notifications.template.critical_notification_failure.en',
+        'notifications.template.merchant_attention.nl',
+        'notifications.template.merchant_attention.en',
+    ];
 
     public function __construct(private readonly AuditLogger $audit) {}
 
@@ -76,6 +125,12 @@ class PlatformSettings
                     throw ApiException::conflict('Test the support policy before publication.', 'support_policy_test_required');
                 }
             }
+            if (str_starts_with($setting->key, 'notifications.template.')) {
+                $test = DB::table('notification_template_tests')->where('version_id', $version->id)->where('checksum', $version->checksum)->first();
+                if ($test === null || (json_decode($test->report, true)['failed'] ?? 1) !== 0) {
+                    throw ApiException::conflict('Test the notification template before publication.', 'notification_template_test_required');
+                }
+            }
             if (! hash_equals($version->checksum, self::checksum($version->value))) {
                 throw ApiException::conflict('Setting version integrity verification failed.', 'setting_integrity_failed');
             }
@@ -121,13 +176,17 @@ class PlatformSettings
         Validator::make(['key' => $key], ['key' => ['required', Rule::in(self::KEYS)]])->validate();
         $rules = match ($key) {
             'support.ai' => SupportPolicy::rules(),
+            'notifications.policy' => NotificationPolicy::rules(),
             'operations.diagnostics_daily_request_limit' => ['value' => ['required', 'integer:strict', 'min:0', 'max:1000']],
             'public.brand_name' => ['value' => ['required', 'string', 'min:1', 'max:100', 'regex:/^[\pL\pN .&\'-]+$/u']],
             'public.support_email' => ['value' => ['required', 'email:rfc', 'max:254']],
             'public.languages' => ['value' => ['required', 'array', 'min:1', 'max:2'], 'value.*' => ['required', 'string', 'distinct', Rule::in(User::SUPPORTED_LOCALES)]],
-            default => throw new \LogicException('Unexpected validated setting key.'),
+            default => str_starts_with($key, 'notifications.template.') ? NotificationTemplates::rules() : throw new \LogicException('Unexpected validated setting key.'),
         };
         Validator::make(['value' => $value], $rules)->validate();
+        if (str_starts_with($key, 'notifications.template.')) {
+            NotificationTemplates::validate($key, $value);
+        }
     }
 
     /** @return array<string, mixed> */

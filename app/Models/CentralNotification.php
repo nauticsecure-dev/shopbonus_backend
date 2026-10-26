@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\DatabaseNotification;
 
 /**
@@ -19,6 +20,12 @@ use Illuminate\Notifications\DatabaseNotification;
  */
 class CentralNotification extends DatabaseNotification
 {
+    /** @return HasOne<NotificationDelivery, $this> */
+    public function delivery(): HasOne
+    {
+        return $this->hasOne(NotificationDelivery::class, 'notification_id');
+    }
+
     protected $hidden = ['notifiable_type', 'notifiable_id', 'event_key', 'webshop_id'];
 
     protected function casts(): array

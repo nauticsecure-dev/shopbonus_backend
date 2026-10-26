@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Services\Errors\ErrorRecorder;
+use App\Services\Notifications\NotificationMail;
+use App\Services\Notifications\NotificationSources;
 use App\Services\Onboarding\Directory\BusinessDirectory;
 use App\Services\Onboarding\Directory\GooglePlacesDirectory;
 use App\Services\Onboarding\Network\HostResolver;
@@ -43,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        NotificationSources::register();
+        NotificationMail::register();
+
         // Surface lazy loading, silently discarded attributes and missing
         // attributes as errors outside production.
         Model::shouldBeStrict(! $this->app->isProduction());

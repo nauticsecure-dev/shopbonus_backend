@@ -7,9 +7,11 @@ use App\Enums\WebshopStatus;
 use App\Events\NotificationInboxChanged;
 use App\Exceptions\ApiException;
 use App\Models\CentralNotification;
+use App\Models\NotificationDelivery;
 use App\Models\SupportConversation;
 use App\Models\SupportReply;
 use App\Models\User;
+use App\Models\Webshop;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -22,7 +24,7 @@ final class NotificationInbox
      */
     public function visible(User $user): Builder
     {
-        return CentralNotification::query()->where('notifiable_type', $user->getMorphClass())->where('notifiable_id', $user->id)
+        return CentralNotification::query()->where('in_app_enabled', true)->where('notifiable_type', $user->getMorphClass())->where('notifiable_id', $user->id)
             ->where(function (Builder $scope) use ($user) {
                 $scope->where('recipient_type', 'consumer')->whereNull('webshop_id')
                     ->orWhere(function (Builder $workspace) use ($user) {
@@ -61,11 +63,10 @@ final class NotificationInbox
         $n = $user->notifications()->create([
             'id' => (string) Str::uuid(), 'type' => SupportReply::class, 'event_type' => $event, 'event_key' => $key,
             'recipient_type' => $conversation->webshop_id === null ? 'consumer' : 'workspace', 'webshop_id' => $conversation->webshop_id,
-            'data' => ['title' => $locale === 'nl' ? 'Nieuw antwoord van support' : 'New support reply',
-                'body' => $locale === 'nl' ? 'Er staat een antwoord voor je klaar in je supportgesprek.' : 'A reply is available in your support conversation.',
-                'locale' => $locale, 'action_label' => $locale === 'nl' ? 'Bekijk gesprek' : 'View conversation',
-                'action_route' => '/app/support?conversation='.$conversation->public_id, 'template_version' => 'support-reply-v1',
-                'delivery_channels' => ['database' => 'delivered', 'email' => 'not_implemented']],
+            'data' => [...app(NotificationTemplates::class)->resolve($event, $locale),
+                'workspace_id' => $conversation->webshop_id === null ? null : Webshop::whereKey($conversation->webshop_id)->value('public_id'),
+                'action_route' => '/app/support?conversation='.$conversation->public_id,
+                'delivery_channels' => ['database' => 'delivered', 'email' => 'pending']],
         ]);
         $this->signal($user, 'NotificationCreated', $n->id);
         $this->signal($user, 'NotificationCountUpdated');
@@ -102,14 +103,36 @@ final class NotificationInbox
         });
     }
 
+    /** Legacy shared state stays intact; this compatibility action marks only the acting user's personal projection.
+     * @param  list<int>  $ids
+     */
+    public function readLegacy(User $user, array $ids): void
+    {
+        DB::transaction(function () use ($user, $ids) {
+            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            foreach ($ids as $legacyId) {
+                DB::table('notification_legacy_reads')->insertOrIgnore(['legacy_notification_id' => $legacyId, 'user_id' => $user->id, 'read_at' => now()]);
+            }
+            if ($this->visible($user)->whereIn('legacy_notification_id', $ids)->whereNull('read_at')->update(['read_at' => now(), 'updated_at' => now()]) > 0) {
+                $this->signal($user, 'NotificationReadAll');
+                $this->signal($user, 'NotificationCountUpdated');
+            }
+        });
+    }
+
     /** @return array<string, mixed> */
     public function present(CentralNotification $n): array
     {
+        $data = $n->data;
+        $delivery = NotificationDelivery::where('notification_id', $n->id)->first();
+        $data['delivery_channels']['email'] = $delivery->status ?? 'not_requested';
+        unset($data['voucher_ref'], $data['offer_ref'], $data['reminder_stage'], $data['reminder_expires_at']);
+
         return ['id' => $n->id, 'type' => $n->event_type, 'recipient_type' => $n->recipient_type,
-            ...$n->data, 'read_at' => $n->read_at?->toIso8601String(), 'created_at' => $n->created_at->toIso8601String()];
+            ...$data, 'read_at' => $n->read_at?->toIso8601String(), 'created_at' => $n->created_at->toIso8601String()];
     }
 
-    private function signal(User $user, string $event, ?string $id = null): void
+    public function signal(User $user, string $event, ?string $id = null): void
     {
         DB::afterCommit(function () use ($user, $event, $id) {
             try {

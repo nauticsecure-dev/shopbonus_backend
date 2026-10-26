@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeControlle
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
 use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncidentDiagnosticController;
+use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
@@ -172,6 +173,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
             Route::get('notifications', [InboxController::class, 'index'])->name('notifications.index');
+            Route::delete('notifications/{notification}', [InboxController::class, 'destroy'])->name('notifications.destroy');
             Route::patch('notifications/{notification}/read', [InboxController::class, 'read'])->name('notifications.read');
             Route::post('notifications/read-all', [InboxController::class, 'readAll'])->name('notifications.read-all');
             Route::get('notification-preferences', [InboxController::class, 'preferences'])->name('notification-preferences.show');
@@ -199,6 +201,27 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             Route::middleware('throttle:business-search')->group(function () {
                 Route::get('business-directory/search', [BusinessDirectoryController::class, 'search'])->name('business-directory.search');
                 Route::get('business-directory/places/{placeId}', [BusinessDirectoryController::class, 'show'])->name('business-directory.show');
+            });
+
+            Route::prefix('platform/notifications')->name('admin.notifications.')->middleware('platform:super_admin')->group(function () {
+                $controller = NotificationController::class;
+                Route::get('templates', [$controller, 'templates'])->name('templates.index');
+                Route::get('templates/{template}', [$controller, 'show'])->name('templates.show');
+                Route::get('events', [$controller, 'events'])->name('events');
+                Route::get('deliveries', [$controller, 'deliveries'])->name('deliveries');
+                Route::get('settings', [$controller, 'settings'])->name('settings.show');
+                Route::middleware(['password.recent', 'step_up.otp'])->group(function () use ($controller) {
+                    Route::post('events/{event}/retry', [$controller, 'retryEvent'])->name('events.retry');
+                    Route::post('templates', [$controller, 'store'])->name('templates.store');
+                    Route::post('templates/generate', [$controller, 'generate'])->name('templates.generate');
+                    Route::put('templates/{template}', [$controller, 'update'])->name('templates.update');
+                    Route::post('templates/{template}/test', [$controller, 'test'])->name('templates.test');
+                    Route::post('templates/{template}/publish', [$controller, 'publish'])->name('templates.publish');
+                    Route::post('templates/{template}/rollback', [$controller, 'rollback'])->name('templates.rollback');
+                    Route::post('deliveries/{delivery}/retry', [$controller, 'retry'])->name('deliveries.retry');
+                    Route::post('deliveries/{delivery}/resolve', [$controller, 'resolveDelivery'])->name('deliveries.resolve');
+                    Route::put('settings', [$controller, 'updateSettings'])->name('settings.update');
+                });
             });
 
             // Super Admin (privately provisioned; confirmed 2FA required). Mutations need a recent password

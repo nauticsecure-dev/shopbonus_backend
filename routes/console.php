@@ -38,3 +38,5 @@ Schedule::command('shopbonus:publish-scheduled-banners')->everyMinute()->without
 
 // Private support history retention and recovery of stopped/timed-out research.
 Schedule::command('shopbonus:prune-support')->everyFiveMinutes()->withoutOverlapping();
+
+Schedule::command('shopbonus:dispatch-notifications')->everyMinute()->withoutOverlapping();

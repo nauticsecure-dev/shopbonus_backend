@@ -10,7 +10,31 @@ use Illuminate\Support\Facades\DB;
 /** Event-level switches never grant or replace consent in CommunicationPreferences. */
 final class NotificationPreferences
 {
-    public const EVENTS = ['support_reply', 'workspace_support_reply'];
+    public const EVENTS = [
+        'account_welcome',
+        'email_verified',
+        'cashback_credited',
+        'voucher_received',
+        'voucher_expiring',
+        'voucher_used',
+        'voucher_cancelled',
+        'cashback_adjusted',
+        'support_reply',
+        'favorite_merchant_offer',
+        'workspace_approved',
+        'workspace_rejected',
+        'offer_published',
+        'offer_expiring',
+        'commission_changed',
+        'integration_attention',
+        'workspace_support_reply',
+        'workspace_review_required',
+        'ai_support_escalated',
+        'affiliate_import_failed',
+        'notification_delivery_failed',
+        'critical_notification_failure',
+        'merchant_attention',
+    ];
 
     /** @return array<string, mixed> */
     public function current(User $user): array
@@ -19,11 +43,11 @@ final class NotificationPreferences
         $stored = $row === null ? [] : json_decode($row->preferences, true, flags: JSON_THROW_ON_ERROR);
         $events = [];
         foreach (self::EVENTS as $event) {
-            $events[$event] = ['in_app' => true, 'email' => (bool) ($stored[$event]['email'] ?? false)];
+            $events[$event] = ['in_app' => NotificationCatalogue::optionalInApp($event) ? (bool) ($stored[$event]['in_app'] ?? false) : true, 'email' => NotificationCatalogue::EVENTS[$event][1] || (bool) ($stored[$event]['email'] ?? false)];
         }
 
         return ['locale' => $user->fresh()->preferredLocale(), 'email_enabled' => $row === null || (bool) $row->email_enabled,
-            'preferences' => $events, 'email_delivery_available' => false];
+            'preferences' => $events, 'email_delivery_available' => app(NotificationPolicy::class)->emailEnabled()];
     }
 
     /** @param array<string, mixed> $input

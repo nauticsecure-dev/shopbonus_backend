@@ -6,6 +6,7 @@ use App\Enums\ConsentPurpose;
 use App\Enums\OnboardingIntent;
 use App\Models\User;
 use App\Services\Identity\LegalConsents;
+use App\Services\Notifications\NotificationSources;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -71,6 +72,8 @@ class CreateNewUser implements CreatesNewUsers
                     (bool) ($data['marketing_opt_in'] ?? false),
                     'registration',
                 );
+
+                app(NotificationSources::class)->capture('account_welcome', 'welcome:'.$user->public_id, [$user->id]);
 
                 return $user;
             });

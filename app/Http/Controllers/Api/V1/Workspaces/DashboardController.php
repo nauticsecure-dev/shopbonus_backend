@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MerchantNotification;
 use App\Services\Analytics\MerchantAnalytics;
 use App\Services\Funding\MerchantFunding;
+use App\Services\Notifications\NotificationInbox;
 use App\Services\Workspaces\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -81,18 +82,22 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function read(CurrentWorkspace $current, string $notification): JsonResponse
+    public function read(Request $request, CurrentWorkspace $current, string $notification): JsonResponse
     {
         $n = MerchantNotification::where('public_id', $notification)->where('webshop_id', $current->webshop()->id)->first() ?? throw new ApiException('Notification not found.', 404, 'not_found');
         if ($n->read_at === null) {
             $n->forceFill(['read_at' => now(), 'read_by' => $current->membership()->user_id])->save();
         }
 
+        app(NotificationInbox::class)->readLegacy($request->user(), [$n->id]);
+
         return response()->json(['data' => self::notification($n)]);
     }
 
-    public function readAll(CurrentWorkspace $current): JsonResponse
+    public function readAll(Request $request, CurrentWorkspace $current): JsonResponse
     {
+        $legacyIds = MerchantNotification::where('webshop_id', $current->webshop()->id)->pluck('id')->all();
+        app(NotificationInbox::class)->readLegacy($request->user(), $legacyIds);
         $count = MerchantNotification::where('webshop_id', $current->webshop()->id)->whereNull('read_at')
             ->update(['read_at' => now(), 'read_by' => $current->membership()->user_id, 'updated_at' => now()]);
 

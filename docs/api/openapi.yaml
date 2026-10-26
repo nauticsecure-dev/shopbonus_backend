@@ -6220,90 +6220,213 @@ paths:
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
-  /api/v1/workspaces/{workspace}/notifications:
+  '/api/v1/workspaces/{workspace}/notifications':
     parameters:
-      - $ref: '#/components/parameters/Workspace'
+      -
+        $ref: '#/components/parameters/Workspace'
     get:
-      tags: [Dashboard]
+      tags:
+        - Dashboard
       operationId: merchantNotifications
-      summary: "Workspace notifications"
+      summary: 'Workspace notifications'
       description: |
         Generated every 15 minutes (`shopbonus:merchant-notifications`), deduplicated per situation: `low_inventory`, `new_claims` (daily digest), `offer_expiring`, `connector_error`, `low_funding`. `meta.unread` matches the dashboard badge. Read state is shared by the workspace.
       x-access: verified
       x-permission: dashboard.view
       parameters:
-        - { name: unread, in: query, required: false, schema: { type: boolean } }
+        -
+          name: unread
+          in: query
+          required: false
+          schema:
+            type: boolean
       x-codeSamples:
-        - lang: curl
+        -
+          lang: curl
           source: |
             curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/notifications?unread=1' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
       responses:
-        '200':
-          description: "Notifications."
+        200:
+          description: 'Actual updated #29 compatibility HTTP capture.'
           content:
             application/json:
-              example: {"data":[{"id":"01m5pf7yycjq3ddb2mdp8jaxy6","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac10 korting op je volgende bestelling: 0 codes remaining.","subject":{"type":"offer","id":"01m5pefmgdjxy9q4fa1r7pk7cx"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy7f5qckh026fttxrvv","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pdr2s105nre4frgsby7w70"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"},{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":false,"created_at":"2026-10-24T08:08:11+00:00"}],"meta":{"current_page":1,"last_page":1,"per_page":25,"total":3,"unread":3}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+              example:
+                data:
+                  -
+                    id: 01m5pf7yycjq3ddb2mdp8jaxy6
+                    type: low_inventory
+                    severity: critical
+                    title: 'Out of codes'
+                    body: '€10 korting op je volgende bestelling: 0 codes remaining.'
+                    subject:
+                      type: offer
+                      id: 01m5pefmgdjxy9q4fa1r7pk7cx
+                    read: false
+                    created_at: '2026-10-24T08:08:11+00:00'
+                  -
+                    id: 01m5pf7yy7f5qckh026fttxrvv
+                    type: low_inventory
+                    severity: critical
+                    title: 'Out of codes'
+                    body: '€25 korting op meubels: 0 codes remaining.'
+                    subject:
+                      type: offer
+                      id: 01m5pdr2s105nre4frgsby7w70
+                    read: false
+                    created_at: '2026-10-24T08:08:11+00:00'
+                  -
+                    id: 01m5pf7yy2fkbtqn1a96kanhxd
+                    type: low_inventory
+                    severity: critical
+                    title: 'Out of codes'
+                    body: '€25 korting op meubels: 0 codes remaining.'
+                    subject:
+                      type: offer
+                      id: 01m5pd8dnmr7zn0gp678fzfrs9
+                    read: false
+                    created_at: '2026-10-24T08:08:11+00:00'
+                meta:
+                  current_page: 1
+                  last_page: 1
+                  per_page: 25
+                  total: 3
+                  unread: 3
+              examples:
+                b29_legacy-list:
+                  value:
+                    data:
+                      -
+                        id: 01m5x2ny4h06mwe77956je6251
+                        type: new_claims
+                        severity: info
+                        title: 'Synthetic legacy notice'
+                        body: 'Synthetic legacy content'
+                        subject: null
+                        read: false
+                        created_at: '2026-10-26T21:43:18+00:00'
+                    meta:
+                      current_page: 1
+                      last_page: 1
+                      per_page: 25
+                      total: 1
+                      unread: 1
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/WorkspacePermissionDenied'
+        404:
+          $ref: '#/components/responses/WorkspaceNotFound'
 
-  /api/v1/workspaces/{workspace}/notifications/{notification}/read:
+  '/api/v1/workspaces/{workspace}/notifications/{notification}/read':
     parameters:
-      - $ref: '#/components/parameters/Workspace'
-      - { name: notification, in: path, required: true, schema: { type: string } }
+      -
+        $ref: '#/components/parameters/Workspace'
+      -
+        name: notification
+        in: path
+        required: true
+        schema:
+          type: string
     post:
-      tags: [Dashboard]
+      tags:
+        - Dashboard
       operationId: readNotification
-      summary: "Mark a notification read"
+      summary: 'Mark a notification read'
       description: |
         Only notifications of this workspace (404 otherwise).
       x-access: verified
       x-permission: dashboard.view
       x-codeSamples:
-        - lang: curl
+        -
+          lang: curl
           source: |
             curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/notifications/<id>/read' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
       responses:
-        '200':
-          description: "Read."
+        200:
+          description: 'Actual updated #29 compatibility HTTP capture.'
           content:
             application/json:
-              example: {"data":{"id":"01m5pf7yy2fkbtqn1a96kanhxd","type":"low_inventory","severity":"critical","title":"Out of codes","body":"\u20ac25 korting op meubels: 0 codes remaining.","subject":{"type":"offer","id":"01m5pd8dnmr7zn0gp678fzfrs9"},"read":true,"created_at":"2026-10-24T08:08:11+00:00"}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404':
-          description: "Not in this workspace."
+              example:
+                data:
+                  id: 01m5pf7yy2fkbtqn1a96kanhxd
+                  type: low_inventory
+                  severity: critical
+                  title: 'Out of codes'
+                  body: '€25 korting op meubels: 0 codes remaining.'
+                  subject:
+                    type: offer
+                    id: 01m5pd8dnmr7zn0gp678fzfrs9
+                  read: true
+                  created_at: '2026-10-24T08:08:11+00:00'
+              examples:
+                b29_legacy-read:
+                  value:
+                    data:
+                      id: 01m5x2ny4h06mwe77956je6251
+                      type: new_claims
+                      severity: info
+                      title: 'Synthetic legacy notice'
+                      body: 'Synthetic legacy content'
+                      subject: null
+                      read: true
+                      created_at: '2026-10-26T21:43:18+00:00'
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/WorkspacePermissionDenied'
+        404:
+          description: 'Not in this workspace.'
           content:
             application/json:
-              example: {"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"01a16cf4-02f7-71d4-8d3c-4c2638ef186e"}}
+              example:
+                error:
+                  status: 404
+                  code: not_found
+                  message: 'Notification not found.'
+                  request_id: 01a16cf4-02f7-71d4-8d3c-4c2638ef186e
 
-  /api/v1/workspaces/{workspace}/notifications/read-all:
+  '/api/v1/workspaces/{workspace}/notifications/read-all':
     parameters:
-      - $ref: '#/components/parameters/Workspace'
+      -
+        $ref: '#/components/parameters/Workspace'
     post:
-      tags: [Dashboard]
+      tags:
+        - Dashboard
       operationId: readAllNotifications
-      summary: "Mark all notifications read"
+      summary: 'Mark all notifications read'
       description: |
         Marks every unread notification of this workspace read.
       x-access: verified
       x-permission: dashboard.view
       x-codeSamples:
-        - lang: curl
+        -
+          lang: curl
           source: |
             curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/notifications/read-all' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
       responses:
-        '200':
-          description: "Done."
+        200:
+          description: 'Actual updated #29 compatibility HTTP capture.'
           content:
             application/json:
-              example: {"data":{"marked_read":2,"unread":0}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+              example:
+                data:
+                  marked_read: 2
+                  unread: 0
+              examples:
+                b29_legacy-read-all:
+                  value:
+                    data:
+                      marked_read: 0
+                      unread: 0
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/WorkspacePermissionDenied'
+        404:
+          $ref: '#/components/responses/WorkspaceNotFound'
 
   /api/v1/owner/dashboard:
     get:
@@ -10599,6 +10722,53 @@ paths:
               - public.languages
               - operations.diagnostics_daily_request_limit
               - support.ai
+              - notifications.policy
+              - notifications.template.account_welcome.nl
+              - notifications.template.account_welcome.en
+              - notifications.template.email_verified.nl
+              - notifications.template.email_verified.en
+              - notifications.template.cashback_credited.nl
+              - notifications.template.cashback_credited.en
+              - notifications.template.voucher_received.nl
+              - notifications.template.voucher_received.en
+              - notifications.template.voucher_expiring.nl
+              - notifications.template.voucher_expiring.en
+              - notifications.template.voucher_used.nl
+              - notifications.template.voucher_used.en
+              - notifications.template.voucher_cancelled.nl
+              - notifications.template.voucher_cancelled.en
+              - notifications.template.cashback_adjusted.nl
+              - notifications.template.cashback_adjusted.en
+              - notifications.template.support_reply.nl
+              - notifications.template.support_reply.en
+              - notifications.template.favorite_merchant_offer.nl
+              - notifications.template.favorite_merchant_offer.en
+              - notifications.template.workspace_approved.nl
+              - notifications.template.workspace_approved.en
+              - notifications.template.workspace_rejected.nl
+              - notifications.template.workspace_rejected.en
+              - notifications.template.offer_published.nl
+              - notifications.template.offer_published.en
+              - notifications.template.offer_expiring.nl
+              - notifications.template.offer_expiring.en
+              - notifications.template.commission_changed.nl
+              - notifications.template.commission_changed.en
+              - notifications.template.integration_attention.nl
+              - notifications.template.integration_attention.en
+              - notifications.template.workspace_support_reply.nl
+              - notifications.template.workspace_support_reply.en
+              - notifications.template.workspace_review_required.nl
+              - notifications.template.workspace_review_required.en
+              - notifications.template.ai_support_escalated.nl
+              - notifications.template.ai_support_escalated.en
+              - notifications.template.affiliate_import_failed.nl
+              - notifications.template.affiliate_import_failed.en
+              - notifications.template.notification_delivery_failed.nl
+              - notifications.template.notification_delivery_failed.en
+              - notifications.template.critical_notification_failure.nl
+              - notifications.template.critical_notification_failure.en
+              - notifications.template.merchant_attention.nl
+              - notifications.template.merchant_attention.en
       x-codeSamples:
         -
           lang: curl
@@ -10685,9 +10855,57 @@ paths:
                     - public.languages
                     - operations.diagnostics_daily_request_limit
                     - support.ai
+                    - notifications.policy
+                    - notifications.template.account_welcome.nl
+                    - notifications.template.account_welcome.en
+                    - notifications.template.email_verified.nl
+                    - notifications.template.email_verified.en
+                    - notifications.template.cashback_credited.nl
+                    - notifications.template.cashback_credited.en
+                    - notifications.template.voucher_received.nl
+                    - notifications.template.voucher_received.en
+                    - notifications.template.voucher_expiring.nl
+                    - notifications.template.voucher_expiring.en
+                    - notifications.template.voucher_used.nl
+                    - notifications.template.voucher_used.en
+                    - notifications.template.voucher_cancelled.nl
+                    - notifications.template.voucher_cancelled.en
+                    - notifications.template.cashback_adjusted.nl
+                    - notifications.template.cashback_adjusted.en
+                    - notifications.template.support_reply.nl
+                    - notifications.template.support_reply.en
+                    - notifications.template.favorite_merchant_offer.nl
+                    - notifications.template.favorite_merchant_offer.en
+                    - notifications.template.workspace_approved.nl
+                    - notifications.template.workspace_approved.en
+                    - notifications.template.workspace_rejected.nl
+                    - notifications.template.workspace_rejected.en
+                    - notifications.template.offer_published.nl
+                    - notifications.template.offer_published.en
+                    - notifications.template.offer_expiring.nl
+                    - notifications.template.offer_expiring.en
+                    - notifications.template.commission_changed.nl
+                    - notifications.template.commission_changed.en
+                    - notifications.template.integration_attention.nl
+                    - notifications.template.integration_attention.en
+                    - notifications.template.workspace_support_reply.nl
+                    - notifications.template.workspace_support_reply.en
+                    - notifications.template.workspace_review_required.nl
+                    - notifications.template.workspace_review_required.en
+                    - notifications.template.ai_support_escalated.nl
+                    - notifications.template.ai_support_escalated.en
+                    - notifications.template.affiliate_import_failed.nl
+                    - notifications.template.affiliate_import_failed.en
+                    - notifications.template.notification_delivery_failed.nl
+                    - notifications.template.notification_delivery_failed.en
+                    - notifications.template.critical_notification_failure.nl
+                    - notifications.template.critical_notification_failure.en
+                    - notifications.template.merchant_attention.nl
+                    - notifications.template.merchant_attention.en
                 value:
                   oneOf:
-                    - { $ref: "#/components/schemas/SupportPolicy" }
+                    -
+                      $ref: '#/components/schemas/SupportPolicy'
                     -
                       type: string
                     -
@@ -10785,7 +11003,7 @@ paths:
           source: "curl -i -X POST 'http://localhost:8079/api/v1/admin/platform-settings/01m5snk55bt6tt46x40jqcw89p/review' -H 'Accept: application/json' -b cookies.txt -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' --data '{}'"
       responses:
         200:
-          description: 'Captured from the real local HTTP server; simulated provider completion is explicitly labelled in README.'
+          description: 'Actual updated #29 compatibility HTTP capture.'
           content:
             application/json:
               example:
@@ -10803,6 +11021,47 @@ paths:
                   published_at: null
                   is_current: false
                   rollback_of: null
+              examples:
+                b29_settings-review:
+                  value:
+                    data:
+                      id: 01m5x2ek7x0hp0zhmbdzc2ae89
+                      key: notifications.policy
+                      version: 1
+                      value:
+                        retention_days: 90
+                        email_enabled: true
+                      checksum: 484d7b4584374c945b7138effc8637ced380c3e3ed38b7616cdd67ff080a3e05
+                      status: review
+                      reason: 'Synthetic reviewed delivery policy'
+                      created_by: 01m5x2dwrtnza2hgde66tp93k1
+                      reviewed_by: null
+                      review_note: null
+                      published_at: null
+                      is_current: false
+                      rollback_of: null
+                b29_custom-reminders-review:
+                  value:
+                    data:
+                      id: 01m5x3y45z12xfz473zsgfg127
+                      key: notifications.policy
+                      version: 1
+                      value:
+                        retention_days: 90
+                        email_enabled: true
+                        voucher_reminder_days:
+                          - 14
+                          - 3
+                        offer_expiry_days: 5
+                      checksum: a9bc108970c1ff3d589558ac1cc0377dae5ad9bd4e23278a80120523b0a93c97
+                      status: review
+                      reason: 'Synthetic reviewed custom reminder windows'
+                      created_by: 01m5x3y03myc0beyb32r17c04r
+                      reviewed_by: null
+                      review_note: null
+                      published_at: null
+                      is_current: false
+                      rollback_of: null
         409:
           description: 'Captured real HTTP response.'
           content:
@@ -10880,7 +11139,7 @@ paths:
                   message: 'A different administrator must publish this setting.'
                   request_id: 01a17328-420e-726a-b9b1-ddc6d1c49bc2
         200:
-          description: 'Captured from the real local HTTP server; simulated provider completion is explicitly labelled in README.'
+          description: 'Actual updated #29 compatibility HTTP capture.'
           content:
             application/json:
               example:
@@ -10898,6 +11157,47 @@ paths:
                   published_at: '2026-10-25T13:56:53+00:00'
                   is_current: true
                   rollback_of: null
+              examples:
+                b29_settings-publish:
+                  value:
+                    data:
+                      id: 01m5x2ek7x0hp0zhmbdzc2ae89
+                      key: notifications.policy
+                      version: 1
+                      value:
+                        retention_days: 90
+                        email_enabled: true
+                      checksum: 484d7b4584374c945b7138effc8637ced380c3e3ed38b7616cdd67ff080a3e05
+                      status: published
+                      reason: 'Synthetic reviewed delivery policy'
+                      created_by: 01m5x2dwrtnza2hgde66tp93k1
+                      reviewed_by: 01m5x2dxjsdgv7yn0w01q1jsas
+                      review_note: 'Synthetic independent policy review'
+                      published_at: '2026-10-26T21:39:18+00:00'
+                      is_current: true
+                      rollback_of: null
+                b29_custom-reminders-publish:
+                  value:
+                    data:
+                      id: 01m5x3y45z12xfz473zsgfg127
+                      key: notifications.policy
+                      version: 1
+                      value:
+                        retention_days: 90
+                        email_enabled: true
+                        voucher_reminder_days:
+                          - 14
+                          - 3
+                        offer_expiry_days: 5
+                      checksum: a9bc108970c1ff3d589558ac1cc0377dae5ad9bd4e23278a80120523b0a93c97
+                      status: published
+                      reason: 'Synthetic reviewed custom reminder windows'
+                      created_by: 01m5x3y03myc0beyb32r17c04r
+                      reviewed_by: 01m5x3y0dnpa3fygbc4ghfz0wk
+                      review_note: 'Synthetic independent configuration review'
+                      published_at: '2026-10-26T22:05:15+00:00'
+                      is_current: true
+                      rollback_of: null
         409:
           description: 'Captured real HTTP response.'
           content:
@@ -12468,163 +12768,330 @@ paths:
     get:
       tags:
         - Notifications
-      operationId: notificationInbox
-      summary: 'Read owned notification inbox'
+      operationId: notifications_get_notifications
+      summary: 'GET /api/v1/notifications'
       x-access: verified
-      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
       security:
+        -
+          sessionCookie: {}
         -
           bearerToken: {}
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=unread&page=1&per_page=20' -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'"
+          source: "curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'"
       responses:
         200:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                inbox:
+                current-inbox:
                   value:
                     data:
                       -
-                        id: d87ef802-14ee-41ab-b06e-b1c49992df63
-                        type: support_reply
+                        id: 45c0e627-f377-4595-bdf9-1c6a98745aba
+                        type: voucher_received
                         recipient_type: consumer
-                        title: 'Nieuw antwoord van support'
-                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        title: 'Je voucher staat klaar'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-voucher_received-v1
                         locale: nl
-                        action_label: 'Bekijk gesprek'
-                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
-                        template_version: support-reply-v1
+                        locale_fallback: false
+                        action_route: /app/benefits
                         delivery_channels:
                           database: delivered
-                          email: not_implemented
+                          email: skipped
                         read_at: null
-                        created_at: '2026-10-26T20:45:48+00:00'
+                        created_at: '2026-10-26T21:38:56+00:00'
                       -
-                        id: c615ff79-9256-4ec5-bce9-f5ae9b83776c
+                        id: 083c78b7-aa66-4ee1-a38f-2f54c49c2419
                         type: support_reply
                         recipient_type: consumer
                         title: 'Nieuw antwoord van support'
-                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-support_reply-v1
                         locale: nl
-                        action_label: 'Bekijk gesprek'
-                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
-                        template_version: support-reply-v1
+                        locale_fallback: false
+                        action_route: /app/benefits
                         delivery_channels:
                           database: delivered
-                          email: not_implemented
+                          email: pending
                         read_at: null
-                        created_at: '2026-10-26T20:45:48+00:00'
+                        created_at: '2026-10-26T21:38:56+00:00'
                     meta:
                       unread_count: 2
                       current_page: 1
                       per_page: 20
                       total: 2
-                reconnect:
+                post-worker-inbox:
                   value:
                     data:
                       -
-                        id: d87ef802-14ee-41ab-b06e-b1c49992df63
-                        type: support_reply
+                        id: eba4a2a2-4c81-417f-8860-c506dc5d7bb0
+                        type: email_verified
                         recipient_type: consumer
-                        title: 'Nieuw antwoord van support'
-                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        title: 'E-mailadres bevestigd'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-email_verified-v1
                         locale: nl
-                        action_label: 'Bekijk gesprek'
-                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
-                        template_version: support-reply-v1
+                        locale_fallback: false
+                        action_route: /app/benefits
                         delivery_channels:
                           database: delivered
-                          email: not_implemented
-                        read_at: '2026-10-26T20:45:50+00:00'
-                        created_at: '2026-10-26T20:45:48+00:00'
+                          email: skipped
+                        read_at: null
+                        created_at: '2026-10-26T21:39:32+00:00'
                       -
-                        id: c615ff79-9256-4ec5-bce9-f5ae9b83776c
-                        type: support_reply
+                        id: 45c0e627-f377-4595-bdf9-1c6a98745aba
+                        type: voucher_received
                         recipient_type: consumer
-                        title: 'Nieuw antwoord van support'
-                        body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                        title: 'Je voucher staat klaar'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-voucher_received-v1
                         locale: nl
-                        action_label: 'Bekijk gesprek'
-                        action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
-                        template_version: support-reply-v1
+                        locale_fallback: false
+                        action_route: /app/benefits
                         delivery_channels:
                           database: delivered
-                          email: not_implemented
-                        read_at: '2026-10-26T20:45:50+00:00'
-                        created_at: '2026-10-26T20:45:48+00:00'
+                          email: skipped
+                        read_at: null
+                        created_at: '2026-10-26T21:38:56+00:00'
                     meta:
-                      unread_count: 0
+                      unread_count: 2
                       current_page: 1
                       per_page: 20
                       total: 2
-        401:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                unauthorized-inbox:
+                workspace-context:
                   value:
-                    error:
-                      status: 401
-                      code: unauthenticated
-                      message: 'Authentication is required.'
-                      request_id: b20-capture-unauthorized-inbox
-        403:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                support-denied:
+                    data:
+                      -
+                        id: 4632e7fa-e8fd-4f76-858b-fc6ef476db22
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-support_reply-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: null
+                        action_route: /app/benefits
+                        delivery_channels:
+                          database: delivered
+                          email: pending
+                        read_at: null
+                        created_at: '2026-10-26T22:05:12+00:00'
+                      -
+                        id: 3faddfae-743f-4fd6-b8a8-bd5bf7de7cc2
+                        type: voucher_received
+                        recipient_type: consumer
+                        title: 'Je voucher staat klaar'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-voucher_received-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: null
+                        action_route: /app/benefits
+                        delivery_channels:
+                          database: delivered
+                          email: uncertain
+                        read_at: null
+                        created_at: '2026-10-26T22:05:12+00:00'
+                      -
+                        id: 3676a718-de5a-4900-b302-682c8e4e2e43
+                        type: merchant_attention
+                        recipient_type: workspace
+                        title: Webshopmelding
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-merchant_attention-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: 01m5x3y0e9g0rscg8bswbt1f31
+                        action_route: '/app/workspaces?workspace=01m5x3y0e9g0rscg8bswbt1f31'
+                        delivery_channels:
+                          database: delivered
+                          email: pending
+                        read_at: null
+                        created_at: '2026-10-26T22:05:12+00:00'
+                    meta:
+                      unread_count: 3
+                      current_page: 1
+                      per_page: 20
+                      total: 3
+                worker-inbox-before:
                   value:
-                    error:
-                      status: 403
-                      code: blocked_during_impersonation
-                      message: 'This action is not available during a support session.'
-                      request_id: b20-capture-support-denied
-        429:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                rate-limit:
+                    data:
+                      -
+                        id: c2821351-7aa0-4ce1-9a34-8387e51279e9
+                        type: voucher_received
+                        recipient_type: consumer
+                        title: 'Je voucher staat klaar'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-voucher_received-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: null
+                        action_route: /app/benefits
+                        delivery_channels:
+                          database: delivered
+                          email: uncertain
+                        read_at: null
+                        created_at: '2026-10-26T22:15:34+00:00'
+                      -
+                        id: 2e671058-7391-475c-b5cb-3c4be8002d20
+                        type: merchant_attention
+                        recipient_type: workspace
+                        title: Webshopmelding
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-merchant_attention-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: 01m5x4h0c79n1zvkb49n92cwnt
+                        action_route: '/app/workspaces?workspace=01m5x4h0c79n1zvkb49n92cwnt'
+                        delivery_channels:
+                          database: delivered
+                          email: pending
+                        read_at: null
+                        created_at: '2026-10-26T22:15:34+00:00'
+                      -
+                        id: 1054241b-501d-47f5-8da6-b01efa98dd04
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-support_reply-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: null
+                        action_route: /app/benefits
+                        delivery_channels:
+                          database: delivered
+                          email: pending
+                        read_at: null
+                        created_at: '2026-10-26T22:15:34+00:00'
+                    meta:
+                      unread_count: 3
+                      current_page: 1
+                      per_page: 20
+                      total: 3
+                worker-inbox-after:
                   value:
-                    error:
-                      status: 429
-                      code: too_many_requests
-                      message: 'Too many requests. Please slow down.'
-                      request_id: b20-capture-rate-limit
+                    data:
+                      -
+                        id: c2821351-7aa0-4ce1-9a34-8387e51279e9
+                        type: voucher_received
+                        recipient_type: consumer
+                        title: 'Je voucher staat klaar'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-voucher_received-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: null
+                        action_route: /app/benefits
+                        delivery_channels:
+                          database: delivered
+                          email: sent
+                        read_at: null
+                        created_at: '2026-10-26T22:15:34+00:00'
+                      -
+                        id: 2e671058-7391-475c-b5cb-3c4be8002d20
+                        type: merchant_attention
+                        recipient_type: workspace
+                        title: Webshopmelding
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-merchant_attention-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: 01m5x4h0c79n1zvkb49n92cwnt
+                        action_route: '/app/workspaces?workspace=01m5x4h0c79n1zvkb49n92cwnt'
+                        delivery_channels:
+                          database: delivered
+                          email: skipped
+                        read_at: null
+                        created_at: '2026-10-26T22:15:34+00:00'
+                      -
+                        id: 1054241b-501d-47f5-8da6-b01efa98dd04
+                        type: support_reply
+                        recipient_type: consumer
+                        title: 'Nieuw antwoord van support'
+                        body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                        action_label: 'Bekijk details'
+                        template_version: builtin-support_reply-v1
+                        locale: nl
+                        locale_fallback: false
+                        workspace_id: null
+                        action_route: /app/benefits
+                        delivery_channels:
+                          database: delivered
+                          email: skipped
+                        read_at: null
+                        created_at: '2026-10-26T22:15:34+00:00'
+                    meta:
+                      unread_count: 3
+                      current_page: 1
+                      per_page: 20
+                      total: 3
         500:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                storage-failure:
+                inbox-storage-failure:
                   value:
                     error:
                       status: 500
                       code: server_error
                       message: 'An unexpected error occurred.'
-                      request_id: b20-capture-storage-failure
+                      request_id: b29-inbox-storage-failure
         422:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                invalid-filter:
+                notification-filter-validation:
                   value:
                     error:
                       status: 422
                       code: validation_failed
                       message: 'The given data was invalid.'
-                      request_id: b20-capture-invalid-filter
+                      request_id: b29-notification-filter-validation
                       fields:
                         filter:
                           - 'The selected filter is invalid.'
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
       parameters:
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
         -
           name: filter
           in: query
@@ -12633,150 +13100,70 @@ paths:
             enum:
               - all
               - unread
-            default: all
-        -
-          name: page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 10000
-            default: 1
-        -
-          name: per_page
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+
   '/api/v1/notifications/{notification}/read':
     patch:
       tags:
         - Notifications
-      operationId: notificationRead
-      summary: 'Mark one owned notification read'
+      operationId: notifications_patch_notifications_notification_read
+      summary: 'PATCH /api/v1/notifications/{notification}/read'
       x-access: verified
-      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
       security:
+        -
+          sessionCookie: {}
         -
           bearerToken: {}
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
+          source: "curl -i -X PATCH http://localhost:8079/api/v1/notifications/5826b1f5-f2e3-4531-aa4f-16d5ad0865fd/read -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
       responses:
         200:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                mark-read:
+                current-mark-read:
                   value:
                     data:
-                      id: d87ef802-14ee-41ab-b06e-b1c49992df63
+                      id: 5826b1f5-f2e3-4531-aa4f-16d5ad0865fd
                       type: support_reply
                       recipient_type: consumer
                       title: 'Nieuw antwoord van support'
-                      body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
+                      body: 'Bekijk de actuele gegevens in je ShopBonus-account.'
+                      action_label: 'Bekijk details'
+                      template_version: builtin-support_reply-v1
                       locale: nl
-                      action_label: 'Bekijk gesprek'
-                      action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
-                      template_version: support-reply-v1
+                      locale_fallback: false
+                      action_route: /app/benefits
                       delivery_channels:
                         database: delivered
-                        email: not_implemented
-                      read_at: '2026-10-26T20:45:50+00:00'
-                      created_at: '2026-10-26T20:45:48+00:00'
-                mark-read-idempotent:
-                  value:
-                    data:
-                      id: d87ef802-14ee-41ab-b06e-b1c49992df63
-                      type: support_reply
-                      recipient_type: consumer
-                      title: 'Nieuw antwoord van support'
-                      body: 'Er staat een antwoord voor je klaar in je supportgesprek.'
-                      locale: nl
-                      action_label: 'Bekijk gesprek'
-                      action_route: '/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r'
-                      template_version: support-reply-v1
-                      delivery_channels:
-                        database: delivered
-                        email: not_implemented
-                      read_at: '2026-10-26T20:45:50+00:00'
-                      created_at: '2026-10-26T20:45:48+00:00'
-        401:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                unauthorized-read:
-                  value:
-                    error:
-                      status: 401
-                      code: unauthenticated
-                      message: 'Authentication is required.'
-                      request_id: b20-capture-unauthorized-read
-        403:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                support-denied:
-                  value:
-                    error:
-                      status: 403
-                      code: blocked_during_impersonation
-                      message: 'This action is not available during a support session.'
-                      request_id: b20-capture-support-denied
-        429:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                rate-limit:
-                  value:
-                    error:
-                      status: 429
-                      code: too_many_requests
-                      message: 'Too many requests. Please slow down.'
-                      request_id: b20-capture-rate-limit
-        500:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                storage-failure:
-                  value:
-                    error:
-                      status: 500
-                      code: server_error
-                      message: 'An unexpected error occurred.'
-                      request_id: b20-capture-storage-failure
-        419:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                browser-csrf:
-                  value:
-                    error:
-                      status: 419
-                      code: csrf_token_mismatch
-                      message: 'The session or CSRF token has expired. Refresh and try again.'
-                      request_id: b20-capture-browser-csrf
+                        email: pending
+                      read_at: '2026-10-26T21:43:28+00:00'
+                      created_at: '2026-10-26T21:43:19+00:00'
         404:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                foreign-notification:
+                foreign-read-not-found:
                   value:
                     error:
                       status: 404
                       code: not_found
                       message: 'Notification not found.'
-                      request_id: b20-capture-foreign-notification
+                      request_id: b29-foreign-read-not-found
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
       parameters:
         -
           name: notification
@@ -12785,16 +13172,27 @@ paths:
           schema:
             type: string
             format: uuid
-          description: 'Owned notification UUID. Missing, hidden and foreign identifiers return the same 404.'
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+            example: {}
+
   /api/v1/notifications/read-all:
     post:
       tags:
         - Notifications
-      operationId: notificationReadAll
-      summary: 'Mark all currently visible owned notifications read'
+      operationId: notifications_post_notifications_read_all
+      summary: 'POST /api/v1/notifications/read-all'
       x-access: verified
-      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
       security:
+        -
+          sessionCookie: {}
         -
           bearerToken: {}
       x-codeSamples:
@@ -12803,83 +13201,44 @@ paths:
           source: "curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
       responses:
         200:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                read-all:
+                current-read-all:
                   value:
                     data:
-                      marked_read: 1
+                      marked_read: 2
         401:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                unauthorized-read-all:
-                  value:
-                    error:
-                      status: 401
-                      code: unauthenticated
-                      message: 'Authentication is required.'
-                      request_id: b20-capture-unauthorized-read-all
+          $ref: '#/components/responses/Unauthenticated'
         403:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                support-denied:
-                  value:
-                    error:
-                      status: 403
-                      code: blocked_during_impersonation
-                      message: 'This action is not available during a support session.'
-                      request_id: b20-capture-support-denied
+          $ref: '#/components/responses/Forbidden'
         429:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                rate-limit:
-                  value:
-                    error:
-                      status: 429
-                      code: too_many_requests
-                      message: 'Too many requests. Please slow down.'
-                      request_id: b20-capture-rate-limit
+          $ref: '#/components/responses/TooManyRequests'
         500:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                storage-failure:
-                  value:
-                    error:
-                      status: 500
-                      code: server_error
-                      message: 'An unexpected error occurred.'
-                      request_id: b20-capture-storage-failure
+          $ref: '#/components/responses/ServerError'
         419:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                browser-csrf:
-                  value:
-                    error:
-                      status: 419
-                      code: csrf_token_mismatch
-                      message: 'The session or CSRF token has expired. Refresh and try again.'
-                      request_id: b20-capture-browser-csrf
+          $ref: '#/components/responses/CsrfMismatch'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+            example: {}
+
   /api/v1/notification-preferences:
     get:
       tags:
         - Notifications
-      operationId: notificationPreferences
-      summary: 'Read notification preferences'
+      operationId: notifications_get_notification_preferences
+      summary: 'GET /api/v1/notification-preferences'
       x-access: verified
-      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
       security:
+        -
+          sessionCookie: {}
         -
           bearerToken: {}
       x-codeSamples:
@@ -12888,154 +13247,1959 @@ paths:
           source: "curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>'"
       responses:
         200:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                preferences:
+                current-preferences:
                   value:
                     data:
                       locale: nl
                       email_enabled: true
                       preferences:
+                        account_welcome:
+                          in_app: true
+                          email: true
+                        email_verified:
+                          in_app: true
+                          email: false
+                        cashback_credited:
+                          in_app: true
+                          email: false
+                        voucher_received:
+                          in_app: true
+                          email: true
+                        voucher_expiring:
+                          in_app: true
+                          email: false
+                        voucher_used:
+                          in_app: true
+                          email: false
+                        voucher_cancelled:
+                          in_app: true
+                          email: true
+                        cashback_adjusted:
+                          in_app: true
+                          email: true
                         support_reply:
+                          in_app: true
+                          email: false
+                        favorite_merchant_offer:
+                          in_app: false
+                          email: false
+                        workspace_approved:
+                          in_app: true
+                          email: true
+                        workspace_rejected:
+                          in_app: true
+                          email: true
+                        offer_published:
+                          in_app: true
+                          email: false
+                        offer_expiring:
+                          in_app: true
+                          email: false
+                        commission_changed:
+                          in_app: true
+                          email: true
+                        integration_attention:
                           in_app: true
                           email: false
                         workspace_support_reply:
                           in_app: true
                           email: false
-                      email_delivery_available: false
+                        workspace_review_required:
+                          in_app: true
+                          email: false
+                        ai_support_escalated:
+                          in_app: true
+                          email: false
+                        affiliate_import_failed:
+                          in_app: true
+                          email: false
+                        notification_delivery_failed:
+                          in_app: true
+                          email: false
+                        critical_notification_failure:
+                          in_app: true
+                          email: true
+                        merchant_attention:
+                          in_app: true
+                          email: false
+                      email_delivery_available: true
         401:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                unauthorized-preferences:
-                  value:
-                    error:
-                      status: 401
-                      code: unauthenticated
-                      message: 'Authentication is required.'
-                      request_id: b20-capture-unauthorized-preferences
+          $ref: '#/components/responses/Unauthenticated'
         403:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                support-preferences-denied:
-                  value:
-                    error:
-                      status: 403
-                      code: blocked_during_impersonation
-                      message: 'This action is not available during a support session.'
-                      request_id: b20-capture-support-preferences-denied
+          $ref: '#/components/responses/Forbidden'
         429:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                rate-limit:
-                  value:
-                    error:
-                      status: 429
-                      code: too_many_requests
-                      message: 'Too many requests. Please slow down.'
-                      request_id: b20-capture-rate-limit
+          $ref: '#/components/responses/TooManyRequests'
         500:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
-          content:
-            application/json:
-              examples:
-                storage-failure:
-                  value:
-                    error:
-                      status: 500
-                      code: server_error
-                      message: 'An unexpected error occurred.'
-                      request_id: b20-capture-storage-failure
+          $ref: '#/components/responses/ServerError'
     put:
       tags:
         - Notifications
-      operationId: notificationPreferencesUpdate
-      summary: 'Update notification preferences and account locale'
+      operationId: notifications_put_notification_preferences
+      summary: 'PUT /api/v1/notification-preferences'
       x-access: verified
-      description: 'B20a first slice: actual human-support replies only. Active verified owner; support impersonation denied. Historical workspace/admin visibility revalidated. Encrypted generic payload, no reply text or voucher codes. Email delivery is not implemented; preferences are stored for later delivery and do not grant consent. Actual running-server examples in docs/notifications/B20A_HTTP_CAPTURE.json. See docs/notifications/NOTIFICATIONS.md.'
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
       security:
+        -
+          sessionCookie: {}
         -
           bearerToken: {}
       x-codeSamples:
         -
           lang: curl
-          source: 'curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H ''Accept: application/json'' -H ''Authorization: Bearer <API_TOKEN>'' -H ''Content-Type: application/json'' --data ''{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"email":false,"in_app":true}}}'''
+          source: 'curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H ''Accept: application/json'' -H ''Authorization: Bearer <API_TOKEN>'' -H ''Content-Type: application/json'' --data ''{"email_enabled":false,"preferences":{"favorite_merchant_offer":{"in_app":true,"email":false}}}'''
       responses:
         200:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                update-preferences:
+                current-preferences-update:
                   value:
                     data:
-                      locale: en
+                      locale: nl
                       email_enabled: false
                       preferences:
+                        account_welcome:
+                          in_app: true
+                          email: true
+                        email_verified:
+                          in_app: true
+                          email: false
+                        cashback_credited:
+                          in_app: true
+                          email: false
+                        voucher_received:
+                          in_app: true
+                          email: true
+                        voucher_expiring:
+                          in_app: true
+                          email: false
+                        voucher_used:
+                          in_app: true
+                          email: false
+                        voucher_cancelled:
+                          in_app: true
+                          email: true
+                        cashback_adjusted:
+                          in_app: true
+                          email: true
                         support_reply:
+                          in_app: true
+                          email: false
+                        favorite_merchant_offer:
+                          in_app: true
+                          email: false
+                        workspace_approved:
+                          in_app: true
+                          email: true
+                        workspace_rejected:
+                          in_app: true
+                          email: true
+                        offer_published:
+                          in_app: true
+                          email: false
+                        offer_expiring:
+                          in_app: true
+                          email: false
+                        commission_changed:
+                          in_app: true
+                          email: true
+                        integration_attention:
                           in_app: true
                           email: false
                         workspace_support_reply:
                           in_app: true
                           email: false
-                      email_delivery_available: false
-        401:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+                        workspace_review_required:
+                          in_app: true
+                          email: false
+                        ai_support_escalated:
+                          in_app: true
+                          email: false
+                        affiliate_import_failed:
+                          in_app: true
+                          email: false
+                        notification_delivery_failed:
+                          in_app: true
+                          email: false
+                        critical_notification_failure:
+                          in_app: true
+                          email: true
+                        merchant_attention:
+                          in_app: true
+                          email: false
+                      email_delivery_available: true
+        422:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                unauthorized-update:
+                mandatory-mail:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b29-mandatory-mail
+                      fields:
+                        preferences.voucher_received:
+                          - 'Mandatory notification channels cannot be disabled.'
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email_enabled:
+                  type: boolean
+                preferences:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    account_welcome:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    email_verified:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    cashback_credited:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    voucher_received:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    voucher_expiring:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    voucher_used:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    voucher_cancelled:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    cashback_adjusted:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    support_reply:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    favorite_merchant_offer:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                        email:
+                          type: boolean
+                    workspace_approved:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    workspace_rejected:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    offer_published:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    offer_expiring:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    commission_changed:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    integration_attention:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    workspace_support_reply:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    workspace_review_required:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    ai_support_escalated:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    affiliate_import_failed:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    notification_delivery_failed:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                    critical_notification_failure:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                          const: true
+                    merchant_attention:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        in_app:
+                          type: boolean
+                          const: true
+                        email:
+                          type: boolean
+                locale:
+                  type: string
+                  enum:
+                    - nl
+                    - en
+            example:
+              email_enabled: false
+              preferences:
+                favorite_merchant_offer:
+                  in_app: true
+                  email: false
+
+  /api/v1/platform/notifications/events:
+    get:
+      tags:
+        - Notifications
+      operationId: notifications_get_platform_notifications_events
+      summary: 'GET /api/v1/platform/notifications/events'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/platform/notifications/events -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                events:
+                  value:
+                    data:
+                      -
+                        event_type: account_welcome
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: email_verified
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: cashback_credited
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables:
+                          - amount_formatted
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: voucher_received
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: voucher_expiring
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days:
+                          - 30
+                          - 7
+                          - 1
+                      -
+                        event_type: voucher_used
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: voucher_cancelled
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: cashback_adjusted
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: support_reply
+                        audience: consumer
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: favorite_merchant_offer
+                        audience: consumer
+                        mandatory_in_app: false
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: workspace_approved
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: workspace_rejected
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: offer_published
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: offer_expiring
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: commission_changed
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: integration_attention
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: workspace_support_reply
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: workspace_review_required
+                        audience: admin
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: ai_support_escalated
+                        audience: admin
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: affiliate_import_failed
+                        audience: admin
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: notification_delivery_failed
+                        audience: admin
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: critical_notification_failure
+                        audience: admin
+                        mandatory_in_app: true
+                        mandatory_email: true
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                      -
+                        event_type: merchant_attention
+                        audience: workspace
+                        mandatory_in_app: true
+                        mandatory_email: false
+                        allowed_variables: {}
+                        locales:
+                          - nl
+                          - en
+                        reminder_days: {}
+                    failures:
+                      -
+                        id: 01m5x2dxnmrmdstab31stbzggp
+                        event_type: email_verified
+                        attempts: 3
+                        error_code: synthetic_inbox_failure
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-unauth-2:
                   value:
                     error:
                       status: 401
                       code: unauthenticated
                       message: 'Authentication is required.'
-                      request_id: b20-capture-unauthorized-update
+                      request_id: b29-read-unauth-2
         403:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                support-preferences-denied:
+                read-forbidden-2:
                   value:
                     error:
                       status: 403
-                      code: blocked_during_impersonation
-                      message: 'This action is not available during a support session.'
-                      request_id: b20-capture-support-preferences-denied
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-read-forbidden-2
         429:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/platform/notifications/deliveries:
+    get:
+      tags:
+        - Notifications
+      operationId: notifications_get_platform_notifications_deliveries
+      summary: 'GET /api/v1/platform/notifications/deliveries'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/platform/notifications/deliveries -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                rate-limit:
+                deliveries:
+                  value:
+                    data:
+                      -
+                        id: 01m5x2dxv818ry5cxgw5vnmcbh
+                        notification_id: 45c0e627-f377-4595-bdf9-1c6a98745aba
+                        channel: mail
+                        status: uncertain
+                        attempts: 1
+                        error_code: null
+                        sent_at: null
+                      -
+                        id: 01m5x2dxryb5cpqmsdrp7j1zc7
+                        notification_id: 083c78b7-aa66-4ee1-a38f-2f54c49c2419
+                        channel: mail
+                        status: pending
+                        attempts: 0
+                        error_code: null
+                        sent_at: null
+                    meta:
+                      current_page: 1
+                      total: 2
+                    operations:
+                      failed_events: 1
+                      locale_fallbacks: 0
+                post-worker-deliveries:
+                  value:
+                    data:
+                      -
+                        id: 01m5x2f1ckdf73j2eggbg1r1pz
+                        notification_id: eba4a2a2-4c81-417f-8860-c506dc5d7bb0
+                        channel: mail
+                        status: skipped
+                        attempts: 0
+                        error_code: recipient_or_preferences_changed
+                        sent_at: null
+                      -
+                        id: 01m5x2dxv818ry5cxgw5vnmcbh
+                        notification_id: 45c0e627-f377-4595-bdf9-1c6a98745aba
+                        channel: mail
+                        status: skipped
+                        attempts: 1
+                        error_code: human_reviewed
+                        sent_at: null
+                    meta:
+                      current_page: 1
+                      total: 2
+                    operations:
+                      failed_events: 0
+                      locale_fallbacks: 0
+                worker-deliveries-before:
+                  value:
+                    data:
+                      -
+                        id: 01m5x4h0jeg7qb0evss79ff13g
+                        notification_id: c2821351-7aa0-4ce1-9a34-8387e51279e9
+                        channel: mail
+                        status: retry
+                        attempts: 1
+                        error_code: null
+                        sent_at: null
+                      -
+                        id: 01m5x4h0j1gvene5hjv1c1znbt
+                        notification_id: 1054241b-501d-47f5-8da6-b01efa98dd04
+                        channel: mail
+                        status: pending
+                        attempts: 0
+                        error_code: null
+                        sent_at: null
+                      -
+                        id: 01m5x4h0h25hwq9cwkny7f7rhn
+                        notification_id: 2e671058-7391-475c-b5cb-3c4be8002d20
+                        channel: mail
+                        status: pending
+                        attempts: 0
+                        error_code: null
+                        sent_at: null
+                    meta:
+                      current_page: 1
+                      total: 3
+                    operations:
+                      failed_events: 1
+                      locale_fallbacks: 0
+                worker-deliveries-sent:
+                  value:
+                    data:
+                      -
+                        id: 01m5x4h0jeg7qb0evss79ff13g
+                        notification_id: c2821351-7aa0-4ce1-9a34-8387e51279e9
+                        channel: mail
+                        status: sent
+                        attempts: 2
+                        error_code: null
+                        sent_at: '2026-10-26T22:15:41+00:00'
+                      -
+                        id: 01m5x4h0j1gvene5hjv1c1znbt
+                        notification_id: 1054241b-501d-47f5-8da6-b01efa98dd04
+                        channel: mail
+                        status: skipped
+                        attempts: 0
+                        error_code: recipient_or_preferences_changed
+                        sent_at: null
+                      -
+                        id: 01m5x4h0h25hwq9cwkny7f7rhn
+                        notification_id: 2e671058-7391-475c-b5cb-3c4be8002d20
+                        channel: mail
+                        status: skipped
+                        attempts: 0
+                        error_code: recipient_or_preferences_changed
+                        sent_at: null
+                    meta:
+                      current_page: 1
+                      total: 3
+                    operations:
+                      failed_events: 1
+                      locale_fallbacks: 0
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-unauth-3:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-read-unauth-3
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-forbidden-3:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-read-forbidden-3
+        422:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                delivery-invalid-status:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b29-delivery-invalid-status
+                      fields:
+                        status:
+                          - 'The selected status is invalid.'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+      parameters:
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        -
+          name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - retry
+              - sending
+              - sent
+              - skipped
+              - failed
+              - uncertain
+              - confirmed_sent
+
+  /api/v1/platform/notifications/settings:
+    get:
+      tags:
+        - Notifications
+      operationId: notifications_get_platform_notifications_settings
+      summary: 'GET /api/v1/platform/notifications/settings'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                settings:
+                  value:
+                    data:
+                      retention_days: 90
+                      email_enabled: true
+                    email_delivery_available: true
+                settings-published:
+                  value:
+                    data:
+                      retention_days: 90
+                      email_enabled: true
+                    email_delivery_available: true
+                custom-reminders-active:
+                  value:
+                    data:
+                      retention_days: 90
+                      email_enabled: true
+                      voucher_reminder_days:
+                        - 14
+                        - 3
+                      offer_expiry_days: 5
+                    email_delivery_available: true
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-unauth-4:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-read-unauth-4
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-forbidden-4:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-read-forbidden-4
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+    put:
+      tags:
+        - Notifications
+      operationId: notifications_put_platform_notifications_settings
+      summary: 'PUT /api/v1/platform/notifications/settings'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/settings -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"value\":{\"retention_days\":90,\"email_enabled\":true},\"reason\":\"Synthetic reviewed delivery policy\"}'"
+      responses:
+        201:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                settings-draft:
+                  value:
+                    data:
+                      id: 01m5x2ek7x0hp0zhmbdzc2ae89
+                      status: draft
+                      value:
+                        retention_days: 90
+                        email_enabled: true
+                    publication: 'Use existing platform-settings submit and independent publish endpoints.'
+                custom-reminders-draft:
+                  value:
+                    data:
+                      id: 01m5x3y45z12xfz473zsgfg127
+                      status: draft
+                      value:
+                        retention_days: 90
+                        email_enabled: true
+                        voucher_reminder_days:
+                          - 14
+                          - 3
+                        offer_expiry_days: 5
+                    publication: 'Use existing platform-settings submit and independent publish endpoints.'
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-8:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-8
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-8:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-8
+        422:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                settings-validation:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b29-settings-validation
+                      fields:
+                        value.retention_days:
+                          - 'The value.retention days field must be between 1 and 365.'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value:
+                  type: object
+                  required:
+                    - retention_days
+                    - email_enabled
+                  additionalProperties: false
+                  properties:
+                    retention_days:
+                      type: integer
+                      minimum: 1
+                      maximum: 365
+                    email_enabled:
+                      type: boolean
+                    voucher_reminder_days:
+                      type: array
+                      minItems: 1
+                      maxItems: 5
+                      uniqueItems: true
+                      items:
+                        type: integer
+                        minimum: 1
+                        maximum: 90
+                    offer_expiry_days:
+                      type: integer
+                      minimum: 1
+                      maximum: 30
+                reason:
+                  type: string
+                  maxLength: 500
+              required:
+                - value
+                - reason
+            example:
+              value:
+                retention_days: 90
+                email_enabled: true
+              reason: 'Synthetic reviewed delivery policy'
+
+  '/api/v1/platform/notifications/events/{event}/retry':
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_events_event_retry
+      summary: 'POST /api/v1/platform/notifications/events/{event}/retry'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/events/01m5x2dxnmrmdstab31stbzggp/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"note\":\"Synthetic source failure reviewed\"}'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                retry-event:
+                  value:
+                    data:
+                      id: 01m5x2dxnmrmdstab31stbzggp
+                      status: pending
+                error-fixture-event-retry:
+                  value:
+                    data:
+                      id: 01m5x52fv508e5vvbcgk6qc4rh
+                      status: pending
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-9:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-9
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-9:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-9
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                event-retry-conflict:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_event_not_retryable
+                      message: 'Event cannot be retried.'
+                      request_id: b29-event-retry-conflict
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: event
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 500
+              required:
+                - note
+            example:
+              note: 'Synthetic source failure reviewed'
+
+  '/api/v1/platform/notifications/deliveries/{delivery}/retry':
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_deliveries_delivery_retry
+      summary: 'POST /api/v1/platform/notifications/deliveries/{delivery}/retry'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/retry -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"note\":\"Synthetic transport evidence reviewed\",\"duplicate_risk_acknowledged\":true}'"
+      responses:
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                retry-no-ack:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_duplicate_risk
+                      message: 'Review the uncertain transport result before retrying.'
+                      request_id: b29-retry-no-ack
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                retry-delivery:
+                  value:
+                    data:
+                      id: 01m5x2dxv818ry5cxgw5vnmcbh
+                      notification_id: 45c0e627-f377-4595-bdf9-1c6a98745aba
+                      channel: mail
+                      status: retry
+                      attempts: 1
+                      error_code: null
+                      sent_at: null
+                worker-approved-retry:
+                  value:
+                    data:
+                      id: 01m5x4h0jeg7qb0evss79ff13g
+                      notification_id: c2821351-7aa0-4ce1-9a34-8387e51279e9
+                      channel: mail
+                      status: retry
+                      attempts: 1
+                      error_code: null
+                      sent_at: null
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-6:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-6
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-6:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-6
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: delivery
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 500
+                duplicate_risk_acknowledged:
+                  type: boolean
+              required:
+                - note
+            example:
+              note: 'Synthetic transport evidence reviewed'
+              duplicate_risk_acknowledged: true
+
+  '/api/v1/platform/notifications/deliveries/{delivery}/resolve':
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_deliveries_delivery_resolve
+      summary: 'POST /api/v1/platform/notifications/deliveries/{delivery}/resolve'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/deliveries/01m5x2dxv818ry5cxgw5vnmcbh/resolve -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"note\":\"Synthetic verified transport record\",\"outcome\":\"do_not_resend\"}'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                resolve-delivery:
+                  value:
+                    data:
+                      id: 01m5x2dxv818ry5cxgw5vnmcbh
+                      notification_id: 45c0e627-f377-4595-bdf9-1c6a98745aba
+                      channel: mail
+                      status: skipped
+                      attempts: 1
+                      error_code: human_reviewed
+                      sent_at: null
+                error-fixture-resolution:
+                  value:
+                    data:
+                      id: 01m5x52fwgdv8szqwwrg3xjese
+                      notification_id: be6aa3e3-f337-4c7c-abe7-54a4b7079d64
+                      channel: mail
+                      status: skipped
+                      attempts: 1
+                      error_code: human_reviewed
+                      sent_at: null
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-7:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-7
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-7:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-7
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                delivery-resolve-conflict:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_delivery_not_uncertain
+                      message: 'Only uncertain deliveries require resolution.'
+                      request_id: b29-delivery-resolve-conflict
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: delivery
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 500
+                outcome:
+                  type: string
+                  maxLength: 500
+              required:
+                - note
+                - outcome
+            example:
+              note: 'Synthetic verified transport record'
+              outcome: do_not_resend
+
+  /api/v1/platform/notifications/templates/generate:
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_templates_generate
+      summary: 'POST /api/v1/platform/notifications/templates/generate'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/generate -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 61cc4fda-19f5-4a4c-b516-fb09c4443068' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"event_type\":\"support_reply\"}'"
+      responses:
+        201:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                generate:
+                  value:
+                    data:
+                      -
+                        id: 01m5x2eex18gkm57fz39b23sfv
+                        key: notifications.template.support_reply.nl
+                        version: 1
+                        status: draft
+                        value:
+                          title: Supportnieuws
+                          body: 'Bekijk de actuele gegevens in je account.'
+                          action_label: 'Bekijk details'
+                        checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                        is_current: false
+                        published_at: null
+                        rollback_of: null
+                      -
+                        id: 01m5x2eexykppbe99z8jq9x4m5
+                        key: notifications.template.support_reply.en
+                        version: 1
+                        status: draft
+                        value:
+                          title: 'Support update'
+                          body: 'View current details in your account.'
+                          action_label: 'View details'
+                        checksum: 2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a
+                        is_current: false
+                        published_at: null
+                        rollback_of: null
+                generate-replay:
+                  value:
+                    data:
+                      -
+                        id: 01m5x2eex18gkm57fz39b23sfv
+                        key: notifications.template.support_reply.nl
+                        version: 1
+                        status: draft
+                        value:
+                          title: Supportnieuws
+                          body: 'Bekijk de actuele gegevens in je account.'
+                          action_label: 'Bekijk details'
+                        checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                        is_current: false
+                        published_at: null
+                        rollback_of: null
+                      -
+                        id: 01m5x2eexykppbe99z8jq9x4m5
+                        key: notifications.template.support_reply.en
+                        version: 1
+                        status: draft
+                        value:
+                          title: 'Support update'
+                          body: 'View current details in your account.'
+                          action_label: 'View details'
+                        checksum: 2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a
+                        is_current: false
+                        published_at: null
+                        rollback_of: null
+        503:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                generation-failure:
+                  value:
+                    error:
+                      status: 503
+                      code: notification_generation_failed
+                      message: 'Template generation failed safely. No template was published.'
+                      request_id: b29-generation-failure
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                generation-failed-replay:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_generation_pending
+                      message: 'This generation is pending or failed; no provider retry was made.'
+                      request_id: b29-generation-failed-replay
+        429:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                generation-cap:
                   value:
                     error:
                       status: 429
-                      code: too_many_requests
-                      message: 'Too many requests. Please slow down.'
-                      request_id: b20-capture-rate-limit
-        500:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+                      code: notification_ai_daily_limit
+                      message: 'Daily template generation limit reached.'
+                      request_id: b29-generation-cap
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                storage-failure:
+                admin-unauth-1:
                   value:
                     error:
-                      status: 500
-                      code: server_error
-                      message: 'An unexpected error occurred.'
-                      request_id: b20-capture-storage-failure
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-1
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-1:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-1
+        500:
+          $ref: '#/components/responses/ServerError'
         419:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 'Per-admin UUID. Exact completed replay returns the same private drafts without another model call; changed payload or pending/failed generation409.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type:
+                  type: string
+                  maxLength: 500
+                  enum:
+                    - account_welcome
+                    - email_verified
+                    - cashback_credited
+                    - voucher_received
+                    - voucher_expiring
+                    - voucher_used
+                    - voucher_cancelled
+                    - cashback_adjusted
+                    - support_reply
+                    - favorite_merchant_offer
+                    - workspace_approved
+                    - workspace_rejected
+                    - offer_published
+                    - offer_expiring
+                    - commission_changed
+                    - integration_attention
+                    - workspace_support_reply
+                    - workspace_review_required
+                    - ai_support_escalated
+                    - affiliate_import_failed
+                    - notification_delivery_failed
+                    - critical_notification_failure
+                    - merchant_attention
+              required:
+                - event_type
+            example:
+              event_type: support_reply
+
+  /api/v1/platform/notifications/templates:
+    get:
+      tags:
+        - Notifications
+      operationId: notifications_get_platform_notifications_templates
+      summary: 'GET /api/v1/platform/notifications/templates'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                template-list:
+                  value:
+                    data:
+                      -
+                        id: 01m5x2eexykppbe99z8jq9x4m5
+                        key: notifications.template.support_reply.en
+                        version: 1
+                        status: draft
+                        value:
+                          title: 'Support update'
+                          body: 'View current details in your account.'
+                          action_label: 'View details'
+                        checksum: 2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a
+                        is_current: false
+                        published_at: null
+                        rollback_of: null
+                      -
+                        id: 01m5x2eex18gkm57fz39b23sfv
+                        key: notifications.template.support_reply.nl
+                        version: 1
+                        status: draft
+                        value:
+                          title: Supportnieuws
+                          body: 'Bekijk de actuele gegevens in je account.'
+                          action_label: 'Bekijk details'
+                        checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                        is_current: false
+                        published_at: null
+                        rollback_of: null
+                    meta:
+                      current_page: 1
+                      total: 2
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-unauth-0:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-read-unauth-0
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-forbidden-0:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-read-forbidden-0
+        422:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                template-pagination-validation:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b29-template-pagination-validation
+                      fields:
+                        per_page:
+                          - 'The per page field must be between 1 and 100.'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+      parameters:
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+        -
+          name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_templates
+      summary: 'POST /api/v1/platform/notifications/templates'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: 'curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates -H ''Accept: application/json'' -H ''Origin: http://localhost:3000'' -H ''Referer: http://localhost:3000/'' -H ''X-XSRF-TOKEN: <CSRF_TOKEN>'' -H ''Content-Type: application/json'' -H ''Cookie: <SPA_SESSION_COOKIES>'' --data ''{"event_type":"voucher_received","locale":"en","value":{"title":"Your voucher is ready","body":"View current details in your account.","action_label":"View details"},"reason":"Synthetic reviewed manual template"}'''
+      responses:
+        201:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                store:
+                  value:
+                    data:
+                      id: 01m5x2ejythfveh5mdp5mfs5wa
+                      key: notifications.template.voucher_received.en
+                      version: 1
+                      status: draft
+                      value:
+                        title: 'Your voucher is ready'
+                        body: 'View current details in your account.'
+                        action_label: 'View details'
+                      checksum: 3f253ef448b49c782fabe7b9ea202d23cf046d42178b4e3790c3807d0e6277d4
+                      is_current: false
+                      published_at: null
+                      rollback_of: null
+                error-fixture-draft:
+                  value:
+                    data:
+                      id: 01m5x52kdaqxdwxp2jc37844t2
+                      key: notifications.template.support_reply.nl
+                      version: 1
+                      status: draft
+                      value:
+                        title: 'Support update'
+                        body: 'View current details in your account.'
+                        action_label: 'View details'
+                      checksum: 2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a
+                      is_current: false
+                      published_at: null
+                      rollback_of: null
+                error-fixture-unpublished:
+                  value:
+                    data:
+                      id: 01m5x52knrx8z54ycpswqyjyzy
+                      key: notifications.template.support_reply.en
+                      version: 1
+                      status: draft
+                      value:
+                        title: 'Support update'
+                        body: 'View current details in your account.'
+                        action_label: 'View details'
+                      checksum: 2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a
+                      is_current: false
+                      published_at: null
+                      rollback_of: null
+        422:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                invalid-copy:
+                  value:
+                    error:
+                      status: 422
+                      code: validation_failed
+                      message: 'The given data was invalid.'
+                      request_id: b29-invalid-copy
+                      fields:
+                        value:
+                          - 'Use approved placeholders and plain text without literal amounts, deadlines, links or provider references.'
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-0:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-0
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-0:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-0
+        423:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                password-required:
+                  value:
+                    error:
+                      status: 423
+                      code: password_confirmation_required
+                      message: 'Confirm your password to continue.'
+                      request_id: b29-password-required
+        419:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
@@ -13045,79 +15209,795 @@ paths:
                       status: 419
                       code: csrf_token_mismatch
                       message: 'The session or CSRF token has expired. Refresh and try again.'
-                      request_id: b20-capture-browser-csrf
-        422:
-          description: 'Actual HTTP capture. Shared middleware envelopes apply across these endpoints; 500 uses a temporary router-injected storage failure through the real kernel, never shipped. 419 applies to browser mutations.'
+                      request_id: b29-browser-csrf
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event_type:
+                  type: string
+                  maxLength: 500
+                locale:
+                  type: string
+                  maxLength: 500
+                value:
+                  type: object
+                  required:
+                    - title
+                    - body
+                    - action_label
+                  additionalProperties: false
+                  properties:
+                    title:
+                      type: string
+                      maxLength: 70
+                    body:
+                      type: string
+                      maxLength: 180
+                    action_label:
+                      type: string
+                      maxLength: 40
+                reason:
+                  type: string
+                  maxLength: 500
+              required:
+                - event_type
+                - value
+                - reason
+            example:
+              event_type: voucher_received
+              locale: en
+              value:
+                title: 'Your voucher is ready'
+                body: 'View current details in your account.'
+                action_label: 'View details'
+              reason: 'Synthetic reviewed manual template'
+
+  '/api/v1/platform/notifications/templates/{template}':
+    get:
+      tags:
+        - Notifications
+      operationId: notifications_get_platform_notifications_templates_template
+      summary: 'GET /api/v1/platform/notifications/templates/{template}'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X GET http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Cookie: <SPA_SESSION_COOKIES>'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
           content:
             application/json:
               examples:
-                mandatory-in-app:
+                template-show:
+                  value:
+                    data:
+                      id: 01m5x2eex18gkm57fz39b23sfv
+                      key: notifications.template.support_reply.nl
+                      version: 1
+                      status: draft
+                      value:
+                        title: Supportnieuws
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                      is_current: false
+                      published_at: null
+                      rollback_of: null
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-unauth-1:
                   value:
                     error:
-                      status: 422
-                      code: validation_failed
-                      message: 'The given data was invalid.'
-                      request_id: b20-capture-mandatory-in-app
-                      fields:
-                        preferences.support_reply.in_app:
-                          - 'The preferences.support_reply.in_app field must be accepted.'
-                unknown-event:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-read-unauth-1
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                read-forbidden-1:
                   value:
                     error:
-                      status: 422
-                      code: validation_failed
-                      message: 'The given data was invalid.'
-                      request_id: b20-capture-unknown-event
-                      fields:
-                        preferences:
-                          - 'The preferences field must be an array.'
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-read-forbidden-1
+        404:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                template-missing:
+                  value:
+                    error:
+                      status: 404
+                      code: not_found
+                      message: 'Template not found.'
+                      request_id: b29-template-missing
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+      parameters:
+        -
+          name: template
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+    put:
+      tags:
+        - Notifications
+      operationId: notifications_put_platform_notifications_templates_template
+      summary: 'PUT /api/v1/platform/notifications/templates/{template}'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: 'curl -i -X PUT http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv -H ''Accept: application/json'' -H ''Origin: http://localhost:3000'' -H ''Referer: http://localhost:3000/'' -H ''X-XSRF-TOKEN: <CSRF_TOKEN>'' -H ''Content-Type: application/json'' -H ''Cookie: <SPA_SESSION_COOKIES>'' --data ''{"expected_checksum":"b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037","value":{"title":"Supportbericht","body":"Bekijk de actuele gegevens in je account.","action_label":"Bekijk details"},"reason":"Synthetic reviewed text update"}'''
+      responses:
+        201:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                edit:
+                  value:
+                    data:
+                      id: 01m5x2egt83hzypkgr6jmd4b6e
+                      key: notifications.template.support_reply.nl
+                      version: 2
+                      status: draft
+                      value:
+                        title: Supportbericht
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      checksum: b42060b58718e16a8b6af35afd6528b5ade161891cc4072d141436378cf5f2ca
+                      is_current: false
+                      published_at: null
+                      rollback_of: null
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                edit-stale:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_template_stale
+                      message: 'Template changed. Refresh before editing.'
+                      request_id: b29-edit-stale
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-2:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-2
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-2:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-2
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: template
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expected_checksum:
+                  type: string
+                  maxLength: 500
+                value:
+                  type: object
+                  required:
+                    - title
+                    - body
+                    - action_label
+                  additionalProperties: false
+                  properties:
+                    title:
+                      type: string
+                      maxLength: 70
+                    body:
+                      type: string
+                      maxLength: 180
+                    action_label:
+                      type: string
+                      maxLength: 40
+                reason:
+                  type: string
+                  maxLength: 500
+              required:
+                - expected_checksum
+                - value
+                - reason
+            example:
+              expected_checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+              value:
+                title: Supportbericht
+                body: 'Bekijk de actuele gegevens in je account.'
+                action_label: 'Bekijk details'
+              reason: 'Synthetic reviewed text update'
+
+  '/api/v1/platform/notifications/templates/{template}/publish':
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_templates_template_publish
+      summary: 'POST /api/v1/platform/notifications/templates/{template}/publish'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/publish -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"note\":\"Synthetic independent review\"}'"
+      responses:
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                publish-needs-test:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_template_test_required
+                      message: 'Test the notification template before publication.'
+                      request_id: b29-publish-needs-test
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                self-publish:
+                  value:
+                    error:
+                      status: 403
+                      code: second_admin_required
+                      message: 'A different administrator must publish this setting.'
+                      request_id: b29-self-publish
+                admin-forbidden-4:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-4
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                publish:
+                  value:
+                    data:
+                      id: 01m5x2eex18gkm57fz39b23sfv
+                      key: notifications.template.support_reply.nl
+                      version: 1
+                      status: published
+                      value:
+                        title: Supportnieuws
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                      is_current: true
+                      published_at: '2026-10-26T21:39:15+00:00'
+                      rollback_of: null
+                edit-publish:
+                  value:
+                    data:
+                      id: 01m5x2egt83hzypkgr6jmd4b6e
+                      key: notifications.template.support_reply.nl
+                      version: 2
+                      status: published
+                      value:
+                        title: Supportbericht
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      checksum: b42060b58718e16a8b6af35afd6528b5ade161891cc4072d141436378cf5f2ca
+                      is_current: true
+                      published_at: '2026-10-26T21:39:17+00:00'
+                      rollback_of: null
+                rollback-publish:
+                  value:
+                    data:
+                      id: 01m5x2ej4jaaffhkebtys72hk1
+                      key: notifications.template.support_reply.nl
+                      version: 3
+                      status: published
+                      value:
+                        title: Supportnieuws
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                      is_current: true
+                      published_at: '2026-10-26T21:39:17+00:00'
+                      rollback_of: 01m5x2eex18gkm57fz39b23sfv
+                error-fixture-publish:
+                  value:
+                    data:
+                      id: 01m5x52kdaqxdwxp2jc37844t2
+                      key: notifications.template.support_reply.nl
+                      version: 1
+                      status: published
+                      value:
+                        title: 'Support update'
+                        body: 'View current details in your account.'
+                        action_label: 'View details'
+                      checksum: 2b0a8d1fc106bf62da245f00d40a86df5a25e5100f3c4095220ca8fca63c552a
+                      is_current: true
+                      published_at: '2026-10-26T22:25:11+00:00'
+                      rollback_of: null
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-4:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-4
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: template
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+                  maxLength: 500
+              required:
+                - note
+            example:
+              note: 'Synthetic independent review'
+
+  '/api/v1/platform/notifications/templates/{template}/test':
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_templates_template_test
+      summary: 'POST /api/v1/platform/notifications/templates/{template}/test'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/test -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{}'"
+      responses:
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                template-test:
+                  value:
+                    data:
+                      failed: 0
+                      checks:
+                        - schema
+                        - variables
+                        - lengths
+                        - plain_text
+                        - html_render
+                        - text_render
+                      preview:
+                        title: Supportnieuws
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      synthetic: true
+                      render_sha256: 6f867f138e61fd657a4d73623bc8d4ae0a99bb1b587f4a0dd2588ee44890d227
+                edit-test:
+                  value:
+                    data:
+                      failed: 0
+                      checks:
+                        - schema
+                        - variables
+                        - lengths
+                        - plain_text
+                        - html_render
+                        - text_render
+                      preview:
+                        title: Supportbericht
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      synthetic: true
+                      render_sha256: 1bc619952c86f410ede09e699baa6b763ff359e3c6261d81d0a9b6b1b66e3e0f
+                rollback-test:
+                  value:
+                    data:
+                      failed: 0
+                      checks:
+                        - schema
+                        - variables
+                        - lengths
+                        - plain_text
+                        - html_render
+                        - text_render
+                      preview:
+                        title: Supportnieuws
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      synthetic: true
+                      render_sha256: 6f867f138e61fd657a4d73623bc8d4ae0a99bb1b587f4a0dd2588ee44890d227
+                error-fixture-test:
+                  value:
+                    data:
+                      failed: 0
+                      checks:
+                        - schema
+                        - variables
+                        - lengths
+                        - plain_text
+                        - html_render
+                        - text_render
+                      preview:
+                        title: 'Support update'
+                        body: 'View current details in your account.'
+                        action_label: 'View details'
+                      synthetic: true
+                      render_sha256: d96ed44a4a72498d2363a66593cf337bf386fb7030d639c6a852d5edb69eefe5
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-3:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-3
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-3:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-3
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                published-template-test-conflict:
+                  value:
+                    error:
+                      status: 409
+                      code: template_not_draft
+                      message: 'Only unpublished templates can be tested.'
+                      request_id: b29-published-template-test-conflict
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: template
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
       requestBody:
         required: false
         content:
           application/json:
             schema:
               type: object
+              properties: {}
+            example: {}
+
+  '/api/v1/platform/notifications/templates/{template}/rollback':
+    post:
+      tags:
+        - Notifications
+      operationId: notifications_post_platform_notifications_templates_template_rollback
+      summary: 'POST /api/v1/platform/notifications/templates/{template}/rollback'
+      x-access: admin
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X POST http://localhost:8079/api/v1/platform/notifications/templates/01m5x2eex18gkm57fz39b23sfv/rollback -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' -H 'Cookie: <SPA_SESSION_COOKIES>' --data '{\"reason\":\"Synthetic restore historical template\"}'"
+      responses:
+        201:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                rollback:
+                  value:
+                    data:
+                      id: 01m5x2ej4jaaffhkebtys72hk1
+                      key: notifications.template.support_reply.nl
+                      version: 3
+                      status: draft
+                      value:
+                        title: Supportnieuws
+                        body: 'Bekijk de actuele gegevens in je account.'
+                        action_label: 'Bekijk details'
+                      checksum: b25832e6d5cbf6705823983795cf1138354e70a7f79a8ea9ee50b5e217a5d037
+                      is_current: false
+                      published_at: null
+                      rollback_of: 01m5x2eex18gkm57fz39b23sfv
+        401:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-unauth-5:
+                  value:
+                    error:
+                      status: 401
+                      code: unauthenticated
+                      message: 'Authentication is required.'
+                      request_id: b29-admin-unauth-5
+        403:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                admin-forbidden-5:
+                  value:
+                    error:
+                      status: 403
+                      code: platform_role_required
+                      message: 'This action requires a platform administrator.'
+                      request_id: b29-admin-forbidden-5
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                draft-rollback-conflict:
+                  value:
+                    error:
+                      status: 409
+                      code: setting_not_published
+                      message: 'Only published history can be used for a rollback draft.'
+                      request_id: b29-draft-rollback-conflict
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+        423:
+          description: 'Shared real password-confirmation middleware capture; OTP is also required.'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 423
+                  code: password_confirmation_required
+                  message: 'Confirm your password to continue.'
+                  request_id: b29-password-required
+      parameters:
+        -
+          name: template
+          in: path
+          required: true
+          schema:
+            type: string
+            format: ulid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
               properties:
-                locale:
+                reason:
                   type: string
-                  enum:
-                    - nl
-                    - en
-                email_enabled:
-                  type: boolean
-                preferences:
-                  type: object
-                  additionalProperties: false
-                  properties:
-                    support_reply:
-                      type: object
-                      additionalProperties: false
-                      properties:
-                        in_app:
-                          type: boolean
-                          const: true
-                          description: 'Mandatory support inbox notifications cannot be disabled.'
-                        email:
-                          type: boolean
-                          description: 'Optional preference only; delivery unavailable in B20a.'
-                    workspace_support_reply:
-                      type: object
-                      additionalProperties: false
-                      properties:
-                        in_app:
-                          type: boolean
-                          const: true
-                          description: 'Mandatory support inbox notifications cannot be disabled.'
-                        email:
-                          type: boolean
-                          description: 'Optional preference only; delivery unavailable in B20a.'
+                  maxLength: 500
+              required:
+                - reason
             example:
-              locale: en
-              email_enabled: false
-              preferences:
-                support_reply:
-                  email: false
-                  in_app: true
+              reason: 'Synthetic restore historical template'
+
+  '/api/v1/notifications/{notification}':
+    delete:
+      tags:
+        - Notifications
+      operationId: notifications_delete_notifications_notification
+      summary: 'DELETE /api/v1/notifications/{notification}'
+      x-access: verified
+      description: '#29 main backend. Actual local HTTP captures use synthetic users, real SPA password/seeded OTP sessions and database queue/array mail. OpenAI output/storage failures are explicitly temporary local fixtures, not live-provider proof. All data is user/workspace scoped; no support impersonation or tenant bypass. Admin mutations require recent password and OTP; reviewed templates require tests and a different publisher. See docs/notifications/NOTIFICATIONS.md for fields, events, retries and configuration.'
+      security:
+        -
+          sessionCookie: {}
+        -
+          bearerToken: {}
+      x-codeSamples:
+        -
+          lang: curl
+          source: "curl -i -X DELETE http://localhost:8079/api/v1/notifications/083c78b7-aa66-4ee1-a38f-2f54c49c2419 -H 'Accept: application/json' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'"
+      responses:
+        404:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                delete-foreign:
+                  value:
+                    error:
+                      status: 404
+                      code: not_found
+                      message: 'Notification not found.'
+                      request_id: b29-delete-foreign
+        200:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                delete-owned:
+                  value:
+                    data:
+                      deleted: true
+        409:
+          description: 'Actual local HTTP capture. Model outputs and one500 storage failure are labelled synthetic upstream/kernel fixtures. No live-mail/model success is implied.'
+          content:
+            application/json:
+              examples:
+                mandatory-delete-conflict:
+                  value:
+                    error:
+                      status: 409
+                      code: notification_delivery_active
+                      message: 'Delivery outcome must be resolved before deletion.'
+                      request_id: b29-mandatory-delete-conflict
+        401:
+          $ref: '#/components/responses/Unauthenticated'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        429:
+          $ref: '#/components/responses/TooManyRequests'
+        500:
+          $ref: '#/components/responses/ServerError'
+        419:
+          $ref: '#/components/responses/CsrfMismatch'
+      parameters:
+        -
+          name: notification
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 'Server-owned public reference; scope/role checked before returning data.'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+            example: {}
 
 components:
   parameters:

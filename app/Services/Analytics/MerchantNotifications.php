@@ -14,6 +14,7 @@ use App\Models\VoucherCode;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Services\Funding\MerchantFunding;
+use App\Services\Notifications\NotificationPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -55,7 +56,7 @@ class MerchantNotifications
                     "{$name}: {$left} codes remaining.", 'offer', $offer->public_id, "low_inventory:{$offer->id}:".($left === 0 ? 'empty' : 'low').':'.$this->restockEpoch($offer->id));
             }
             $ends = $offer->currentVersion?->ends_at;
-            if ($ends !== null && $ends->isFuture() && $ends->lessThan($now->addDays((int) config('shopbonus.notifications.expiry_warning_days', 7)))) {
+            if ($ends !== null && $ends->isFuture() && $ends->lessThan($now->addDays(app(NotificationPolicy::class)->offerExpiryDays()))) {
                 $n += $this->notify($w, 'offer_expiring', 'info', 'Offer ends soon', "{$name} ends on ".$ends->setTimezone($tz)->format('d-m-Y').'.', 'offer', $offer->public_id, "offer_expiring:{$offer->id}:".$ends->getTimestamp());
             }
             if ($offer->acquisition === OfferAcquisition::MerchantReward && $offer->currentVersion !== null && ! $this->funding->canFund($w, $offer->currentVersion)) {
