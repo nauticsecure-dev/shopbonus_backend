@@ -26,6 +26,7 @@ class LegalDiscoveryTest extends TestCase
 
     public function test_only_current_published_matching_translations_have_links(): void
     {
+        config(['shopbonus.legal.privacy_version' => 'test-privacy']);
         $actor = User::factory()->create();
         $cms = app(CmsService::class);
         $content = ['title' => 'Sample', 'body' => ['type' => 'doc', 'content' => [['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => 'Sample']]]]]];
