@@ -623,14 +623,22 @@ Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local inte
 ## B22 — Trello #30 reliability (started 2026-10-27)
 
 ### B22a — observed API monitoring and threshold incidents
-- [x] Inventory/reuse existing audit, incidents, readiness, queue failures, ledger reconciliation, scheduler and dependency tooling; preserve unresolved affiliate timing and do not activate financial flows. (this monitoring implementation commit; executed evidence in PROGRESS.)
-- [x] Opt-in metadata-only request observations with monotonic processing time, DB query timing, privacy-safe route templates, bounded retention and fail-open writes; record rendered error responses without payloads/SQL/credentials/identity. (this monitoring implementation commit; executed evidence in PROGRESS.)
-- [x] Super Admin monitoring report with bounded time/sample scope, exact observed P50/P95/P99, request/error/observed timeout rates, slow queries, configurable thresholds and UNKNOWN for absent/partial observations. (this monitoring implementation commit; executed evidence in PROGRESS.)
-- [x] Schedule configurable minimum-sample 5xx/latency alerts into existing grouped incidents with concurrency-safe cooldown; do not alert merely on ordinary401/403. (this monitoring implementation commit; executed evidence in PROGRESS.)
-- [x] Execute deterministic percentile/error/privacy/retention/failure/security/threshold and real MySQL race tests; local real HTTP captures and mandatory API docs; migration rollback/reapply. (this monitoring implementation commit; executed evidence in PROGRESS.)
-- [x] Full SQLite/MySQL and local quality checks, measured report query plan/cost, committed checkpoint docs and exact remaining #30 work. Remote CI recorded separately. (this monitoring implementation commit; executed evidence in PROGRESS.)
+- [x] Inventory/reuse existing audit, incidents, readiness, queue failures, ledger reconciliation, scheduler and dependency tooling; preserve unresolved affiliate timing and do not activate financial flows. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Opt-in metadata-only request observations with monotonic processing time, DB query timing, privacy-safe route templates, bounded retention and fail-open writes; record rendered error responses without payloads/SQL/credentials/identity. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Super Admin monitoring report with bounded time/sample scope, exact observed P50/P95/P99, request/error/observed timeout rates, slow queries, configurable thresholds and UNKNOWN for absent/partial observations. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Schedule configurable minimum-sample 5xx/latency alerts into existing grouped incidents with concurrency-safe cooldown; do not alert merely on ordinary401/403. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Execute deterministic percentile/error/privacy/retention/failure/security/threshold and real MySQL race tests; local real HTTP captures and mandatory API docs; migration rollback/reapply. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Full SQLite/MySQL and local quality checks, measured report query plan/cost, committed checkpoint docs and exact remaining #30 work. Remote CI recorded separately. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
 
-- [ ] Verify exact B22a implementation SHA in all three CI jobs and record closeout evidence.
+- [x] Verify exact B22a implementation SHA in all three CI jobs and record closeout evidence. (`c7e8789`; CI40580008502 SUCCESS.)
+
+### B22b — source-backed financial reconciliation
+- [ ] Audit actual financial source/ownership/historical-rate snapshots; preserve separate affiliate, consumer checkout and merchant sponsorship semantics; never infer EUR from points or a missing legacy rate.
+- [ ] Make existing wallet mismatch detection lock-consistent and deduplicate identical unresolved evidence without touching cached balances/ledger or bypassing authorized correction workflows.
+- [ ] Durable idempotent reconciliation runs and immutable discrepancy evidence for wallet/affiliate/checkout/funding/sponsorship links; bounded background processing and honest failed/unknown coverage.
+- [ ] Check historical calculations, source attribution, duplicate credits, compensating reversals and purchase/redemption allocations using existing canonical records; no automatic balancing transactions or policy activation.
+- [ ] Reuse Super Admin/MFA/password/step-up/incident controls for run/detail/report APIs; audit manual triggers and use public references only; schedule automatic execution with recovery semantics.
+- [ ] Executed source/change/duplicate/mismatch/legacy/negative/race tests, real HTTP docs, migration rollback/reapply, full suites and exact-code CI; retain original financial history.
 
 ### Remaining #30 boundaries (not covered by B22a)
 - [ ] Cross-source historical financial reconciliation with immutable evidence and authorized correction reuse; no new affiliate timing activation.
