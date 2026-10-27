@@ -5170,7 +5170,7 @@ paths:
       operationId: resolveAffiliateTransaction
       summary: "Resolve a conversion in review"
       description: |
-        Step-up required; a note is mandatory. `link_click` attaches an attributable click of the same webshop (then rewards follow the rules), `accept` releases a disputed one (e.g. above the review threshold), `reject` closes it with no reward. Only `unmatched`, `disputed` or `tracked` conversions (409 otherwise). Audited.
+        Recent password confirmation and normal Super Admin MFA required; a note is mandatory. `link_click` attaches an attributable click of the same webshop (then rewards follow the rules), `accept` releases a disputed one (e.g. above the review threshold), `reject` closes it with no reward. Only `unmatched`, `disputed` or `tracked` conversions (409 otherwise). Approved commissions that increase beyond their original frozen review threshold re-enter review before credit. New rewards follow the owner-confirmed after-network-approval default, with frozen timing/rule terms. Non-EUR commissions cannot become EUR wallet credit without an approved FX policy; accept returns409 unsupported_reward_currency. Private credit evidence is retained; no balancing writes or legacy-policy backfill. Successful resolution is audited.
       x-access: admin
       requestBody:
         required: true
@@ -5192,10 +5192,10 @@ paths:
               -H 'Content-Type: application/json' -d '{"action":"reject","note":"..."}'
       responses:
         '200':
-          description: "Resolved."
+          description: "Authorized increased-commission acceptance using the original rule; real isolated HTTP capture."
           content:
             application/json:
-              example: {"data":{"id":"01m5pcjsbzb23dsxwhh87mr70e","network":"tradetracker","external_id":"TT-1002","status":"rejected","network_status":"pending","review_reason":"resolved:reject","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":false,"order_amount_minor":7995,"commission_minor":320,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"}}
+              example: {"data":{"id":"01m5zkksm7y1rqtwrk911ptmjk","network":"daisycon","external_id":"SYNTHETIC-REVIEW","status":"approved","network_status":"approved","review_reason":"resolved:accept","webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":2000,"currency":"EUR","reward":{"status":"credited","amount":1400,"unit":"eur_credit","rule_version":3},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -5204,10 +5204,10 @@ paths:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: "Not in review."
+          description: "Unsupported reward currency, or conversion not in review."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"not_in_review","message":"Only unmatched, disputed or tracked conversions need review.","request_id":"01a16cc9-67ba-7269-bb33-913f5f8c9735","details":{"status":"approved"}}}
+              example: {"error":{"status":409,"code":"unsupported_reward_currency","message":"Non-EUR conversions need an approved currency conversion policy before acceptance.","request_id":"01a17f39-ed39-7006-9c3d-b267805393ba"}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 

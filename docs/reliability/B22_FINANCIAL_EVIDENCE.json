@@ -1,0 +1,343 @@
+{
+  "environment": "2026-10-27, isolated SQLite/file sessions+cache/array mail, explicitly synthetic backend fixtures; canonical AffiliateSync/import and WalletService; no real network/payment. MFA disabled only for this isolated fixture; actual session/password confirmation exercised; main settings unchanged. CLI source evidence plus actual Laravel HTTP reads. Not a whole-platform reconciliation run or recognized revenue posting.",
+  "canonical_source_evidence": {
+    "mismatch_wallet_is_separate_fixture": true,
+    "affiliate_wallet_public_id": "01m5zkksjpy0pnqsp2gfdnc754",
+    "threshold_transaction": "01m5zkksm7y1rqtwrk911ptmjk",
+    "threshold_status_before_acceptance": "disputed",
+    "threshold_credit_before_acceptance": null,
+    "usd_transaction": "01m5zkkskwk7yzvtt3wabj49yv",
+    "usd_reward_status": "none",
+    "usd_status": "disputed",
+    "pending_before_approval": {
+      "available": 0,
+      "pending": 700,
+      "timing": "on_network_approval"
+    },
+    "original_credit": {
+      "source": "import",
+      "network_status": "approved",
+      "commission_minor": 1000,
+      "currency": "EUR",
+      "reward_amount": 700,
+      "reward_unit": "eur_credit",
+      "rule_version": 1,
+      "rule_terms": {
+        "version": 1,
+        "share_bps": 7000,
+        "min_commission_minor": 0,
+        "max_reward_minor": null,
+        "review_above_minor": null,
+        "unit": "eur_credit"
+      },
+      "timing": "on_network_approval",
+      "ledger_entry": "01m5zkksk6rqc88ep9vjnn3pm1",
+      "credited_at": "2026-10-27T21:17:43+00:00"
+    },
+    "new_credit": {
+      "source": "import",
+      "network_status": "approved",
+      "commission_minor": 1000,
+      "currency": "EUR",
+      "reward_amount": 900,
+      "reward_unit": "eur_credit",
+      "rule_version": 2,
+      "rule_terms": {
+        "version": 2,
+        "share_bps": 9000,
+        "min_commission_minor": 0,
+        "max_reward_minor": null,
+        "review_above_minor": null,
+        "unit": "eur_credit"
+      },
+      "timing": "on_network_approval",
+      "ledger_entry": "01m5zkkskk2gxmmb6w8yd728jz",
+      "credited_at": "2026-10-27T21:17:43+00:00"
+    },
+    "wallet_public_id": "01m5zkksmv1628es7mab5wap0t",
+    "original_transaction": "01m5zkksjknh4mxkpp51ckw0p3",
+    "ledger_count_before": 1,
+    "ledger_count_after": 1,
+    "cached_balance_after_two_checks": 1400,
+    "same_flag": true,
+    "open_flags": 1,
+    "authorized_threshold_evidence": {
+      "source": "admin",
+      "network_status": "approved",
+      "commission_minor": 2000,
+      "currency": "EUR",
+      "reward_amount": 1400,
+      "reward_unit": "eur_credit",
+      "rule_version": 3,
+      "rule_terms": {
+        "version": 3,
+        "share_bps": 7000,
+        "min_commission_minor": 0,
+        "max_reward_minor": null,
+        "review_above_minor": 800,
+        "unit": "eur_credit"
+      },
+      "timing": "on_network_approval",
+      "ledger_entry": "01m5zkkvbeq97bbcf34bhhjkpw",
+      "credited_at": "2026-10-27T21:17:45+00:00"
+    }
+  },
+  "captures": [
+    {
+      "label": "old-transaction",
+      "method": "GET",
+      "path": "/api/v1/admin/affiliate/transactions/01m5zkksjknh4mxkpp51ckw0p3",
+      "role": "admin",
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a17f39-e979-704d-896a-fc9c2ed873d5"
+      },
+      "body": {
+        "data": {
+          "id": "01m5zkksjknh4mxkpp51ckw0p3",
+          "network": "daisycon",
+          "external_id": "SYNTHETIC-1",
+          "status": "approved",
+          "network_status": "approved",
+          "review_reason": null,
+          "webshop_id": "01m5zkksh8cjqfttxn2qrs8gr6",
+          "consumer_attributed": true,
+          "order_amount_minor": 10000,
+          "commission_minor": 1000,
+          "currency": "EUR",
+          "reward": {
+            "status": "credited",
+            "amount": 700,
+            "unit": "eur_credit",
+            "rule_version": 1
+          },
+          "duplicate_of": null,
+          "transaction_at": "2026-10-27T21:17:43+00:00",
+          "events": [
+            {
+              "source": "import",
+              "from": null,
+              "to": "pending",
+              "network_status": "pending",
+              "note": null,
+              "at": "2026-10-27T21:17:43+00:00"
+            },
+            {
+              "source": "import",
+              "from": "pending",
+              "to": "approved",
+              "network_status": "approved",
+              "note": null,
+              "at": "2026-10-27T21:17:43+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "isolated-mismatch-ledger",
+      "method": "GET",
+      "path": "/api/v1/admin/wallets/01m5zkksmv1628es7mab5wap0t/ledger",
+      "role": "admin",
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a17f39-e9dd-71ab-a4cc-3491dfa14e39"
+      },
+      "body": {
+        "data": [
+          {
+            "id": "01m5zkksmxjj0dwd4tyw85pej8",
+            "type": "credit",
+            "unit": "eur_credit",
+            "amount": 1000,
+            "available_delta": 1000,
+            "reserved_delta": 0,
+            "available_after": 1000,
+            "reserved_after": 0,
+            "reason": null,
+            "origin": "system",
+            "source_type": null,
+            "created_at": "2026-10-27T21:17:43+00:00"
+          }
+        ],
+        "meta": {
+          "current_page": 1,
+          "per_page": 25,
+          "total": 1,
+          "last_page": 1
+        }
+      }
+    },
+    {
+      "label": "single-open-flag",
+      "method": "GET",
+      "path": "/api/v1/admin/wallet-reconciliation-flags?wallet_id=01m5zkksmv1628es7mab5wap0t",
+      "role": "admin",
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a17f39-ea06-70a0-b021-6e4933f83ce7"
+      },
+      "body": {
+        "data": [
+          {
+            "id": "01m5zkksn4qftevcrxsk5jmt0p",
+            "wallet_id": "01m5zkksmv1628es7mab5wap0t",
+            "unit": "eur_credit",
+            "reason": "balance_mismatch",
+            "amount": 0,
+            "status": "open",
+            "resolved_at": null,
+            "resolution_reason": null,
+            "resolved_by": null
+          }
+        ],
+        "meta": {
+          "current_page": 1,
+          "per_page": 25,
+          "total": 1,
+          "last_page": 1
+        }
+      }
+    },
+    {
+      "label": "forbidden-flags",
+      "method": "GET",
+      "path": "/api/v1/admin/wallet-reconciliation-flags",
+      "role": "consumer",
+      "status": 403,
+      "headers": {
+        "X-Request-Id": "01a17f39-ea1b-71a9-b788-67c63470897f",
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "error": {
+          "status": 403,
+          "code": "platform_role_required",
+          "message": "This action requires a platform administrator.",
+          "request_id": "01a17f39-ea1b-71a9-b788-67c63470897f"
+        }
+      }
+    },
+    {
+      "label": "fixture-login",
+      "method": "POST",
+      "path": "/login",
+      "role": "admin-session",
+      "request_body": {
+        "email": "admin@finance.example.test",
+        "password": "<LOCAL_PASSWORD>"
+      },
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a17f39-ea63-7358-a39a-9f200a99ec18"
+      },
+      "body": {
+        "data": {
+          "id": "01m5zkksg9v9qcempa7f5tfp22",
+          "first_name": "Synthetic admin",
+          "email": "admin@finance.example.test",
+          "email_verified": true,
+          "status": "active",
+          "onboarding_intent": "consumer",
+          "locale": "nl",
+          "roles": [
+            "super_admin"
+          ],
+          "workspaces": [],
+          "destination": "admin",
+          "two_factor_enabled": false,
+          "support_session": null
+        }
+      }
+    },
+    {
+      "label": "fixture-password-confirm",
+      "method": "POST",
+      "path": "/user/confirm-password",
+      "role": "admin-session",
+      "request_body": {
+        "password": "<LOCAL_PASSWORD>"
+      },
+      "status": 201,
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a17f39-ec4a-72f0-90c2-2dc8418974e3"
+      },
+      "body": ""
+    },
+    {
+      "label": "unsupported-currency-accept",
+      "method": "POST",
+      "path": "/api/v1/admin/affiliate/transactions/01m5zkkskwk7yzvtt3wabj49yv/resolve",
+      "role": "admin-session",
+      "request_body": {
+        "action": "accept",
+        "note": "Synthetic check: no FX policy configured"
+      },
+      "status": 409,
+      "headers": {
+        "X-Request-Id": "01a17f39-ed39-7006-9c3d-b267805393ba",
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "error": {
+          "status": 409,
+          "code": "unsupported_reward_currency",
+          "message": "Non-EUR conversions need an approved currency conversion policy before acceptance.",
+          "request_id": "01a17f39-ed39-7006-9c3d-b267805393ba"
+        }
+      }
+    },
+    {
+      "label": "authorized-threshold-accept",
+      "method": "POST",
+      "path": "/api/v1/admin/affiliate/transactions/01m5zkksm7y1rqtwrk911ptmjk/resolve",
+      "role": "admin-session",
+      "request_body": {
+        "action": "accept",
+        "note": "Synthetic verified increased commission source"
+      },
+      "status": 200,
+      "headers": {
+        "Cache-Control": "no-cache, private",
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a17f39-ed5c-7071-8333-00ce93d71c35"
+      },
+      "body": {
+        "data": {
+          "id": "01m5zkksm7y1rqtwrk911ptmjk",
+          "network": "daisycon",
+          "external_id": "SYNTHETIC-REVIEW",
+          "status": "approved",
+          "network_status": "approved",
+          "review_reason": "resolved:accept",
+          "webshop_id": "01m5zkksh8cjqfttxn2qrs8gr6",
+          "consumer_attributed": true,
+          "order_amount_minor": 10000,
+          "commission_minor": 2000,
+          "currency": "EUR",
+          "reward": {
+            "status": "credited",
+            "amount": 1400,
+            "unit": "eur_credit",
+            "rule_version": 3
+          },
+          "duplicate_of": null,
+          "transaction_at": "2026-10-27T21:17:43+00:00"
+        }
+      }
+    }
+  ],
+  "migration_apply_rollback_reapply": "passed"
+}

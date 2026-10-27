@@ -13167,3 +13167,132 @@ X-Request-Id: 01a17f0e-edff-723e-8048-9a5b708483b2
 
 {"status":"ok","service":"shopbonus-api","time":"2026-10-27T20:30:47+00:00"}
 ```
+
+
+## B22b prerequisite financial evidence — approved policy and repeat-safe wallet checks
+
+Owner confirmed new affiliate rewards spendable only after network approval (D-089). New reward evaluations retain their timing and rule terms; later approval does not switch an existing pending reward to a new rate/regime. Private credit evidence and sponsorship fee-rate snapshots are immutable. Legacy missing evidence is not invented. Wallet reconciliation now locks the wallet and preserves one open mismatch flag with original evidence; it never repairs balances or posts balancing entries. Existing resolution/dual-admin correction controls remain. A whole-platform source reconciliation runner is still unfinished.
+
+`POST /api/v1/admin/affiliate/transactions/{transaction}/resolve`: an approved commission increase beyond the original review threshold re-enters review before spendable credit; authorized acceptance can release the reviewed amount. Non-EUR conversion acceptance returns409 unsupported_reward_currency because no approved FX policy exists. A review acceptance cannot override that currency guard. Existing status/ownership/MFA/password/CSRF validations remain; no arbitrary EUR/points exchange is introduced.
+
+Captured2026-10-27 on isolated SQLite/file-session+cache/array-mail Laravel HTTP, synthetic canonical imports and a separate deliberately corrupted wallet. Admin MFA disabled only for the isolated fixture; actual session/CSRF/password confirmation exercised.1000commission minor units→700pending/nonspendable before approval; a newer90% rule leaves the original credit700 and gives a new conversion900. These are virtual EUR credits, not confirmed cash collection or revenue recognition. [Source evidence/actual responses](../reliability/B22_FINANCIAL_EVIDENCE.json); [scope/legacy limits](../reliability/RELIABILITY.md); [financial findings/fixes](../reliability/FINANCIAL_FINDINGS.md).
+
+### `GET /api/v1/admin/affiliate/transactions/01m5zkksjknh4mxkpp51ckw0p3` — old-transaction
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/affiliate/transactions/01m5zkksjknh4mxkpp51ckw0p3'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-e979-704d-896a-fc9c2ed873d5
+
+{"data":{"id":"01m5zkksjknh4mxkpp51ckw0p3","network":"daisycon","external_id":"SYNTHETIC-1","status":"approved","network_status":"approved","review_reason":null,"webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":1000,"currency":"EUR","reward":{"status":"credited","amount":700,"unit":"eur_credit","rule_version":1},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00","events":[{"source":"import","from":null,"to":"pending","network_status":"pending","note":null,"at":"2026-10-27T21:17:43+00:00"},{"source":"import","from":"pending","to":"approved","network_status":"approved","note":null,"at":"2026-10-27T21:17:43+00:00"}]}}
+```
+
+### `GET /api/v1/admin/wallets/01m5zkksmv1628es7mab5wap0t/ledger` — isolated-mismatch-ledger
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/wallets/01m5zkksmv1628es7mab5wap0t/ledger'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-e9dd-71ab-a4cc-3491dfa14e39
+
+{"data":[{"id":"01m5zkksmxjj0dwd4tyw85pej8","type":"credit","unit":"eur_credit","amount":1000,"available_delta":1000,"reserved_delta":0,"available_after":1000,"reserved_after":0,"reason":null,"origin":"system","source_type":null,"created_at":"2026-10-27T21:17:43+00:00"}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallet-reconciliation-flags?wallet_id=01m5zkksmv1628es7mab5wap0t` — single-open-flag
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/wallet-reconciliation-flags?wallet_id=01m5zkksmv1628es7mab5wap0t'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ea06-70a0-b021-6e4933f83ce7
+
+{"data":[{"id":"01m5zkksn4qftevcrxsk5jmt0p","wallet_id":"01m5zkksmv1628es7mab5wap0t","unit":"eur_credit","reason":"balance_mismatch","amount":0,"status":"open","resolved_at":null,"resolution_reason":null,"resolved_by":null}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallet-reconciliation-flags` — forbidden-flags
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/wallet-reconciliation-flags'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17f39-ea1b-71a9-b788-67c63470897f
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a17f39-ea1b-71a9-b788-67c63470897f"}}
+```
+
+### `POST /login` — fixture-login
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"email":"admin@finance.example.test","password":"<LOCAL_PASSWORD>"}' 'http://127.0.0.1:8079/login'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ea63-7358-a39a-9f200a99ec18
+
+{"data":{"id":"01m5zkksg9v9qcempa7f5tfp22","first_name":"Synthetic admin","email":"admin@finance.example.test","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":["super_admin"],"workspaces":[],"destination":"admin","two_factor_enabled":false,"support_session":null}}
+```
+
+### `POST /user/confirm-password` — fixture-password-confirm
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"password":"<LOCAL_PASSWORD>"}' 'http://127.0.0.1:8079/user/confirm-password'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ec4a-72f0-90c2-2dc8418974e3
+
+""
+```
+
+### `POST /api/v1/admin/affiliate/transactions/01m5zkkskwk7yzvtt3wabj49yv/resolve` — unsupported-currency-accept
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"action":"accept","note":"Synthetic check: no FX policy configured"}' 'http://127.0.0.1:8079/api/v1/admin/affiliate/transactions/01m5zkkskwk7yzvtt3wabj49yv/resolve'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17f39-ed39-7006-9c3d-b267805393ba
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"unsupported_reward_currency","message":"Non-EUR conversions need an approved currency conversion policy before acceptance.","request_id":"01a17f39-ed39-7006-9c3d-b267805393ba"}}
+```
+
+### `POST /api/v1/admin/affiliate/transactions/01m5zkksm7y1rqtwrk911ptmjk/resolve` — authorized-threshold-accept
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"action":"accept","note":"Synthetic verified increased commission source"}' 'http://127.0.0.1:8079/api/v1/admin/affiliate/transactions/01m5zkksm7y1rqtwrk911ptmjk/resolve'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ed5c-7071-8333-00ce93d71c35
+
+{"data":{"id":"01m5zkksm7y1rqtwrk911ptmjk","network":"daisycon","external_id":"SYNTHETIC-REVIEW","status":"approved","network_status":"approved","review_reason":"resolved:accept","webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":2000,"currency":"EUR","reward":{"status":"credited","amount":1400,"unit":"eur_credit","rule_version":3},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00"}}
+```

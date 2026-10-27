@@ -330,4 +330,75 @@ class AffiliateTest extends TestCase
         Sanctum::actingAs(User::factory()->create());
         $this->assertSame([], $this->getJson('/api/v1/consumer/affiliate-activity')->json('data'));
     }
+
+    public function test_approved_credit_uses_frozen_rule_and_timing_while_new_conversions_use_new_rates(): void
+    {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $click = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'pending', commission: 10, order: 'HIST-1')]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame([0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        AffiliateRewardRule::create(['version' => 3, 'unit' => 'eur_credit', 'share_bps' => 9000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        config(['shopbonus.affiliate.credit_timing' => 'on_validated_attribution']); // Existing pending obligation must not change regime.
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'pending', '2026-10-27T10:00:00Z', 10, 'HIST-1')]);
+        $this->assertSame(0, $this->wallet()->fresh()->available);
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'approved', '2026-10-27T11:00:00Z', 10, 'HIST-1')]);
+        $tx = $tx->fresh();
+        $this->assertSame(700, $this->wallet()->fresh()->available);
+        $this->assertSame('on_network_approval', $tx->credit_evidence['timing']);
+        $this->assertSame(7000, $tx->credit_evidence['rule_terms']['share_bps']);
+        $this->assertSame(1000, $tx->credit_evidence['commission_minor']);
+        $this->assertSame(700, $tx->credit_evidence['reward_amount']);
+        $original = $tx->credit_evidence;
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-2', $this->annaClicks(), 'approved', commission: 10, order: 'HIST-2')]);
+        $this->assertSame(900, AffiliateTransaction::where('external_id', 'D-2')->sole()->reward_amount);
+        $this->assertSame($original, $tx->fresh()->credit_evidence);
+        $this->expectException(\LogicException::class);
+        $tx->forceFill(['credit_evidence' => ['reward_amount' => 900]])->save();
+    }
+
+    public function test_reward_rule_history_cannot_be_overwritten(): void
+    {
+        $this->expectException(\LogicException::class);
+        AffiliateRewardRule::sole()->forceFill(['share_bps' => 9000])->save();
+    }
+
+    public function test_increased_approved_commission_requires_review_again_before_becoming_spendable(): void
+    {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'review_above_minor' => 800, 'active' => true, 'created_by' => $this->admin->id]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $click = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-CHANGED', $click, 'pending', commission: 10)]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-CHANGED', $click, 'approved', '2026-10-27T11:00:00Z', 20)]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame('disputed', $tx->status);
+        $this->assertSame([0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        $this->assertNull($tx->credit_evidence);
+        $this->asAdminWithStepUp();
+        $this->postJson('/api/v1/admin/affiliate/transactions/'.$tx->public_id.'/resolve', ['action' => 'accept', 'note' => 'Verified increased commission source'])->assertOk();
+        $this->assertSame([1400, 0], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        $this->assertSame('admin', $tx->fresh()->credit_evidence['source']);
+    }
+
+    public function test_foreign_commission_currency_cannot_silently_become_eur_wallet_credit(): void
+    {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $data = $this->daisyconTx('D-USD', $this->annaClicks(), 'approved', commission: 10);
+        $data['parts'][0]['currency_code'] = 'USD';
+        $this->import($this->daisycon, [], [$data]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame('disputed', $tx->status);
+        $this->assertSame('unsupported_reward_currency', $tx->review_reason);
+        $this->assertSame(0, $this->wallet()->fresh()->available);
+        $this->assertDatabaseMissing('wallet_ledger_entries', ['source_type' => 'affiliate', 'source_ref' => $tx->public_id]);
+        $this->asAdminWithStepUp();
+        $this->postJson('/api/v1/admin/affiliate/transactions/'.$tx->public_id.'/resolve', ['action' => 'accept', 'note' => 'No approved FX mapping is configured'])->assertConflict()->assertJsonPath('error.code', 'unsupported_reward_currency');
+        $this->assertSame('disputed', $tx->fresh()->status);
+        $this->assertSame(0, $this->wallet()->fresh()->available);
+    }
 }

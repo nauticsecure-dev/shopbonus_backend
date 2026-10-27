@@ -3,7 +3,10 @@
 namespace Tests\Feature\Reliability;
 
 use App\Models\SecurityIncident;
+use App\Models\User;
+use App\Models\WalletReconciliationFlag;
 use App\Services\Reliability\ApiMonitoring;
+use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Tests\Concerns\RacesProcesses;
@@ -39,5 +42,19 @@ class ConcurrentMonitoringAlertTest extends TestCase
         $this->assertDatabaseCount('security_incidents', 1);
         $this->assertDatabaseCount('security_incident_occurrences', 1);
         $this->assertSame(1, SecurityIncident::sole()->occurrences);
+    }
+
+    public function test_parallel_wallet_checks_retain_one_unresolved_finding(): void
+    {
+        $this->skipUnlessRealDatabase();
+        $service = app(WalletService::class);
+        $wallet = $service->consumerWallet(User::factory()->create());
+        $service->credit($wallet, 1000, 'synthetic-source');
+        DB::table('wallets')->where('id', $wallet->id)->update(['available' => 1400]);
+        $results = $this->race(4, fn () => app(WalletService::class)->reconcileWallet($wallet)['flag']->public_id);
+        $this->assertSame(1, count(array_unique($results)), implode(', ', $results));
+        $this->assertSame(WalletReconciliationFlag::sole()->public_id, $results[0]);
+        $this->assertSame(1400, $wallet->fresh()->available);
+        $this->assertDatabaseCount('wallet_ledger_entries', 1);
     }
 }

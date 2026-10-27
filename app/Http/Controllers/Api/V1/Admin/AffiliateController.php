@@ -182,6 +182,9 @@ class AffiliateController extends Controller
         if (! in_array($t->status, ['unmatched', 'disputed', 'tracked'], true)) {
             throw ApiException::conflict('Only unmatched, disputed or tracked conversions need review.', 'not_in_review', ['status' => $t->status]);
         }
+        if ($data['action'] === 'accept' && strtoupper($t->currency) !== 'EUR') {
+            throw ApiException::conflict('Non-EUR conversions need an approved currency conversion policy before acceptance.', 'unsupported_reward_currency');
+        }
         if ($data['action'] === 'link_click') {
             $click = AffiliateClick::where('reference', $data['click_reference'])->where('webshop_id', $t->webshop_id)->whereNotNull('user_id')->first()
                 ?? throw new ApiException('No attributable click with that reference for this webshop.', 422, 'click_not_attributable');

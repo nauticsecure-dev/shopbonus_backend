@@ -18,7 +18,7 @@ Laravel 13/PHP 8.3+ (target; verify installed version), versioned `/api/v1` JSON
 | Offers | Multi-offer per shop, constraints, validity, snapshot semantics, unique/reusable code inventory, CSV imports, atomic code allocation, reservations, issue vs redeem distinction, expiry/complaint/replacement. |
 | Consumer wallet | One non-cash, nontransferable ledger for virtual redemption credit/points, available/pending/reserved/spent. Immutable entries and refunds/reversals, no negative spendable balances. |
 | Merchant funding | Separate shop-funded wallet; €10 reward + 30%-of-reward (€3) fee = €13 funding obligation in the example; Mollie iDEAL funding, Moneybird invoice, sponsor/source reconciliation. |
-| Affiliate | Daisycon/TradeTracker adapters, tracking, network selection based on eligible commission, status updates, dedupe, review/reversal, per-consumer reward economics; **timing of spendable credit is unresolved**. |
+| Affiliate | Daisycon/TradeTracker adapters, tracking, network selection based on eligible commission, status updates, dedupe, review/reversal, per-consumer reward economics; **owner confirmed new rewards spendable only after network approval (D-089, 2026-10-27)**. |
 | Voucher checkout | Atomic wallet reserve/debit and code allocation, optional verified Mollie remainder, webhook replay safety, reconciliation and chargeback handling. |
 | Consumer API | Public webshops/offers, profile/preferences, favorites, customer dashboard, wallet, vouchers, support, activation; strict PII ownership. |
 | Merchant API | Connections, orders, offers, codes, claims, metrics, campaign configurations and merchant wallet; every lookup filtered by authorized webshop. |

@@ -99,7 +99,7 @@ class MerchantFunding
         }
 
         return SponsorshipObligation::create(['webshop_id' => $voucher->webshop_id, 'voucher_id' => $voucher->id, 'source_order_id' => $voucher->source_order_id,
-            'reward_minor' => $cost['reward_minor'], 'fee_minor' => $cost['fee_minor'], 'total_minor' => $cost['total_minor'], 'basis' => $cost['basis'],
+            'reward_minor' => $cost['reward_minor'], 'fee_minor' => $cost['fee_minor'], 'total_minor' => $cost['total_minor'], 'fee_rate_bps' => $this->fees->feeRateBps(), 'basis' => $cost['basis'],
             'status' => 'reserved', 'wallet_reservation_id' => $reservation->id]);
     }
 

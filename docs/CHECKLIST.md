@@ -634,11 +634,16 @@ Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local inte
 
 ### B22b — source-backed financial reconciliation
 - [ ] Audit actual financial source/ownership/historical-rate snapshots; preserve separate affiliate, consumer checkout and merchant sponsorship semantics; never infer EUR from points or a missing legacy rate.
-- [ ] Make existing wallet mismatch detection lock-consistent and deduplicate identical unresolved evidence without touching cached balances/ledger or bypassing authorized correction workflows.
+- [x] Make existing wallet mismatch detection lock-consistent and deduplicate identical unresolved evidence without touching cached balances/ledger or bypassing authorized correction workflows. (this prerequisite implementation commit; four-worker MySQL race and full suites passed.)
+- [x] Retain immutable new reward timing/rule/credit evidence and sponsorship fee rates; protect monetary versions, preserve legacy nulls and keep owner-approved after-approval default. (this prerequisite implementation commit; historical-rate/timing/mutation regressions passed.)
+- [x] Re-check changed approved commission against its original review threshold before spendable credit; preserve authorized review path. (this prerequisite implementation commit; failing regression reproduced then passed; actual authenticated HTTP200 acceptance.)
+- [x] Dispute unsupported currency without credit; manual acceptance cannot invent FX and returns409. (this prerequisite implementation commit; failing regression reproduced then passed; actual authenticated HTTP409.)
 - [ ] Durable idempotent reconciliation runs and immutable discrepancy evidence for wallet/affiliate/checkout/funding/sponsorship links; bounded background processing and honest failed/unknown coverage.
 - [ ] Check historical calculations, source attribution, duplicate credits, compensating reversals and purchase/redemption allocations using existing canonical records; no automatic balancing transactions or policy activation.
 - [ ] Reuse Super Admin/MFA/password/step-up/incident controls for run/detail/report APIs; audit manual triggers and use public references only; schedule automatic execution with recovery semantics.
 - [ ] Executed source/change/duplicate/mismatch/legacy/negative/race tests, real HTTP docs, migration rollback/reapply, full suites and exact-code CI; retain original financial history.
+
+- [ ] Verify exact prerequisite implementation SHA in all three CI jobs; record evidence and clean handoff.
 
 ### Remaining #30 boundaries (not covered by B22a)
 - [ ] Cross-source historical financial reconciliation with immutable evidence and authorized correction reuse; no new affiliate timing activation.

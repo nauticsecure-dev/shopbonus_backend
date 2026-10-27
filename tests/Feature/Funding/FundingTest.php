@@ -276,4 +276,19 @@ class FundingTest extends TestCase
         $this->getJson("/api/v1/workspaces/{$this->shop->public_id}/invoices")->assertOk()->assertJsonPath('data.0.total_minor', 2600)->assertJsonPath('data.0.moneybird', 'not_connected');
         $this->getJson("/api/v1/workspaces/{$this->shop->public_id}/funding/obligations?status=settled")->assertOk()->assertJsonCount(2, 'data');
     }
+
+    public function test_sponsorships_keep_their_original_on_top_fee_rate(): void
+    {
+        $inventory = app(VoucherInventory::class);
+        config(['shopbonus.fees.direct_reward_fee_bps' => 3000]);
+        $first = $inventory->reserve($this->offer(['discount_type' => 'fixed', 'discount_value' => 1000]), VoucherOrigin::MerchantReward, 'historic-first');
+        config(['shopbonus.fees.direct_reward_fee_bps' => 1000]);
+        $second = $inventory->reserve($this->offer(['discount_type' => 'fixed', 'discount_value' => 1000]), VoucherOrigin::MerchantReward, 'historic-second');
+        $old = SponsorshipObligation::where('voucher_id', $first->id)->sole();
+        $new = SponsorshipObligation::where('voucher_id', $second->id)->sole();
+        $this->assertSame([3000, 300, 1300], [$old->fee_rate_bps, $old->fee_minor, $old->total_minor]);
+        $this->assertSame([1000, 100, 1100], [$new->fee_rate_bps, $new->fee_minor, $new->total_minor]);
+        $this->expectException(\LogicException::class);
+        $old->forceFill(['fee_minor' => 100])->save();
+    }
 }
