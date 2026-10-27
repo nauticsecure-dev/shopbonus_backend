@@ -12739,3 +12739,286 @@ X-RateLimit-Remaining: 999
 
 {"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b29-foreign-read-not-found"}}
 ```
+
+
+## B21 frontend integration corrections — 2026-10-27
+
+Captured from a real local Laravel server on the working tree based on `665bc1d`, isolated SQLite, file sessions and array mail. Payments used an explicitly synthetic local Mollie upstream; no actual provider or email delivery is claimed. Sanitized full captures: [B21_HTTP_CAPTURE.json](../integration/B21_HTTP_CAPTURE.json). Local fixtures and senior configuration: [LOCAL_INTEGRATION.md](../integration/LOCAL_INTEGRATION.md).
+
+`GET /api/v1/public/legal-requirements?locale=nl|en` exposes exactly the legal versions required by signup, their CMS/configuration origin and links only to matching public published documents. Missing configuration/text is visible through availability flags; registration continues to fail closed when versions are missing. `registration_available` is not a statement of legal approval. A configuration fallback does not invent document text. Re-fetch versions before submitting `account_type`, `accept_terms`, `terms_version` and `privacy_version` to `/register`.
+
+`POST /api/v1/consumer/offers/{slug}/claim` requires an active verified account. Only public approved-shop promotional_code offers qualify. Server-side stock/validity applies and one consumer+offer can allocate only one voucher. Replay returns the same reference; no code is exposed here. Read the owned `/api/v1/consumer/vouchers/{id}` endpoint to reveal the code. Support impersonation is blocked. Existing claims replay after pause/expiry; unpublished shops return404. Wallet-purchase and merchant-reward offers return409, and Answer24 retains its separate token flow.
+
+Funding `POST /api/v1/workspaces/{workspace}/funding/top-ups` now accepts an optional UUID `Idempotency-Key`. Persist one UUID before the first request and reuse it with the same amount on every retry. Keys are scoped to the actor+workspace. Different amounts return409. Headerless requests remain independent for released v1 compatibility. The provider receives a distinct stable UUID, with only one create attempt per intent. Never infer payment from the redirect or checkout link.
+
+Funding `creation_state` is separate from payment `state`: creating means the committed intent is being submitted or needs crash review; created means a provider reference was stored; uncertain means creation could not be confirmed. A502 includes top_up_id. Replaying either creating or uncertain returns201 with the same ID and no checkout URL and never resubmits, including after provider cache expiry/configuration changes. Poll the existing top-up; do not generate another key automatically. If no provider reference was stored, a senior must reconcile against provider evidence before deciding whether a genuinely new payment is appropriate. No wallet credit is posted without existing verified-paid settlement. [Mollie idempotency](https://docs.mollie.com/reference/api-idempotency) caches for one hour and ties keys to credentials; permanent replay protection is local.
+
+### `GET /api/v1/public/legal-requirements`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-223c-71ae-837a-af8ac8676c12
+
+{"data":{"locale":"nl","registration_available":true,"documents_available":true,"documents":{"terms":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/nl/local-sample-terms"},"privacy":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/nl/local-sample-privacy"}}}}
+```
+
+### `GET /api/v1/public/legal-requirements?locale=en`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements?locale=en'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2277-70e1-8cf2-4b492ae316da
+
+{"data":{"locale":"en","registration_available":true,"documents_available":true,"documents":{"terms":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-terms"},"privacy":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-privacy"}}}}
+```
+
+### `Invalid legal locale`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements?locale=fr'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17e90-2288-728a-94be-7e9a40aa9977
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-2288-728a-94be-7e9a40aa9977","fields":{"locale":["The selected locale is invalid."]}}}
+```
+
+### `POST /api/v1/consumer/offers/{slug}/claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2311-706a-be87-a06ee1e76519
+
+{"data":{"id":"01m5z908sg2jrn9rbg1ecbjkms","status":"issued","voucher_url":"http://127.0.0.1:8079/api/v1/consumer/vouchers/01m5z908sg2jrn9rbg1ecbjkms"}}
+```
+
+### `Promotional replay`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2343-7024-8670-3ac5bf9fe245
+
+{"data":{"id":"01m5z908sg2jrn9rbg1ecbjkms","status":"issued","voucher_url":"http://127.0.0.1:8079/api/v1/consumer/vouchers/01m5z908sg2jrn9rbg1ecbjkms"}}
+```
+
+### `Unauthenticated claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: 01a17e90-22f7-706f-80f1-18a5bae9cd5e
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a17e90-22f7-706f-80f1-18a5bae9cd5e"}}
+```
+
+### `Unknown claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/missing/claim'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: 01a17e90-2357-72ad-a651-b7f3f7686b5b
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Offer not found.","request_id":"01a17e90-2357-72ad-a651-b7f3f7686b5b"}}
+```
+
+### `Paused offer claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17e90-245a-7141-b440-54a14428a847
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"offer_not_active","message":"This offer is not active.","request_id":"01a17e90-245a-7141-b440-54a14428a847","details":{"status":"paused"}}}
+```
+
+### `Missing browser CSRF token`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:8079' -H 'Referer: http://127.0.0.1:8079/' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: 01a17e90-2883-702e-9b1e-a736e7668c02
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"01a17e90-2883-702e-9b1e-a736e7668c02"}}
+```
+
+### `Unverified claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Origin: http://127.0.0.1:8079' -H 'Referer: http://127.0.0.1:8079/' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17e90-2899-720f-8046-a411b1abbcb3
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"email_not_verified","message":"Verify your email address to continue.","request_id":"01a17e90-2899-720f-8046-a411b1abbcb3"}}
+```
+
+### `Claim rate limit`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 429
+X-Request-Id: 01a17e90-29ac-70e2-90ae-efb5a7eb06dc
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a17e90-29ac-70e2-90ae-efb5a7eb06dc"}}
+```
+
+### `POST /api/v1/workspaces/{workspace}/funding/top-ups`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2474-72dd-9c27-9a9d108276d7
+
+{"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
+```
+
+### `Top-up replay`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-24c1-72be-a2fe-1edd2a875f29
+
+{"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
+```
+
+### `Top-up amount conflict`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -d '{"amount_minor":2000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17e90-24d8-7250-a04a-088d3824ebfa
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"funding_request_conflict","message":"This idempotency key belongs to a different top-up.","request_id":"01a17e90-24d8-7250-a04a-088d3824ebfa"}}
+```
+
+### `Invalid top-up key`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: invalid' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17e90-24ef-73ec-a30a-1e7f2dc83589
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-24ef-73ec-a30a-1e7f2dc83589","fields":{"key":["The key field must be a valid UUID."]}}}
+```
+
+### `Uncertain provider creation`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 7bf9cef9-0077-4cd1-8ca6-e34add8406d1' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 502
+X-Request-Id: 01a17e90-250b-7026-bee9-445f4175089d
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":502,"code":"funding_creation_uncertain","message":"Payment creation could not be confirmed. Reuse the same request key and review this top-up; do not start another payment automatically.","request_id":"01a17e90-250b-7026-bee9-445f4175089d","details":{"top_up_id":"01m5z9098qbspebggw41mrwgfc"}}}
+```
+
+### `Uncertain replay`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 7bf9cef9-0077-4cd1-8ca6-e34add8406d1' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-252c-714c-ac33-fd70e700752f
+
+{"data":{"id":"01m5z9098qbspebggw41mrwgfc","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"uncertain","checkout_url":null,"paid_at":null}}
+```
+
+### `GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups/01m5z9094dwnh9w2mymph2kqv5'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2544-7364-8196-035ecc981353
+
+{"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
+```

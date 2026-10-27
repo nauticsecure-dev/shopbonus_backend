@@ -209,6 +209,7 @@ class AdminSecurityTest extends TestCase
 
         $blocked = [
             ['POST', '/api/v1/consumer/checkouts', ['offer' => 'x']],
+            ['POST', '/api/v1/consumer/offers/sample/claim', []],
             ['GET', '/api/v1/consumer/vouchers/01ARZ3NDEKTSV4RRFFQ69G5FAV', []],
             ['POST', '/api/v1/consumer/email-change', ['email' => 'evil@example.com']],
             ['POST', '/api/v1/consumer/privacy/deletion-request', []],

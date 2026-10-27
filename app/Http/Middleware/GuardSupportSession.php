@@ -55,6 +55,7 @@ class GuardSupportSession
         'api.v1.claims.accept',
         'api.v1.invitations.accept',
         'api.v1.consumer.checkouts.*',
+        'api.v1.consumer.offers.claim',
         'api.v1.consumer.email-change.*',
         'api.v1.consumer.disputes.store',
         'api.v1.workspaces.store',

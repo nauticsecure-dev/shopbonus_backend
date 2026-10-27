@@ -1,3 +1,17 @@
+# B21 current checkpoint — 2026-10-27
+
+Branch `main`, base SHA `665bc1d`; B21 implementation is this commit, status VERIFIED_WORKING pending remote CI. All B21 code/docs/test modifications are included; private fixture credentials remain ignored local state. New migration `2026_10_27_100000_add_funding_request_identity.php` applied to local `shopbonus`; rollback/reapply verified on SQLite and twice on MySQL after restoring InnoDB's implicit FK index. Rollback drops request history: quiesce funding writes/preserve identities before any production rollback.
+
+**Code:** optional UUID funding idempotency (workspace+actor immutable amount, distinct provider key, at most one create attempt, creating/created/uncertain status); legal-requirements public metadata tied to canonical page/current version; verified promotional-only one-per-account/offer claim through inventory, no code in response/support impersonation; opt-in guarded local setup with labelled sample content/verified identities/private passwords, no provider activation or wallet credits. Default seeder intentionally empty. D-086/087; affiliate timing remains unresolved/unchanged.
+
+**Executed:** final SQLite714pass+20skip/9418assertions/45.330s; MySQL732pass+2skip/9483assertions/224.681s (734total each), including both six-process races. Final focused API docs3pass/3597assertions; Pint/PHPStan L6/composer audit/OpenAPI references/diff checks PASS.24 actual local HTTP captures include browser signup/login and auth/CSRF/rate/error/replay paths; synthetic upstream only. Capture helpers/servers/private ephemeral databases removed.
+
+**Local fixture state:** setup and second safe rerun succeeded on `shopbonus`.4verified LOCAL SAMPLE accounts, sample legal/CMS/FAQ/catalog and10promotional codes. Read generated credentials privately at `storage/app/private/local-integration/credentials.json` (gitignored0600; directory0700); do not commit/share. Both legal version/document availability checks pass. Admin MFA remains required. Current disk~48GiB free; stop threshold not triggered.
+
+**Exact next:** commit/push implementation to main under existing owner workflow; verify all three CI jobs for exact SHA, then record SHA/evidence and DONE main-backend closeout. Hassan uses docs/integration/LOCAL_INTEGRATION.md and new API examples. Senior configures approved real legal text, mail/providers/models/deployment; live financial/inbox/staging acceptance remains NOT RUN, not a code prerequisite and not claimed done. Creating/uncertain funding without provider reference requires manual provider reconciliation; never resubmit automatically. No main-code blocker remains.
+
+---
+
 # Latest handoff — #29 main backend complete
 
 **Branch/SHA:** main; implementation911e053 +approval-scope follow-up5a8c36d committed/pushed; CI40412989638 and final40414186822 SUCCESS all3jobs. This final docs-only evidence closeout follows; no application code change or pre-existing edits overwritten. Owner explicitly “do it”; all remaining #29 main code complete. D-081 below-cutoff authorization persists for this task, no unrelated cleanup/Redis flush/binlog purge, subagents, frontend/NPM or external customer messages.

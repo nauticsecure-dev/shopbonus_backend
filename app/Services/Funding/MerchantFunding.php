@@ -3,6 +3,7 @@
 namespace App\Services\Funding;
 
 use App\Enums\AuditCategory;
+use App\Enums\AuditOutcome;
 use App\Enums\WalletKind;
 use App\Enums\WalletUnit;
 use App\Exceptions\ApiException;
@@ -21,6 +22,7 @@ use App\Services\Finance\FeeCalculator;
 use App\Services\Wallet\WalletService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -128,23 +130,46 @@ class MerchantFunding
 
     // ------------------------------------------------------------------ top-ups
 
-    public function startTopUp(Webshop $webshop, int $amountMinor, User $actor): FundingTopUp
+    public function startTopUp(Webshop $webshop, int $amountMinor, User $actor, ?string $key = null): FundingTopUp
     {
-        if (! $this->mollie->available()) {
-            throw ApiException::conflict('Online payment is not available right now.', 'payments_unavailable');
-        }
+        [$topUp, $create] = DB::transaction(function () use ($webshop, $amountMinor, $actor, $key) {
+            Webshop::whereKey($webshop->id)->lockForUpdate()->firstOrFail();
+            $existing = $key === null ? null : FundingTopUp::where('webshop_id', $webshop->id)->where('created_by', $actor->id)->where('request_key', $key)->first();
+            if ($existing !== null) {
+                if ($existing->amount_minor !== $amountMinor || $existing->currency !== 'EUR') {
+                    throw ApiException::conflict('This idempotency key belongs to a different top-up.', 'funding_request_conflict');
+                }
 
-        $topUp = FundingTopUp::create(['webshop_id' => $webshop->id, 'amount_minor' => $amountMinor, 'currency' => 'EUR', 'state' => 'pending', 'created_by' => $actor->id]);
+                return [$existing, false];
+            }
+            if (! $this->mollie->available()) {
+                throw ApiException::conflict('Online payment is not available right now.', 'payments_unavailable');
+            }
+            $t = FundingTopUp::create(['webshop_id' => $webshop->id, 'amount_minor' => $amountMinor, 'currency' => 'EUR', 'state' => 'pending', 'created_by' => $actor->id,
+                'request_key' => $key, 'provider_idempotency_key' => (string) Str::uuid(), 'creation_state' => 'creating', 'creation_attempted_at' => now()]);
+
+            return [$t, true];
+        }, 3);
+        if (! $create) {
+            return $topUp;
+        }
         try {
             $payment = $this->mollie->createPayment($amountMinor, 'EUR', 'ShopBonus reward funding '.$webshop->name,
                 config('shopbonus.identity.frontend_url').'/workspace/funding?top_up='.$topUp->public_id, route('api.v1.payments.mollie.webhook'),
-                ['top_up_id' => $topUp->public_id], 'ideal');
-        } catch (Throwable $e) {
-            $topUp->forceFill(['state' => 'failed'])->save();
-            throw $e instanceof ApiException ? $e : new ApiException('The payment could not be started.', 502, 'payment_provider_error');
+                ['top_up_id' => $topUp->public_id], 'ideal', $topUp->provider_idempotency_key);
+            if (preg_match('/^tr_[A-Za-z0-9]{4,40}$/D', $payment['id']) !== 1) {
+                throw new \RuntimeException('Invalid payment reference.');
+            }
+        } catch (Throwable) {
+            $topUp->forceFill(['creation_state' => 'uncertain'])->save();
+            $this->audit->recordSafely('funding.top_up_creation_uncertain', category: AuditCategory::Financial, outcome: AuditOutcome::Failure,
+                resource: $topUp, webshopId: $webshop->id, actorUserId: $actor->id, metadata: ['amount' => $amountMinor]);
+            throw new ApiException('Payment creation could not be confirmed. Reuse the same request key and review this top-up; do not start another payment automatically.', 502, 'funding_creation_uncertain', ['top_up_id' => $topUp->public_id]);
         }
-        $topUp->forceFill(['provider_ref' => $payment['id'], 'checkout_url' => $payment['checkout_url']])->save();
-        $this->audit->record('funding.top_up_started', category: AuditCategory::Financial, resource: $topUp, webshopId: $webshop->id, actorUserId: $actor->id, metadata: ['amount' => $amountMinor]);
+        DB::transaction(function () use ($topUp, $payment, $webshop, $actor, $amountMinor) {
+            $topUp->forceFill(['provider_ref' => $payment['id'], 'checkout_url' => $payment['checkout_url'], 'creation_state' => 'created'])->save();
+            $this->audit->record('funding.top_up_started', category: AuditCategory::Financial, resource: $topUp, webshopId: $webshop->id, actorUserId: $actor->id, metadata: ['amount' => $amountMinor]);
+        });
 
         return $topUp;
     }

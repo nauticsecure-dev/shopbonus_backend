@@ -6036,9 +6036,15 @@ paths:
       operationId: startTopUp
       summary: "Top up via Mollie (iDEAL)"
       description: |
-        Creates a Mollie iDEAL payment (test mode only; `MOLLIE_ALLOW_LIVE`) and returns its `checkout_url`. The funding wallet is credited once, after Mollie's webhook and a server-side check of the payment (amount, currency, top-up ID). Requires a commercially active webshop. €10–€10,000 per top-up. Captured against a local Mollie test-mode stub.
+        Creates a Mollie iDEAL payment (test mode only; `MOLLIE_ALLOW_LIVE`) and returns its `checkout_url`. The funding wallet is credited once, after Mollie's webhook and a server-side check of the payment (amount, currency, top-up ID). Requires a commercially active webshop. €10–€10,000 per top-up. Captured against a local Mollie test-mode stub. Optional Idempotency-Key provides permanent local replay protection for workspace+actor+amount; changed amount returns409 funding_request_conflict. Missing header preserves v1 independent-request behavior. Persist the key before sending and keep it after an uncertain result. Each new intent permits one provider POST with its own stable provider UUID. creation_state is creating/created/uncertain, separate from pending/paid/failed payment state. A502 funding_creation_uncertain includes the top-up ID; replay returns that same pending/uncertain row with no checkout_url and never resends, even beyond the provider cache window or after key rotation. Creating/uncertain without a provider reference requires manual reconciliation, never automatic new-payment retry. Checkout links are returned only for pending/created rows.
       x-access: verified
       x-permission: finance.manage
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Stable UUID for one amount, scoped to authenticated actor and workspace. Use the same key for every retry. Headerless legacy calls are independent intents.
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -6048,34 +6054,41 @@ paths:
               required: [amount_minor]
               properties:
                 amount_minor: { type: integer, minimum: 1000, maximum: 1000000 }
-            example: {"amount_minor": 50000}
+            example: {"amount_minor": 1000}
       x-codeSamples:
         - lang: curl
           source: |
             curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/funding/top-ups' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
-              -H 'Content-Type: application/json' -d '{"amount_minor":50000}'
+              -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -H 'Content-Type: application/json' -d '{"amount_minor":1000}'
       responses:
         '201':
-          description: "Payment created."
+          description: "Payment intent created or replayed. See creation_state."
           content:
             application/json:
-              example: {"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"pending","amount_minor":50000,"currency":"EUR","checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/861cd71ef5","paid_at":null}}
+              example: {"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
         '409':
-          description: "`payments_unavailable` (no test key)."
+          description: "Changed intent (funding_request_conflict), or payments_unavailable before new creation."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"payments_unavailable","message":"Online payment is not available right now.","request_id":"<id>"}}
+              example: {"error":{"status":409,"code":"funding_request_conflict","message":"This idempotency key belongs to a different top-up.","request_id":"01a17e90-24d8-7250-a04a-088d3824ebfa"}}
         '422':
-          description: "Amount out of range."
+          description: "Malformed key or amount out of range."
           content:
             application/json:
-              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16ce7-da5a-739d-9127-9528c6522252","fields":{"amount_minor":["The amount minor field must be at least 1000."]}}}
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-24ef-73ec-a30a-1e7f2dc83589","fields":{"key":["The key field must be a valid UUID."]}}}
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
 
+        '502':
+          description: "Creation outcome unknown; review top_up_id, do not start another payment automatically."
+          content:
+            application/json:
+              example: {"error":{"status":502,"code":"funding_creation_uncertain","message":"Payment creation could not be confirmed. Reuse the same request key and review this top-up; do not start another payment automatically.","request_id":"01a17e90-250b-7026-bee9-445f4175089d","details":{"top_up_id":"01m5z9098qbspebggw41mrwgfc"}}}
   /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}:
     parameters:
       - $ref: '#/components/parameters/Workspace'
@@ -6085,7 +6098,7 @@ paths:
       operationId: topUpStatus
       summary: "Top-up status"
       description: |
-        `pending`, `paid` or `failed`. The page Mollie redirects back to polls this; the redirect itself proves nothing.
+        `pending`, `paid` or `failed`. Separate `creation_state` is `creating`, `created` or `uncertain`; only pending/created has a checkout URL. Creating/uncertain without a reference needs manual reconciliation and never resubmits on replay. The page Mollie redirects back to polls this; the redirect itself proves nothing.
       x-access: verified
       x-permission: finance.view
       x-codeSamples:
@@ -6095,10 +6108,10 @@ paths:
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
       responses:
         '200':
-          description: "Top-up."
+          description: "Current top-up and creation state."
           content:
             application/json:
-              example: {"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"paid","amount_minor":50000,"currency":"EUR","checkout_url":null,"paid_at":"2026-10-24T07:54:56+00:00"}}
+              example: {"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
@@ -15998,6 +16011,71 @@ paths:
               type: object
               properties: {}
             example: {}
+
+  /api/v1/public/legal-requirements:
+    get:
+      tags: [Content]
+      operationId: legalRequirements
+      summary: Registration legal versions and published document links
+      description: |
+        Uses the same NL canonical versions as registration; locale only chooses display links. Source is cms, configuration or null. registration_available means required versions exist, not legal approval. documents_available requires matching public published text for both documents in the requested locale. Configuration-only versions have no invented document URL. Missing versions return 200 with availability false; POST /register stays fail-closed with 503. No cache; re-fetch before signup and echo versions. Drafts/private text are never disclosed.
+      x-access: public
+      parameters:
+        - { name: locale, in: query, schema: { type: string, enum: [nl, en], default: nl } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements?locale=en'
+      responses:
+        '200':
+          description: "Actual local published sample requirements."
+          content:
+            application/json:
+              example: {"data":{"locale":"en","registration_available":true,"documents_available":true,"documents":{"terms":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-terms"},"privacy":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-privacy"}}}}
+        '422':
+          description: "Unsupported locale."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-2288-728a-94be-7e9a40aa9977","fields":{"locale":["The selected locale is invalid."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/consumer/offers/{slug}/claim:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Consumer]
+      operationId: claimPromotionalOffer
+      summary: Claim one free promotional voucher
+      description: |
+        Active verified account only; support impersonation is blocked. Fresh approved webshop and published public profile are required. Only promotional_code acquisition is eligible, using canonical stock and immutable offer terms. One voucher per consumer+offer, including concurrent retries; no client idempotency key is needed. Replays return the existing owned reference even after offer pause/expiry, but an unpublished shop is still 404. Does not spend wallet credit, create sponsorship or accept Answer24 tokens. Status is issuance, not redemption. Secret code is only available through the owned voucher endpoint.
+      x-access: verified
+      security: [{ sessionCookie: [] }, { bearerToken: [] }]
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' 'http://localhost:8000/api/v1/consumer/offers/<slug>/claim'
+      responses:
+        '201':
+          description: "Issued or replayed owned voucher; code omitted."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5z908sg2jrn9rbg1ecbjkms","status":"issued","voucher_url":"http://127.0.0.1:8079/api/v1/consumer/vouchers/01m5z908sg2jrn9rbg1ecbjkms"}}
+        '404':
+          description: "Unknown or unpublished offer/shop."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Offer not found.","request_id":"01a17e90-2357-72ad-a651-b7f3f7686b5b"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+        '409':
+          description: "Paused, expired, sold out or wrong acquisition; no allocation."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"offer_not_active","message":"This offer is not active.","request_id":"01a17e90-245a-7141-b440-54a14428a847","details":{"status":"paused"}}}
 
 components:
   parameters:

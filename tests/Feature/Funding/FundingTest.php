@@ -22,8 +22,11 @@ use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
@@ -188,6 +191,69 @@ class FundingTest extends TestCase
         $other = $this->activeWebshop($otherOwner = User::factory()->create());
         Sanctum::actingAs($otherOwner);
         $this->getJson("/api/v1/workspaces/{$other->public_id}/funding/top-ups/{$id}")->assertNotFound();
+    }
+
+    public function test_top_up_key_replays_and_conflicting_amount_never_creates_another_payment(): void
+    {
+        Sanctum::actingAs($this->owner);
+        $url = "/api/v1/workspaces/{$this->shop->public_id}/funding/top-ups";
+        $key = (string) Str::uuid();
+        $id = $this->withHeader('Idempotency-Key', strtoupper($key))->postJson($url, ['amount_minor' => 1000])
+            ->assertCreated()->assertJsonPath('data.creation_state', 'created')->json('data.id');
+        config(['shopbonus.payments.mollie.key' => '']);
+        $this->withHeader('Idempotency-Key', $key)->postJson($url, ['amount_minor' => 1000])
+            ->assertCreated()->assertJsonPath('data.id', $id);
+        $this->postJson($url, ['amount_minor' => 2000])->assertConflict()->assertJsonPath('error.code', 'funding_request_conflict');
+        Http::assertSentCount(1);
+        $topUp = FundingTopUp::sole();
+        $this->assertSame($key, $topUp->request_key);
+        $this->assertNotSame($key, $topUp->provider_idempotency_key);
+        Http::assertSent(fn (HttpRequest $r) => $r->hasHeader('Idempotency-Key', $topUp->provider_idempotency_key));
+        $this->withHeader('Idempotency-Key', 'invalid')->postJson($url, ['amount_minor' => 1000])->assertUnprocessable();
+        Http::assertSentCount(1);
+    }
+
+    public function test_the_same_key_is_independent_in_another_workspace_and_identity_is_immutable(): void
+    {
+        Http::swap(new Factory);
+        $number = 0;
+        Http::fake(function () use (&$number) {
+            return Http::response(['id' => 'tr_scoped'.(++$number), 'status' => 'open'], 201);
+        });
+        $key = (string) Str::uuid();
+        $service = app(MerchantFunding::class);
+        $first = $service->startTopUp($this->shop, 1000, $this->owner, $key);
+        $otherOwner = User::factory()->create();
+        $other = $this->activeWebshop($otherOwner);
+        $second = $service->startTopUp($other, 1000, $otherOwner, $key);
+        $this->assertNotSame($first->public_id, $second->public_id);
+        $this->assertNotSame($first->provider_idempotency_key, $second->provider_idempotency_key);
+        Http::assertSentCount(2);
+        $this->expectException(\LogicException::class);
+        $first->forceFill(['amount_minor' => 2000])->save();
+    }
+
+    public function test_uncertain_creation_is_quarantined_even_after_provider_cache_expiry(): void
+    {
+        // Replace the factory registered in setUp, rather than stacking fakes.
+        Http::swap(new Factory);
+        Http::fake(fn () => throw new ConnectionException('timeout'));
+        Sanctum::actingAs($this->owner);
+        $url = "/api/v1/workspaces/{$this->shop->public_id}/funding/top-ups";
+        $this->drain();
+        $key = (string) Str::uuid();
+        $this->withHeader('Idempotency-Key', $key)->postJson($url, ['amount_minor' => 1000])
+            ->assertStatus(502)->assertJsonPath('error.code', 'funding_creation_uncertain');
+        $topUp = FundingTopUp::sole();
+        $this->travel(2)->hours();
+        Http::swap(new Factory);
+        Http::preventStrayRequests();
+        $this->postJson($url, ['amount_minor' => 1000])->assertCreated()
+            ->assertJsonPath('data.id', $topUp->public_id)->assertJsonPath('data.creation_state', 'uncertain')->assertJsonPath('data.checkout_url', null);
+        Http::assertNothingSent();
+        $this->assertNull($topUp->provider_ref);
+        $this->assertSame(0, $this->funding()->available);
+        $this->assertSame(1, FundingTopUp::count());
     }
 
     public function test_monthly_invoice_draft_totals_settled_rewards_and_fees(): void

@@ -33,9 +33,9 @@ class MollieClient
      * @param  array<string, string>  $metadata
      * @return array{id: string, status: string, checkout_url: string|null}
      */
-    public function createPayment(int $amountMinor, string $currency, string $description, string $redirectUrl, string $webhookUrl, array $metadata, ?string $method = null): array
+    public function createPayment(int $amountMinor, string $currency, string $description, string $redirectUrl, string $webhookUrl, array $metadata, ?string $method = null, ?string $idempotencyKey = null): array
     {
-        $response = $this->send(fn (PendingRequest $http) => $http->post('/payments', array_filter([
+        $response = $this->send(fn (PendingRequest $http) => $http->when($idempotencyKey !== null, fn (PendingRequest $r) => $r->withHeaders(['Idempotency-Key' => $idempotencyKey]))->post('/payments', array_filter([
             'amount' => ['currency' => $currency, 'value' => self::decimal($amountMinor)],
             'description' => mb_substr($description, 0, 255), 'redirectUrl' => $redirectUrl, 'webhookUrl' => $webhookUrl, 'metadata' => $metadata,
             'method' => $method,

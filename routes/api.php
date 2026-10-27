@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
 use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
+use App\Http\Controllers\Api\V1\Consumer\PromotionalClaimController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
 use App\Http\Controllers\Api\V1\Content\CookieConsentController;
 use App\Http\Controllers\Api\V1\Content\PublicContentController;
@@ -125,6 +126,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
         Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
         // Published CMS content (Trello #5).
+        Route::get('legal-requirements', [PublicContentController::class, 'legalRequirements'])->name('legal-requirements.show');
         Route::get('pages', [PublicContentController::class, 'pages'])->name('pages.index');
         Route::get('pages/{locale}/{slug}', [PublicContentController::class, 'page'])->name('pages.show');
         Route::get('faq', [PublicContentController::class, 'faq'])->name('faq.index');
@@ -371,6 +373,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::put('favorites/{slug}', [PreferenceController::class, 'addFavorite'])->name('favorites.store');
                 Route::delete('favorites/{slug}', [PreferenceController::class, 'removeFavorite'])->name('favorites.destroy');
 
+                Route::post('offers/{slug}/claim', [PromotionalClaimController::class, 'store'])->middleware('throttle:claims')->name('offers.claim');
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
                 Route::get('vouchers/{id}', [BenefitsController::class, 'voucher'])->middleware('throttle:code-reveal')->name('vouchers.show');
                 Route::post('disputes', [DisputeController::class, 'store'])->middleware('throttle:checkout')->name('disputes.store');

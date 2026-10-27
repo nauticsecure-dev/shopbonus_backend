@@ -595,3 +595,27 @@ Owner authorizes #29 below the ~5 GiB disk cutoff; senior configures credentials
 - [x] B20 final CI: complete exact-code SQLite/MySQL suites, including real4-process publication/mail claims and serialized generation quota; record SHA/results and clean handoff. (`911e053`; CI `40412989638` SUCCESS, SQLite701+18skip/MySQL717+2skip,719tests each. Source approval follow-up14local tests375assertions; this closeout.)
 
 B20 final verified closeout: application911e053 +approval-scope follow-up5a8c36d. CI40414186822 SUCCESS all3jobs (719tests/database; SQLite701+18skip/MySQL717+2skip). All main backend boxes above are evidence-backed; whole-card frontend/live configuration acceptance remains senior/Hassan-owned.
+
+## B21 — frontend integration issue report (2026-10-27)
+
+Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local integration fixtures. Report recommendations are evidence, not approval to publish real legal text or activate providers. One tested boundary at a time; no fabricated production content/credentials.
+
+### B21a — funding top-up request identity
+- [x] Preserve headerless v1 compatibility; accept/validate optional UUID Idempotency-Key scoped to workspace+actor, reject changed amount409. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Persist immutable intent before provider I/O, permit one create attempt, forward distinct stable provider key; replay never creates another request even after provider cache expiry/config changes. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Surface creating/created/uncertain creation status honestly; failed/unknown transport never credits a wallet or silently retries. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Execute replay/conflict/timeout/security/provider-header/real MySQL race tests; migration apply/rollback/reapply and real HTTP captures. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Update API contract/issue resolution TASKS/PROGRESS/HANDOFF and pass quality/full local checks; remote CI is recorded separately below. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+### B21b — public legal discovery
+- [x] Publish registration requirement metadata from canonical LegalConsents; identify CMS vs configuration fallback and link only actual published content, no fabricated legal documents. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Tests for missing/fallback/published/current versions, publication changes, NL/EN visibility and signup fail-closed; real HTTP docs. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+### B21c — public promotional claims
+- [x] Verify full offer/publication/acquisition eligibility and use canonical VoucherInventory for owned promotional claims; never wallet-funded or Answer24 claims. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Atomic per-user/offer dedupe, secret-free response linking to owned voucher API; stock/replay/race/paused/unpublished/wrong-acquisition/auth negative tests and captures. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+### B21d — opt-in local fixtures
+- [x] Local/testing only, explicit command and safety checks; labelled sample legal/CMS/FAQ/catalog/offer/inventory and verified test identities without resetting existing user accounts or overwriting real content. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Use canonical CMS/offer/workspace/account services and inventory, preserve audit/source records, and do not synthesize wallet credits; no live provider activation or real outbound messages. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+- [x] Re-runnable setup, private credential delivery file, actual browser signup/login/discovery/claim verification and senior setup guide; no sample content presented as approved legal text. (this implementation commit; executed tests/captures/migrations in PROGRESS.)
+
+### B21 final verification
+- [ ] Verify pushed implementation SHA in all three CI jobs; record exact SHA/evidence and clean git handoff.

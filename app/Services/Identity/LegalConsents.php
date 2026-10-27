@@ -5,6 +5,7 @@ namespace App\Services\Identity;
 use App\Enums\ConsentPurpose;
 use App\Enums\LegalDocumentType;
 use App\Exceptions\ApiException;
+use App\Models\CmsRevision;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Cms\CmsService;
@@ -45,6 +46,32 @@ class LegalConsents
         }
 
         return $versions;
+    }
+
+    /** Public discovery uses exactly the same version selection as registration.
+     * @return array<string, mixed>
+     */
+    public function requirements(string $locale): array
+    {
+        $documents = [];
+        foreach (['terms', 'privacy'] as $type) {
+            $canonical = CmsService::publishedLegalRevision($type);
+            $published = $canonical?->legal_version;
+            $version = $published ?? config('shopbonus.legal.'.$type.'_version');
+            $version = is_string($version) && $version !== '' ? $version : null;
+            $revision = $version === null ? null : CmsRevision::query()
+                ->join('cms_pages', 'cms_pages.id', '=', 'cms_revisions.page_id')
+                ->join('cms_page_locales', 'cms_page_locales.published_revision_id', '=', 'cms_revisions.id')
+                ->where('cms_pages.type', $type)->where('cms_pages.audience', 'public')->whereNull('cms_pages.archived_at')
+                ->where('cms_revisions.locale', $locale)->where('cms_revisions.legal_version', $version)
+                ->when($canonical !== null, fn ($query) => $query->where('cms_revisions.page_id', $canonical->page_id))
+                ->orderByDesc('cms_revisions.id')->value('cms_page_locales.slug');
+            $documents[$type] = ['version' => $version, 'source' => $published !== null ? 'cms' : ($version !== null ? 'configuration' : null),
+                'document_url' => $revision === null ? null : route('api.v1.public.pages.show', ['locale' => $locale, 'slug' => $revision])];
+        }
+
+        return ['locale' => $locale, 'registration_available' => collect($documents)->every(fn ($d) => $d['version'] !== null),
+            'documents_available' => collect($documents)->every(fn ($d) => $d['document_url'] !== null), 'documents' => $documents];
     }
 
     public function marketingConsentVersion(): ?string

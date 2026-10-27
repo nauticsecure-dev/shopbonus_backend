@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Cms\CmsCache;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\RichText;
+use App\Services\Identity\LegalConsents;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,13 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class PublicContentController extends Controller
 {
+    public function legalRequirements(Request $request, LegalConsents $legal): JsonResponse
+    {
+        $data = $request->validate(['locale' => ['sometimes', Rule::in(CmsService::LOCALES)]]);
+
+        return response()->json(['data' => $legal->requirements($data['locale'] ?? 'nl')], 200, ['Cache-Control' => 'no-store']);
+    }
+
     public function page(string $locale, string $slug): JsonResponse
     {
         if (! in_array($locale, CmsService::LOCALES, true)) {
