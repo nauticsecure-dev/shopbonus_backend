@@ -40,3 +40,6 @@ Schedule::command('shopbonus:publish-scheduled-banners')->everyMinute()->without
 Schedule::command('shopbonus:prune-support')->everyFiveMinutes()->withoutOverlapping();
 
 Schedule::command('shopbonus:dispatch-notifications')->everyMinute()->withoutOverlapping();
+
+// B22a: threshold evaluation/retention; telemetry stays opt-in.
+Schedule::command('shopbonus:monitor-api')->everyMinute()->withoutOverlapping();

@@ -219,6 +219,7 @@ class AdminSecurityTest extends TestCase
             ['POST', '/api/v1/workspaces/current/invitations', ['email' => 'x@example.com', 'role' => 'manager']],
             ['POST', '/api/v1/auth/email/resend-code', []],
             ['GET', '/api/v1/admin/disputes', []],
+            ['GET', '/api/v1/admin/monitoring', []],
         ];
 
         foreach ($blocked as [$method, $uri, $data]) {

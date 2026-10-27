@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeControlle
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
 use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncidentDiagnosticController;
+use App\Http\Controllers\Api\V1\Admin\MonitoringController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
@@ -243,6 +244,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
                 Route::get('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'index'])->name('incident-diagnostics.index');
                 Route::get('incident-diagnostics/{diagnostic}', [AdminIncidentDiagnosticController::class, 'show'])->name('incident-diagnostics.show');
+                Route::get('monitoring', MonitoringController::class)->name('monitoring');
                 Route::get('incidents', [AdminIncidentController::class, 'index'])->name('incidents.index');
                 Route::get('incidents/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
                 Route::get('api-routes', [AdminApiRouteRegistryController::class, 'index'])->name('api-routes');

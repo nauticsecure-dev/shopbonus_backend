@@ -13022,3 +13022,148 @@ X-Request-Id: 01a17e90-2544-7364-8196-035ecc981353
 
 {"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
 ```
+
+
+## B22a — observed API monitoring (Trello #30)
+
+New `GET /api/v1/admin/monitoring?minutes=5` requires active verified Super Admin, normal MFA and no support impersonation. Returns only bounded aggregate operational metadata, with no request bodies, raw paths/SQL/bindings/headers, customer/workspace IDs or credentials. Window1–60minutes. Exact nearest-rank quantiles describe the selected observations, not estimated production uptime. Explicit sample/route truncation produces UNKNOWN. HEALTHY only describes sufficient observed HTTP traffic; unobserved dependencies remain UNKNOWN. Config, query-plan/benchmark evidence, retention, costs and remaining full-card work: [RELIABILITY.md](../reliability/RELIABILITY.md).
+
+`GET /api/v1/admin/incidents/{incident}` now includes nullable immutable `monitoring_evidence` per occurrence. Scheduler-generated latency/5xx incidents retain the actual observation window, counts, thresholds and P95 without raw requests. Existing audited assignment/resolution APIs are reused. A recurring breach after300s reopens resolved/ignored incidents; unchanged breaches within cooldown do not duplicate occurrences. No automatic financial correction or external notification dispatch is introduced.
+
+Captured2026-10-27 from real local Laravel HTTP, isolated SQLite + file cache/sessions + array mail. Admin MFA was disabled only for this isolated capture, never the main environment. The dataset contains10000 explicitly synthetic observations to exercise real SQL; no production traffic/provider evidence is claimed. [Full captures and local SQL benchmark](../reliability/B22_HTTP_CAPTURE.json).
+
+### unauthenticated — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: 01a17f0e-de38-7266-9788-1f4ee2096175
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a17f0e-de38-7266-9788-1f4ee2096175"}}
+```
+
+### forbidden — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17f0e-de90-71ba-b6d3-bebcea09ac49
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a17f0e-de90-71ba-b6d3-bebcea09ac49"}}
+```
+
+### invalid-window — `GET /api/v1/admin/monitoring?minutes=61`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring?minutes=61'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17f0e-deb9-7199-89a3-1b2de94aac2c
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17f0e-deb9-7199-89a3-1b2de94aac2c","fields":{"minutes":["The minutes field must not be greater than 60."]}}}
+```
+
+### empty-report — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-dee5-7055-8965-c99b54780ba9
+
+{"data":{"enabled":true,"state":"UNKNOWN","from":"2026-10-27T20:25:43+00:00","to":"2026-10-27T20:30:43+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[{"route":"api/v1/admin/monitoring","method":"GET","requests":3,"state":"UNKNOWN","breaches":[],"average_ms":43.84,"p50_ms":30.898,"p95_ms":71.519,"p99_ms":71.519,"client_errors":3,"server_errors":0,"client_error_percent":100,"server_error_percent":0,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":54,"total_ms":14.55,"slow_queries":0}}],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}}}
+```
+
+### observed-report — `GET /api/v1/admin/monitoring?minutes=5`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring?minutes=5'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-e04e-7179-8758-7b2e98176a7a
+
+{"data":{"enabled":true,"state":"CRITICAL","from":"2026-10-27T20:25:43+00:00","to":"2026-10-27T20:30:43+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[{"route":"api/v1/admin/monitoring","method":"GET","requests":4,"state":"UNKNOWN","breaches":[],"average_ms":36.453,"p50_ms":29.104,"p95_ms":71.519,"p99_ms":71.519,"client_errors":3,"server_errors":0,"client_error_percent":75,"server_error_percent":0,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":59,"total_ms":17.74,"slow_queries":0}},{"route":"api/v1/health","method":"GET","requests":10000,"state":"CRITICAL","breaches":["api_5xx_rate","api_latency"],"average_ms":404,"p50_ms":5,"p95_ms":2000,"p99_ms":2000,"client_errors":0,"server_errors":1000,"client_error_percent":0,"server_error_percent":10,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":20000,"total_ms":10000,"slow_queries":0}}],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}}}
+```
+
+### incident-evidence — `GET /api/v1/admin/incidents/01m5zgxre50ncab1ddad3xqq0k`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/incidents/01m5zgxre50ncab1ddad3xqq0k'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-e3fe-71b3-9619-ef46235e5806
+
+{"data":{"id":"01m5zgxre50ncab1ddad3xqq0k","category":"monitoring","severity":"error","service":"api_monitoring","route":"api/v1/health","method":"GET","http_status":null,"status":"new","assigned_to":null,"occurrences":1,"first_seen_at":"2026-10-27T20:30:44+00:00","last_seen_at":"2026-10-27T20:30:44+00:00"},"history":[],"occurrences":[{"id":"01m5zgxreajyknsajh10wg5jsc","request_id":null,"actor_id":null,"webshop_id":null,"scope_public_id":null,"error_code":"api_5xx_rate","monitoring_evidence":{"from":"2026-10-27T20:25:44+00:00","to":"2026-10-27T20:30:44+00:00","requests":10000,"server_errors":1000,"server_error_percent":10,"p95_ms":2000,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000}},"occurred_at":"2026-10-27T20:30:44+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### rate-limited — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 429
+Retry-After: 57
+X-Request-Id: 01a17f0e-e99b-709c-a639-2441fa5bc9d8
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a17f0e-e99b-709c-a639-2441fa5bc9d8"}}
+```
+
+### storage-failure — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: 01a17f0e-ed56-72ca-896a-bd4a437f7a2d
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a17f0e-ed56-72ca-896a-bd4a437f7a2d"}}
+```
+
+### health-survives-observation-failure — `GET /api/v1/health`
+
+```bash
+curl -i -H 'Accept: application/json' 'http://localhost:8000/api/v1/health'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-edff-723e-8048-9a5b708483b2
+
+{"status":"ok","service":"shopbonus-api","time":"2026-10-27T20:30:47+00:00"}
+```

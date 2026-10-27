@@ -619,3 +619,22 @@ Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local inte
 
 ### B21 final verification
 - [x] Verify pushed implementation SHA in all three CI jobs; record exact SHA/evidence and clean git handoff. (`7991841` + `a7ebb0e`; CI40559448895 SUCCESS all three jobs, this docs-only closeout.)
+
+## B22 — Trello #30 reliability (started 2026-10-27)
+
+### B22a — observed API monitoring and threshold incidents
+- [x] Inventory/reuse existing audit, incidents, readiness, queue failures, ledger reconciliation, scheduler and dependency tooling; preserve unresolved affiliate timing and do not activate financial flows. (this monitoring implementation commit; executed evidence in PROGRESS.)
+- [x] Opt-in metadata-only request observations with monotonic processing time, DB query timing, privacy-safe route templates, bounded retention and fail-open writes; record rendered error responses without payloads/SQL/credentials/identity. (this monitoring implementation commit; executed evidence in PROGRESS.)
+- [x] Super Admin monitoring report with bounded time/sample scope, exact observed P50/P95/P99, request/error/observed timeout rates, slow queries, configurable thresholds and UNKNOWN for absent/partial observations. (this monitoring implementation commit; executed evidence in PROGRESS.)
+- [x] Schedule configurable minimum-sample 5xx/latency alerts into existing grouped incidents with concurrency-safe cooldown; do not alert merely on ordinary401/403. (this monitoring implementation commit; executed evidence in PROGRESS.)
+- [x] Execute deterministic percentile/error/privacy/retention/failure/security/threshold and real MySQL race tests; local real HTTP captures and mandatory API docs; migration rollback/reapply. (this monitoring implementation commit; executed evidence in PROGRESS.)
+- [x] Full SQLite/MySQL and local quality checks, measured report query plan/cost, committed checkpoint docs and exact remaining #30 work. Remote CI recorded separately. (this monitoring implementation commit; executed evidence in PROGRESS.)
+
+- [ ] Verify exact B22a implementation SHA in all three CI jobs and record closeout evidence.
+
+### Remaining #30 boundaries (not covered by B22a)
+- [ ] Cross-source historical financial reconciliation with immutable evidence and authorized correction reuse; no new affiliate timing activation.
+- [ ] Queue wait/provider/cache/DB availability observations, complete operations overview and security/audit coverage evidence.
+- [ ] Measured schema/query/integrity optimizations on representative isolated data.
+- [ ] Encrypted isolated backup/restore implementation and evidence; infrastructure-specific offsite/scheduling/RPO/RTO capability verification remains explicit.
+- [ ] Ten card acceptance scenarios and final main-code/live acceptance mapping; production evidence must never be inferred from local tests.

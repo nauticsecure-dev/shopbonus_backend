@@ -1,3 +1,15 @@
+# Active task — B22 / Trello #30, monitoring checkpoint 2026-10-27
+
+Branch main, base SHA587a555; B22a implementation is this commit, locally VERIFIED_WORKING pending remote CI. Current modifications are task-owned. **Whole #30 remains IN_PROGRESS.** New metadata-only observations/query timing, bounded exact percentile/admin report, scheduled retention and existing incident threshold alerts with immutable evidence/cooldown. No packages/auth rebuild, no financial timing activation. D-088; full imported card and expanded checklist exist.
+
+**Executed:** final SQLite722pass+21skip/9480assertions/47.411s; MySQL741pass+2skip/9551assertions/226.179s (743 total each); real four-process cooldown race passed. Final API coverage3pass/3609assertions; Pint/PHPStan L6/composer audit/diff checks PASS. Ten real HTTP captures cover 401/403/422/429/500/UNKNOWN/observed/incident evidence/fail-open liveness. Isolated synthetic10000-row dataset, array mail; MFA disabled only for capture. Real MySQL report benchmark median~704ms before/~261ms after indexed count/shared window-order optimization; SQLite~44–53ms, not production SLA.
+
+**Migration/config:**2026_10_27_110000_create_api_observations applied to shopbonus; SQLite/MySQL rollback/reapply PASS. Adds operational metadata table/time index and nullable JSON evidence in append-only incident occurrences. Migration rollback removes that operational evidence; preserve before production rollback. API_MONITORING_ENABLED defaults false; raw metadata retention24h default,72h hardmax; sample reads50000 hardmax and explicit partial UNKNOWN. Existing scheduler evaluates every minute/300s incident cooldown. No live mail/provider or main collection enabled. Capture servers/private DBs removed; outer harnesses and generic logs currently in /tmp, remove harnesses at verified closeout. docs/reliability/RELIABILITY.md has complete first-slice contract/cost/limits. Disk~48GiB at start, no resource exception.
+
+**Exact next:** commit/push this tested monitoring boundary and verify all three CI jobs for exact SHA. Then continue B22b cross-source financial reconciliation, followed by queue/provider/dependency overview, database/security evidence and encrypted backup/isolated restore/main-code recovery. Reuse existing immutable ledger and dual-admin correction machinery. Affiliate credit timing remains unresolved; do not activate a conflicting policy. No staging/production hosting available; actual offsite/restore/RPO/RTO evidence and ten full-card acceptance scenarios remain unfinished. Never mark whole #30 Done from monitoring-only evidence.
+
+---
+
 # Current handoff — B21 complete, 2026-10-27
 
 Branch: `main`. Application SHA: `7991841c32307fa96b5011c3ac719a1f13fb6368`. Test-only clean-environment correction: `a7ebb0e9c1ecd286540f9ab1c6057c45f7df2a95`. Both pushed. This is a docs-only closeout; no uncommitted application/test changes remain. **B21 main backend is DONE.**

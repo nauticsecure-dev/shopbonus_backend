@@ -6442,3 +6442,448 @@ Verify consumer/Workspace/Admin isolation, all notification endpoints documented
 - All 10 E2E tests passing.
 
 **Deliver:** Final API/event inventory, published templates, notification screenshots, queue/delivery test evidence and E2E results.
+
+
+## Trello #30: PLATFORM RELIABILITY, FINANCIAL RECONCILIATION, MONITORING & SECURITY
+
+Source: owner export downloaded 2026-10-25. Card: https://trello.com/c/6xHzjOwY/30-platform-reliability-financial-reconciliation-monitoring-security. Ownership is not completion evidence.
+
+Audit and strengthen ShopBonus's existing Laravel API, financial ledger, monitoring, database, audit logging, security and backup infrastructure.
+
+**Important:** Inspect what already exists before implementing anything. Reuse Laravel Policies, authentication, 401/403 handling, rate limiting, Redis, queues, existing audit systems and monitoring tools. Repair incomplete functionality without creating duplicate infrastructure.
+
+The goal is a reliable, secure, measurable and recoverable production platform.
+
+## 1. FINANCIAL LEDGER RECONCILIATION — P0
+
+ShopBonus credits consumer wallets immediately after a valid, attributable conversion is confirmed.
+
+Support:
+
+- Daisycon.
+- TradeTracker.
+- Direct merchant commissions.
+- Configurable consumer/ShopBonus commission split.
+- Voucher redemption.
+- Adjustments and reversals.
+
+### Reconciliation rules
+
+Run automatic reconciliation against authoritative ledger and transaction records.
+
+Verify:
+
+1. Every credited conversion has valid source evidence.
+2. No transaction was credited twice.
+3. Commission calculation matches the applicable historical rate.
+4. Consumer/ShopBonus shares total 100%.
+5. Wallet balance matches ledger movements.
+6. Voucher redemption matches wallet debit and allocation.
+7. Reversals generate compensating ledger entries.
+8. No missing or unexplained financial mutations.
+
+Example:
+
+```
+{
+  "transaction_id": "tx_123",
+  "commission_minor": 1000,
+  "consumer_share": 0.70,
+  "consumer_credit_minor": 700,
+  "shopbonus_revenue_minor": 300,
+  "currency": "EUR",
+  "status": "credited"
+}
+```
+
+Expected:
+
+€7 consumer credit + €3 ShopBonus share = €10 commission.
+
+If a discrepancy occurs:
+
+- Record a reconciliation finding.
+- Preserve original transaction history.
+- Prevent duplicate correction.
+- Alert Super Admin.
+- Require authorized resolution for non-deterministic corrections.
+
+Never silently overwrite ledger entries or invent balancing transactions.
+
+### Suggested internal APIs
+
+`GET /api/v1/platform/finance/reconciliation`
+
+`POST /api/v1/platform/finance/reconciliation/run`
+
+`GET /api/v1/platform/finance/reconciliation/{id}`
+
+Example finding:
+
+```
+{
+  "finding_code": "LEDGER_MISMATCH",
+  "transaction_id": "tx_123",
+  "expected_minor": 700,
+  "actual_minor": 1400,
+  "difference_minor": 700,
+  "status": "open"
+}
+```
+
+These are proposed contracts. Reuse existing routes/services when present.
+
+## 2. CENTRAL API MONITORING — P1
+
+Monitor all production API routes.
+
+Required metrics:
+
+- Request count.
+- Average latency.
+- P50/P95/P99 latency.
+- 4xx/5xx error rates.
+- Timeout rate.
+- Queue wait time.
+- Failed jobs.
+- External provider failures.
+- Database query latency.
+- Redis/cache health.
+
+Track important operations separately:
+
+- Authentication.
+- Wallet.
+- Voucher redemption.
+- Affiliate conversion import.
+- Merchant commission configuration.
+- AI support.
+- Reverb.
+- Notifications.
+- Website enrichment.
+
+Use Laravel Pulse and Horizon where compatible with the actual infrastructure. Telescope must not expose sensitive production payloads.
+
+### Example metric
+
+```
+{
+  "route": "POST /api/v1/ai/chat",
+  "requests": 1200,
+  "p95_ms": 4200,
+  "error_rate": 0.012,
+  "period": "24h"
+}
+```
+
+Example alert thresholds, configurable:
+
+- API 5xx rate above 2% over 5 minutes.
+- Critical queue not processing.
+- Database unavailable.
+- Wallet ledger mismatch.
+- Affiliate import repeatedly failing.
+- Backup overdue.
+
+Do not create alerts for ordinary expected 401/403 responses unless rates indicate an anomaly.
+
+## 3. CENTRAL AUDIT LOGGING — P1
+
+Reuse the existing platform audit system.
+
+Every important action must be attributable to:
+
+- Actor.
+- Role.
+- Workspace/user scope.
+- Action.
+- Resource.
+- Timestamp.
+- Request/correlation ID.
+- Result.
+- Relevant before/after values.
+
+Audit:
+
+- Wallet credits/debits.
+- Commission configuration changes.
+- Voucher issuance/cancellation.
+- Workspace approval.
+- Affiliate program activation.
+- Super Admin settings.
+- AI support policy publishing.
+- Notification template publishing.
+- Permission changes.
+- Manual reconciliation corrections.
+
+Example:
+
+```
+{
+  "actor_id": 1,
+  "actor_role": "super_admin",
+  "action": "commission_split.updated",
+  "resource_type": "merchant",
+  "resource_id": 373,
+  "before": {
+    "shopbonus_share": 0.30
+  },
+  "after": {
+    "shopbonus_share": 0.10
+  },
+  "result": "success"
+}
+```
+
+Requirements:
+
+- Search/filter audit history.
+- Permission-controlled access.
+- Tamper-evident or append-only handling for financial/security events.
+- Sensitive fields redacted.
+- Defined retention policy.
+- No credentials or voucher secrets in logs.
+
+## 4. DATABASE PERFORMANCE & INTEGRITY — P1
+
+Audit actual production schema and query patterns.
+
+Focus on:
+
+- Wallet ledger.
+- Affiliate transactions.
+- Voucher ownership.
+- Commission history.
+- Workspaces.
+- Offers.
+- Notifications.
+- Chat conversations.
+- Audit logs.
+
+Required:
+
+- Appropriate unique constraints.
+- Foreign-key integrity.
+- Transactional financial operations.
+- Correct indexes for common filters.
+- Query-plan inspection.
+- N+1 query prevention.
+- Controlled pagination.
+- Redis caching where useful.
+- Cache invalidation after mutations.
+- Background processing for expensive jobs.
+
+Examples:
+
+- Unique `(provider, provider_transaction_id)` where appropriate.
+- Indexed `(user_id, created_at)` on transaction history.
+- Indexed `(workspace_id, status)` for merchant records.
+- Indexed notification recipient/read status.
+
+Validate against the existing schema before adding indexes or constraints.
+
+Avoid excessive indexes that slow imports and writes.
+
+Measure performance before and after optimization.
+
+## 5. PLATFORM SECURITY TESTING — P0
+
+Audit existing security controls and test them end to end.
+
+Do not rebuild working authentication, Policies or existing 401/403 handling.
+
+Test:
+
+- Consumer access isolation.
+- Workspace isolation.
+- Super Admin authorization.
+- IDOR prevention.
+- Wallet ownership.
+- Voucher-code secrecy.
+- Financial mutation authorization.
+- CSRF/session security.
+- Rate limiting.
+- Input validation.
+- Safe redirects.
+- File upload validation.
+- Scraping SSRF protection.
+- Prompt-injection boundaries.
+- API credential protection.
+- Sensitive logging.
+- Dependency/runtime patch status.
+
+Special attention:
+
+- Affiliate redirect URLs.
+- Website scraping.
+- OpenAI tools.
+- Commission overrides.
+- Voucher redemption.
+- Reverb private channels.
+
+Any critical finding must have evidence, severity, affected component, exact fix and regression test.
+
+Do not assume the system is compromised or safe without evidence.
+
+## 6. BACKUP & DISASTER RECOVERY — P0
+
+Audit hosting and existing backup processes.
+
+Required coverage:
+
+- Production database.
+- Critical uploaded/media files.
+- Voucher/transaction records.
+- Configuration required for recovery.
+- Infrastructure configuration.
+- Secrets through secure credential recovery procedures, not plaintext exports.
+
+Implement or verify:
+
+- Automated scheduled backups.
+- Encrypted backup storage.
+- Offsite copies.
+- Restricted access.
+- Retention policy.
+- Backup integrity checks.
+- Failure alerts.
+- Documented restore procedure.
+- Periodic restore testing.
+
+Define realistic business requirements for:
+
+- RPO: acceptable maximum data loss.
+- RTO: acceptable maximum recovery time.
+
+Proposed initial targets for approval:
+
+- Financial records: RPO ≤15 minutes.
+- Critical service restoration: RTO ≤4 hours.
+
+These are targets, not promises. Confirm infrastructure capability and cost before adoption.
+
+Test restoration in an isolated environment without overwriting production.
+
+Document dependencies and recovery order.
+
+## 7. SUPER ADMIN OPERATIONS OVERVIEW
+
+Reuse existing Super Admin dashboard where available.
+
+Add a compact operational overview:
+
+- Financial reconciliation status.
+- Critical API health.
+- Queue health.
+- Database health.
+- Security findings.
+- Backup status.
+- Last successful restore test.
+- Open incidents.
+
+Display:
+
+`HEALTHY`, `WARNING`, `CRITICAL`, `UNKNOWN`.
+
+A component must never show `HEALTHY` merely because monitoring data is missing.
+
+Provide links to existing detailed monitoring/audit interfaces.
+
+Do not expose sensitive logs or credentials in the dashboard.
+
+## 8. CENTRAL API DOCUMENTATION
+
+Document new/modified routes in the existing API documentation.
+
+For each route:
+
+- Method/path.
+- Authentication.
+- Allowed roles.
+- Resource scope.
+- Request/response examples.
+- Validation.
+- Error responses.
+- Idempotency.
+- Audit requirements.
+- Performance target.
+- Related monitoring.
+
+Maintain a route inventory and identify undocumented existing endpoints.
+
+Avoid duplicate route implementations and internal IDs in customer-facing URLs.
+
+## 9. ACCEPTANCE METRICS
+
+Set up reporting for:
+
+- Ledger discrepancy count.
+- Duplicate financial transaction count.
+- Reconciliation execution time.
+- Critical API availability.
+- P95 endpoint latency.
+- Failed queue jobs.
+- Slow database queries.
+- Open critical security findings.
+- Successful backup percentage.
+- Last verified restore date.
+
+Financial discrepancies and failed backups must generate actionable alerts.
+
+Use configurable thresholds based on observed production performance.
+
+## 10. TEN END-TO-END TESTS
+
+1. **Financial reconciliation**
+
+Import a valid €10 commission with 70/30 split. Verify €7 consumer credit, €3 ShopBonus revenue and zero ledger discrepancy.
+
+1. **Duplicate transaction**
+
+Deliver the same affiliate conversion multiple times. Confirm one credit, one revenue allocation and correct duplicate detection.
+
+1. **Commission change**
+
+Change a merchant from 30/70 to 10/90. Verify new transactions use the new split and historical transactions retain their applicable rates.
+
+1. **Ledger mismatch**
+
+Introduce an isolated test discrepancy. Reconciliation identifies the exact difference, creates a finding and prevents silent correction.
+
+1. **API monitoring**
+
+Simulate slow responses, timeouts and 500 errors. Verify route-specific latency/error metrics and alert thresholds.
+
+1. **Audit trail**
+
+Change commission settings, redeem a voucher and modify a Super Admin policy. Verify accurate actor, scope, action, timestamps and redacted sensitive values.
+
+1. **Database integrity**
+
+Test concurrent wallet mutations, invalid references and large paginated datasets. Verify correct constraints, consistency and query performance.
+
+1. **Security isolation**
+
+Attempt unauthorized access to another consumer's wallet, Workspace data and voucher codes. Verify existing protections block access and record relevant findings.
+
+1. **Backup and restore**
+
+Create an encrypted test backup and restore it into an isolated environment. Verify financial records, voucher ownership, file integrity and recorded recovery duration.
+
+**10. Disaster and recovery**
+Simulate queue/database/provider failure in a controlled test environment. Verify alerts, safe recovery, no duplicate financial operations and correct operational dashboard status.
+
+## DEFINITION OF DONE
+
+- Financial ledger reconciliation automated and tested.
+- Central API monitoring operational.
+- Existing audit system complete for critical actions.
+- Database queries and integrity verified.
+- Platform security tests passing.
+- Automated encrypted backups verified.
+- Documented and tested disaster recovery.
+- Super Admin operational overview working.
+- All relevant APIs documented.
+- All 10 E2E tests passing.
+
+**Deliver:** Infrastructure inventory, findings/fixes, benchmark results, reconciliation report, security test evidence, backup/restore proof and final E2E report.

@@ -10419,7 +10419,7 @@ paths:
         - Admin
       operationId: b16cApiVAdminIncidentsIncidentGet
       summary: 'incidents/{incident}'
-      description: 'GET includes paginated occurrences and latest 100 audited status/assignment changes. PATCH requires recent password, a reason and explicit assigned_to (active Super Admin public ID or null); status new|investigating|resolved|ignored. No messages, headers, query strings or private payloads are stored in incidents.'
+      description: 'GET includes paginated occurrences and latest 100 audited status/assignment changes. PATCH requires recent password, a reason and explicit assigned_to (active Super Admin public ID or null); status new|investigating|resolved|ignored. No messages, headers, query strings or private payloads are stored in incidents. Occurrences include nullable monitoring_evidence: immutable numeric counts/P95/window/thresholds for operational alerts, null for other sources.'
       x-access: admin
       security:
         -
@@ -10452,50 +10452,10 @@ paths:
           source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/incidents/01m5sjgf6epbacp2072ra89enz' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
       responses:
         200:
-          description: 'Captured real HTTP response.'
+          description: Real local monitoring incident with immutable occurrence evidence.
           content:
             application/json:
-              example:
-                data:
-                  id: 01m5sjgf6epbacp2072ra89enz
-                  category: security
-                  severity: warning
-                  service: api
-                  route: api/v1/admin/incidents
-                  method: GET
-                  http_status: 401
-                  status: investigating
-                  assigned_to: 01m5shsg3jkn7wrp9pe1a2f539
-                  occurrences: 1
-                  first_seen_at: '2026-10-25T13:02:59+00:00'
-                  last_seen_at: '2026-10-25T13:02:59+00:00'
-                history:
-                  -
-                    request_id: 01a17328-3d73-7131-8b3b-0325db8e6d4c
-                    actor_id: 01m5shsg3jkn7wrp9pe1a2f539
-                    occurred_at: '2026-10-25T13:02:59+00:00'
-                    change:
-                      before:
-                        status: new
-                        assigned_to: null
-                      after:
-                        status: investigating
-                        assigned_to: 01m5shsg3jkn7wrp9pe1a2f539
-                      reason: 'Investigating repeated API denials'
-                occurrences:
-                  -
-                    id: 01m5sjgf6n73reeddz897wj6sx
-                    request_id: 01a17328-3cb7-7024-8c92-e6bcf6910304
-                    actor_id: null
-                    webshop_id: null
-                    scope_public_id: null
-                    error_code: unauthenticated
-                    occurred_at: '2026-10-25T13:02:59+00:00'
-                meta:
-                  current_page: 1
-                  total: 1
-                  per_page: 25
-                  last_page: 1
+              example: {"data":{"id":"01m5zgxre50ncab1ddad3xqq0k","category":"monitoring","severity":"error","service":"api_monitoring","route":"api/v1/health","method":"GET","http_status":null,"status":"new","assigned_to":null,"occurrences":1,"first_seen_at":"2026-10-27T20:30:44+00:00","last_seen_at":"2026-10-27T20:30:44+00:00"},"history":[],"occurrences":[{"id":"01m5zgxreajyknsajh10wg5jsc","request_id":null,"actor_id":null,"webshop_id":null,"scope_public_id":null,"error_code":"api_5xx_rate","monitoring_evidence":{"from":"2026-10-27T20:25:44+00:00","to":"2026-10-27T20:30:44+00:00","requests":10000,"server_errors":1000,"server_error_percent":10,"p95_ms":2000,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000}},"occurred_at":"2026-10-27T20:30:44+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
         401:
           $ref: '#/components/responses/Unauthenticated'
         403:
@@ -16076,6 +16036,43 @@ paths:
           content:
             application/json:
               example: {"error":{"status":409,"code":"offer_not_active","message":"This offer is not active.","request_id":"01a17e90-245a-7141-b440-54a14428a847","details":{"status":"paused"}}}
+
+  /api/v1/admin/monitoring:
+    get:
+      tags: [Admin]
+      operationId: apiMonitoring
+      summary: Observed API latency and error metrics
+      description: |
+        Super Admin with normal MFA; support impersonation is blocked. Read-only global operational metadata, never raw requests, SQL, bindings, credentials, customer/workspace IDs or paths. Opt-in API_MONITORING_ENABLED defaults false. minutes defaults5, range1–60. Exact nearest-rank P50/P95/P99 across disclosed observations; latest sample cap defaults50000 (hard maximum50000), max500 route/method groups, explicit truncation flags. Disabled, absent, insufficient or partial observations are UNKNOWN. CRITICAL breaches dominate sparse-route UNKNOWN; HEALTHY refers only to sufficient observed HTTP traffic, never whole-platform uptime. Minimum samples/default20,5xx threshold/default2%, P95/default1000ms are configurable. Ordinary4xx do not trigger5xx alerts. Only rendered408/504 are observable timeouts; process deaths/network/client timeouts, queue wait, provider failure detail, dependency availability and backups remain unmeasured here. Global termination capture is best-effort; DB write failures preserve original responses and emit a redacted technical log. Run scheduler shopbonus:monitor-api each minute for existing incident alerts and bounded retention (default24h, max72h). Per route+breach300s cooldown, immutable numeric/window/threshold evidence appears in GET /admin/incidents/{incident}. No auto financial corrections or external email. Local10000-row query benchmark is documented; no production/staging SLA claimed.
+      x-access: admin
+      security: [{ sessionCookie: [] }, { bearerToken: [] }]
+      parameters:
+        - name: minutes
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 60, default: 5 }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring?minutes=5'
+      responses:
+        '200':
+          description: Real local report using explicitly synthetic observations.
+          content:
+            application/json:
+              example: {"data":{"enabled":true,"state":"CRITICAL","from":"2026-10-27T20:25:43+00:00","to":"2026-10-27T20:30:43+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[{"route":"api/v1/admin/monitoring","method":"GET","requests":4,"state":"UNKNOWN","breaches":[],"average_ms":36.453,"p50_ms":29.104,"p95_ms":71.519,"p99_ms":71.519,"client_errors":3,"server_errors":0,"client_error_percent":75,"server_error_percent":0,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":59,"total_ms":17.74,"slow_queries":0}},{"route":"api/v1/health","method":"GET","requests":10000,"state":"CRITICAL","breaches":["api_5xx_rate","api_latency"],"average_ms":404,"p50_ms":5,"p95_ms":2000,"p99_ms":2000,"client_errors":0,"server_errors":1000,"client_error_percent":0,"server_error_percent":10,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":20000,"total_ms":10000,"slow_queries":0}}],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: Window outside1–60minutes.
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17f0e-deb9-7199-89a3-1b2de94aac2c","fields":{"minutes":["The minutes field must not be greater than 60."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500':
+          description: Monitoring storage/query failure; never reported as healthy.
+          content:
+            application/json:
+              example: {"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a17f0e-ed56-72ca-896a-bd4a437f7a2d"}}
 
 components:
   parameters:
