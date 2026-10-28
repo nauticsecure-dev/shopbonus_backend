@@ -63,7 +63,7 @@ Contracts require: typed payloads, auth and ownership matrix, precise integer mo
 
 ## Important unresolved requirements
 
-- **OPEN-AFFILIATE-CREDIT-TIMING:** Card #19 and #22 describe spendable credit after commission approval; card #23 describes immediate spendable credit for a valid attributed conversion even when later rejected. Must choose a documented, versioned risk policy before release of affected crediting path; model must be capable of both states while keeping audit ledger intact.
+- **Affiliate timing resolved for new rewards (D-089):** spendable only after network approval. Preserve frozen historical timing regimes and immutable ledger history; instant-mode compatibility is not authorization to activate it.
 - **OPEN-REWARD-UNITS:** Some cards use integer `points`, others use EUR-denominated `EUR_REDEMPTION_CREDIT`. Define conversion/unit, presentation, expiry and accounting without inventing a rate.
 - **OPEN-FINANCIAL-LEGAL:** Confirm Dutch seller of record, VAT, refunds, merchant invoicing, promotion/contact lawful basis and contract terms before accepting live payments or auto-marketing.
 - **OPEN-PROVIDER-CAPABILITIES:** Verify current supported provider APIs/webhooks (esp. Shopify, Wix, Lightspeed, Mijnwebwinkel, CCV) and whether real redemption verification is available.

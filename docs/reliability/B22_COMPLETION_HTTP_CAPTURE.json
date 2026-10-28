@@ -1,0 +1,608 @@
+{
+  "environment": "Real local PHP HTTP server, isolated synthetic SQLite database/cache/sessions; array mail, no providers. MFA disabled only in this fixture. Seeded OTP verified through normal endpoint. Injected wallet mismatch/failed run/missing table are test-only.",
+  "captures": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {},
+      "auth": "none",
+      "status": 401,
+      "headers": {
+        "X-Request-Id": "01a181dd-0846-71b4-bae4-1a75b1dcaef1",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 401,
+          "code": "unauthenticated",
+          "message": "Authentication is required.",
+          "request_id": "01a181dd-0846-71b4-bae4-1a75b1dcaef1"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {},
+      "auth": "consumer_bearer",
+      "status": 403,
+      "headers": {
+        "X-Request-Id": "01a181dd-087e-7306-a50b-2a4ecb926745",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 403,
+          "code": "platform_role_required",
+          "message": "This action requires a platform administrator.",
+          "request_id": "01a181dd-087e-7306-a50b-2a4ecb926745"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "request": {
+        "email": "b22-admin@example.test",
+        "password": "<LOCAL_PASSWORD>"
+      },
+      "auth": "spa",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-08ba-732a-adfd-b2c574e309ce"
+      },
+      "response": {
+        "data": {
+          "id": "01m60xt19eg7tha0rxza8fbqkc",
+          "first_name": "Lizzy",
+          "email": "b22-admin@example.test",
+          "email_verified": true,
+          "status": "active",
+          "onboarding_intent": "consumer",
+          "locale": "nl",
+          "roles": [
+            "super_admin"
+          ],
+          "workspaces": [],
+          "destination": "admin",
+          "two_factor_enabled": false,
+          "support_session": null
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {
+        "request_key": "6a63474f-fd38-4907-a28f-307805ca1528"
+      },
+      "auth": "spa",
+      "status": 419,
+      "headers": {
+        "X-Request-Id": "01a181dd-0aa5-7055-8b86-f59af0c22be1",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 419,
+          "code": "csrf_token_mismatch",
+          "message": "The session or CSRF token has expired. Refresh and try again.",
+          "request_id": "01a181dd-0aa5-7055-8b86-f59af0c22be1"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/user/confirm-password",
+      "request": {
+        "password": "<LOCAL_PASSWORD>"
+      },
+      "auth": "spa",
+      "status": 201,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0abd-7202-a8e7-01c6db6d0c25"
+      },
+      "response": ""
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {
+        "request_key": "7eb5b5cc-4668-4627-a1f6-6ff37cba8b46"
+      },
+      "auth": "spa",
+      "status": 423,
+      "headers": {
+        "X-Request-Id": "01a181dd-0ba8-7024-9dcc-009a82c816df",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 423,
+          "code": "step_up_code_required",
+          "message": "Confirm this action with the code sent to your email.",
+          "request_id": "01a181dd-0ba8-7024-9dcc-009a82c816df"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/step-up/verify",
+      "request": {
+        "code": "<LOCAL_CODE>"
+      },
+      "auth": "spa",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0bc4-737d-b044-88e53fff89a5"
+      },
+      "response": {
+        "data": {
+          "confirmed": true,
+          "valid_until": "2026-10-28T09:45:09+00:00"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {
+        "request_key": "invalid"
+      },
+      "auth": "spa",
+      "status": 422,
+      "headers": {
+        "X-Request-Id": "01a181dd-0cc3-729e-b020-1dabf4e4b871",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a181dd-0cc3-729e-b020-1dabf4e4b871",
+          "fields": {
+            "request_key": [
+              "The request key field must be a valid UUID."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {
+        "request_key": "90c078d6-1573-467e-9d36-860cc84b72d2"
+      },
+      "auth": "spa",
+      "status": 202,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0ce4-73ae-b877-1670c2a607f5"
+      },
+      "response": {
+        "data": {
+          "run": "01m60xt37mxxr2cajczf579ma8",
+          "scope_version": 2,
+          "execution": "pending",
+          "status": "UNKNOWN",
+          "requested_at": "2026-10-28T09:35:10+00:00",
+          "finished_at": null,
+          "elapsed_including_scheduling_ms": 72,
+          "checked_wallets": 0,
+          "discrepancies": 0,
+          "unknown_checks": 0,
+          "coverage": {
+            "wallet_projection": "INCOMPLETE",
+            "affiliate": "UNKNOWN",
+            "checkout": "UNKNOWN",
+            "funding": "UNKNOWN",
+            "sponsorship": "UNKNOWN",
+            "ledger": "UNKNOWN"
+          },
+          "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {
+        "request_key": "90c078d6-1573-467e-9d36-860cc84b72d2"
+      },
+      "auth": "spa",
+      "status": 202,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0d07-73f4-b630-e0e56a01171e"
+      },
+      "response": {
+        "data": {
+          "run": "01m60xt37mxxr2cajczf579ma8",
+          "scope_version": 2,
+          "execution": "pending",
+          "status": "UNKNOWN",
+          "requested_at": "2026-10-28T09:35:10+00:00",
+          "finished_at": null,
+          "elapsed_including_scheduling_ms": 97,
+          "checked_wallets": 0,
+          "discrepancies": 0,
+          "unknown_checks": 0,
+          "coverage": {
+            "wallet_projection": "INCOMPLETE",
+            "affiliate": "UNKNOWN",
+            "checkout": "UNKNOWN",
+            "funding": "UNKNOWN",
+            "sponsorship": "UNKNOWN",
+            "ledger": "UNKNOWN"
+          },
+          "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {
+        "request_key": "94a4e455-f1e5-4afc-a772-505bb9e4fb66"
+      },
+      "auth": "spa",
+      "status": 429,
+      "headers": {
+        "Retry-After": "60",
+        "X-Request-Id": "01a181dd-0d1e-72a7-8cb7-02498bb059e8",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 429,
+          "code": "too_many_requests",
+          "message": "Too many requests. Please slow down.",
+          "request_id": "01a181dd-0d1e-72a7-8cb7-02498bb059e8"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {},
+      "auth": "spa",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0e43-72a7-a4c6-43e35e8973ca"
+      },
+      "response": {
+        "data": [
+          {
+            "run": "01m60xt37mxxr2cajczf579ma8",
+            "scope_version": 2,
+            "execution": "completed",
+            "status": "CRITICAL",
+            "requested_at": "2026-10-28T09:35:10+00:00",
+            "finished_at": "2026-10-28T09:35:10+00:00",
+            "elapsed_including_scheduling_ms": 0,
+            "checked_wallets": 1,
+            "discrepancies": 1,
+            "unknown_checks": 1,
+            "coverage": {
+              "wallet_projection": "OBSERVED",
+              "affiliate": "EMPTY",
+              "checkout": "EMPTY",
+              "funding": "EMPTY",
+              "sponsorship": "EMPTY",
+              "ledger": "OBSERVED"
+            },
+            "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "total": 1
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?status=discrepancy",
+      "request": {},
+      "auth": "spa",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0e5a-736d-af47-4752783b7596"
+      },
+      "response": {
+        "data": {
+          "run": "01m60xt37mxxr2cajczf579ma8",
+          "scope_version": 2,
+          "execution": "completed",
+          "status": "CRITICAL",
+          "requested_at": "2026-10-28T09:35:10+00:00",
+          "finished_at": "2026-10-28T09:35:10+00:00",
+          "elapsed_including_scheduling_ms": 0,
+          "checked_wallets": 1,
+          "discrepancies": 1,
+          "unknown_checks": 1,
+          "coverage": {
+            "wallet_projection": "OBSERVED",
+            "affiliate": "EMPTY",
+            "checkout": "EMPTY",
+            "funding": "EMPTY",
+            "sponsorship": "EMPTY",
+            "ledger": "OBSERVED"
+          },
+          "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."
+        },
+        "checks": [
+          {
+            "id": "01m60xt3gsh82cd9p6kzayj2nc",
+            "source_type": "wallet",
+            "source_ref": "01m60xt19ttzdj91yb9frh9v83",
+            "status": "discrepancy",
+            "evidence": {
+              "version": 1,
+              "unit": "eur_credit",
+              "kind": "consumer_credit",
+              "projection": {
+                "available": 1400,
+                "reserved": 0,
+                "pending": 0
+              },
+              "mismatches": {
+                "available": [
+                  1000,
+                  1400
+                ],
+                "lots": [
+                  1000,
+                  1400
+                ]
+              },
+              "flag": "01m60xt3ge3km27rrc38xyygnf"
+            },
+            "checked_at": "2026-10-28T09:35:10.000000Z"
+          }
+        ],
+        "meta": {
+          "page": 1,
+          "total": 1
+        },
+        "corrections": "Use existing reviewed wallet adjustment, affiliate review and checkout/dispute workflows. This report never posts corrections."
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?per_page=101",
+      "request": {},
+      "auth": "spa",
+      "status": 422,
+      "headers": {
+        "X-Request-Id": "01a181dd-0e73-7195-a674-9fc3c9941023",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a181dd-0e73-7195-a674-9fc3c9941023",
+          "fields": {
+            "per_page": [
+              "The per page field must not be greater than 100."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/operations-overview",
+      "request": {},
+      "auth": "spa",
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0e95-725b-bd77-614481110e71"
+      },
+      "response": {
+        "data": {
+          "observed_at": "2026-10-28T09:35:10+00:00",
+          "components": {
+            "database": {
+              "status": "HEALTHY",
+              "observed_at": "2026-10-28T09:35:10+00:00"
+            },
+            "cache": {
+              "status": "HEALTHY",
+              "observed_at": "2026-10-28T09:35:10+00:00"
+            },
+            "api": {
+              "enabled": false,
+              "state": "UNKNOWN",
+              "from": "2026-10-28T09:30:10+00:00",
+              "to": "2026-10-28T09:35:10+00:00",
+              "sample_limit": 50000,
+              "sample_limit_exceeded": false,
+              "routes_truncated": false,
+              "thresholds": {
+                "minimum_samples": 20,
+                "error_percent": 2,
+                "p95_ms": 1000
+              },
+              "routes": [],
+              "coverage": {
+                "http": "observed_requests_only",
+                "timeouts": "rendered_408_504_only",
+                "queue_wait": "UNKNOWN",
+                "provider_failures": "UNKNOWN",
+                "dependency_availability": "UNKNOWN",
+                "backups": "UNKNOWN"
+              }
+            },
+            "queue": {
+              "status": "UNKNOWN",
+              "reason": "No observable database/redis background queue configured."
+            },
+            "providers": {
+              "status": "UNKNOWN",
+              "failed_affiliate_connections": 0,
+              "http_observations": {
+                "http_status": "UNKNOWN",
+                "http_requests": 0,
+                "http_failures": 0,
+                "http_sample_limit_exceeded": false,
+                "by_provider": []
+              },
+              "definition": "Persisted affiliate errors plus opt-in HTTP observations; no independent provider availability proof."
+            },
+            "financial": {
+              "run": "01m60xt37mxxr2cajczf579ma8",
+              "scope_version": 2,
+              "execution": "completed",
+              "status": "CRITICAL",
+              "requested_at": "2026-10-28T09:35:10+00:00",
+              "finished_at": "2026-10-28T09:35:10+00:00",
+              "elapsed_including_scheduling_ms": 0,
+              "checked_wallets": 1,
+              "discrepancies": 1,
+              "unknown_checks": 1,
+              "coverage": {
+                "wallet_projection": "OBSERVED",
+                "affiliate": "EMPTY",
+                "checkout": "EMPTY",
+                "funding": "EMPTY",
+                "sponsorship": "EMPTY",
+                "ledger": "OBSERVED"
+              },
+              "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."
+            },
+            "scheduler": {
+              "status": "UNKNOWN",
+              "last_observed_at": null
+            },
+            "incidents": {
+              "status": "WARNING",
+              "open": 7
+            },
+            "backups": {
+              "status": "UNKNOWN",
+              "backup_success_percent_30d": null,
+              "enabled": false,
+              "last_backup_at": null,
+              "last_backup_result": null,
+              "last_verified_restore_at": null,
+              "offsite_verified": false,
+              "definition": "Successful configured-disk write is not independent offsite durability or RPO/RTO proof."
+            }
+          },
+          "links": {
+            "monitoring": "/api/v1/admin/monitoring",
+            "incidents": "/api/v1/admin/incidents",
+            "financial": "/api/v1/admin/reconciliation"
+          },
+          "limits": "Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof."
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume",
+      "request": {
+        "reason": "Synthetic failure investigated; fixture storage restored."
+      },
+      "auth": "spa",
+      "status": 202,
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Request-Id": "01a181dd-0fa2-70dd-a2f2-b37a2211c2b3"
+      },
+      "response": {
+        "data": {
+          "run": "01m60xt37mxxr2cajczf579ma8",
+          "scope_version": 2,
+          "execution": "running",
+          "status": "CRITICAL",
+          "requested_at": "2026-10-28T09:35:10+00:00",
+          "finished_at": "2026-10-28T09:35:10+00:00",
+          "elapsed_including_scheduling_ms": 0,
+          "checked_wallets": 1,
+          "discrepancies": 1,
+          "unknown_checks": 1,
+          "coverage": {
+            "wallet_projection": "INCOMPLETE",
+            "affiliate": "EMPTY",
+            "checkout": "EMPTY",
+            "funding": "EMPTY",
+            "sponsorship": "EMPTY",
+            "ledger": "OBSERVED"
+          },
+          "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume",
+      "request": {
+        "reason": "Synthetic repeat resume request."
+      },
+      "auth": "spa",
+      "status": 409,
+      "headers": {
+        "X-Request-Id": "01a181dd-0fc3-706d-bdea-e6ee508ea01e",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "reconciliation_not_failed",
+          "message": "Only failed reconciliation runs can be resumed.",
+          "request_id": "01a181dd-0fc3-706d-bdea-e6ee508ea01e"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation/missing",
+      "request": {},
+      "auth": "spa",
+      "status": 404,
+      "headers": {
+        "X-Request-Id": "01a181dd-0fe2-7304-8081-39985f1378dd",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 404,
+          "code": "not_found",
+          "message": "The requested resource was not found.",
+          "request_id": "01a181dd-0fe2-7304-8081-39985f1378dd"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/reconciliation",
+      "request": {},
+      "auth": "spa",
+      "status": 500,
+      "headers": {
+        "X-Request-Id": "01a181dd-10db-7217-b5c5-29e09fb28902",
+        "Content-Type": "application/json"
+      },
+      "response": {
+        "error": {
+          "status": 500,
+          "code": "server_error",
+          "message": "An unexpected error occurred.",
+          "request_id": "01a181dd-10db-7217-b5c5-29e09fb28902"
+        }
+      }
+    }
+  ]
+}

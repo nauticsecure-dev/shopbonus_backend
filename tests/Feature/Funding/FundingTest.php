@@ -19,6 +19,7 @@ use App\Models\Wallet;
 use App\Models\Webshop;
 use App\Services\Funding\MerchantFunding;
 use App\Services\Offers\OfferService;
+use App\Services\Reliability\FinancialSources;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,6 +106,9 @@ class FundingTest extends TestCase
         $inventory->redeemByMerchant($v->fresh(), $this->owner->id, 'Order 2');
         $this->assertSame(['settled', 1300, 0], [$o->fresh()->status, $this->funding()->total_spent, $this->funding()->reserved]);
 
+        $check = app(FinancialSources::class)->inspect($o->fresh());
+        $this->assertSame('matched', $check['status'], json_encode($check));
+
         // Electronics: 4% with max €4 → €4 + €1.20 = €5.20 (maximum-discount basis).
         $electronics = $this->offer(['discount_type' => 'percentage', 'discount_value' => 400, 'max_discount_minor' => 400]);
         $e = $inventory->reserve($electronics, VoucherOrigin::Answer24Claim, 'answer24-handoff:x');
@@ -176,6 +180,8 @@ class FundingTest extends TestCase
         $this->post('/api/v1/payments/mollie/webhook', ['id' => 'tr_topup0001'], ['Accept' => 'application/json'])->assertOk();
         $this->post('/api/v1/payments/mollie/webhook', ['id' => 'tr_topup0001'], ['Accept' => 'application/json'])->assertOk();
         $this->assertSame(50000, $this->funding()->available);
+        $check = app(FinancialSources::class)->inspect(FundingTopUp::sole());
+        $this->assertSame('matched', $check['status'], json_encode($check));
 
         Sanctum::actingAs($this->owner);
         $this->getJson("/api/v1/workspaces/{$this->shop->public_id}/funding/top-ups/{$id}")->assertJsonPath('data.state', 'paid')->assertJsonPath('data.checkout_url', null);
@@ -288,6 +294,8 @@ class FundingTest extends TestCase
         $new = SponsorshipObligation::where('voucher_id', $second->id)->sole();
         $this->assertSame([3000, 300, 1300], [$old->fee_rate_bps, $old->fee_minor, $old->total_minor]);
         $this->assertSame([1000, 100, 1100], [$new->fee_rate_bps, $new->fee_minor, $new->total_minor]);
+        $this->assertSame('matched', app(FinancialSources::class)->inspect($old)['status']);
+        $this->assertSame('matched', app(FinancialSources::class)->inspect($new)['status']);
         $this->expectException(\LogicException::class);
         $old->forceFill(['fee_minor' => 100])->save();
     }

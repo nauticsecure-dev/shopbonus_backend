@@ -13296,3 +13296,73 @@ X-Request-Id: 01a17f39-ed5c-7071-8333-00ce93d71c35
 
 {"data":{"id":"01m5zkksm7y1rqtwrk911ptmjk","network":"daisycon","external_id":"SYNTHETIC-REVIEW","status":"approved","network_status":"approved","review_reason":"resolved:accept","webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":2000,"currency":"EUR","reward":{"status":"credited","amount":1400,"unit":"eur_credit","rule_version":3},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00"}}
 ```
+
+## #30 reconciliation and operations — actual HTTP capture, 2026-10-28
+Captured against a real local PHP server and isolated synthetic SQLite/cache/session database; array mail, providers off, MFA disabled only in this fixture. Normal browser login/password confirmation and seeded OTP verification ran. Synthetic mismatch/failed-run/missing-table injection and isolated cache reset are explicitly test-only. Full sanitized evidence: [B22_COMPLETION_HTTP_CAPTURE.json](../reliability/B22_COMPLETION_HTTP_CAPTURE.json). No frontend implementation or production claim.
+Super Admin/MFA and support-session denial apply to every operation. Writes need a fresh SPA password and OTP, CSRF, and at most three requests/minute. Use stable UUID request_key per admin; replays return the original run, no new corrections. Scheduler advances bounded100-source batches; sources are observed separately at their checked_at timestamps. Legacy wallet-only runs keep scope_version1; new runs use2. Missing/empty/legacy proof stays explicit. Findings never repair balances or recognize cash/revenue. Read pagination defaults25/max100; page>=1; details optionally filter status=matched/discrepancy/unknown. Resume requires a failed run and a5–500-character reason; other states409. Operators configure the backup key/destination/separate restore server; no backup/restore HTTP mutation exists.
+
+### `GET /api/v1/admin/reconciliation` — List reconciliation runs
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/reconciliation'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": [{"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "completed", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "OBSERVED", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}], "meta": {"page": 1, "total": 1}}
+```
+
+### `POST /api/v1/admin/reconciliation` — Request an idempotent reconciliation run
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"request_key":"90c078d6-1573-467e-9d36-860cc84b72d2"}' 'http://localhost:8000/api/v1/admin/reconciliation'
+```
+```http
+HTTP/1.1 202
+Content-Type: application/json
+
+{"data": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "pending", "status": "UNKNOWN", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": null, "elapsed_including_scheduling_ms": 72, "checked_wallets": 0, "discrepancies": 0, "unknown_checks": 0, "coverage": {"wallet_projection": "INCOMPLETE", "affiliate": "UNKNOWN", "checkout": "UNKNOWN", "funding": "UNKNOWN", "sponsorship": "UNKNOWN", "ledger": "UNKNOWN"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}}
+```
+
+### `GET /api/v1/admin/reconciliation/{run}` — Inspect immutable source checks
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?status=discrepancy'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "completed", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "OBSERVED", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}, "checks": [{"id": "01m60xt3gsh82cd9p6kzayj2nc", "source_type": "wallet", "source_ref": "01m60xt19ttzdj91yb9frh9v83", "status": "discrepancy", "evidence": {"version": 1, "unit": "eur_credit", "kind": "consumer_credit", "projection": {"available": 1400, "reserved": 0, "pending": 0}, "mismatches": {"available": [1000, 1400], "lots": [1000, 1400]}, "flag": "01m60xt3ge3km27rrc38xyygnf"}, "checked_at": "2026-10-28T09:35:10.000000Z"}], "meta": {"page": 1, "total": 1}, "corrections": "Use existing reviewed wallet adjustment, affiliate review and checkout/dispute workflows. This report never posts corrections."}
+```
+
+### `POST /api/v1/admin/reconciliation/{run}/resume` — Resume an investigated failed run
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"reason":"Synthetic failure investigated; fixture storage restored."}' 'http://localhost:8000/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume'
+```
+```http
+HTTP/1.1 202
+Content-Type: application/json
+
+{"data": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "running", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "INCOMPLETE", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}}
+```
+
+### `GET /api/v1/admin/operations-overview` — Observe platform operations
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/operations-overview'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"observed_at": "2026-10-28T09:35:10+00:00", "components": {"database": {"status": "HEALTHY", "observed_at": "2026-10-28T09:35:10+00:00"}, "cache": {"status": "HEALTHY", "observed_at": "2026-10-28T09:35:10+00:00"}, "api": {"enabled": false, "state": "UNKNOWN", "from": "2026-10-28T09:30:10+00:00", "to": "2026-10-28T09:35:10+00:00", "sample_limit": 50000, "sample_limit_exceeded": false, "routes_truncated": false, "thresholds": {"minimum_samples": 20, "error_percent": 2, "p95_ms": 1000}, "routes": [], "coverage": {"http": "observed_requests_only", "timeouts": "rendered_408_504_only", "queue_wait": "UNKNOWN", "provider_failures": "UNKNOWN", "dependency_availability": "UNKNOWN", "backups": "UNKNOWN"}}, "queue": {"status": "UNKNOWN", "reason": "No observable database/redis background queue configured."}, "providers": {"status": "UNKNOWN", "failed_affiliate_connections": 0, "http_observations": {"http_status": "UNKNOWN", "http_requests": 0, "http_failures": 0, "http_sample_limit_exceeded": false, "by_provider": []}, "definition": "Persisted affiliate errors plus opt-in HTTP observations; no independent provider availability proof."}, "financial": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "completed", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "OBSERVED", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}, "scheduler": {"status": "UNKNOWN", "last_observed_at": null}, "incidents": {"status": "WARNING", "open": 7}, "backups": {"status": "UNKNOWN", "backup_success_percent_30d": null, "enabled": false, "last_backup_at": null, "last_backup_result": null, "last_verified_restore_at": null, "offsite_verified": false, "definition": "Successful configured-disk write is not independent offsite durability or RPO/RTO proof."}}, "links": {"monitoring": "/api/v1/admin/monitoring", "incidents": "/api/v1/admin/incidents", "financial": "/api/v1/admin/reconciliation"}, "limits": "Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof."}}
+```
+
+Actual negative requests (synthetic fixture only):
+- `401 GET /api/v1/admin/reconciliation`: `{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}`
+- `403 GET /api/v1/admin/reconciliation`: `{"error": {"status": 403, "code": "platform_role_required", "message": "This action requires a platform administrator.", "request_id": "01a181dd-087e-7306-a50b-2a4ecb926745"}}`
+- `404 GET /api/v1/admin/reconciliation/missing`: `{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a181dd-0fe2-7304-8081-39985f1378dd"}}`
+- `409 POST /api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume`: `{"error": {"status": 409, "code": "reconciliation_not_failed", "message": "Only failed reconciliation runs can be resumed.", "request_id": "01a181dd-0fc3-706d-bdea-e6ee508ea01e"}}`
+- `419 POST /api/v1/admin/reconciliation`: `{"error": {"status": 419, "code": "csrf_token_mismatch", "message": "The session or CSRF token has expired. Refresh and try again.", "request_id": "01a181dd-0aa5-7055-8b86-f59af0c22be1"}}`
+- `422 GET /api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?per_page=101`: `{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a181dd-0e73-7195-a674-9fc3c9941023", "fields": {"per_page": ["The per page field must not be greater than 100."]}}}`
+- `423 POST /api/v1/admin/reconciliation`: `{"error": {"status": 423, "code": "step_up_code_required", "message": "Confirm this action with the code sent to your email.", "request_id": "01a181dd-0ba8-7024-9dcc-009a82c816df"}}`
+- `429 POST /api/v1/admin/reconciliation`: `{"error": {"status": 429, "code": "too_many_requests", "message": "Too many requests. Please slow down.", "request_id": "01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}`
+- `500 GET /api/v1/admin/reconciliation`: `{"error": {"status": 500, "code": "server_error", "message": "An unexpected error occurred.", "request_id": "01a181dd-10db-7217-b5c5-29e09fb28902"}}`

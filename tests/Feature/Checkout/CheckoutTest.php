@@ -13,10 +13,13 @@ use App\Models\VoucherCheckout;
 use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherCode;
 use App\Models\Wallet;
+use App\Models\WalletLedgerEntry;
 use App\Services\Offers\OfferService;
+use App\Services\Reliability\FinancialSources;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -116,8 +119,14 @@ class CheckoutTest extends TestCase
         $voucher = Voucher::where('public_id', $first->json('data.voucher_id'))->sole();
         $this->assertSame([VoucherStatus::Issued, $this->anna->id], [$voucher->status, $voucher->consumer_user_id]);
         $this->assertSame(1, VoucherCode::where('status', VoucherCodeStatus::Issued)->count());
+        $check = app(FinancialSources::class)->inspect(VoucherCheckout::sole());
+        $this->assertSame('matched', $check['status'], json_encode($check));
         Http::assertNothingSent(); // points-only never touches Mollie
         $this->assertSame([], app(WalletService::class)->reconcile());
+        $debit = WalletLedgerEntry::where('source_type', 'voucher_checkout')->where('type', 'debit')->sole();
+        DB::table('voucher_checkouts')->delete(); // Synthetic orphan-source corruption.
+        $orphan = app(FinancialSources::class)->inspect($debit);
+        $this->assertContains('ledger_purchase_allocation', $orphan['evidence']['issues']);
     }
 
     public function test_card20_e2e2_blockers_stop_the_purchase_without_any_change(): void

@@ -224,7 +224,7 @@ class AffiliateProcessor
         if ($pending !== null && $pending->status === 'pending') {
             $this->wallets->cancelPending($pending);
         }
-        $tx->forceFill(['reward_amount' => $amount])->save();
+        $tx->forceFill(['reward_amount' => $amount] + ($amount === 0 ? ['reward_status' => 'cancelled'] : []))->save();
         if ($amount > 0) {
             $this->credited($tx, $this->wallets->credit($wallet, $amount, $key, meta: $meta + ['reason' => 'Affiliate purchase']), $source);
         }
@@ -253,6 +253,8 @@ class AffiliateProcessor
             'source' => $source, 'network_status' => $tx->network_status, 'commission_minor' => $tx->commission_minor, 'currency' => $tx->currency,
             'reward_amount' => $entry->amount, 'reward_unit' => $tx->reward_unit, 'rule_version' => $tx->reward_rule_version,
             'rule_terms' => $tx->reward_terms_snapshot, 'timing' => $tx->reward_timing,
+            'allocation' => $tx->reward_unit === 'eur_credit' ? ['commission_minor' => $tx->commission_minor, 'consumer_minor' => $entry->amount,
+                'platform_unrecognized_minor' => $tx->commission_minor - $entry->amount, 'currency' => $tx->currency, 'cash_settlement_verified' => false] : null,
             'ledger_entry' => $entry->public_id, 'credited_at' => now()->toIso8601String(),
         ]])->save();
     }

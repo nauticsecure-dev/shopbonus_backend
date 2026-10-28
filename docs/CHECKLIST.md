@@ -633,22 +633,41 @@ Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local inte
 - [x] Verify exact B22a implementation SHA in all three CI jobs and record closeout evidence. (`c7e8789`; CI40580008502 SUCCESS.)
 
 ### B22b — source-backed financial reconciliation
-- [ ] Audit actual financial source/ownership/historical-rate snapshots; preserve separate affiliate, consumer checkout and merchant sponsorship semantics; never infer EUR from points or a missing legacy rate.
+- [x] Audit actual financial source/ownership/historical-rate snapshots; preserve separate affiliate, consumer checkout and merchant sponsorship semantics; never infer EUR from points or a missing legacy rate.
 - [x] Make existing wallet mismatch detection lock-consistent and deduplicate identical unresolved evidence without touching cached balances/ledger or bypassing authorized correction workflows. (`5aa4177`; CI40587710798 SUCCESS, four-worker MySQL race and full suites passed.)
 - [x] Retain immutable new reward timing/rule/credit evidence and sponsorship fee rates; protect monetary versions, preserve legacy nulls and keep owner-approved after-approval default. (`5aa4177`; CI40587710798 SUCCESS; historical-rate/timing/mutation regressions passed.)
 - [x] Re-check changed approved commission against its original review threshold before spendable credit; preserve authorized review path. (`5aa4177`; failing regression reproduced then passed; authenticated HTTP200 acceptance; CI40587710798 SUCCESS.)
 - [x] Dispute unsupported currency without credit; manual acceptance cannot invent FX and returns409. (`5aa4177`; failing regression reproduced then passed; authenticated HTTP409; CI40587710798 SUCCESS.)
 - [x] Durable wallet-run foundation: unique bounded run identity, fixed source watermark, atomic per-wallet cursor/evidence, restart/replay safety, immutable checks and explicit missing-source coverage; command/scheduler and failure tests. (`cfbd770`; CI40657966315 SUCCESS all three jobs. SQLite757total734pass+23skip; MySQL757total755pass+2skip, four-worker race and isolated migration down/up PASS.)
-- [ ] Durable idempotent reconciliation runs and immutable discrepancy evidence for wallet/affiliate/checkout/funding/sponsorship links; bounded background processing and honest failed/unknown coverage.
-- [ ] Check historical calculations, source attribution, duplicate credits, compensating reversals and purchase/redemption allocations using existing canonical records; no automatic balancing transactions or policy activation.
-- [ ] Reuse Super Admin/MFA/password/step-up/incident controls for run/detail/report APIs; audit manual triggers and use public references only; schedule automatic execution with recovery semantics.
+- [x] Durable idempotent reconciliation runs and immutable discrepancy evidence for wallet/affiliate/checkout/funding/sponsorship links; bounded background processing and honest failed/unknown coverage.
+- [x] Check historical calculations, source attribution, duplicate credits, compensating reversals and purchase/redemption allocations using existing canonical records; no automatic balancing transactions or policy activation.
+- [x] Reuse Super Admin/MFA/password/step-up/incident controls for run/detail/report APIs; audit manual triggers and use public references only; schedule automatic execution with recovery semantics.
 - [ ] Executed source/change/duplicate/mismatch/legacy/negative/race tests, real HTTP docs, migration rollback/reapply, full suites and exact-code CI; retain original financial history.
 
 - [x] Verify exact prerequisite implementation SHA in all three CI jobs; record evidence and clean handoff. (`5aa4177`; CI40587710798 SUCCESS all three jobs; this docs-only closeout. Full B22b/whole #30 remain unfinished.)
 
 ### Remaining #30 boundaries (not covered by B22a)
-- [ ] Cross-source historical financial reconciliation with immutable evidence and authorized correction reuse; no new affiliate timing activation.
-- [ ] Queue wait/provider/cache/DB availability observations, complete operations overview and security/audit coverage evidence.
-- [ ] Measured schema/query/integrity optimizations on representative isolated data.
-- [ ] Encrypted isolated backup/restore implementation and evidence; infrastructure-specific offsite/scheduling/RPO/RTO capability verification remains explicit.
-- [ ] Ten card acceptance scenarios and final main-code/live acceptance mapping; production evidence must never be inferred from local tests.
+- [x] Cross-source historical financial reconciliation with immutable evidence and authorized correction reuse; no new affiliate timing activation.
+- [x] Queue wait/provider/cache/DB availability observations, complete operations overview and security/audit coverage evidence.
+- [x] Measured schema/query/integrity optimizations on representative isolated data.
+- [x] Encrypted isolated backup/restore implementation and evidence; infrastructure-specific offsite/scheduling/RPO/RTO capability verification remains explicit.
+- [x] Ten card acceptance scenarios and final main-code/live acceptance mapping; production evidence must never be inferred from local tests.
+
+
+Checked completion items above refer to **implemented main code/local evidence only**, this implementation commit (exact SHA recorded in CI closeout). COMPLETION.md explicitly maps missing real host/offsite/provider/accounting/RPO-RTO acceptance; whole Trello #30 remains pending. Final exact-code CI checkbox stays open until executed.
+
+### B22 completion boundaries — owner “do all”, 2026-10-28
+- [x] Versioned source-scan cursors/watermarks preserve legacy wallet-only run scope; bounded failure/replay recovery across affiliate, checkout, funding, sponsorship and ledger sources.
+- [x] Immutable source findings for historical rules/ownership/attribution/duplicates/reversals/allocation; unknown legacy proof remains explicit, no automatic financial corrections.
+- [x] Protected paginated reconciliation trigger/list/detail/resume APIs; stable per-admin request identity, password/OTP, audit and real running-server examples.
+- [x] Bounded queue wait/depth/failure observations, provider failure indicators, dependency probes and scheduler heartbeat; operations overview/threshold incidents with UNKNOWN for unavailable evidence.
+- [x] Operator-only encrypted authenticated streaming backup with private temporary files, configurable remote disk/retention, manifest/file hashes and recorded failures; no plaintext credential export.
+- [x] Isolated restore validation/command and safe target restrictions; encrypted database/media integrity test, corruption/wrong-key/path rejection and recorded recovery duration.
+- [ ] Security/route/audit matrix, real query plans/representative benchmark, ten backend acceptance mappings, SQLite/MySQL suites/quality/CI, senior deployment/recovery checklist. (Local evidence passed; exact-code CI pending before ticking.)
+
+### #30 external operational acceptance — not claimed by main-code completion
+- [ ] Senior configures actual keys/providers/queue/scheduler/TLS/admin MFA and deployed monitoring/alert delivery.
+- [ ] Hosting/media/infrastructure inventory and independent offsite encryption/access/retention/readback verification.
+- [ ] Production-server/version/volume isolated restore plus full application/queue/provider-outage recovery drill, approved feasible RPO/RTO and cost.
+- [ ] Actual network cash settlement/accounting/legal/points conversion approval where applicable; no invented recognized revenue.
+- [ ] Whole-card UI/deployed/live acceptance; backend code alone does not mark the entire Trello card Done.

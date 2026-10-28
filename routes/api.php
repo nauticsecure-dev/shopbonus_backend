@@ -15,7 +15,9 @@ use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncid
 use App\Http\Controllers\Api\V1\Admin\MonitoringController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
+use App\Http\Controllers\Api\V1\Admin\OperationsOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
+use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -244,7 +246,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
                 Route::get('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'index'])->name('incident-diagnostics.index');
                 Route::get('incident-diagnostics/{diagnostic}', [AdminIncidentDiagnosticController::class, 'show'])->name('incident-diagnostics.show');
+                Route::get('operations-overview', OperationsOverviewController::class)->name('operations-overview');
                 Route::get('monitoring', MonitoringController::class)->name('monitoring');
+                Route::get('reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
+                Route::get('reconciliation/{run}', [ReconciliationController::class, 'show'])->name('reconciliation.show');
+                Route::post('reconciliation', [ReconciliationController::class, 'store'])->middleware(['password.recent', 'step_up.otp', 'throttle:admin-diagnostics'])->name('reconciliation.store');
+                Route::post('reconciliation/{run}/resume', [ReconciliationController::class, 'resume'])->middleware(['password.recent', 'step_up.otp', 'throttle:admin-diagnostics'])->name('reconciliation.resume');
                 Route::get('incidents', [AdminIncidentController::class, 'index'])->name('incidents.index');
                 Route::get('incidents/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
                 Route::get('api-routes', [AdminApiRouteRegistryController::class, 'index'])->name('api-routes');

@@ -11,15 +11,22 @@ use App\Services\Onboarding\Network\HostResolver;
 use App\Services\Onboarding\Network\SafeWebsiteFileFetcher;
 use App\Services\Onboarding\Network\SystemHostResolver;
 use App\Services\Onboarding\Network\WebsiteFileFetcher;
+use App\Services\Reliability\Operations;
+use App\Services\Reliability\ProviderObservations;
 use App\Services\Reliability\RequestObservation;
 use App\Services\Workspaces\CurrentWorkspace;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Http\Client\Events\ConnectionFailed;
+use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -48,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Event::listen([ResponseReceived::class, ConnectionFailed::class], fn ($event) => app(ProviderObservations::class)->record($event));
+        Queue::before(fn (JobProcessing $event) => app(Operations::class)->jobStarted($event));
         $this->app->scoped(RequestObservation::class);
         DB::listen(fn (QueryExecuted $event) => app(RequestObservation::class)->query($event));
 

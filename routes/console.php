@@ -46,3 +46,9 @@ Schedule::command('shopbonus:monitor-api')->everyMinute()->withoutOverlapping();
 
 // Durable bounded projection scans; unfinished runs drain before another hourly run.
 Schedule::command('shopbonus:reconcile-financials')->everyMinute()->withoutOverlapping();
+
+Schedule::command('shopbonus:observe-operations')->everyMinute()->withoutOverlapping();
+
+Schedule::command('shopbonus:backup')->hourly()->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);
+
+Schedule::command('shopbonus:verify-latest-backup')->weeklyOn(0, '05:00')->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);

@@ -31,16 +31,16 @@ class FinancialReconciliationTest extends TestCase
         $this->assertSame(1, $run->checked);
         $this->assertSame(1, $run->discrepancies);
         $this->assertSame('running', $run->status);
-        $evidence = FinancialReconciliationCheck::sole()->evidence;
+        $evidence = FinancialReconciliationCheck::where('source_type', 'wallet')->sole()->evidence;
         $this->assertSame([1000, 1400], $evidence['mismatches']['available']);
         DB::table('wallets')->where('id', $first->id)->update(['available' => 1500]);
         $run = $runner->advance($run);
         $this->assertSame('completed', $run->status);
         $this->assertSame('CRITICAL', $runner->summary($run)['status']);
-        $this->assertSame('UNKNOWN', $runner->summary($run)['coverage']['affiliate']);
+        $this->assertSame('EMPTY', $runner->summary($run)['coverage']['affiliate']);
         $runner->advance($run);
-        $this->assertDatabaseCount('financial_reconciliation_checks', 1);
-        $this->assertSame($evidence, FinancialReconciliationCheck::sole()->evidence);
+        $this->assertDatabaseCount('financial_reconciliation_checks', 2);
+        $this->assertSame($evidence, FinancialReconciliationCheck::where('source_type', 'wallet')->sole()->evidence);
         $this->assertSame(1500, $first->fresh()->available);
         $this->assertSame(0, $late->fresh()->available);
         $this->assertDatabaseCount('wallet_ledger_entries', 1);
@@ -63,7 +63,7 @@ class FinancialReconciliationTest extends TestCase
         $this->assertSame(0, $matched->discrepancies);
         $this->assertSame('OBSERVED', $runner->summary($matched)['coverage']['wallet_projection']);
         $this->assertSame('UNKNOWN', $runner->summary($matched)['status']);
-        $this->assertSame('matched', FinancialReconciliationCheck::sole()->status);
+        $this->assertSame('matched', FinancialReconciliationCheck::where('source_type', 'wallet')->sole()->status);
     }
 
     public function test_failed_check_rolls_back_and_explicit_resume_does_not_repeat_committed_checks(): void

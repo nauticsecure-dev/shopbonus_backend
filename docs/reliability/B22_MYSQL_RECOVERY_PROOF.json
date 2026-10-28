@@ -1,0 +1,43 @@
+{
+    "environment": "Two isolated local MySQL servers; synthetic source database. No production data or provider calls.",
+    "database_version": "26.7.0",
+    "backup": {
+        "archive": "01m60wj1wy97km49f2e8w0dmav",
+        "sha256": "2e23d58649aea961715a1544d8d66fa698d8bad1385e90eaac41b5dfdf29df73",
+        "bytes": 225268,
+        "files": 2,
+        "duration_ms": 917,
+        "disk": "recovery_proof",
+        "driver": "mysql"
+    },
+    "restore": {
+        "archive": "01m60wj1wy97km49f2e8w0dmav",
+        "proof": {
+            "wallets": 2,
+            "ledger_entries": 3,
+            "vouchers": 1,
+            "assigned_vouchers": 1,
+            "wallet_projection_sha256": "c2d0107023a87b59cc7eaac5c0c40fe2dd67ef32591743fb398cdd5775a49bb1",
+            "voucher_ownership_sha256": "a4fea70b94e57af67a0344f511c8541b2979b45a18ca5365ac18090c291a8479"
+        },
+        "duration_ms": 3660,
+        "files": 2,
+        "driver": "mysql"
+    },
+    "wallet_and_voucher_hashes_match": true,
+    "media_match": true,
+    "isolated_database_removed": true,
+    "final_guarded_mysql_backup_smoke": {
+        "transactional_engine_guard": "PASS",
+        "encrypted_stored_readback_sha256": "PASS",
+        "archive": {
+            "archive": "01m60xhpms5cvnwt6pkyy3d58a",
+            "sha256": "e314d1bd9fe5ff2054959e7738f5a1316000835a70772988fa96acefb72cec88",
+            "bytes": 218858,
+            "files": 1,
+            "duration_ms": 1372,
+            "disk": "proof_final",
+            "driver": "mysql"
+        }
+    }
+}
