@@ -13439,3 +13439,326 @@ Active API test errors:401authentication;403manage permission;404other workspace
 - `502`: `{"error": {"status": 502, "code": "provider_read_failed", "message": "The provider API did not return a successful read response.", "request_id": "01a18201-85bf-71f3-be9e-4c3700c10c6b"}}`
 - `409`: `{"error": {"status": 409, "code": "provider_address_refused", "message": "The store domain must resolve only to public addresses.", "request_id": "01a18201-86c3-718b-a4a8-7a0051b2f5b1"}}`
 - `500`: `{"error": {"status": 500, "code": "server_error", "message": "An unexpected error occurred.", "request_id": "01a18201-88a6-720c-8b89-2e7e0e6b0376"}}`
+
+
+## B23b — Shopify native read API checkpoint
+
+Captured against an actual local PHP HTTP server with isolated SQLite, database cache, file sessions and normal login/CSRF. Base `161051e` plus B23b working tree. Provider HTTP and public DNS were synthetic fixtures; these are application API observations, not live Shopify acceptance. Raw request/status/header/body evidence: [B23_SHOPIFY_HTTP_CAPTURE.json](../integrations/B23_SHOPIFY_HTTP_CAPTURE.json). [Scope and mapping](../integrations/SHOPIFY_READ_API.md). Existing B23a security/error examples remain applicable to the shared endpoint.
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections` — create
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{
+  "platform": "shopify",
+  "shop_domain": "fietsen.myshopify.com",
+  "signing_secret": "<REDACTED>",
+  "access_token": "<REDACTED>"
+}
+```
+
+Actual response 201:
+
+```json
+{
+  "data": {
+    "id": "01m61263rs4717r9f5zs21dc1c",
+    "platform": "shopify",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "fietsen.myshopify.com",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T10:51:38+00:00",
+    "setup": {
+      "format": "shopify-webhooks",
+      "webhook_url": "<REDACTED>",
+      "shop_domain": "fietsen.myshopify.com",
+      "read_api_configured": true,
+      "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+      "steps": [
+        "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+        "Copy the signing secret shown on that page into this connection.",
+        "Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."
+      ]
+    }
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c` — show
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m61263rs4717r9f5zs21dc1c",
+    "platform": "shopify",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "fietsen.myshopify.com",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T10:51:38+00:00",
+    "setup": {
+      "format": "shopify-webhooks",
+      "webhook_url": "<REDACTED>",
+      "shop_domain": "fietsen.myshopify.com",
+      "read_api_configured": true,
+      "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+      "steps": [
+        "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+        "Copy the signing secret shown on that page into this connection.",
+        "Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."
+      ]
+    }
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — identity
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "connection": "01m61263rs4717r9f5zs21dc1c",
+    "platform": "shopify",
+    "result": {
+      "ok": true,
+      "code": "api_shop_identity_and_order_scope_observed"
+    },
+    "order_summary": null,
+    "state_changed": false,
+    "production_verified": false
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — order
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{
+  "order_id": "4711"
+}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "connection": "01m61263rs4717r9f5zs21dc1c",
+    "platform": "shopify",
+    "result": {
+      "ok": true,
+      "code": "api_order_and_refunds_read_observed"
+    },
+    "order_summary": {
+      "kind": "order",
+      "complete": true,
+      "missing_fields": [],
+      "has_phone": false,
+      "payment_status": "partially_refunded",
+      "currency": "EUR",
+      "amount_minor": 5995
+    },
+    "state_changed": false,
+    "production_verified": false
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — protected
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{
+  "order_id": "4711"
+}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "connection": "01m61263rs4717r9f5zs21dc1c",
+    "platform": "shopify",
+    "result": {
+      "ok": true,
+      "code": "api_order_and_refunds_read_observed"
+    },
+    "order_summary": {
+      "kind": "order",
+      "complete": false,
+      "missing_fields": [
+        "email"
+      ],
+      "has_phone": false,
+      "payment_status": "partially_refunded",
+      "currency": "EUR",
+      "amount_minor": 5995
+    },
+    "state_changed": false,
+    "production_verified": false
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — foreign
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "store_identity_unverified",
+    "message": "Verify ownership of the exact store domain before using its API.",
+    "request_id": "01a18223-10c8-701d-a1c9-2d39b0fb20ec"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — scope
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "provider_scope_missing",
+    "message": "The provider has not proved the required read scopes.",
+    "request_id": "01a18223-11dd-736f-8cd5-57fd9285edf6"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — version
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "provider_version_mismatch",
+    "message": "The provider API version differs from the reviewed version.",
+    "request_id": "01a18223-12ed-73be-b76b-7b6f5b2fc49b"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api` — throttle
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{}
+```
+
+Actual response 503:
+
+```json
+{
+  "error": {
+    "status": 503,
+    "code": "provider_rate_limited",
+    "message": "The provider API rate limit was reached.",
+    "request_id": "01a18223-13f7-7209-a628-55215b095f80"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/credentials` — credentials
+
+Request (normal SPA session and CSRF headers required):
+
+```json
+{
+  "shop_domain": "fietsen.myshopify.com",
+  "signing_secret": "<REDACTED>",
+  "access_token": "<REDACTED>"
+}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m61263rs4717r9f5zs21dc1c",
+    "platform": "shopify",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "fietsen.myshopify.com",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T10:51:38+00:00",
+    "setup": {
+      "format": "shopify-webhooks",
+      "webhook_url": "<REDACTED>",
+      "shop_domain": "fietsen.myshopify.com",
+      "read_api_configured": true,
+      "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+      "steps": [
+        "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+        "Copy the signing secret shown on that page into this connection.",
+        "Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."
+      ]
+    }
+  }
+}
+```
+
+`GET /api/v1/integrations/platforms`: current full catalogue response is in the raw artifact and OpenAPI (including honest unsupported/live-unverified flags).

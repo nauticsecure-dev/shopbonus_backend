@@ -1,0 +1,224 @@
+<?php
+
+namespace App\Integrations\Http;
+
+use App\Enums\ConnectionStatus;
+use App\Exceptions\ApiException;
+use App\Models\WebshopConnection;
+use App\Services\Onboarding\DomainName;
+use App\Support\Money;
+use Carbon\CarbonImmutable;
+
+/** Fixed native read queries only; never accepts caller-supplied GraphQL or mutations. */
+class ShopifyApi
+{
+    public const VERSION = '2026-10';
+
+    private const SHOP = 'query ShopbonusIdentity { shop { id myshopifyDomain primaryDomain { host } } currentAppInstallation { accessScopes { handle } } }';
+
+    private const FIELDS = 'id legacyResourceId name email phone billingAddress { firstName phone } createdAt updatedAt cancelledAt displayFinancialStatus fullyPaid totalPriceSet { shopMoney { amount currencyCode } } currentTotalPriceSet { shopMoney { amount currencyCode } } totalRefundedSet { shopMoney { amount currencyCode } } discountCodes customAttributes { key value }';
+
+    public function __construct(private PinnedJsonReader $reader) {}
+
+    /** @return array{ok:bool,code:string} */
+    public function test(WebshopConnection $connection): array
+    {
+        $this->identity($connection);
+
+        return ['ok' => true, 'code' => 'api_shop_identity_and_order_scope_observed'];
+    }
+
+    /** @return array<string,mixed> */
+    public function order(WebshopConnection $connection, string $id): array
+    {
+        $id = WooCommerceApi::orderId($id);
+        $this->identity($connection);
+        $query = 'query ShopbonusOrder($id: ID!) { order(id: $id) { '.self::FIELDS.' transactions(first: 101) { kind status processedAt } } }';
+        $data = $this->query($connection, $query, ['id' => 'gid://shopify/Order/'.$id], true);
+        $order = $data['order'] ?? null;
+        if ($order === null) {
+            throw ApiException::conflict('The provider order is unavailable under the current access scopes.', 'provider_order_unavailable');
+        }
+        if (! is_array($order) || ($order['id'] ?? null) !== 'gid://shopify/Order/'.$id
+            || (! is_int($order['legacyResourceId'] ?? null) && ! is_string($order['legacyResourceId'] ?? null))
+            || (string) $order['legacyResourceId'] !== $id) {
+            throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
+        }
+        $this->validateMoney($order);
+        if (! is_array($order['transactions'] ?? null) || ! array_is_list($order['transactions']) || count($order['transactions']) > 100) {
+            throw ApiException::conflict('This order requires bounded background transaction reconciliation.', 'provider_pagination_limit');
+        }
+
+        return $order;
+    }
+
+    /** @return iterable<array<string,mixed>> */
+    public function orders(WebshopConnection $connection, CarbonImmutable $since): iterable
+    {
+        $this->identity($connection);
+        $filter = "updated_at:>='".$since->utc()->format('Y-m-d\TH:i:s\Z')."' updated_at:<='".CarbonImmutable::now()->utc()->format('Y-m-d\TH:i:s\Z')."'";
+        $cursor = null;
+        $seen = [];
+        $query = 'query ShopbonusOrders($after: String, $filter: String!) { orders(first: 25, after: $after, query: $filter, sortKey: UPDATED_AT) { nodes { '.self::FIELDS.' } pageInfo { hasNextPage endCursor } } }';
+        for ($page = 0; $page < 5; $page++) {
+            $data = $this->query($connection, $query, ['after' => $cursor, 'filter' => $filter], true);
+            $list = $data['orders']['nodes'] ?? null;
+            $info = $data['orders']['pageInfo'] ?? null;
+            if (! is_array($list) || ! array_is_list($list) || count($list) > 25 || ! is_array($info) || ! is_bool($info['hasNextPage'] ?? null)) {
+                throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+            }
+            foreach ($list as $order) {
+                if (! is_array($order) || ! is_string($order['id'] ?? null) || ! preg_match('~\Agid://shopify/Order/[1-9][0-9]{0,18}\z~D', $order['id'])) {
+                    throw new ApiException('The provider order data is incomplete.', 502, 'provider_order_invalid');
+                }
+                $this->validateMoney($order);
+                yield $order;
+            }
+            if (! $info['hasNextPage']) {
+                return;
+            }
+            $cursor = $info['endCursor'] ?? null;
+            if (! is_string($cursor) || $cursor === '' || strlen($cursor) > 1024 || isset($seen[$cursor])) {
+                throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+            }
+            $seen[$cursor] = true;
+        }
+        throw ApiException::conflict('Use bounded background pages for this provider backlog.', 'provider_pagination_limit');
+    }
+
+    /** @return array<string,mixed> */
+    public function products(WebshopConnection $connection, ?string $after = null): array
+    {
+        if ($after !== null && (strlen($after) > 1024 || $after === '')) {
+            throw new \InvalidArgumentException('Invalid native cursor.');
+        }
+        $this->identity($connection, 'read_products');
+        $data = $this->query($connection, 'query ShopbonusProducts($after: String) { products(first: 25, after: $after) { nodes { id title handle updatedAt } pageInfo { hasNextPage endCursor } } }', ['after' => $after]);
+        $products = $data['products'] ?? null;
+        if (! is_array($products) || ! is_array($products['nodes'] ?? null) || ! array_is_list($products['nodes']) || count($products['nodes']) > 25
+            || ! is_bool($products['pageInfo']['hasNextPage'] ?? null)) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+
+        return $products;
+    }
+
+    private function identity(WebshopConnection $connection, string $scope = 'read_orders'): void
+    {
+        $data = $this->query($connection, self::SHOP);
+        $shop = $data['shop'] ?? null;
+        $scopes = $data['currentAppInstallation']['accessScopes'] ?? null;
+        $workspace = $connection->webshop;
+        if (! is_array($shop) || ($shop['myshopifyDomain'] ?? null) !== $connection->external_shop_ref || ! is_string($shop['primaryDomain']['host'] ?? null)) {
+            throw ApiException::conflict('The provider store identity does not match this connection.', 'provider_store_mismatch');
+        }
+        if (! $workspace->isOwnershipVerified() || ! in_array(strtolower((string) $workspace->verified_domain),
+            [DomainName::fromInput($shop['primaryDomain']['host']), DomainName::fromInput($shop['myshopifyDomain'])], true)) {
+            throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
+        }
+        if (! is_array($scopes) || ! array_is_list($scopes)) {
+            throw ApiException::conflict('The provider has not proved the required read scopes.', 'provider_scope_missing');
+        }
+        $granted = array_column($scopes, 'handle');
+        if (! in_array($scope, $granted, true) && ! in_array(str_replace('read_', 'write_', $scope), $granted, true)) {
+            throw ApiException::conflict('The provider has not proved the required read scopes.', 'provider_scope_missing');
+        }
+    }
+
+    /**
+     * @param  array<string,mixed>  $variables
+     * @return array<string,mixed>
+     */
+    private function query(WebshopConnection $connection, string $query, array $variables = [], bool $allowProtectedFields = false): array
+    {
+        if ($connection->status === ConnectionStatus::Disconnected) {
+            throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
+        }
+        $host = $connection->external_shop_ref;
+        $token = $connection->credential('access_token');
+        if (! is_string($host) || ! preg_match('/\A[a-z0-9][a-z0-9-]*\.myshopify\.com\z/D', $host) || $token === null) {
+            throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
+        }
+        $auth = ['headers' => ['X-Shopify-Access-Token' => $token]];
+        $result = $this->reader->read($connection, 'https://'.$host.'/admin/api/'.self::VERSION.'/graphql.json', $auth, 'POST', ['query' => $query, 'variables' => $variables === [] ? (object) [] : $variables]);
+        if ($result['headers']['version'] !== self::VERSION) {
+            throw ApiException::conflict('The provider API version differs from the reviewed version.', 'provider_version_mismatch');
+        }
+        $body = $result['data'];
+        $errors = $body['errors'] ?? [];
+        if (! is_array($errors) || ! array_is_list($errors)) {
+            throw new ApiException('The provider response could not be read.', 502, 'provider_response_invalid');
+        }
+        foreach ($errors as $error) {
+            $code = $error['extensions']['code'] ?? null;
+            if ($code === 'THROTTLED') {
+                $this->reader->pause($connection, $host, $auth, 60);
+                throw new ApiException('The provider API rate limit was reached.', 503, 'provider_rate_limited', headers: ['Retry-After' => '60']);
+            }
+            $path = $error['path'] ?? [];
+            $allowed = $allowProtectedFields && $code === 'ACCESS_DENIED' && is_array($path) && $this->protectedPath($path);
+            if (! $allowed) {
+                throw ApiException::conflict('The provider GraphQL read failed or required protected data is unavailable.', 'provider_graphql_error');
+            }
+            // A denied field can never become approved PII merely because partial data contains it.
+            $target = &$body['data'];
+            foreach (array_slice($path, 0, -1) as $segment) {
+                if (! is_array($target) || ! array_key_exists($segment, $target)) {
+                    unset($target);
+
+                    continue 2;
+                }
+                $target = &$target[$segment];
+            }
+            if (is_array($target)) {
+                $target[$path[count($path) - 1]] = null;
+            }
+            unset($target);
+        }
+        if (! is_array($body['data'] ?? null)) {
+            throw new ApiException('The provider response could not be read.', 502, 'provider_response_invalid');
+        }
+
+        return $body['data'];
+    }
+
+    /** @param array<mixed> $path */
+    private function protectedPath(array $path): bool
+    {
+        if (($path[0] ?? null) === 'order') {
+            $rest = array_slice($path, 1);
+        } elseif (($path[0] ?? null) === 'orders' && ($path[1] ?? null) === 'nodes'
+            && is_int($path[2] ?? null) && $path[2] >= 0 && $path[2] < 25) {
+            $rest = array_slice($path, 3);
+        } else {
+            return false;
+        }
+
+        return in_array($rest, [['email'], ['phone'], ['billingAddress'], ['billingAddress', 'firstName'], ['billingAddress', 'phone']], true);
+    }
+
+    /** @param array<string,mixed> $order */
+    private function validateMoney(array $order): void
+    {
+        $id = $order['legacyResourceId'] ?? null;
+        if ((! is_int($id) && ! is_string($id)) || ! preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $id)
+            || ($order['id'] ?? null) !== 'gid://shopify/Order/'.$id) {
+            throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
+        }
+        $total = $order['totalPriceSet']['shopMoney'] ?? [];
+        $refund = $order['totalRefundedSet']['shopMoney'] ?? [];
+        if (! is_array($total) || ! is_array($refund) || ! is_string($total['amount'] ?? null) || ! Money::isCurrency($total['currencyCode'] ?? null)
+            || ! is_string($refund['amount'] ?? null) || ($refund['currencyCode'] ?? null) !== $total['currencyCode']) {
+            throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
+        }
+        try {
+            $gross = Money::toMinor($total['amount'], $total['currencyCode']);
+            $refunded = Money::toMinor($refund['amount'], $total['currencyCode']);
+            if ($gross < 0 || $refunded < 0 || $refunded > $gross) {
+                throw new \InvalidArgumentException('Invalid native amounts.');
+            }
+        } catch (\InvalidArgumentException) {
+            throw new ApiException('The provider order amount could not be read.', 502, 'provider_order_invalid');
+        }
+    }
+}

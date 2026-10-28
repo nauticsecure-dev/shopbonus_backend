@@ -8,8 +8,10 @@ use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
+use App\Integrations\Http\ShopifyApi;
 use App\Models\WebshopConnection;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 
@@ -47,6 +49,7 @@ class ShopifyConnector extends WebhookConnector
         return [
             'shop_domain' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/'],
             'signing_secret' => ['required', 'string', 'min:16', 'max:255'],
+            'access_token' => ['nullable', 'string', 'min:16', 'max:2048', 'regex:/\A[A-Za-z0-9_-]+\z/D'],
         ];
     }
 
@@ -54,7 +57,7 @@ class ShopifyConnector extends WebhookConnector
     {
         $connection->external_shop_ref = strtolower((string) $input['shop_domain']);
 
-        return ['signing_secret' => (string) $input['signing_secret']];
+        return ['signing_secret' => (string) $input['signing_secret']] + (! empty($input['access_token']) ? ['access_token' => $input['access_token']] : []);
     }
 
     public function setupInstructions(WebshopConnection $connection, string $webhookUrl): array
@@ -63,12 +66,29 @@ class ShopifyConnector extends WebhookConnector
             'format' => 'shopify-webhooks',
             'webhook_url' => $webhookUrl,
             'shop_domain' => $connection->external_shop_ref,
+            'read_api_configured' => $connection->credential('access_token') !== null,
+            'read_api_notice' => 'Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.',
             'steps' => [
                 'In Shopify admin open Settings → Notifications → Webhooks and create webhooks (JSON) for "Order creation", "Order payment", "Order update" and "Order cancellation" to the webhook URL.',
                 'Copy the signing secret shown on that page into this connection.',
                 'Place a genuine paid test order. Shopify may hide customer details; if so the connection shows "Connected with limitations" until protected customer data access is arranged.',
             ],
         ];
+    }
+
+    public function testConnection(WebshopConnection $connection): array
+    {
+        return app(ShopifyApi::class)->test($connection);
+    }
+
+    public function fetchOrder(WebshopConnection $connection, string $externalId): array
+    {
+        return app(ShopifyApi::class)->order($connection, $externalId);
+    }
+
+    public function syncOrders(WebshopConnection $connection, CarbonImmutable $since): iterable
+    {
+        yield from app(ShopifyApi::class)->orders($connection, $since);
     }
 
     public function verifyIncomingEvent(WebshopConnection $connection, Request $request): VerifiedEvent
@@ -99,6 +119,9 @@ class ShopifyConnector extends WebhookConnector
 
     public function normalizeOrder(array $payload): NormalizedOrder
     {
+        if (array_key_exists('displayFinancialStatus', $payload)) {
+            return $this->normalizeGraphql($payload);
+        }
         $customer = is_array($payload['customer'] ?? null) ? $payload['customer'] : [];
         $billing = is_array($payload['billing_address'] ?? null) ? $payload['billing_address'] : [];
         $currency = $this->str($payload['currency'] ?? null);
@@ -146,6 +169,60 @@ class ShopifyConnector extends WebhookConnector
             bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect(is_array($payload['note_attributes'] ?? null) ? $payload['note_attributes'] : [])
                 ->first(fn ($m) => is_array($m) && ($m['name'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
             providerUpdatedAt: $this->date($payload['updated_at'] ?? null),
+        );
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function normalizeGraphql(array $payload): NormalizedOrder
+    {
+        $currency = $payload['totalPriceSet']['shopMoney']['currencyCode'] ?? null;
+        $gross = $payload['totalPriceSet']['shopMoney']['amount'] ?? null;
+        $refund = $payload['totalRefundedSet']['shopMoney']['amount'] ?? null;
+        $amount = $refunded = null;
+        if (Money::isCurrency($currency) && is_string($gross) && is_string($refund)) {
+            try {
+                $amount = Money::toMinor($gross, $currency);
+                $refunded = Money::toMinor($refund, $currency);
+            } catch (InvalidArgumentException) {
+                $amount = $refunded = null;
+            }
+        }
+        $status = $this->str($payload['displayFinancialStatus'] ?? null);
+        $cancelled = $this->date($payload['cancelledAt'] ?? null);
+        $payment = match (true) {
+            $cancelled !== null, $status === 'VOIDED' => PaymentStatus::Cancelled,
+            $status === 'REFUNDED' => PaymentStatus::Refunded,
+            $status === 'PARTIALLY_REFUNDED' => PaymentStatus::PartiallyRefunded,
+            $status === 'PAID' && ($payload['fullyPaid'] ?? false) === true => ($refunded ?? 0) > 0 ? PaymentStatus::PartiallyRefunded : PaymentStatus::Paid,
+            in_array($status, ['PENDING', 'AUTHORIZED', 'PARTIALLY_PAID', 'PAID'], true) => PaymentStatus::Pending,
+            default => PaymentStatus::Unknown,
+        };
+        $paidAt = $refundedAt = null;
+        foreach (is_array($payload['transactions'] ?? null) ? $payload['transactions'] : [] as $tx) {
+            if (! is_array($tx) || ($tx['status'] ?? null) !== 'SUCCESS') {
+                continue;
+            }
+            $at = $this->date($tx['processedAt'] ?? null);
+            if (in_array($tx['kind'] ?? null, ['SALE', 'CAPTURE'], true) && $at !== null && ($paidAt === null || $at->greaterThan($paidAt))) {
+                $paidAt = $at;
+            }
+            if (($tx['kind'] ?? null) === 'REFUND' && $at !== null && ($refundedAt === null || $at->greaterThan($refundedAt))) {
+                $refundedAt = $at;
+            }
+        }
+        $attributes = is_array($payload['customAttributes'] ?? null) ? $payload['customAttributes'] : [];
+
+        return new NormalizedOrder(
+            externalId: $this->str($payload['legacyResourceId'] ?? null), reference: $this->str($payload['name'] ?? null),
+            firstName: $this->str($payload['billingAddress']['firstName'] ?? null), email: $this->str($payload['email'] ?? null),
+            phone: $this->str($payload['phone'] ?? $payload['billingAddress']['phone'] ?? null),
+            amountMinor: $amount !== null && $amount >= 0 ? $amount : null, currency: Money::isCurrency($currency) ? $currency : null,
+            paymentStatus: $payment, orderStatus: $status, placedAt: $this->date($payload['createdAt'] ?? null),
+            paidAt: $paidAt, cancelledAt: $cancelled, refundedAt: $refundedAt,
+            refundedMinor: $refunded, providerUpdatedAt: $this->date($payload['updatedAt'] ?? null),
+            couponCodes: array_values(array_filter(is_array($payload['discountCodes'] ?? null) ? $payload['discountCodes'] : [], fn ($value) => is_string($value) && strlen($value) <= 100)),
+            attributionClickId: GenericSignedWebhookConnector::clickId(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
+            bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
         );
     }
 

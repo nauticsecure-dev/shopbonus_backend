@@ -1,0 +1,635 @@
+{
+  "captured_at": "2026-10-28T10:51:39Z",
+  "environment": "Actual PHP HTTP server; isolated SQLite/database cache/file sessions; normal login + CSRF. Provider HTTP/DNS synthetic fixtures, not live Shopify verification. No order ingestion/status promotion.",
+  "base_sha": "161051edd7952afeaa91e14baecb0b03f33177a3",
+  "captures": [
+    {
+      "label": "create",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections",
+        "json": {
+          "platform": "shopify",
+          "shop_domain": "fietsen.myshopify.com",
+          "signing_secret": "<REDACTED>",
+          "access_token": "<REDACTED>"
+        },
+        "upstream_fixture": "success"
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-0ef2-71bb-8fbf-8e722352d98a"
+        },
+        "json": {
+          "data": {
+            "id": "01m61263rs4717r9f5zs21dc1c",
+            "platform": "shopify",
+            "method": "webhook",
+            "status": "setup_required",
+            "external_shop_ref": "fietsen.myshopify.com",
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T10:51:38+00:00",
+            "setup": {
+              "format": "shopify-webhooks",
+              "webhook_url": "<REDACTED>",
+              "shop_domain": "fietsen.myshopify.com",
+              "read_api_configured": true,
+              "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+              "steps": [
+                "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+                "Copy the signing secret shown on that page into this connection.",
+                "Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "show",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c",
+        "json": null,
+        "upstream_fixture": "success"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-0f2c-71cf-a58a-e2c9a013d159"
+        },
+        "json": {
+          "data": {
+            "id": "01m61263rs4717r9f5zs21dc1c",
+            "platform": "shopify",
+            "method": "webhook",
+            "status": "setup_required",
+            "external_shop_ref": "fietsen.myshopify.com",
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T10:51:38+00:00",
+            "setup": {
+              "format": "shopify-webhooks",
+              "webhook_url": "<REDACTED>",
+              "shop_domain": "fietsen.myshopify.com",
+              "read_api_configured": true,
+              "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+              "steps": [
+                "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+                "Copy the signing secret shown on that page into this connection.",
+                "Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "identity",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {},
+        "upstream_fixture": "success"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-0f44-72a6-80b1-0236747e1521"
+        },
+        "json": {
+          "data": {
+            "connection": "01m61263rs4717r9f5zs21dc1c",
+            "platform": "shopify",
+            "result": {
+              "ok": true,
+              "code": "api_shop_identity_and_order_scope_observed"
+            },
+            "order_summary": null,
+            "state_changed": false,
+            "production_verified": false
+          }
+        }
+      }
+    },
+    {
+      "label": "order",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {
+          "order_id": "4711"
+        },
+        "upstream_fixture": "success"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-0f96-71cf-b2c3-9450e088075e"
+        },
+        "json": {
+          "data": {
+            "connection": "01m61263rs4717r9f5zs21dc1c",
+            "platform": "shopify",
+            "result": {
+              "ok": true,
+              "code": "api_order_and_refunds_read_observed"
+            },
+            "order_summary": {
+              "kind": "order",
+              "complete": true,
+              "missing_fields": [],
+              "has_phone": false,
+              "payment_status": "partially_refunded",
+              "currency": "EUR",
+              "amount_minor": 5995
+            },
+            "state_changed": false,
+            "production_verified": false
+          }
+        }
+      }
+    },
+    {
+      "label": "protected",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {
+          "order_id": "4711"
+        },
+        "upstream_fixture": "protected"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-0fb8-715e-8030-e4604da57b8f"
+        },
+        "json": {
+          "data": {
+            "connection": "01m61263rs4717r9f5zs21dc1c",
+            "platform": "shopify",
+            "result": {
+              "ok": true,
+              "code": "api_order_and_refunds_read_observed"
+            },
+            "order_summary": {
+              "kind": "order",
+              "complete": false,
+              "missing_fields": [
+                "email"
+              ],
+              "has_phone": false,
+              "payment_status": "partially_refunded",
+              "currency": "EUR",
+              "amount_minor": 5995
+            },
+            "state_changed": false,
+            "production_verified": false
+          }
+        }
+      }
+    },
+    {
+      "label": "foreign",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {},
+        "upstream_fixture": "foreign"
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-Id": "01a18223-10c8-701d-a1c9-2d39b0fb20ec",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 409,
+            "code": "store_identity_unverified",
+            "message": "Verify ownership of the exact store domain before using its API.",
+            "request_id": "01a18223-10c8-701d-a1c9-2d39b0fb20ec"
+          }
+        }
+      }
+    },
+    {
+      "label": "scope",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {},
+        "upstream_fixture": "scope"
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-Id": "01a18223-11dd-736f-8cd5-57fd9285edf6",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 409,
+            "code": "provider_scope_missing",
+            "message": "The provider has not proved the required read scopes.",
+            "request_id": "01a18223-11dd-736f-8cd5-57fd9285edf6"
+          }
+        }
+      }
+    },
+    {
+      "label": "version",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {},
+        "upstream_fixture": "version"
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-Id": "01a18223-12ed-73be-b76b-7b6f5b2fc49b",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 409,
+            "code": "provider_version_mismatch",
+            "message": "The provider API version differs from the reviewed version.",
+            "request_id": "01a18223-12ed-73be-b76b-7b6f5b2fc49b"
+          }
+        }
+      }
+    },
+    {
+      "label": "throttle",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/test-api",
+        "json": {},
+        "upstream_fixture": "throttle"
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "Retry-After": "60",
+          "X-Request-Id": "01a18223-13f7-7209-a628-55215b095f80",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 503,
+            "code": "provider_rate_limited",
+            "message": "The provider API rate limit was reached.",
+            "request_id": "01a18223-13f7-7209-a628-55215b095f80"
+          }
+        }
+      }
+    },
+    {
+      "label": "credentials",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/credentials",
+        "json": {
+          "shop_domain": "fietsen.myshopify.com",
+          "signing_secret": "<REDACTED>",
+          "access_token": "<REDACTED>"
+        },
+        "upstream_fixture": "success"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-1507-73d1-b4c0-6f6cb830d41a"
+        },
+        "json": {
+          "data": {
+            "id": "01m61263rs4717r9f5zs21dc1c",
+            "platform": "shopify",
+            "method": "webhook",
+            "status": "setup_required",
+            "external_shop_ref": "fietsen.myshopify.com",
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T10:51:38+00:00",
+            "setup": {
+              "format": "shopify-webhooks",
+              "webhook_url": "<REDACTED>",
+              "shop_domain": "fietsen.myshopify.com",
+              "read_api_configured": true,
+              "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+              "steps": [
+                "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+                "Copy the signing secret shown on that page into this connection.",
+                "Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "catalogue",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/integrations/platforms",
+        "json": null,
+        "upstream_fixture": "success"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18223-1527-7007-9996-13951c527bf7"
+        },
+        "json": {
+          "data": [
+            {
+              "platform": "woocommerce",
+              "name": "WooCommerce",
+              "priority": "production",
+              "available": true,
+              "method": "webhook",
+              "auth": "shared secret (HMAC-SHA256, base64)",
+              "reliability": "high",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": {
+                "api_version": "wc/v3",
+                "reviewed_at": "2026-10-28",
+                "last_live_verified_at": null,
+                "native_read_api_implemented": true,
+                "auth_method": "HTTPS HTTP Basic consumer key/secret; read-only merchant key",
+                "scopes": [
+                  "read"
+                ],
+                "webhook_topics": [
+                  "order.created",
+                  "order.updated"
+                ],
+                "order_api": "GET /wp-json/wc/v3/orders/{id}",
+                "refund_api": "GET /wp-json/wc/v3/orders/{id}/refunds",
+                "product_api": "GET /wp-json/wc/v3/products",
+                "coupon_api": "GET /wp-json/wc/v3/coupons",
+                "banner_method": "manual; native WordPress publication/module not implemented",
+                "rate_limit_policy": "No redirects/retries;8second reads,1MiB body,100rows/page,5order pages;429cooldown/3failure circuit.",
+                "sources": [
+                  "https://developer.woocommerce.com/docs/apis/rest-api/",
+                  "https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/",
+                  "https://developer.woocommerce.com/docs/apis/rest-api/v3/order-refunds/",
+                  "https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks/"
+                ]
+              },
+              "blocked_reason": null
+            },
+            {
+              "platform": "shopify",
+              "name": "Shopify",
+              "priority": "production",
+              "available": true,
+              "method": "webhook",
+              "auth": "webhook signing secret (HMAC-SHA256, base64)",
+              "reliability": "high",
+              "limitations": [
+                "customer fields may be redacted without protected customer data access"
+              ],
+              "verification": "unverified",
+              "profile": {
+                "api_version": "2026-10",
+                "reviewed_at": "2026-10-28",
+                "last_live_verified_at": null,
+                "native_read_api_implemented": true,
+                "auth_method": "Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. OAuth install/refresh not yet implemented",
+                "scopes": [
+                  "read_orders",
+                  "read_products (catalog only)"
+                ],
+                "order_api": "POST /admin/api/2026-10/graphql.json: order/orders queries",
+                "refund_api": "Order.totalRefundedSet and successful REFUND transactions; no refund mutation",
+                "product_api": "products query; bounded core catalog metadata only",
+                "coupon_api": "UNSUPPORTED in this boundary",
+                "rate_limit_policy": "Pinned version,8second/1MiB reads,25orders/page,max5pages; no retries, HTTP200GraphQLerrors checked; throttling pauses reads.",
+                "webhook_topics": [
+                  "orders/create",
+                  "orders/updated",
+                  "orders/paid",
+                  "orders/cancelled",
+                  "refunds/create"
+                ],
+                "banner_method": "Theme App Extension requires separate implementation and merchant activation",
+                "sources": [
+                  "https://shopify.dev/docs/api/admin-graphql/2026-10",
+                  "https://shopify.dev/docs/apps/build/webhooks"
+                ]
+              },
+              "blocked_reason": null
+            },
+            {
+              "platform": "wix",
+              "name": "Wix",
+              "priority": "production",
+              "available": false,
+              "method": "automation HTTP POST",
+              "auth": "to be determined (verify whether automations can sign or authenticate requests)",
+              "reliability": "unknown",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Request authentication for Wix automations not yet verified."
+            },
+            {
+              "platform": "bigcommerce",
+              "name": "BigCommerce",
+              "priority": "production",
+              "available": false,
+              "method": "webhook + API lookup",
+              "auth": "restricted API token",
+              "reliability": "unknown",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Requires API credentials and order lookup (webhooks carry only IDs)."
+            },
+            {
+              "platform": "ecwid",
+              "name": "Ecwid",
+              "priority": "production",
+              "available": false,
+              "method": "webhook/polling + API",
+              "auth": "store API token",
+              "reliability": "unknown",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Requires store API token and app registration."
+            },
+            {
+              "platform": "lightspeed_c",
+              "name": "Lightspeed C-Series",
+              "priority": "production",
+              "available": false,
+              "method": "confirmation tracking where supported",
+              "auth": "to be determined",
+              "reliability": "lower",
+              "limitations": [
+                "lower reliability"
+              ],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Supported mechanism not yet verified."
+            },
+            {
+              "platform": "lightspeed_e",
+              "name": "Lightspeed E-Series",
+              "priority": "additional",
+              "available": false,
+              "method": "API/confirmation (to be determined)",
+              "auth": "to be determined",
+              "reliability": "unknown",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Supported API method not yet verified."
+            },
+            {
+              "platform": "prestashop",
+              "name": "PrestaShop",
+              "priority": "additional",
+              "available": true,
+              "method": "private_module",
+              "auth": "Shopbonus signed webhook v1",
+              "reliability": "high (module not yet built)",
+              "limitations": [
+                "private ZIP module must be installed"
+              ],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": null
+            },
+            {
+              "platform": "opencart",
+              "name": "OpenCart",
+              "priority": "additional",
+              "available": true,
+              "method": "private_module",
+              "auth": "Shopbonus signed webhook v1",
+              "reliability": "high (module not yet built)",
+              "limitations": [
+                "private OCMOD extension must be installed"
+              ],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": null
+            },
+            {
+              "platform": "shopware6",
+              "name": "Shopware 6",
+              "priority": "additional",
+              "available": true,
+              "method": "private_module",
+              "auth": "Shopbonus signed webhook v1",
+              "reliability": "high (extension not yet built)",
+              "limitations": [
+                "private extension must be installed"
+              ],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": null
+            },
+            {
+              "platform": "magento",
+              "name": "Magento / Adobe Commerce",
+              "priority": "additional",
+              "available": true,
+              "method": "private_module",
+              "auth": "Shopbonus signed webhook v1",
+              "reliability": "high (module not yet built)",
+              "limitations": [
+                "private module must be installed"
+              ],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": null
+            },
+            {
+              "platform": "squarespace",
+              "name": "Squarespace",
+              "priority": "additional",
+              "available": false,
+              "method": "polling (read-only Orders API)",
+              "auth": "API key",
+              "reliability": "polling delay",
+              "limitations": [
+                "polling"
+              ],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Polling adapter not built; requires API key."
+            },
+            {
+              "platform": "mijnwebwinkel",
+              "name": "Mijnwebwinkel",
+              "priority": "additional",
+              "available": false,
+              "method": "partner API",
+              "auth": "partner authorisation",
+              "reliability": "unknown",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Partner/API authorisation pending."
+            },
+            {
+              "platform": "ccv",
+              "name": "CCV Shop",
+              "priority": "additional",
+              "available": false,
+              "method": "to be investigated",
+              "auth": "to be determined",
+              "reliability": "unknown",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": "Merchant-accessible API options not yet investigated."
+            },
+            {
+              "platform": "other",
+              "name": "Other / custom shop",
+              "priority": "additional",
+              "available": true,
+              "method": "webhook",
+              "auth": "Shopbonus signed webhook v1",
+              "reliability": "depends on the custom integration",
+              "limitations": [],
+              "verification": "unverified",
+              "profile": null,
+              "blocked_reason": null
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

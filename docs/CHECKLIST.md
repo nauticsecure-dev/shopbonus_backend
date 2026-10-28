@@ -684,10 +684,21 @@ Main-code completion items: `b2ad156` (implementation), `64b1848` (bounded trave
 - [x] Add optional encrypted read credentials to existing WooCommerce connection; preserve webhook-only compatibility; active API test is managed/scoped/throttled and never promotes fixtures to live-connected.
 - [x] Server-side tenant/role/disconnect/missing credentials/auth/429/schema/SSRF/rebinding/secret-privacy/duplicate negative tests; real HTTP examples for added/changed operations, both databases/quality/CI and coherent SHA handoff.
 
-B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total781pass+2skip/9961assertions, final native API15tests144assertions on both drivers. Pint/PHPStan/audit/contract/20HTTPcaptures PASS. This implementation commit; SHA/CI recorded in closeout. Whole #31 stays IN_PROGRESS.
+B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total781pass+2skip/9961assertions, final native API15tests144assertions on both drivers. Pint/PHPStan/audit/contract/20HTTPcaptures PASS. Implementation `161051edd7952afeaa91e14baecb0b03f33177a3`; CI40673100233 SUCCESS all3jobs,783tests/database. Whole #31 stays IN_PROGRESS.
 
 ### Later #31 backend boundaries — not covered by B23a
 - [ ] Shopify GraphQL/OAuth/scopes/order/refund/catalog and durable credential-bound connection quality gates.
 - [ ] Wix, BigCommerce, Ecwid and Lightspeed C authenticated adapters/current official profiles, bounded polling/webhook recovery.
 - [ ] Version-specific PrestaShop/OpenCart signed bridge contracts, Shopware app lifecycle and Adobe deployment-specific asynchronous adapter profiles; provider modules/storefront UI are outside this Laravel scope.
 - [ ] Ten provider-backed acceptance records and real installation/banner/coupon capability verification; access/sandbox/storefront proof remains external until actually run.
+
+### B23b — Shopify native reads and shared pinned transport (owner continues 2026-10-28)
+- [x] Reuse/refactor proven pinned read transport for WooCommerce GET and fixed Shopify read-only GraphQL queries; retain Woo security/circuit regressions.
+- [x] Optional encrypted Shopify access token, pinned2026-10 API, observed shop identity/domain binding and actual read scopes; webhook-only compatibility, no credentials in URLs or logs.
+- [x] Native order/refund/transaction normalization without double-subtracting refunds or inventing payment timestamps; protected customer fields remain missing, GraphQL errors/version fallback never silently pass.
+- [x] Bounded modified-order/catalog cursor reads and explicit unsupported discount/banner write/OAuth lifecycle capabilities; no connected promotion from fixture probes.
+- [x] Executed Shopify ownership/scope/GraphQL HTTP200errors/throttle/schema/cursor/secret/isolation tests, actual running-server API contract examples and both database suites/quality; record exact scope remaining for quality gates/providers.
+
+- [ ] B23b implementation commit and exact-code remote CI verified; record SHA and final counts in closeout.
+
+B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; MySQL795total793pass+2skip/10049assertions/290.521s; native27tests229assertions, contract3tests3692assertions, Pint/PHPStan/composer validate/audit/platform/diff and11actual HTTP captures PASS. Implementation commit follows; exact SHA/CI pending closeout. Whole #31 IN_PROGRESS.

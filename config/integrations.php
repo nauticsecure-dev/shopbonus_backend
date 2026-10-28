@@ -43,8 +43,13 @@ return [
         'shopify' => [
             'profile' => [
                 'api_version' => '2026-10', 'reviewed_at' => '2026-10-28', 'last_live_verified_at' => null,
-                'native_read_api_implemented' => false, 'auth_method' => 'Signing secret only in current implementation; OAuth/GraphQL not yet implemented',
-                'scopes' => [], 'webhook_topics' => ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'refunds/create'],
+                'native_read_api_implemented' => true, 'auth_method' => 'Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. OAuth install/refresh not yet implemented',
+                'scopes' => ['read_orders', 'read_products (catalog only)'],
+                'order_api' => 'POST /admin/api/2026-10/graphql.json: order/orders queries',
+                'refund_api' => 'Order.totalRefundedSet and successful REFUND transactions; no refund mutation',
+                'product_api' => 'products query; bounded core catalog metadata only', 'coupon_api' => 'UNSUPPORTED in this boundary',
+                'rate_limit_policy' => 'Pinned version,8second/1MiB reads,25orders/page,max5pages; no retries, HTTP200GraphQLerrors checked; throttling pauses reads.',
+                'webhook_topics' => ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'refunds/create'],
                 'banner_method' => 'Theme App Extension requires separate implementation and merchant activation',
                 'sources' => ['https://shopify.dev/docs/api/admin-graphql/2026-10', 'https://shopify.dev/docs/apps/build/webhooks'],
             ],
