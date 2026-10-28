@@ -34,6 +34,7 @@ class Backups
             $database = $driver === 'sqlite' ? 'database.sqlite' : 'database.sql';
             $this->dump($work.'/'.$database, $driver, $work);
             $files = [$database => $work.'/'.$database];
+            $maxFiles = max(1, min(100000, (int) config('recovery.max_files')));
             foreach (config('recovery.media_roots', []) as $label => $root) {
                 if (! preg_match('/\A[a-z]+\z/D', $label) || is_link($root)) {
                     throw new RuntimeException('Unsafe media root.');
@@ -48,6 +49,9 @@ class Backups
                     $relative = substr($entry->getPathname(), strlen(rtrim($root, '/')) + 1);
                     $name = 'media/'.$label.'/'.$relative;
                     $this->path($name);
+                    if (count($files) >= $maxFiles) {
+                        throw new RuntimeException('Too many backup files.');
+                    }
                     $files[$name] = $entry->getPathname();
                 }
             }
