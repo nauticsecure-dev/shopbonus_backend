@@ -43,3 +43,6 @@ Schedule::command('shopbonus:dispatch-notifications')->everyMinute()->withoutOve
 
 // B22a: threshold evaluation/retention; telemetry stays opt-in.
 Schedule::command('shopbonus:monitor-api')->everyMinute()->withoutOverlapping();
+
+// Durable bounded projection scans; unfinished runs drain before another hourly run.
+Schedule::command('shopbonus:reconcile-financials')->everyMinute()->withoutOverlapping();

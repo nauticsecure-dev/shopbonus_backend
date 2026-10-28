@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Reliability;
 
+use App\Models\FinancialReconciliationRun;
 use App\Models\SecurityIncident;
 use App\Models\User;
 use App\Models\WalletReconciliationFlag;
 use App\Services\Reliability\ApiMonitoring;
+use App\Services\Reliability\FinancialReconciliation;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
@@ -56,5 +58,28 @@ class ConcurrentMonitoringAlertTest extends TestCase
         $this->assertSame(WalletReconciliationFlag::sole()->public_id, $results[0]);
         $this->assertSame(1400, $wallet->fresh()->available);
         $this->assertDatabaseCount('wallet_ledger_entries', 1);
+    }
+
+    public function test_parallel_run_creation_and_advancement_commit_one_check_per_wallet(): void
+    {
+        $this->skipUnlessRealDatabase();
+        $service = app(WalletService::class);
+        for ($i = 0; $i < 3; $i++) {
+            $service->consumerWallet(User::factory()->create());
+        }
+        $results = $this->race(4, function () {
+            $runner = app(FinancialReconciliation::class);
+            $run = $runner->advance($runner->start('concurrent:run'));
+
+            return $run->public_id;
+        });
+        $this->assertCount(1, array_unique($results), implode(', ', $results));
+        $this->assertDatabaseCount('financial_reconciliation_runs', 1);
+        $this->assertDatabaseCount('financial_reconciliation_checks', 3);
+        $run = FinancialReconciliationRun::sole();
+        $this->assertSame('completed', $run->status);
+        $this->assertSame(3, $run->checked);
+        $this->assertSame(0, $run->discrepancies);
+        $this->assertDatabaseCount('wallet_ledger_entries', 0);
     }
 }

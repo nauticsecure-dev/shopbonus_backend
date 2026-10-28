@@ -1,3 +1,15 @@
+# Active checkpoint — #30 durable wallet-run foundation (2026-10-28)
+
+Branch main, base1d6dd80. This application commit contains only task-owned code/tests/docs; no pre-existing edits overwritten. Durable wallet runs/checks,100-wallet bounded command/scheduler, immutable proof triggers, failure/resume handling and concurrency tests verified. No new HTTP operation, financial balancing entry, affiliate timing/rate/provider/credential change. D-089/D-090 apply. Exact implementation SHA and remote CI closeout follow after normal commit/push.
+
+Tests: SQLite757total734pass+23skip/9570assertions/51.354s plus final projection-refinement focused5tests41assertions PASS. Final MySQL757total755pass+2skip/9652assertions/240.109s including three four-worker races PASS. Pint/PHPStan L6/composer audit/diff PASS. Isolated SQLite/MySQL migration apply/down/up + command after reapply PASS. Migration2026_10_28_100000 now applied to local shopbonus; rollback loses run/check evidence, preserve/quiesce first. Actual local run/replay observed4wallets/0differences, completed execution, correctly overall UNKNOWN (B22_WALLET_RUN_CAPTURE.json). No financial source mutation/extra flag in this run.
+
+Temporary migration helper and isolated schemas removed; generic /tmp/shopbonus-b22-run* test logs retained. Private B21 fixture credentials remain gitignored/preserved. Main monitoring still defaults disabled; no mail/provider/Redis changes. Approximately49GiB free.
+
+Next exact: commit/push/check exact-code CI, record SHA closeout; then source inspectors for affiliate/checkout/top-up/sponsorship/ledger and admin run/report APIs with real HTTP captures. Coverage remains UNKNOWN except CRITICAL on observed mismatches. Reads are individually lock-consistent, not a global point-in-time proof. Whole B22b/#30 remains IN_PROGRESS; dependency/security/query/backup/recovery and deployed acceptance remain outstanding. No staging/production/offsite access, no invented RPO/RTO/live-provider claims.
+
+---
+
 # Active handoff — Trello #30 IN_PROGRESS, verified checkpoints (2026-10-27)
 
 Branch main. Monitoring application c7e878905e6ab7ff80bff27b2b4bdbb3f3692ebe and financial prerequisite application5aa4177f4160ba41d19e8b54046765e1693cabc5 committed/pushed. This is a docs-only closeout; no uncommitted application/test changes remain. **B22a DONE; B22b PARTIAL; whole #30 is NOT DONE.**
