@@ -725,3 +725,5 @@ B23c local: focused69tests556assertions both drivers; full SQLite801total778pass
 - [ ] Commit/push B23d implementation and verify exact-code remote CI; record SHA/counts in closeout.
 
 B23d final post-MIME8.1.10 local evidence: SQLite814total791pass+23skip/10118assertions/122.057s; MySQL814total812pass+2skip/10201assertions/369.908s PASS sequentially. Final targeted recovery13tests87assertions both drivers; current API contract3tests3694assertions;20actual HTTP captures/redaction, dual-driver full-schema migration down/up twice, Pint/PHPStan/composer validate/audit/diff PASS. Only symfony/mime patched8.1.7→8.1.10 for current audit. Implementation SHA/CI follows; whole #31 remains IN_PROGRESS.
+
+B23d main implementation `27faa2f` CI40767003950 all3SUCCESS/814tests per driver. Byte-exact historical-store comparison follow-up:14recovery tests pass both drivers and controlled MySQL case-folding reproduction PASS; exact follow-up CI pending before remote closeout checkbox.

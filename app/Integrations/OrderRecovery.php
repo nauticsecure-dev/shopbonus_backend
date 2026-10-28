@@ -13,7 +13,6 @@ use App\Jobs\RecoverProviderOrder;
 use App\Models\IntegrationOrderRecovery;
 use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
-use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,10 +39,15 @@ class OrderRecovery
             if ($c->external_shop_ref === null || $c->external_shop_ref === '') {
                 throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
             }
-            $otherStore = WebshopOrder::query()->join('webshop_connections as origin', 'origin.id', '=', 'webshop_orders.connection_id')
-                ->where('webshop_orders.webshop_id', $c->webshop_id)->where('webshop_orders.platform', $c->platform->value)
-                ->where('webshop_orders.connection_id', '!=', $c->id)->where(function ($q) use ($c) {
-                    $q->whereNull('origin.external_shop_ref')->orWhere('origin.external_shop_ref', '!=', $c->external_shop_ref);
+            $binaryComparison = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)
+                ? 'BINARY origin.external_shop_ref <> BINARY ?' : 'origin.external_shop_ref COLLATE BINARY <> ?';
+            $otherStore = DB::table('webshop_connections as origin')->where('origin.webshop_id', $c->webshop_id)
+                ->where('origin.platform', $c->platform->value)->where('origin.id', '!=', $c->id)
+                ->where(function ($q) use ($c, $binaryComparison) {
+                    $q->whereNull('origin.external_shop_ref')->orWhereRaw($binaryComparison, [$c->external_shop_ref]);
+                })->whereExists(function ($q) {
+                    $q->selectRaw('1')->from('webshop_orders')->whereColumn('webshop_orders.connection_id', 'origin.id')
+                        ->whereColumn('webshop_orders.webshop_id', 'origin.webshop_id')->whereColumn('webshop_orders.platform', 'origin.platform');
                 })->exists();
             if ($otherStore) {
                 throw ApiException::conflict('Changing the provider store after orders exist requires a reviewed migration.', 'provider_store_change_requires_review');

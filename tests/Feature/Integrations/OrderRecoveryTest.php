@@ -21,6 +21,7 @@ use App\Services\Onboarding\Network\HostResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -315,6 +316,37 @@ class OrderRecoveryTest extends TestCase
         } catch (ApiException $e) {
             $this->assertSame('provider_store_change_requires_review', $e->errorCode);
         }
+        $this->assertSame(1, WebshopOrder::count());
+    }
+
+    public function test_case_distinct_installation_paths_cannot_share_the_original_store_namespace(): void
+    {
+        app(ConnectionManager::class)->replaceCredentials($this->connection, [
+            'store_url' => 'https://fietsen-utrecht.nl/Shop',
+            'consumer_key' => 'ck_SYNTHETIC_read_key', 'consumer_secret' => 'cs_SYNTHETIC_read_secret',
+        ]);
+        $this->performRecovery($this->request());
+        $originId = $this->connection->id;
+        app(ConnectionManager::class)->disconnect($this->connection);
+        $response = $this->postJson('/api/v1/workspaces/'.$this->shop->public_id.'/connections', [
+            'platform' => 'woocommerce', 'store_url' => 'https://fietsen-utrecht.nl/shop',
+            'consumer_key' => 'ck_SYNTHETIC_read_key', 'consumer_secret' => 'cs_SYNTHETIC_read_secret',
+        ])->assertCreated();
+        $this->connection = WebshopConnection::where('public_id', $response->json('data.id'))->sole();
+        if (DB::connection()->getDriverName() === 'mysql') {
+            // Reproduce a case-insensitive comparison independently of deployment collation overrides.
+            $this->assertFalse(DB::table('webshop_connections')->where('id', $originId)
+                ->whereRaw('CONVERT(external_shop_ref USING utf8mb4) COLLATE utf8mb4_unicode_ci <> CONVERT(? USING utf8mb4) COLLATE utf8mb4_unicode_ci', [$this->connection->external_shop_ref])->exists());
+            $this->assertTrue(DB::table('webshop_connections')->where('id', $originId)
+                ->whereRaw('BINARY external_shop_ref <> BINARY ?', [$this->connection->external_shop_ref])->exists());
+        }
+        try {
+            $this->request();
+            $this->fail('Default SQL collation merged case-distinct installation paths.');
+        } catch (ApiException $e) {
+            $this->assertSame('provider_store_change_requires_review', $e->errorCode);
+        }
+        $this->assertSame(1, IntegrationOrderRecovery::count());
         $this->assertSame(1, WebshopOrder::count());
     }
 }
