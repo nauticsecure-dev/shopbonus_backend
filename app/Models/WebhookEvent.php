@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * A verified inbound provider event. Unverified requests are never stored.
  *
+ * @property string|null $source_method
  * @property int|null $credential_generation
  * @property int $id
  * @property string $public_id

@@ -1,5 +1,7 @@
 # Credential-bound event lifecycle — B23c / #31
 
+> Current status policy is documented in [READINESS_AND_RECOVERY.md](READINESS_AND_RECOVERY.md): all seven native gates are required for Connected. Earlier checkpoint limitations below are historical.
+
 This boundary adds credential-version binding to the existing connection, webhook receiver, event processor and merchant/admin retry paths. It is the foundation for durable seven-gate readiness. It does not implement the full gate policy, OAuth or native reconciliation. Existing complete-current-webhook status behavior remains compatible until that next boundary; `connected` alone is not proof of all #31 gates.
 
 Each connection has an internal positive `credential_generation` (initially1). Every newly accepted event stores the generation that verified its signature. These internal fields are hidden from resource/model JSON. The existing connection-wide provider dedupe key remains unchanged across rotation, preventing an old delivery from becoming a fresh event simply because credentials changed.

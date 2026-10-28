@@ -1,0 +1,963 @@
+{
+  "captured_at": "2026-10-28T20:29:40Z",
+  "base_sha": "63d963c058e06e806dbd74e5ca997e4e9a927b64",
+  "environment": "Actual PHP HTTP server/isolated SQLite/database cache/file sessions/normal login+CSRF; array mail/database queue. Actual operator recovery command and canonical processor invoked by fixture worker. Provider HTTP/DNS synthetic; no real provider/production acceptance. Storage500 induced by isolated table rename.",
+  "operator_operations": [
+    {
+      "provider_fixture": "paid",
+      "result": {
+        "request": "4456f797-ec69-4baa-a3a1-75cc9debffc3",
+        "recovery": "01m6238dwx30fftw12gvqq9eka",
+        "status": "succeeded",
+        "error": null,
+        "canonical_orders": 1,
+        "canonical_history": 2
+      }
+    },
+    {
+      "provider_fixture": "paid",
+      "result": {
+        "request": "cf443a39-80c7-4610-847b-50c727190de1",
+        "recovery": "01m6238ehr7wyc269dxyevrxkk",
+        "status": "succeeded",
+        "error": null,
+        "canonical_orders": 1,
+        "canonical_history": 2
+      }
+    },
+    {
+      "provider_fixture": "refund",
+      "result": {
+        "request": "3e2a10ce-ab3d-45b1-b5de-fe0eb61338fc",
+        "recovery": "01m6238f4emww93dgcxtzvwcc6",
+        "status": "succeeded",
+        "error": null,
+        "canonical_orders": 1,
+        "canonical_history": 3
+      }
+    },
+    {
+      "provider_fixture": "refund",
+      "result": {
+        "request": "f9ad6201-afc9-41de-9cf6-a831196305df",
+        "recovery": "01m6238fqsm57g4kpp9nvd2jjm",
+        "status": "succeeded",
+        "error": null,
+        "canonical_orders": 1,
+        "canonical_history": 3
+      }
+    },
+    {
+      "provider_fixture": "authfail",
+      "result": {
+        "request": "8701cf5e-7cb3-4948-b2a7-7f456e827dbc",
+        "recovery": "01m6238gegba51s8epdc34sjha",
+        "status": "failed",
+        "error": "provider_authentication_failed",
+        "canonical_orders": 1,
+        "canonical_history": 3
+      }
+    }
+  ],
+  "captures": [
+    {
+      "label": "create",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections",
+        "json": {
+          "platform": "woocommerce",
+          "store_url": "https://fietsen-utrecht.nl",
+          "consumer_key": "<REDACTED>",
+          "consumer_secret": "<REDACTED>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-325a-7008-8461-80d467a78b3b"
+        },
+        "json": {
+          "data": {
+            "id": "01m6238cmfns7j6w5cshgj5nfc",
+            "platform": "woocommerce",
+            "method": "webhook",
+            "status": "setup_required",
+            "external_shop_ref": "https://fietsen-utrecht.nl",
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T20:29:35+00:00",
+            "setup": {
+              "format": "woocommerce-webhooks",
+              "webhook_url": "<REDACTED>",
+              "read_api_configured": true,
+              "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+              "steps": [
+                "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+                "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+                "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+                "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+              ]
+            },
+            "secrets": {
+              "webhook_secret": "<REDACTED>"
+            },
+            "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."
+          }
+        }
+      }
+    },
+    {
+      "label": "webhook",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>",
+        "json": {
+          "id": 4711,
+          "number": "4711",
+          "status": "processing",
+          "currency": "EUR",
+          "total": "59.95",
+          "date_created_gmt": "2026-10-28T10:00:00",
+          "date_modified_gmt": "2026-10-28T10:01:00",
+          "date_paid_gmt": "2026-10-28T10:01:00",
+          "billing": {
+            "first_name": "Sample",
+            "email": "sample@example.test",
+            "phone": null
+          },
+          "refunds": []
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-32ae-72ab-a689-f58f7567be0a"
+        },
+        "json": {
+          "data": {
+            "received": true,
+            "duplicate": false,
+            "event_id": "01m6238cp3j5wy4q1fexetwn54"
+          }
+        }
+      }
+    },
+    {
+      "label": "webhook_is_limited",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-34c7-73c5-892d-6140486b78b5"
+        },
+        "json": {
+          "data": {
+            "status": "limited",
+            "quality_gates": {
+              "authorization_verified": false,
+              "store_identity_matches": false,
+              "genuine_order_observed": false,
+              "mandatory_fields_mapped": false,
+              "payment_verified": false,
+              "duplicate_processing_prevented": false,
+              "changes_refunds_recoverable": false
+            },
+            "missing_gates": [
+              "authorization_verified",
+              "store_identity_matches",
+              "genuine_order_observed",
+              "mandatory_fields_mapped",
+              "payment_verified",
+              "duplicate_processing_prevented",
+              "changes_refunds_recoverable"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "next_action": "complete_connection_verification"
+          }
+        }
+      }
+    },
+    {
+      "label": "passive_probe",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/test-api",
+        "json": {
+          "order_id": "4711"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-34f6-7295-ad75-b37e56044222"
+        },
+        "json": {
+          "data": {
+            "connection": "01m6238cmfns7j6w5cshgj5nfc",
+            "platform": "woocommerce",
+            "result": {
+              "ok": true,
+              "code": "api_order_and_refunds_read_observed"
+            },
+            "order_summary": {
+              "kind": "order",
+              "complete": true,
+              "missing_fields": [],
+              "has_phone": false,
+              "payment_status": "paid",
+              "currency": "EUR",
+              "amount_minor": 5995
+            },
+            "state_changed": false,
+            "production_verified": false
+          }
+        }
+      }
+    },
+    {
+      "label": "probe_does_not_qualify",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3565-7242-acf7-96a8c1c70015"
+        },
+        "json": {
+          "data": {
+            "status": "limited",
+            "quality_gates": {
+              "authorization_verified": false,
+              "store_identity_matches": false,
+              "genuine_order_observed": false,
+              "mandatory_fields_mapped": false,
+              "payment_verified": false,
+              "duplicate_processing_prevented": false,
+              "changes_refunds_recoverable": false
+            },
+            "missing_gates": [
+              "authorization_verified",
+              "store_identity_matches",
+              "genuine_order_observed",
+              "mandatory_fields_mapped",
+              "payment_verified",
+              "duplicate_processing_prevented",
+              "changes_refunds_recoverable"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "next_action": "complete_connection_verification"
+          }
+        }
+      }
+    },
+    {
+      "label": "native_first",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3847-73c4-8d9f-f091624a0c87"
+        },
+        "json": {
+          "data": {
+            "status": "limited",
+            "quality_gates": {
+              "authorization_verified": true,
+              "store_identity_matches": true,
+              "genuine_order_observed": true,
+              "mandatory_fields_mapped": true,
+              "payment_verified": true,
+              "duplicate_processing_prevented": false,
+              "changes_refunds_recoverable": false
+            },
+            "missing_gates": [
+              "duplicate_processing_prevented",
+              "changes_refunds_recoverable"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "next_action": "complete_connection_verification"
+          }
+        }
+      }
+    },
+    {
+      "label": "native_duplicate",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3ab8-724f-9533-97c07bec3186"
+        },
+        "json": {
+          "data": {
+            "status": "limited",
+            "quality_gates": {
+              "authorization_verified": true,
+              "store_identity_matches": true,
+              "genuine_order_observed": true,
+              "mandatory_fields_mapped": true,
+              "payment_verified": true,
+              "duplicate_processing_prevented": true,
+              "changes_refunds_recoverable": false
+            },
+            "missing_gates": [
+              "changes_refunds_recoverable"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "next_action": "complete_connection_verification"
+          }
+        }
+      }
+    },
+    {
+      "label": "refund_recovered",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3d29-73c7-a14c-91fd9700bb92"
+        },
+        "json": {
+          "data": {
+            "status": "limited",
+            "quality_gates": {
+              "authorization_verified": true,
+              "store_identity_matches": true,
+              "genuine_order_observed": true,
+              "mandatory_fields_mapped": true,
+              "payment_verified": true,
+              "duplicate_processing_prevented": false,
+              "changes_refunds_recoverable": true
+            },
+            "missing_gates": [
+              "duplicate_processing_prevented"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "next_action": "complete_connection_verification"
+          }
+        }
+      }
+    },
+    {
+      "label": "all_gates",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3f77-70ee-bf97-61ebadaa783c"
+        },
+        "json": {
+          "data": {
+            "status": "connected",
+            "quality_gates": {
+              "authorization_verified": true,
+              "store_identity_matches": true,
+              "genuine_order_observed": true,
+              "mandatory_fields_mapped": true,
+              "payment_verified": true,
+              "duplicate_processing_prevented": true,
+              "changes_refunds_recoverable": true
+            },
+            "missing_gates": [],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [],
+            "next_action": null
+          }
+        }
+      }
+    },
+    {
+      "label": "connected_show",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc",
+        "json": null
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3fa1-7334-98f6-6f03dfba4733"
+        },
+        "json": {
+          "data": {
+            "id": "01m6238cmfns7j6w5cshgj5nfc",
+            "platform": "woocommerce",
+            "method": "webhook",
+            "status": "connected",
+            "external_shop_ref": "https://fietsen-utrecht.nl",
+            "limitations": [],
+            "last_event_at": "2026-10-28T20:29:35+00:00",
+            "last_verified_order_at": "2026-10-28T20:29:38+00:00",
+            "connected_at": "2026-10-28T20:29:39+00:00",
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T20:29:35+00:00",
+            "setup": {
+              "format": "woocommerce-webhooks",
+              "webhook_url": "<REDACTED>",
+              "read_api_configured": true,
+              "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+              "steps": [
+                "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+                "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+                "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+                "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "native_history",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/events",
+        "json": null
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-3fc7-7357-9b47-8cc1b01abfdf"
+        },
+        "json": {
+          "data": [
+            {
+              "id": "01m6238f6wfz37k2wgskatkded",
+              "topic": "native.order.read",
+              "status": "processed",
+              "delivery_count": 2,
+              "result": {
+                "kind": "order",
+                "complete": true,
+                "missing_fields": [],
+                "has_phone": false,
+                "payment_status": "partially_refunded",
+                "currency": "EUR",
+                "amount_minor": 5995,
+                "ingested": true,
+                "order_id": "01m6238d3qspt4xn480tfwtdw3",
+                "change": "payment_changed",
+                "native_external_order_id": "4711",
+                "native_payment_evidence": true,
+                "native_change_recovered": true
+              },
+              "error_code": null,
+              "received_at": "2026-10-28T20:29:38+00:00",
+              "processed_at": "2026-10-28T20:29:38+00:00"
+            },
+            {
+              "id": "01m6238dzhs2tgr8w1z6nn90ek",
+              "topic": "native.order.read",
+              "status": "processed",
+              "delivery_count": 2,
+              "result": {
+                "kind": "order",
+                "complete": true,
+                "missing_fields": [],
+                "has_phone": false,
+                "payment_status": "paid",
+                "currency": "EUR",
+                "amount_minor": 5995,
+                "ingested": true,
+                "order_id": "01m6238d3qspt4xn480tfwtdw3",
+                "change": "updated",
+                "native_external_order_id": "4711",
+                "native_payment_evidence": true,
+                "native_change_recovered": false
+              },
+              "error_code": null,
+              "received_at": "2026-10-28T20:29:37+00:00",
+              "processed_at": "2026-10-28T20:29:37+00:00"
+            },
+            {
+              "id": "01m6238cp3j5wy4q1fexetwn54",
+              "topic": "order.created",
+              "status": "processed",
+              "delivery_count": 1,
+              "result": {
+                "kind": "order",
+                "complete": true,
+                "missing_fields": [],
+                "has_phone": false,
+                "payment_status": "paid",
+                "currency": "EUR",
+                "amount_minor": 5995,
+                "ingested": true,
+                "order_id": "01m6238d3qspt4xn480tfwtdw3",
+                "change": "created"
+              },
+              "error_code": null,
+              "received_at": "2026-10-28T20:29:35+00:00",
+              "processed_at": "2026-10-28T20:29:36+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "store_switch_rejected",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/credentials",
+        "json": {
+          "store_url": "https://fietsen-utrecht.nl/other-store",
+          "consumer_key": "<REDACTED>",
+          "consumer_secret": "<REDACTED>"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "X-Request-Id": "01a18434-3fed-729d-9d05-45e7e2c7e9e1",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 409,
+            "code": "provider_store_change_requires_review",
+            "message": "Changing the provider store after orders exist requires a reviewed migration.",
+            "request_id": "01a18434-3fed-729d-9d05-45e7e2c7e9e1"
+          }
+        }
+      }
+    },
+    {
+      "label": "auth_failure",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-424f-7132-be61-816e069f2c05"
+        },
+        "json": {
+          "data": {
+            "status": "limited",
+            "quality_gates": {
+              "authorization_verified": false,
+              "store_identity_matches": false,
+              "genuine_order_observed": false,
+              "mandatory_fields_mapped": false,
+              "payment_verified": false,
+              "duplicate_processing_prevented": false,
+              "changes_refunds_recoverable": false
+            },
+            "missing_gates": [
+              "authorization_verified",
+              "store_identity_matches",
+              "genuine_order_observed",
+              "mandatory_fields_mapped",
+              "payment_verified",
+              "duplicate_processing_prevented",
+              "changes_refunds_recoverable"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": true,
+              "order_received": true,
+              "mandatory_fields_present": true,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "next_action": "complete_connection_verification"
+          }
+        }
+      }
+    },
+    {
+      "label": "failed_show",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc",
+        "json": null
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-4277-73c8-a47d-7bc996f8ffc3"
+        },
+        "json": {
+          "data": {
+            "id": "01m6238cmfns7j6w5cshgj5nfc",
+            "platform": "woocommerce",
+            "method": "webhook",
+            "status": "limited",
+            "external_shop_ref": "https://fietsen-utrecht.nl",
+            "limitations": [
+              "connection_quality_gates_pending"
+            ],
+            "last_event_at": "2026-10-28T20:29:35+00:00",
+            "last_verified_order_at": "2026-10-28T20:29:38+00:00",
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": {
+              "code": "provider_authentication_failed",
+              "at": "2026-10-28T20:29:39+00:00"
+            },
+            "created_at": "2026-10-28T20:29:35+00:00",
+            "setup": {
+              "format": "woocommerce-webhooks",
+              "webhook_url": "<REDACTED>",
+              "read_api_configured": true,
+              "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+              "steps": [
+                "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+                "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+                "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+                "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "rotate",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/credentials",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-429b-72b5-8f6c-840f0c6eb9c1"
+        },
+        "json": {
+          "data": {
+            "id": "01m6238cmfns7j6w5cshgj5nfc",
+            "platform": "woocommerce",
+            "method": "webhook",
+            "status": "setup_required",
+            "external_shop_ref": "https://fietsen-utrecht.nl",
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T20:29:35+00:00",
+            "setup": {
+              "format": "woocommerce-webhooks",
+              "webhook_url": "<REDACTED>",
+              "read_api_configured": false,
+              "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+              "steps": [
+                "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+                "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+                "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+                "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+              ]
+            },
+            "secrets": {
+              "webhook_secret": "<REDACTED>"
+            },
+            "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."
+          }
+        }
+      }
+    },
+    {
+      "label": "rotation_clears_gates",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-42c9-724b-a2da-b125c098ef2a"
+        },
+        "json": {
+          "data": {
+            "status": "setup_required",
+            "quality_gates": {
+              "authorization_verified": false,
+              "store_identity_matches": false,
+              "genuine_order_observed": false,
+              "mandatory_fields_mapped": false,
+              "payment_verified": false,
+              "duplicate_processing_prevented": false,
+              "changes_refunds_recoverable": false
+            },
+            "missing_gates": [
+              "authorization_verified",
+              "store_identity_matches",
+              "genuine_order_observed",
+              "mandatory_fields_mapped",
+              "payment_verified",
+              "duplicate_processing_prevented",
+              "changes_refunds_recoverable"
+            ],
+            "checks": {
+              "credentials_configured": true,
+              "event_received": false,
+              "order_received": false,
+              "mandatory_fields_present": false,
+              "phone_available": false,
+              "webshop_ownership_verified": true
+            },
+            "missing_fields": [],
+            "limitations": [],
+            "next_action": "configure_webhook"
+          }
+        }
+      }
+    },
+    {
+      "label": "storage_error",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify",
+        "json": {}
+      },
+      "response": {
+        "status": 500,
+        "headers": {
+          "X-Request-Id": "01a18434-447e-71d9-9222-d0a5011e4b6a",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 500,
+            "code": "server_error",
+            "message": "An unexpected error occurred.",
+            "request_id": "01a18434-447e-71d9-9222-d0a5011e4b6a"
+          }
+        }
+      }
+    },
+    {
+      "label": "unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc",
+        "json": null
+      },
+      "response": {
+        "status": 401,
+        "headers": {
+          "X-Request-Id": "01a18434-4678-714d-badf-b133c7940883",
+          "Content-Type": "application/json"
+        },
+        "json": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a18434-4678-714d-badf-b133c7940883"
+          }
+        }
+      }
+    },
+    {
+      "label": "generic_setup",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections",
+        "json": {
+          "platform": "prestashop"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-469d-72d2-9a56-9df73562e6ac"
+        },
+        "json": {
+          "data": {
+            "id": "01m6238hnfw1kg8wvs0pgj401a",
+            "platform": "prestashop",
+            "method": "private_module",
+            "status": "setup_required",
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T20:29:40+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "<REDACTED>",
+              "steps": [
+                "A compatible merchant-side module is required. This backend does not include an installable module.",
+                "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
+                "Place a real test order. The connection remains Limited until all seven provider verification checks pass."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1"
+            },
+            "secrets": {
+              "signing_secret": "<REDACTED>"
+            },
+            "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."
+          }
+        }
+      }
+    },
+    {
+      "label": "shopify_setup",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections",
+        "json": {
+          "platform": "shopify",
+          "shop_domain": "fietsen.myshopify.com",
+          "signing_secret": "<REDACTED>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Request-Id": "01a18434-46c9-735a-afdb-809e41cbbf91"
+        },
+        "json": {
+          "data": {
+            "id": "01m6238hpwq9hn5fsrr60j5ctz",
+            "platform": "shopify",
+            "method": "webhook",
+            "status": "setup_required",
+            "external_shop_ref": "fietsen.myshopify.com",
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-10-28T20:29:40+00:00",
+            "setup": {
+              "format": "shopify-webhooks",
+              "webhook_url": "<REDACTED>",
+              "shop_domain": "fietsen.myshopify.com",
+              "read_api_configured": false,
+              "read_api_notice": "Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.",
+              "steps": [
+                "In Shopify admin open Settings \u2192 Notifications \u2192 Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.",
+                "Copy the signing secret shown on that page into this connection.",
+                "Place a genuine paid test order. Missing customer details keep the connection Limited. Connected requires all seven provider verification checks."
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -110,7 +110,7 @@ class ConnectionsAndWebhooksTest extends TestCase
         $this->postJson($this->url('/connections'), ['platform' => 'woocommerce'])->assertStatus(409)->assertJsonPath('error.code', 'connection_exists');
     }
 
-    public function test_card1_e2e1_woocommerce_verified_order_connects_and_is_processed_once(): void
+    public function test_card1_e2e1_woocommerce_verified_order_requires_quality_gates_and_is_processed_once(): void
     {
         Event::fake([OrderEventVerified::class]);
         [$connection, $secret, $path] = $this->connect();
@@ -120,8 +120,8 @@ class ConnectionsAndWebhooksTest extends TestCase
             ->assertStatus(202)->assertJsonPath('data.received', true)->assertJsonPath('data.duplicate', false);
 
         $connection->refresh();
-        $this->assertSame(ConnectionStatus::Connected, $connection->status);
-        $this->assertNotNull($connection->connected_at);
+        $this->assertSame(ConnectionStatus::Limited, $connection->status);
+        $this->assertNull($connection->connected_at);
         $event = WebhookEvent::sole();
         $this->assertSame(WebhookEventStatus::Processed, $event->status);
         $this->assertTrue($event->result['complete']);
@@ -195,10 +195,10 @@ class ConnectionsAndWebhooksTest extends TestCase
         $this->assertSame('additional_integration_required', $checklist['next_action']);
         $this->assertEqualsCanonicalizing(['first_name', 'email'], $checklist['missing_fields']);
 
-        // A later complete order upgrades it.
+        // A later complete webhook fixes mapping, but cannot bypass native quality gates.
         $full = json_encode($this->shopifyOrder());
         $this->postWebhook($path, $full, $this->shopifyHeaders($full, 'shpss_merchant_secret_1', 'w-2'))->assertStatus(202);
-        $this->assertSame(ConnectionStatus::Connected, $connection->fresh()->status);
+        $this->assertSame(ConnectionStatus::Limited, $connection->fresh()->status);
     }
 
     public function test_shopify_connect_validates_merchant_supplied_credentials(): void
@@ -212,7 +212,7 @@ class ConnectionsAndWebhooksTest extends TestCase
         [$connection, $old, $path] = $this->connect('prestashop');
         $body = json_encode($this->genericOrder());
         $this->postWebhook($path, $body, $this->genericHeaders($body, $old, 'e-1'))->assertStatus(202);
-        $this->assertSame(ConnectionStatus::Connected, $connection->fresh()->status);
+        $this->assertSame(ConnectionStatus::Limited, $connection->fresh()->status);
 
         $new = $this->postJson($this->url("/connections/{$connection->public_id}/credentials"))->assertOk()->json('data.secrets.signing_secret');
         $this->assertNotSame($old, $new);

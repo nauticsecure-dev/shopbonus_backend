@@ -713,3 +713,15 @@ B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; 
 - [x] Commit/push B23c `aa316ec741c94fa9dddf967c37bad3ea3990db12`; CI40679706982 SUCCESS all3jobs: SQLite778pass+23skip/10030assertions/49.40s and MySQL799pass+2skip/10113assertions/197.56s (801each).
 
 B23c local: focused69tests556assertions both drivers; full SQLite801total778pass+23skip/10029assertions/53.878s, MySQL801total799pass+2skip/10112assertions/244.766s PASS. Pint/PHPStan/audit/API contract/migration down-up PASS. Implementation `aa316ec741c94fa9dddf967c37bad3ea3990db12` and CI40679706982 verified all3SUCCESS; whole #31 IN_PROGRESS.
+
+### B23d — seven-gate readiness and durable authenticated single-order recovery
+- [x] Store generation/domain-bound durable recovery requests with bounded leases/attempts, fixed native connector reads outside database locks, resumable staged ingestion and stable native-event dedupe.
+- [x] Reuse canonical order/refund/contact pipeline; stale generation/domain/lease cannot stage or promote; failures stay explicit and signed webhook/native sources remain distinct.
+- [x] Replace complete-webhook Connected promotion with seven independently evidenced gates: authentication, store identity, genuine order, required mapping, payment proof, observed duplicate prevention and successful native change/refund recovery.
+- [x] Operator-only recovery command and bounded scheduled drain, no new public mutation route, no automatic arbitrary provider calls; passive test-api contract unchanged.
+- [x] Current verification API exposes truthful gates; migrate legacy Connected status to unverified Limited without inventing proof. Execute security/replay/failure/rotation/recovery tests, actual HTTP examples, both driver suites/quality/migration proof.
+- [x] Preserve exact provider store reference alongside verified domain/generation; unknown historical references cannot qualify and changed references invalidate staged proof.
+
+- [ ] Commit/push B23d implementation and verify exact-code remote CI; record SHA/counts in closeout.
+
+B23d final post-MIME8.1.10 local evidence: SQLite814total791pass+23skip/10118assertions/122.057s; MySQL814total812pass+2skip/10201assertions/369.908s PASS sequentially. Final targeted recovery13tests87assertions both drivers; current API contract3tests3694assertions;20actual HTTP captures/redaction, dual-driver full-schema migration down/up twice, Pint/PHPStan/composer validate/audit/diff PASS. Only symfony/mime patched8.1.7→8.1.10 for current audit. Implementation SHA/CI follows; whole #31 remains IN_PROGRESS.

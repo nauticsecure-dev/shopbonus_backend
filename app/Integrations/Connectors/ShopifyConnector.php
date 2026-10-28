@@ -71,7 +71,7 @@ class ShopifyConnector extends WebhookConnector
             'steps' => [
                 'In Shopify admin open Settings → Notifications → Webhooks and create webhooks (JSON) for "Order creation", "Order payment", "Order update" and "Order cancellation" to the webhook URL.',
                 'Copy the signing secret shown on that page into this connection.',
-                'Place a genuine paid test order. Shopify may hide customer details; if so the connection shows "Connected with limitations" until protected customer data access is arranged.',
+                'Place a genuine paid test order. Missing customer details keep the connection Limited. Connected requires all seven provider verification checks.',
             ],
         ];
     }

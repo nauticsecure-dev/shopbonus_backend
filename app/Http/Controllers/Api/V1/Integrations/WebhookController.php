@@ -65,6 +65,7 @@ class WebhookController extends Controller
             }
             try {
                 $stored = WebhookEvent::create([
+                    'source_method' => 'webhook',
                     'credential_generation' => $current->credential_generation,
                     'connection_id' => $connection->id,
                     'webshop_id' => $connection->webshop_id,

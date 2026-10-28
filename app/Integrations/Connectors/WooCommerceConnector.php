@@ -86,7 +86,7 @@ class WooCommerceConnector extends WebhookConnector
                 'In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.',
                 'Create two webhooks, topics "Order created" and "Order updated", status Active, API version WP REST API Integration v3.',
                 'Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.',
-                'Save, then place a real paid test order.',
+                'Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass.',
             ],
         ];
     }

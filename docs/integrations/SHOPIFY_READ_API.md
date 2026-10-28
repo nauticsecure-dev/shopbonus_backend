@@ -1,5 +1,7 @@
 # Shopify read API — B23b / #31
 
+> Current status policy is documented in [READINESS_AND_RECOVERY.md](READINESS_AND_RECOVERY.md): all seven native gates are required for Connected. Earlier checkpoint limitations below are historical.
+
 This checkpoint extends the existing Shopify webhook connector and the existing managed API test route. It implements native reads, not OAuth installation, token refresh, discount writes, banner publication, automatic ingestion or full connection readiness. No live store has been verified; `last_live_verified_at` remains null. The senior developer configures approved credentials locally. Existing webhook-only connections remain valid without an access token.
 
 An optional `access_token` is encrypted with the existing connection credentials. Creation and credential replacement still require `shop_domain` and `signing_secret`. Supplied credentials are never returned. An app token is sent only in `X-Shopify-Access-Token` to the exact configured `*.myshopify.com` host over pinned HTTPS at `/admin/api/2026-10/graphql.json`. The response version header must match the reviewed version. The shared transport uses public-address DNS checks, address pinning, verified TLS, no redirect/proxy/retry, an eight-second deadline and a 1 MiB response cap. HTTP 429 and GraphQL HTTP-200 `THROTTLED` errors pause credential-bound requests; network/server failures open a bounded circuit. cURL is now an explicit Composer platform requirement.

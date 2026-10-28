@@ -2,6 +2,9 @@
 
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
 
+
+Current connection policy: `Connected` requires all seven native verification gates. Complete webhooks and passive API probes stay `Limited`; see [B23d readiness and recovery](../integrations/READINESS_AND_RECOVERY.md). Earlier checkpoint captures below are historical.
+
 ## Documentation rule (mandatory for every agent)
 
 1. Every route under `/api/v1` must have an entry in `openapi.yaml` and in this file. `tests/Feature/Api/OpenApiCoverageTest.php` fails the build if a route is missing, has no example request (`x-codeSamples`), or has a response without an example.
@@ -14169,6 +14172,524 @@ Actual response 404:
     "code": "not_found",
     "message": "The requested resource was not found.",
     "request_id": "01a1823c-4147-70c6-a293-ffd8ea2d0312"
+  }
+}
+```
+
+
+## B23d — current seven-gate readiness and native single-order recovery
+
+Captured from an actual PHP HTTP server, isolated SQLite/database cache/file sessions/normal login+CSRF; array mail/database queue. Provider HTTP/DNS are synthetic. The actual operator command and canonical processor were invoked by the fixture worker. No live provider/production acceptance. Base `63d963c` plus B23d worktree. [Raw captures and operator outcomes](../integrations/B23_READINESS_HTTP_CAPTURE.json); [gate definitions/command/rollout](../integrations/READINESS_AND_RECOVERY.md). Schema500 is an isolated table-rename fault. These current examples supersede prior connected-from-webhook examples.
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — webhook_is_limited
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "limited",
+    "quality_gates": {
+      "authorization_verified": false,
+      "store_identity_matches": false,
+      "genuine_order_observed": false,
+      "mandatory_fields_mapped": false,
+      "payment_verified": false,
+      "duplicate_processing_prevented": false,
+      "changes_refunds_recoverable": false
+    },
+    "missing_gates": [
+      "authorization_verified",
+      "store_identity_matches",
+      "genuine_order_observed",
+      "mandatory_fields_mapped",
+      "payment_verified",
+      "duplicate_processing_prevented",
+      "changes_refunds_recoverable"
+    ],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [
+      "connection_quality_gates_pending"
+    ],
+    "next_action": "complete_connection_verification"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — native_first
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "limited",
+    "quality_gates": {
+      "authorization_verified": true,
+      "store_identity_matches": true,
+      "genuine_order_observed": true,
+      "mandatory_fields_mapped": true,
+      "payment_verified": true,
+      "duplicate_processing_prevented": false,
+      "changes_refunds_recoverable": false
+    },
+    "missing_gates": [
+      "duplicate_processing_prevented",
+      "changes_refunds_recoverable"
+    ],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [
+      "connection_quality_gates_pending"
+    ],
+    "next_action": "complete_connection_verification"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — native_duplicate
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "limited",
+    "quality_gates": {
+      "authorization_verified": true,
+      "store_identity_matches": true,
+      "genuine_order_observed": true,
+      "mandatory_fields_mapped": true,
+      "payment_verified": true,
+      "duplicate_processing_prevented": true,
+      "changes_refunds_recoverable": false
+    },
+    "missing_gates": [
+      "changes_refunds_recoverable"
+    ],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [
+      "connection_quality_gates_pending"
+    ],
+    "next_action": "complete_connection_verification"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — refund_recovered
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "limited",
+    "quality_gates": {
+      "authorization_verified": true,
+      "store_identity_matches": true,
+      "genuine_order_observed": true,
+      "mandatory_fields_mapped": true,
+      "payment_verified": true,
+      "duplicate_processing_prevented": false,
+      "changes_refunds_recoverable": true
+    },
+    "missing_gates": [
+      "duplicate_processing_prevented"
+    ],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [
+      "connection_quality_gates_pending"
+    ],
+    "next_action": "complete_connection_verification"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — all_gates
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "connected",
+    "quality_gates": {
+      "authorization_verified": true,
+      "store_identity_matches": true,
+      "genuine_order_observed": true,
+      "mandatory_fields_mapped": true,
+      "payment_verified": true,
+      "duplicate_processing_prevented": true,
+      "changes_refunds_recoverable": true
+    },
+    "missing_gates": [],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [],
+    "next_action": null
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc` — connected_show
+
+Request body (normal SPA session/CSRF):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m6238cmfns7j6w5cshgj5nfc",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "connected",
+    "external_shop_ref": "https://fietsen-utrecht.nl",
+    "limitations": [],
+    "last_event_at": "2026-10-28T20:29:35+00:00",
+    "last_verified_order_at": "2026-10-28T20:29:38+00:00",
+    "connected_at": "2026-10-28T20:29:39+00:00",
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T20:29:35+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "<REDACTED>",
+      "read_api_configured": true,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+      ]
+    }
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/credentials` — store_switch_rejected
+
+Request body (normal SPA session/CSRF):
+
+```json
+{
+  "store_url": "https://fietsen-utrecht.nl/other-store",
+  "consumer_key": "<REDACTED>",
+  "consumer_secret": "<REDACTED>"
+}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "provider_store_change_requires_review",
+    "message": "Changing the provider store after orders exist requires a reviewed migration.",
+    "request_id": "01a18434-3fed-729d-9d05-45e7e2c7e9e1"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — auth_failure
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "limited",
+    "quality_gates": {
+      "authorization_verified": false,
+      "store_identity_matches": false,
+      "genuine_order_observed": false,
+      "mandatory_fields_mapped": false,
+      "payment_verified": false,
+      "duplicate_processing_prevented": false,
+      "changes_refunds_recoverable": false
+    },
+    "missing_gates": [
+      "authorization_verified",
+      "store_identity_matches",
+      "genuine_order_observed",
+      "mandatory_fields_mapped",
+      "payment_verified",
+      "duplicate_processing_prevented",
+      "changes_refunds_recoverable"
+    ],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [
+      "connection_quality_gates_pending"
+    ],
+    "next_action": "complete_connection_verification"
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc` — failed_show
+
+Request body (normal SPA session/CSRF):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m6238cmfns7j6w5cshgj5nfc",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "limited",
+    "external_shop_ref": "https://fietsen-utrecht.nl",
+    "limitations": [
+      "connection_quality_gates_pending"
+    ],
+    "last_event_at": "2026-10-28T20:29:35+00:00",
+    "last_verified_order_at": "2026-10-28T20:29:38+00:00",
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": {
+      "code": "provider_authentication_failed",
+      "at": "2026-10-28T20:29:39+00:00"
+    },
+    "created_at": "2026-10-28T20:29:35+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "<REDACTED>",
+      "read_api_configured": true,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+      ]
+    }
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/credentials` — rotate
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m6238cmfns7j6w5cshgj5nfc",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "https://fietsen-utrecht.nl",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T20:29:35+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "<REDACTED>",
+      "read_api_configured": false,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+      ]
+    },
+    "secrets": {
+      "webhook_secret": "<REDACTED>"
+    },
+    "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — rotation_clears_gates
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "setup_required",
+    "quality_gates": {
+      "authorization_verified": false,
+      "store_identity_matches": false,
+      "genuine_order_observed": false,
+      "mandatory_fields_mapped": false,
+      "payment_verified": false,
+      "duplicate_processing_prevented": false,
+      "changes_refunds_recoverable": false
+    },
+    "missing_gates": [
+      "authorization_verified",
+      "store_identity_matches",
+      "genuine_order_observed",
+      "mandatory_fields_mapped",
+      "payment_verified",
+      "duplicate_processing_prevented",
+      "changes_refunds_recoverable"
+    ],
+    "checks": {
+      "credentials_configured": true,
+      "event_received": false,
+      "order_received": false,
+      "mandatory_fields_present": false,
+      "phone_available": false,
+      "webshop_ownership_verified": true
+    },
+    "missing_fields": [],
+    "limitations": [],
+    "next_action": "configure_webhook"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/verify` — storage_error
+
+Request body (normal SPA session/CSRF):
+
+```json
+{}
+```
+
+Actual response 500:
+
+```json
+{
+  "error": {
+    "status": 500,
+    "code": "server_error",
+    "message": "An unexpected error occurred.",
+    "request_id": "01a18434-447e-71d9-9222-d0a5011e4b6a"
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc` — unauthenticated
+
+Request body (normal SPA session/CSRF):
+
+```json
+null
+```
+
+Actual response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a18434-4678-714d-badf-b133c7940883"
   }
 }
 ```

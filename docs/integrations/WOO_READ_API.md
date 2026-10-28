@@ -1,5 +1,7 @@
 # #31 B23a — WooCommerce native read API
 
+> Current status policy is documented in [READINESS_AND_RECOVERY.md](READINESS_AND_RECOVERY.md): all seven native gates are required for Connected. Earlier checkpoint limitations below are historical.
+
 2026-10-28. This boundary extends the existing WooCommerceConnector, ConnectorRegistry, connection endpoints and audit/security machinery. It is not a second order engine. #31 remains IN_PROGRESS: Shopify/native remaining providers, durable recovery and connection quality gates still need implementation; real provider/storefront acceptance is NOT RUN.
 
 ## What exists and what changed

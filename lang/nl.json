@@ -120,5 +120,6 @@
     "The provider has not proved the required read scopes.": "De aanbieder heeft de vereiste leesrechten niet bevestigd.",
     "The provider API version differs from the reviewed version.": "De API-versie van de aanbieder verschilt van de gecontroleerde versie.",
     "The provider GraphQL read failed or required protected data is unavailable.": "Het GraphQL-leesverzoek is mislukt of de vereiste beschermde gegevens zijn niet beschikbaar.",
-    "The connection changed while accepting the event. Retry with its current configuration.": "De verbinding is gewijzigd tijdens het ontvangen van de gebeurtenis. Probeer het opnieuw met de huidige configuratie."
+    "The connection changed while accepting the event. Retry with its current configuration.": "De verbinding is gewijzigd tijdens het ontvangen van de gebeurtenis. Probeer het opnieuw met de huidige configuratie.",
+    "Changing the provider store after orders exist requires a reviewed migration.": "Het wijzigen van de platformwinkel nadat bestellingen bestaan vereist een gecontroleerde migratie."
 }

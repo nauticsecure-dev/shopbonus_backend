@@ -1,0 +1,29 @@
+{
+    "environment": "Isolated full schemas\/synthetic records; no main rollback",
+    "results": [
+        {
+            "driver": "sqlite",
+            "full_schema": true,
+            "target_160000_170000_down_up_twice": true,
+            "legacy_connected_downgraded": "limited",
+            "existing_limit_preserved": true,
+            "unknown_source_stays_null": true,
+            "unknown_provider_reference_stays_null": true,
+            "qualified_connection_invalidated_on_reference_rollback": true,
+            "encrypted_payload_preserved": true,
+            "rollback_does_not_invent_connected": true
+        },
+        {
+            "driver": "mysql",
+            "full_schema": true,
+            "target_160000_170000_down_up_twice": true,
+            "legacy_connected_downgraded": "limited",
+            "existing_limit_preserved": true,
+            "unknown_source_stays_null": true,
+            "unknown_provider_reference_stays_null": true,
+            "qualified_connection_invalidated_on_reference_rollback": true,
+            "encrypted_payload_preserved": true,
+            "rollback_does_not_invent_connected": true
+        }
+    ]
+}

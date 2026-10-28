@@ -83,7 +83,7 @@ class CredentialLifecycleTest extends TestCase
     {
         $event = $this->receive();
         $this->process($event);
-        $this->assertSame(ConnectionStatus::Connected, $this->connection->fresh()->status);
+        $this->assertSame(ConnectionStatus::Limited, $this->connection->fresh()->status);
         $this->postJson($this->url.'/verify')->assertOk()->assertJsonPath('data.checks.order_received', true);
         $old = $this->connection->fresh();
         $this->postJson($this->url.'/credentials')->assertOk();

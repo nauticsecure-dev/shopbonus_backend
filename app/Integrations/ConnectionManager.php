@@ -9,6 +9,7 @@ use App\Enums\WebhookEventStatus;
 use App\Exceptions\ApiException;
 use App\Models\WebshopConnection;
 use App\Models\WebshopMembership;
+use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
 /**
  * Creates, re-keys and disconnects webshop connections (Trello #1
  * "ConnectionManager"). Saving credentials never makes a connection
- * `connected`; only a verified real order does (ProcessWebhookEvent).
+ * `connected`; all seven native evidence gates must pass.
  */
 class ConnectionManager
 {
@@ -78,7 +79,12 @@ class ConnectionManager
         return DB::transaction(function () use ($connection, $connector, $data) {
             $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
             $this->assertNotDisconnected($current);
+            $originalStore = $current->external_shop_ref;
             $current->credentials = $connector->connect($current, $data);
+            if ($originalStore !== null && $current->external_shop_ref !== $originalStore
+                && WebshopOrder::where('webshop_id', $current->webshop_id)->where('platform', $current->platform->value)->exists()) {
+                throw ApiException::conflict('Changing the provider store after orders exist requires a reviewed migration.', 'provider_store_change_requires_review');
+            }
             $current->forceFill([
                 'credential_generation' => $current->credential_generation + 1,
                 'status' => ConnectionStatus::SetupRequired, 'limitations' => null,
@@ -135,8 +141,12 @@ class ConnectionManager
                 'webshop_ownership_verified' => $connection->webshop->isOwnershipVerified(),
             ];
 
+            $gates = app(ConnectionReadiness::class)->gates($connection);
+
             return [
                 'status' => $connection->status->value,
+                'quality_gates' => $gates,
+                'missing_gates' => array_keys(array_filter($gates, fn ($passed) => ! $passed)),
                 'checks' => $items,
                 'missing_fields' => $result['missing_fields'] ?? [],
                 'limitations' => $connection->limitations ?? [],
@@ -145,6 +155,7 @@ class ConnectionManager
                     ! $items['order_received'] => 'place_test_order',
                     ! $items['mandatory_fields_present'] => 'additional_integration_required',
                     ! $items['webshop_ownership_verified'] => 'verify_ownership',
+                    in_array(false, $gates, true) => 'complete_connection_verification',
                     default => null,
                 },
             ];

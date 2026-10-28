@@ -7,11 +7,15 @@ use App\Enums\ConnectionStatus;
 use App\Enums\WebhookEventStatus;
 use App\Events\OrderEventVerified;
 use App\Events\RefundEventVerified;
+use App\Integrations\ConnectionReadiness;
 use App\Integrations\ConnectorRegistry;
-use App\Integrations\Data\NormalizedOrder;
+use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
+use App\Integrations\OrderRecovery;
+use App\Models\IntegrationOrderRecovery;
 use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
+use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Processes one verified webhook event exactly once (status guard under
  * row lock). Connection status moves on observed evidence only:
- * a verified ping → testing; a verified complete order → connected;
+ * a verified ping → testing; only all seven native-evidence gates → connected;
  * an incomplete first order → limited (additional integration required).
  */
 class ProcessWebhookEvent implements ShouldQueue
@@ -65,6 +69,15 @@ class ProcessWebhookEvent implements ShouldQueue
                 return;
             }
 
+            $native = $event->source_method === 'native_api';
+            $recovery = $native ? IntegrationOrderRecovery::where('webhook_event_id', $event->id)
+                ->where('credential_generation', $connection->credential_generation)->oldest('id')->first() : null;
+            if ($native && ($recovery === null || ! app(OrderRecovery::class)->matches($recovery, $connection))) {
+                $this->finish($event, WebhookEventStatus::Ignored, ['kind' => $kind], 'connection_changed');
+
+                return;
+            }
+
             if ($kind === VerifiedEvent::KIND_PING) {
                 if ($connection->status === ConnectionStatus::SetupRequired) {
                     $connection->forceFill(['status' => ConnectionStatus::Testing])->save();
@@ -101,31 +114,36 @@ class ProcessWebhookEvent implements ShouldQueue
             }
 
             $order = $connector->normalizeOrder($payload);
-            $this->updateConnection($connection, $order, $audit);
+            $stored = $native ? WebshopOrder::where('webshop_id', $connection->webshop_id)->where('platform', $connection->platform->value)
+                ->where('external_order_id', $order->externalId)->lockForUpdate()->first() : null;
+            $before = $stored === null ? null : $this->financialSnapshot($stored);
+            $oldAt = $stored?->provider_updated_at;
             $this->finish($event, WebhookEventStatus::Processed, $order->summary());
-
             OrderEventVerified::dispatch($event, $connection, $order);
+            $event->refresh();
+            if ($native) {
+                $after = $stored?->fresh();
+                $changed = $before !== null && $after !== null && $oldAt !== null && $order->providerUpdatedAt !== null
+                    && $order->providerUpdatedAt->greaterThan($oldAt) && $before !== $this->financialSnapshot($after)
+                    && ($event->result['ingested'] ?? false) === true;
+                $event->forceFill(['result' => ($event->result ?? []) + [
+                    'native_external_order_id' => $order->externalId,
+                    'native_payment_evidence' => $order->paidAt !== null && in_array($order->paymentStatus,
+                        [PaymentStatus::Paid, PaymentStatus::PartiallyRefunded, PaymentStatus::Refunded], true),
+                    'native_change_recovered' => $changed,
+                ]])->save();
+                IntegrationOrderRecovery::where('webhook_event_id', $event->id)->where('credential_generation', $connection->credential_generation)
+                    ->where('status', 'staged')->update(['status' => 'succeeded', 'completed_at' => now()]);
+            }
+            $connection->forceFill(['last_verified_order_at' => now()])->save();
+            app(ConnectionReadiness::class)->refresh($connection);
         });
     }
 
-    private function updateConnection(WebshopConnection $connection, NormalizedOrder $order, AuditLogger $audit): void
+    /** @return array<mixed> */
+    private function financialSnapshot(WebshopOrder $order): array
     {
-        $attributes = ['last_verified_order_at' => now()];
-        $previous = $connection->status;
-
-        if ($order->isComplete() && $previous !== ConnectionStatus::Connected) {
-            $attributes += ['status' => ConnectionStatus::Connected, 'connected_at' => now(), 'limitations' => null];
-        } elseif (! $order->isComplete() && in_array($previous, [ConnectionStatus::SetupRequired, ConnectionStatus::Testing], true)) {
-            $attributes += ['status' => ConnectionStatus::Limited, 'limitations' => ['additional_integration_required']];
-        }
-
-        $connection->forceFill($attributes)->save();
-
-        if ($connection->status !== $previous) {
-            $audit->record('integration.status_changed', category: AuditCategory::Integration, resource: $connection,
-                webshopId: $connection->webshop_id,
-                metadata: ['from' => $previous->value, 'to' => $connection->status->value, 'missing_fields' => $order->missingFields()]);
-        }
+        return [$order->payment_status->value, $order->provider_status, $order->amount_minor, $order->refunded_minor, $order->currency];
     }
 
     /**
@@ -134,5 +152,32 @@ class ProcessWebhookEvent implements ShouldQueue
     private function finish(WebhookEvent $event, WebhookEventStatus $status, array $result, ?string $error = null): void
     {
         $event->forceFill(['status' => $status, 'result' => $result, 'error_code' => $error, 'processed_at' => now()])->save();
+        if ($status === WebhookEventStatus::Ignored) {
+            IntegrationOrderRecovery::where('webhook_event_id', $event->id)->where('status', 'staged')
+                ->update(['status' => 'superseded', 'last_error_code' => $error]);
+        }
+        if ($status === WebhookEventStatus::Failed) {
+            IntegrationOrderRecovery::where('webhook_event_id', $event->id)->where('status', 'staged')
+                ->update(['status' => 'failed', 'last_error_code' => $error]);
+        }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        DB::transaction(function () {
+            $candidate = WebhookEvent::find($this->eventId);
+            if ($candidate === null) {
+                return;
+            }
+            $c = WebshopConnection::with('webshop')->whereKey($candidate->connection_id)->lockForUpdate()->first();
+            $event = WebhookEvent::whereKey($candidate->id)->lockForUpdate()->first();
+            if ($c === null || $event === null || $event->status !== WebhookEventStatus::Verified) {
+                return;
+            }
+            $event->forceFill(['status' => WebhookEventStatus::Failed, 'error_code' => 'event_processing_failed'])->save();
+            IntegrationOrderRecovery::where('webhook_event_id', $event->id)->where('status', 'staged')
+                ->update(['status' => 'failed', 'last_error_code' => 'event_processing_failed']);
+            app(ConnectionReadiness::class)->refresh($c);
+        });
     }
 }
