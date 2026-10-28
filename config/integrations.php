@@ -23,6 +23,17 @@ return [
 
     'platforms' => [
         'woocommerce' => [
+            'profile' => [
+                'api_version' => 'wc/v3', 'reviewed_at' => '2026-10-28', 'last_live_verified_at' => null,
+                'native_read_api_implemented' => true, 'auth_method' => 'HTTPS HTTP Basic consumer key/secret; read-only merchant key',
+                'scopes' => ['read'], 'webhook_topics' => ['order.created', 'order.updated'],
+                'order_api' => 'GET /wp-json/wc/v3/orders/{id}', 'refund_api' => 'GET /wp-json/wc/v3/orders/{id}/refunds',
+                'product_api' => 'GET /wp-json/wc/v3/products', 'coupon_api' => 'GET /wp-json/wc/v3/coupons',
+                'banner_method' => 'manual; native WordPress publication/module not implemented',
+                'rate_limit_policy' => 'No redirects/retries;8second reads,1MiB body,100rows/page,5order pages;429cooldown/3failure circuit.',
+                'sources' => ['https://developer.woocommerce.com/docs/apis/rest-api/', 'https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/',
+                    'https://developer.woocommerce.com/docs/apis/rest-api/v3/order-refunds/', 'https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks/'],
+            ],
             'name' => 'WooCommerce', 'priority' => 'production',
             'connector' => WooCommerceConnector::class,
             'method' => 'webhook', 'auth' => 'shared secret (HMAC-SHA256, base64)',
@@ -30,6 +41,13 @@ return [
             'reliability' => 'high', 'limitations' => [], 'verification' => 'unverified',
         ],
         'shopify' => [
+            'profile' => [
+                'api_version' => '2026-10', 'reviewed_at' => '2026-10-28', 'last_live_verified_at' => null,
+                'native_read_api_implemented' => false, 'auth_method' => 'Signing secret only in current implementation; OAuth/GraphQL not yet implemented',
+                'scopes' => [], 'webhook_topics' => ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'refunds/create'],
+                'banner_method' => 'Theme App Extension requires separate implementation and merchant activation',
+                'sources' => ['https://shopify.dev/docs/api/admin-graphql/2026-10', 'https://shopify.dev/docs/apps/build/webhooks'],
+            ],
             'name' => 'Shopify', 'priority' => 'production',
             'connector' => ShopifyConnector::class,
             'method' => 'webhook', 'auth' => 'webhook signing secret (HMAC-SHA256, base64)',

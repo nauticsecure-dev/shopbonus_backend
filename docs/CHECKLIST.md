@@ -673,3 +673,21 @@ Main-code completion items: `b2ad156` (implementation), `64b1848` (bounded trave
 - [ ] Production-server/version/volume isolated restore plus full application/queue/provider-outage recovery drill, approved feasible RPO/RTO and cost.
 - [ ] Actual network cash settlement/accounting/legal/points conversion approval where applicable; no invented recognized revenue.
 - [ ] Whole-card UI/deployed/live acceptance; backend code alone does not mark the entire Trello card Done.
+
+## B23 — #31 provider engineering (started 2026-10-28)
+
+### B23a — existing adapter audit and WooCommerce read API
+- [x] Import/review full #31 and overlapping #32 requirements; audit real registry/adapters/status/ingestion before changing contracts. Preserve D-089; no order-created cashback or fabricated provider verification.
+- [x] Extend existing catalogue with precise reviewed source/API/capability metadata; distinguish implemented code, merchant configuration and live verification. Do not label generic modules native adapters.
+- [x] Authenticated WooCommerce REST v3 read-only order/refund/catalog lookup and bounded modified-order pagination; fixed paths, proper currencies, no arbitrary provider URL or mutation.
+- [x] Reuse public-address guard/resolver with HTTPS/domain ownership/address pinning, no redirects/query credentials, capped body/time/pages and redacted provider errors.
+- [x] Add optional encrypted read credentials to existing WooCommerce connection; preserve webhook-only compatibility; active API test is managed/scoped/throttled and never promotes fixtures to live-connected.
+- [x] Server-side tenant/role/disconnect/missing credentials/auth/429/schema/SSRF/rebinding/secret-privacy/duplicate negative tests; real HTTP examples for added/changed operations, both databases/quality/CI and coherent SHA handoff.
+
+B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total781pass+2skip/9961assertions, final native API15tests144assertions on both drivers. Pint/PHPStan/audit/contract/20HTTPcaptures PASS. This implementation commit; SHA/CI recorded in closeout. Whole #31 stays IN_PROGRESS.
+
+### Later #31 backend boundaries — not covered by B23a
+- [ ] Shopify GraphQL/OAuth/scopes/order/refund/catalog and durable credential-bound connection quality gates.
+- [ ] Wix, BigCommerce, Ecwid and Lightspeed C authenticated adapters/current official profiles, bounded polling/webhook recovery.
+- [ ] Version-specific PrestaShop/OpenCart signed bridge contracts, Shopware app lifecycle and Adobe deployment-specific asynchronous adapter profiles; provider modules/storefront UI are outside this Laravel scope.
+- [ ] Ten provider-backed acceptance records and real installation/banner/coupon capability verification; access/sandbox/storefront proof remains external until actually run.

@@ -6887,3 +6887,326 @@ Simulate queue/database/provider failure in a controlled test environment. Verif
 - All 10 E2E tests passing.
 
 **Deliver:** Infrastructure inventory, findings/fixes, benchmark results, reconciliation report, security test evidence, backup/restore proof and final E2E report.
+
+
+## Trello #31: Platform API & Webhook Engineering
+
+Source: owner export. https://trello.com/c/eC0AHVuu/31-platform-api-webhook-engineering
+
+# ShopBonus — Top 10 Commerce Platform API, Webhook & Storefront Integration Engineering
+
+## OBJECTIVE
+
+Research, implement, verify and document the ten priority commerce platform adapters against current official developer documentation.
+
+Extend the existing ShopBonus ConnectorRegistry, ConnectionManager, OrderIngestionService and Workspace App Store. No parallel integration architecture.
+
+For EACH platform deliver:
+
+1. Supported platform/version and installation method.
+2. Official developer-documentation links and reviewed date.
+3. Authentication, scopes, credentials and rotation.
+4. Exact order/product/coupon API endpoints.
+5. Subscribed webhook names and sample payloads.
+6. Signature verification, retries and deduplication.
+7. Order/payment/refund field mappings.
+8. Supported banner/widget publication method.
+9. Real connection/order/refund verification evidence.
+10. Limitations, fallback and capability status.
+
+Never invent an endpoint, webhook, scope or availability. Confirm exact API versions before implementation.
+
+## 1. SHOPIFY
+
+Docs:
+
+- [https://shopify.dev/docs/api/admin-graphql](https://shopify.dev/docs/api/admin-graphql "smartCard-inline")
+- [https://shopify.dev/docs/apps/build/webhooks](https://shopify.dev/docs/apps/build/webhooks "smartCard-inline")
+- [https://shopify.dev/docs/apps/build/online-store/theme-app-extensions](https://shopify.dev/docs/apps/build/online-store/theme-app-extensions "smartCard-inline")
+
+Install: merchant-authorized Shopify app with OAuth/session-token handling.
+
+Orders: Admin GraphQL `orders` and `order` queries. Request only required scopes; protected customer data may require additional approval. Verify field visibility using a real merchant-authorized test order.
+
+Webhooks: register documented order/payment/update/refund/cancellation topics plus uninstall/privacy events applicable to the selected API version.
+
+Verify Shopify webhook HMAC using the raw request body and app secret. Dedupe event IDs.
+
+Banners: Theme App Extension with App Blocks/App Embed Blocks. Use merchant-controlled activation and theme status verification.
+
+Products/offers: GraphQL product/catalog queries; implement discounts only when proper permissions and API capability are available.
+
+Never rely on storefront JavaScript for authoritative checkout/order data.
+
+## 2. WOOCOMMERCE
+
+Docs:
+
+- [https://developer.woocommerce.com/docs/apis/rest-api/v3/](https://developer.woocommerce.com/docs/apis/rest-api/v3/ "smartCard-inline")
+- [https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/](https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/ "smartCard-inline")
+- [https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks](https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks "smartCard-inline")
+
+Install: restricted WooCommerce REST credentials or dedicated WordPress plugin.
+
+REST examples:
+
+- `GET /wp-json/wc/v3/orders`
+- `GET /wp-json/wc/v3/orders/{id}`
+- `GET /wp-json/wc/v3/products`
+- `GET /wp-json/wc/v3/coupons`
+- `GET /wp-json/wc/v3/orders/{id}/refunds`
+
+Webhooks: `order.created`, `order.updated`, and supported refund/product/coupon topics. Confirm exact topics in the deployed WooCommerce version.
+
+Verify `X-WC-Webhook-Signature` using HMAC-SHA256 over the raw payload and configured webhook secret.
+
+Banners: WordPress block/widget or dedicated plugin with uninstall cleanup. Prefer native WordPress/WooCommerce hooks rather than direct core modifications.
+
+## 3. WIX ECOMMERCE
+
+Docs:
+
+- [https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/introduction](https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/introduction "‌")
+- [https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/orders/order-created](https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/orders/order-created "‌")
+
+Install: Wix app authorization or documented site-owner integration.
+
+Use current Wix eCommerce Orders API, not obsolete Stores Orders API examples. Read/search orders and related transaction/refund information with required permissions.
+
+Order-created event: `wix.ecom.v1.order_created`.
+
+Webhook example fields:
+`eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`.
+
+Wix event payloads may be JWT-encoded. Verify the signature and instance identity before processing.
+
+Banners: supported Wix app/site extension or approved Wix Blocks/Velo integration. Do not assume arbitrary external HTML can be silently published.
+
+## 4. BIGCOMMERCE
+
+Docs:
+
+- [https://docs.bigcommerce.com/developer/docs/integrations/webhooks/overview](https://docs.bigcommerce.com/developer/docs/integrations/webhooks/overview "smartCard-inline")
+- [https://docs.bigcommerce.com/developer/docs/integrations/webhooks/event-reference/events](https://docs.bigcommerce.com/developer/docs/integrations/webhooks/event-reference/events "smartCard-inline")
+- [https://docs.bigcommerce.com/developer/docs/admin/widgets-and-scripts/overview](https://docs.bigcommerce.com/developer/docs/admin/widgets-and-scripts/overview "smartCard-inline")
+
+Install: merchant OAuth app or restricted store API credentials.
+
+REST:
+`POST https://api.bigcommerce.com/stores/{store_hash}/v3/hooks`
+
+Header: `X-Auth-Token`.
+
+Webhook examples:
+
+- `store/order/created`
+- `store/order/updated`
+- `store/order/statusUpdated`
+- `store/order/refund/created`
+- `store/order/transaction/created`
+
+Sample event:
+`{"scope":"store/order/created","producer":"stores/abc123","data":{"type":"order","id":250}}`
+
+IMPORTANT: `store/order/created` can include incomplete/unpaid orders. Fetch the full order and confirm payment separately.
+
+Banners: BigCommerce Widgets API with supported placement regions and required content permissions.
+
+## 5. ECWID
+
+Docs:
+
+- [https://docs.ecwid.com/](https://docs.ecwid.com/ "smartCard-inline")
+- [https://docs.ecwid.com/webhook-automations](https://docs.ecwid.com/webhook-automations "smartCard-inline")
+- [https://docs.ecwid.com/develop-apps/app-settings](https://docs.ecwid.com/develop-apps/app-settings "smartCard-inline")
+
+Install: Ecwid app authorization/token flow appropriate to integration type.
+
+Confirm relevant scopes, including `read_orders` and any catalog permissions. Request write permissions only for approved operations.
+
+Webhook example: `order.created`.
+
+Use webhook notification → authenticated order API lookup → normalized order. Implement polling/backfill when delivery or access is limited.
+
+Banners: documented storefront customization/app extension capability; otherwise merchant-approved manual placement.
+
+Detect store/API tier and unavailable scopes before activating features.
+
+## 6. LIGHTSPEED ECOM C-SERIES
+
+Docs:
+
+- [https://ecom-support.lightspeedhq.com/hc/en-us/articles/220320568-API-documentation](https://ecom-support.lightspeedhq.com/hc/en-us/articles/220320568-API-documentation "smartCard-inline")
+
+Treat C-Series separately from Lightspeed Retail and E-Series. Their APIs and permissions must not be mixed.
+
+First confirm merchant plan eligibility, API access, authentication method and supported order endpoints.
+
+Lightspeed documentation indicates API access may depend on the merchant subscription. Display an actionable setup restriction if access is unavailable.
+
+Prove actual order retrieval, payment fields, refund information and dependable change detection.
+
+If using confirmation-page tracking, mark the capability `LIMITED`; it is not equivalent to verified server-side order ingestion.
+
+Banner placement must be supported by the store's theme/integration capabilities.
+
+## 7. PRESTASHOP
+
+Docs:
+
+- [https://devdocs.prestashop-project.org/9/modules/introduction/](https://devdocs.prestashop-project.org/9/modules/introduction/ "smartCard-inline")
+- [https://devdocs.prestashop-project.org/9/modules/concepts/hooks/](https://devdocs.prestashop-project.org/9/modules/concepts/hooks/ "smartCard-inline")
+- [https://devdocs.prestashop-project.org/9/modules/concepts/hooks/list-of-hooks/actionvalidateorderafter/](https://devdocs.prestashop-project.org/9/modules/concepts/hooks/list-of-hooks/actionvalidateorderafter/ "smartCard-inline")
+
+Install: signed/versioned ShopBonus ZIP module.
+
+Use documented PrestaShop hooks and approved Webservice/API access.
+
+Module responsibilities:
+
+- Secure ShopBonus pairing.
+- Order/payment/refund event forwarding.
+- Product and offer synchronization.
+- Optional banner rendering through storefront display hooks.
+- Module disable/uninstall cleanup.
+
+Check `actionValidateOrderAfter` and applicable order-status/refund hooks for the exact deployed version. An order-validation hook is not automatically proof of settled payment.
+
+Verify supported versions, multistore behavior and compatibility.
+
+## 8. OPENCART
+
+Docs:
+
+- [https://docs.opencart.com/developer-guide/extensions](https://docs.opencart.com/developer-guide/extensions "smartCard-inline")
+
+Install: version-specific OpenCart extension, including OCMOD packaging when required.
+
+OpenCart 4 supports extension modules and an Events system. Prefer event listeners; use OCMOD only where supported hooks are insufficient.
+
+Implement:
+
+- Secure merchant pairing.
+- Order-created/status-changed event mapping.
+- Authenticated server-to-server delivery.
+- Product and coupon extraction.
+- Storefront banner module.
+- Uninstall cleanup.
+
+Never assume OpenCart 3 and 4 share identical event signatures, extension paths or packaging requirements.
+
+Test both initial order and subsequent paid/cancelled statuses.
+
+## 9. SHOPWARE 6
+
+Docs:
+
+- [https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html](https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html "‌")
+- [https://developer.shopware.com/docs/guides/plugins/apps/lifecycle/webhook.html](https://developer.shopware.com/docs/guides/plugins/apps/lifecycle/webhook.html "‌")
+- [https://developer.shopware.com/docs/resources/references/app-reference/manifest-reference.html](https://developer.shopware.com/docs/resources/references/app-reference/manifest-reference.html "‌")
+
+Install: Shopware app using `manifest.xml`, registration handshake and declared permissions.
+
+Use documented Admin API entities for orders, products, promotions and customer data where authorized.
+
+Declare webhooks in the app manifest. Example format:
+`<webhook name="product-changed" url="https://shopbonus.example/webhook" event="product.written"/>`
+
+Determine the actual order-state and refund-relevant event names from the current webhook reference before subscribing.
+
+Banners: documented Shopware CMS/app extension mechanism.
+
+Verify app-request signatures and credentials according to the Shopware app lifecycle.
+
+## 10. ADOBE COMMERCE / MAGENTO
+
+Docs:
+
+- [https://developer.adobe.com/commerce/extensibility/events/](https://developer.adobe.com/commerce/extensibility/events/ "smartCard-inline")
+- [https://developer.adobe.com/commerce/extensibility/webhooks/](https://developer.adobe.com/commerce/extensibility/webhooks/ "smartCard-inline")
+- [https://developer.adobe.com/commerce/extensibility/app-management/installation/webhooks](https://developer.adobe.com/commerce/extensibility/app-management/installation/webhooks "smartCard-inline")
+
+Install: compatible Adobe Commerce app/module for the merchant deployment model.
+
+Use Adobe Commerce REST/GraphQL for order/catalog details, subject to integration permissions.
+
+Prefer asynchronous Adobe I/O Events for non-blocking order synchronization where supported.
+
+IMPORTANT: Adobe's synchronous Commerce Webhooks can participate in transaction processing. Do not use them for slow ShopBonus ingestion when asynchronous events are suitable.
+
+Configure relevant subscriptions, payload fields, signatures/authentication, retries and replay handling.
+
+Banners: approved Commerce module/storefront component, compatible with the installed storefront architecture.
+
+Test Adobe Commerce SaaS/PaaS/on-premises differences before declaring feature support.
+
+## SHARED PROVIDER MAPPING
+
+For each provider create a mapping specification:
+
+- `shop_id` ← provider store identity
+- `external_order_id` ← provider order ID
+- `order_reference` ← human-readable reference
+- `customer_first_name` ← authorized order/customer field
+- `customer_email` ← authorized email field
+- `customer_phone` ← optional; null when missing
+- `total_minor` ← normalized amount/currency
+- `payment_status` ← verified provider status
+- `refund_minor` ← verified refund total
+- `products[]` ← ID, SKU, quantity, eligible amount
+- `source_event_id` ← provider event identity
+- `event_created_at` ← provider timestamp
+
+Document exact provider JSON paths, required permissions and one redacted sample per platform. Distinguish unavailable fields from empty fields.
+
+No invented values, no automatic contact authorization and no cashback merely because an order exists.
+
+## CONNECTION QUALITY GATES
+
+A connector can be `CONNECTED` only after:
+
+1. Authorization is verified.
+2. Merchant/store identity matches.
+3. A genuine order is received or retrieved.
+4. Required order fields are correctly mapped.
+5. Payment status can be reliably verified.
+6. Duplicate processing is prevented.
+7. Changes/refunds have a tested recovery path.
+
+Otherwise use `LIMITED`, `SETUP_REQUIRED` or `ERROR` with the exact reason.
+
+Feature capabilities must be individually verified; a connected order integration does not prove coupon-write or banner-publish capability.
+
+## API AND OPERATIONS
+
+Reuse the central versioned ShopBonus API and Laravel backend.
+
+Create an internal provider capability registry containing:
+`platform`, `version`, `auth_method`, `scopes`, `webhook_topics`, `order_api`, `refund_api`, `product_api`, `coupon_api`, `banner_method`, `rate_limit_policy`, `last_verified_at`.
+
+Maintain official doc URLs and a reviewed date for each adapter.
+
+Security: signatures, tenant isolation, least-privilege scopes, encrypted credentials, rotation, CSRF/session protection, Laravel Policies, 403 audit, idempotent queues and sanitized logs.
+
+Monitor provider latency, authentication failures, missed events, sync age and capability regressions.
+
+## TEN E2E TESTS
+
+1. Shopify: OAuth, real paid order, verified webhook, protected fields and banner activation.
+2. WooCommerce: REST connection, signed order event, product import and refund synchronization.
+3. Wix: verified JWT event, correct order retrieval and no duplicate processing.
+4. BigCommerce: created-but-unpaid order is imported but never rewarded; paid-status update is verified.
+5. Ecwid: authorized token, real order webhook, full API lookup and missed-event recovery.
+6. Lightspeed C-Series: plan/API capability check and honest `LIMITED` state where order proof is incomplete.
+7. PrestaShop: install ZIP module, receive paid-order update, publish banner and uninstall cleanly.
+8. OpenCart: install compatible extension, verify order-status event and remove hooks on uninstall.
+9. Shopware 6: manifest registration, authenticated webhook, order lookup and capability reporting.
+10. Adobe Commerce: authenticated order event, asynchronous processing, refund reconciliation and no checkout blocking.
+
+For EVERY test capture the provider request/response, mapped order, auth/signature outcome, UI status and sanitized audit evidence.
+
+## DEFINITION OF DONE
+
+Ten platform integration specifications exist with official sources, exact verified APIs, scopes, event payloads and capability matrices.
+
+Adapters are only marked production-ready when genuine provider-backed tests pass. Unsupported capabilities are explicitly disclosed. The existing ShopBonus order pipeline, wallet, Order Sheet and Answer24 workflows remain intact.

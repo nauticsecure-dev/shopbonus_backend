@@ -80,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('ai-support', fn (Request $request) => Limit::perMinute(10)->by('support:'.($request->user()->id ?? $request->ip())));
+        RateLimiter::for('commerce-probe', fn (Request $request) => Limit::perMinute(3)->by('commerce-probe:'.$request->user()?->getAuthIdentifier()));
         RateLimiter::for('admin-diagnostics', fn (Request $request) => Limit::perMinute(3)->by('admin-diagnostics:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('admin-step-up', fn (Request $request) => Limit::perHour(10)->by('step-up:'.$request->user()?->getAuthIdentifier()));

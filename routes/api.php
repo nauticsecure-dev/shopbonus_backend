@@ -46,6 +46,7 @@ use App\Http\Controllers\Api\V1\Content\PublicContentController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
+use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -450,6 +451,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
                 Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
+                    Route::post('connections/{connection}/test-api', ConnectionApiTestController::class)->middleware('throttle:commerce-probe')->name('connections.test-api');
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
                     Route::post('connections/{connection}/credentials', [ConnectionController::class, 'replaceCredentials'])->name('connections.credentials');
                     Route::delete('connections/{connection}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
