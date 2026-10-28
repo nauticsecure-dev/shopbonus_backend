@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * A verified inbound provider event. Unverified requests are never stored.
  *
+ * @property int|null $credential_generation
  * @property int $id
  * @property string $public_id
  * @property int $connection_id
@@ -34,11 +35,12 @@ class WebhookEvent extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'connection_id', 'webshop_id', 'payload'];
+    protected $hidden = ['credential_generation', 'id', 'connection_id', 'webshop_id', 'payload'];
 
     protected function casts(): array
     {
         return [
+            'credential_generation' => 'integer',
             'status' => WebhookEventStatus::class,
             'payload' => 'encrypted',
             'result' => 'array',

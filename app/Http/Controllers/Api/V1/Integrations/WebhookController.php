@@ -18,6 +18,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -53,28 +54,39 @@ class WebhookController extends Controller
 
         $body = $request->getContent();
 
-        try {
-            $stored = WebhookEvent::create([
-                'connection_id' => $connection->id,
-                'webshop_id' => $connection->webshop_id,
-                'dedupe_key' => $event->dedupeKey,
-                'topic' => $event->topic,
-                'status' => WebhookEventStatus::Verified,
-                'payload' => $body,
-                'payload_hash' => hash('sha256', $body),
-                'result' => ['kind' => $event->kind],
-                'received_at' => now(),
-            ]);
-        } catch (UniqueConstraintViolationException) {
-            WebhookEvent::where('connection_id', $connection->id)->where('dedupe_key', $event->dedupeKey)->increment('delivery_count');
+        return DB::transaction(function () use ($connection, $event, $body) {
+            $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            if (! $current->status->receivesEvents()) {
+                throw new NotFoundHttpException;
+            }
+            if ($current->credential_generation !== $connection->credential_generation
+                || $current->getRawOriginal('credentials') !== $connection->getRawOriginal('credentials')) {
+                throw ApiException::conflict('The connection changed while accepting the event. Retry with its current configuration.', 'connection_changed');
+            }
+            try {
+                $stored = WebhookEvent::create([
+                    'credential_generation' => $current->credential_generation,
+                    'connection_id' => $connection->id,
+                    'webshop_id' => $connection->webshop_id,
+                    'dedupe_key' => $event->dedupeKey,
+                    'topic' => $event->topic,
+                    'status' => WebhookEventStatus::Verified,
+                    'payload' => $body,
+                    'payload_hash' => hash('sha256', $body),
+                    'result' => ['kind' => $event->kind],
+                    'received_at' => now(),
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                WebhookEvent::where('connection_id', $connection->id)->where('dedupe_key', $event->dedupeKey)->increment('delivery_count');
 
-            return response()->json(['data' => ['received' => true, 'duplicate' => true]], 200);
-        }
+                return response()->json(['data' => ['received' => true, 'duplicate' => true]], 200);
+            }
 
-        $connection->forceFill(['last_event_at' => now()])->save();
-        ProcessWebhookEvent::dispatch($stored->id);
+            $current->forceFill(['last_event_at' => now()])->save();
+            ProcessWebhookEvent::dispatch($stored->id);
 
-        return response()->json(['data' => ['received' => true, 'duplicate' => false, 'event_id' => $stored->public_id]], 202);
+            return response()->json(['data' => ['received' => true, 'duplicate' => false, 'event_id' => $stored->public_id]], 202);
+        });
     }
 
     /**
@@ -83,12 +95,16 @@ class WebhookController extends Controller
      */
     private function recordRejection(WebshopConnection $connection, string $reason): void
     {
-        if (! Cache::add("webhook-rejected:{$connection->id}:{$reason}", 1, 60)) {
-            return;
-        }
-
-        $connection->forceFill(['last_error_code' => 'webhook_'.$reason, 'last_error_at' => now()])->save();
-        $this->audit->recordSafely('integration.webhook_rejected', AuditOutcome::Denied, AuditCategory::Integration,
-            resource: $connection, webshopId: $connection->webshop_id, metadata: ['reason' => $reason], httpStatus: 401);
+        DB::transaction(function () use ($connection, $reason) {
+            $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->first();
+            if ($current === null || ! $current->status->receivesEvents()
+                || $current->credential_generation !== $connection->credential_generation
+                || ! Cache::add("webhook-rejected:{$current->id}:{$current->credential_generation}:{$reason}", 1, 60)) {
+                return;
+            }
+            $current->forceFill(['last_error_code' => 'webhook_'.$reason, 'last_error_at' => now()])->save();
+            $this->audit->recordSafely('integration.webhook_rejected', AuditOutcome::Denied, AuditCategory::Integration,
+                resource: $current, webshopId: $current->webshop_id, metadata: ['reason' => $reason], httpStatus: 401);
+        });
     }
 }

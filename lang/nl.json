@@ -119,5 +119,6 @@
     "The provider store identity does not match this connection.": "De winkelidentiteit van de aanbieder komt niet overeen met deze verbinding.",
     "The provider has not proved the required read scopes.": "De aanbieder heeft de vereiste leesrechten niet bevestigd.",
     "The provider API version differs from the reviewed version.": "De API-versie van de aanbieder verschilt van de gecontroleerde versie.",
-    "The provider GraphQL read failed or required protected data is unavailable.": "Het GraphQL-leesverzoek is mislukt of de vereiste beschermde gegevens zijn niet beschikbaar."
+    "The provider GraphQL read failed or required protected data is unavailable.": "Het GraphQL-leesverzoek is mislukt of de vereiste beschermde gegevens zijn niet beschikbaar.",
+    "The connection changed while accepting the event. Retry with its current configuration.": "De verbinding is gewijzigd tijdens het ontvangen van de gebeurtenis. Probeer het opnieuw met de huidige configuratie."
 }

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * @property int $credential_generation
  * @property int $id
  * @property string $public_id
  * @property int $webshop_id
@@ -38,13 +39,14 @@ class WebshopConnection extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'webshop_id', 'credentials', 'webhook_token', 'created_by'];
+    protected $hidden = ['credential_generation', 'id', 'webshop_id', 'credentials', 'webhook_token', 'created_by'];
 
-    protected $attributes = ['limitations' => null, 'last_error_code' => null];
+    protected $attributes = ['credential_generation' => 1, 'limitations' => null, 'last_error_code' => null];
 
     protected function casts(): array
     {
         return [
+            'credential_generation' => 'integer',
             'platform' => EcommercePlatform::class,
             'method' => ConnectionMethod::class,
             'status' => ConnectionStatus::class,

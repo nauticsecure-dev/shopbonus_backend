@@ -42,14 +42,28 @@ class ProcessWebhookEvent implements ShouldQueue
     public function handle(ConnectorRegistry $registry, AuditLogger $audit): void
     {
         DB::transaction(function () use ($registry, $audit) {
-            $event = WebhookEvent::with('connection.webshop')->lockForUpdate()->find($this->eventId);
+            $candidate = WebhookEvent::find($this->eventId);
+            if ($candidate === null) {
+                return;
+            }
+            // Lifecycle mutations always lock connection first, then the event.
+            $connection = WebshopConnection::with('webshop')->whereKey($candidate->connection_id)->lockForUpdate()->firstOrFail();
+            $event = WebhookEvent::whereKey($this->eventId)->lockForUpdate()->first();
 
             if ($event === null || $event->status !== WebhookEventStatus::Verified) {
                 return; // already processed (or pruned): idempotent
             }
 
-            $connection = $event->connection;
             $kind = $event->result['kind'] ?? VerifiedEvent::KIND_OTHER;
+
+            if ($connection->status === ConnectionStatus::Disconnected || $event->webshop_id !== $connection->webshop_id
+                || $event->credential_generation === null || $event->credential_generation !== $connection->credential_generation) {
+                $this->finish($event, WebhookEventStatus::Ignored, ['kind' => $kind], 'credential_generation_stale');
+                $audit->record('integration.event_stale', category: AuditCategory::Integration, resource: $event,
+                    webshopId: $connection->webshop_id, metadata: ['code' => 'credential_generation_stale']);
+
+                return;
+            }
 
             if ($kind === VerifiedEvent::KIND_PING) {
                 if ($connection->status === ConnectionStatus::SetupRequired) {

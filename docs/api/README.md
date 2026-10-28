@@ -13762,3 +13762,413 @@ Actual response 200:
 ```
 
 `GET /api/v1/integrations/platforms`: current full catalogue response is in the raw artifact and OpenAPI (including honest unsupported/live-unverified flags).
+
+
+## B23c — credential-bound connection lifecycle
+
+Captured on an actual local PHP HTTP server, isolated SQLite/database cache/file sessions, normal login + CSRF + password confirmation and seeded synthetic step-up OTP. Admin MFA disabled only for this isolated capture; normal configuration is unchanged. Queue uses isolated database; fixture worker calls the actual event processor. An explicit capture-only connector hook rotates credentials after verifying a real synthetic HMAC to reproduce intake409. No live provider evidence. Base `bc2f739` plus B23c worktree. Raw [16 HTTP captures](../integrations/B23_CREDENTIAL_HTTP_CAPTURE.json); [lifecycle and rollout guide](../integrations/CREDENTIAL_LIFECYCLE.md). Secrets/URLs are redacted.
+
+Credential replacement returns `setup_required` with current readiness cleared. Old events remain in history, but cannot serve as current proof or be retried. The existing shared security/error examples still apply. Full seven-gate promotion remains subsequent work.
+
+### POST `/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>` — accepted
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{
+  "id": 4711,
+  "number": "4711",
+  "status": "processing",
+  "currency": "EUR",
+  "total": "59.95",
+  "date_created_gmt": "2026-10-28T10:00:00",
+  "date_modified_gmt": "2026-10-28T10:01:00",
+  "date_paid_gmt": "2026-10-28T10:01:00",
+  "billing": {
+    "first_name": "Sample",
+    "email": "sample@example.test",
+    "phone": null
+  },
+  "refunds": []
+}
+```
+
+Actual response 202:
+
+```json
+{
+  "data": {
+    "received": true,
+    "duplicate": false,
+    "event_id": "01m613rewzp0czd0jpb7eg8sd5"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/verify` — verify_before
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "connected",
+    "checks": {
+      "credentials_configured": true,
+      "event_received": true,
+      "order_received": true,
+      "mandatory_fields_present": true,
+      "phone_available": false,
+      "webshop_ownership_verified": false
+    },
+    "missing_fields": [],
+    "limitations": [],
+    "next_action": "verify_ownership"
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx` — show_before
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m613rew0sgkb6m1svdjpawcx",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "connected",
+    "external_shop_ref": null,
+    "limitations": [],
+    "last_event_at": "2026-10-28T11:19:07+00:00",
+    "last_verified_order_at": "2026-10-28T11:19:08+00:00",
+    "connected_at": "2026-10-28T11:19:08+00:00",
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T11:19:07+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "<REDACTED>",
+      "read_api_configured": false,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order."
+      ]
+    }
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/credentials` — rotate
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m613rew0sgkb6m1svdjpawcx",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": null,
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T11:19:07+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "<REDACTED>",
+      "read_api_configured": false,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order."
+      ]
+    },
+    "secrets": {
+      "webhook_secret": "<REDACTED>"
+    },
+    "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/verify` — verify_after
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "status": "setup_required",
+    "checks": {
+      "credentials_configured": true,
+      "event_received": false,
+      "order_received": false,
+      "mandatory_fields_present": false,
+      "phone_available": false,
+      "webshop_ownership_verified": false
+    },
+    "missing_fields": [],
+    "limitations": [],
+    "next_action": "configure_webhook"
+  }
+}
+```
+
+### POST `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/events/01m613rewzp0czd0jpb7eg8sd5/retry` — merchant_stale_retry
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "event_not_retryable",
+    "message": "Only failed events with a retained payload can be retried.",
+    "request_id": "01a1823c-3e4c-71b0-b6db-63da5aaaa990"
+  }
+}
+```
+
+### POST `/api/v1/admin/integrations/events/01m613rewzp0czd0jpb7eg8sd5/retry` — admin_stale_retry
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{
+  "reason": "Synthetic stale credential retry"
+}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "event_not_retryable",
+    "message": "Only failed events with a retained payload and active connection can be retried.",
+    "request_id": "01a1823c-3e69-73ab-a56d-7950d6a9a19c"
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/events` — history
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m613rf8jfsq4jp7byqr19c2b",
+      "topic": "order.created",
+      "status": "ignored",
+      "delivery_count": 1,
+      "result": {
+        "kind": "order"
+      },
+      "error_code": "credential_generation_stale",
+      "received_at": "2026-10-28T11:19:08+00:00",
+      "processed_at": "2026-10-28T11:19:08+00:00"
+    },
+    {
+      "id": "01m613rewzp0czd0jpb7eg8sd5",
+      "topic": "order.created",
+      "status": "failed",
+      "delivery_count": 1,
+      "result": {
+        "kind": "order",
+        "complete": true,
+        "missing_fields": [],
+        "has_phone": false,
+        "payment_status": "paid",
+        "currency": "EUR",
+        "amount_minor": 5995,
+        "ingested": true,
+        "order_id": "01m613rf5gvqy9sxa6v98dvxmt",
+        "change": "created"
+      },
+      "error_code": null,
+      "received_at": "2026-10-28T11:19:07+00:00",
+      "processed_at": "2026-10-28T11:19:08+00:00"
+    }
+  ]
+}
+```
+
+### POST `/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>` — rotation_during_intake
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{
+  "id": 4711,
+  "number": "4711",
+  "status": "processing",
+  "currency": "EUR",
+  "total": "59.95",
+  "date_created_gmt": "2026-10-28T10:00:00",
+  "date_modified_gmt": "2026-10-28T10:01:00",
+  "date_paid_gmt": "2026-10-28T10:01:00",
+  "billing": {
+    "first_name": "Sample",
+    "email": "sample@example.test",
+    "phone": null
+  },
+  "refunds": []
+}
+```
+
+Actual response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "connection_changed",
+    "message": "The connection changed while accepting the event. Retry with its current configuration.",
+    "request_id": "01a1823c-3fb3-719f-82ef-c92c63d78d60"
+  }
+}
+```
+
+### DELETE `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx` — disconnect
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m613rew0sgkb6m1svdjpawcx",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "disconnected",
+    "external_shop_ref": null,
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": "2026-10-28T11:19:09+00:00",
+    "last_error": null,
+    "created_at": "2026-10-28T11:19:07+00:00"
+  }
+}
+```
+
+### GET `/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx` — show_disconnected
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+null
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "id": "01m613rew0sgkb6m1svdjpawcx",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "disconnected",
+    "external_shop_ref": null,
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": "2026-10-28T11:19:09+00:00",
+    "last_error": null,
+    "created_at": "2026-10-28T11:19:07+00:00"
+  }
+}
+```
+
+### POST `/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>` — disconnected_webhook
+
+Request body (normal session/CSRF required, or provider HMAC for webhooks):
+
+```json
+{
+  "id": 4711,
+  "number": "4711",
+  "status": "processing",
+  "currency": "EUR",
+  "total": "59.95",
+  "date_created_gmt": "2026-10-28T10:00:00",
+  "date_modified_gmt": "2026-10-28T10:01:00",
+  "date_paid_gmt": "2026-10-28T10:01:00",
+  "billing": {
+    "first_name": "Sample",
+    "email": "sample@example.test",
+    "phone": null
+  },
+  "refunds": []
+}
+```
+
+Actual response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "The requested resource was not found.",
+    "request_id": "01a1823c-4147-70c6-a293-ffd8ea2d0312"
+  }
+}
+```

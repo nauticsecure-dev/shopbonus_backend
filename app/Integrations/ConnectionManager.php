@@ -5,6 +5,7 @@ namespace App\Integrations;
 use App\Enums\AuditCategory;
 use App\Enums\ConnectionStatus;
 use App\Enums\EcommercePlatform;
+use App\Enums\WebhookEventStatus;
 use App\Exceptions\ApiException;
 use App\Models\WebshopConnection;
 use App\Models\WebshopMembership;
@@ -71,34 +72,44 @@ class ConnectionManager
      */
     public function replaceCredentials(WebshopConnection $connection, array $input): array
     {
-        $this->assertNotDisconnected($connection);
         $connector = $this->registry->for($connection->platform);
         $data = Validator::make($input, $connector->connectRules())->validate();
 
-        $connection->credentials = $connector->connect($connection, $data);
-        $connection->save();
+        return DB::transaction(function () use ($connection, $connector, $data) {
+            $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            $this->assertNotDisconnected($current);
+            $current->credentials = $connector->connect($current, $data);
+            $current->forceFill([
+                'credential_generation' => $current->credential_generation + 1,
+                'status' => ConnectionStatus::SetupRequired, 'limitations' => null,
+                'connected_at' => null, 'last_event_at' => null, 'last_verified_order_at' => null,
+                'last_error_code' => null, 'last_error_at' => null,
+            ])->save();
+            $this->audit->record('integration.credentials_replaced', category: AuditCategory::Integration,
+                resource: $current, webshopId: $current->webshop_id);
+            $connection->refresh();
 
-        $this->audit->record('integration.credentials_replaced', category: AuditCategory::Integration,
-            resource: $connection, webshopId: $connection->webshop_id);
-
-        return $this->shownOnce($connector->generatedSecrets(), $connection);
+            return $this->shownOnce($connector->generatedSecrets(), $current);
+        });
     }
 
     public function disconnect(WebshopConnection $connection): WebshopConnection
     {
-        $this->assertNotDisconnected($connection);
-        $this->registry->for($connection->platform)->disconnect($connection);
+        return DB::transaction(function () use ($connection) {
+            $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            $this->assertNotDisconnected($current);
+            $this->registry->for($current->platform)->disconnect($current);
+            $current->forceFill([
+                'credential_generation' => $current->credential_generation + 1,
+                'status' => ConnectionStatus::Disconnected, 'credentials' => null,
+                'disconnected_at' => now(), 'connected_at' => null,
+                'last_event_at' => null, 'last_verified_order_at' => null,
+            ])->save();
+            $this->audit->record('integration.disconnected', category: AuditCategory::Integration,
+                resource: $current, webshopId: $current->webshop_id);
 
-        $connection->forceFill([
-            'status' => ConnectionStatus::Disconnected,
-            'credentials' => null,
-            'disconnected_at' => now(),
-        ])->save();
-
-        $this->audit->record('integration.disconnected', category: AuditCategory::Integration,
-            resource: $connection, webshopId: $connection->webshop_id);
-
-        return $connection;
+            return $connection->refresh();
+        });
     }
 
     /**
@@ -109,31 +120,35 @@ class ConnectionManager
      */
     public function checklist(WebshopConnection $connection): array
     {
-        $lastOrder = $connection->events()->whereNotNull('result')->where('result->kind', 'order')->latest('id')->first();
-        $result = $lastOrder->result ?? [];
+        return DB::transaction(function () use ($connection) {
+            $connection = WebshopConnection::with('webshop')->whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            $currentEvents = $connection->events()->where('credential_generation', $connection->credential_generation);
+            $lastOrder = (clone $currentEvents)->where('status', WebhookEventStatus::Processed)->whereNotNull('result')->where('result->kind', 'order')->latest('id')->first();
+            $result = $lastOrder->result ?? [];
 
-        $items = [
-            'credentials_configured' => $connection->credentials !== null,
-            'event_received' => $connection->last_event_at !== null,
-            'order_received' => $lastOrder !== null,
-            'mandatory_fields_present' => (bool) ($result['complete'] ?? false),
-            'phone_available' => (bool) ($result['has_phone'] ?? false),
-            'webshop_ownership_verified' => $connection->webshop->isOwnershipVerified(),
-        ];
+            $items = [
+                'credentials_configured' => $connection->credentials !== null,
+                'event_received' => $currentEvents->exists(),
+                'order_received' => $lastOrder !== null,
+                'mandatory_fields_present' => (bool) ($result['complete'] ?? false),
+                'phone_available' => (bool) ($result['has_phone'] ?? false),
+                'webshop_ownership_verified' => $connection->webshop->isOwnershipVerified(),
+            ];
 
-        return [
-            'status' => $connection->status->value,
-            'checks' => $items,
-            'missing_fields' => $result['missing_fields'] ?? [],
-            'limitations' => $connection->limitations ?? [],
-            'next_action' => match (true) {
-                ! $items['event_received'] => 'configure_webhook',
-                ! $items['order_received'] => 'place_test_order',
-                ! $items['mandatory_fields_present'] => 'additional_integration_required',
-                ! $items['webshop_ownership_verified'] => 'verify_ownership',
-                default => null,
-            },
-        ];
+            return [
+                'status' => $connection->status->value,
+                'checks' => $items,
+                'missing_fields' => $result['missing_fields'] ?? [],
+                'limitations' => $connection->limitations ?? [],
+                'next_action' => match (true) {
+                    ! $items['event_received'] => 'configure_webhook',
+                    ! $items['order_received'] => 'place_test_order',
+                    ! $items['mandatory_fields_present'] => 'additional_integration_required',
+                    ! $items['webshop_ownership_verified'] => 'verify_ownership',
+                    default => null,
+                },
+            ];
+        });
     }
 
     /**

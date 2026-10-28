@@ -702,3 +702,14 @@ B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total7
 - [x] B23b implementation `295e8b5d8a787d60c69150c20ef83982a30c69da` and test-fixture correction `01666e100a9e9d7f2da13d394dbc7ed179aa40a8` committed/pushed; exact-code CI40677278061 SUCCESS all three jobs (795tests/database).
 
 B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; MySQL795total793pass+2skip/10049assertions/290.521s; native27tests229assertions, contract3tests3692assertions, Pint/PHPStan/composer validate/audit/platform/diff and11actual HTTP captures PASS. Implementation `295e8b5d8a787d60c69150c20ef83982a30c69da`, fixture correction `01666e100a9e9d7f2da13d394dbc7ed179aa40a8`; CI40677278061 SUCCESS: SQLite772pass+23skip/9965assertions/42.25s, MySQL793pass+2skip/10046assertions/203.38s. Whole #31 IN_PROGRESS.
+
+### B23c — credential-bound lifecycle foundation (2026-10-28)
+- [x] Add internal credential generation to connections and accepted events; legacy events stay explicitly unbound, never backfilled from current credentials.
+- [x] Serialize credential rotation/disconnect against event intake/processing; clear current readiness timestamps/status on rotation and ignore stale queued events before any order/refund/contact effect.
+- [x] Filter verification evidence to current generation, reject stale retries/probes, retain connection-wide provider dedupe and historical encrypted event evidence.
+- [x] Test rotation/disconnect/legacy/stale-object and processing-boundary cases on both drivers; execute full suites/quality and isolated migration rollback/reapply.
+- [x] Capture changed credential/verify/retry HTTP contracts from a running server, update API and handoff docs;16actual captures and contract3tests3693assertions PASS. Seven-gate promotion/OAuth/recovery remain subsequent work.
+
+- [ ] Commit/push B23c and verify exact-code CI; record SHA and counts in closeout.
+
+B23c local: focused69tests556assertions both drivers; full SQLite801total778pass+23skip/10029assertions/53.878s, MySQL801total799pass+2skip/10112assertions/244.766s PASS. Pint/PHPStan/audit/API contract/migration down-up PASS. SHA/CI follows; whole #31 IN_PROGRESS.

@@ -41,7 +41,7 @@ class ConnectionApiTestController extends Controller
             throw $e;
         }
         $fresh = $model->fresh();
-        if ($fresh === null || $fresh->status === ConnectionStatus::Disconnected || $fresh->getRawOriginal('credentials') !== $fingerprint) {
+        if ($fresh === null || $fresh->status === ConnectionStatus::Disconnected || $fresh->getRawOriginal('credentials') !== $fingerprint || $fresh->credential_generation !== $model->credential_generation) {
             throw ApiException::conflict('The connection changed during the API test. Retry with its current configuration.', 'connection_changed');
         }
         $audit->record('integration.api_tested', category: AuditCategory::Integration, resource: $model, webshopId: $model->webshop_id,
