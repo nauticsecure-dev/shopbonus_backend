@@ -394,3 +394,7 @@ Implementation checklist ticked only for executed main-code/local evidence in th
 ### Final traversal-bound follow-up
 
 Application b2ad1561d0a26c6c75553dac32e71afe59e1f172 committed/pushed; CI40665978721 quality and full expanded SQLite745pass+23skip/9720assertions/31.90s passed, MySQL still running at this checkpoint. Final review tightened media enumeration to stop immediately at BACKUP_MAX_FILES, before accumulating an oversized directory inventory. Existing encrypted recovery4tests13assertions, Pint and PHPStan L6 passed again; no archive/API/policy format change. This small tested follow-up is committed separately without rewriting published history; final exact-code CI follows. Whole card external acceptance remains unchecked.
+
+### Dedicated restore-server configuration closeout
+
+Main application b2ad156 CI40665978721 SUCCESS all three jobs: SQLite745pass+23skip/9720assertions/31.90s, MySQL766pass+2skip/9802assertions/178.12s (768each). Guard follow-up64b1848 pushed; its quality/SQLite passed, MySQL still running when this note was written. Added a dedicated mysql_restore connection and blank BACKUP_RESTORE_DB_* / SSL_CA environment template so the senior configures an isolated server without editing application code or inheriting production credentials. Connection remains unselected/disabled until explicitly configured. Recovery4tests13assertions/PHPStan/Pint/diff PASS after formatting. No main-source/API/archive/policy or credential change. Final configuration SHA and exact-code CI follow before verified handoff.

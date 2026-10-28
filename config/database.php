@@ -31,6 +31,25 @@ return [
     */
 
     'connections' => [
+        // Dedicated recovery server; never inherits active database credentials/URL.
+        'mysql_restore' => [
+            'driver' => 'mysql',
+            'host' => env('BACKUP_RESTORE_DB_HOST', ''),
+            'port' => env('BACKUP_RESTORE_DB_PORT', 3306),
+            'database' => env('BACKUP_RESTORE_DB_DATABASE', 'information_schema'),
+            'username' => env('BACKUP_RESTORE_DB_USERNAME', ''),
+            'password' => env('BACKUP_RESTORE_DB_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => 'InnoDB',
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                Mysql::ATTR_SSL_CA => env('BACKUP_RESTORE_SSL_CA'),
+            ]) : [],
+        ],
 
         'sqlite' => [
             'driver' => 'sqlite',
