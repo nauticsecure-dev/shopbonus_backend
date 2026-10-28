@@ -35,4 +35,13 @@ class PrestaShopConnectorTest extends TestCase
         $p['payments'][0]['id_currency'] = 2;
         $this->assertNull($a->normalizeOrder($p)->amountMinor);
     }
+
+    public function test_ambiguous_autumn_payment_time_is_not_assigned_an_invented_offset(): void
+    {
+        $p = $this->payload();
+        $p['payments'][0]['date_add'] = '2026-10-25 02:30:00';
+        $o = (new PrestaShopConnector)->normalizeOrder($p);
+        $this->assertNull($o->paidAt);
+        $this->assertSame(PaymentStatus::Unknown, $o->paymentStatus);
+    }
 }

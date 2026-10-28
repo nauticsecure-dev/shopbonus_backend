@@ -248,6 +248,10 @@ final class WixConnector extends WebhookConnector implements OrderNotification
             $amount === null => PaymentStatus::Unknown,($p['status'] ?? null) === 'CANCELED' => PaymentStatus::Cancelled,$paidAt !== null && $captured >= $amount && $refund === $amount && $amount > 0 => PaymentStatus::Refunded,$paidAt !== null && $captured >= $amount && $refund > 0 => PaymentStatus::PartiallyRefunded,$paidAt !== null && $captured >= $amount && ($p['paymentStatus'] ?? null) === 'PAID' => PaymentStatus::Paid,default => PaymentStatus::Pending
         };
 
+        // Payment/refund record creation is not a documented settlement timestamp.
+        // Keep the authoritative current status/amount, but never promote this to timed payment proof.
+        $paidAt = $refundAt = null;
+
         return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['number'] ?? null), firstName: $this->str($p['billingInfo']['contactDetails']['firstName'] ?? null), email: $this->str($p['buyerInfo']['email'] ?? null), phone: $this->str($p['billingInfo']['contactDetails']['phone'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['createdDate'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['updatedDate'] ?? null));
     }
 }

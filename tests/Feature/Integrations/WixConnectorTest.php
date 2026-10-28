@@ -49,7 +49,7 @@ class WixConnectorTest extends TestCase
         $o = $a->normalizeOrder($p);
         $this->assertSame(1799, $o->amountMinor);
         $this->assertSame(PaymentStatus::Paid, $o->paymentStatus);
-        $this->assertNotNull($o->paidAt);
+        $this->assertNull($o->paidAt);
         $this->assertSame($id, ProviderOrderId::validate(EcommercePlatform::Wix, $id));
     }
 }

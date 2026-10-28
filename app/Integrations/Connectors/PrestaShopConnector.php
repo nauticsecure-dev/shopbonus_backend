@@ -175,7 +175,23 @@ final class PrestaShopConnector extends GenericSignedWebhookConnector implements
             try {
                 $d = CarbonImmutable::createFromFormat('!Y-m-d H:i:s', $v, $zone);
 
-                return $d !== null && $d->format('Y-m-d H:i:s') === $v ? $d->utc() : null;
+                if ($d === null || $d->format('Y-m-d H:i:s') !== $v) {
+                    return null;
+                }
+                // A wall-clock time during the autumn overlap has two possible instants.
+                // Neither offset may be invented from a timezone name alone.
+                $wall = CarbonImmutable::createFromFormat('!Y-m-d H:i:s', $v, 'UTC')->getTimestamp();
+                $transitions = (new \DateTimeZone($zone))->getTransitions($d->getTimestamp() - 86400, $d->getTimestamp() + 86400);
+                for ($i = 1; $i < count($transitions); $i++) {
+                    $before = $transitions[$i - 1]['offset'];
+                    $after = $transitions[$i]['offset'];
+                    $at = $transitions[$i]['ts'];
+                    if ($after < $before && $wall >= $at + $after && $wall < $at + $before) {
+                        return null;
+                    }
+                }
+
+                return $d->utc();
             } catch (\Throwable) {
                 return null;
             }
