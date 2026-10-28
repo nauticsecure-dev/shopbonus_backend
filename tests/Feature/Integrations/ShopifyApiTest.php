@@ -223,13 +223,14 @@ class ShopifyApiTest extends TestCase
             ['totalRefundedSet' => ['shopMoney' => ['amount' => '10.00', 'currencyCode' => 'USD']]],
             ['totalRefundedSet' => ['shopMoney' => ['amount' => '60.00', 'currencyCode' => 'EUR']]],
         ];
-        foreach ($variants as $change) {
-            Http::fake(function (Request $r) use ($change) {
-                $data = str_contains($r['query'], 'ShopbonusIdentity') ? $this->identity()
-                    : ['orders' => ['nodes' => [array_replace($this->order(), $change)], 'pageInfo' => ['hasNextPage' => false, 'endCursor' => null]]];
+        $change = [];
+        Http::fake(function (Request $r) use (&$change) {
+            $data = str_contains($r['query'], 'ShopbonusIdentity') ? $this->identity()
+                : ['orders' => ['nodes' => [array_replace($this->order(), $change)], 'pageInfo' => ['hasNextPage' => false, 'endCursor' => null]]];
 
-                return Http::response(['data' => $data], 200, ['X-Shopify-API-Version' => '2026-10']);
-            });
+            return Http::response(['data' => $data], 200, ['X-Shopify-API-Version' => '2026-10']);
+        });
+        foreach ($variants as $change) {
             try {
                 iterator_to_array((new ShopifyConnector)->syncOrders($c, now()->subHour()));
                 $this->fail('Invalid native order accepted.');
