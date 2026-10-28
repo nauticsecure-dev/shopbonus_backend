@@ -699,6 +699,6 @@ B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total7
 - [x] Bounded modified-order/catalog cursor reads and explicit unsupported discount/banner write/OAuth lifecycle capabilities; no connected promotion from fixture probes.
 - [x] Executed Shopify ownership/scope/GraphQL HTTP200errors/throttle/schema/cursor/secret/isolation tests, actual running-server API contract examples and both database suites/quality; record exact scope remaining for quality gates/providers.
 
-- [ ] B23b implementation commit and exact-code remote CI verified; record SHA and final counts in closeout.
+- [x] B23b implementation `295e8b5d8a787d60c69150c20ef83982a30c69da` and test-fixture correction `01666e100a9e9d7f2da13d394dbc7ed179aa40a8` committed/pushed; exact-code CI40677278061 SUCCESS all three jobs (795tests/database).
 
-B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; MySQL795total793pass+2skip/10049assertions/290.521s; native27tests229assertions, contract3tests3692assertions, Pint/PHPStan/composer validate/audit/platform/diff and11actual HTTP captures PASS. Implementation commit follows; exact SHA/CI pending closeout. Whole #31 IN_PROGRESS.
+B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; MySQL795total793pass+2skip/10049assertions/290.521s; native27tests229assertions, contract3tests3692assertions, Pint/PHPStan/composer validate/audit/platform/diff and11actual HTTP captures PASS. Implementation `295e8b5d8a787d60c69150c20ef83982a30c69da`, fixture correction `01666e100a9e9d7f2da13d394dbc7ed179aa40a8`; CI40677278061 SUCCESS: SQLite772pass+23skip/9965assertions/42.25s, MySQL793pass+2skip/10046assertions/203.38s. Whole #31 IN_PROGRESS.
