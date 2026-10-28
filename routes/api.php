@@ -12,9 +12,12 @@ use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeControlle
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
 use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncidentDiagnosticController;
+use App\Http\Controllers\Api\V1\Admin\MonitoringController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
+use App\Http\Controllers\Api\V1\Admin\OperationsOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
+use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
@@ -36,12 +39,14 @@ use App\Http\Controllers\Api\V1\Consumer\EmailChangeController;
 use App\Http\Controllers\Api\V1\Consumer\PreferenceController;
 use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
+use App\Http\Controllers\Api\V1\Consumer\PromotionalClaimController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
 use App\Http\Controllers\Api\V1\Content\CookieConsentController;
 use App\Http\Controllers\Api\V1\Content\PublicContentController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
+use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
@@ -125,6 +130,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
         Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
         // Published CMS content (Trello #5).
+        Route::get('legal-requirements', [PublicContentController::class, 'legalRequirements'])->name('legal-requirements.show');
         Route::get('pages', [PublicContentController::class, 'pages'])->name('pages.index');
         Route::get('pages/{locale}/{slug}', [PublicContentController::class, 'page'])->name('pages.show');
         Route::get('faq', [PublicContentController::class, 'faq'])->name('faq.index');
@@ -241,6 +247,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
                 Route::get('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'index'])->name('incident-diagnostics.index');
                 Route::get('incident-diagnostics/{diagnostic}', [AdminIncidentDiagnosticController::class, 'show'])->name('incident-diagnostics.show');
+                Route::get('operations-overview', OperationsOverviewController::class)->name('operations-overview');
+                Route::get('monitoring', MonitoringController::class)->name('monitoring');
+                Route::get('reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
+                Route::get('reconciliation/{run}', [ReconciliationController::class, 'show'])->name('reconciliation.show');
+                Route::post('reconciliation', [ReconciliationController::class, 'store'])->middleware(['password.recent', 'step_up.otp', 'throttle:admin-diagnostics'])->name('reconciliation.store');
+                Route::post('reconciliation/{run}/resume', [ReconciliationController::class, 'resume'])->middleware(['password.recent', 'step_up.otp', 'throttle:admin-diagnostics'])->name('reconciliation.resume');
                 Route::get('incidents', [AdminIncidentController::class, 'index'])->name('incidents.index');
                 Route::get('incidents/{incident}', [AdminIncidentController::class, 'show'])->name('incidents.show');
                 Route::get('api-routes', [AdminApiRouteRegistryController::class, 'index'])->name('api-routes');
@@ -371,6 +383,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::put('favorites/{slug}', [PreferenceController::class, 'addFavorite'])->name('favorites.store');
                 Route::delete('favorites/{slug}', [PreferenceController::class, 'removeFavorite'])->name('favorites.destroy');
 
+                Route::post('offers/{slug}/claim', [PromotionalClaimController::class, 'store'])->middleware('throttle:claims')->name('offers.claim');
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
                 Route::get('vouchers/{id}', [BenefitsController::class, 'voucher'])->middleware('throttle:code-reveal')->name('vouchers.show');
                 Route::post('disputes', [DisputeController::class, 'store'])->middleware('throttle:checkout')->name('disputes.store');
@@ -438,6 +451,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
                 Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
+                    Route::post('connections/{connection}/test-api', ConnectionApiTestController::class)->middleware('throttle:commerce-probe')->name('connections.test-api');
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
                     Route::post('connections/{connection}/credentials', [ConnectionController::class, 'replaceCredentials'])->name('connections.credentials');
                     Route::delete('connections/{connection}', [ConnectionController::class, 'destroy'])->name('connections.destroy');

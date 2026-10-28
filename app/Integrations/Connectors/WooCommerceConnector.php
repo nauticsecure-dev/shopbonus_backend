@@ -4,12 +4,16 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
+use App\Exceptions\ApiException;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
+use App\Integrations\Http\WooCommerceApi;
 use App\Models\WebshopConnection;
+use App\Services\Onboarding\DomainName;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 
@@ -40,7 +44,9 @@ class WooCommerceConnector extends WebhookConnector
     /** @return array<string, mixed> */
     public function connectRules(): array
     {
-        return ['store_url' => ['sometimes', 'nullable', 'url:https', 'max:255']];
+        return ['store_url' => ['nullable', 'required_with:consumer_key,consumer_secret', 'url:https', 'max:255'],
+            'consumer_key' => ['nullable', 'required_with:consumer_secret', 'string', 'min:16', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/D'],
+            'consumer_secret' => ['nullable', 'required_with:consumer_key', 'string', 'min:16', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/D']];
     }
 
     /** @return list<string> */
@@ -51,7 +57,22 @@ class WooCommerceConnector extends WebhookConnector
 
     public function connect(WebshopConnection $connection, array $input): array
     {
-        return ['webhook_secret' => $this->newSecret()];
+        $credentials = ['webhook_secret' => $this->newSecret()];
+        if (! empty($input['store_url'])) {
+            $base = WooCommerceApi::baseUrl($input['store_url']);
+            $connection->external_shop_ref = $base;
+            $credentials['store_url'] = $base;
+            if (! empty($input['consumer_key'])) {
+                $shop = $connection->webshop;
+                if (! $shop->isOwnershipVerified() || strtolower((string) $shop->verified_domain) !== DomainName::fromInput($base)) {
+                    throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
+                }
+                $credentials['consumer_key'] = $input['consumer_key'];
+                $credentials['consumer_secret'] = $input['consumer_secret'];
+            }
+        }
+
+        return $credentials;
     }
 
     public function setupInstructions(WebshopConnection $connection, string $webhookUrl): array
@@ -59,6 +80,8 @@ class WooCommerceConnector extends WebhookConnector
         return [
             'format' => 'woocommerce-webhooks',
             'webhook_url' => $webhookUrl,
+            'read_api_configured' => $connection->credential('consumer_key') !== null && $connection->credential('consumer_secret') !== null,
+            'read_api_notice' => 'Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.',
             'steps' => [
                 'In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.',
                 'Create two webhooks, topics "Order created" and "Order updated", status Active, API version WP REST API Integration v3.',
@@ -66,6 +89,98 @@ class WooCommerceConnector extends WebhookConnector
                 'Save, then place a real paid test order.',
             ],
         ];
+    }
+
+    public function testConnection(WebshopConnection $connection): array
+    {
+        $page = $this->readPage($connection, 'orders', perPage: 1);
+
+        return ['ok' => true, 'code' => $page['data'] === [] ? 'api_authenticated_no_orders' : 'api_orders_read_observed'];
+    }
+
+    public function fetchOrder(WebshopConnection $connection, string $externalId): array
+    {
+        $id = WooCommerceApi::orderId($externalId);
+        $order = app(WooCommerceApi::class)->get($connection, 'orders/'.$id)['data'];
+        if ((! is_int($order['id'] ?? null) && ! is_string($order['id'] ?? null)) || (string) $order['id'] !== $id || ! is_string($order['total'] ?? null) || ! is_string($order['currency'] ?? null) || ! Money::isCurrency($order['currency'])) {
+            throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
+        }
+        try {
+            $totalMinor = Money::toMinor($order['total'], $order['currency']);
+        } catch (InvalidArgumentException) {
+            throw new ApiException('The provider order amount could not be read.', 502, 'provider_order_invalid');
+        }
+        $refundedMinor = 0;
+        $refunds = [];
+        for ($page = 1; $page <= 2; $page++) {
+            $result = $this->readPage($connection, 'orders/'.$id.'/refunds', $page);
+            if ($result['pages'] > 2) {
+                throw ApiException::conflict('This order requires a larger background refund reconciliation.', 'provider_pagination_limit');
+            }
+            foreach ($result['data'] as $refund) {
+                if (! is_array($refund) || ! isset($refund['id']) || ! is_string($refund['amount'] ?? null)) {
+                    throw new ApiException('The provider refund data is incomplete.', 502, 'provider_refund_invalid');
+                }
+                try {
+                    $minor = Money::toMinor($refund['amount'], $order['currency']);
+                    if ($minor < 0 || ($refundedMinor += $minor) > $totalMinor) {
+                        throw new InvalidArgumentException('Invalid refund amount.');
+                    }
+                } catch (InvalidArgumentException) {
+                    throw new ApiException('The provider refund data is incomplete.', 502, 'provider_refund_invalid');
+                }
+                $refunds[] = ['id' => $refund['id'], 'total' => $refund['amount']];
+            }
+            if (($result['pages'] > 0 && $page >= $result['pages']) || count($result['data']) < 100) {
+                $order['refunds'] = $refunds;
+
+                return $order;
+            }
+        }
+        throw ApiException::conflict('This order requires a larger background refund reconciliation.', 'provider_pagination_limit');
+    }
+
+    /**
+     * Native GET pages only; no provider response URLs are followed.
+     *
+     * @return array{data:array<mixed>,pages:int}
+     */
+    public function readPage(WebshopConnection $connection, string $resource, int $page = 1, int $perPage = 100): array
+    {
+        $result = app(WooCommerceApi::class)->get($connection, $resource, $page, ['per_page' => $perPage]);
+        if (! array_is_list($result['data'])) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+
+        foreach ($result['data'] as $item) {
+            if (! is_array($item) || (! is_int($item['id'] ?? null) && ! is_string($item['id'] ?? null)) || ! preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $item['id'])) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+        }
+
+        return $result;
+    }
+
+    public function syncOrders(WebshopConnection $connection, CarbonImmutable $since): iterable
+    {
+        $until = CarbonImmutable::now();
+        for ($page = 1; $page <= WooCommerceApi::MAX_PAGES; $page++) {
+            $result = app(WooCommerceApi::class)->get($connection, 'orders', $page, ['modified_after' => $since->utc()->format('Y-m-d\TH:i:s'),
+                'modified_before' => $until->utc()->format('Y-m-d\TH:i:s'), 'dates_are_gmt' => 'true', 'orderby' => 'modified', 'order' => 'asc']);
+            if (! array_is_list($result['data']) || $result['pages'] > WooCommerceApi::MAX_PAGES) {
+                throw ApiException::conflict('Use bounded background pages for this provider backlog.', 'provider_pagination_limit');
+            }
+            foreach ($result['data'] as $order) {
+                if (! is_array($order) || ! isset($order['id'])) {
+                    throw new ApiException('The provider order data is incomplete.', 502, 'provider_order_invalid');
+                }
+                yield $order;
+            }
+            if (($result['pages'] > 0 && $page >= $result['pages']) || count($result['data']) < 100) {
+                return;
+            }
+        }
+        throw ApiException::conflict('Use bounded background pages for this provider backlog.', 'provider_pagination_limit');
     }
 
     public function verifyIncomingEvent(WebshopConnection $connection, Request $request): VerifiedEvent

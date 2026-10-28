@@ -1,0 +1,59 @@
+{
+    "environment": "Isolated local MySQL synthetic10000 checks\/20runs; no production SLA.",
+    "database_version": "26.7.0",
+    "before": {
+        "run_page": {
+            "sql": "SELECT public_id, source_type, source_ref, status, evidence, created_at FROM financial_reconciliation_checks WHERE run_id=? ORDER BY id LIMIT 25",
+            "bindings": [
+                20
+            ],
+            "plan": [
+                {
+                    "EXPLAIN": "-> Limit: 25 row(s)  (cost=123 rows=25)\n    -> Sort: financial_reconciliation_checks.id, limit input to 25 row(s) per chunk  (cost=123 rows=500)\n        -> Index lookup on financial_reconciliation_checks using finance_check_source_unique (run_id = 20)  (cost=123 rows=500)\n"
+                }
+            ],
+            "median_ms": 2.074485
+        },
+        "filtered_page": {
+            "sql": "SELECT public_id, source_type, source_ref, status, evidence, created_at FROM financial_reconciliation_checks WHERE run_id=? AND status=? ORDER BY id LIMIT 25",
+            "bindings": [
+                20,
+                "discrepancy"
+            ],
+            "plan": [
+                {
+                    "EXPLAIN": "-> Limit: 25 row(s)  (cost=77.8 rows=25)\n    -> Sort: financial_reconciliation_checks.id, limit input to 25 row(s) per chunk  (cost=77.8 rows=500)\n        -> Filter: (financial_reconciliation_checks.`status` = 'discrepancy')  (cost=77.8 rows=500)\n            -> Index lookup on financial_reconciliation_checks using finance_check_source_unique (run_id = 20)  (cost=77.8 rows=500)\n"
+                }
+            ],
+            "median_ms": 2.042972
+        }
+    },
+    "after": {
+        "run_page": {
+            "sql": "SELECT public_id, source_type, source_ref, status, evidence, created_at FROM financial_reconciliation_checks WHERE run_id=? ORDER BY id LIMIT 25",
+            "bindings": [
+                20
+            ],
+            "plan": [
+                {
+                    "EXPLAIN": "-> Limit: 25 row(s)  (cost=123 rows=25)\n    -> Sort: financial_reconciliation_checks.id, limit input to 25 row(s) per chunk  (cost=123 rows=500)\n        -> Index lookup on financial_reconciliation_checks using finance_check_source_unique (run_id = 20)  (cost=123 rows=500)\n"
+                }
+            ],
+            "median_ms": 1.8982385
+        },
+        "filtered_page": {
+            "sql": "SELECT public_id, source_type, source_ref, status, evidence, created_at FROM financial_reconciliation_checks WHERE run_id=? AND status=? ORDER BY id LIMIT 25",
+            "bindings": [
+                20,
+                "discrepancy"
+            ],
+            "plan": [
+                {
+                    "EXPLAIN": "-> Limit: 25 row(s)  (cost=17.5 rows=25)\n    -> Index lookup on financial_reconciliation_checks using finance_check_status_page (run_id = 20, status = 'discrepancy')  (cost=17.5 rows=50)\n"
+                }
+            ],
+            "median_ms": 0.5502095
+        }
+    },
+    "new_migrations_down_up": "PASS on isolated MySQL"
+}

@@ -14,6 +14,7 @@ use App\Services\Funding\MerchantFunding;
 use App\Services\Workspaces\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 /**
@@ -77,7 +78,10 @@ class FundingController extends Controller
     public function topUp(Request $request, CurrentWorkspace $current): JsonResponse
     {
         $data = $request->validate(['amount_minor' => ['required', 'integer', 'min:'.config('shopbonus.funding.min_top_up_minor'), 'max:'.config('shopbonus.funding.max_top_up_minor')]]);
-        $topUp = $this->funding->startTopUp($current->webshop(), (int) $data['amount_minor'], $current->membership()->user);
+        $identity = $request->hasHeader('Idempotency-Key') ? ['key' => $request->header('Idempotency-Key')] : [];
+        Validator::make($identity, ['key' => ['sometimes', 'required', 'uuid']])->validate();
+        $key = isset($identity['key']) ? strtolower($identity['key']) : null;
+        $topUp = $this->funding->startTopUp($current->webshop(), (int) $data['amount_minor'], $current->membership()->user, $key);
 
         return response()->json(['data' => self::topUpView($topUp)], 201);
     }
@@ -105,6 +109,6 @@ class FundingController extends Controller
     private static function topUpView(FundingTopUp $t): array
     {
         return ['id' => $t->public_id, 'state' => $t->state, 'amount_minor' => $t->amount_minor, 'currency' => $t->currency,
-            'checkout_url' => $t->state === 'pending' ? $t->checkout_url : null, 'paid_at' => $t->paid_at?->toIso8601String()];
+            'creation_state' => $t->creation_state, 'checkout_url' => $t->state === 'pending' && $t->creation_state === 'created' ? $t->checkout_url : null, 'paid_at' => $t->paid_at?->toIso8601String()];
     }
 }

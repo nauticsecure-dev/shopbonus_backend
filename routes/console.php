@@ -40,3 +40,15 @@ Schedule::command('shopbonus:publish-scheduled-banners')->everyMinute()->without
 Schedule::command('shopbonus:prune-support')->everyFiveMinutes()->withoutOverlapping();
 
 Schedule::command('shopbonus:dispatch-notifications')->everyMinute()->withoutOverlapping();
+
+// B22a: threshold evaluation/retention; telemetry stays opt-in.
+Schedule::command('shopbonus:monitor-api')->everyMinute()->withoutOverlapping();
+
+// Durable bounded projection scans; unfinished runs drain before another hourly run.
+Schedule::command('shopbonus:reconcile-financials')->everyMinute()->withoutOverlapping();
+
+Schedule::command('shopbonus:observe-operations')->everyMinute()->withoutOverlapping();
+
+Schedule::command('shopbonus:backup')->hourly()->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);
+
+Schedule::command('shopbonus:verify-latest-backup')->weeklyOn(0, '05:00')->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);

@@ -152,9 +152,15 @@ class CmsService
      */
     public static function publishedLegalVersion(string $type): ?string
     {
+        return self::publishedLegalRevision($type)?->legal_version;
+    }
+
+    /** Canonical NL publication, also used to bind translated links to the same page. */
+    public static function publishedLegalRevision(string $type): ?CmsRevision
+    {
         return CmsRevision::query()->join('cms_pages', 'cms_pages.id', '=', 'cms_revisions.page_id')->join('cms_page_locales', 'cms_page_locales.published_revision_id', '=', 'cms_revisions.id')
             ->where('cms_pages.type', $type)->whereNull('cms_pages.archived_at')->where('cms_revisions.locale', 'nl')->whereNotNull('cms_revisions.legal_version')
-            ->orderByDesc('cms_revisions.id')->value('cms_revisions.legal_version');
+            ->orderByDesc('cms_revisions.id')->first(['cms_revisions.*']);
     }
 
     /**

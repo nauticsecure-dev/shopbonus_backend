@@ -12739,3 +12739,703 @@ X-RateLimit-Remaining: 999
 
 {"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b29-foreign-read-not-found"}}
 ```
+
+
+## B21 frontend integration corrections — 2026-10-27
+
+Captured from a real local Laravel server on the working tree based on `665bc1d`, isolated SQLite, file sessions and array mail. Payments used an explicitly synthetic local Mollie upstream; no actual provider or email delivery is claimed. Sanitized full captures: [B21_HTTP_CAPTURE.json](../integration/B21_HTTP_CAPTURE.json). Local fixtures and senior configuration: [LOCAL_INTEGRATION.md](../integration/LOCAL_INTEGRATION.md).
+
+`GET /api/v1/public/legal-requirements?locale=nl|en` exposes exactly the legal versions required by signup, their CMS/configuration origin and links only to matching public published documents. Missing configuration/text is visible through availability flags; registration continues to fail closed when versions are missing. `registration_available` is not a statement of legal approval. A configuration fallback does not invent document text. Re-fetch versions before submitting `account_type`, `accept_terms`, `terms_version` and `privacy_version` to `/register`.
+
+`POST /api/v1/consumer/offers/{slug}/claim` requires an active verified account. Only public approved-shop promotional_code offers qualify. Server-side stock/validity applies and one consumer+offer can allocate only one voucher. Replay returns the same reference; no code is exposed here. Read the owned `/api/v1/consumer/vouchers/{id}` endpoint to reveal the code. Support impersonation is blocked. Existing claims replay after pause/expiry; unpublished shops return404. Wallet-purchase and merchant-reward offers return409, and Answer24 retains its separate token flow.
+
+Funding `POST /api/v1/workspaces/{workspace}/funding/top-ups` now accepts an optional UUID `Idempotency-Key`. Persist one UUID before the first request and reuse it with the same amount on every retry. Keys are scoped to the actor+workspace. Different amounts return409. Headerless requests remain independent for released v1 compatibility. The provider receives a distinct stable UUID, with only one create attempt per intent. Never infer payment from the redirect or checkout link.
+
+Funding `creation_state` is separate from payment `state`: creating means the committed intent is being submitted or needs crash review; created means a provider reference was stored; uncertain means creation could not be confirmed. A502 includes top_up_id. Replaying either creating or uncertain returns201 with the same ID and no checkout URL and never resubmits, including after provider cache expiry/configuration changes. Poll the existing top-up; do not generate another key automatically. If no provider reference was stored, a senior must reconcile against provider evidence before deciding whether a genuinely new payment is appropriate. No wallet credit is posted without existing verified-paid settlement. [Mollie idempotency](https://docs.mollie.com/reference/api-idempotency) caches for one hour and ties keys to credentials; permanent replay protection is local.
+
+### `GET /api/v1/public/legal-requirements`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-223c-71ae-837a-af8ac8676c12
+
+{"data":{"locale":"nl","registration_available":true,"documents_available":true,"documents":{"terms":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/nl/local-sample-terms"},"privacy":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/nl/local-sample-privacy"}}}}
+```
+
+### `GET /api/v1/public/legal-requirements?locale=en`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements?locale=en'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2277-70e1-8cf2-4b492ae316da
+
+{"data":{"locale":"en","registration_available":true,"documents_available":true,"documents":{"terms":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-terms"},"privacy":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-privacy"}}}}
+```
+
+### `Invalid legal locale`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements?locale=fr'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17e90-2288-728a-94be-7e9a40aa9977
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-2288-728a-94be-7e9a40aa9977","fields":{"locale":["The selected locale is invalid."]}}}
+```
+
+### `POST /api/v1/consumer/offers/{slug}/claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2311-706a-be87-a06ee1e76519
+
+{"data":{"id":"01m5z908sg2jrn9rbg1ecbjkms","status":"issued","voucher_url":"http://127.0.0.1:8079/api/v1/consumer/vouchers/01m5z908sg2jrn9rbg1ecbjkms"}}
+```
+
+### `Promotional replay`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2343-7024-8670-3ac5bf9fe245
+
+{"data":{"id":"01m5z908sg2jrn9rbg1ecbjkms","status":"issued","voucher_url":"http://127.0.0.1:8079/api/v1/consumer/vouchers/01m5z908sg2jrn9rbg1ecbjkms"}}
+```
+
+### `Unauthenticated claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: 01a17e90-22f7-706f-80f1-18a5bae9cd5e
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a17e90-22f7-706f-80f1-18a5bae9cd5e"}}
+```
+
+### `Unknown claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/missing/claim'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: 01a17e90-2357-72ad-a651-b7f3f7686b5b
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Offer not found.","request_id":"01a17e90-2357-72ad-a651-b7f3f7686b5b"}}
+```
+
+### `Paused offer claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17e90-245a-7141-b440-54a14428a847
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"offer_not_active","message":"This offer is not active.","request_id":"01a17e90-245a-7141-b440-54a14428a847","details":{"status":"paused"}}}
+```
+
+### `Missing browser CSRF token`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Origin: http://127.0.0.1:8079' -H 'Referer: http://127.0.0.1:8079/' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: 01a17e90-2883-702e-9b1e-a736e7668c02
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"01a17e90-2883-702e-9b1e-a736e7668c02"}}
+```
+
+### `Unverified claim`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Origin: http://127.0.0.1:8079' -H 'Referer: http://127.0.0.1:8079/' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17e90-2899-720f-8046-a411b1abbcb3
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"email_not_verified","message":"Verify your email address to continue.","request_id":"01a17e90-2899-720f-8046-a411b1abbcb3"}}
+```
+
+### `Claim rate limit`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' -H 'Content-Type: application/json' -d '{}' 'http://localhost:8000/api/v1/consumer/offers/local-sample-promotional-voucher-ibj2v9/claim'
+```
+
+```http
+HTTP/1.1 429
+X-Request-Id: 01a17e90-29ac-70e2-90ae-efb5a7eb06dc
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a17e90-29ac-70e2-90ae-efb5a7eb06dc"}}
+```
+
+### `POST /api/v1/workspaces/{workspace}/funding/top-ups`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2474-72dd-9c27-9a9d108276d7
+
+{"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
+```
+
+### `Top-up replay`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-24c1-72be-a2fe-1edd2a875f29
+
+{"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
+```
+
+### `Top-up amount conflict`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -d '{"amount_minor":2000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17e90-24d8-7250-a04a-088d3824ebfa
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"funding_request_conflict","message":"This idempotency key belongs to a different top-up.","request_id":"01a17e90-24d8-7250-a04a-088d3824ebfa"}}
+```
+
+### `Invalid top-up key`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: invalid' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17e90-24ef-73ec-a30a-1e7f2dc83589
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-24ef-73ec-a30a-1e7f2dc83589","fields":{"key":["The key field must be a valid UUID."]}}}
+```
+
+### `Uncertain provider creation`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 7bf9cef9-0077-4cd1-8ca6-e34add8406d1' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 502
+X-Request-Id: 01a17e90-250b-7026-bee9-445f4175089d
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":502,"code":"funding_creation_uncertain","message":"Payment creation could not be confirmed. Reuse the same request key and review this top-up; do not start another payment automatically.","request_id":"01a17e90-250b-7026-bee9-445f4175089d","details":{"top_up_id":"01m5z9098qbspebggw41mrwgfc"}}}
+```
+
+### `Uncertain replay`
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' -H 'Content-Type: application/json' -H 'Idempotency-Key: 7bf9cef9-0077-4cd1-8ca6-e34add8406d1' -d '{"amount_minor":1000}' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-252c-714c-ac33-fd70e700752f
+
+{"data":{"id":"01m5z9098qbspebggw41mrwgfc","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"uncertain","checkout_url":null,"paid_at":null}}
+```
+
+### `GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}`
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <MERCHANT_TOKEN>' 'http://localhost:8000/api/v1/workspaces/01m5z907k07qxtaw1nbw0yacyc/funding/top-ups/01m5z9094dwnh9w2mymph2kqv5'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17e90-2544-7364-8196-035ecc981353
+
+{"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
+```
+
+
+## B22a — observed API monitoring (Trello #30)
+
+New `GET /api/v1/admin/monitoring?minutes=5` requires active verified Super Admin, normal MFA and no support impersonation. Returns only bounded aggregate operational metadata, with no request bodies, raw paths/SQL/bindings/headers, customer/workspace IDs or credentials. Window1–60minutes. Exact nearest-rank quantiles describe the selected observations, not estimated production uptime. Explicit sample/route truncation produces UNKNOWN. HEALTHY only describes sufficient observed HTTP traffic; unobserved dependencies remain UNKNOWN. Config, query-plan/benchmark evidence, retention, costs and remaining full-card work: [RELIABILITY.md](../reliability/RELIABILITY.md).
+
+`GET /api/v1/admin/incidents/{incident}` now includes nullable immutable `monitoring_evidence` per occurrence. Scheduler-generated latency/5xx incidents retain the actual observation window, counts, thresholds and P95 without raw requests. Existing audited assignment/resolution APIs are reused. A recurring breach after300s reopens resolved/ignored incidents; unchanged breaches within cooldown do not duplicate occurrences. No automatic financial correction or external notification dispatch is introduced.
+
+Captured2026-10-27 from real local Laravel HTTP, isolated SQLite + file cache/sessions + array mail. Admin MFA was disabled only for this isolated capture, never the main environment. The dataset contains10000 explicitly synthetic observations to exercise real SQL; no production traffic/provider evidence is claimed. [Full captures and local SQL benchmark](../reliability/B22_HTTP_CAPTURE.json).
+
+### unauthenticated — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: 01a17f0e-de38-7266-9788-1f4ee2096175
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a17f0e-de38-7266-9788-1f4ee2096175"}}
+```
+
+### forbidden — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17f0e-de90-71ba-b6d3-bebcea09ac49
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a17f0e-de90-71ba-b6d3-bebcea09ac49"}}
+```
+
+### invalid-window — `GET /api/v1/admin/monitoring?minutes=61`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring?minutes=61'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: 01a17f0e-deb9-7199-89a3-1b2de94aac2c
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17f0e-deb9-7199-89a3-1b2de94aac2c","fields":{"minutes":["The minutes field must not be greater than 60."]}}}
+```
+
+### empty-report — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-dee5-7055-8965-c99b54780ba9
+
+{"data":{"enabled":true,"state":"UNKNOWN","from":"2026-10-27T20:25:43+00:00","to":"2026-10-27T20:30:43+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[{"route":"api/v1/admin/monitoring","method":"GET","requests":3,"state":"UNKNOWN","breaches":[],"average_ms":43.84,"p50_ms":30.898,"p95_ms":71.519,"p99_ms":71.519,"client_errors":3,"server_errors":0,"client_error_percent":100,"server_error_percent":0,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":54,"total_ms":14.55,"slow_queries":0}}],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}}}
+```
+
+### observed-report — `GET /api/v1/admin/monitoring?minutes=5`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring?minutes=5'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-store, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-e04e-7179-8758-7b2e98176a7a
+
+{"data":{"enabled":true,"state":"CRITICAL","from":"2026-10-27T20:25:43+00:00","to":"2026-10-27T20:30:43+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[{"route":"api/v1/admin/monitoring","method":"GET","requests":4,"state":"UNKNOWN","breaches":[],"average_ms":36.453,"p50_ms":29.104,"p95_ms":71.519,"p99_ms":71.519,"client_errors":3,"server_errors":0,"client_error_percent":75,"server_error_percent":0,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":59,"total_ms":17.74,"slow_queries":0}},{"route":"api/v1/health","method":"GET","requests":10000,"state":"CRITICAL","breaches":["api_5xx_rate","api_latency"],"average_ms":404,"p50_ms":5,"p95_ms":2000,"p99_ms":2000,"client_errors":0,"server_errors":1000,"client_error_percent":0,"server_error_percent":10,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":20000,"total_ms":10000,"slow_queries":0}}],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}}}
+```
+
+### incident-evidence — `GET /api/v1/admin/incidents/01m5zgxre50ncab1ddad3xqq0k`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/incidents/01m5zgxre50ncab1ddad3xqq0k'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-e3fe-71b3-9619-ef46235e5806
+
+{"data":{"id":"01m5zgxre50ncab1ddad3xqq0k","category":"monitoring","severity":"error","service":"api_monitoring","route":"api/v1/health","method":"GET","http_status":null,"status":"new","assigned_to":null,"occurrences":1,"first_seen_at":"2026-10-27T20:30:44+00:00","last_seen_at":"2026-10-27T20:30:44+00:00"},"history":[],"occurrences":[{"id":"01m5zgxreajyknsajh10wg5jsc","request_id":null,"actor_id":null,"webshop_id":null,"scope_public_id":null,"error_code":"api_5xx_rate","monitoring_evidence":{"from":"2026-10-27T20:25:44+00:00","to":"2026-10-27T20:30:44+00:00","requests":10000,"server_errors":1000,"server_error_percent":10,"p95_ms":2000,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000}},"occurred_at":"2026-10-27T20:30:44+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+### rate-limited — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 429
+Retry-After: 57
+X-Request-Id: 01a17f0e-e99b-709c-a639-2441fa5bc9d8
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a17f0e-e99b-709c-a639-2441fa5bc9d8"}}
+```
+
+### storage-failure — `GET /api/v1/admin/monitoring`
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: 01a17f0e-ed56-72ca-896a-bd4a437f7a2d
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a17f0e-ed56-72ca-896a-bd4a437f7a2d"}}
+```
+
+### health-survives-observation-failure — `GET /api/v1/health`
+
+```bash
+curl -i -H 'Accept: application/json' 'http://localhost:8000/api/v1/health'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f0e-edff-723e-8048-9a5b708483b2
+
+{"status":"ok","service":"shopbonus-api","time":"2026-10-27T20:30:47+00:00"}
+```
+
+
+## B22b prerequisite financial evidence — approved policy and repeat-safe wallet checks
+
+Owner confirmed new affiliate rewards spendable only after network approval (D-089). New reward evaluations retain their timing and rule terms; later approval does not switch an existing pending reward to a new rate/regime. Private credit evidence and sponsorship fee-rate snapshots are immutable. Legacy missing evidence is not invented. Wallet reconciliation now locks the wallet and preserves one open mismatch flag with original evidence; it never repairs balances or posts balancing entries. Existing resolution/dual-admin correction controls remain. A whole-platform source reconciliation runner is still unfinished.
+
+`POST /api/v1/admin/affiliate/transactions/{transaction}/resolve`: an approved commission increase beyond the original review threshold re-enters review before spendable credit; authorized acceptance can release the reviewed amount. Non-EUR conversion acceptance returns409 unsupported_reward_currency because no approved FX policy exists. A review acceptance cannot override that currency guard. Existing status/ownership/MFA/password/CSRF validations remain; no arbitrary EUR/points exchange is introduced.
+
+Captured2026-10-27 on isolated SQLite/file-session+cache/array-mail Laravel HTTP, synthetic canonical imports and a separate deliberately corrupted wallet. Admin MFA disabled only for the isolated fixture; actual session/CSRF/password confirmation exercised.1000commission minor units→700pending/nonspendable before approval; a newer90% rule leaves the original credit700 and gives a new conversion900. These are virtual EUR credits, not confirmed cash collection or revenue recognition. [Source evidence/actual responses](../reliability/B22_FINANCIAL_EVIDENCE.json); [scope/legacy limits](../reliability/RELIABILITY.md); [financial findings/fixes](../reliability/FINANCIAL_FINDINGS.md).
+
+### `GET /api/v1/admin/affiliate/transactions/01m5zkksjknh4mxkpp51ckw0p3` — old-transaction
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/affiliate/transactions/01m5zkksjknh4mxkpp51ckw0p3'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-e979-704d-896a-fc9c2ed873d5
+
+{"data":{"id":"01m5zkksjknh4mxkpp51ckw0p3","network":"daisycon","external_id":"SYNTHETIC-1","status":"approved","network_status":"approved","review_reason":null,"webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":1000,"currency":"EUR","reward":{"status":"credited","amount":700,"unit":"eur_credit","rule_version":1},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00","events":[{"source":"import","from":null,"to":"pending","network_status":"pending","note":null,"at":"2026-10-27T21:17:43+00:00"},{"source":"import","from":"pending","to":"approved","network_status":"approved","note":null,"at":"2026-10-27T21:17:43+00:00"}]}}
+```
+
+### `GET /api/v1/admin/wallets/01m5zkksmv1628es7mab5wap0t/ledger` — isolated-mismatch-ledger
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/wallets/01m5zkksmv1628es7mab5wap0t/ledger'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-e9dd-71ab-a4cc-3491dfa14e39
+
+{"data":[{"id":"01m5zkksmxjj0dwd4tyw85pej8","type":"credit","unit":"eur_credit","amount":1000,"available_delta":1000,"reserved_delta":0,"available_after":1000,"reserved_after":0,"reason":null,"origin":"system","source_type":null,"created_at":"2026-10-27T21:17:43+00:00"}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallet-reconciliation-flags?wallet_id=01m5zkksmv1628es7mab5wap0t` — single-open-flag
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/wallet-reconciliation-flags?wallet_id=01m5zkksmv1628es7mab5wap0t'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ea06-70a0-b021-6e4933f83ce7
+
+{"data":[{"id":"01m5zkksn4qftevcrxsk5jmt0p","wallet_id":"01m5zkksmv1628es7mab5wap0t","unit":"eur_credit","reason":"balance_mismatch","amount":0,"status":"open","resolved_at":null,"resolution_reason":null,"resolved_by":null}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+### `GET /api/v1/admin/wallet-reconciliation-flags` — forbidden-flags
+
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' 'http://127.0.0.1:8079/api/v1/admin/wallet-reconciliation-flags'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: 01a17f39-ea1b-71a9-b788-67c63470897f
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a17f39-ea1b-71a9-b788-67c63470897f"}}
+```
+
+### `POST /login` — fixture-login
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"email":"admin@finance.example.test","password":"<LOCAL_PASSWORD>"}' 'http://127.0.0.1:8079/login'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ea63-7358-a39a-9f200a99ec18
+
+{"data":{"id":"01m5zkksg9v9qcempa7f5tfp22","first_name":"Synthetic admin","email":"admin@finance.example.test","email_verified":true,"status":"active","onboarding_intent":"consumer","locale":"nl","roles":["super_admin"],"workspaces":[],"destination":"admin","two_factor_enabled":false,"support_session":null}}
+```
+
+### `POST /user/confirm-password` — fixture-password-confirm
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"password":"<LOCAL_PASSWORD>"}' 'http://127.0.0.1:8079/user/confirm-password'
+```
+
+```http
+HTTP/1.1 201
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ec4a-72f0-90c2-2dc8418974e3
+
+""
+```
+
+### `POST /api/v1/admin/affiliate/transactions/01m5zkkskwk7yzvtt3wabj49yv/resolve` — unsupported-currency-accept
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"action":"accept","note":"Synthetic check: no FX policy configured"}' 'http://127.0.0.1:8079/api/v1/admin/affiliate/transactions/01m5zkkskwk7yzvtt3wabj49yv/resolve'
+```
+
+```http
+HTTP/1.1 409
+X-Request-Id: 01a17f39-ed39-7006-9c3d-b267805393ba
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"unsupported_reward_currency","message":"Non-EUR conversions need an approved currency conversion policy before acceptance.","request_id":"01a17f39-ed39-7006-9c3d-b267805393ba"}}
+```
+
+### `POST /api/v1/admin/affiliate/transactions/01m5zkksm7y1rqtwrk911ptmjk/resolve` — authorized-threshold-accept
+
+```bash
+curl -i -X POST -H 'Accept: application/json' -b '<SESSION_COOKIE>' -H 'Origin: http://127.0.0.1:8079' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"action":"accept","note":"Synthetic verified increased commission source"}' 'http://127.0.0.1:8079/api/v1/admin/affiliate/transactions/01m5zkksm7y1rqtwrk911ptmjk/resolve'
+```
+
+```http
+HTTP/1.1 200
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a17f39-ed5c-7071-8333-00ce93d71c35
+
+{"data":{"id":"01m5zkksm7y1rqtwrk911ptmjk","network":"daisycon","external_id":"SYNTHETIC-REVIEW","status":"approved","network_status":"approved","review_reason":"resolved:accept","webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":2000,"currency":"EUR","reward":{"status":"credited","amount":1400,"unit":"eur_credit","rule_version":3},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00"}}
+```
+
+## #30 reconciliation and operations — actual HTTP capture, 2026-10-28
+Captured against a real local PHP server and isolated synthetic SQLite/cache/session database; array mail, providers off, MFA disabled only in this fixture. Normal browser login/password confirmation and seeded OTP verification ran. Synthetic mismatch/failed-run/missing-table injection and isolated cache reset are explicitly test-only. Full sanitized evidence: [B22_COMPLETION_HTTP_CAPTURE.json](../reliability/B22_COMPLETION_HTTP_CAPTURE.json). No frontend implementation or production claim.
+Super Admin/MFA and support-session denial apply to every operation. Writes need a fresh SPA password and OTP, CSRF, and at most three requests/minute. Use stable UUID request_key per admin; replays return the original run, no new corrections. Scheduler advances bounded100-source batches; sources are observed separately at their checked_at timestamps. Legacy wallet-only runs keep scope_version1; new runs use2. Missing/empty/legacy proof stays explicit. Findings never repair balances or recognize cash/revenue. Read pagination defaults25/max100; page>=1; details optionally filter status=matched/discrepancy/unknown. Resume requires a failed run and a5–500-character reason; other states409. Operators configure the backup key/destination/separate restore server; no backup/restore HTTP mutation exists.
+
+### `GET /api/v1/admin/reconciliation` — List reconciliation runs
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/reconciliation'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": [{"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "completed", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "OBSERVED", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}], "meta": {"page": 1, "total": 1}}
+```
+
+### `POST /api/v1/admin/reconciliation` — Request an idempotent reconciliation run
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"request_key":"90c078d6-1573-467e-9d36-860cc84b72d2"}' 'http://localhost:8000/api/v1/admin/reconciliation'
+```
+```http
+HTTP/1.1 202
+Content-Type: application/json
+
+{"data": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "pending", "status": "UNKNOWN", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": null, "elapsed_including_scheduling_ms": 72, "checked_wallets": 0, "discrepancies": 0, "unknown_checks": 0, "coverage": {"wallet_projection": "INCOMPLETE", "affiliate": "UNKNOWN", "checkout": "UNKNOWN", "funding": "UNKNOWN", "sponsorship": "UNKNOWN", "ledger": "UNKNOWN"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}}
+```
+
+### `GET /api/v1/admin/reconciliation/{run}` — Inspect immutable source checks
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?status=discrepancy'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "completed", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "OBSERVED", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}, "checks": [{"id": "01m60xt3gsh82cd9p6kzayj2nc", "source_type": "wallet", "source_ref": "01m60xt19ttzdj91yb9frh9v83", "status": "discrepancy", "evidence": {"version": 1, "unit": "eur_credit", "kind": "consumer_credit", "projection": {"available": 1400, "reserved": 0, "pending": 0}, "mismatches": {"available": [1000, 1400], "lots": [1000, 1400]}, "flag": "01m60xt3ge3km27rrc38xyygnf"}, "checked_at": "2026-10-28T09:35:10.000000Z"}], "meta": {"page": 1, "total": 1}, "corrections": "Use existing reviewed wallet adjustment, affiliate review and checkout/dispute workflows. This report never posts corrections."}
+```
+
+### `POST /api/v1/admin/reconciliation/{run}/resume` — Resume an investigated failed run
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"reason":"Synthetic failure investigated; fixture storage restored."}' 'http://localhost:8000/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume'
+```
+```http
+HTTP/1.1 202
+Content-Type: application/json
+
+{"data": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "running", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "INCOMPLETE", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}}
+```
+
+### `GET /api/v1/admin/operations-overview` — Observe platform operations
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/operations-overview'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"observed_at": "2026-10-28T09:35:10+00:00", "components": {"database": {"status": "HEALTHY", "observed_at": "2026-10-28T09:35:10+00:00"}, "cache": {"status": "HEALTHY", "observed_at": "2026-10-28T09:35:10+00:00"}, "api": {"enabled": false, "state": "UNKNOWN", "from": "2026-10-28T09:30:10+00:00", "to": "2026-10-28T09:35:10+00:00", "sample_limit": 50000, "sample_limit_exceeded": false, "routes_truncated": false, "thresholds": {"minimum_samples": 20, "error_percent": 2, "p95_ms": 1000}, "routes": [], "coverage": {"http": "observed_requests_only", "timeouts": "rendered_408_504_only", "queue_wait": "UNKNOWN", "provider_failures": "UNKNOWN", "dependency_availability": "UNKNOWN", "backups": "UNKNOWN"}}, "queue": {"status": "UNKNOWN", "reason": "No observable database/redis background queue configured."}, "providers": {"status": "UNKNOWN", "failed_affiliate_connections": 0, "http_observations": {"http_status": "UNKNOWN", "http_requests": 0, "http_failures": 0, "http_sample_limit_exceeded": false, "by_provider": []}, "definition": "Persisted affiliate errors plus opt-in HTTP observations; no independent provider availability proof."}, "financial": {"run": "01m60xt37mxxr2cajczf579ma8", "scope_version": 2, "execution": "completed", "status": "CRITICAL", "requested_at": "2026-10-28T09:35:10+00:00", "finished_at": "2026-10-28T09:35:10+00:00", "elapsed_including_scheduling_ms": 0, "checked_wallets": 1, "discrepancies": 1, "unknown_checks": 1, "coverage": {"wallet_projection": "OBSERVED", "affiliate": "EMPTY", "checkout": "EMPTY", "funding": "EMPTY", "sponsorship": "EMPTY", "ledger": "OBSERVED"}, "scope": "Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}, "scheduler": {"status": "UNKNOWN", "last_observed_at": null}, "incidents": {"status": "WARNING", "open": 7}, "backups": {"status": "UNKNOWN", "backup_success_percent_30d": null, "enabled": false, "last_backup_at": null, "last_backup_result": null, "last_verified_restore_at": null, "offsite_verified": false, "definition": "Successful configured-disk write is not independent offsite durability or RPO/RTO proof."}}, "links": {"monitoring": "/api/v1/admin/monitoring", "incidents": "/api/v1/admin/incidents", "financial": "/api/v1/admin/reconciliation"}, "limits": "Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof."}}
+```
+
+Actual negative requests (synthetic fixture only):
+- `401 GET /api/v1/admin/reconciliation`: `{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}`
+- `403 GET /api/v1/admin/reconciliation`: `{"error": {"status": 403, "code": "platform_role_required", "message": "This action requires a platform administrator.", "request_id": "01a181dd-087e-7306-a50b-2a4ecb926745"}}`
+- `404 GET /api/v1/admin/reconciliation/missing`: `{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a181dd-0fe2-7304-8081-39985f1378dd"}}`
+- `409 POST /api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume`: `{"error": {"status": 409, "code": "reconciliation_not_failed", "message": "Only failed reconciliation runs can be resumed.", "request_id": "01a181dd-0fc3-706d-bdea-e6ee508ea01e"}}`
+- `419 POST /api/v1/admin/reconciliation`: `{"error": {"status": 419, "code": "csrf_token_mismatch", "message": "The session or CSRF token has expired. Refresh and try again.", "request_id": "01a181dd-0aa5-7055-8b86-f59af0c22be1"}}`
+- `422 GET /api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?per_page=101`: `{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a181dd-0e73-7195-a674-9fc3c9941023", "fields": {"per_page": ["The per page field must not be greater than 100."]}}}`
+- `423 POST /api/v1/admin/reconciliation`: `{"error": {"status": 423, "code": "step_up_code_required", "message": "Confirm this action with the code sent to your email.", "request_id": "01a181dd-0ba8-7024-9dcc-009a82c816df"}}`
+- `429 POST /api/v1/admin/reconciliation`: `{"error": {"status": 429, "code": "too_many_requests", "message": "Too many requests. Please slow down.", "request_id": "01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}`
+- `500 GET /api/v1/admin/reconciliation`: `{"error": {"status": 500, "code": "server_error", "message": "An unexpected error occurred.", "request_id": "01a181dd-10db-7217-b5c5-29e09fb28902"}}`
+
+## #31 B23a — WooCommerce read API and capability profiles (2026-10-28)
+Actual local PHP HTTP server, isolated synthetic SQLite/cache/session, array mail. Provider HTTP and DNS are temporary fixtures; no real WooCommerce call/store verification. Credentials/generated webhooks are redacted. [Capture artifact](../integrations/B23_WOO_HTTP_CAPTURE.json), [limits and handoff](../integrations/WOO_READ_API.md). Existing webhook-only connections remain compatible. API testing requires integrations.manage and does not change connection status or import an order.
+
+### `GET /api/v1/integrations/platforms` — B23a capture
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/integrations/platforms'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": [{"platform": "woocommerce", "name": "WooCommerce", "priority": "production", "available": true, "method": "webhook", "auth": "shared secret (HMAC-SHA256, base64)", "reliability": "high", "limitations": [], "verification": "unverified", "profile": {"api_version": "wc/v3", "reviewed_at": "2026-10-28", "last_live_verified_at": null, "native_read_api_implemented": true, "auth_method": "HTTPS HTTP Basic consumer key/secret; read-only merchant key", "scopes": ["read"], "webhook_topics": ["order.created", "order.updated"], "order_api": "GET /wp-json/wc/v3/orders/{id}", "refund_api": "GET /wp-json/wc/v3/orders/{id}/refunds", "product_api": "GET /wp-json/wc/v3/products", "coupon_api": "GET /wp-json/wc/v3/coupons", "banner_method": "manual; native WordPress publication/module not implemented", "rate_limit_policy": "No redirects/retries;8second reads,1MiB body,100rows/page,5order pages;429cooldown/3failure circuit.", "sources": ["https://developer.woocommerce.com/docs/apis/rest-api/", "https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/", "https://developer.woocommerce.com/docs/apis/rest-api/v3/order-refunds/", "https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks/"]}, "blocked_reason": null}, {"platform": "shopify", "name": "Shopify", "priority": "production", "available": true, "method": "webhook", "auth": "webhook signing secret (HMAC-SHA256, base64)", "reliability": "high", "limitations": ["customer fields may be redacted without protected customer data access"], "verification": "unverified", "profile": {"api_version": "2026-10", "reviewed_at": "2026-10-28", "last_live_verified_at": null, "native_read_api_implemented": false, "auth_method": "Signing secret only in current implementation; OAuth/GraphQL not yet implemented", "scopes": [], "webhook_topics": ["orders/create", "orders/updated", "orders/paid", "orders/cancelled", "refunds/create"], "banner_method": "Theme App Extension requires separate implementation and merchant activation", "sources": ["https://shopify.dev/docs/api/admin-graphql/2026-10", "https://shopify.dev/docs/apps/build/webhooks"]}, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "priority": "production", "available": false, "method": "automation HTTP POST", "auth": "to be determined (verify whether automations can sign or authenticate requests)", "reliability": "unknown", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": "Request authentication for Wix automations not yet verified."}, {"platform": "bigcommerce", "name": "BigCommerce", "priority": "production", "available": false, "method": "webhook + API lookup", "auth": "restricted API token", "reliability": "unknown", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": "Requires API credentials and order lookup (webhooks carry only IDs)."}, {"platform": "ecwid", "name": "Ecwid", "priority": "production", "available": false, "method": "webhook/polling + API", "auth": "store API token", "reliability": "unknown", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": "Requires store API token and app registration."}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "priority": "production", "available": false, "method": "confirmation tracking where supported", "auth": "to be determined", "reliability": "lower", "limitations": ["lower reliability"], "verification": "unverified", "profile": null, "blocked_reason": "Supported mechanism not yet verified."}, {"platform": "lightspeed_e", "name": "Lightspeed E-Series", "priority": "additional", "available": false, "method": "API/confirmation (to be determined)", "auth": "to be determined", "reliability": "unknown", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": "Supported API method not yet verified."}, {"platform": "prestashop", "name": "PrestaShop", "priority": "additional", "available": true, "method": "private_module", "auth": "Shopbonus signed webhook v1", "reliability": "high (module not yet built)", "limitations": ["private ZIP module must be installed"], "verification": "unverified", "profile": null, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "priority": "additional", "available": true, "method": "private_module", "auth": "Shopbonus signed webhook v1", "reliability": "high (module not yet built)", "limitations": ["private OCMOD extension must be installed"], "verification": "unverified", "profile": null, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware 6", "priority": "additional", "available": true, "method": "private_module", "auth": "Shopbonus signed webhook v1", "reliability": "high (extension not yet built)", "limitations": ["private extension must be installed"], "verification": "unverified", "profile": null, "blocked_reason": null}, {"platform": "magento", "name": "Magento / Adobe Commerce", "priority": "additional", "available": true, "method": "private_module", "auth": "Shopbonus signed webhook v1", "reliability": "high (module not yet built)", "limitations": ["private module must be installed"], "verification": "unverified", "profile": null, "blocked_reason": null}, {"platform": "squarespace", "name": "Squarespace", "priority": "additional", "available": false, "method": "polling (read-only Orders API)", "auth": "API key", "reliability": "polling delay", "limitations": ["polling"], "verification": "unverified", "profile": null, "blocked_reason": "Polling adapter not built; requires API key."}, {"platform": "mijnwebwinkel", "name": "Mijnwebwinkel", "priority": "additional", "available": false, "method": "partner API", "auth": "partner authorisation", "reliability": "unknown", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": "Partner/API authorisation pending."}, {"platform": "ccv", "name": "CCV Shop", "priority": "additional", "available": false, "method": "to be investigated", "auth": "to be determined", "reliability": "unknown", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": "Merchant-accessible API options not yet investigated."}, {"platform": "other", "name": "Other / custom shop", "priority": "additional", "available": true, "method": "webhook", "auth": "Shopbonus signed webhook v1", "reliability": "depends on the custom integration", "limitations": [], "verification": "unverified", "profile": null, "blocked_reason": null}]}
+```
+
+### `POST /api/v1/workspaces/{workspace}/connections` — B23a capture
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"platform":"woocommerce","store_url":"https://fietsen-utrecht.nl","consumer_key":"<LOCAL_CONSUMER_KEY>","consumer_secret":"<LOCAL_CONSUMER_SECRET>"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections'
+```
+```http
+HTTP/1.1 201
+Content-Type: application/json
+
+{"data": {"id": "01m6102zv4nrrhpsnmvm4c8q2v", "platform": "woocommerce", "method": "webhook", "status": "setup_required", "external_shop_ref": "https://fietsen-utrecht.nl", "limitations": [], "last_event_at": null, "last_verified_order_at": null, "connected_at": null, "disconnected_at": null, "last_error": null, "created_at": "2026-10-28T10:14:58+00:00", "setup": {"format": "woocommerce-webhooks", "webhook_url": "http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>", "read_api_configured": true, "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.", "steps": ["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.", "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.", "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.", "Save, then place a real paid test order."]}, "secrets": {"webhook_secret": "<GENERATED_SECRET>"}, "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
+```
+
+### `GET /api/v1/workspaces/{workspace}/connections/{connection}` — B23a capture
+```bash
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"id": "01m6102zv4nrrhpsnmvm4c8q2v", "platform": "woocommerce", "method": "webhook", "status": "setup_required", "external_shop_ref": "https://fietsen-utrecht.nl", "limitations": [], "last_event_at": null, "last_verified_order_at": null, "connected_at": null, "disconnected_at": null, "last_error": null, "created_at": "2026-10-28T10:14:58+00:00", "setup": {"format": "woocommerce-webhooks", "webhook_url": "http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>", "read_api_configured": true, "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.", "steps": ["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.", "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.", "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.", "Save, then place a real paid test order."]}}}
+```
+
+### `POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials` — B23a capture
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"store_url":"https://fietsen-utrecht.nl","consumer_key":"<LOCAL_CONSUMER_KEY>","consumer_secret":"<LOCAL_CONSUMER_SECRET>"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v/credentials'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"id": "01m6102zv4nrrhpsnmvm4c8q2v", "platform": "woocommerce", "method": "webhook", "status": "setup_required", "external_shop_ref": "https://fietsen-utrecht.nl", "limitations": [], "last_event_at": null, "last_verified_order_at": null, "connected_at": null, "disconnected_at": null, "last_error": null, "created_at": "2026-10-28T10:14:58+00:00", "setup": {"format": "woocommerce-webhooks", "webhook_url": "http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>", "read_api_configured": true, "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.", "steps": ["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.", "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.", "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.", "Save, then place a real paid test order."]}, "secrets": {"webhook_secret": "<GENERATED_SECRET>"}, "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
+```
+
+### `POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api` — B23a capture
+```bash
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"order_id":"4711"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v/test-api'
+```
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"data": {"connection": "01m6102zv4nrrhpsnmvm4c8q2v", "platform": "woocommerce", "result": {"ok": true, "code": "api_order_and_refunds_read_observed"}, "order_summary": {"kind": "order", "complete": true, "missing_fields": [], "has_phone": false, "payment_status": "partially_refunded", "currency": "EUR", "amount_minor": 5995}, "state_changed": false, "production_verified": false}}
+```
+
+Active API test errors:401authentication;403manage permission;404other workspace/missing connection;409setup/auth/address/disconnect/capability/credential-change;419CSRF;422invalid ID/input;429Shopbonus throttle;502provider/redirect/schema/size failure;503provider rate/circuit pause;500local unexpected storage/audit failure. These actual captures never reproduce upstream bodies or credentials.
+- `401`: `{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18201-7caf-70b1-99e6-e6c0e5f079de"}}`
+- `419`: `{"error": {"status": 419, "code": "csrf_token_mismatch", "message": "The session or CSRF token has expired. Refresh and try again.", "request_id": "01a18201-7f90-70f8-9f6e-ff3a5cc0c076"}}`
+- `422`: `{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18201-800f-7278-8b52-cc91f628ad0c", "fields": {"order_id": ["The order id field format is invalid."]}}}`
+- `429`: `{"error": {"status": 429, "code": "too_many_requests", "message": "Too many requests. Please slow down.", "request_id": "01a18201-804d-7003-90d0-f1b63828729c"}}`
+- `403`: `{"error": {"status": 403, "code": "workspace_permission_denied", "message": "You do not have permission to do this in this workspace.", "request_id": "01a18201-8068-72f4-96c7-d4b3c0e49cbb", "details": {"required_permission": "integrations.manage"}}}`
+- `404`: `{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18201-808e-71ff-a431-b9233c04b791"}}`
+- `409`: `{"error": {"status": 409, "code": "capability_not_supported", "message": "This platform connection does not support an active connection test (send a real order instead).", "request_id": "01a18201-8190-7000-9c53-ca9e6941513d", "details": {"capability": "an active connection test (send a real order instead)"}}}`
+- `409`: `{"error": {"status": 409, "code": "provider_authentication_failed", "message": "The provider rejected these credentials or read permissions.", "request_id": "01a18201-82ae-7356-982a-b0f02bd08d8e"}}`
+- `503`: `{"error": {"status": 503, "code": "provider_rate_limited", "message": "The provider API rate limit was reached.", "request_id": "01a18201-83b2-70b8-b30b-bab337668ad7"}}`
+- `502`: `{"error": {"status": 502, "code": "provider_response_invalid", "message": "The provider response could not be read.", "request_id": "01a18201-84b9-703f-9c56-0f7817c85f72"}}`
+- `502`: `{"error": {"status": 502, "code": "provider_read_failed", "message": "The provider API did not return a successful read response.", "request_id": "01a18201-85bf-71f3-be9e-4c3700c10c6b"}}`
+- `409`: `{"error": {"status": 409, "code": "provider_address_refused", "message": "The store domain must resolve only to public addresses.", "request_id": "01a18201-86c3-718b-a4a8-7a0051b2f5b1"}}`
+- `500`: `{"error": {"status": 500, "code": "server_error", "message": "An unexpected error occurred.", "request_id": "01a18201-88a6-720c-8b89-2e7e0e6b0376"}}`

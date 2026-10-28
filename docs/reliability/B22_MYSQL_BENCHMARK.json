@@ -1,0 +1,48 @@
+{
+  "scope": "Local MySQL, same synthetic10000-row rolled-back transaction workload,10 report runs before/after; not production acceptance. Host/load variance applies.",
+  "optimization": "Covering-index sample-bound count and shared ordered full-partition window definitions; exact percentile semantics retained.",
+  "before": {
+    "environment": "local MySQL, isolated test database,10000 synthetic rows inside rolled-back transaction; no production benchmark",
+    "rows": 10000,
+    "report_runs_ms": [
+      917.166428,
+      620.939105,
+      729.535178,
+      933.922318,
+      1006.258186,
+      620.391482,
+      641.019589,
+      678.528662,
+      650.282234,
+      773.25443
+    ],
+    "plan": [
+      {
+        "EXPLAIN": "-> Limit: 50000 row(s)  (cost=1000 rows=5000)\n    -> Filter: ((api_observations.observed_at >= TIMESTAMP'2026-10-27 20:20:40') and (api_observations.observed_at <= TIMESTAMP'2026-10-27 20:25:40'))  (cost=1000 rows=5000)\n        -> Index scan on api_observations using api_observed_window (reverse)  (cost=1000 rows=10000)\n"
+      }
+    ]
+  },
+  "after": {
+    "environment": "local MySQL, isolated test database,10000 synthetic rows inside rolled-back transaction; no production benchmark",
+    "rows": 10000,
+    "report_runs_ms": [
+      221.527269,
+      178.943432,
+      297.164166,
+      326.426206,
+      247.978085,
+      335.086972,
+      300.549765,
+      274.93388,
+      167.612236,
+      230.416975
+    ],
+    "plan": [
+      {
+        "EXPLAIN": "-> Limit: 50000 row(s)  (cost=1000 rows=4999)\n    -> Filter: ((api_observations.observed_at >= TIMESTAMP'2026-10-27 20:23:17') and (api_observations.observed_at <= TIMESTAMP'2026-10-27 20:28:17'))  (cost=1000 rows=4999)\n        -> Index scan on api_observations using api_observed_window (reverse)  (cost=1000 rows=9999)\n"
+      }
+    ]
+  },
+  "before_median_ms": 704.03192,
+  "after_median_ms": 261.4559825
+}

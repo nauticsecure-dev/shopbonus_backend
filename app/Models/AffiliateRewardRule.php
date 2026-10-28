@@ -34,6 +34,22 @@ class AffiliateRewardRule extends Model
             'review_above_minor' => 'integer', 'starts_at' => 'immutable_datetime', 'ends_at' => 'immutable_datetime', 'active' => 'boolean'];
     }
 
+    protected static function booted(): void
+    {
+        static::updating(function (self $rule) {
+            if ($rule->isDirty(['version', 'unit', 'share_bps', 'min_commission_minor', 'max_reward_minor', 'review_above_minor', 'starts_at', 'ends_at', 'created_by'])) {
+                throw new \LogicException('Reward rule terms are immutable; create a new version.');
+            }
+        });
+        static::deleting(fn () => throw new \LogicException('Historical reward rules must be preserved.'));
+    }
+
+    /** @return array<string, mixed> */
+    public function evidence(): array
+    {
+        return $this->only(['version', 'share_bps', 'min_commission_minor', 'max_reward_minor', 'review_above_minor']) + ['unit' => $this->unit->value];
+    }
+
     /** The rule in force at $at, or null (no rule → no reward). */
     public static function current(?CarbonImmutable $at = null): ?self
     {

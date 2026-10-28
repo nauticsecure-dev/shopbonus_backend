@@ -38,17 +38,39 @@ class IncidentRecorder
             null, $error->webshop_id, null, 'background_failure');
     }
 
-    /** @param array<string, mixed> $attributes */
-    private function store(string $fingerprint, array $attributes, ?int $actor, ?int $webshop, ?string $scope, ?string $code): void
+    /**
+     * Group threshold alerts in the existing incident workflow; ordinary401/403 do not alert.
+     *
+     * @param  array<string, mixed>  $evidence
+     */
+    public function monitoring(string $code, string $route, string $method, array $evidence): void
+    {
+        $this->store(hash('sha256', 'monitoring|'.$code.'|'.$method.'|'.$route), [
+            'category' => 'monitoring', 'severity' => 'error', 'service' => 'api_monitoring',
+            'route' => $route, 'http_method' => $method, 'http_status' => null,
+        ], null, null, null, $code, 300, $evidence);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @param  array<string, mixed>|null  $evidence
+     */
+    private function store(string $fingerprint, array $attributes, ?int $actor, ?int $webshop, ?string $scope, ?string $code, int $cooldown = 0, ?array $evidence = null): void
     {
         try {
-            DB::transaction(function () use ($fingerprint, $attributes, $actor, $webshop, $scope, $code) {
+            DB::transaction(function () use ($fingerprint, $attributes, $actor, $webshop, $scope, $code, $cooldown, $evidence) {
                 // Unique fingerprint handles concurrent first occurrences; createOrFirst uses a savepoint.
                 $incident = SecurityIncident::query()->createOrFirst(['fingerprint' => $fingerprint], $attributes + ['first_seen_at' => now(), 'last_seen_at' => now(), 'occurrences' => 0, 'status' => 'new']);
                 $incident = SecurityIncident::whereKey($incident->id)->lockForUpdate()->firstOrFail();
+                if ($cooldown > 0 && $incident->occurrences > 0 && $incident->last_seen_at->greaterThan(now()->subSeconds($cooldown))) {
+                    return;
+                }
+                if ($cooldown > 0 && in_array($incident->status, ['resolved', 'ignored'], true)) {
+                    $incident->status = 'new';
+                }
                 $incident->forceFill(['occurrences' => $incident->occurrences + 1, 'last_seen_at' => now()])->save();
                 SecurityIncidentOccurrence::create(['incident_id' => $incident->id, 'request_id' => Context::get('request_id'),
-                    'actor_user_id' => $actor, 'webshop_id' => $webshop, 'scope_public_id' => $scope, 'error_code' => $code, 'occurred_at' => now()]);
+                    'actor_user_id' => $actor, 'webshop_id' => $webshop, 'scope_public_id' => $scope, 'error_code' => $code, 'monitoring_evidence' => $evidence, 'occurred_at' => now()]);
             }, 3);
         } catch (Throwable $e) {
             // Do not recurse through report()/ErrorRecorder or turn denials into 500s.

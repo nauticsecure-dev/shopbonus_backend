@@ -606,3 +606,99 @@ Owner authorizes #29 below the ~5 GiB disk cutoff; senior configures credentials
 - [x] B20 final CI: complete exact-code SQLite/MySQL suites, including real4-process publication/mail claims and serialized generation quota; record SHA/results and clean handoff. (`911e053`; CI `40412989638` SUCCESS, SQLite701+18skip/MySQL717+2skip,719tests each. Source approval follow-up14local tests375assertions; this closeout.)
 
 B20 final verified closeout: application911e053 +approval-scope follow-up5a8c36d. CI40414186822 SUCCESS all3jobs (719tests/database; SQLite701+18skip/MySQL717+2skip). All main backend boxes above are evidence-backed; whole-card frontend/live configuration acceptance remains senior/Hassan-owned.
+
+## B21 — frontend integration issue report (2026-10-27)
+
+Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local integration fixtures. Report recommendations are evidence, not approval to publish real legal text or activate providers. One tested boundary at a time; no fabricated production content/credentials.
+
+### B21a — funding top-up request identity
+- [x] Preserve headerless v1 compatibility; accept/validate optional UUID Idempotency-Key scoped to workspace+actor, reject changed amount409. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Persist immutable intent before provider I/O, permit one create attempt, forward distinct stable provider key; replay never creates another request even after provider cache expiry/config changes. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Surface creating/created/uncertain creation status honestly; failed/unknown transport never credits a wallet or silently retries. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Execute replay/conflict/timeout/security/provider-header/real MySQL race tests; migration apply/rollback/reapply and real HTTP captures. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Update API contract/issue resolution TASKS/PROGRESS/HANDOFF and pass quality/full local checks; remote CI is recorded separately below. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+### B21b — public legal discovery
+- [x] Publish registration requirement metadata from canonical LegalConsents; identify CMS vs configuration fallback and link only actual published content, no fabricated legal documents. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Tests for missing/fallback/published/current versions, publication changes, NL/EN visibility and signup fail-closed; real HTTP docs. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+### B21c — public promotional claims
+- [x] Verify full offer/publication/acquisition eligibility and use canonical VoucherInventory for owned promotional claims; never wallet-funded or Answer24 claims. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Atomic per-user/offer dedupe, secret-free response linking to owned voucher API; stock/replay/race/paused/unpublished/wrong-acquisition/auth negative tests and captures. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+### B21d — opt-in local fixtures
+- [x] Local/testing only, explicit command and safety checks; labelled sample legal/CMS/FAQ/catalog/offer/inventory and verified test identities without resetting existing user accounts or overwriting real content. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Use canonical CMS/offer/workspace/account services and inventory, preserve audit/source records, and do not synthesize wallet credits; no live provider activation or real outbound messages. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+- [x] Re-runnable setup, private credential delivery file, actual browser signup/login/discovery/claim verification and senior setup guide; no sample content presented as approved legal text. (`7991841`; clean-environment regression `a7ebb0e`; CI40559448895 SUCCESS, evidence in PROGRESS.)
+
+### B21 final verification
+- [x] Verify pushed implementation SHA in all three CI jobs; record exact SHA/evidence and clean git handoff. (`7991841` + `a7ebb0e`; CI40559448895 SUCCESS all three jobs, this docs-only closeout.)
+
+## B22 — Trello #30 reliability (started 2026-10-27)
+
+### B22a — observed API monitoring and threshold incidents
+- [x] Inventory/reuse existing audit, incidents, readiness, queue failures, ledger reconciliation, scheduler and dependency tooling; preserve unresolved affiliate timing and do not activate financial flows. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Opt-in metadata-only request observations with monotonic processing time, DB query timing, privacy-safe route templates, bounded retention and fail-open writes; record rendered error responses without payloads/SQL/credentials/identity. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Super Admin monitoring report with bounded time/sample scope, exact observed P50/P95/P99, request/error/observed timeout rates, slow queries, configurable thresholds and UNKNOWN for absent/partial observations. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Schedule configurable minimum-sample 5xx/latency alerts into existing grouped incidents with concurrency-safe cooldown; do not alert merely on ordinary401/403. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Execute deterministic percentile/error/privacy/retention/failure/security/threshold and real MySQL race tests; local real HTTP captures and mandatory API docs; migration rollback/reapply. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+- [x] Full SQLite/MySQL and local quality checks, measured report query plan/cost, committed checkpoint docs and exact remaining #30 work. Remote CI recorded separately. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
+
+- [x] Verify exact B22a implementation SHA in all three CI jobs and record closeout evidence. (`c7e8789`; CI40580008502 SUCCESS.)
+
+### B22b — source-backed financial reconciliation
+- [x] Audit actual financial source/ownership/historical-rate snapshots; preserve separate affiliate, consumer checkout and merchant sponsorship semantics; never infer EUR from points or a missing legacy rate.
+- [x] Make existing wallet mismatch detection lock-consistent and deduplicate identical unresolved evidence without touching cached balances/ledger or bypassing authorized correction workflows. (`5aa4177`; CI40587710798 SUCCESS, four-worker MySQL race and full suites passed.)
+- [x] Retain immutable new reward timing/rule/credit evidence and sponsorship fee rates; protect monetary versions, preserve legacy nulls and keep owner-approved after-approval default. (`5aa4177`; CI40587710798 SUCCESS; historical-rate/timing/mutation regressions passed.)
+- [x] Re-check changed approved commission against its original review threshold before spendable credit; preserve authorized review path. (`5aa4177`; failing regression reproduced then passed; authenticated HTTP200 acceptance; CI40587710798 SUCCESS.)
+- [x] Dispute unsupported currency without credit; manual acceptance cannot invent FX and returns409. (`5aa4177`; failing regression reproduced then passed; authenticated HTTP409; CI40587710798 SUCCESS.)
+- [x] Durable wallet-run foundation: unique bounded run identity, fixed source watermark, atomic per-wallet cursor/evidence, restart/replay safety, immutable checks and explicit missing-source coverage; command/scheduler and failure tests. (`cfbd770`; CI40657966315 SUCCESS all three jobs. SQLite757total734pass+23skip; MySQL757total755pass+2skip, four-worker race and isolated migration down/up PASS.)
+- [x] Durable idempotent reconciliation runs and immutable discrepancy evidence for wallet/affiliate/checkout/funding/sponsorship links; bounded background processing and honest failed/unknown coverage.
+- [x] Check historical calculations, source attribution, duplicate credits, compensating reversals and purchase/redemption allocations using existing canonical records; no automatic balancing transactions or policy activation.
+- [x] Reuse Super Admin/MFA/password/step-up/incident controls for run/detail/report APIs; audit manual triggers and use public references only; schedule automatic execution with recovery semantics.
+- [x] Executed source/change/duplicate/mismatch/legacy/negative/race tests, real HTTP docs, migration rollback/reapply, full suites and exact-code CI; retain original financial history. (`b2ad156` + `64b1848` + `e832cca`; final CI40666899671 SUCCESS all three jobs,768tests/database.)
+
+- [x] Verify exact prerequisite implementation SHA in all three CI jobs; record evidence and clean handoff. (`5aa4177`; CI40587710798 SUCCESS all three jobs; this docs-only closeout. Full B22b/whole #30 remain unfinished.)
+
+### Additional #30 main-code boundaries (implemented after B22a)
+- [x] Cross-source historical financial reconciliation with immutable evidence and authorized correction reuse; no new affiliate timing activation.
+- [x] Queue wait/provider/cache/DB availability observations, complete operations overview and security/audit coverage evidence.
+- [x] Measured schema/query/integrity optimizations on representative isolated data.
+- [x] Encrypted isolated backup/restore implementation and evidence; infrastructure-specific offsite/scheduling/RPO/RTO capability verification remains explicit.
+- [x] Ten card acceptance scenarios and final main-code/live acceptance mapping; production evidence must never be inferred from local tests.
+
+
+Checked completion items above refer to **implemented main code/local evidence only**, `b2ad156` with traversal/config follow-ups `64b1848`/`e832cca` (CI40666899671 SUCCESS all three jobs). COMPLETION.md explicitly maps missing real host/offsite/provider/accounting/RPO-RTO acceptance; whole Trello #30 remains pending. Final exact-code CI40666899671 has passed; external acceptance below remains unchecked.
+
+### B22 completion boundaries — owner “do all”, 2026-10-28
+- [x] Versioned source-scan cursors/watermarks preserve legacy wallet-only run scope; bounded failure/replay recovery across affiliate, checkout, funding, sponsorship and ledger sources.
+- [x] Immutable source findings for historical rules/ownership/attribution/duplicates/reversals/allocation; unknown legacy proof remains explicit, no automatic financial corrections.
+- [x] Protected paginated reconciliation trigger/list/detail/resume APIs; stable per-admin request identity, password/OTP, audit and real running-server examples.
+- [x] Bounded queue wait/depth/failure observations, provider failure indicators, dependency probes and scheduler heartbeat; operations overview/threshold incidents with UNKNOWN for unavailable evidence.
+- [x] Operator-only encrypted authenticated streaming backup with private temporary files, configurable remote disk/retention, manifest/file hashes and recorded failures; no plaintext credential export.
+- [x] Isolated restore validation/command and safe target restrictions; encrypted database/media integrity test, corruption/wrong-key/path rejection and recorded recovery duration.
+- [x] Security/route/audit matrix, real query plans/representative benchmark, ten backend acceptance mappings, SQLite/MySQL suites/quality/CI, senior deployment/recovery checklist. (`b2ad156` + `64b1848` + `e832cca`; CI40666899671 SUCCESS, evidence in PROGRESS/COMPLETION.md.)
+
+Main-code completion items: `b2ad156` (implementation), `64b1848` (bounded traversal), `e832cca` (isolated env configuration); final CI40666899671 SUCCESS. Entire #30 remains pending the following external evidence.
+
+### #30 external operational acceptance — not claimed by main-code completion
+- [ ] Senior configures actual keys/providers/queue/scheduler/TLS/admin MFA and deployed monitoring/alert delivery.
+- [ ] Hosting/media/infrastructure inventory and independent offsite encryption/access/retention/readback verification.
+- [ ] Production-server/version/volume isolated restore plus full application/queue/provider-outage recovery drill, approved feasible RPO/RTO and cost.
+- [ ] Actual network cash settlement/accounting/legal/points conversion approval where applicable; no invented recognized revenue.
+- [ ] Whole-card UI/deployed/live acceptance; backend code alone does not mark the entire Trello card Done.
+
+## B23 — #31 provider engineering (started 2026-10-28)
+
+### B23a — existing adapter audit and WooCommerce read API
+- [x] Import/review full #31 and overlapping #32 requirements; audit real registry/adapters/status/ingestion before changing contracts. Preserve D-089; no order-created cashback or fabricated provider verification.
+- [x] Extend existing catalogue with precise reviewed source/API/capability metadata; distinguish implemented code, merchant configuration and live verification. Do not label generic modules native adapters.
+- [x] Authenticated WooCommerce REST v3 read-only order/refund/catalog lookup and bounded modified-order pagination; fixed paths, proper currencies, no arbitrary provider URL or mutation.
+- [x] Reuse public-address guard/resolver with HTTPS/domain ownership/address pinning, no redirects/query credentials, capped body/time/pages and redacted provider errors.
+- [x] Add optional encrypted read credentials to existing WooCommerce connection; preserve webhook-only compatibility; active API test is managed/scoped/throttled and never promotes fixtures to live-connected.
+- [x] Server-side tenant/role/disconnect/missing credentials/auth/429/schema/SSRF/rebinding/secret-privacy/duplicate negative tests; real HTTP examples for added/changed operations, both databases/quality/CI and coherent SHA handoff.
+
+B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total781pass+2skip/9961assertions, final native API15tests144assertions on both drivers. Pint/PHPStan/audit/contract/20HTTPcaptures PASS. This implementation commit; SHA/CI recorded in closeout. Whole #31 stays IN_PROGRESS.
+
+### Later #31 backend boundaries — not covered by B23a
+- [ ] Shopify GraphQL/OAuth/scopes/order/refund/catalog and durable credential-bound connection quality gates.
+- [ ] Wix, BigCommerce, Ecwid and Lightspeed C authenticated adapters/current official profiles, bounded polling/webhook recovery.
+- [ ] Version-specific PrestaShop/OpenCart signed bridge contracts, Shopware app lifecycle and Adobe deployment-specific asynchronous adapter profiles; provider modules/storefront UI are outside this Laravel scope.
+- [ ] Ten provider-backed acceptance records and real installation/banner/coupon capability verification; access/sandbox/storefront proof remains external until actually run.

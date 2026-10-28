@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.4",
         "ext-soap": "*",
+        "ext-sodium": "*",
         "laravel/fortify": "^1.41",
         "laravel/framework": "^13.17",
         "laravel/reverb": "^1.12",

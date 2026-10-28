@@ -2212,182 +2212,21 @@ paths:
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
   /api/v1/integrations/platforms:
-    get:
-      tags: [Integrations]
-      operationId: integrationPlatforms
-      summary: "Platform catalogue and capability matrix"
-      description: |
-        Every board platform with honest availability. `available: false` means there is no adapter yet (see `blocked_reason`); creating a connection for it returns 409. `verification` is `unverified` for all platforms until tested against a real store (docs/integrations/VERIFICATION.md).
-      x-access: verified
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X GET http://localhost:8000/api/v1/integrations/platforms \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
-      responses:
-        '200':
-          description: "Catalogue."
-          content:
-            application/json:
-              example: {"data":[{"platform":"woocommerce","name":"WooCommerce","priority":"production","available":true,"method":"webhook","auth":"shared secret (HMAC-SHA256, base64)","reliability":"high","limitations":[],"verification":"unverified","blocked_reason":null},{"platform":"shopify","name":"Shopify","priority":"production","available":true,"method":"webhook","auth":"webhook signing secret (HMAC-SHA256, base64)","reliability":"high","limitations":["customer fields may be redacted without protected customer data access"],"verification":"unverified","blocked_reason":null},{"platform":"wix","name":"Wix","priority":"production","available":false,"method":"automation HTTP POST","auth":"to be determined (verify whether automations can sign or authenticate requests)","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Request authentication for Wix automations not yet verified."},{"platform":"bigcommerce","name":"BigCommerce","priority":"production","available":false,"method":"webhook + API lookup","auth":"restricted API token","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Requires API credentials and order lookup (webhooks carry only IDs)."},{"platform":"ecwid","name":"Ecwid","priority":"production","available":false,"method":"webhook\/polling + API","auth":"store API token","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Requires store API token and app registration."},{"platform":"lightspeed_c","name":"Lightspeed C-Series","priority":"production","available":false,"method":"confirmation tracking where supported","auth":"to be determined","reliability":"lower","limitations":["lower reliability"],"verification":"unverified","blocked_reason":"Supported mechanism not yet verified."},{"platform":"lightspeed_e","name":"Lightspeed E-Series","priority":"additional","available":false,"method":"API\/confirmation (to be determined)","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Supported API method not yet verified."},{"platform":"prestashop","name":"PrestaShop","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private ZIP module must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"opencart","name":"OpenCart","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private OCMOD extension must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"shopware6","name":"Shopware 6","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (extension not yet built)","limitations":["private extension must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"magento","name":"Magento \/ Adobe Commerce","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private module must be installed"],"verification":"unverified","blocked_reason":null},{"platform":"squarespace","name":"Squarespace","priority":"additional","available":false,"method":"polling (read-only Orders API)","auth":"API key","reliability":"polling delay","limitations":["polling"],"verification":"unverified","blocked_reason":"Polling adapter not built; requires API key."},{"platform":"mijnwebwinkel","name":"Mijnwebwinkel","priority":"additional","available":false,"method":"partner API","auth":"partner authorisation","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Partner\/API authorisation pending."},{"platform":"ccv","name":"CCV Shop","priority":"additional","available":false,"method":"to be investigated","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","blocked_reason":"Merchant-accessible API options not yet investigated."},{"platform":"other","name":"Other \/ custom shop","priority":"additional","available":true,"method":"webhook","auth":"Shopbonus signed webhook v1","reliability":"depends on the custom integration","limitations":[],"verification":"unverified","blocked_reason":null}]}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
+    get: {"tags":["Integrations"],"operationId":"integrationPlatforms","summary":"Platform catalogue and capability matrix","description":"Every board platform with honest availability. `available: false` means there is no adapter yet (see `blocked_reason`); creating a connection for it returns 409. `verification` is `unverified` for all platforms until tested against a real store (docs/integrations/VERIFICATION.md).\n\nB23a adds optional WooCommerce encrypted read credentials and reviewed capability profiles. Native reads are not live/provider production verification. See docs/integrations/WOO_READ_API.md. Existing legacy connected status describes signed webhook evidence only; full #31 quality gates remain pending.","x-access":"verified","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/integrations/platforms'"}],"responses":{"200":{"description":"Actual2026-10-28 local HTTP capture, synthetic provider fixtures only; generated webhooks and read credentials redacted.","content":{"application/json":{"example":{"data":[{"platform":"woocommerce","name":"WooCommerce","priority":"production","available":true,"method":"webhook","auth":"shared secret (HMAC-SHA256, base64)","reliability":"high","limitations":[],"verification":"unverified","profile":{"api_version":"wc/v3","reviewed_at":"2026-10-28","last_live_verified_at":null,"native_read_api_implemented":true,"auth_method":"HTTPS HTTP Basic consumer key/secret; read-only merchant key","scopes":["read"],"webhook_topics":["order.created","order.updated"],"order_api":"GET /wp-json/wc/v3/orders/{id}","refund_api":"GET /wp-json/wc/v3/orders/{id}/refunds","product_api":"GET /wp-json/wc/v3/products","coupon_api":"GET /wp-json/wc/v3/coupons","banner_method":"manual; native WordPress publication/module not implemented","rate_limit_policy":"No redirects/retries;8second reads,1MiB body,100rows/page,5order pages;429cooldown/3failure circuit.","sources":["https://developer.woocommerce.com/docs/apis/rest-api/","https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/","https://developer.woocommerce.com/docs/apis/rest-api/v3/order-refunds/","https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks/"]},"blocked_reason":null},{"platform":"shopify","name":"Shopify","priority":"production","available":true,"method":"webhook","auth":"webhook signing secret (HMAC-SHA256, base64)","reliability":"high","limitations":["customer fields may be redacted without protected customer data access"],"verification":"unverified","profile":{"api_version":"2026-10","reviewed_at":"2026-10-28","last_live_verified_at":null,"native_read_api_implemented":false,"auth_method":"Signing secret only in current implementation; OAuth/GraphQL not yet implemented","scopes":[],"webhook_topics":["orders/create","orders/updated","orders/paid","orders/cancelled","refunds/create"],"banner_method":"Theme App Extension requires separate implementation and merchant activation","sources":["https://shopify.dev/docs/api/admin-graphql/2026-10","https://shopify.dev/docs/apps/build/webhooks"]},"blocked_reason":null},{"platform":"wix","name":"Wix","priority":"production","available":false,"method":"automation HTTP POST","auth":"to be determined (verify whether automations can sign or authenticate requests)","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Request authentication for Wix automations not yet verified."},{"platform":"bigcommerce","name":"BigCommerce","priority":"production","available":false,"method":"webhook + API lookup","auth":"restricted API token","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Requires API credentials and order lookup (webhooks carry only IDs)."},{"platform":"ecwid","name":"Ecwid","priority":"production","available":false,"method":"webhook/polling + API","auth":"store API token","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Requires store API token and app registration."},{"platform":"lightspeed_c","name":"Lightspeed C-Series","priority":"production","available":false,"method":"confirmation tracking where supported","auth":"to be determined","reliability":"lower","limitations":["lower reliability"],"verification":"unverified","profile":null,"blocked_reason":"Supported mechanism not yet verified."},{"platform":"lightspeed_e","name":"Lightspeed E-Series","priority":"additional","available":false,"method":"API/confirmation (to be determined)","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Supported API method not yet verified."},{"platform":"prestashop","name":"PrestaShop","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private ZIP module must be installed"],"verification":"unverified","profile":null,"blocked_reason":null},{"platform":"opencart","name":"OpenCart","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private OCMOD extension must be installed"],"verification":"unverified","profile":null,"blocked_reason":null},{"platform":"shopware6","name":"Shopware 6","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (extension not yet built)","limitations":["private extension must be installed"],"verification":"unverified","profile":null,"blocked_reason":null},{"platform":"magento","name":"Magento / Adobe Commerce","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private module must be installed"],"verification":"unverified","profile":null,"blocked_reason":null},{"platform":"squarespace","name":"Squarespace","priority":"additional","available":false,"method":"polling (read-only Orders API)","auth":"API key","reliability":"polling delay","limitations":["polling"],"verification":"unverified","profile":null,"blocked_reason":"Polling adapter not built; requires API key."},{"platform":"mijnwebwinkel","name":"Mijnwebwinkel","priority":"additional","available":false,"method":"partner API","auth":"partner authorisation","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Partner/API authorisation pending."},{"platform":"ccv","name":"CCV Shop","priority":"additional","available":false,"method":"to be investigated","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Merchant-accessible API options not yet investigated."},{"platform":"other","name":"Other / custom shop","priority":"additional","available":true,"method":"webhook","auth":"Shopbonus signed webhook v1","reliability":"depends on the custom integration","limitations":[],"verification":"unverified","profile":null,"blocked_reason":null}]}}}},"401":{"$ref":"#/components/responses/Unauthenticated"}}}
 
   /api/v1/workspaces/{workspace}/connections:
-    parameters:
-      - $ref: '#/components/parameters/Workspace'
-    get:
-      tags: [Integrations]
-      operationId: listConnections
-      summary: "Connections of this webshop"
-      description: |
-        Never includes credentials.
-      x-access: verified
-      x-permission: integrations.view
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/connections \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
-      responses:
-        '200':
-          description: "Connections."
-          content:
-            application/json:
-              example: {"data":[{"id":"01m5mmqdeessjag26x40n5dfk2","platform":"prestashop","method":"private_module","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_timestamp_out_of_tolerance","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00"},{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"limited","external_shop_ref":"fietsen.myshopify.com","limitations":["additional_integration_required"],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00"},{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_invalid_signature","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00"}]}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403':
-          description: "Missing integrations.view."
-          content:
-            application/json:
-              example: {"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a1694b-b85c-72b8-b65d-c14aabb9109f","details":{"required_permission":"integrations.view"}}}
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
-    post:
-      tags: [Integrations]
-      operationId: createConnection
-      summary: "Connect an ecommerce platform"
-      description: |
-        Starts in `setup_required`. For WooCommerce and Shopbonus-format platforms, Shopbonus generates the signing secret and returns it **once** under `secrets`. For Shopify the merchant supplies `shop_domain` (`*.myshopify.com`) and the `signing_secret` from Shopify admin. The response includes setup steps and the webhook URL. Saving credentials never makes a connection `connected`. One non-disconnected connection per platform per webshop (409 `connection_exists`).
-      x-access: verified
-      x-permission: integrations.manage
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [platform]
-              properties:
-                platform: { type: string, description: A platform with available true in /integrations/platforms. }
-                shop_domain: { type: string, description: 'Shopify only: <shop>.myshopify.com' }
-                signing_secret: { type: string, minLength: 16, description: 'Shopify only: webhook signing secret from Shopify admin.' }
-            example: {"platform": "woocommerce"}
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/connections \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
-              -H 'Content-Type: application/json' -d '{"platform":"woocommerce"}'
-      responses:
-        '201':
-          description: "Created; secret shown once (redacted here)."
-          content:
-            application/json:
-              example: {"data":{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/woocommerce\/<token>","steps":["In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<secret shown once>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
-        '409':
-          description: "platform_not_available or connection_exists."
-          content:
-            application/json:
-              example: {"error":{"status":409,"code":"platform_not_available","message":"This platform cannot be connected yet.","request_id":"01a1694b-b4d7-72f9-976d-87a0751a79b6","details":{"reason":"Request authentication for Wix automations not yet verified."}}}
-        '422':
-          description: "Invalid platform-specific input."
-          content:
-            application/json:
-              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1694b-b570-728a-ab48-991f09afe195","fields":{"shop_domain":["The shop domain field format is invalid."],"signing_secret":["The signing secret field must be at least 16 characters."]}}}
+    parameters: [{"$ref":"#/components/parameters/Workspace"}]
+    get: {"tags":["Integrations"],"operationId":"listConnections","summary":"Connections of this webshop","description":"Never includes credentials.\n","x-access":"verified","x-permission":"integrations.view","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET http://localhost:8000/api/v1/workspaces/current/connections \\\n  -H 'Accept: application/json' -H 'Authorization: Bearer <token>'\n"}],"responses":{"200":{"description":"Connections.","content":{"application/json":{"example":{"data":[{"id":"01m5mmqdeessjag26x40n5dfk2","platform":"prestashop","method":"private_module","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_timestamp_out_of_tolerance","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00"},{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"limited","external_shop_ref":"fietsen.myshopify.com","limitations":["additional_integration_required"],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-23T15:05:31+00:00"},{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_invalid_signature","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00"}]}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"description":"Missing integrations.view.","content":{"application/json":{"example":{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a1694b-b85c-72b8-b65d-c14aabb9109f","details":{"required_permission":"integrations.view"}}}}}},"404":{"$ref":"#/components/responses/WorkspaceNotFound"}}}
+    post: {"tags":["Integrations"],"operationId":"createConnection","summary":"Connect an ecommerce platform","description":"Starts in `setup_required`. For WooCommerce and Shopbonus-format platforms, Shopbonus generates the signing secret and returns it **once** under `secrets`. For Shopify the merchant supplies `shop_domain` (`*.myshopify.com`) and the `signing_secret` from Shopify admin. The response includes setup steps and the webhook URL. Saving credentials never makes a connection `connected`. One non-disconnected connection per platform per webshop (409 `connection_exists`).\n\nB23a adds optional WooCommerce encrypted read credentials and reviewed capability profiles. Native reads are not live/provider production verification. See docs/integrations/WOO_READ_API.md. Existing legacy connected status describes signed webhook evidence only; full #31 quality gates remain pending.","x-access":"verified","x-permission":"integrations.manage","requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["platform"],"properties":{"platform":{"type":"string","description":"A platform with available true in /integrations/platforms."},"shop_domain":{"type":"string","description":"Shopify only: <shop>.myshopify.com"},"signing_secret":{"type":"string","minLength":16,"description":"Shopify only: webhook signing secret from Shopify admin."},"store_url":{"type":"string","format":"uri","description":"HTTPS WordPress base URL. With API credentials its normalized ownership domain must match the verified workspace domain."},"consumer_key":{"type":"string","minLength":16,"maxLength":255,"description":"Optional read-only WooCommerce API key; requires consumer_secret and store_url."},"consumer_secret":{"type":"string","minLength":16,"maxLength":255,"description":"Optional read-only API secret; encrypted at rest, never returned."}}},"example":{"platform":"woocommerce","store_url":"https://fietsen-utrecht.nl","consumer_key":"<LOCAL_CONSUMER_KEY>","consumer_secret":"<LOCAL_CONSUMER_SECRET>"}}}},"x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{\"platform\":\"woocommerce\",\"store_url\":\"https://fietsen-utrecht.nl\",\"consumer_key\":\"<LOCAL_CONSUMER_KEY>\",\"consumer_secret\":\"<LOCAL_CONSUMER_SECRET>\"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections'"}],"responses":{"201":{"description":"Actual2026-10-28 local HTTP capture, synthetic provider fixtures only; generated webhooks and read credentials redacted.","content":{"application/json":{"example":{"data":{"id":"01m6102zv4nrrhpsnmvm4c8q2v","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":"https://fietsen-utrecht.nl","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T10:14:58+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>","read_api_configured":true,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<GENERATED_SECRET>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"},"409":{"description":"platform_not_available or connection_exists.","content":{"application/json":{"example":{"error":{"status":409,"code":"platform_not_available","message":"This platform cannot be connected yet.","request_id":"01a1694b-b4d7-72f9-976d-87a0751a79b6","details":{"reason":"Request authentication for Wix automations not yet verified."}}}}}},"422":{"description":"Invalid platform-specific input.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1694b-b570-728a-ab48-991f09afe195","fields":{"shop_domain":["The shop domain field format is invalid."],"signing_secret":["The signing secret field must be at least 16 characters."]}}}}}}}}
 
   /api/v1/workspaces/{workspace}/connections/{connection}:
-    parameters:
-      - $ref: '#/components/parameters/Workspace'
-      - { name: connection, in: path, required: true, description: Connection public ID., schema: { type: string } }
-    get:
-      tags: [Integrations]
-      operationId: showConnection
-      summary: "Connection with setup instructions"
-      description: |
-        Setup instructions and webhook URL; the secret is never shown again.
-      x-access: verified
-      x-permission: integrations.view
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X GET http://localhost:8000/api/v1/workspaces/current/connections/<id> \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
-      responses:
-        '200':
-          description: "Connection (captured after a verified order)."
-          content:
-            application/json:
-              example: {"data":{"id":"01m5mmqd944fxvw6ndwyxmd8qs","platform":"woocommerce","method":"webhook","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_invalid_signature","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/woocommerce\/<token>","steps":["In WordPress go to WooCommerce \u2192 Settings \u2192 Advanced \u2192 Webhooks \u2192 Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]}}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
-    delete:
-      tags: [Integrations]
-      operationId: disconnectConnection
-      summary: "Disconnect"
-      description: |
-        Wipes credentials; its webhook URL returns 404 from now on. Remove the webhook in the shop too. History is kept.
-      x-access: verified
-      x-permission: integrations.manage
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X DELETE http://localhost:8000/api/v1/workspaces/current/connections/<id> \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
-      responses:
-        '200':
-          description: "Disconnected."
-          content:
-            application/json:
-              example: {"data":{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"disconnected","external_shop_ref":"fietsen.myshopify.com","limitations":["additional_integration_required"],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":null,"disconnected_at":"2026-10-23T15:05:32+00:00","last_error":null,"created_at":"2026-10-23T15:05:31+00:00"}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    parameters: [{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"description":"Connection public ID.","schema":{"type":"string"}}]
+    get: {"tags":["Integrations"],"operationId":"showConnection","summary":"Connection with setup instructions","description":"Setup instructions and webhook URL; the secret is never shown again.\n\nB23a adds optional WooCommerce encrypted read credentials and reviewed capability profiles. Native reads are not live/provider production verification. See docs/integrations/WOO_READ_API.md. Existing legacy connected status describes signed webhook evidence only; full #31 quality gates remain pending.","x-access":"verified","x-permission":"integrations.view","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v'"}],"responses":{"200":{"description":"Actual2026-10-28 local HTTP capture, synthetic provider fixtures only; generated webhooks and read credentials redacted.","content":{"application/json":{"example":{"data":{"id":"01m6102zv4nrrhpsnmvm4c8q2v","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":"https://fietsen-utrecht.nl","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T10:14:58+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>","read_api_configured":true,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]}}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"}}}
+    delete: {"tags":["Integrations"],"operationId":"disconnectConnection","summary":"Disconnect","description":"Wipes credentials; its webhook URL returns 404 from now on. Remove the webhook in the shop too. History is kept.\n","x-access":"verified","x-permission":"integrations.manage","x-codeSamples":[{"lang":"curl","source":"curl -i -X DELETE http://localhost:8000/api/v1/workspaces/current/connections/<id> \\\n  -H 'Accept: application/json' -H 'Authorization: Bearer <token>'\n"}],"responses":{"200":{"description":"Disconnected.","content":{"application/json":{"example":{"data":{"id":"01m5mmqdcww6d106jp3f92yez8","platform":"shopify","method":"webhook","status":"disconnected","external_shop_ref":"fietsen.myshopify.com","limitations":["additional_integration_required"],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":null,"disconnected_at":"2026-10-23T15:05:32+00:00","last_error":null,"created_at":"2026-10-23T15:05:31+00:00"}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"}}}
 
   /api/v1/workspaces/{workspace}/connections/{connection}/credentials:
-    parameters:
-      - $ref: '#/components/parameters/Workspace'
-      - { name: connection, in: path, required: true, description: Connection public ID., schema: { type: string } }
-    post:
-      tags: [Integrations]
-      operationId: replaceConnectionCredentials
-      summary: "Rotate or replace credentials"
-      description: |
-        Generated secrets: a new secret is returned once and the old one stops working immediately. Shopify: send a new `signing_secret` (and `shop_domain`). Audited.
-      x-access: verified
-      x-permission: integrations.manage
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X POST http://localhost:8000/api/v1/workspaces/current/connections/<id>/credentials \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
-      responses:
-        '200':
-          description: "New secret shown once (redacted here)."
-          content:
-            application/json:
-              example: {"data":{"id":"01m5mmqdeessjag26x40n5dfk2","platform":"prestashop","method":"private_module","status":"connected","external_shop_ref":null,"limitations":[],"last_event_at":"2026-10-23T15:05:32+00:00","last_verified_order_at":"2026-10-23T15:05:32+00:00","connected_at":"2026-10-23T15:05:32+00:00","disconnected_at":null,"last_error":{"code":"webhook_timestamp_out_of_tolerance","at":"2026-10-23T15:05:32+00:00"},"created_at":"2026-10-23T15:05:31+00:00","setup":{"format":"shopbonus-webhook-v1","webhook_url":"https:\/\/api.shopbonus.example\/api\/v1\/webhooks\/prestashop\/<token>","steps":["Install the private Shopbonus module for your shop (provided by Shopbonus support).","Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).","Place a real test order. The connection becomes Connected after a verified order with all required fields."],"documentation":"docs\/api\/README.md#shopbonus-webhook-format-v1"},"secrets":{"signing_secret":"<secret shown once>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
-        '409':
-          description: "connection_disconnected (same envelope)."
-          content:
-            application/json:
-              example: {"error":{"status":409,"code":"connection_exists","message":"This webshop already has a connection for this platform.","request_id":"01a1694b-b54f-71a4-a22e-92820b37f4af"}}
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+    parameters: [{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"description":"Connection public ID.","schema":{"type":"string"}}]
+    post: {"tags":["Integrations"],"operationId":"replaceConnectionCredentials","summary":"Rotate or replace credentials","description":"Generated secrets: a new secret is returned once and the old one stops working immediately. Shopify: send a new `signing_secret` (and `shop_domain`). Audited.\n\nB23a adds optional WooCommerce encrypted read credentials and reviewed capability profiles. Native reads are not live/provider production verification. See docs/integrations/WOO_READ_API.md. Existing legacy connected status describes signed webhook evidence only; full #31 quality gates remain pending.","x-access":"verified","x-permission":"integrations.manage","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{\"store_url\":\"https://fietsen-utrecht.nl\",\"consumer_key\":\"<LOCAL_CONSUMER_KEY>\",\"consumer_secret\":\"<LOCAL_CONSUMER_SECRET>\"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v/credentials'"}],"responses":{"200":{"description":"Actual2026-10-28 local HTTP capture, synthetic provider fixtures only; generated webhooks and read credentials redacted.","content":{"application/json":{"example":{"data":{"id":"01m6102zv4nrrhpsnmvm4c8q2v","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":"https://fietsen-utrecht.nl","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T10:14:58+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>","read_api_configured":true,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<GENERATED_SECRET>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"},"409":{"description":"connection_disconnected (same envelope).","content":{"application/json":{"example":{"error":{"status":409,"code":"connection_exists","message":"This webshop already has a connection for this platform.","request_id":"01a1694b-b54f-71a4-a22e-92820b37f4af"}}}}},"422":{"$ref":"#/components/responses/ValidationFailed"}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"store_url":{"type":"string","format":"uri","description":"HTTPS WordPress base URL. With API credentials its normalized ownership domain must match the verified workspace domain."},"consumer_key":{"type":"string","minLength":16,"maxLength":255,"description":"Optional read-only WooCommerce API key; requires consumer_secret and store_url."},"consumer_secret":{"type":"string","minLength":16,"maxLength":255,"description":"Optional read-only API secret; encrypted at rest, never returned."}}},"example":{"store_url":"https://fietsen-utrecht.nl","consumer_key":"<LOCAL_CONSUMER_KEY>","consumer_secret":"<LOCAL_CONSUMER_SECRET>"}}}}}
 
   /api/v1/workspaces/{workspace}/connections/{connection}/verify:
     parameters:
@@ -5170,7 +5009,7 @@ paths:
       operationId: resolveAffiliateTransaction
       summary: "Resolve a conversion in review"
       description: |
-        Step-up required; a note is mandatory. `link_click` attaches an attributable click of the same webshop (then rewards follow the rules), `accept` releases a disputed one (e.g. above the review threshold), `reject` closes it with no reward. Only `unmatched`, `disputed` or `tracked` conversions (409 otherwise). Audited.
+        Recent password confirmation and normal Super Admin MFA required; a note is mandatory. `link_click` attaches an attributable click of the same webshop (then rewards follow the rules), `accept` releases a disputed one (e.g. above the review threshold), `reject` closes it with no reward. Only `unmatched`, `disputed` or `tracked` conversions (409 otherwise). Approved commissions that increase beyond their original frozen review threshold re-enter review before credit. New rewards follow the owner-confirmed after-network-approval default, with frozen timing/rule terms. Non-EUR commissions cannot become EUR wallet credit without an approved FX policy; accept returns409 unsupported_reward_currency. Private credit evidence is retained; no balancing writes or legacy-policy backfill. Successful resolution is audited.
       x-access: admin
       requestBody:
         required: true
@@ -5192,10 +5031,10 @@ paths:
               -H 'Content-Type: application/json' -d '{"action":"reject","note":"..."}'
       responses:
         '200':
-          description: "Resolved."
+          description: "Authorized increased-commission acceptance using the original rule; real isolated HTTP capture."
           content:
             application/json:
-              example: {"data":{"id":"01m5pcjsbzb23dsxwhh87mr70e","network":"tradetracker","external_id":"TT-1002","status":"rejected","network_status":"pending","review_reason":"resolved:reject","webshop_id":"01m5n6399tnc5h1vtfyf3gsgv4","consumer_attributed":false,"order_amount_minor":7995,"commission_minor":320,"currency":"EUR","reward":{"status":"none","amount":null,"unit":null,"rule_version":null},"duplicate_of":null,"transaction_at":"2026-10-24T07:21:40+00:00"}}
+              example: {"data":{"id":"01m5zkksm7y1rqtwrk911ptmjk","network":"daisycon","external_id":"SYNTHETIC-REVIEW","status":"approved","network_status":"approved","review_reason":"resolved:accept","webshop_id":"01m5zkksh8cjqfttxn2qrs8gr6","consumer_attributed":true,"order_amount_minor":10000,"commission_minor":2000,"currency":"EUR","reward":{"status":"credited","amount":1400,"unit":"eur_credit","rule_version":3},"duplicate_of":null,"transaction_at":"2026-10-27T21:17:43+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -5204,10 +5043,10 @@ paths:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: "Not in review."
+          description: "Unsupported reward currency, or conversion not in review."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"not_in_review","message":"Only unmatched, disputed or tracked conversions need review.","request_id":"01a16cc9-67ba-7269-bb33-913f5f8c9735","details":{"status":"approved"}}}
+              example: {"error":{"status":409,"code":"unsupported_reward_currency","message":"Non-EUR conversions need an approved currency conversion policy before acceptance.","request_id":"01a17f39-ed39-7006-9c3d-b267805393ba"}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
@@ -6036,9 +5875,15 @@ paths:
       operationId: startTopUp
       summary: "Top up via Mollie (iDEAL)"
       description: |
-        Creates a Mollie iDEAL payment (test mode only; `MOLLIE_ALLOW_LIVE`) and returns its `checkout_url`. The funding wallet is credited once, after Mollie's webhook and a server-side check of the payment (amount, currency, top-up ID). Requires a commercially active webshop. €10–€10,000 per top-up. Captured against a local Mollie test-mode stub.
+        Creates a Mollie iDEAL payment (test mode only; `MOLLIE_ALLOW_LIVE`) and returns its `checkout_url`. The funding wallet is credited once, after Mollie's webhook and a server-side check of the payment (amount, currency, top-up ID). Requires a commercially active webshop. €10–€10,000 per top-up. Captured against a local Mollie test-mode stub. Optional Idempotency-Key provides permanent local replay protection for workspace+actor+amount; changed amount returns409 funding_request_conflict. Missing header preserves v1 independent-request behavior. Persist the key before sending and keep it after an uncertain result. Each new intent permits one provider POST with its own stable provider UUID. creation_state is creating/created/uncertain, separate from pending/paid/failed payment state. A502 funding_creation_uncertain includes the top-up ID; replay returns that same pending/uncertain row with no checkout_url and never resends, even beyond the provider cache window or after key rotation. Creating/uncertain without a provider reference requires manual reconciliation, never automatic new-payment retry. Checkout links are returned only for pending/created rows.
       x-access: verified
       x-permission: finance.manage
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Stable UUID for one amount, scoped to authenticated actor and workspace. Use the same key for every retry. Headerless legacy calls are independent intents.
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -6048,34 +5893,41 @@ paths:
               required: [amount_minor]
               properties:
                 amount_minor: { type: integer, minimum: 1000, maximum: 1000000 }
-            example: {"amount_minor": 50000}
+            example: {"amount_minor": 1000}
       x-codeSamples:
         - lang: curl
           source: |
             curl -i -X POST 'http://localhost:8000/api/v1/workspaces/current/funding/top-ups' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
-              -H 'Content-Type: application/json' -d '{"amount_minor":50000}'
+              -H 'Idempotency-Key: 2c1a1ed3-0f7f-487a-9768-dc3752f61533' -H 'Content-Type: application/json' -d '{"amount_minor":1000}'
       responses:
         '201':
-          description: "Payment created."
+          description: "Payment intent created or replayed. See creation_state."
           content:
             application/json:
-              example: {"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"pending","amount_minor":50000,"currency":"EUR","checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/861cd71ef5","paid_at":null}}
+              example: {"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
         '409':
-          description: "`payments_unavailable` (no test key)."
+          description: "Changed intent (funding_request_conflict), or payments_unavailable before new creation."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"payments_unavailable","message":"Online payment is not available right now.","request_id":"<id>"}}
+              example: {"error":{"status":409,"code":"funding_request_conflict","message":"This idempotency key belongs to a different top-up.","request_id":"01a17e90-24d8-7250-a04a-088d3824ebfa"}}
         '422':
-          description: "Amount out of range."
+          description: "Malformed key or amount out of range."
           content:
             application/json:
-              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a16ce7-da5a-739d-9127-9528c6522252","fields":{"amount_minor":["The amount minor field must be at least 1000."]}}}
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-24ef-73ec-a30a-1e7f2dc83589","fields":{"key":["The key field must be a valid UUID."]}}}
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
 
+        '502':
+          description: "Creation outcome unknown; review top_up_id, do not start another payment automatically."
+          content:
+            application/json:
+              example: {"error":{"status":502,"code":"funding_creation_uncertain","message":"Payment creation could not be confirmed. Reuse the same request key and review this top-up; do not start another payment automatically.","request_id":"01a17e90-250b-7026-bee9-445f4175089d","details":{"top_up_id":"01m5z9098qbspebggw41mrwgfc"}}}
   /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}:
     parameters:
       - $ref: '#/components/parameters/Workspace'
@@ -6085,7 +5937,7 @@ paths:
       operationId: topUpStatus
       summary: "Top-up status"
       description: |
-        `pending`, `paid` or `failed`. The page Mollie redirects back to polls this; the redirect itself proves nothing.
+        `pending`, `paid` or `failed`. Separate `creation_state` is `creating`, `created` or `uncertain`; only pending/created has a checkout URL. Creating/uncertain without a reference needs manual reconciliation and never resubmits on replay. The page Mollie redirects back to polls this; the redirect itself proves nothing.
       x-access: verified
       x-permission: finance.view
       x-codeSamples:
@@ -6095,10 +5947,10 @@ paths:
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
       responses:
         '200':
-          description: "Top-up."
+          description: "Current top-up and creation state."
           content:
             application/json:
-              example: {"data":{"id":"01m5pefpna4hvspc2gxpg25yhk","state":"paid","amount_minor":50000,"currency":"EUR","checkout_url":null,"paid_at":"2026-10-24T07:54:56+00:00"}}
+              example: {"data":{"id":"01m5z9094dwnh9w2mymph2kqv5","state":"pending","amount_minor":1000,"currency":"EUR","creation_state":"created","checkout_url":"https://example.com/synthetic-checkout","paid_at":null}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
@@ -10406,7 +10258,7 @@ paths:
         - Admin
       operationId: b16cApiVAdminIncidentsIncidentGet
       summary: 'incidents/{incident}'
-      description: 'GET includes paginated occurrences and latest 100 audited status/assignment changes. PATCH requires recent password, a reason and explicit assigned_to (active Super Admin public ID or null); status new|investigating|resolved|ignored. No messages, headers, query strings or private payloads are stored in incidents.'
+      description: 'GET includes paginated occurrences and latest 100 audited status/assignment changes. PATCH requires recent password, a reason and explicit assigned_to (active Super Admin public ID or null); status new|investigating|resolved|ignored. No messages, headers, query strings or private payloads are stored in incidents. Occurrences include nullable monitoring_evidence: immutable numeric counts/P95/window/thresholds for operational alerts, null for other sources.'
       x-access: admin
       security:
         -
@@ -10439,50 +10291,10 @@ paths:
           source: "curl -i -X GET 'http://localhost:8076/api/v1/admin/incidents/01m5sjgf6epbacp2072ra89enz' -b cookies.txt -H 'Accept: application/json' -H 'Origin: http://localhost:3000'"
       responses:
         200:
-          description: 'Captured real HTTP response.'
+          description: Real local monitoring incident with immutable occurrence evidence.
           content:
             application/json:
-              example:
-                data:
-                  id: 01m5sjgf6epbacp2072ra89enz
-                  category: security
-                  severity: warning
-                  service: api
-                  route: api/v1/admin/incidents
-                  method: GET
-                  http_status: 401
-                  status: investigating
-                  assigned_to: 01m5shsg3jkn7wrp9pe1a2f539
-                  occurrences: 1
-                  first_seen_at: '2026-10-25T13:02:59+00:00'
-                  last_seen_at: '2026-10-25T13:02:59+00:00'
-                history:
-                  -
-                    request_id: 01a17328-3d73-7131-8b3b-0325db8e6d4c
-                    actor_id: 01m5shsg3jkn7wrp9pe1a2f539
-                    occurred_at: '2026-10-25T13:02:59+00:00'
-                    change:
-                      before:
-                        status: new
-                        assigned_to: null
-                      after:
-                        status: investigating
-                        assigned_to: 01m5shsg3jkn7wrp9pe1a2f539
-                      reason: 'Investigating repeated API denials'
-                occurrences:
-                  -
-                    id: 01m5sjgf6n73reeddz897wj6sx
-                    request_id: 01a17328-3cb7-7024-8c92-e6bcf6910304
-                    actor_id: null
-                    webshop_id: null
-                    scope_public_id: null
-                    error_code: unauthenticated
-                    occurred_at: '2026-10-25T13:02:59+00:00'
-                meta:
-                  current_page: 1
-                  total: 1
-                  per_page: 25
-                  last_page: 1
+              example: {"data":{"id":"01m5zgxre50ncab1ddad3xqq0k","category":"monitoring","severity":"error","service":"api_monitoring","route":"api/v1/health","method":"GET","http_status":null,"status":"new","assigned_to":null,"occurrences":1,"first_seen_at":"2026-10-27T20:30:44+00:00","last_seen_at":"2026-10-27T20:30:44+00:00"},"history":[],"occurrences":[{"id":"01m5zgxreajyknsajh10wg5jsc","request_id":null,"actor_id":null,"webshop_id":null,"scope_public_id":null,"error_code":"api_5xx_rate","monitoring_evidence":{"from":"2026-10-27T20:25:44+00:00","to":"2026-10-27T20:30:44+00:00","requests":10000,"server_errors":1000,"server_error_percent":10,"p95_ms":2000,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000}},"occurred_at":"2026-10-27T20:30:44+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
         401:
           $ref: '#/components/responses/Unauthenticated'
         403:
@@ -15998,6 +15810,121 @@ paths:
               type: object
               properties: {}
             example: {}
+
+  /api/v1/public/legal-requirements:
+    get:
+      tags: [Content]
+      operationId: legalRequirements
+      summary: Registration legal versions and published document links
+      description: |
+        Uses the same NL canonical versions as registration; locale only chooses display links. Source is cms, configuration or null. registration_available means required versions exist, not legal approval. documents_available requires matching public published text for both documents in the requested locale. Configuration-only versions have no invented document URL. Missing versions return 200 with availability false; POST /register stays fail-closed with 503. No cache; re-fetch before signup and echo versions. Drafts/private text are never disclosed.
+      x-access: public
+      parameters:
+        - { name: locale, in: query, schema: { type: string, enum: [nl, en], default: nl } }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -H 'Accept: application/json' 'http://localhost:8000/api/v1/public/legal-requirements?locale=en'
+      responses:
+        '200':
+          description: "Actual local published sample requirements."
+          content:
+            application/json:
+              example: {"data":{"locale":"en","registration_available":true,"documents_available":true,"documents":{"terms":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-terms"},"privacy":{"version":"LOCAL-SAMPLE-1","source":"cms","document_url":"http://127.0.0.1:8079/api/v1/public/pages/en/local-sample-privacy"}}}}
+        '422':
+          description: "Unsupported locale."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17e90-2288-728a-94be-7e9a40aa9977","fields":{"locale":["The selected locale is invalid."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/consumer/offers/{slug}/claim:
+    parameters:
+      - { name: slug, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Consumer]
+      operationId: claimPromotionalOffer
+      summary: Claim one free promotional voucher
+      description: |
+        Active verified account only; support impersonation is blocked. Fresh approved webshop and published public profile are required. Only promotional_code acquisition is eligible, using canonical stock and immutable offer terms. One voucher per consumer+offer, including concurrent retries; no client idempotency key is needed. Replays return the existing owned reference even after offer pause/expiry, but an unpublished shop is still 404. Does not spend wallet credit, create sponsorship or accept Answer24 tokens. Status is issuance, not redemption. Secret code is only available through the owned voucher endpoint.
+      x-access: verified
+      security: [{ sessionCookie: [] }, { bearerToken: [] }]
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>' 'http://localhost:8000/api/v1/consumer/offers/<slug>/claim'
+      responses:
+        '201':
+          description: "Issued or replayed owned voucher; code omitted."
+          content:
+            application/json:
+              example: {"data":{"id":"01m5z908sg2jrn9rbg1ecbjkms","status":"issued","voucher_url":"http://127.0.0.1:8079/api/v1/consumer/vouchers/01m5z908sg2jrn9rbg1ecbjkms"}}
+        '404':
+          description: "Unknown or unpublished offer/shop."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Offer not found.","request_id":"01a17e90-2357-72ad-a651-b7f3f7686b5b"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+        '409':
+          description: "Paused, expired, sold out or wrong acquisition; no allocation."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"offer_not_active","message":"This offer is not active.","request_id":"01a17e90-245a-7141-b440-54a14428a847","details":{"status":"paused"}}}
+
+  /api/v1/admin/monitoring:
+    get:
+      tags: [Admin]
+      operationId: apiMonitoring
+      summary: Observed API latency and error metrics
+      description: |
+        Super Admin with normal MFA; support impersonation is blocked. Read-only global operational metadata, never raw requests, SQL, bindings, credentials, customer/workspace IDs or paths. Opt-in API_MONITORING_ENABLED defaults false. minutes defaults5, range1–60. Exact nearest-rank P50/P95/P99 across disclosed observations; latest sample cap defaults50000 (hard maximum50000), max500 route/method groups, explicit truncation flags. Disabled, absent, insufficient or partial observations are UNKNOWN. CRITICAL breaches dominate sparse-route UNKNOWN; HEALTHY refers only to sufficient observed HTTP traffic, never whole-platform uptime. Minimum samples/default20,5xx threshold/default2%, P95/default1000ms are configurable. Ordinary4xx do not trigger5xx alerts. Only rendered408/504 are observable timeouts; process deaths/network/client timeouts, queue wait, provider failure detail, dependency availability and backups remain unmeasured here. Global termination capture is best-effort; DB write failures preserve original responses and emit a redacted technical log. Run scheduler shopbonus:monitor-api each minute for existing incident alerts and bounded retention (default24h, max72h). Per route+breach300s cooldown, immutable numeric/window/threshold evidence appears in GET /admin/incidents/{incident}. No auto financial corrections or external email. Local10000-row query benchmark is documented; no production/staging SLA claimed.
+      x-access: admin
+      security: [{ sessionCookie: [] }, { bearerToken: [] }]
+      parameters:
+        - name: minutes
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 60, default: 5 }
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' 'http://localhost:8000/api/v1/admin/monitoring?minutes=5'
+      responses:
+        '200':
+          description: Real local report using explicitly synthetic observations.
+          content:
+            application/json:
+              example: {"data":{"enabled":true,"state":"CRITICAL","from":"2026-10-27T20:25:43+00:00","to":"2026-10-27T20:30:43+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[{"route":"api/v1/admin/monitoring","method":"GET","requests":4,"state":"UNKNOWN","breaches":[],"average_ms":36.453,"p50_ms":29.104,"p95_ms":71.519,"p99_ms":71.519,"client_errors":3,"server_errors":0,"client_error_percent":75,"server_error_percent":0,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":59,"total_ms":17.74,"slow_queries":0}},{"route":"api/v1/health","method":"GET","requests":10000,"state":"CRITICAL","breaches":["api_5xx_rate","api_latency"],"average_ms":404,"p50_ms":5,"p95_ms":2000,"p99_ms":2000,"client_errors":0,"server_errors":1000,"client_error_percent":0,"server_error_percent":10,"observed_timeouts":0,"observed_timeout_percent":0,"database":{"queries":20000,"total_ms":10000,"slow_queries":0}}],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: Window outside1–60minutes.
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a17f0e-deb9-7199-89a3-1b2de94aac2c","fields":{"minutes":["The minutes field must not be greater than 60."]}}}
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500':
+          description: Monitoring storage/query failure; never reported as healthy.
+          content:
+            application/json:
+              example: {"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a17f0e-ed56-72ca-896a-bd4a437f7a2d"}}
+
+  /api/v1/admin/reconciliation:
+    get: {"tags":["Admin"],"summary":"List reconciliation runs","operationId":"reliabilityListreconciliationruns","x-access":"admin","security":[{"sessionCookie":[]}],"description":"Super Admin/MFA; support impersonation blocked. Read-only; no-store. See docs/reliability/COMPLETION.md for source invariants, scope/UNKNOWN semantics, recovery and configuration.","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/reconciliation'"}],"responses":{"200":{"description":"Captured from the real isolated local HTTP server.","content":{"application/json":{"example":{"data":[{"run":"01m60xt37mxxr2cajczf579ma8","scope_version":2,"execution":"completed","status":"CRITICAL","requested_at":"2026-10-28T09:35:10+00:00","finished_at":"2026-10-28T09:35:10+00:00","elapsed_including_scheduling_ms":0,"checked_wallets":1,"discrepancies":1,"unknown_checks":1,"coverage":{"wallet_projection":"OBSERVED","affiliate":"EMPTY","checkout":"EMPTY","funding":"EMPTY","sponsorship":"EMPTY","ledger":"OBSERVED"},"scope":"Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}],"meta":{"page":1,"total":1}}}}},"401":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}}}},"403":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a181dd-087e-7306-a50b-2a4ecb926745"}}}}},"429":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}}}},"500":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a181dd-10db-7217-b5c5-29e09fb28902"}}}}},"422":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a181dd-0e73-7195-a674-9fc3c9941023","fields":{"per_page":["The per page field must not be greater than 100."]}}}}}}},"parameters":[{"name":"per_page","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":25}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1}}]}
+    post: {"tags":["Admin"],"summary":"Request an idempotent reconciliation run","operationId":"reliabilityRequestanidempotentreconciliationrun","x-access":"admin","security":[{"sessionCookie":[]}],"description":"Super Admin/MFA; support impersonation blocked. SPA CSRF, fresh password and emailed OTP required. Three attempts/minute. See docs/reliability/COMPLETION.md for source invariants, scope/UNKNOWN semantics, recovery and configuration.","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{\"request_key\":\"90c078d6-1573-467e-9d36-860cc84b72d2\"}' 'http://localhost:8000/api/v1/admin/reconciliation'"}],"responses":{"202":{"description":"Captured from the real isolated local HTTP server.","content":{"application/json":{"example":{"data":{"run":"01m60xt37mxxr2cajczf579ma8","scope_version":2,"execution":"pending","status":"UNKNOWN","requested_at":"2026-10-28T09:35:10+00:00","finished_at":null,"elapsed_including_scheduling_ms":72,"checked_wallets":0,"discrepancies":0,"unknown_checks":0,"coverage":{"wallet_projection":"INCOMPLETE","affiliate":"UNKNOWN","checkout":"UNKNOWN","funding":"UNKNOWN","sponsorship":"UNKNOWN","ledger":"UNKNOWN"},"scope":"Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}}}}},"401":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}}}},"403":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a181dd-087e-7306-a50b-2a4ecb926745"}}}}},"429":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}}}},"500":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a181dd-10db-7217-b5c5-29e09fb28902"}}}}},"419":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"01a181dd-0aa5-7055-8b86-f59af0c22be1"}}}}},"422":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a181dd-0e73-7195-a674-9fc3c9941023","fields":{"per_page":["The per page field must not be greater than 100."]}}}}}},"423":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"01a181dd-0ba8-7024-9dcc-009a82c816df"}}}}}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["request_key"],"properties":{"request_key":{"type":"string","format":"uuid"}}},"example":{"request_key":"90c078d6-1573-467e-9d36-860cc84b72d2"}}}}}
+  /api/v1/admin/reconciliation/{run}:
+    get: {"tags":["Admin"],"summary":"Inspect immutable source checks","operationId":"reliabilityInspectimmutablesourcechecks","x-access":"admin","security":[{"sessionCookie":[]}],"description":"Super Admin/MFA; support impersonation blocked. Read-only; no-store. See docs/reliability/COMPLETION.md for source invariants, scope/UNKNOWN semantics, recovery and configuration.","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8?status=discrepancy'"}],"responses":{"200":{"description":"Captured from the real isolated local HTTP server.","content":{"application/json":{"example":{"data":{"run":"01m60xt37mxxr2cajczf579ma8","scope_version":2,"execution":"completed","status":"CRITICAL","requested_at":"2026-10-28T09:35:10+00:00","finished_at":"2026-10-28T09:35:10+00:00","elapsed_including_scheduling_ms":0,"checked_wallets":1,"discrepancies":1,"unknown_checks":1,"coverage":{"wallet_projection":"OBSERVED","affiliate":"EMPTY","checkout":"EMPTY","funding":"EMPTY","sponsorship":"EMPTY","ledger":"OBSERVED"},"scope":"Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."},"checks":[{"id":"01m60xt3gsh82cd9p6kzayj2nc","source_type":"wallet","source_ref":"01m60xt19ttzdj91yb9frh9v83","status":"discrepancy","evidence":{"version":1,"unit":"eur_credit","kind":"consumer_credit","projection":{"available":1400,"reserved":0,"pending":0},"mismatches":{"available":[1000,1400],"lots":[1000,1400]},"flag":"01m60xt3ge3km27rrc38xyygnf"},"checked_at":"2026-10-28T09:35:10.000000Z"}],"meta":{"page":1,"total":1},"corrections":"Use existing reviewed wallet adjustment, affiliate review and checkout/dispute workflows. This report never posts corrections."}}}},"401":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}}}},"403":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a181dd-087e-7306-a50b-2a4ecb926745"}}}}},"429":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}}}},"500":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a181dd-10db-7217-b5c5-29e09fb28902"}}}}},"422":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a181dd-0e73-7195-a674-9fc3c9941023","fields":{"per_page":["The per page field must not be greater than 100."]}}}}}},"404":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a181dd-0fe2-7304-8081-39985f1378dd"}}}}}},"parameters":[{"name":"run","in":"path","required":true,"schema":{"type":"string"},"description":"Run public ULID."},{"name":"per_page","in":"query","schema":{"type":"integer","minimum":1,"maximum":100,"default":25}},{"name":"page","in":"query","schema":{"type":"integer","minimum":1}},{"name":"status","in":"query","schema":{"enum":["matched","discrepancy","unknown"]}}]}
+  /api/v1/admin/reconciliation/{run}/resume:
+    post: {"tags":["Admin"],"summary":"Resume an investigated failed run","operationId":"reliabilityResumeaninvestigatedfailedrun","x-access":"admin","security":[{"sessionCookie":[]}],"description":"Super Admin/MFA; support impersonation blocked. SPA CSRF, fresh password and emailed OTP required. Three attempts/minute. See docs/reliability/COMPLETION.md for source invariants, scope/UNKNOWN semantics, recovery and configuration.","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{\"reason\":\"Synthetic failure investigated; fixture storage restored.\"}' 'http://localhost:8000/api/v1/admin/reconciliation/01m60xt37mxxr2cajczf579ma8/resume'"}],"responses":{"202":{"description":"Captured from the real isolated local HTTP server.","content":{"application/json":{"example":{"data":{"run":"01m60xt37mxxr2cajczf579ma8","scope_version":2,"execution":"running","status":"CRITICAL","requested_at":"2026-10-28T09:35:10+00:00","finished_at":"2026-10-28T09:35:10+00:00","elapsed_including_scheduling_ms":0,"checked_wallets":1,"discrepancies":1,"unknown_checks":1,"coverage":{"wallet_projection":"INCOMPLETE","affiliate":"EMPTY","checkout":"EMPTY","funding":"EMPTY","sponsorship":"EMPTY","ledger":"OBSERVED"},"scope":"Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."}}}}},"401":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}}}},"403":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a181dd-087e-7306-a50b-2a4ecb926745"}}}}},"429":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}}}},"500":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a181dd-10db-7217-b5c5-29e09fb28902"}}}}},"419":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"01a181dd-0aa5-7055-8b86-f59af0c22be1"}}}}},"422":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a181dd-0e73-7195-a674-9fc3c9941023","fields":{"per_page":["The per page field must not be greater than 100."]}}}}}},"423":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":423,"code":"step_up_code_required","message":"Confirm this action with the code sent to your email.","request_id":"01a181dd-0ba8-7024-9dcc-009a82c816df"}}}}},"409":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":409,"code":"reconciliation_not_failed","message":"Only failed reconciliation runs can be resumed.","request_id":"01a181dd-0fc3-706d-bdea-e6ee508ea01e"}}}}},"404":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a181dd-0fe2-7304-8081-39985f1378dd"}}}}}},"parameters":[{"name":"run","in":"path","required":true,"schema":{"type":"string"},"description":"Run public ULID."}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["reason"],"properties":{"reason":{"type":"string","minLength":5,"maxLength":500}}},"example":{"reason":"Synthetic failure investigated; fixture storage restored."}}}}}
+  /api/v1/admin/operations-overview:
+    get: {"tags":["Admin"],"summary":"Observe platform operations","operationId":"reliabilityObserveplatformoperations","x-access":"admin","security":[{"sessionCookie":[]}],"description":"Super Admin/MFA; support impersonation blocked. Read-only; no-store. See docs/reliability/COMPLETION.md for source invariants, scope/UNKNOWN semantics, recovery and configuration.","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/admin/operations-overview'"}],"responses":{"200":{"description":"Captured from the real isolated local HTTP server.","content":{"application/json":{"example":{"data":{"observed_at":"2026-10-28T09:35:10+00:00","components":{"database":{"status":"HEALTHY","observed_at":"2026-10-28T09:35:10+00:00"},"cache":{"status":"HEALTHY","observed_at":"2026-10-28T09:35:10+00:00"},"api":{"enabled":false,"state":"UNKNOWN","from":"2026-10-28T09:30:10+00:00","to":"2026-10-28T09:35:10+00:00","sample_limit":50000,"sample_limit_exceeded":false,"routes_truncated":false,"thresholds":{"minimum_samples":20,"error_percent":2,"p95_ms":1000},"routes":[],"coverage":{"http":"observed_requests_only","timeouts":"rendered_408_504_only","queue_wait":"UNKNOWN","provider_failures":"UNKNOWN","dependency_availability":"UNKNOWN","backups":"UNKNOWN"}},"queue":{"status":"UNKNOWN","reason":"No observable database/redis background queue configured."},"providers":{"status":"UNKNOWN","failed_affiliate_connections":0,"http_observations":{"http_status":"UNKNOWN","http_requests":0,"http_failures":0,"http_sample_limit_exceeded":false,"by_provider":[]},"definition":"Persisted affiliate errors plus opt-in HTTP observations; no independent provider availability proof."},"financial":{"run":"01m60xt37mxxr2cajczf579ma8","scope_version":2,"execution":"completed","status":"CRITICAL","requested_at":"2026-10-28T09:35:10+00:00","finished_at":"2026-10-28T09:35:10+00:00","elapsed_including_scheduling_ms":0,"checked_wallets":1,"discrepancies":1,"unknown_checks":1,"coverage":{"wallet_projection":"OBSERVED","affiliate":"EMPTY","checkout":"EMPTY","funding":"EMPTY","sponsorship":"EMPTY","ledger":"OBSERVED"},"scope":"Individually observed local financial invariants; not independent provider settlement, recognized revenue or a global point-in-time proof."},"scheduler":{"status":"UNKNOWN","last_observed_at":null},"incidents":{"status":"WARNING","open":7},"backups":{"status":"UNKNOWN","backup_success_percent_30d":null,"enabled":false,"last_backup_at":null,"last_backup_result":null,"last_verified_restore_at":null,"offsite_verified":false,"definition":"Successful configured-disk write is not independent offsite durability or RPO/RTO proof."}},"links":{"monitoring":"/api/v1/admin/monitoring","incidents":"/api/v1/admin/incidents","financial":"/api/v1/admin/reconciliation"},"limits":"Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof."}}}}},"401":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a181dd-0846-71b4-bae4-1a75b1dcaef1"}}}}},"403":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a181dd-087e-7306-a50b-2a4ecb926745"}}}}},"429":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a181dd-0d1e-72a7-8cb7-02498bb059e8"}}}}},"500":{"description":"Actual HTTP error capture of the shared envelope; see capture artifact for exact trigger.","content":{"application/json":{"example":{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a181dd-10db-7217-b5c5-29e09fb28902"}}}}}}}
+
+  /api/v1/workspaces/{workspace}/connections/{connection}/test-api:
+    post: {"tags":["Integrations"],"operationId":"testConnectionReadApi","summary":"Perform a scoped read-only provider API test","description":"Workspace integrations.manage; active verified account, SPA CSRF and3requests/minute across workspaces per user. WooCommerce only in B23a; unsupported adapters409. Optional order_id reads that order and up to2refund pages, returning a secret-free summary. No connection-status promotion/order ingestion/financial effect. Owner-normalized domain binding, public DNS/IP pin, no redirects/proxy,8second reads/1MiB limit,3failure circuit and bounded429cooldown. Credential change/disconnect during the read409. No live-store verification claim. See WOO_READ_API.md for supported/remaining scope.","x-access":"verified","x-permission":"integrations.manage","security":[{"sessionCookie":[]},{"bearerToken":[]}],"parameters":[{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"schema":{"type":"string"},"description":"Connection public ULID, scoped to the workspace."}],"requestBody":{"required":false,"content":{"application/json":{"schema":{"type":"object","properties":{"order_id":{"type":["string","null"],"pattern":"^[1-9][0-9]{0,18}$"}}},"example":{"order_id":"4711"}}}},"x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{\"order_id\":\"4711\"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v/test-api'"}],"responses":{"200":{"description":"Actual local HTTP summaries, synthetic upstream only.","content":{"application/json":{"examples":{"api_order_and_refunds_read_observed":{"value":{"data":{"connection":"01m6102zv4nrrhpsnmvm4c8q2v","platform":"woocommerce","result":{"ok":true,"code":"api_order_and_refunds_read_observed"},"order_summary":{"kind":"order","complete":true,"missing_fields":[],"has_phone":false,"payment_status":"partially_refunded","currency":"EUR","amount_minor":5995},"state_changed":false,"production_verified":false}}},"api_orders_read_observed":{"value":{"data":{"connection":"01m6102zv4nrrhpsnmvm4c8q2v","platform":"woocommerce","result":{"ok":true,"code":"api_orders_read_observed"},"order_summary":null,"state_changed":false,"production_verified":false}}}}}}},"401":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a18201-7caf-70b1-99e6-e6c0e5f079de"}}}}}}},"403":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a18201-8068-72f4-96c7-d4b3c0e49cbb","details":{"required_permission":"integrations.manage"}}}}}}}},"404":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a18201-808e-71ff-a431-b9233c04b791"}}}}}}},"409":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":409,"code":"capability_not_supported","message":"This platform connection does not support an active connection test (send a real order instead).","request_id":"01a18201-8190-7000-9c53-ca9e6941513d","details":{"capability":"an active connection test (send a real order instead)"}}}},"2":{"value":{"error":{"status":409,"code":"provider_authentication_failed","message":"The provider rejected these credentials or read permissions.","request_id":"01a18201-82ae-7356-982a-b0f02bd08d8e"}}},"3":{"value":{"error":{"status":409,"code":"provider_address_refused","message":"The store domain must resolve only to public addresses.","request_id":"01a18201-86c3-718b-a4a8-7a0051b2f5b1"}}}}}}},"419":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"01a18201-7f90-70f8-9f6e-ff3a5cc0c076"}}}}}}},"422":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a18201-800f-7278-8b52-cc91f628ad0c","fields":{"order_id":["The order id field format is invalid."]}}}}}}}},"429":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"01a18201-804d-7003-90d0-f1b63828729c"}}}}}}},"500":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"01a18201-88a6-720c-8b89-2e7e0e6b0376"}}}}}}},"502":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":502,"code":"provider_response_invalid","message":"The provider response could not be read.","request_id":"01a18201-84b9-703f-9c56-0f7817c85f72"}}},"2":{"value":{"error":{"status":502,"code":"provider_read_failed","message":"The provider API did not return a successful read response.","request_id":"01a18201-85bf-71f3-be9e-4c3700c10c6b"}}}}}}},"503":{"description":"Actual running-server error; exact synthetic trigger recorded in B23_WOO_HTTP_CAPTURE.json.","content":{"application/json":{"examples":{"1":{"value":{"error":{"status":503,"code":"provider_rate_limited","message":"The provider API rate limit was reached.","request_id":"01a18201-83b2-70b8-b30b-bab337668ad7"}}}}}}}}}
 
 components:
   parameters:

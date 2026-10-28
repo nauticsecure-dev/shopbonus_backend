@@ -67,7 +67,7 @@ class IncidentController extends Controller
         return response()->json(['data' => $this->present($model), 'history' => $history, 'occurrences' => $page->getCollection()->map(fn (SecurityIncidentOccurrence $o) => [
             'id' => $o->public_id, 'request_id' => $o->request_id, 'actor_id' => $o->actor_user_id === null ? null : User::find($o->actor_user_id)?->public_id,
             'webshop_id' => $o->webshop_id === null ? null : Webshop::find($o->webshop_id)?->public_id, 'scope_public_id' => $o->scope_public_id,
-            'error_code' => $o->error_code, 'occurred_at' => $o->occurred_at->toIso8601String()])->all(),
+            'error_code' => $o->error_code, 'monitoring_evidence' => $o->monitoring_evidence, 'occurred_at' => $o->occurred_at->toIso8601String()])->all(),
             'meta' => ['current_page' => $page->currentPage(), 'total' => $page->total(), 'per_page' => $page->perPage(), 'last_page' => $page->lastPage()]]);
     }
 

@@ -18,7 +18,7 @@ Laravel 13/PHP 8.3+ (target; verify installed version), versioned `/api/v1` JSON
 | Offers | Multi-offer per shop, constraints, validity, snapshot semantics, unique/reusable code inventory, CSV imports, atomic code allocation, reservations, issue vs redeem distinction, expiry/complaint/replacement. |
 | Consumer wallet | One non-cash, nontransferable ledger for virtual redemption credit/points, available/pending/reserved/spent. Immutable entries and refunds/reversals, no negative spendable balances. |
 | Merchant funding | Separate shop-funded wallet; €10 reward + 30%-of-reward (€3) fee = €13 funding obligation in the example; Mollie iDEAL funding, Moneybird invoice, sponsor/source reconciliation. |
-| Affiliate | Daisycon/TradeTracker adapters, tracking, network selection based on eligible commission, status updates, dedupe, review/reversal, per-consumer reward economics; **timing of spendable credit is unresolved**. |
+| Affiliate | Daisycon/TradeTracker adapters, tracking, network selection based on eligible commission, status updates, dedupe, review/reversal, per-consumer reward economics; **owner confirmed new rewards spendable only after network approval (D-089, 2026-10-27)**. |
 | Voucher checkout | Atomic wallet reserve/debit and code allocation, optional verified Mollie remainder, webhook replay safety, reconciliation and chargeback handling. |
 | Consumer API | Public webshops/offers, profile/preferences, favorites, customer dashboard, wallet, vouchers, support, activation; strict PII ownership. |
 | Merchant API | Connections, orders, offers, codes, claims, metrics, campaign configurations and merchant wallet; every lookup filtered by authorized webshop. |
@@ -63,7 +63,7 @@ Contracts require: typed payloads, auth and ownership matrix, precise integer mo
 
 ## Important unresolved requirements
 
-- **OPEN-AFFILIATE-CREDIT-TIMING:** Card #19 and #22 describe spendable credit after commission approval; card #23 describes immediate spendable credit for a valid attributed conversion even when later rejected. Must choose a documented, versioned risk policy before release of affected crediting path; model must be capable of both states while keeping audit ledger intact.
+- **Affiliate timing resolved for new rewards (D-089):** spendable only after network approval. Preserve frozen historical timing regimes and immutable ledger history; instant-mode compatibility is not authorization to activate it.
 - **OPEN-REWARD-UNITS:** Some cards use integer `points`, others use EUR-denominated `EUR_REDEMPTION_CREDIT`. Define conversion/unit, presentation, expiry and accounting without inventing a rate.
 - **OPEN-FINANCIAL-LEGAL:** Confirm Dutch seller of record, VAT, refunds, merchant invoicing, promotion/contact lawful basis and contract terms before accepting live payments or auto-marketing.
 - **OPEN-PROVIDER-CAPABILITIES:** Verify current supported provider APIs/webhooks (esp. Shopify, Wix, Lightspeed, Mijnwebwinkel, CCV) and whether real redemption verification is available.

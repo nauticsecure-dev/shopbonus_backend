@@ -337,17 +337,38 @@ class WalletService
     {
         $bad = [];
 
-        Wallet::orderBy('id')->each(function (Wallet $w) use (&$bad) {
-            $mismatch = $this->mismatches($w);
-
-            if ($mismatch !== []) {
+        $lastId = Wallet::max('id');
+        Wallet::where('id', '<=', $lastId ?? 0)->orderBy('id')->each(function (Wallet $w) use (&$bad) {
+            $check = $this->reconcileWallet($w);
+            if ($check['mismatches'] !== []) {
                 $bad[] = $w->id;
-                WalletReconciliationFlag::create(['wallet_id' => $w->id, 'reason' => 'balance_mismatch', 'details' => $mismatch]);
-                report(new \RuntimeException("Wallet {$w->public_id} does not reconcile: ".json_encode($mismatch)));
             }
         });
 
         return $bad;
+    }
+
+    /**
+     * Read a current, lock-consistent wallet projection and retain one open flag.
+     * Original finding evidence is never overwritten and no balances are repaired here.
+     *
+     * @return array{mismatches:array<string, array{int,int}>, flag:WalletReconciliationFlag|null}
+     */
+    public function reconcileWallet(Wallet $wallet): array
+    {
+        $result = DB::transaction(function () use ($wallet) {
+            $fresh = Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+            $mismatch = $this->mismatches($fresh);
+            $flag = $mismatch === [] ? null : WalletReconciliationFlag::firstOrCreate(
+                ['wallet_id' => $fresh->id, 'reason' => 'balance_mismatch', 'status' => 'open'], ['details' => $mismatch]);
+
+            return ['mismatches' => $mismatch, 'flag' => $flag];
+        }, 3);
+        if ($result['flag']?->wasRecentlyCreated) {
+            report(new \RuntimeException("Wallet {$wallet->public_id} does not reconcile: ".json_encode($result['mismatches'])));
+        }
+
+        return $result;
     }
 
     /** @return array<string, array{int, int}> */

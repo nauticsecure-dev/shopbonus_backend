@@ -62,6 +62,7 @@ class ConnectorRegistry
                 'reliability' => $entry['reliability'] ?? null,
                 'limitations' => $entry['limitations'] ?? [],
                 'verification' => $entry['verification'] ?? 'unverified',
+                'profile' => $entry['profile'] ?? null,
                 'blocked_reason' => $entry['blocked_reason'] ?? null,
             ];
         }, EcommercePlatform::cases());

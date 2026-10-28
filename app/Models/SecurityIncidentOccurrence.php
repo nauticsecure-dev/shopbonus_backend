@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $webshop_id
  * @property string|null $scope_public_id
  * @property string|null $error_code
+ * @property array<string, mixed>|null $monitoring_evidence
  * @property CarbonImmutable $occurred_at
  */
 class SecurityIncidentOccurrence extends Model
@@ -34,6 +35,6 @@ class SecurityIncidentOccurrence extends Model
 
     protected function casts(): array
     {
-        return ['occurred_at' => 'immutable_datetime'];
+        return ['monitoring_evidence' => 'array', 'occurred_at' => 'immutable_datetime'];
     }
 }

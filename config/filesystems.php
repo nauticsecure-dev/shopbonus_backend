@@ -29,6 +29,12 @@ return [
     */
 
     'disks' => [
+        'recovery' => [
+            'driver' => 'local',
+            'root' => env('BACKUP_STORAGE_PATH', storage_path('app/private/encrypted-backups')),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
 
         'local' => [
             'driver' => 'local',
