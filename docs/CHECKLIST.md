@@ -710,6 +710,6 @@ B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; 
 - [x] Test rotation/disconnect/legacy/stale-object and processing-boundary cases on both drivers; execute full suites/quality and isolated migration rollback/reapply.
 - [x] Capture changed credential/verify/retry HTTP contracts from a running server, update API and handoff docs;16actual captures and contract3tests3693assertions PASS. Seven-gate promotion/OAuth/recovery remain subsequent work.
 
-- [ ] Commit/push B23c and verify exact-code CI; record SHA and counts in closeout.
+- [x] Commit/push B23c `aa316ec741c94fa9dddf967c37bad3ea3990db12`; CI40679706982 SUCCESS all3jobs: SQLite778pass+23skip/10030assertions/49.40s and MySQL799pass+2skip/10113assertions/197.56s (801each).
 
-B23c local: focused69tests556assertions both drivers; full SQLite801total778pass+23skip/10029assertions/53.878s, MySQL801total799pass+2skip/10112assertions/244.766s PASS. Pint/PHPStan/audit/API contract/migration down-up PASS. SHA/CI follows; whole #31 IN_PROGRESS.
+B23c local: focused69tests556assertions both drivers; full SQLite801total778pass+23skip/10029assertions/53.878s, MySQL801total799pass+2skip/10112assertions/244.766s PASS. Pint/PHPStan/audit/API contract/migration down-up PASS. Implementation `aa316ec741c94fa9dddf967c37bad3ea3990db12` and CI40679706982 verified all3SUCCESS; whole #31 IN_PROGRESS.
