@@ -1,5 +1,13 @@
 # Backend Task Ledger — Shopbonus
 
+## Windows local installation — 2026-10-27
+
+**DONE locally, uncommitted:** user requested backend installation. Installed locked dependencies,
+generated local environment/key, created MySQL database and applied all 46 migrations.
+Explicit InnoDB resolves Wamp's MyISAM default. API/identity tests: 86 passed/4,063 assertions;
+HTTP health/readiness/docs/catalog 200, private me 401; queue-once and launcher passed.
+See `LOCAL_SETUP.md`. No frontend connection or live-provider acceptance claimed.
+
 This is the proposed dependency-ordered **backend-only** work queue derived from the attached Trello snapshot. Trello lists are PEOPLE/WORKSTREAM labels (Howto, Frank, Hassan), not a verified status workflow. **Every task starts `UNVERIFIED`** pending repo audit. Exact acceptance details are in corresponding Trello cards in `requirements/TRELLO_CARDS.md`.
 
 Statuses allowed: `UNVERIFIED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `PARTIAL`, `VERIFIED_WORKING`, `DONE`. Only mark DONE with actual tests/commit/evidence. Keep one active writer per overlapping code area.

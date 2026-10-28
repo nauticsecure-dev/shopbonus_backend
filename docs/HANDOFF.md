@@ -1,4 +1,24 @@
-# Latest handoff — #29 main backend complete
+# Latest local handoff — Windows installation, 2026-10-27
+
+**Branch/SHA:** `HassanDev` / `665bc1d`; installation changes uncommitted, no commit/push.
+**Status:** requested local backend installation complete. Details: `docs/LOCAL_SETUP.md`.
+Wamp PHP 8.4.15/SOAP, 150 locked packages, platform check passed, ignored local `.env`/key,
+MySQL `shopbonus`, all 46 migrations applied and 122 tables InnoDB. MySQL connection now
+explicitly selects InnoDB; Wamp's global MyISAM default is unchanged. The initial failed
+attempt's two empty tables were confirmed empty and removed before retrying successfully.
+Database queues/cache/session avoid a Redis dependency. Outbound integrations remain off/unconfigured.
+**Tests:** API+identity SQLite 86 passed/4,063 assertions/23.181s; real HTTP health/readiness/docs/catalog
+200 and unauthenticated me 401; queue-once and launcher migrate status passed. Full regression,
+MySQL regression, real providers and frontend integration NOT RUN.
+**Processes/next:** loopback dev server started on port 8000; restart via `.\start-local.ps1`.
+Workers/scheduler are not persistent services; commands in local setup. No seeded user/admin.
+Registration still requires published legal versions. No remaining installation blocker.
+**Uncommitted files:** config/database.php, start-local.ps1, docs/LOCAL_SETUP.md,
+docs/CHECKLIST.md, docs/TASKS.md, docs/PROGRESS.md and docs/HANDOFF.md. Secrets remain ignored.
+
+---
+
+# Previous handoff — #29 main backend complete
 
 **Branch/SHA:** main; implementation911e053 +approval-scope follow-up5a8c36d committed/pushed; CI40412989638 and final40414186822 SUCCESS all3jobs. This final docs-only evidence closeout follows; no application code change or pre-existing edits overwritten. Owner explicitly “do it”; all remaining #29 main code complete. D-081 below-cutoff authorization persists for this task, no unrelated cleanup/Redis flush/binlog purge, subagents, frontend/NPM or external customer messages.
 **Status:** B20a–f **DONE (main backend)**; ready for Hassan frontend integration. Whole Trello card still needs its UI and senior configured real mail/model/deployed Reverb/monitoring/staging acceptance. Those are NOT RUN, not guessed passes.

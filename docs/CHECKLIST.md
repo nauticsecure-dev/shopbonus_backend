@@ -1,5 +1,16 @@
 # Implementation Checklist
 
+## Windows local installation — 2026-10-27
+
+Verification passed (86 tests/4,063 assertions; actual HTTP/migrations/platform checks).
+Boxes remain unticked pending a task commit, per the checklist's same-commit rule.
+
+- [ ] Install locked Composer dependencies using PHP 8.4 with SOAP.
+- [ ] Create local environment/key and apply migrations to the new local MySQL database.
+- [ ] Pin the MySQL connection to InnoDB and verify all installed tables use it.
+- [ ] Verify local HTTP health/readiness/docs and focused API/identity tests.
+- [ ] Record local start commands, verification results and remaining setup limitations.
+
 Granular companion to `docs/TASKS.md`. **Rule (owner, 2026-10-23):** tick a box in the same commit that implements the item, and only once its tests have actually been run and passed. Put the commit SHA (or "this commit") after each ticked item. An unticked box means not done or not verified. Never tick from intent.
 
 Tasks further down are listed at headline level. Expand them into concrete items when the task is started, before writing code.
