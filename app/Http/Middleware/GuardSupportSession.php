@@ -39,6 +39,8 @@ class GuardSupportSession
     /** Refused for every method. */
     private const BLOCKED_ALWAYS = [
         'api.v1.admin.*',
+        'api.v1.integrations.shopify.oauth.*',
+        'api.v1.workspaces.connections.shopify-oauth.*',
         'api.v1.ai.*',
         'api.v1.notifications.*',
         'api.v1.notification-preferences.*',

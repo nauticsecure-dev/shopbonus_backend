@@ -9,9 +9,11 @@ use App\Events\OrderEventVerified;
 use App\Events\RefundEventVerified;
 use App\Integrations\ConnectionReadiness;
 use App\Integrations\ConnectorRegistry;
+use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\OrderRecovery;
+use App\Integrations\ShopifyUninstall;
 use App\Models\IntegrationOrderRecovery;
 use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
@@ -22,6 +24,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Processes one verified webhook event exactly once (status guard under
@@ -45,6 +48,12 @@ class ProcessWebhookEvent implements ShouldQueue
 
     public function handle(ConnectorRegistry $registry, AuditLogger $audit): void
     {
+        $candidate = WebhookEvent::find($this->eventId);
+        if ($candidate !== null && ($candidate->result['kind'] ?? null) === VerifiedEvent::KIND_DISCONNECT) {
+            app(ShopifyUninstall::class)->process($this->eventId);
+
+            return;
+        }
         DB::transaction(function () use ($registry, $audit) {
             $candidate = WebhookEvent::find($this->eventId);
             if ($candidate === null) {
@@ -89,6 +98,20 @@ class ProcessWebhookEvent implements ShouldQueue
 
             $payload = json_decode((string) $event->payload, true);
             $connector = $registry->for($connection->platform);
+
+            if ($kind === VerifiedEvent::KIND_ORDER_LOOKUP && $connector instanceof OrderNotification) {
+                $target = $connector->notificationOrderId($connection, (string) $event->payload);
+                if ($target === null) {
+                    $this->finish($event, WebhookEventStatus::Failed, ['kind' => $kind], 'invalid_order_id');
+
+                    return;
+                }
+                $key = Uuid::uuid5(Uuid::NAMESPACE_URL, 'shopbonus-notification:'.$event->public_id)->toString();
+                app(OrderRecovery::class)->request($connection, $target, $key, 'reconciliation');
+                $this->finish($event, WebhookEventStatus::Processed, ['kind' => $kind, 'native_lookup_requested' => true]);
+
+                return;
+            }
 
             if ($kind === VerifiedEvent::KIND_REFUND) {
                 $target = is_array($payload) ? $connector->refundTarget($payload) : null;

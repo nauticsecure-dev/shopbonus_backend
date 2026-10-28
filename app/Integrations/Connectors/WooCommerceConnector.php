@@ -5,11 +5,13 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\WooCommerceApi;
+use App\Integrations\LineItems;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\Money;
@@ -27,7 +29,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store (no test store available).
  */
-class WooCommerceConnector extends WebhookConnector
+class WooCommerceConnector extends WebhookConnector implements PagedOrderReader
 {
     public const ORDER_TOPICS = ['order.created', 'order.updated', 'order.restored'];
 
@@ -260,6 +262,25 @@ class WooCommerceConnector extends WebhookConnector
             bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect(is_array($payload['meta_data'] ?? null) ? $payload['meta_data'] : [])
                 ->first(fn ($m) => is_array($m) && ($m['key'] ?? null) === '_shopbonus_assignment_token')['value'] ?? null),
             providerUpdatedAt: $this->date($payload['date_modified_gmt'] ?? null),
+            lineItems: LineItems::woo($payload['line_items'] ?? null, $currency),
         );
+    }
+
+    public function discoverOrders(WebshopConnection $connection, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
+    {
+        $page = $cursor === null ? 1 : filter_var($cursor, FILTER_VALIDATE_INT);
+        if ($page === false || $page < 1 || $page > 10000) {
+            throw new InvalidArgumentException('Invalid page.');
+        }
+        $result = app(WooCommerceApi::class)->get($connection, 'orders', $page, ['per_page' => 25, 'modified_after' => $since->utc()->format('Y-m-d\TH:i:s'), 'modified_before' => $until->utc()->format('Y-m-d\TH:i:s'), 'dates_are_gmt' => true, 'orderby' => 'modified', 'order' => 'asc'], maxPages: 10000);
+        if (! array_is_list($result['data']) || count($result['data']) > 25) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+        $ids = [];
+        foreach ($result['data'] as $row) {
+            $ids[] = WooCommerceApi::orderId((string) ($row['id'] ?? ''));
+        }
+
+        return ['ids' => $ids, 'next' => count($ids) === 25 && ($result['pages'] === 0 || $page < $result['pages']) ? (string) ($page + 1) : null];
     }
 }

@@ -1,0 +1,7 @@
+{
+  "driver": "sqlite",
+  "isolated_target": true,
+  "rollback_three_then_reapply": "PASS",
+  "orders_preserved": 1,
+  "historical_line_snapshot_not_fabricated": true
+}

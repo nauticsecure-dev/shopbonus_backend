@@ -31,6 +31,7 @@ class OrderResource extends JsonResource
             'amount_minor' => $o->amount_minor,
             'refunded_minor' => $o->refunded_minor,
             'currency' => $o->currency,
+            'line_items' => $o->line_items,
             'payment_status' => $o->payment_status->value,
             'provider_status' => $o->provider_status,
             'ingestion_status' => $o->ingestion_status,

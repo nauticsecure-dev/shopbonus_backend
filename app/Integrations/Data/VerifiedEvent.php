@@ -9,7 +9,11 @@ final readonly class VerifiedEvent
 {
     public const KIND_ORDER = 'order';
 
+    public const KIND_ORDER_LOOKUP = 'order_lookup';
+
     public const KIND_REFUND = 'refund';
+
+    public const KIND_DISCONNECT = 'disconnect';
 
     public const KIND_PING = 'ping';
 

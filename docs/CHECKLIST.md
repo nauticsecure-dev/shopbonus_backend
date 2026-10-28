@@ -729,3 +729,17 @@ B23d final post-MIME8.1.10 local evidence: SQLite814total791pass+23skip/10118ass
 B23d main implementation `27faa2f` CI40767003950 all3SUCCESS/814tests per driver. Byte-exact historical-store comparison follow-up:14recovery tests pass both drivers and controlled MySQL case-folding reproduction PASS; exact follow-up CI pending before remote closeout checkbox.
 
 B23d verified closeout: final03e69a9 CI40768013858 all3SUCCESS/815tests per driver supersedes pending remote notes above. B23d DONE within seven-gate/targeted-known-ID recovery scope; whole #31 IN_PROGRESS.
+
+### B23e–h — owner requests all remaining Laravel engineering, focused verification (2026-10-28)
+
+Implementation SHA: recorded in the next closeout; this is the implementing commit (base78642de). Full card remains IN_PROGRESS. Detailed scopes/limits: docs/integrations/REMAINING_BACKEND.md.
+
+- [x] Shopify browser authorization-code install/expiring offline refresh: one-time actor/session/workspace state, signed callback, approved scopes/store binding, encrypted pairs, generation guards and disabled defaults. Changed app authority invalidates even unexpired access. Focused lifecycle tests passed.
+- [x] Signed Shopify uninstall requires native revocation proof outside locks; a valid current grant survives replay. Tested revoked grant, valid-current grant and duplicate/disconnected intake; actual HTTP accepted/revoked captures recorded.
+- [x] Durable bulk fixed-watermark bounded pages/cursors, page journal, resumable leases/idempotent native requests and explicit failed/superseded/incomplete completion. Ordinary reconciliation cannot replace verification sample. Five focused tests plus final integrations passed.
+- [x] Wix RSA JWT, BigCommerce Standard Webhooks, Ecwid app-secret notification authentication and generation/store-bound native lookups. Native API identity negatives for six new adapters passed. No notification payment field creates paid order effects.
+- [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
+- [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
+- [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Exact final CI pending closeout; not claimed passed here.
+- [ ] Remaining Laravel implementation: Shopify privacy/hook lifecycle; Wix app token lifecycle/backfill; Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.

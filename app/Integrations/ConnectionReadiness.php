@@ -16,7 +16,7 @@ class ConnectionReadiness
     /** @return array<string,bool> */
     public function gates(WebshopConnection $c): array
     {
-        $r = IntegrationOrderRecovery::where('connection_id', $c->id)->where('credential_generation', $c->credential_generation)->latest('id')->first();
+        $r = IntegrationOrderRecovery::where('connection_id', $c->id)->where('credential_generation', $c->credential_generation)->where('purpose', 'verification')->latest('id')->first();
         $event = $r?->webhook_event_id === null ? null : WebhookEvent::find($r->webhook_event_id);
         $bound = $r !== null && app(OrderRecovery::class)->matches($r, $c) && $r->status === 'succeeded'
             && $event !== null && $event->source_method === 'native_api' && $event->credential_generation === $c->credential_generation
@@ -45,7 +45,7 @@ class ConnectionReadiness
         }
         $gates = $this->gates($c);
         $observed = $c->events()->where('credential_generation', $c->credential_generation)->where('result->kind', 'order')->exists();
-        $complete = ! in_array(false, $gates, true);
+        $complete = ! in_array(false, $gates, true) && $c->last_error_code === null;
         $next = $complete ? ConnectionStatus::Connected : ($observed ? ConnectionStatus::Limited : $c->status);
         if (! $complete && $next === ConnectionStatus::Connected) {
             $next = ConnectionStatus::Limited;

@@ -39,9 +39,9 @@ class RecoverIntegrationOrder extends Command
         $id = $this->argument('connection');
         $order = $this->argument('order');
         $key = $this->option('request') ?: (string) Str::uuid();
-        if (! is_string($id) || ! Str::isUlid($id) || ! is_string($order) || ! preg_match('/\A[1-9][0-9]{0,18}\z/D', $order)
+        if (! is_string($id) || ! Str::isUlid($id) || ! is_string($order) || ! preg_match('/\A[A-Za-z0-9_-]{1,64}\z/D', $order)
             || ! Str::isUuid($key)) {
-            $this->error('Provide a connection ULID, numeric order ID and optional request UUID.');
+            $this->error('Provide a connection ULID, native order ID and optional request UUID.');
 
             return self::INVALID;
         }
@@ -51,7 +51,13 @@ class RecoverIntegrationOrder extends Command
 
             return self::FAILURE;
         }
-        $r = $recovery->request($c, $order, $key);
+        try {
+            $r = $recovery->request($c, $order, $key);
+        } catch (\InvalidArgumentException) {
+            $this->error('Invalid native order ID.');
+
+            return self::INVALID;
+        }
         $this->line(json_encode(['recovery' => $r->public_id, 'request' => $key, 'status' => $r->fresh()?->status], JSON_THROW_ON_ERROR));
 
         return self::SUCCESS;

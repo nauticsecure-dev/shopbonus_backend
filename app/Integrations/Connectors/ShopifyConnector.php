@@ -4,11 +4,13 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
+use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\ShopifyApi;
+use App\Integrations\LineItems;
 use App\Models\WebshopConnection;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -29,7 +31,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store.
  */
-class ShopifyConnector extends WebhookConnector
+class ShopifyConnector extends WebhookConnector implements PagedOrderReader
 {
     public const ORDER_TOPICS = ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'orders/fulfilled'];
 
@@ -67,7 +69,7 @@ class ShopifyConnector extends WebhookConnector
             'webhook_url' => $webhookUrl,
             'shop_domain' => $connection->external_shop_ref,
             'read_api_configured' => $connection->credential('access_token') !== null,
-            'read_api_notice' => 'Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.',
+            'read_api_notice' => 'Optional approved app access token enables pinned GraphQL reads. Optional browser-bound OAuth and expiring token renewal require server app configuration. Live readiness needs separate verification.',
             'steps' => [
                 'In Shopify admin open Settings → Notifications → Webhooks and create webhooks (JSON) for "Order creation", "Order payment", "Order update" and "Order cancellation" to the webhook URL.',
                 'Copy the signing secret shown on that page into this connection.',
@@ -111,6 +113,7 @@ class ShopifyConnector extends WebhookConnector
         $kind = match (true) {
             in_array($topic, self::ORDER_TOPICS, true) => VerifiedEvent::KIND_ORDER,
             $topic === 'refunds/create' => VerifiedEvent::KIND_REFUND,
+            $topic === 'app/uninstalled' => VerifiedEvent::KIND_DISCONNECT,
             default => VerifiedEvent::KIND_OTHER,
         };
 
@@ -222,6 +225,7 @@ class ShopifyConnector extends WebhookConnector
             refundedMinor: $refunded, providerUpdatedAt: $this->date($payload['updatedAt'] ?? null),
             couponCodes: array_values(array_filter(is_array($payload['discountCodes'] ?? null) ? $payload['discountCodes'] : [], fn ($value) => is_string($value) && strlen($value) <= 100)),
             attributionClickId: GenericSignedWebhookConnector::clickId(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
+            lineItems: LineItems::shopify($payload['lineItems'] ?? null, Money::isCurrency($currency) ? $currency : null),
             bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
         );
     }
@@ -234,5 +238,10 @@ class ShopifyConnector extends WebhookConnector
     public function refundTarget(array $payload): ?string
     {
         return $this->str($payload['order_id'] ?? null);
+    }
+
+    public function discoverOrders(WebshopConnection $connection, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
+    {
+        return app(ShopifyApi::class)->discover($connection, $since, $until, $cursor);
     }
 }

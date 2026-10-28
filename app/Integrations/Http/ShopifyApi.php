@@ -4,6 +4,7 @@ namespace App\Integrations\Http;
 
 use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
+use App\Integrations\ShopifyOAuth;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\Money;
@@ -33,7 +34,7 @@ class ShopifyApi
     {
         $id = WooCommerceApi::orderId($id);
         $this->identity($connection);
-        $query = 'query ShopbonusOrder($id: ID!) { order(id: $id) { '.self::FIELDS.' transactions(first: 101) { kind status processedAt } } }';
+        $query = 'query ShopbonusOrder($id: ID!) { order(id: $id) { '.self::FIELDS.' lineItems(first: 100) { nodes { id product { id } sku quantity discountedTotalSet(withCodeDiscounts: true) { shopMoney { amount currencyCode } } } pageInfo { hasNextPage } } transactions(first: 101) { kind status processedAt } } }';
         $data = $this->query($connection, $query, ['id' => 'gid://shopify/Order/'.$id], true);
         $order = $data['order'] ?? null;
         if ($order === null) {
@@ -103,6 +104,35 @@ class ShopifyApi
         return $products;
     }
 
+    /** @return array{ids:list<string>,next:?string} */
+    public function discover(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
+    {
+        if ($cursor !== null && strlen($cursor) > 1024) {
+            throw new \InvalidArgumentException('Invalid cursor.');
+        }
+        $this->identity($c);
+        $filter = "updated_at:>='".$since->utc()->format('Y-m-d\TH:i:s\Z')."' updated_at:<='".$until->utc()->format('Y-m-d\TH:i:s\Z')."'";
+        $data = $this->query($c, 'query ShopbonusDiscovery($after: String, $filter: String!) { orders(first: 25, after: $after, query: $filter, sortKey: UPDATED_AT) { nodes { id legacyResourceId } pageInfo { hasNextPage endCursor } } }', ['after' => $cursor, 'filter' => $filter]);
+        $nodes = $data['orders']['nodes'] ?? null;
+        $info = $data['orders']['pageInfo'] ?? null;
+        if (! is_array($nodes) || ! array_is_list($nodes) || count($nodes) > 25 || ! is_array($info) || ! is_bool($info['hasNextPage'] ?? null)) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+        $ids = [];
+        foreach ($nodes as $node) {
+            $id = WooCommerceApi::orderId((string) ($node['legacyResourceId'] ?? ''));
+            if (($node['id'] ?? null) !== 'gid://shopify/Order/'.$id) {
+                throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
+            }$ids[] = $id;
+        }
+        $next = $info['hasNextPage'] ? ($info['endCursor'] ?? null) : null;
+        if ($info['hasNextPage'] && (! is_string($next) || $next === '' || strlen($next) > 1024)) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+
+        return ['ids' => $ids, 'next' => $next];
+    }
+
     private function identity(WebshopConnection $connection, string $scope = 'read_orders'): void
     {
         $data = $this->query($connection, self::SHOP);
@@ -135,7 +165,7 @@ class ShopifyApi
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
         $host = $connection->external_shop_ref;
-        $token = $connection->credential('access_token');
+        $token = app(ShopifyOAuth::class)->accessToken($connection);
         if (! is_string($host) || ! preg_match('/\A[a-z0-9][a-z0-9-]*\.myshopify\.com\z/D', $host) || $token === null) {
             throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
         }

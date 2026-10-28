@@ -55,3 +55,6 @@ Schedule::command('shopbonus:verify-latest-backup')->weeklyOn(0, '05:00')->when(
 
 // Existing operator-requested native recoveries only; never discovers or contacts arbitrary stores.
 Schedule::command('shopbonus:recover-integration-order --drain')->everyMinute()->withoutOverlapping();
+
+Schedule::command('shopbonus:sync-integration-orders --drain')->everyMinute()->withoutOverlapping();
+Schedule::command('shopbonus:sync-integration-orders --auto')->everyFiveMinutes()->withoutOverlapping();

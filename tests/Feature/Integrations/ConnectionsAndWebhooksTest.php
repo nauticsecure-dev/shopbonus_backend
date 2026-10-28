@@ -12,9 +12,12 @@ use App\Models\User;
 use App\Models\WebhookEvent;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
+use App\Models\WebshopOrder;
+use App\Services\Onboarding\Network\HostResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -74,15 +77,17 @@ class ConnectionsAndWebhooksTest extends TestCase
 
         $this->assertTrue($platforms['woocommerce']['available']);
         $this->assertTrue($platforms['shopify']['available']);
+        $this->assertTrue($platforms['bigcommerce']['available']);
+        $this->assertTrue($platforms['ecwid']['available']);
         $this->assertTrue($platforms['prestashop']['available']);
-        $this->assertFalse($platforms['wix']['available']);
-        $this->assertNotNull($platforms['wix']['blocked_reason']);
+        $this->assertTrue($platforms['wix']['available']);
+        $this->assertNull($platforms['wix']['blocked_reason']);
         $this->assertSame(['unverified'], $platforms->pluck('verification')->unique()->values()->all());
     }
 
     public function test_card1_e2e2_unsupported_platforms_cannot_be_connected(): void
     {
-        foreach (['wix', 'bigcommerce', 'ecwid', 'lightspeed_c', 'mijnwebwinkel'] as $platform) {
+        foreach (['lightspeed_c', 'mijnwebwinkel'] as $platform) {
             $this->postJson($this->url('/connections'), ['platform' => $platform])
                 ->assertStatus(409)->assertJsonPath('error.code', 'platform_not_available');
         }
@@ -298,5 +303,59 @@ class ConnectionsAndWebhooksTest extends TestCase
 
         $this->postWebhook($path, $body, $this->wooHeaders($body, $secret))->assertStatus(401)
             ->assertJsonPath('error.details.reason', 'payload_too_large');
+    }
+
+    public function test_signed_shopify_uninstall_revokes_credentials_and_stale_deliveries_cannot_process(): void
+    {
+        [$c, , $path] = $this->connect('shopify', ['shop_domain' => 'fietsen.myshopify.com', 'signing_secret' => 'shpss_merchant_secret_1', 'access_token' => 'SYNTHETIC_revoked_app_token']);
+        $this->app->bind(HostResolver::class, fn () => new class implements HostResolver
+        {
+            public function addresses(string $h): array
+            {
+                return ['93.184.216.34'];
+            }
+
+            public function txtRecords(string $h): array
+            {
+                return [];
+            }
+        });
+        Http::fake(fn () => Http::response([], 401));
+        $generation = $c->credential_generation;
+        $body = json_encode(['id' => 1]);
+        $headers = $this->shopifyHeaders($body, 'shpss_merchant_secret_1', 'SYNTHETIC-uninstall');
+        $headers['X-Shopify-Topic'] = 'app/uninstalled';
+        $this->postWebhook($path, $body, $headers)->assertStatus(202);
+        $this->assertSame(ConnectionStatus::Disconnected, $c->fresh()->status);
+        $this->assertSame($generation + 1, $c->fresh()->credential_generation);
+        $this->assertNull($c->fresh()->credentials);
+        $this->postWebhook($path, $body, $headers)->assertNotFound();
+        $this->assertSame(0, WebshopOrder::count());
+    }
+
+    public function test_replayed_uninstall_cannot_revoke_a_still_valid_current_grant(): void
+    {
+        [$c, , $path] = $this->connect('shopify', ['shop_domain' => 'fietsen.myshopify.com', 'signing_secret' => 'shpss_merchant_secret_1', 'access_token' => 'SYNTHETIC_current_app_token']);
+        $this->shop->forceFill(['verified_domain' => 'fietsen-utrecht.nl', 'ownership_verified_at' => now(), 'ownership_method' => 'dns_txt'])->save();
+        $this->app->bind(HostResolver::class, fn () => new class implements HostResolver
+        {
+            public function addresses(string $h): array
+            {
+                return ['93.184.216.34'];
+            }
+
+            public function txtRecords(string $h): array
+            {
+                return [];
+            }
+        });
+        Http::fake(fn () => Http::response(['data' => ['shop' => ['myshopifyDomain' => 'fietsen.myshopify.com', 'primaryDomain' => ['host' => 'fietsen-utrecht.nl']], 'currentAppInstallation' => ['accessScopes' => [['handle' => 'read_orders']]]]], 200, ['X-Shopify-API-Version' => '2026-10']));
+        $body = json_encode(['id' => 1]);
+        $headers = $this->shopifyHeaders($body, 'shpss_merchant_secret_1', 'SYNTHETIC-old-uninstall');
+        $headers['X-Shopify-Topic'] = 'app/uninstalled';
+        $this->postWebhook($path, $body, $headers)->assertStatus(202);
+        $this->assertSame(ConnectionStatus::SetupRequired, $c->fresh()->status);
+        $this->assertNotNull($c->fresh()->credential('access_token'));
+        $this->assertSame('uninstall_current_grant_still_valid', $c->events()->sole()->error_code);
     }
 }

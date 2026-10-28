@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Append-only order history (no PII).
  *
+ * @property list<array<string,mixed>>|null $line_items_snapshot
  * @property int $id
  * @property int $order_id
  * @property int $webshop_id
@@ -32,6 +33,7 @@ class OrderEvent extends Model
     {
         return [
             'summary' => 'array',
+            'line_items_snapshot' => 'encrypted:array',
             'provider_updated_at' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
         ];

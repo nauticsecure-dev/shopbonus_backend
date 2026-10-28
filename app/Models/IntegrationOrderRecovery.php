@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * @property string $purpose
+ * @property int|null $bulk_run_id
  * @property int $id
  * @property string $public_id
  * @property int $connection_id
@@ -35,7 +37,7 @@ class IntegrationOrderRecovery extends Model
 
     protected function casts(): array
     {
-        return ['credential_generation' => 'integer', 'attempts' => 'integer', 'leased_until' => 'immutable_datetime',
+        return ['bulk_run_id' => 'integer', 'credential_generation' => 'integer', 'attempts' => 'integer', 'leased_until' => 'immutable_datetime',
             'completed_at' => 'immutable_datetime'];
     }
 

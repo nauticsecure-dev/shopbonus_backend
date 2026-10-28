@@ -8,6 +8,7 @@ use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Services\Onboarding\Network\HostResolver;
 use App\Services\Onboarding\Network\PublicAddressGuard;
+use App\Support\ExactJson;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -23,7 +24,7 @@ class PinnedJsonReader
      * @param  array<string,mixed>  $query
      * @return array{data:array<mixed>,headers:array<string,string>}
      */
-    public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', array $query = []): array
+    public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', #[\SensitiveParameter] array $query = [], bool $form = false): array
     {
         if ($connection->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
@@ -50,11 +51,15 @@ class PinnedJsonReader
         }
         $pin = str_contains($addresses[0], ':') ? '['.$addresses[0].']' : $addresses[0];
         try {
-            $response = Http::acceptJson()->withHeaders($auth['headers'] ?? [])->withOptions([
+            $pending = Http::acceptJson();
+            if ($form) {
+                $pending->asForm();
+            }
+            $response = $pending->withHeaders($auth['headers'] ?? [])->withOptions([
                 'allow_redirects' => false, 'proxy' => '', 'verify' => true, 'connect_timeout' => 3, 'timeout' => 8, 'stream' => true,
                 'curl' => [CURLOPT_RESOLVE => ["{$host}:443:{$pin}"]],
                 'auth' => $auth['basic'] ?? null,
-            ])->send($method, $url, $method === 'GET' ? ['query' => $query] : ['json' => $query]);
+            ])->send($method, $url, $method === 'GET' ? ['query' => $query] : [$form ? 'form_params' : 'json' => $query]);
         } catch (ConnectionException) {
             $this->failure($cacheKey);
             throw new ApiException('The provider API could not be reached.', 502, 'provider_unreachable');
@@ -87,7 +92,7 @@ class PinnedJsonReader
             throw new ApiException('The provider response exceeds the safe read limit.', 502, 'provider_response_too_large');
         }
         try {
-            $data = json_decode($body, true, 64, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+            $data = ExactJson::decode($body);
         } catch (JsonException) {
             throw new ApiException('The provider response could not be read.', 502, 'provider_response_invalid');
         }

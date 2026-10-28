@@ -47,13 +47,13 @@ class WooCommerceApi
      * @param  array<string,mixed>  $query
      * @return array{data:array<mixed>,pages:int}
      */
-    public function get(WebshopConnection $connection, string $resource, int $page = 1, array $query = []): array
+    public function get(WebshopConnection $connection, string $resource, int $page = 1, array $query = [], int $maxPages = self::MAX_PAGES): array
     {
         if ($connection->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
         if (! preg_match('~\A(?:orders(?:/[1-9][0-9]{0,18}(?:/refunds)?)?|products|coupons)\z~D', $resource)
-            || $page < 1 || $page > self::MAX_PAGES) {
+            || $page < 1 || $page > min(10000, $maxPages)) {
             throw new \InvalidArgumentException('Unsupported provider resource or page.');
         }
         $storeUrl = $connection->credential('store_url');

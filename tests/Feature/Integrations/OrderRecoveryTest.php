@@ -349,4 +349,22 @@ class OrderRecoveryTest extends TestCase
         $this->assertSame(1, IntegrationOrderRecovery::count());
         $this->assertSame(1, WebshopOrder::count());
     }
+
+    public function test_line_snapshots_are_encrypted_immutable_and_missing_updates_preserve_projection(): void
+    {
+        $this->payload['line_items'] = [['id' => 7, 'product_id' => 55, 'sku' => 'SYNTHETIC-SKU', 'quantity' => 2, 'total' => '19.99']];
+        $this->performRecovery($this->request());
+        $order = WebshopOrder::sole();
+        $first = OrderEvent::sole();
+        $this->assertSame(1999, $order->line_items[0]['amount_minor']);
+        $this->assertStringNotContainsString('SYNTHETIC-SKU', $order->getRawOriginal('line_items'));
+        $this->assertSame($order->line_items, $first->line_items_snapshot);
+        $this->assertStringNotContainsString('SYNTHETIC-SKU', $first->getRawOriginal('line_items_snapshot'));
+        unset($this->payload['line_items']);
+        $this->payload['date_modified_gmt'] = '2026-10-23T11:00:00';
+        $this->performRecovery($this->request());
+        $this->assertSame($order->line_items, $order->fresh()->line_items);
+        $this->assertNull(OrderEvent::latest('id')->first()->line_items_snapshot);
+        $this->assertSame(1999, $first->fresh()->line_items_snapshot[0]['amount_minor']);
+    }
 }

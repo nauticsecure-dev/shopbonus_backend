@@ -8,24 +8,33 @@ use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Integrations\ConnectorRegistry;
+use App\Integrations\ProviderOrderId;
 use App\Models\WebshopConnection;
 use App\Services\Audit\AuditLogger;
 use App\Services\Workspaces\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ConnectionApiTestController extends Controller
 {
     public function __invoke(Request $request, CurrentWorkspace $current, string $connection, ConnectorRegistry $registry, AuditLogger $audit): JsonResponse
     {
-        $data = $request->validate(['order_id' => ['nullable', 'string', 'regex:/\A[1-9][0-9]{0,18}\z/D']]);
+        $data = $request->validate(['order_id' => ['nullable', 'string', 'max:64', 'regex:/\A[A-Za-z0-9_-]+\z/D']]);
         $model = Str::isUlid($connection) ? WebshopConnection::where('webshop_id', $current->webshop()->id)->where('public_id', strtolower($connection))->first() : null;
         abort_if($model === null, 404);
         if ($model->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
-        $fingerprint = $model->getRawOriginal('credentials');
+        if (isset($data['order_id'])) {
+            try {
+                ProviderOrderId::validate($model->platform, $data['order_id']);
+            } catch (\InvalidArgumentException) {
+                throw ValidationException::withMessages(['order_id' => ['Use the native ID format for this provider.']]);
+            }
+        }
+        $snapshot = clone $model;
         $connector = $registry->for($model->platform);
         $summary = null;
         try {
@@ -41,7 +50,7 @@ class ConnectionApiTestController extends Controller
             throw $e;
         }
         $fresh = $model->fresh();
-        if ($fresh === null || $fresh->status === ConnectionStatus::Disconnected || $fresh->getRawOriginal('credentials') !== $fingerprint || $fresh->credential_generation !== $model->credential_generation) {
+        if ($fresh === null || $fresh->status === ConnectionStatus::Disconnected || ! $snapshot->hasSameCredentialAuthority($fresh) || $fresh->credential_generation !== $model->credential_generation) {
             throw ApiException::conflict('The connection changed during the API test. Retry with its current configuration.', 'connection_changed');
         }
         $audit->record('integration.api_tested', category: AuditCategory::Integration, resource: $model, webshopId: $model->webshop_id,

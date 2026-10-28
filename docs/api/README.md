@@ -14693,3 +14693,706 @@ Actual response 401:
   }
 }
 ```
+
+
+## Shopify authorization and current order snapshots (2026-10-28)
+
+Captured against actual PHP HTTP server, isolated SQLite, normal browser login/CSRF/file sessions, working tree based78642de. Upstream provider HTTP/DNS is explicitly synthetic. Provider installs and real payment/refund acceptance are NOT RUN. Full redacted captures: [B23_REMAINING_HTTP_CAPTURE.json](../integrations/B23_REMAINING_HTTP_CAPTURE.json). [Implementation and limits](../integrations/REMAINING_BACKEND.md). These current captures supersede historical no-OAuth/catalogue availability descriptions above.
+
+### POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth
+
+```sh
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"shop_domain":"fietsen.myshopify.com"}' 'http://localhost:8000/api/v1/workspaces/{workspace}/integrations/shopify/oauth'
+```
+
+Actual response, 200:
+
+```json
+{
+  "data": {
+    "connection": "01m6280qphaya1py4jfg8gz1wz",
+    "authorization_url": "<REDACTED>",
+    "expires_in": 600
+  }
+}
+```
+
+### GET /api/v1/integrations/shopify/oauth/callback
+
+```sh
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/integrations/shopify/oauth/callback?shop=fietsen.myshopify.com&state=<STATE>&code=<AUTHORIZATION_CODE>&timestamp=<TIMESTAMP>&hmac=<HMAC>'
+```
+
+Actual response, 200:
+
+```json
+{
+  "data": {
+    "id": "01m6280qphaya1py4jfg8gz1wz",
+    "platform": "shopify",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "fietsen.myshopify.com",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T21:52:47+00:00"
+  }
+}
+```
+
+### GET /api/v1/integrations/platforms
+
+```sh
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/integrations/platforms'
+```
+
+Actual response, 200:
+
+```json
+{
+  "data": [
+    {
+      "platform": "woocommerce",
+      "name": "WooCommerce",
+      "priority": "production",
+      "available": true,
+      "method": "webhook",
+      "auth": "shared secret (HMAC-SHA256, base64)",
+      "reliability": "high",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "wc/v3",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "auth_method": "HTTPS HTTP Basic consumer key/secret; read-only merchant key",
+        "scopes": [
+          "read"
+        ],
+        "webhook_topics": [
+          "order.created",
+          "order.updated"
+        ],
+        "order_api": "GET /wp-json/wc/v3/orders/{id}",
+        "refund_api": "GET /wp-json/wc/v3/orders/{id}/refunds",
+        "product_api": "GET /wp-json/wc/v3/products",
+        "coupon_api": "GET /wp-json/wc/v3/coupons",
+        "banner_method": "manual; native WordPress publication/module not implemented",
+        "rate_limit_policy": "No redirects/retries;8second reads,1MiB body,100rows/page,5order pages;429cooldown/3failure circuit.",
+        "sources": [
+          "https://developer.woocommerce.com/docs/apis/rest-api/",
+          "https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/",
+          "https://developer.woocommerce.com/docs/apis/rest-api/v3/order-refunds/",
+          "https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks/"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "shopify",
+      "name": "Shopify",
+      "priority": "production",
+      "available": true,
+      "method": "webhook",
+      "auth": "webhook signing secret (HMAC-SHA256, base64)",
+      "reliability": "high",
+      "limitations": [
+        "customer fields may be redacted without protected customer data access"
+      ],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "2026-10",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "auth_method": "Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. optional disabled-by-default browser OAuth and expiring offline token renewal implemented",
+        "scopes": [
+          "read_orders",
+          "read_products (catalog only)"
+        ],
+        "order_api": "POST /admin/api/2026-10/graphql.json: order/orders queries",
+        "refund_api": "Order.totalRefundedSet and successful REFUND transactions; no refund mutation",
+        "product_api": "products query; bounded core catalog metadata only",
+        "coupon_api": "UNSUPPORTED in this boundary",
+        "rate_limit_policy": "Pinned version,8second/1MiB reads,25orders/page,max5pages; no retries, HTTP200GraphQLerrors checked; throttling pauses reads.",
+        "webhook_topics": [
+          "orders/create",
+          "orders/updated",
+          "orders/paid",
+          "orders/cancelled",
+          "refunds/create"
+        ],
+        "banner_method": "Theme App Extension requires separate implementation and merchant activation",
+        "sources": [
+          "https://shopify.dev/docs/api/admin-graphql/2026-10",
+          "https://shopify.dev/docs/apps/build/webhooks"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "wix",
+      "name": "Wix",
+      "priority": "production",
+      "available": true,
+      "method": "webhook",
+      "auth": "App RSA-signed JWT + merchant-authorized API token lookup",
+      "reliability": "unknown",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "eCommerce Orders v1 / App Instance v1",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "scopes": [
+          "Read Orders",
+          "Read Order Transactions",
+          "Manage Your App"
+        ],
+        "sources": [
+          "https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/orders/get-order",
+          "https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/order-transactions/list-transactions-for-single-order",
+          "https://dev.wix.com/docs/build-apps/develop-your-app/api-integrations/events-and-webhooks/about-webhooks"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "bigcommerce",
+      "name": "BigCommerce",
+      "priority": "production",
+      "available": true,
+      "method": "webhook",
+      "auth": "Standard Webhooks app-secret HMAC + restricted API token lookup",
+      "reliability": "unknown",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "Orders v2 / Transactions and Refunds v3",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "scopes": [
+          "store_v2_orders_read_only",
+          "store_v2_transactions_read_only",
+          "store_v2_information_read_only"
+        ],
+        "sources": [
+          "https://docs.bigcommerce.com/developer/docs/integrations/webhooks/https",
+          "https://docs.bigcommerce.com/developer/api-reference/rest/admin/management/orders/get-order",
+          "https://docs.bigcommerce.com/developer/api-reference/rest/admin/management/order-operations/get-order-transactions"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "ecwid",
+      "name": "Ecwid",
+      "priority": "production",
+      "available": true,
+      "method": "webhook",
+      "auth": "app client-secret HMAC notification + store API token lookup",
+      "reliability": "limited",
+      "limitations": [
+        "Reviewed order API has no immutable order currency or settled payment time; monetary mapping remains incomplete. Native reads and plan checks implemented; live verification pending."
+      ],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "v3",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "scopes": [
+          "read_orders",
+          "read_store_profile"
+        ],
+        "order_api": "GET https://app.ecwid.com/api/v3/{storeId}/orders/{orderId}",
+        "webhook_topics": [
+          "order.created",
+          "order.updated"
+        ],
+        "sources": [
+          "https://docs.ecwid.com/api-reference/rest-api/orders/get-order",
+          "https://docs.ecwid.com/api-reference/rest-api/store-profile/get-store-profile",
+          "https://github.com/Ecwid/ecwid-api-docs/blob/master/includes/_webhooks.md"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "lightspeed_c",
+      "name": "Lightspeed C-Series",
+      "priority": "production",
+      "available": false,
+      "method": "confirmation tracking where supported",
+      "auth": "to be determined",
+      "reliability": "lower",
+      "limitations": [
+        "lower reliability"
+      ],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": "C-Series requires an eligible Advanced/Professional plan and API access. Current C-Series order/payment/refund field contracts could not be verified from accessible official documentation; no tracking-page payment proof or Retail/E-Series endpoints are substituted."
+    },
+    {
+      "platform": "lightspeed_e",
+      "name": "Lightspeed E-Series",
+      "priority": "additional",
+      "available": false,
+      "method": "API/confirmation (to be determined)",
+      "auth": "to be determined",
+      "reliability": "unknown",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": "Supported API method not yet verified."
+    },
+    {
+      "platform": "prestashop",
+      "name": "PrestaShop",
+      "priority": "additional",
+      "available": true,
+      "method": "private_module",
+      "auth": "Shopbonus signed webhook v1",
+      "reliability": "high (module not yet built)",
+      "limitations": [
+        "private ZIP module must be installed"
+      ],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "PrestaShop9 Webservice JSON",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "sources": [
+          "https://devdocs.prestashop-project.org/9/webservice/resources/orders/",
+          "https://devdocs.prestashop-project.org/9/webservice/resources/order_payments/",
+          "https://devdocs.prestashop-project.org/9/webservice/resources/order_slip/"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "opencart",
+      "name": "OpenCart",
+      "priority": "additional",
+      "available": true,
+      "method": "private_module",
+      "auth": "Shopbonus signed webhook v1",
+      "reliability": "high (module not yet built)",
+      "limitations": [
+        "private OCMOD extension must be installed"
+      ],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": null
+    },
+    {
+      "platform": "shopware6",
+      "name": "Shopware 6",
+      "priority": "additional",
+      "available": true,
+      "method": "private_module",
+      "auth": "Shopbonus signed webhook v1",
+      "reliability": "high (extension not yet built)",
+      "limitations": [
+        "private extension must be installed"
+      ],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "Shopware6 Admin API",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "sources": [
+          "https://github.com/shopware/admin-api-reference/blob/main/docs/concepts/authentication-authorisation.md",
+          "https://github.com/shopware/admin-api-reference/blob/main/docs/guides/quick-start/05-order-management.md"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "magento",
+      "name": "Magento / Adobe Commerce",
+      "priority": "additional",
+      "available": true,
+      "method": "private_module",
+      "auth": "Shopbonus signed webhook v1",
+      "reliability": "high (module not yet built)",
+      "limitations": [
+        "private module must be installed"
+      ],
+      "verification": "unverified",
+      "profile": {
+        "api_version": "Magento/Adobe Commerce2.4 self-hosted/PaaS REST",
+        "reviewed_at": "2026-10-28",
+        "last_live_verified_at": null,
+        "native_read_api_implemented": true,
+        "sources": [
+          "https://developer.adobe.com/commerce/webapi/rest/attributes/",
+          "https://developer.adobe.com/commerce/webapi/rest/use-rest/performing-searches/",
+          "https://github.com/magento/magento2"
+        ]
+      },
+      "blocked_reason": null
+    },
+    {
+      "platform": "squarespace",
+      "name": "Squarespace",
+      "priority": "additional",
+      "available": false,
+      "method": "polling (read-only Orders API)",
+      "auth": "API key",
+      "reliability": "polling delay",
+      "limitations": [
+        "polling"
+      ],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": "Polling adapter not built; requires API key."
+    },
+    {
+      "platform": "mijnwebwinkel",
+      "name": "Mijnwebwinkel",
+      "priority": "additional",
+      "available": false,
+      "method": "partner API",
+      "auth": "partner authorisation",
+      "reliability": "unknown",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": "Partner/API authorisation pending."
+    },
+    {
+      "platform": "ccv",
+      "name": "CCV Shop",
+      "priority": "additional",
+      "available": false,
+      "method": "to be investigated",
+      "auth": "to be determined",
+      "reliability": "unknown",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": "Merchant-accessible API options not yet investigated."
+    },
+    {
+      "platform": "other",
+      "name": "Other / custom shop",
+      "priority": "additional",
+      "available": true,
+      "method": "webhook",
+      "auth": "Shopbonus signed webhook v1",
+      "reliability": "depends on the custom integration",
+      "limitations": [],
+      "verification": "unverified",
+      "profile": null,
+      "blocked_reason": null
+    }
+  ]
+}
+```
+
+### POST /api/v1/workspaces/{workspace}/connections
+
+```sh
+curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{"platform":"woocommerce","store_url":"https://fietsen-utrecht.nl","consumer_key":"<LOCAL_CONSUMER_KEY>","consumer_secret":"<LOCAL_CONSUMER_SECRET>"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections'
+```
+
+Actual response, 201:
+
+```json
+{
+  "data": {
+    "id": "01m6280r328v6jr3vm9a4zwqcg",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "https://fietsen-utrecht.nl",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T21:52:48+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "http://127.0.0.1:8917/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>",
+      "read_api_configured": true,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+      ]
+    },
+    "secrets": {
+      "webhook_secret": "<REDACTED>"
+    },
+    "secrets_notice": "Shown only once. Store it in your shop settings now; it cannot be retrieved later."
+  }
+}
+```
+
+### GET /api/v1/workspaces/{workspace}/connections/{connection}
+
+```sh
+curl -i -X GET -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v'
+```
+
+Actual response, 200:
+
+```json
+{
+  "data": {
+    "id": "01m6280r328v6jr3vm9a4zwqcg",
+    "platform": "woocommerce",
+    "method": "webhook",
+    "status": "setup_required",
+    "external_shop_ref": "https://fietsen-utrecht.nl",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-10-28T21:52:48+00:00",
+    "setup": {
+      "format": "woocommerce-webhooks",
+      "webhook_url": "http://127.0.0.1:8917/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>",
+      "read_api_configured": true,
+      "read_api_notice": "Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.",
+      "steps": [
+        "In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.",
+        "Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.",
+        "Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.",
+        "Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."
+      ]
+    }
+  }
+}
+```
+
+### GET /api/v1/workspaces/{workspace}/orders
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/orders?payment_status=paid&sort=-amount_minor' \
+  -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+
+```
+
+Actual response, 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6280r73a3ymqzbfkx83vdaj",
+      "reference": "SYNTHETIC-4711",
+      "external_order_id": "4711",
+      "platform": "woocommerce",
+      "customer": {
+        "first_name": "Synthetic",
+        "email": "synthetic-customer@example.test",
+        "phone": null
+      },
+      "amount_minor": 2500,
+      "refunded_minor": 0,
+      "currency": "EUR",
+      "line_items": [
+        {
+          "id": "7",
+          "product_id": "55",
+          "sku": "SYNTHETIC-SKU",
+          "quantity": 2,
+          "amount_minor": 1999,
+          "amount_basis": "discounted_ex_tax",
+          "currency": "EUR",
+          "eligible_amount_minor": null
+        }
+      ],
+      "payment_status": "paid",
+      "provider_status": "processing",
+      "ingestion_status": "complete",
+      "missing_fields": [],
+      "callable": false,
+      "eligibility_status": "ineligible",
+      "eligibility_reasons": [
+        "webshop_not_active",
+        "no_active_reward_offer",
+        "answer24_disabled",
+        "no_lawful_basis"
+      ],
+      "contact_status": "blocked",
+      "placed_at": "2026-10-28T10:00:00+00:00",
+      "paid_at": "2026-10-28T10:10:00+00:00",
+      "cancelled_at": null,
+      "refunded_at": null,
+      "updated_at": "2026-10-28T21:52:48+00:00"
+    }
+  ],
+  "links": {
+    "first": "http://127.0.0.1:8917/api/v1/workspaces/01m6280pz13debqmwwysg0sesr/orders?page=1",
+    "last": "http://127.0.0.1:8917/api/v1/workspaces/01m6280pz13debqmwwysg0sesr/orders?page=1",
+    "prev": null,
+    "next": null
+  },
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "links": [
+      {
+        "url": null,
+        "label": "&laquo; Previous",
+        "page": null,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8917/api/v1/workspaces/01m6280pz13debqmwwysg0sesr/orders?page=1",
+        "label": "1",
+        "page": 1,
+        "active": true
+      },
+      {
+        "url": null,
+        "label": "Next &raquo;",
+        "page": null,
+        "active": false
+      }
+    ],
+    "path": "http://127.0.0.1:8917/api/v1/workspaces/01m6280pz13debqmwwysg0sesr/orders",
+    "per_page": 25,
+    "to": 1,
+    "total": 1,
+    "today": {
+      "timezone": "Europe/Amsterdam",
+      "orders": 1,
+      "paid_orders": 1,
+      "incomplete_orders": 0,
+      "paid_revenue_minor": {
+        "EUR": 2500
+      }
+    }
+  }
+}
+```
+
+### GET /api/v1/workspaces/{workspace}/orders/{order}
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/orders/<order id>' \
+  -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+
+```
+
+Actual response, 200:
+
+```json
+{
+  "data": {
+    "id": "01m6280r73a3ymqzbfkx83vdaj",
+    "reference": "SYNTHETIC-4711",
+    "external_order_id": "4711",
+    "platform": "woocommerce",
+    "customer": {
+      "first_name": "Synthetic",
+      "email": "synthetic-customer@example.test",
+      "phone": null
+    },
+    "amount_minor": 2500,
+    "refunded_minor": 0,
+    "currency": "EUR",
+    "line_items": [
+      {
+        "id": "7",
+        "product_id": "55",
+        "sku": "SYNTHETIC-SKU",
+        "quantity": 2,
+        "amount_minor": 1999,
+        "amount_basis": "discounted_ex_tax",
+        "currency": "EUR",
+        "eligible_amount_minor": null
+      }
+    ],
+    "payment_status": "paid",
+    "provider_status": "processing",
+    "ingestion_status": "complete",
+    "missing_fields": [],
+    "callable": false,
+    "eligibility_status": "ineligible",
+    "eligibility_reasons": [
+      "webshop_not_active",
+      "no_active_reward_offer",
+      "answer24_disabled",
+      "no_lawful_basis"
+    ],
+    "contact_status": "blocked",
+    "placed_at": "2026-10-28T10:00:00+00:00",
+    "paid_at": "2026-10-28T10:10:00+00:00",
+    "cancelled_at": null,
+    "refunded_at": null,
+    "updated_at": "2026-10-28T21:52:48+00:00"
+  },
+  "history": [
+    {
+      "type": "created",
+      "from_payment_status": null,
+      "to_payment_status": "paid",
+      "summary": {
+        "complete": true,
+        "topic": "order.updated"
+      },
+      "provider_updated_at": null,
+      "recorded_at": "2026-10-28T21:52:48+00:00"
+    }
+  ]
+}
+```
+
+OAuth start requires integrations.manage and CSRF; callback requires the same normal browser session and fresh membership permission. Captured401/409/419/422/429/503 examples are in the capture file/OpenAPI. 403/500 use the existing real-kernel common envelopes. Ordinary token renewal preserves the approved grant generation; changed scopes/app credentials, expired refresh authority and reconnect require fresh authorization. No token or authorization code belongs in logs or API output.
+
+
+### Shopify uninstall through POST /api/v1/webhooks/{platform}/{token}
+
+Current supported topic: app/uninstalled. Standard Shopify raw-body HMAC and bound shop domain required; native revocation is checked outside database locks before removing credentials. Replayed old uninstall cannot revoke a still-valid current grant. App privacy callbacks and auto-registration remain incomplete. Actual running-server synthetic upstream401 capture:
+
+```json
+{
+  "data": {
+    "received": true,
+    "duplicate": false,
+    "event_id": "01m628jpkx9fyf36c36a0zxc47"
+  }
+}
+```
+
+Subsequent authenticated connection GET (same store, actual response):
+
+```json
+{
+  "data": {
+    "id": "01m6280qphaya1py4jfg8gz1wz",
+    "platform": "shopify",
+    "method": "webhook",
+    "status": "disconnected",
+    "external_shop_ref": "fietsen.myshopify.com",
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": "2026-10-28T22:02:36+00:00",
+    "last_error": null,
+    "created_at": "2026-10-28T21:52:47+00:00"
+  }
+}
+```

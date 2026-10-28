@@ -86,4 +86,23 @@ class WebshopConnection extends Model
     {
         return $this->hasMany(WebhookEvent::class, 'connection_id');
     }
+
+    /** Same grant after normal OAuth renewal; manual rotation still changes generation. */
+    public function hasSameCredentialAuthority(self $other): bool
+    {
+        if ($this->id !== $other->id || $this->credential_generation !== $other->credential_generation) {
+            return false;
+        }
+        if ($this->getRawOriginal('credentials') === $other->getRawOriginal('credentials')) {
+            return true;
+        }
+        $authority = $this->credential('oauth_authority');
+
+        return $this->platform === EcommercePlatform::Shopify && $authority !== null
+            && $other->credential('oauth_authority') !== null && hash_equals($authority, $other->credential('oauth_authority'))
+            && $this->external_shop_ref === $other->external_shop_ref
+            && $this->credential('signing_secret') === $other->credential('signing_secret')
+            && $this->credential('oauth_scopes') === $other->credential('oauth_scopes')
+            && $this->credential('oauth_config_hash') === $other->credential('oauth_config_hash');
+    }
 }

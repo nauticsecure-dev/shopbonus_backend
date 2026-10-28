@@ -7,7 +7,6 @@ use App\Enums\ConnectionStatus;
 use App\Enums\EcommercePlatform;
 use App\Enums\WebhookEventStatus;
 use App\Exceptions\ApiException;
-use App\Integrations\Http\WooCommerceApi;
 use App\Jobs\ProcessWebhookEvent;
 use App\Jobs\RecoverProviderOrder;
 use App\Models\IntegrationOrderRecovery;
@@ -21,14 +20,17 @@ class OrderRecovery
 {
     public function __construct(private ConnectorRegistry $registry, private AuditLogger $audit) {}
 
-    public function request(WebshopConnection $connection, string $orderId, string $key): IntegrationOrderRecovery
+    public function request(WebshopConnection $connection, string $orderId, string $key, string $purpose = 'verification', ?int $bulkRunId = null): IntegrationOrderRecovery
     {
-        WooCommerceApi::orderId($orderId);
+        if (! in_array($purpose, ['verification', 'reconciliation'], true)) {
+            throw new \InvalidArgumentException('Invalid recovery purpose.');
+        }
+        ProviderOrderId::validate($connection->platform, $orderId);
         if (! Str::isUuid($key)) {
             throw new \InvalidArgumentException('A recovery request UUID is required.');
         }
 
-        return DB::transaction(function () use ($connection, $orderId, $key) {
+        return DB::transaction(function () use ($connection, $orderId, $key, $purpose, $bulkRunId) {
             $c = WebshopConnection::with('webshop')->whereKey($connection->id)->lockForUpdate()->firstOrFail();
             if ($c->status === ConnectionStatus::Disconnected || ! $c->webshop->isOwnershipVerified()) {
                 throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
@@ -55,7 +57,7 @@ class OrderRecovery
             $r = IntegrationOrderRecovery::where('connection_id', $c->id)->where('credential_generation', $c->credential_generation)
                 ->where('request_key', strtolower($key))->first();
             if ($r !== null) {
-                if ($r->external_order_id !== $orderId) {
+                if ($r->external_order_id !== $orderId || $r->purpose !== $purpose || $r->bulk_run_id !== $bulkRunId) {
                     throw ApiException::conflict('The recovery request identity is already bound to another order.', 'recovery_request_conflict');
                 }
 
@@ -63,8 +65,10 @@ class OrderRecovery
             }
             $r = IntegrationOrderRecovery::create(['connection_id' => $c->id, 'webshop_id' => $c->webshop_id,
                 'credential_generation' => $c->credential_generation, 'verified_domain' => strtolower((string) $c->webshop->verified_domain),
-                'provider_store_ref' => $c->external_shop_ref, 'external_order_id' => $orderId, 'request_key' => strtolower($key)]);
-            app(ConnectionReadiness::class)->refresh($c);
+                'purpose' => $purpose, 'bulk_run_id' => $bulkRunId, 'provider_store_ref' => $c->external_shop_ref, 'external_order_id' => $orderId, 'request_key' => strtolower($key)]);
+            if ($purpose === 'verification') {
+                app(ConnectionReadiness::class)->refresh($c);
+            }
             $this->audit->record('integration.order_recovery_requested', category: AuditCategory::Integration,
                 resource: $r, webshopId: $c->webshop_id);
             RecoverProviderOrder::dispatch($r->id);
@@ -149,7 +153,7 @@ class OrderRecovery
                 if ($r->status !== 'reading' || $r->lease_token !== $claimed->lease_token || $r->leased_until === null || $r->leased_until->isPast()) {
                     return;
                 }
-                if (! $this->matches($r, $c) || $snapshot->getRawOriginal('credentials') !== $c->getRawOriginal('credentials')) {
+                if (! $this->matches($r, $c) || ! $snapshot->hasSameCredentialAuthority($c)) {
                     $r->forceFill(['status' => 'superseded', 'last_error_code' => 'connection_changed', 'lease_token' => null, 'leased_until' => null])->save();
 
                     return;

@@ -60,7 +60,7 @@ class WebhookController extends Controller
                 throw new NotFoundHttpException;
             }
             if ($current->credential_generation !== $connection->credential_generation
-                || $current->getRawOriginal('credentials') !== $connection->getRawOriginal('credentials')) {
+                || ! $connection->hasSameCredentialAuthority($current)) {
                 throw ApiException::conflict('The connection changed while accepting the event. Retry with its current configuration.', 'connection_changed');
             }
             try {
