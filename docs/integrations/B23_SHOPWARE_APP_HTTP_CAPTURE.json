@@ -1,0 +1,166 @@
+{
+ "environment": {
+  "captured_at": "2026-10-29",
+  "server": "php artisan serve, isolated SQLite file (deleted), CACHE_STORE=array, APP_DEBUG=false, APP_URL=https://api.shopbonus.example, SHOPWARE_APP_NAME=ShopbonusApp, synthetic app secret",
+  "signing": "Signatures computed independently with openssl dgst -sha256 -hmac in a bash client. The returned proof was re-derived with openssl over shopId.shopUrl.appName and matched. Shop secret and secretKey redacted.",
+  "notes": "Synthetic shop only; no Shopware installation involved. Stored shop secret and API credentials verified encrypted at rest. Rate-limit headers omitted."
+ },
+ "captures": [
+  {
+   "label": "register_200",
+   "method": "GET",
+   "path": "/api/v1/integrations/shopware/app/registration",
+   "request": {
+    "query": {
+     "shop-id": "sHoP1a2B3c4D5e6F",
+     "shop-url": "https://fietsen-utrecht.nl",
+     "timestamp": "<UNIX>"
+    },
+    "headers": {
+     "shopware-app-signature": "<HEX HMAC app secret>",
+     "sw-version": "6.7.0.0"
+    }
+   },
+   "status": 200,
+   "headers": {
+    "X-Request-Id": "01a186b6-4e32-707a-93de-cafa3f9ee7ac"
+   },
+   "response": {
+    "proof": "ad71680dad376115bbc824da36669503d706b66743b33dc7ae066263732fd568",
+    "secret": "<64-character shop secret>",
+    "confirmation_url": "https://api.shopbonus.example/api/v1/integrations/shopware/app/registration/confirm"
+   }
+  },
+  {
+   "label": "register_401",
+   "method": "GET",
+   "path": "/api/v1/integrations/shopware/app/registration",
+   "request": {
+    "note": "signed with a different app secret"
+   },
+   "status": 401,
+   "headers": {
+    "X-Request-Id": "01a186b6-4ed0-72e3-90f9-f48e269ea1b4"
+   },
+   "response": {
+    "error": {
+     "status": 401,
+     "code": "registration_rejected",
+     "message": "The registration request could not be verified.",
+     "request_id": "01a186b6-4ed0-72e3-90f9-f48e269ea1b4",
+     "details": {
+      "reason": "signature_invalid"
+     }
+    }
+   }
+  },
+  {
+   "label": "confirm_401",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/registration/confirm",
+   "request": {
+    "note": "body signed with a wrong shop secret"
+   },
+   "status": 401,
+   "headers": {
+    "X-Request-Id": "01a186b6-4f09-72f8-af45-e20fd074d0f3"
+   },
+   "response": {
+    "error": {
+     "status": 401,
+     "code": "registration_rejected",
+     "message": "The registration request could not be verified.",
+     "request_id": "01a186b6-4f09-72f8-af45-e20fd074d0f3",
+     "details": {
+      "reason": "signature_invalid"
+     }
+    }
+   }
+  },
+  {
+   "label": "confirm_204",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/registration/confirm",
+   "request": {
+    "headers": {
+     "shopware-shop-signature": "<HEX HMAC shop secret>"
+    },
+    "body": {
+     "apiKey": "SWIASYNTHETICAPIKEY01",
+     "secretKey": "<redacted>",
+     "timestamp": "<UNIX>",
+     "shopUrl": "https://fietsen-utrecht.nl",
+     "shopId": "sHoP1a2B3c4D5e6F"
+    }
+   },
+   "status": 204,
+   "headers": {
+    "X-Request-Id": "01a186b6-4f78-715a-bab2-bb9a0fa1b453"
+   },
+   "response": null
+  },
+  {
+   "label": "reregister_without_shop_signature_401",
+   "method": "GET",
+   "path": "/api/v1/integrations/shopware/app/registration",
+   "request": {
+    "note": "confirmed shop re-registers with only the app signature"
+   },
+   "status": 401,
+   "headers": {
+    "X-Request-Id": "01a186b6-4faf-72a5-a02a-87879cbafcbe"
+   },
+   "response": {
+    "error": {
+     "status": 401,
+     "code": "registration_rejected",
+     "message": "The registration request could not be verified.",
+     "request_id": "01a186b6-4faf-72a5-a02a-87879cbafcbe",
+     "details": {
+      "reason": "signature_invalid"
+     }
+    }
+   }
+  },
+  {
+   "label": "register_503",
+   "method": "GET",
+   "path": "/api/v1/integrations/shopware/app/registration",
+   "request": {
+    "note": "SHOPWARE_APP_ENABLED=false"
+   },
+   "status": 503,
+   "headers": {
+    "X-Request-Id": "01a186b6-5ced-7290-b16a-581931977739"
+   },
+   "response": {
+    "error": {
+     "status": 503,
+     "code": "shopware_app_not_configured",
+     "message": "The Shopware app is not configured.",
+     "request_id": "01a186b6-5ced-7290-b16a-581931977739"
+    }
+   }
+  },
+  {
+   "label": "register_422",
+   "method": "GET",
+   "path": "/api/v1/integrations/shopware/app/registration",
+   "request": {
+    "note": "validly signed, shop-url uses http"
+   },
+   "status": 422,
+   "headers": {
+    "X-Request-Id": "01a186b7-7f97-700c-a7db-c2563036175c"
+   },
+   "response": {
+    "error": {
+     "status": 422,
+     "code": "store_url_invalid",
+     "message": "Use an HTTPS store URL without credentials, query, fragment or a custom port.",
+     "request_id": "01a186b7-7f97-700c-a7db-c2563036175c"
+    }
+   }
+  }
+ ]
+}

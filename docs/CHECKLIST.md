@@ -741,7 +741,7 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
 - [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
 - [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
-- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix install/remove webhooks (token minting done B23l, search backfill done B23j); Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix install/remove webhooks (token minting done B23l, search backfill done B23j); Shopware app webhooks/lifecycle (handshake done B23m); full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
 - [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.
 
 ### B23i — Shopify native webhook provisioning (2026-10-28)
@@ -774,3 +774,11 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] On-demand renewal (<5 min left) under a per-connection lock with raw-credential/generation guards, strict response validation, encrypted storage and audit; renewal preserves in-flight authority, manual rotation does not.
 - [x] App changed → 409, mode disabled → 503, invalid or rejected mint stores nothing; 5 focused tests / 22 assertions plus existing Wix discovery tests. OpenAPI create/replace descriptions updated (no new endpoint or response shape).
 - [ ] App Instance Installed/Removed webhook handling and live Wix app verification NOT RUN.
+
+### B23m — Shopware app registration handshake (2026-10-29)
+
+- [x] Official contract reviewed: registration guide plus shopware/app-php-sdk source (exact query-signature, proof, confirmation-body, dual-signature and rotation rules).
+- [x] Opt-in config; public GET registration and POST confirmation, per-IP limiter 60/min, ±600s timestamps, app/shop signatures, consumed pending secret, URL equality, secret rotation with previous secret and rotation time.
+- [x] Encrypted shop secrets and Admin API credentials in shopware_app_shops; binding to exactly one app-registration connection on the verified domain, in either order; generation bump and readiness reset; unbinding when the shop moves URL; manual credentials prohibited in app mode.
+- [x] 7 focused tests / 60 assertions; actual HTTP captures (200, 401 ×2, 422, 503, confirm 204/401) with an independently re-derived proof; OpenAPI + README; OpenApiCoverageTest passes.
+- [ ] Shopware app webhooks/lifecycle events, manifest, action buttons and live Shopware verification NOT RUN.

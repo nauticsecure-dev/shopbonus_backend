@@ -2213,6 +2213,93 @@ X-Request-Id: 01a1869a-e1d2-737a-a324-a4e1c07c1572
 {"error":{"status":503,"code":"shopify_app_not_configured","message":"The Shopify app is not configured.","request_id":"01a1869a-e1d2-737a-a324-a4e1c07c1572"}}
 ```
 
+### Shopware app registration — `GET /api/v1/integrations/shopware/app/registration`, `POST …/registration/confirm` (B23m)
+
+Captured 2026-10-29 with `php artisan serve` on an isolated SQLite file, `APP_URL=https://api.shopbonus.example`, `SHOPWARE_APP_NAME=ShopbonusApp` and a synthetic app secret. A bash client computed every signature independently with `openssl`, and the returned `proof` was re-derived with openssl and matched. The shop secret and `secretKey` are redacted. No Shopware installation was involved. Evidence: [B23_SHOPWARE_APP_HTTP_CAPTURE.json](../integrations/B23_SHOPWARE_APP_HTTP_CAPTURE.json).
+
+Manifest `<setup>`: `registrationUrl` = `https://<api>/api/v1/integrations/shopware/app/registration`, plus the app secret from the Shopware Account. The merchant creates the Shopbonus connection with `{"app_registration": true, "store_url": "https://<verified domain>", "sales_channel_id": "<32 hex>"}`; the order of installing the app and creating the connection doesn't matter.
+
+```http
+GET /api/v1/integrations/shopware/app/registration?shop-id=sHoP1a2B3c4D5e6F&shop-url=https%3A%2F%2Ffietsen-utrecht.nl&timestamp=<UNIX>
+shopware-app-signature: <hex HMAC-SHA256("shop-id=…&shop-url=…&timestamp=…", app secret)>
+sw-version: 6.7.0.0
+```
+
+**Response 200 (bare handshake object, as Shopware expects)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186b6-4e32-707a-93de-cafa3f9ee7ac
+
+{"proof":"ad71680dad376115bbc824da36669503d706b66743b33dc7ae066263732fd568","secret":"<64-character shop secret>","confirmation_url":"https://api.shopbonus.example/api/v1/integrations/shopware/app/registration/confirm"}
+```
+
+**Response 401 (signed with another app secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186b6-4ed0-72e3-90f9-f48e269ea1b4
+
+{"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4ed0-72e3-90f9-f48e269ea1b4","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 401 (already-confirmed shop re-registers without shopware-shop-signature)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186b6-4faf-72a5-a02a-87879cbafcbe
+
+{"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4faf-72a5-a02a-87879cbafcbe","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 422 (validly signed, but shop-url is http)**
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a186b7-7f97-700c-a7db-c2563036175c
+
+{"error":{"status":422,"code":"store_url_invalid","message":"Use an HTTPS store URL without credentials, query, fragment or a custom port.","request_id":"01a186b7-7f97-700c-a7db-c2563036175c"}}
+```
+
+**Response 503 (SHOPWARE_APP_ENABLED=false)**
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+X-Request-Id: 01a186b6-5ced-7290-b16a-581931977739
+
+{"error":{"status":503,"code":"shopware_app_not_configured","message":"The Shopware app is not configured.","request_id":"01a186b6-5ced-7290-b16a-581931977739"}}
+```
+
+```http
+POST /api/v1/integrations/shopware/app/registration/confirm
+Content-Type: application/json
+shopware-shop-signature: <hex HMAC-SHA256(raw body, pending shop secret)>
+
+{"apiKey":"SWIASYNTHETICAPIKEY01","secretKey":"<redacted>","timestamp":"<UNIX>","shopUrl":"https://fietsen-utrecht.nl","shopId":"sHoP1a2B3c4D5e6F"}
+```
+
+**Response 204**
+
+```http
+HTTP/1.1 204 No Content
+X-Request-Id: 01a186b6-4f78-715a-bab2-bb9a0fa1b453
+```
+
+**Response 401 (body signed with a wrong shop secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186b6-4f09-72f8-af45-e20fd074d0f3
+
+{"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4f09-72f8-af45-e20fd074d0f3","details":{"reason":"signature_invalid"}}}
+```
+
 ---
 
 ## Orders: the live Order Sheet (B05, Trello #1)

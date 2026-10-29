@@ -95,6 +95,7 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(300)->by('webhook:'.$request->route('token')));
         RateLimiter::for('shopify-compliance', fn (Request $request) => Limit::perMinute(300)->by('shopify-compliance:'.$request->ip()));
+        RateLimiter::for('shopware-app', fn (Request $request) => Limit::perMinute(60)->by('shopware-app:'.$request->ip()));
 
         // Partner systems: per integration key, not per IP. Claim links: per IP (token guessing).
         RateLimiter::for('integrations', fn (Request $request) => Limit::perMinute(600)->by('integration:'.$request->header('X-Shopbonus-Key', $request->ip())));

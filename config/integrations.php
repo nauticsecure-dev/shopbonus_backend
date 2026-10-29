@@ -30,6 +30,9 @@ return [
     'shopify_webhooks' => ['enabled' => (bool) env('SHOPIFY_WEBHOOK_SETUP_ENABLED', false)],
 
     // Wix OAuth app (client_credentials per app instance). Off: senior supplies tokens manually.
+    // Shopware app system: name and app secret from the Shopware Account (never in a distributed manifest).
+    'shopware_app' => ['enabled' => (bool) env('SHOPWARE_APP_ENABLED', false), 'name' => env('SHOPWARE_APP_NAME', ''), 'secret' => env('SHOPWARE_APP_SECRET', '')],
+
     'wix_app' => ['enabled' => (bool) env('WIX_APP_ENABLED', false), 'app_id' => env('WIX_APP_ID', ''), 'app_secret' => env('WIX_APP_SECRET', '')],
 
     'shopify_oauth' => [

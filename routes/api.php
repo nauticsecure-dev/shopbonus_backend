@@ -50,6 +50,7 @@ use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyComplianceController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyOAuthController;
+use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Notifications\InboxController;
@@ -107,6 +108,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // Shopify mandatory privacy webhooks: one app-level URI, signed with the app client secret.
     Route::post('integrations/shopify/compliance', [ShopifyComplianceController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:shopify-compliance')->name('integrations.shopify.compliance');
+    // Shopware app-system registration handshake (manifest <setup>); signed by the shop, see ShopwareAppRegistration.
+    Route::prefix('integrations/shopware/app')->name('integrations.shopware.app.')
+        ->withoutMiddleware('throttle:api')->middleware('throttle:shopware-app')->group(function () {
+            Route::get('registration', [ShopwareAppController::class, 'register'])->name('register');
+            Route::post('registration/confirm', [ShopwareAppController::class, 'confirm'])->name('confirm');
+        });
 
     Route::post('invitations/preview', [InvitationController::class, 'preview'])
         ->middleware('throttle:invitation-preview')->name('invitations.preview');

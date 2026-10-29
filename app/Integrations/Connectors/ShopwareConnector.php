@@ -15,7 +15,7 @@ use App\Services\Onboarding\DomainName;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 
-/** Shopware6 integration read credentials. Module bridge remains explicit; no invented app-registration handshake. */
+/** Shopware6 integration read credentials, entered manually or bound from the app registration handshake (ShopwareAppRegistration). */
 final class ShopwareConnector extends GenericSignedWebhookConnector implements PagedOrderReader
 {
     public function __construct()
@@ -25,7 +25,9 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
 
     public function connectRules(): array
     {
-        return ['store_url' => ['nullable', 'url', 'max:255'], 'client_id' => ['required_with:store_url', 'string', 'min:16', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/D'], 'client_secret' => ['required_with:store_url', 'string', 'min:16', 'max:255'], 'sales_channel_id' => ['required_with:store_url', 'string', 'regex:/\A[a-f0-9]{32}\z/D']];
+        // app_registration: Admin API client credentials arrive through the Shopware app handshake instead.
+        return ['app_registration' => ['sometimes', 'accepted', 'prohibits:client_id,client_secret'], 'store_url' => ['nullable', 'required_with:app_registration', 'url', 'max:255'],
+            'client_id' => ['exclude_if:app_registration,true', 'required_with:store_url', 'string', 'min:16', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/D'], 'client_secret' => ['exclude_if:app_registration,true', 'required_with:store_url', 'string', 'min:16', 'max:255'], 'sales_channel_id' => ['required_with:store_url', 'string', 'regex:/\A[a-f0-9]{32}\z/D']];
     }
 
     public function connect(WebshopConnection $c, array $input): array
@@ -34,7 +36,8 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
         if (! empty($input['store_url'])) {
             $base = WooCommerceApi::baseUrl($input['store_url']);
             $c->external_shop_ref = $base.'#channel='.$input['sales_channel_id'];
-            $credentials += ['store_url' => $base, 'client_id' => $input['client_id'], 'client_secret' => $input['client_secret'], 'sales_channel_id' => $input['sales_channel_id']];
+            $credentials += ['store_url' => $base, 'sales_channel_id' => $input['sales_channel_id']]
+                + (empty($input['app_registration']) ? ['client_id' => $input['client_id'], 'client_secret' => $input['client_secret']] : ['app_registration' => 'pending']);
         }
 
         return $credentials;
