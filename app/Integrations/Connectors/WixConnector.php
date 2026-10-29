@@ -6,6 +6,7 @@ use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\Contracts\OrderNotification;
+use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
@@ -16,9 +17,10 @@ use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\ExactJson;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class WixConnector extends WebhookConnector implements OrderNotification
+final class WixConnector extends WebhookConnector implements OrderNotification, PagedOrderReader
 {
     public function platform(): EcommercePlatform
     {
@@ -137,14 +139,16 @@ final class WixConnector extends WebhookConnector implements OrderNotification
         }
     }
 
-    /** @return array<string,mixed> */
-    private function read(WebshopConnection $c, string $path): array
+    /** @param array<string,mixed> $body
+     * @return array<string,mixed>
+     */
+    private function read(WebshopConnection $c, string $path, string $method = 'GET', array $body = []): array
     {
         if ($c->credential('access_token') === null || $c->credential('site_id') === null) {
             throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
         }
 
-        return app(PinnedJsonReader::class)->read($c, 'https://www.wixapis.com'.$path, ['headers' => ['Authorization' => $c->credential('access_token'), 'wix-site-id' => $c->credential('site_id')]])['data'];
+        return app(PinnedJsonReader::class)->read($c, 'https://www.wixapis.com'.$path, ['headers' => ['Authorization' => $c->credential('access_token'), 'wix-site-id' => $c->credential('site_id')]], $method, $body)['data'];
     }
 
     private function identity(WebshopConnection $c): void
@@ -176,6 +180,50 @@ final class WixConnector extends WebhookConnector implements OrderNotification
         }
 
         return ['order' => $p['order'], 'orderTransactions' => $t['orderTransactions']];
+    }
+
+    /** @return array{ids:list<string>,next:?string} */
+    public function discoverOrders(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
+    {
+        if ($cursor !== null && ($cursor === '' || strlen($cursor) > 2048)) {
+            throw new \InvalidArgumentException('Invalid native cursor.');
+        }
+        $this->identity($c);
+        $statuses = ['APPROVED', 'CANCELED', 'PENDING', 'REJECTED'];
+        // Wix rejects cursor with filter/sort; the cursor carries the first page's query. Rows are still window/status checked.
+        $search = $cursor !== null ? ['cursorPaging' => ['limit' => 25, 'cursor' => $cursor]] : [
+            'filter' => ['updatedDate' => ['$gte' => $since->utc()->toIso8601String(), '$lte' => $until->utc()->toIso8601String()], 'status' => ['$in' => $statuses]],
+            'sort' => [['fieldName' => 'updatedDate', 'order' => 'ASC']], 'cursorPaging' => ['limit' => 25],
+        ];
+        $result = $this->read($c, '/ecom/v1/orders/search', 'POST', ['search' => $search]);
+        $rows = $result['orders'] ?? null;
+        $meta = $result['metadata'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 25 || ! is_array($meta) || ($meta['count'] ?? null) !== count($rows)
+            || (isset($meta['cursors']) && ! is_array($meta['cursors']))) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+        $next = $meta['cursors']['next'] ?? null;
+        if ($next !== null && (! is_string($next) || $next === '' || strlen($next) > 2048 || $next === $cursor || $rows === [])) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+        $ids = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! in_array($row['status'] ?? null, $statuses, true) || ! is_string($row['updatedDate'] ?? null)
+                || ! preg_match('/\A[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9]{2}:[0-9]{2})\z/D', $row['updatedDate'])) {
+                throw new ApiException('The provider order data is incomplete.', 502, 'provider_order_invalid');
+            }
+            $at = $this->date($row['updatedDate']);
+            if ($at === null || $at->lessThan($since) || $at->greaterThan($until)) {
+                throw new ApiException('The provider returned an order outside the requested update window.', 502, 'provider_order_invalid');
+            }
+            try {
+                $ids[] = ProviderOrderId::validate($this->platform(), (string) ($row['id'] ?? ''));
+            } catch (\InvalidArgumentException) {
+                throw new ApiException('The provider order data is incomplete.', 502, 'provider_order_invalid');
+            }
+        }
+
+        return ['ids' => $ids, 'next' => $next];
     }
 
     public function normalizeOrder(array $payload): NormalizedOrder

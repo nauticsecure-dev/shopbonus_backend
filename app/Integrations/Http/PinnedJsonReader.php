@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use JsonException;
 
-/** Bounded authenticated JSON reads only; Shopify POST bodies are fixed GraphQL queries. */
+/** Bounded authenticated JSON transport; callers supply only fixed reviewed native operations. */
 class PinnedJsonReader
 {
     public function __construct(private HostResolver $resolver) {}

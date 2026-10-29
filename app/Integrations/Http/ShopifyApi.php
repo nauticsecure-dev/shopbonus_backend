@@ -4,13 +4,14 @@ namespace App\Integrations\Http;
 
 use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
+use App\Http\Resources\ConnectionResource;
 use App\Integrations\ShopifyOAuth;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 
-/** Fixed native read queries only; never accepts caller-supplied GraphQL or mutations. */
+/** Fixed reviewed native operations only; no caller-supplied GraphQL or callback URL. */
 class ShopifyApi
 {
     public const VERSION = '2026-10';
@@ -133,6 +134,62 @@ class ShopifyApi
         return ['ids' => $ids, 'next' => $next];
     }
 
+    public const WEBHOOK_TOPICS = ['ORDERS_CREATE', 'ORDERS_UPDATED', 'ORDERS_PAID', 'ORDERS_CANCELLED', 'ORDERS_FULFILLED', 'REFUNDS_CREATE', 'APP_UNINSTALLED'];
+
+    /** @return list<array<string,mixed>> */
+    public function webhooks(WebshopConnection $connection, string $topic): array
+    {
+        $this->webhookTopic($topic);
+        $this->identity($connection);
+        $data = $this->query($connection, 'query ShopbonusWebhooks($topics: [WebhookSubscriptionTopic!]) { webhookSubscriptions(first: 100, topics: $topics) { nodes { id topic uri format filter includeFields } pageInfo { hasNextPage } } }', ['topics' => [$topic]]);
+        $list = $data['webhookSubscriptions'] ?? null;
+        if (! is_array($list) || ! is_array($list['nodes'] ?? null) || ! array_is_list($list['nodes']) || count($list['nodes']) > 100
+            || ($list['pageInfo']['hasNextPage'] ?? null) !== false) {
+            throw ApiException::conflict('The subscription list is incomplete. Review the provider configuration.', 'provider_hook_list_incomplete');
+        }
+        foreach ($list['nodes'] as $item) {
+            if (! is_array($item) || ($item['topic'] ?? null) !== $topic || ! is_string($item['id'] ?? null)
+                || ! preg_match('~\Agid://shopify/WebhookSubscription/[1-9][0-9]{0,18}\z~D', $item['id']) || ! is_string($item['uri'] ?? null)) {
+                throw new ApiException('The provider subscription response could not be read.', 502, 'provider_hook_invalid');
+            }
+        }
+
+        return $list['nodes'];
+    }
+
+    /** Fixed supported topic and server-owned callback only; no caller-supplied GraphQL or endpoint.
+     * @return array<string,mixed>
+     */
+    public function createWebhook(WebshopConnection $connection, string $topic): array
+    {
+        $this->webhookTopic($topic);
+        $uri = ConnectionResource::webhookUrl($connection);
+        $parts = parse_url($uri);
+        if (! is_array($parts) || ($parts['scheme'] ?? null) !== 'https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || isset($parts['port'])) {
+            throw ApiException::conflict('Configure a public HTTPS application URL before provisioning webhooks.', 'webhook_callback_invalid');
+        }
+        $this->identity($connection);
+        $data = $this->query($connection, 'mutation ShopbonusCreateWebhook($topic: WebhookSubscriptionTopic!, $subscription: WebhookSubscriptionInput!) { webhookSubscriptionCreate(topic: $topic, webhookSubscription: $subscription) { webhookSubscription { id topic uri format filter includeFields } userErrors { field message } } }', ['topic' => $topic, 'subscription' => ['uri' => $uri, 'format' => 'JSON']]);
+        $result = $data['webhookSubscriptionCreate'] ?? null;
+        if (! is_array($result) || ! is_array($result['userErrors'] ?? null) || $result['userErrors'] !== []) {
+            throw ApiException::conflict('The provider did not confirm subscription creation. Inspect the native subscription list before retrying.', 'provider_hook_create_unconfirmed');
+        }
+        $hook = $result['webhookSubscription'] ?? null;
+        if (! is_array($hook) || ($hook['topic'] ?? null) !== $topic || ($hook['uri'] ?? null) !== $uri || ! is_string($hook['id'] ?? null)
+            || ! preg_match('~\Agid://shopify/WebhookSubscription/[1-9][0-9]{0,18}\z~D', $hook['id'])) {
+            throw new ApiException('The provider subscription response could not be read.', 502, 'provider_hook_invalid');
+        }
+
+        return $hook;
+    }
+
+    private function webhookTopic(string $topic): void
+    {
+        if (! in_array($topic, self::WEBHOOK_TOPICS, true)) {
+            throw new \InvalidArgumentException('Unsupported webhook topic.');
+        }
+    }
+
     private function identity(WebshopConnection $connection, string $scope = 'read_orders'): void
     {
         $data = $this->query($connection, self::SHOP);
@@ -159,7 +216,7 @@ class ShopifyApi
      * @param  array<string,mixed>  $variables
      * @return array<string,mixed>
      */
-    private function query(WebshopConnection $connection, string $query, array $variables = [], bool $allowProtectedFields = false): array
+    private function query(WebshopConnection $connection, string $query, #[\SensitiveParameter] array $variables = [], bool $allowProtectedFields = false): array
     {
         if ($connection->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');

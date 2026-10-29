@@ -27,6 +27,8 @@ return [
 
     'sync' => ['enabled' => (bool) env('INTEGRATION_SYNC_ENABLED', false), 'connections' => array_values(array_filter(explode(',', (string) env('INTEGRATION_SYNC_CONNECTIONS', ''))))],
 
+    'shopify_webhooks' => ['enabled' => (bool) env('SHOPIFY_WEBHOOK_SETUP_ENABLED', false)],
+
     'shopify_oauth' => [
         'enabled' => (bool) env('SHOPIFY_OAUTH_ENABLED', false),
         'client_id' => env('SHOPIFY_CLIENT_ID', ''),

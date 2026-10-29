@@ -741,5 +741,19 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
 - [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
 - [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
-- [ ] Remaining Laravel implementation: Shopify privacy/hook lifecycle; Wix app token lifecycle/backfill; Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Remaining Laravel implementation: Shopify privacy compliance callbacks (hook provisioning done B23i); Wix app token lifecycle (search backfill done B23j); Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
 - [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.
+
+### B23i — Shopify native webhook provisioning (2026-10-28)
+
+- [x] Fixed reviewed2026-10 list/create queries for seven supported order/refund/uninstall topics; JSON and exact connection callback only, no caller GraphQL/URI.
+- [x] Opt-in senior configuration, approved OAuth app authority/signing-secret checks, per-connection lock, generation/store guards before/after external work, audit metadata without secrets.
+- [x] Provider-authoritative listing before creation and after ambiguous outcomes/rerun; existing foreign subscriptions untouched, truncated/filtered/duplicate mappings never certified.
+- [x] Operator repair command and bounded per-topic OAuth jobs; provisioning cannot promote readiness or ingest orders.
+- [x] Focused authorization, stale-generation, unknown outcome, replay and pagination tests; docs/checkpoint updates and final quality evidence (full SQLite 862/839+23skip, MySQL 862/860+2skip, Pint/PHPStan pass; CI recorded in HANDOFF). Command tests added. No new public endpoint, no fabricated HTTP examples.
+
+### B23j — Wix durable order discovery (2026-10-28)
+
+- [x] Reviewed current eCommerce Search Orders fixed endpoint/query, UTC update window, bounded cursor and explicit non-initialized status coverage; continuation pages send cursor only (Wix forbids cursor with filter/sort); no transaction-derived settlement date invented. INITIALIZED orders remain unreachable via search.
+- [x] Reuse PagedOrderReader/BulkSynchronization/OrderRecovery with canonical UUIDs and native instance/site/domain authentication; no new endpoint/table.
+- [x] Focused cursor/store/window/status/invalid-response tests and accurate provider coverage limitations; documentation and checkpoint evidence.
