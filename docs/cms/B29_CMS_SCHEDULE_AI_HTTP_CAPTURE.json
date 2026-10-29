@@ -1,0 +1,893 @@
+{
+ "captured_at": "2026-10-29T14:31Z",
+ "environment": "php -S localhost:8771 with the real Laravel HTTP kernel, isolated SQLite (scratchpad), file sessions, array cache, real /login + /two-factor-challenge (TOTP) + /user/confirm-password session. Only the OpenAI Responses endpoint is a synthetic deterministic stub (capture front controller); no real model was called. The scheduled publication was executed by the real `php artisan shopbonus:publish-scheduled-content` after its due time passed.",
+ "requests": [
+  {
+   "name": "schedules_401",
+   "method": "GET",
+   "path": "/api/v1/admin/cms/schedules",
+   "request": [],
+   "auth": "none",
+   "status": 401,
+   "headers": {
+    "X-Request-Id": "01a18811-3d4c-716f-b39d-a7ae40151952",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 401,
+     "code": "unauthenticated",
+     "message": "Authentication is required.",
+     "request_id": "01a18811-3d4c-716f-b39d-a7ae40151952"
+    }
+   }
+  },
+  {
+   "name": "suggestion_403_consumer",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions",
+   "request": {
+    "kind": "improve",
+    "idempotency_key": "consumer-1"
+   },
+   "auth": "spa",
+   "status": 403,
+   "headers": {
+    "X-Request-Id": "01a18811-3fbc-7328-9d86-71d0f080da46",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 403,
+     "code": "platform_role_required",
+     "message": "This action requires a platform administrator.",
+     "request_id": "01a18811-3fbc-7328-9d86-71d0f080da46"
+    }
+   }
+  },
+  {
+   "name": "suggestion_422",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions",
+   "request": {
+    "kind": "translate",
+    "target_locale": "nl",
+    "idempotency_key": "bad-1"
+   },
+   "auth": "spa",
+   "status": 422,
+   "headers": {
+    "X-Request-Id": "01a18811-41f1-7271-846d-1efd39e85481",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 422,
+     "code": "validation_failed",
+     "message": "Improve keeps the language; translate needs a different target language.",
+     "request_id": "01a18811-41f1-7271-846d-1efd39e85481"
+    }
+   }
+  },
+  {
+   "name": "suggestion_201_improve",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions",
+   "request": {
+    "kind": "improve",
+    "idempotency_key": "improve-1"
+   },
+   "auth": "spa",
+   "status": 201,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-4212-72ec-867c-f8dff44be008"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412ggy3d58gze5qcc65715",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "kind": "improve",
+     "source_locale": "nl",
+     "target_locale": "nl",
+     "source_revision": 1,
+     "target_revision": 1,
+     "status": "proposed",
+     "error_code": null,
+     "requires_human_approval": true,
+     "created_at": "2026-10-29T14:29:54+00:00",
+     "decided_at": null,
+     "proposed": {
+      "title": "Over ShopBonus: samen voordeliger",
+      "seo_title": "Over ShopBonus: samen voordeliger",
+      "seo_description": "Spaar bij deelnemende webshops.",
+      "body": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "heading",
+         "attrs": {
+          "level": 2
+         },
+         "content": [
+          {
+           "type": "text",
+           "text": "Ons verhaal"
+          }
+         ]
+        },
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Wij brengen consumenten en webshops samen."
+          },
+          {
+           "type": "text",
+           "text": " Lees meer",
+           "marks": [
+            {
+             "type": "link",
+             "attrs": {
+              "href": "/hulp"
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "button",
+         "attrs": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "suggestion_200_replay",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions",
+   "request": {
+    "kind": "improve",
+    "idempotency_key": "improve-1"
+   },
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-4256-7163-a023-3f76603444bd"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412ggy3d58gze5qcc65715",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "kind": "improve",
+     "source_locale": "nl",
+     "target_locale": "nl",
+     "source_revision": 1,
+     "target_revision": 1,
+     "status": "proposed",
+     "error_code": null,
+     "requires_human_approval": true,
+     "created_at": "2026-10-29T14:29:54+00:00",
+     "decided_at": null,
+     "proposed": {
+      "title": "Over ShopBonus: samen voordeliger",
+      "seo_title": "Over ShopBonus: samen voordeliger",
+      "seo_description": "Spaar bij deelnemende webshops.",
+      "body": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "heading",
+         "attrs": {
+          "level": 2
+         },
+         "content": [
+          {
+           "type": "text",
+           "text": "Ons verhaal"
+          }
+         ]
+        },
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Wij brengen consumenten en webshops samen."
+          },
+          {
+           "type": "text",
+           "text": " Lees meer",
+           "marks": [
+            {
+             "type": "link",
+             "attrs": {
+              "href": "/hulp"
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "button",
+         "attrs": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "suggestions_index_200",
+   "method": "GET",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/suggestions",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-426d-7301-b8bd-7611a1262727"
+   },
+   "response": {
+    "data": [
+     {
+      "id": "01m6412ggy3d58gze5qcc65715",
+      "page": "01m6411gq33t3pz00kfnd32pte",
+      "kind": "improve",
+      "source_locale": "nl",
+      "target_locale": "nl",
+      "source_revision": 1,
+      "target_revision": 1,
+      "status": "proposed",
+      "error_code": null,
+      "requires_human_approval": true,
+      "created_at": "2026-10-29T14:29:54+00:00",
+      "decided_at": null
+     }
+    ]
+   }
+  },
+  {
+   "name": "suggestion_show_200",
+   "method": "GET",
+   "path": "/api/v1/admin/cms/suggestions/01m6412ggy3d58gze5qcc65715",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-4281-7395-88b8-af2109207c29"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412ggy3d58gze5qcc65715",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "kind": "improve",
+     "source_locale": "nl",
+     "target_locale": "nl",
+     "source_revision": 1,
+     "target_revision": 1,
+     "status": "proposed",
+     "error_code": null,
+     "requires_human_approval": true,
+     "created_at": "2026-10-29T14:29:54+00:00",
+     "decided_at": null,
+     "proposed": {
+      "title": "Over ShopBonus: samen voordeliger",
+      "seo_title": "Over ShopBonus: samen voordeliger",
+      "seo_description": "Spaar bij deelnemende webshops.",
+      "body": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "heading",
+         "attrs": {
+          "level": 2
+         },
+         "content": [
+          {
+           "type": "text",
+           "text": "Ons verhaal"
+          }
+         ]
+        },
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Wij brengen consumenten en webshops samen."
+          },
+          {
+           "type": "text",
+           "text": " Lees meer",
+           "marks": [
+            {
+             "type": "link",
+             "attrs": {
+              "href": "/hulp"
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "button",
+         "attrs": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "suggestion_apply_200",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/suggestions/01m6412ggy3d58gze5qcc65715/apply",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-4296-7314-abbe-c1d67ac0d60e"
+   },
+   "response": {
+    "data": {
+     "suggestion": "01m6412ggy3d58gze5qcc65715",
+     "status": "applied",
+     "locale": "nl",
+     "slug": "over-ons",
+     "draft_revision": 2
+    }
+   }
+  },
+  {
+   "name": "suggestion_apply_409",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/suggestions/01m6412ggy3d58gze5qcc65715/apply",
+   "request": [],
+   "auth": "spa",
+   "status": 409,
+   "headers": {
+    "X-Request-Id": "01a18811-42b4-70e7-ab25-9405e5ed89e6",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 409,
+     "code": "suggestion_not_open",
+     "message": "Only open suggestions can be applied.",
+     "request_id": "01a18811-42b4-70e7-ab25-9405e5ed89e6",
+     "details": {
+      "status": "applied"
+     }
+    }
+   }
+  },
+  {
+   "name": "suggestion_201_translate",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions",
+   "request": {
+    "kind": "translate",
+    "target_locale": "en",
+    "idempotency_key": "translate-1"
+   },
+   "auth": "spa",
+   "status": 201,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-42c9-702b-a431-672e4bdcfa69"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412gpkzwwkcdc041q7yzak",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "kind": "translate",
+     "source_locale": "nl",
+     "target_locale": "en",
+     "source_revision": 2,
+     "target_revision": null,
+     "status": "proposed",
+     "error_code": null,
+     "requires_human_approval": true,
+     "created_at": "2026-10-29T14:29:55+00:00",
+     "decided_at": null,
+     "proposed": {
+      "title": "Over ShopBonus: samen voordeliger",
+      "seo_title": "Over ShopBonus: samen voordeliger",
+      "seo_description": "Save at participating webshops.",
+      "body": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "heading",
+         "attrs": {
+          "level": 2
+         },
+         "content": [
+          {
+           "type": "text",
+           "text": "Our story"
+          }
+         ]
+        },
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Wij brengen consumenten en webshops samen."
+          },
+          {
+           "type": "text",
+           "text": " Read more",
+           "marks": [
+            {
+             "type": "link",
+             "attrs": {
+              "href": "/hulp"
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "button",
+         "attrs": {
+          "label": "For webshops",
+          "href": "/voor-webshops"
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "suggestion_reject_200",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/suggestions/01m6412gpkzwwkcdc041q7yzak/reject",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-42e7-7005-8d21-d787fbcaa53a"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412gpkzwwkcdc041q7yzak",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "kind": "translate",
+     "source_locale": "nl",
+     "target_locale": "en",
+     "source_revision": 2,
+     "target_revision": null,
+     "status": "rejected",
+     "error_code": null,
+     "requires_human_approval": true,
+     "created_at": "2026-10-29T14:29:55+00:00",
+     "decided_at": "2026-10-29T14:29:55+00:00"
+    }
+   }
+  },
+  {
+   "name": "suggestion_404",
+   "method": "GET",
+   "path": "/api/v1/admin/cms/suggestions/01m6400000000000000000zzzz",
+   "request": [],
+   "auth": "spa",
+   "status": 404,
+   "headers": {
+    "X-Request-Id": "01a18811-4301-7017-bae6-0cd017dd34c8",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 404,
+     "code": "not_found",
+     "message": "Suggestion not found.",
+     "request_id": "01a18811-4301-7017-bae6-0cd017dd34c8"
+    }
+   }
+  },
+  {
+   "name": "schedule_409_stale_revision",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules",
+   "request": {
+    "action": "publish",
+    "locale": "nl",
+    "revision": 1,
+    "due_at": "2026-10-29T14:31:10+00:00"
+   },
+   "auth": "spa",
+   "status": 409,
+   "headers": {
+    "X-Request-Id": "01a18811-4315-73a4-8012-748f927e29a9",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 409,
+     "code": "draft_revision_conflict",
+     "message": "The draft changed since you reviewed it. Reload to continue.",
+     "request_id": "01a18811-4315-73a4-8012-748f927e29a9",
+     "details": {
+      "current_revision": 2
+     }
+    }
+   }
+  },
+  {
+   "name": "schedule_201",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules",
+   "request": {
+    "action": "publish",
+    "locale": "nl",
+    "revision": 2,
+    "due_at": "2026-10-29T14:31:10+00:00"
+   },
+   "auth": "spa",
+   "status": 201,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-432c-7059-976c-ed89cfefb2d0"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412gspzv9qc522cpkw7dgs",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "action": "publish",
+     "locale": "nl",
+     "draft_revision": 2,
+     "legal_version": null,
+     "effective_date": null,
+     "due_at": "2026-10-29T14:31:10+00:00",
+     "status": "scheduled",
+     "outcome_code": null,
+     "revision": null,
+     "processed_at": null
+    }
+   }
+  },
+  {
+   "name": "schedule_409_exists",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules",
+   "request": {
+    "action": "publish",
+    "locale": "nl",
+    "revision": 2,
+    "due_at": "2026-10-29T14:31:10+00:00"
+   },
+   "auth": "spa",
+   "status": 409,
+   "headers": {
+    "X-Request-Id": "01a18811-4348-726d-85fe-045e9c87e412",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 409,
+     "code": "schedule_exists",
+     "message": "This page already has a pending schedule for that action. Cancel it first.",
+     "request_id": "01a18811-4348-726d-85fe-045e9c87e412"
+    }
+   }
+  },
+  {
+   "name": "schedule_422",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules",
+   "request": {
+    "action": "archive",
+    "locale": "nl",
+    "due_at": "2026-10-29T14:31:10+00:00"
+   },
+   "auth": "spa",
+   "status": 422,
+   "headers": {
+    "X-Request-Id": "01a18811-435e-73ca-b298-75ea1c32f2a7",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 422,
+     "code": "validation_failed",
+     "message": "The given data was invalid.",
+     "request_id": "01a18811-435e-73ca-b298-75ea1c32f2a7",
+     "fields": {
+      "locale": [
+       "The locale field is prohibited when action is archive."
+      ]
+     }
+    }
+   }
+  },
+  {
+   "name": "schedule_201_archive",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules",
+   "request": {
+    "action": "archive",
+    "due_at": "2026-10-30T14:29:55+00:00"
+   },
+   "auth": "spa",
+   "status": 201,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-4378-724a-9fa7-dae4d8b6c2f1"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412gw25gp22t5rwa3cdb4f",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "action": "archive",
+     "locale": null,
+     "draft_revision": null,
+     "legal_version": null,
+     "effective_date": null,
+     "due_at": "2026-10-30T14:29:55+00:00",
+     "status": "scheduled",
+     "outcome_code": null,
+     "revision": null,
+     "processed_at": null
+    }
+   }
+  },
+  {
+   "name": "schedule_cancel_200",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/schedules/01m6412gw25gp22t5rwa3cdb4f/cancel",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-4393-7391-be80-bbe1bddbf7ca"
+   },
+   "response": {
+    "data": {
+     "id": "01m6412gw25gp22t5rwa3cdb4f",
+     "page": "01m6411gq33t3pz00kfnd32pte",
+     "action": "archive",
+     "locale": null,
+     "draft_revision": null,
+     "legal_version": null,
+     "effective_date": null,
+     "due_at": "2026-10-30T14:29:55+00:00",
+     "status": "cancelled",
+     "outcome_code": null,
+     "revision": null,
+     "processed_at": "2026-10-29T14:29:55+00:00"
+    }
+   }
+  },
+  {
+   "name": "schedule_cancel_409",
+   "method": "POST",
+   "path": "/api/v1/admin/cms/schedules/01m6412gw25gp22t5rwa3cdb4f/cancel",
+   "request": [],
+   "auth": "spa",
+   "status": 409,
+   "headers": {
+    "X-Request-Id": "01a18811-43ae-712c-b674-95d370847d47",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 409,
+     "code": "schedule_not_pending",
+     "message": "Only pending schedules can be cancelled.",
+     "request_id": "01a18811-43ae-712c-b674-95d370847d47",
+     "details": {
+      "status": "cancelled"
+     }
+    }
+   }
+  },
+  {
+   "name": "schedules_index_200_pending",
+   "method": "GET",
+   "path": "/api/v1/admin/cms/schedules?status=scheduled",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18811-43c6-73cb-8bea-9ab47902b6a1"
+   },
+   "response": {
+    "data": [
+     {
+      "id": "01m6412gspzv9qc522cpkw7dgs",
+      "page": "01m6411gq33t3pz00kfnd32pte",
+      "action": "publish",
+      "locale": "nl",
+      "draft_revision": 2,
+      "legal_version": null,
+      "effective_date": null,
+      "due_at": "2026-10-29T14:31:10+00:00",
+      "status": "scheduled",
+      "outcome_code": null,
+      "revision": null,
+      "processed_at": null
+     }
+    ]
+   }
+  },
+  {
+   "name": "public_page_404_before",
+   "method": "GET",
+   "path": "/api/v1/public/pages/nl/over-ons",
+   "request": [],
+   "auth": "none",
+   "status": 404,
+   "headers": {
+    "X-Request-Id": "01a18811-43e9-7269-908b-2e2796847042",
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 404,
+     "code": "not_found",
+     "message": "Page not found.",
+     "request_id": "01a18811-43e9-7269-908b-2e2796847042"
+    }
+   }
+  },
+  {
+   "name": "schedules_index_200_done",
+   "method": "GET",
+   "path": "/api/v1/admin/cms/schedules?status=done",
+   "request": [],
+   "auth": "spa",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "no-cache, private",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18812-8507-73ee-b7d0-22a70d25be8b"
+   },
+   "response": {
+    "data": [
+     {
+      "id": "01m6412gspzv9qc522cpkw7dgs",
+      "page": "01m6411gq33t3pz00kfnd32pte",
+      "action": "publish",
+      "locale": "nl",
+      "draft_revision": 2,
+      "legal_version": null,
+      "effective_date": null,
+      "due_at": "2026-10-29T14:31:10+00:00",
+      "status": "done",
+      "outcome_code": null,
+      "revision": "01m641513tn8wx9rtx3dzkpcf3",
+      "processed_at": "2026-10-29T14:31:17+00:00"
+     }
+    ]
+   }
+  },
+  {
+   "name": "public_page_200_after",
+   "method": "GET",
+   "path": "/api/v1/public/pages/nl/over-ons",
+   "request": [],
+   "auth": "none",
+   "status": 200,
+   "headers": {
+    "Cache-Control": "max-age=60, public",
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a18812-851e-7182-a846-ca15d9ed9c5a"
+   },
+   "response": {
+    "data": {
+     "key": "over-ons",
+     "type": "landing",
+     "locale": "nl",
+     "slug": "over-ons",
+     "content": {
+      "title": "Over ShopBonus: samen voordeliger",
+      "seo_title": "Over ShopBonus: samen voordeliger",
+      "seo_description": "Spaar bij deelnemende webshops.",
+      "body": {
+       "type": "doc",
+       "content": [
+        {
+         "type": "heading",
+         "attrs": {
+          "level": 2
+         },
+         "content": [
+          {
+           "type": "text",
+           "text": "Ons verhaal"
+          }
+         ]
+        },
+        {
+         "type": "paragraph",
+         "content": [
+          {
+           "type": "text",
+           "text": "Wij brengen consumenten en webshops samen."
+          },
+          {
+           "type": "text",
+           "text": " Lees meer",
+           "marks": [
+            {
+             "type": "link",
+             "attrs": {
+              "href": "/hulp"
+             }
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "button",
+         "attrs": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+         }
+        }
+       ]
+      }
+     },
+     "legal": null,
+     "revision": 1,
+     "published_at": "2026-10-29T14:31:17+00:00",
+     "alternates": {
+      "nl": "over-ons"
+     }
+    }
+   }
+  }
+ ]
+}

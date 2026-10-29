@@ -5,17 +5,22 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
+use App\Models\CmsAiSuggestion;
 use App\Models\CmsAsset;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
+use App\Models\CmsPublicationSchedule;
 use App\Models\CmsRevision;
 use App\Models\FaqCategory;
 use App\Models\FaqItem;
 use App\Services\Audit\AuditLogger;
 use App\Services\Cms\CmsCache;
+use App\Services\Cms\CmsScheduler;
 use App\Services\Cms\CmsService;
+use App\Services\Cms\CmsSuggestions;
 use App\Services\Cms\RichText;
 use App\Services\Support\SupportKnowledge;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -164,6 +169,89 @@ class CmsController extends Controller
         return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id])]], 201);
     }
 
+    // ---------------------------------------------------------------- scheduling (#33–#35)
+
+    public function schedules(Request $request): JsonResponse
+    {
+        $data = $request->validate(['status' => ['sometimes', Rule::in(['scheduled', 'running', 'done', 'cancelled', 'stale', 'failed'])], 'page' => ['sometimes', 'string', 'max:40']]);
+        $rows = CmsPublicationSchedule::query()
+            ->when(isset($data['status']), fn ($q) => $q->where('status', $data['status']))
+            ->when(isset($data['page']), fn ($q) => $q->where('page_id', $this->find($data['page'])->id))
+            ->orderByDesc('due_at')->limit(200)->get();
+
+        return response()->json(['data' => $rows->map(fn (CmsPublicationSchedule $s) => $this->schedule($s))->all()]);
+    }
+
+    public function storeSchedule(Request $request, CmsScheduler $scheduler, string $page): JsonResponse
+    {
+        $data = $request->validate([
+            'action' => ['required', Rule::in(CmsPublicationSchedule::ACTIONS)],
+            'locale' => ['required_if:action,publish', 'prohibited_if:action,archive', Rule::in(CmsService::LOCALES)],
+            'revision' => ['required_if:action,publish', 'prohibited_if:action,archive', 'integer', 'min:1'],
+            'due_at' => ['required', 'date', 'after:now', 'before:+1 year'],
+            'legal_version' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9._-]+$/'],
+            'effective_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
+            'approve' => ['sometimes', 'boolean'],
+        ]);
+        $s = $scheduler->schedule($this->find($page), $data['action'], $data['locale'] ?? null, isset($data['revision']) ? (int) $data['revision'] : null,
+            CarbonImmutable::parse($data['due_at']), $request->user(), array_intersect_key($data, array_flip(['legal_version', 'effective_date', 'approve'])));
+
+        return response()->json(['data' => $this->schedule($s)], 201);
+    }
+
+    public function cancelSchedule(Request $request, CmsScheduler $scheduler, string $schedule): JsonResponse
+    {
+        $s = CmsPublicationSchedule::where('public_id', strtolower($schedule))->first() ?? throw new ApiException('Schedule not found.', 404, 'not_found');
+
+        return response()->json(['data' => $this->schedule($scheduler->cancel($s, $request->user()))]);
+    }
+
+    // ---------------------------------------------------------------- AI suggestions (#33–#35)
+
+    public function suggestions(string $page): JsonResponse
+    {
+        $p = $this->find($page);
+
+        return response()->json(['data' => CmsAiSuggestion::where('page_id', $p->id)->orderByDesc('id')->limit(50)->get()->map(fn (CmsAiSuggestion $s) => $this->suggestion($s, $p, false))->all()]);
+    }
+
+    public function showSuggestion(string $suggestion): JsonResponse
+    {
+        $s = $this->findSuggestion($suggestion);
+
+        return response()->json(['data' => $this->suggestion($s, CmsPage::findOrFail($s->page_id), true)]);
+    }
+
+    public function requestSuggestion(Request $request, CmsSuggestions $ai, string $page, string $locale): JsonResponse
+    {
+        $this->locale($locale);
+        $data = $request->validate(['kind' => ['required', Rule::in(CmsAiSuggestion::KINDS)], 'target_locale' => ['sometimes', Rule::in(CmsService::LOCALES)],
+            'idempotency_key' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._:-]+$/']]);
+        $p = $this->find($page);
+        $s = $ai->request($p, $data['kind'], $locale, $data['target_locale'] ?? $locale, $data['idempotency_key'], $request->user());
+
+        return response()->json(['data' => $this->suggestion($s, $p, true)], $s->wasRecentlyCreated ? 201 : 200);
+    }
+
+    public function applySuggestion(Request $request, CmsSuggestions $ai, string $suggestion): JsonResponse
+    {
+        $data = $request->validate(['slug' => ['sometimes', 'string', 'max:100', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/']]);
+        $s = $this->findSuggestion($suggestion);
+        if (isset($data['slug']) && CmsPageLocale::where('locale', $s->target_locale)->where('slug', $data['slug'])->where('page_id', '!=', $s->page_id)->exists()) {
+            throw ValidationException::withMessages(['slug' => 'This address is already used.']);
+        }
+        $l = $ai->apply($s, $request->user(), $data['slug'] ?? null);
+
+        return response()->json(['data' => ['suggestion' => $s->public_id, 'status' => 'applied', 'locale' => $l->locale, 'slug' => $l->slug, 'draft_revision' => $l->draft_revision]]);
+    }
+
+    public function rejectSuggestion(Request $request, CmsSuggestions $ai, string $suggestion): JsonResponse
+    {
+        $s = $ai->reject($this->findSuggestion($suggestion), $request->user());
+
+        return response()->json(['data' => $this->suggestion($s, CmsPage::findOrFail($s->page_id), false)]);
+    }
+
     // ---------------------------------------------------------------- FAQ
 
     public function faq(): JsonResponse
@@ -244,6 +332,29 @@ class CmsController extends Controller
     private function faqItem(FaqItem $i): array
     {
         return ['id' => $i->public_id, 'audience' => $i->audience, 'published' => $i->published, 'position' => $i->position, 'revision' => $i->revision, 'translations' => $i->translations];
+    }
+
+    private function findSuggestion(string $id): CmsAiSuggestion
+    {
+        return CmsAiSuggestion::where('public_id', strtolower($id))->first() ?? throw new ApiException('Suggestion not found.', 404, 'not_found');
+    }
+
+    /** @return array<string, mixed> */
+    private function schedule(CmsPublicationSchedule $s): array
+    {
+        return ['id' => $s->public_id, 'page' => CmsPage::whereKey($s->page_id)->value('public_id'), 'action' => $s->action, 'locale' => $s->locale,
+            'draft_revision' => $s->draft_revision, 'legal_version' => $s->legal['legal_version'] ?? null, 'effective_date' => $s->legal['effective_date'] ?? null,
+            'due_at' => $s->due_at->toIso8601String(), 'status' => $s->status, 'outcome_code' => $s->outcome_code,
+            'revision' => $s->revision_id === null ? null : CmsRevision::whereKey($s->revision_id)->value('public_id'), 'processed_at' => $s->processed_at?->toIso8601String()];
+    }
+
+    /** @return array<string, mixed> */
+    private function suggestion(CmsAiSuggestion $s, CmsPage $p, bool $withContent): array
+    {
+        return ['id' => $s->public_id, 'page' => $p->public_id, 'kind' => $s->kind, 'source_locale' => $s->source_locale, 'target_locale' => $s->target_locale,
+            'source_revision' => $s->source_revision, 'target_revision' => $s->target_revision, 'status' => $s->status, 'error_code' => $s->error_code,
+            'requires_human_approval' => true, 'created_at' => $s->created_at?->toIso8601String(), 'decided_at' => $s->decided_at?->toIso8601String()]
+            + ($withContent ? ['proposed' => $s->proposed] : []);
     }
 
     /** @return array<string, mixed> */

@@ -1,8 +1,8 @@
 # API route inventory (Trello #22)
 
-Generated 2026-10-29 from the running route table and `docs/api/openapi.yaml` with `php artisan shopbonus:api-routes` (all 326 routes: documented access matches the middleware). Regenerate before each release; the command exits non-zero on any contract drift.
+Generated 2026-10-29 from the running route table and `docs/api/openapi.yaml` with `php artisan shopbonus:api-routes` (all 334 routes: documented access matches the middleware). Regenerate before each release; the command exits non-zero on any contract drift.
 
-Access: admin 127, authenticated 4, integration 4, public 35, verified 156. Every route is exercised by `tests/Feature/Api/RoleAccessMatrixTest.php` as anonymous, suspended, unverified, consumer, owner, manager, employee and Super Admin; request/response contracts and captured examples are in `docs/api/openapi.yaml`.
+Access: admin 135, authenticated 4, integration 4, public 35, verified 156. Every route is exercised by `tests/Feature/Api/RoleAccessMatrixTest.php` as anonymous, suspended, unverified, consumer, owner, manager, employee and Super Admin; request/response contracts and captured examples are in `docs/api/openapi.yaml`.
 
 | Method | Path | Access | Permission | Scope | Step-up | Rate limit | Audit category |
 |---|---|---|---|---|---|---|---|
@@ -59,8 +59,16 @@ Access: admin 127, authenticated 4, integration 4, public 35, verified 156. Ever
 | PUT | `/api/v1/admin/cms/pages/{page}/locales/{locale}` | admin | - | platform | recent password | api | admin |
 | GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/preview` | admin | - | platform | - | api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/publish` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions` | admin | - | platform | recent password | api,cms-ai | admin |
 | GET | `/api/v1/admin/cms/pages/{page}/revisions` | admin | - | platform | - | api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/revisions/{revision}/restore` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/cms/pages/{page}/schedules` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/cms/pages/{page}/suggestions` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/cms/schedules` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/cms/schedules/{schedule}/cancel` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/cms/suggestions/{suggestion}` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/cms/suggestions/{suggestion}/apply` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/cms/suggestions/{suggestion}/reject` | admin | - | platform | recent password | api | admin |
 | GET | `/api/v1/admin/cms/translations` | admin | - | platform | - | api | admin |
 | GET | `/api/v1/admin/cockpit` | admin | - | platform | - | api | admin |
 | GET | `/api/v1/admin/disputes` | admin | - | platform | - | api | voucher |

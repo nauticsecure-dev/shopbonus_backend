@@ -308,6 +308,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('pages/{page}/locales/{locale}/preview', [AdminCmsController::class, 'preview'])->name('pages.preview');
                     Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
                     Route::get('faq', [AdminCmsController::class, 'faq'])->name('faq.index');
+                    Route::get('schedules', [AdminCmsController::class, 'schedules'])->name('schedules.index');
+                    Route::get('pages/{page}/suggestions', [AdminCmsController::class, 'suggestions'])->name('suggestions.index');
+                    Route::get('suggestions/{suggestion}', [AdminCmsController::class, 'showSuggestion'])->name('suggestions.show');
                     Route::get('cookie-policies', [AdminCookiePolicyController::class, 'index'])->name('cookie-policies.index');
                     Route::get('cookie-consents/stats', [AdminCookiePolicyController::class, 'stats'])->name('cookie-consents.stats');
                 });
@@ -364,6 +367,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('pages/{page}/locales/{locale}/publish', [AdminCmsController::class, 'publish'])->name('pages.publish');
                         Route::post('pages/{page}/revisions/{revision}/restore', [AdminCmsController::class, 'restore'])->name('pages.restore');
                         Route::post('pages/{page}/archive', [AdminCmsController::class, 'archive'])->name('pages.archive');
+                        Route::post('pages/{page}/schedules', [AdminCmsController::class, 'storeSchedule'])->name('schedules.store');
+                        Route::post('schedules/{schedule}/cancel', [AdminCmsController::class, 'cancelSchedule'])->name('schedules.cancel');
+                        Route::post('pages/{page}/locales/{locale}/suggestions', [AdminCmsController::class, 'requestSuggestion'])->middleware('throttle:cms-ai')->name('suggestions.store');
+                        Route::post('suggestions/{suggestion}/apply', [AdminCmsController::class, 'applySuggestion'])->name('suggestions.apply');
+                        Route::post('suggestions/{suggestion}/reject', [AdminCmsController::class, 'rejectSuggestion'])->name('suggestions.reject');
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
                         Route::post('faq/categories', [AdminCmsController::class, 'storeFaqCategory'])->name('faq.categories.store');
                         Route::post('faq/items', [AdminCmsController::class, 'storeFaqItem'])->name('faq.items.store');

@@ -1,3 +1,27 @@
+# Active handoff — #33/#34/#35 B29 CMS scheduled publishing and "Improve with AI"; backend slice done (2026-10-29, Claude)
+
+Branch `main`. Base `2bd4ba5` (B28, CI SUCCESS on all 3 jobs). Owner: "do it" after the board review (build #33–#35 CMS gaps, then #37 backend; #12 waits for the owner decision on D-089). D-089 unchanged. Credentials senior-owned.
+
+B29:
+- Migration `2026_10_29_140000_create_cms_schedules_and_suggestions`: `cms_publication_schedules`, `cms_ai_suggestions`, `cms_ai_quotas`.
+- `App\Services\Cms\CmsScheduler`: schedule publish (per locale, pinned `draft_revision`) or archive for `due_at` > now + 1 min. Refuses archived pages, duplicate pending schedules, stale revision (409 `draft_revision_conflict`), legal publish without version/effective date/approve (422), Terms/Privacy archive (409). `runDue()` claims rows (scheduled→running), re-checks the scheduler is an active Super Admin, publishes through `CmsService::publish(..., expectedDraftRevision)` (new parameter, 409 `draft_changed` inside the lock) → `stale` when the draft changed. Rows stuck in `running` > 10 min become `failed/interrupted`. Audits `cms.schedule_created|cancelled|executed|stale|failed`.
+- `shopbonus:publish-scheduled-content`, scheduled every minute without overlap.
+- `App\Services\Cms\CmsSuggestions`: `improve` (same locale) or `translate` (other locale) of the current draft (or published content). Extracts text segments (title, SEO, text nodes, button labels, image alts), sends them to the OpenAI Responses API (`store:false`, strict `{segments: string[]}`), rejects wrong count, empty/too long segments, `<>`, any URL/email/number/currency not in the source, or the API key; re-inserts segments into the original structure and validates with the CMS rich-text allowlist. Idempotent per user + `request_key` (409 on different payload), daily quota (429 + Retry-After), per-user throttle `cms-ai` 5/min, 503 `cms_ai_not_configured` when off. `apply` saves the draft only (revision checked, never publishes); `reject`. Audited.
+- Config `config/cms.php`; env `CMS_AI_ENABLED` (default false), `CMS_AI_API_KEY` (falls back to `OPENAI_API_KEY`), `CMS_AI_MODEL`, `CMS_AI_DAILY_LIMIT`=20.
+- 8 routes under `/api/v1/admin/cms` (reads: schedules, page suggestions, suggestion detail; `password.recent`: create/cancel schedule, request/apply/reject suggestion). Inventory now 334 routes.
+
+Executed evidence:
+- CmsScheduleAndSuggestionTest 9 PASS; all CMS tests 19 PASS (244 assertions).
+- Full SQLite: 921 tests, 898 passed + 23 skipped, 12912 assertions.
+- Full MySQL 8: 921 tests, 919 passed + 2 skipped, 12996 assertions, 343.3s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server capture (23 requests, model upstream faked): `docs/cms/B29_CMS_SCHEDULE_AI_HTTP_CAPTURE.json`; examples in OpenAPI and README. Some 409/422/429/503 examples are illustrative.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–140000 NOT applied there.
+
+Not done: Hassan's UI (schedule picker, suggestion diff/apply); senior sets `CMS_AI_*` and verifies a real model response. Exact next: #37 Quality Center backend (B30).
+
+---
 # Active handoff — #22 B28 backend release slice (B18); card not Done (2026-10-29, Claude)
 
 Branch `main`. Base `8352e08` (B27, [CI 40880825276](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40880825276) SUCCESS on all 3 jobs). Owner: "do all you can do" on #22; frontend testing goes to Hassan. D-089 unchanged. Credentials senior-owned.
@@ -7,7 +31,7 @@ B28 (closes the backend part of B18):
 - `tests/Feature/Api/RoleAccessMatrixTest.php`: every `/api/v1` route as anonymous/suspended/unverified/consumer/owner/manager/employee/Super Admin (±2FA), asserting exact denial codes and exact per-role permissions. No defect found.
 - `App\Http\Middleware\SecurityHeaders` (global, appended): nosniff, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, HSTS on HTTPS (`shopbonus.security.hsts_max_age`, env `HSTS_MAX_AGE`, default 1 year). Existing controller headers are kept. Proxy trust via `shopbonus.security.trusted_proxies` (`TRUSTED_PROXIES`), applied in `AppServiceProvider::boot` with `TrustProxies::at`; default off, so behaviour is unchanged.
 - `shopbonus:launch-check [--json]` (25 checks, no values printed; FAIL exits 1).
-- `docs/release/API_INVENTORY.md` (326 routes, from `shopbonus:api-routes`) and `docs/release/LAUNCH_READINESS.md` (evidence map, deploy/rollback runbook, open items).
+- `docs/release/API_INVENTORY.md` (334 routes, from `shopbonus:api-routes`) and `docs/release/LAUNCH_READINESS.md` (evidence map, deploy/rollback runbook, open items).
 - `composer audit`: 0 advisories/abandoned (PHP 8.4.17, Laravel 13.38.0).
 - No migration, no new route. `.env.example` gains TRUSTED_PROXIES and HSTS_MAX_AGE.
 

@@ -7433,6 +7433,330 @@ paths:
               example: {"error":{"status":409,"code":"draft_revision_conflict","message":"Someone else saved this page in the meantime. Reload to continue.","request_id":"01a16ded-b373-7381-a24b-447c5e87677f","details":{"current_revision":2}}}
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
 
+  /api/v1/admin/cms/schedules:
+    get:
+      tags: [CMS]
+      operationId: cmsSchedules
+      summary: "Scheduled publications and archiving"
+      description: |
+        Trello #33–#35. Newest due time first (max 200). Filters: `status` (scheduled, running, done, cancelled, stale, failed), `page` (page id).
+        `stale` = the draft changed after scheduling (`draft_changed`), so nothing was published. `failed` codes include `scheduler_not_authorized`
+        (the scheduling admin lost Super Admin) and `interrupted`. Executed every minute by `shopbonus:publish-scheduled-content`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/schedules?status=done' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Schedules (captured after the scheduler executed one)."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m6412gspzv9qc522cpkw7dgs","page":"01m6411gq33t3pz00kfnd32pte","action":"publish","locale":"nl","draft_revision":2,"legal_version":null,"effective_date":null,"due_at":"2026-10-29T14:31:10+00:00","status":"done","outcome_code":null,"revision":"01m641513tn8wx9rtx3dzkpcf3","processed_at":"2026-10-29T14:31:17+00:00"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+
+  /api/v1/admin/cms/pages/{page}/schedules:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: scheduleCmsPage
+      summary: "Schedule publication or archiving"
+      description: |
+        Trello #33–#35. Step-up (recent password) required. `action: publish` needs `locale` and the reviewed draft `revision`; only that exact
+        draft is published at `due_at` (at least one minute ahead, at most one year). Legal pages also need `legal_version`, `effective_date` and
+        `approve: true`. `action: archive` takes no locale; Terms and Privacy cannot be archived. One pending schedule per page/locale/action.
+        At run time the scheduling admin must still be an active Super Admin. Audited (`cms.schedule_created`, `cms.schedule_executed`/`stale`/`failed`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/pages/<id>/schedules' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"action":"publish","locale":"nl","revision":2,"due_at":"2026-10-29T14:31:10+00:00"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"action":"publish","locale":"nl","revision":2,"due_at":"2026-10-29T14:31:10+00:00"}
+      responses:
+        '201':
+          description: "Scheduled."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6412gspzv9qc522cpkw7dgs","page":"01m6411gq33t3pz00kfnd32pte","action":"publish","locale":"nl","draft_revision":2,"legal_version":null,"effective_date":null,"due_at":"2026-10-29T14:31:10+00:00","status":"scheduled","outcome_code":null,"revision":null,"processed_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Draft changed since review (`draft_revision_conflict`), a pending schedule exists (`schedule_exists`), archived page or legal archive."
+          content:
+            application/json:
+              examples:
+                stale_revision: { value: {"error":{"status":409,"code":"draft_revision_conflict","message":"The draft changed since you reviewed it. Reload to continue.","request_id":"01a18811-4315-73a4-8012-748f927e29a9","details":{"current_revision":2}}} }
+                exists: { value: {"error":{"status":409,"code":"schedule_exists","message":"This page already has a pending schedule for that action. Cancel it first.","request_id":"01a18811-4348-726d-85fe-045e9c87e412"}} }
+        '422':
+          description: "Invalid action/locale/time, or legal approval missing (`legal_approval_required`)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a18811-435e-73ca-b298-75ea1c32f2a7","fields":{"locale":["The locale field is prohibited when action is archive."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/schedules/{schedule}/cancel:
+    parameters:
+      - { name: schedule, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: cancelCmsSchedule
+      summary: "Cancel a pending schedule"
+      description: |
+        Step-up required. Only `scheduled` rows can be cancelled. Audited (`cms.schedule_cancelled`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/schedules/<id>/cancel' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Cancelled."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6412gw25gp22t5rwa3cdb4f","page":"01m6411gq33t3pz00kfnd32pte","action":"archive","locale":null,"draft_revision":null,"legal_version":null,"effective_date":null,"due_at":"2026-10-30T14:29:55+00:00","status":"cancelled","outcome_code":null,"revision":null,"processed_at":"2026-10-29T14:29:55+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not pending."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"schedule_not_pending","message":"Only pending schedules can be cancelled.","request_id":"01a18811-43ae-712c-b674-95d370847d47","details":{"status":"cancelled"}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/pages/{page}/suggestions:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [CMS]
+      operationId: cmsSuggestions
+      summary: "AI suggestions for a page"
+      description: |
+        Trello #33–#35 "Improve with AI". Newest first (max 50), without the proposed content (see the detail route).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/pages/<id>/suggestions' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Suggestions."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/cms/suggestions/{suggestion}:
+    parameters:
+      - { name: suggestion, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [CMS]
+      operationId: showCmsSuggestion
+      summary: "One AI suggestion with its proposed content"
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/suggestions/<id>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Suggestion."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404':
+          description: "Unknown suggestion."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Suggestion not found.","request_id":"01a18811-4301-7017-bae6-0cd017dd34c8"}}
+
+  /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions:
+    parameters:
+      - { name: page, in: path, required: true, schema: { type: string } }
+      - { name: locale, in: path, required: true, schema: { type: string, enum: [nl, en] } }
+    post:
+      tags: [CMS]
+      operationId: requestCmsSuggestion
+      summary: "Ask AI to improve or translate a draft"
+      description: |
+        Step-up required; 5/min per admin and a daily platform limit (`CMS_AI_DAILY_LIMIT`, 429 `cms_ai_daily_limit`); 503 `cms_ai_not_configured`
+        until `CMS_AI_ENABLED`, key and model are set. `kind: improve` keeps the path locale; `kind: translate` needs a different `target_locale`.
+        Only text segments are rewritten (title, SEO fields, text, button labels, image alt); structure, links and images are kept. Output that adds
+        numbers, amounts, percentages, links or e-mail addresses not in the source, HTML, or the wrong segment count is refused (503
+        `cms_suggestion_failed`, nothing changed). The provider gets only the page text with `store: false`. Same `idempotency_key` replays (200)
+        without a new provider call. Never publishes; `requires_human_approval` is always true.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/pages/<id>/locales/nl/suggestions' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"kind":"improve","idempotency_key":"improve-1"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"kind":"improve","idempotency_key":"improve-1"}
+      responses:
+        '200':
+          description: "Replayed for the same idempotency key."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}}}}
+        '201':
+          description: "Proposed (captured with a synthetic provider stub)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "No draft in the source language, archived page, or the idempotency key belongs to another request."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"nothing_to_suggest","message":"There is no draft in this language to work from.","request_id":"<request id>"}}
+        '422':
+          description: "Invalid kind/locale combination."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"Improve keeps the language; translate needs a different target language.","request_id":"01a18811-41f1-7271-846d-1efd39e85481"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+        '429':
+          description: "Daily AI limit or per-minute throttle."
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"cms_ai_daily_limit","message":"The daily AI suggestion limit is reached.","request_id":"<request id>","details":{"retry_after_seconds":34200}}}
+        '503':
+          description: "Not configured, or the output was unsafe and refused."
+          content:
+            application/json:
+              example: {"error":{"status":503,"code":"cms_suggestion_failed","message":"The suggestion could not be generated safely. Nothing was changed.","request_id":"<request id>"}}
+
+  /api/v1/admin/cms/suggestions/{suggestion}/apply:
+    parameters:
+      - { name: suggestion, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: applyCmsSuggestion
+      summary: "Save a suggestion as the draft (human approval)"
+      description: |
+        Step-up required. Saves the proposed content as the target locale's draft; it does not publish. Refused (409 `draft_revision_conflict`)
+        when the target draft changed after the suggestion was made. A translation into a language that has no page yet needs `slug`.
+        Audited (`cms.suggestion_applied`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/suggestions/<id>/apply' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{}'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            example: {"slug":"about-us"}
+      responses:
+        '200':
+          description: "Saved as draft."
+          content:
+            application/json:
+              example: {"data":{"suggestion":"01m6412ggy3d58gze5qcc65715","status":"applied","locale":"nl","slug":"over-ons","draft_revision":2}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Already decided, or the draft changed."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"suggestion_not_open","message":"Only open suggestions can be applied.","request_id":"01a18811-42b4-70e7-ab25-9405e5ed89e6","details":{"status":"applied"}}}
+        '422':
+          description: "Slug missing for a new language or already used."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"<request id>","fields":{"slug":["A new translation needs a slug."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/suggestions/{suggestion}/reject:
+    parameters:
+      - { name: suggestion, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [CMS]
+      operationId: rejectCmsSuggestion
+      summary: "Reject a suggestion"
+      description: |
+        Step-up required. Audited (`cms.suggestion_rejected`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/suggestions/<id>/reject' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Rejected."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6412gpkzwwkcdc041q7yzak","page":"01m6411gq33t3pz00kfnd32pte","kind":"translate","source_locale":"nl","target_locale":"en","source_revision":2,"target_revision":null,"status":"rejected","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:55+00:00","decided_at":"2026-10-29T14:29:55+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin. Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Already decided."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"suggestion_not_open","message":"Only open suggestions can be applied.","request_id":"01a18811-42b4-70e7-ab25-9405e5ed89e6","details":{"status":"applied"}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
   /api/v1/admin/cms/translations:
     get:
       tags: [CMS]

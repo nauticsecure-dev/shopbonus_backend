@@ -520,6 +520,8 @@ First small backend boundary; no chat route/model activation yet. Existing walle
 
 - [x] B18 backend slice (B28, 2026-10-29): full business journey test, role access matrix over every route, security headers/proxy trust, launch-check command, API inventory, launch/deploy/rollback runbook, composer audit clean.
 - [ ] B18 remainder: staging load test, live provider/Mollie/Answer24 runs, frontend/design QA, deployment and go-live sign-off (external).
+- [x] B29 CMS scheduling (#33–#35, 2026-10-29): schedule publish/archive for a future time pinned to the reviewed draft revision; cancel; every-minute `shopbonus:publish-scheduled-content`; stale on later draft edits; legal approval required up front; Terms/Privacy archive refused; scheduler must still be an active Super Admin; interrupted runs reported; all audited.
+- [x] B29 CMS "Improve with AI" (#33–#35): improve (same locale) or translate (NL↔EN) suggestions through the Responses API with store:false and a strict schema; segment count/structure, links and facts preserved; daily quota, per-user idempotency, 503 when not configured; apply only writes the draft (never publishes) with revision check; reject; all audited.
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)
 
 ## B10b — #19 credential-independent TradeTracker transport (2026-10-25)
