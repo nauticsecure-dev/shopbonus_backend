@@ -38,6 +38,8 @@ final readonly class NormalizedOrder
         // ShopBonus banner click ID carried through the shop's checkout (Trello #24 §2), if present.
         public ?string $attributionClickId = null,
         public ?string $bannerAssignmentToken = null,
+        /** @var list<array<string,mixed>>|null null means unavailable or incomplete, [] means observed empty. */
+        public ?array $lineItems = null,
     ) {}
 
     /** @return list<string> */

@@ -45,7 +45,7 @@ class OperationsTest extends TestCase
 
     private function event(): WebhookEvent
     {
-        return WebhookEvent::create(['connection_id' => $this->connection->id, 'webshop_id' => $this->connection->webshop_id,
+        return WebhookEvent::create(['credential_generation' => $this->connection->credential_generation, 'connection_id' => $this->connection->id, 'webshop_id' => $this->connection->webshop_id,
             'dedupe_key' => 'unique-event', 'status' => WebhookEventStatus::Failed, 'payload' => '{}', 'payload_hash' => hash('sha256', '{}'), 'received_at' => now()]);
     }
 

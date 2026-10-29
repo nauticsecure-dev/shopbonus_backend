@@ -695,10 +695,62 @@ Main-code completion items: `b2ad156` (implementation), `64b1848` (bounded trave
 - [x] Add optional encrypted read credentials to existing WooCommerce connection; preserve webhook-only compatibility; active API test is managed/scoped/throttled and never promotes fixtures to live-connected.
 - [x] Server-side tenant/role/disconnect/missing credentials/auth/429/schema/SSRF/rebinding/secret-privacy/duplicate negative tests; real HTTP examples for added/changed operations, both databases/quality/CI and coherent SHA handoff.
 
-B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total781pass+2skip/9961assertions, final native API15tests144assertions on both drivers. Pint/PHPStan/audit/contract/20HTTPcaptures PASS. This implementation commit; SHA/CI recorded in closeout. Whole #31 stays IN_PROGRESS.
+B23a local evidence: SQLite783total760pass+23skip/9880assertions; MySQL783total781pass+2skip/9961assertions, final native API15tests144assertions on both drivers. Pint/PHPStan/audit/contract/20HTTPcaptures PASS. Implementation `161051edd7952afeaa91e14baecb0b03f33177a3`; CI40673100233 SUCCESS all3jobs,783tests/database. Whole #31 stays IN_PROGRESS.
 
 ### Later #31 backend boundaries — not covered by B23a
 - [ ] Shopify GraphQL/OAuth/scopes/order/refund/catalog and durable credential-bound connection quality gates.
 - [ ] Wix, BigCommerce, Ecwid and Lightspeed C authenticated adapters/current official profiles, bounded polling/webhook recovery.
 - [ ] Version-specific PrestaShop/OpenCart signed bridge contracts, Shopware app lifecycle and Adobe deployment-specific asynchronous adapter profiles; provider modules/storefront UI are outside this Laravel scope.
 - [ ] Ten provider-backed acceptance records and real installation/banner/coupon capability verification; access/sandbox/storefront proof remains external until actually run.
+
+### B23b — Shopify native reads and shared pinned transport (owner continues 2026-10-28)
+- [x] Reuse/refactor proven pinned read transport for WooCommerce GET and fixed Shopify read-only GraphQL queries; retain Woo security/circuit regressions.
+- [x] Optional encrypted Shopify access token, pinned2026-10 API, observed shop identity/domain binding and actual read scopes; webhook-only compatibility, no credentials in URLs or logs.
+- [x] Native order/refund/transaction normalization without double-subtracting refunds or inventing payment timestamps; protected customer fields remain missing, GraphQL errors/version fallback never silently pass.
+- [x] Bounded modified-order/catalog cursor reads and explicit unsupported discount/banner write/OAuth lifecycle capabilities; no connected promotion from fixture probes.
+- [x] Executed Shopify ownership/scope/GraphQL HTTP200errors/throttle/schema/cursor/secret/isolation tests, actual running-server API contract examples and both database suites/quality; record exact scope remaining for quality gates/providers.
+
+- [x] B23b implementation `295e8b5d8a787d60c69150c20ef83982a30c69da` and test-fixture correction `01666e100a9e9d7f2da13d394dbc7ed179aa40a8` committed/pushed; exact-code CI40677278061 SUCCESS all three jobs (795tests/database).
+
+B23b final local evidence: SQLite795total772pass+23skip/9965assertions/53.934s; MySQL795total793pass+2skip/10049assertions/290.521s; native27tests229assertions, contract3tests3692assertions, Pint/PHPStan/composer validate/audit/platform/diff and11actual HTTP captures PASS. Implementation `295e8b5d8a787d60c69150c20ef83982a30c69da`, fixture correction `01666e100a9e9d7f2da13d394dbc7ed179aa40a8`; CI40677278061 SUCCESS: SQLite772pass+23skip/9965assertions/42.25s, MySQL793pass+2skip/10046assertions/203.38s. Whole #31 IN_PROGRESS.
+
+### B23c — credential-bound lifecycle foundation (2026-10-28)
+- [x] Add internal credential generation to connections and accepted events; legacy events stay explicitly unbound, never backfilled from current credentials.
+- [x] Serialize credential rotation/disconnect against event intake/processing; clear current readiness timestamps/status on rotation and ignore stale queued events before any order/refund/contact effect.
+- [x] Filter verification evidence to current generation, reject stale retries/probes, retain connection-wide provider dedupe and historical encrypted event evidence.
+- [x] Test rotation/disconnect/legacy/stale-object and processing-boundary cases on both drivers; execute full suites/quality and isolated migration rollback/reapply.
+- [x] Capture changed credential/verify/retry HTTP contracts from a running server, update API and handoff docs;16actual captures and contract3tests3693assertions PASS. Seven-gate promotion/OAuth/recovery remain subsequent work.
+
+- [x] Commit/push B23c `aa316ec741c94fa9dddf967c37bad3ea3990db12`; CI40679706982 SUCCESS all3jobs: SQLite778pass+23skip/10030assertions/49.40s and MySQL799pass+2skip/10113assertions/197.56s (801each).
+
+B23c local: focused69tests556assertions both drivers; full SQLite801total778pass+23skip/10029assertions/53.878s, MySQL801total799pass+2skip/10112assertions/244.766s PASS. Pint/PHPStan/audit/API contract/migration down-up PASS. Implementation `aa316ec741c94fa9dddf967c37bad3ea3990db12` and CI40679706982 verified all3SUCCESS; whole #31 IN_PROGRESS.
+
+### B23d — seven-gate readiness and durable authenticated single-order recovery
+- [x] Store generation/domain-bound durable recovery requests with bounded leases/attempts, fixed native connector reads outside database locks, resumable staged ingestion and stable native-event dedupe.
+- [x] Reuse canonical order/refund/contact pipeline; stale generation/domain/lease cannot stage or promote; failures stay explicit and signed webhook/native sources remain distinct.
+- [x] Replace complete-webhook Connected promotion with seven independently evidenced gates: authentication, store identity, genuine order, required mapping, payment proof, observed duplicate prevention and successful native change/refund recovery.
+- [x] Operator-only recovery command and bounded scheduled drain, no new public mutation route, no automatic arbitrary provider calls; passive test-api contract unchanged.
+- [x] Current verification API exposes truthful gates; migrate legacy Connected status to unverified Limited without inventing proof. Execute security/replay/failure/rotation/recovery tests, actual HTTP examples, both driver suites/quality/migration proof.
+- [x] Preserve exact provider store reference alongside verified domain/generation; unknown historical references cannot qualify and changed references invalidate staged proof.
+
+- [x] B23d `27faa2f73b7ea97cfdb31a86ae2d73a56bdef386` and byte-exact follow-up `03e69a9c41b384f7b2b34de4401ebfe63a02445a` committed/pushed; final CI40768013858 SUCCESS all3jobs: SQLite792pass+23skip/10127assertions/40.09s, MySQL813pass+2skip/10206assertions/166.45s (815each).
+
+B23d final post-MIME8.1.10 local evidence: SQLite814total791pass+23skip/10118assertions/122.057s; MySQL814total812pass+2skip/10201assertions/369.908s PASS sequentially. Final targeted recovery13tests87assertions both drivers; current API contract3tests3694assertions;20actual HTTP captures/redaction, dual-driver full-schema migration down/up twice, Pint/PHPStan/composer validate/audit/diff PASS. Only symfony/mime patched8.1.7→8.1.10 for current audit. Implementation SHA/CI follows; whole #31 remains IN_PROGRESS.
+
+B23d main implementation `27faa2f` CI40767003950 all3SUCCESS/814tests per driver. Byte-exact historical-store comparison follow-up:14recovery tests pass both drivers and controlled MySQL case-folding reproduction PASS; exact follow-up CI pending before remote closeout checkbox.
+
+B23d verified closeout: final03e69a9 CI40768013858 all3SUCCESS/815tests per driver supersedes pending remote notes above. B23d DONE within seven-gate/targeted-known-ID recovery scope; whole #31 IN_PROGRESS.
+
+### B23e–h — owner requests all remaining Laravel engineering, focused verification (2026-10-28)
+
+Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), committed/pushed. Exact-code CI40777263930 SUCCESS all3jobs/846tests each. Timestamp follow-up `f90860ff5f91d720285b3978f352812190f27a18` verified by5focused tests16assertions and finalCI40778138872 all3SUCCESS/847tests per driver. Full card remains IN_PROGRESS. Detailed scopes/limits: docs/integrations/REMAINING_BACKEND.md.
+
+- [x] Shopify browser authorization-code install/expiring offline refresh: one-time actor/session/workspace state, signed callback, approved scopes/store binding, encrypted pairs, generation guards and disabled defaults. Changed app authority invalidates even unexpired access. Focused lifecycle tests passed.
+- [x] Signed Shopify uninstall requires native revocation proof outside locks; a valid current grant survives replay. Tested revoked grant, valid-current grant and duplicate/disconnected intake; actual HTTP accepted/revoked captures recorded.
+- [x] Durable bulk fixed-watermark bounded pages/cursors, page journal, resumable leases/idempotent native requests and explicit failed/superseded/incomplete completion. Ordinary reconciliation cannot replace verification sample. Five focused tests plus final integrations passed.
+- [x] Wix RSA JWT, BigCommerce Standard Webhooks, Ecwid app-secret notification authentication and generation/store-bound native lookups. Native API identity negatives for six new adapters passed. No notification payment field creates paid order effects.
+- [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
+- [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
+- [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
+- [ ] Remaining Laravel implementation: Shopify privacy/hook lifecycle; Wix app token lifecycle/backfill; Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.

@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $refunded_minor
  * @property PaymentStatus $payment_status
  * @property string|null $provider_status
+ * @property list<array<string,mixed>>|null $line_items
  * @property string $ingestion_status
  * @property list<string>|null $missing_fields
  * @property string $eligibility_status
@@ -59,6 +60,7 @@ class WebshopOrder extends Model
     protected function casts(): array
     {
         return [
+            'line_items' => 'encrypted:array',
             'customer_first_name' => 'encrypted',
             'customer_email' => 'encrypted',
             'customer_phone' => 'encrypted',

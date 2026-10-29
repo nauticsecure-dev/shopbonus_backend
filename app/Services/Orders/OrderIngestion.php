@@ -99,7 +99,7 @@ class OrderIngestion
         $this->fill($order, $o, $event);
         $order->save();
 
-        $this->history($order, $event, 'created', null, $order->payment_status, ['complete' => $order->ingestion_status === 'complete']);
+        $this->history($order, $event, 'created', null, $order->payment_status, ['complete' => $order->ingestion_status === 'complete'], lineItems: $o->lineItems);
 
         return $order;
     }
@@ -127,7 +127,7 @@ class OrderIngestion
         $order->save();
 
         $type = $order->payment_status !== $from ? 'payment_changed' : 'updated';
-        $this->history($order, $event, $type, $from, $order->payment_status, ['complete' => $order->ingestion_status === 'complete'], $incomingAt);
+        $this->history($order, $event, $type, $from, $order->payment_status, ['complete' => $order->ingestion_status === 'complete'], $incomingAt, $o->lineItems);
 
         return $type;
     }
@@ -162,6 +162,7 @@ class OrderIngestion
             'refunded_at' => $keep($o->refundedAt, $order->refunded_at),
             'provider_updated_at' => $keep($o->providerUpdatedAt, $order->provider_updated_at),
             'last_webhook_event_id' => $event->id,
+            'line_items' => $o->lineItems ?? $order->line_items,
         ]);
 
         $missing = array_keys(array_filter([
@@ -177,8 +178,9 @@ class OrderIngestion
 
     /**
      * @param  array<string, mixed>  $summary
+     * @param  list<array<string,mixed>>|null  $lineItems
      */
-    private function history(WebshopOrder $order, WebhookEvent $event, string $type, ?PaymentStatus $from, ?PaymentStatus $to, array $summary, mixed $providerAt = null): void
+    private function history(WebshopOrder $order, WebhookEvent $event, string $type, ?PaymentStatus $from, ?PaymentStatus $to, array $summary, mixed $providerAt = null, ?array $lineItems = null): void
     {
         OrderEvent::create([
             'order_id' => $order->id,
@@ -188,6 +190,7 @@ class OrderIngestion
             'from_payment_status' => $from?->value,
             'to_payment_status' => $to?->value,
             'summary' => $summary + ['topic' => $event->topic],
+            'line_items_snapshot' => $lineItems,
             'provider_updated_at' => $providerAt,
         ]);
     }

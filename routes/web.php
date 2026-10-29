@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Integrations\ShopifyOAuthController;
 use App\Http\Controllers\Docs\ApiDocsController;
+use App\Http\Middleware\AuditAccessDenials;
+use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\SetRequestLocale;
 use Illuminate\Support\Facades\Route;
 
 // API-only backend: the web root just identifies the service. Clients use /api/v1.
@@ -18,3 +22,8 @@ if (config('shopbonus.api.docs_enabled')) {
         Route::get('reference', [ApiDocsController::class, 'reference'])->name('reference');
     });
 }
+
+// Cross-site OAuth GET needs the normal browser session even when Origin is Shopify.
+Route::get('/api/v1/integrations/shopify/oauth/callback', [ShopifyOAuthController::class, 'callback'])
+    ->middleware([ForceJsonResponse::class, AuditAccessDenials::class, SetRequestLocale::class, 'auth:web', 'account.active', 'verified', 'support.session', 'throttle:commerce-probe'])
+    ->name('api.v1.integrations.shopify.oauth.callback');

@@ -8,6 +8,7 @@ use App\Exceptions\ApiException;
 use App\Jobs\ProcessWebhookEvent;
 use App\Models\OutboxMessage;
 use App\Models\WebhookEvent;
+use App\Models\WebshopConnection;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
 
@@ -18,8 +19,10 @@ class OperationalRetries
     public function webhook(WebhookEvent $event, string $reason): void
     {
         DB::transaction(function () use ($event, $reason) {
+            $connection = WebshopConnection::whereKey($event->connection_id)->lockForUpdate()->firstOrFail();
             $event = WebhookEvent::whereKey($event->id)->lockForUpdate()->firstOrFail();
-            if ($event->status !== WebhookEventStatus::Failed || $event->payload === null || ! $event->connection->status->receivesEvents()) {
+            if ($event->credential_generation === null || $event->credential_generation !== $connection->credential_generation
+                || $event->webshop_id !== $connection->webshop_id || $event->status !== WebhookEventStatus::Failed || $event->payload === null || ! $connection->status->receivesEvents()) {
                 throw ApiException::conflict('Only failed events with a retained payload and active connection can be retried.', 'event_not_retryable');
             }
             $event->forceFill(['status' => WebhookEventStatus::Verified, 'error_code' => null])->save();

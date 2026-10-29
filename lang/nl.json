@@ -112,5 +112,14 @@
     "The provider order data is incomplete.": "De bestelgegevens van de aanbieder zijn onvolledig.",
     "The connection changed during the API test. Retry with its current configuration.": "De verbinding is tijdens de API-test gewijzigd. Probeer het opnieuw met de huidige configuratie.",
     "The store domain must resolve only to public addresses.": "Het winkeldomein mag alleen naar openbare IP-adressen verwijzen.",
-    "This connection is disconnected. Create a new one.": "Deze verbinding is verbroken. Maak een nieuwe verbinding."
+    "This connection is disconnected. Create a new one.": "Deze verbinding is verbroken. Maak een nieuwe verbinding.",
+    "The secure provider transport is not available.": "Het beveiligde transport naar de aanbieder is niet beschikbaar.",
+    "The provider order is unavailable under the current access scopes.": "De bestelling is niet beschikbaar met de huidige toegangsrechten.",
+    "This order requires bounded background transaction reconciliation.": "Deze bestelling vereist een begrensde transactiecontrole op de achtergrond.",
+    "The provider store identity does not match this connection.": "De winkelidentiteit van de aanbieder komt niet overeen met deze verbinding.",
+    "The provider has not proved the required read scopes.": "De aanbieder heeft de vereiste leesrechten niet bevestigd.",
+    "The provider API version differs from the reviewed version.": "De API-versie van de aanbieder verschilt van de gecontroleerde versie.",
+    "The provider GraphQL read failed or required protected data is unavailable.": "Het GraphQL-leesverzoek is mislukt of de vereiste beschermde gegevens zijn niet beschikbaar.",
+    "The connection changed while accepting the event. Retry with its current configuration.": "De verbinding is gewijzigd tijdens het ontvangen van de gebeurtenis. Probeer het opnieuw met de huidige configuratie.",
+    "Changing the provider store after orders exist requires a reviewed migration.": "Het wijzigen van de platformwinkel nadat bestellingen bestaan vereist een gecontroleerde migratie."
 }

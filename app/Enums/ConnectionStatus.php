@@ -4,7 +4,7 @@ namespace App\Enums;
 
 /**
  * Connection states shown to merchants (Trello #1). `Connected` is reached
- * only after a verified, complete real order, never from saved credentials.
+ * only after all seven credential-bound native verification gates, never from saved credentials or a complete webhook alone.
  */
 enum ConnectionStatus: string
 {

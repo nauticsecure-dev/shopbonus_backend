@@ -65,10 +65,10 @@ class GenericSignedWebhookConnector extends WebhookConnector
             'webhook_url' => $webhookUrl,
             'steps' => [
                 $this->method() === ConnectionMethod::PrivateModule
-                    ? 'Install the private Shopbonus module for your shop (provided by Shopbonus support).'
+                    ? 'A compatible merchant-side module is required. This backend does not include an installable module.'
                     : 'Configure your shop software to POST order events in the Shopbonus webhook format v1.',
                 'Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).',
-                'Place a real test order. The connection becomes Connected after a verified order with all required fields.',
+                'Place a real test order. The connection remains Limited until all seven provider verification checks pass.',
             ],
             'documentation' => 'docs/api/README.md#shopbonus-webhook-format-v1',
         ];

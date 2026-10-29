@@ -17,6 +17,7 @@ use App\Services\Workspaces\CurrentWorkspace;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -99,22 +100,31 @@ class ConnectionController extends Controller
     public function retryEvent(CurrentWorkspace $current, string $connection, string $event): JsonResponse
     {
         $model = $this->find($current, $connection);
-        $webhookEvent = Str::isUlid($event) ? $model->events()->where('public_id', Str::lower($event))->first() : null;
 
-        if ($webhookEvent === null) {
-            throw new NotFoundHttpException;
-        }
+        return DB::transaction(function () use ($model, $event) {
+            $model = WebshopConnection::whereKey($model->id)->lockForUpdate()->firstOrFail();
+            $webhookEvent = Str::isUlid($event) ? $model->events()->where('public_id', Str::lower($event))->lockForUpdate()->first() : null;
 
-        if ($webhookEvent->status !== WebhookEventStatus::Failed || $webhookEvent->payload === null) {
-            throw ApiException::conflict('Only failed events with a retained payload can be retried.', 'event_not_retryable');
-        }
+            if ($webhookEvent === null) {
+                throw new NotFoundHttpException;
+            }
 
-        $webhookEvent->forceFill(['status' => WebhookEventStatus::Verified, 'error_code' => null])->save();
-        ProcessWebhookEvent::dispatch($webhookEvent->id);
-        $this->audit->record('integration.event_retried', category: AuditCategory::Integration,
-            resource: $webhookEvent, webshopId: $model->webshop_id);
+            if (! $model->status->receivesEvents() || $webhookEvent->webshop_id !== $model->webshop_id || $webhookEvent->credential_generation === null
+                || $webhookEvent->credential_generation !== $model->credential_generation) {
+                throw ApiException::conflict('Only failed events with a retained payload can be retried.', 'event_not_retryable');
+            }
 
-        return response()->json(['data' => ['id' => $webhookEvent->public_id, 'status' => $webhookEvent->fresh()?->status->value]], 202);
+            if ($webhookEvent->status !== WebhookEventStatus::Failed || $webhookEvent->payload === null) {
+                throw ApiException::conflict('Only failed events with a retained payload can be retried.', 'event_not_retryable');
+            }
+
+            $webhookEvent->forceFill(['status' => WebhookEventStatus::Verified, 'error_code' => null])->save();
+            ProcessWebhookEvent::dispatch($webhookEvent->id);
+            $this->audit->record('integration.event_retried', category: AuditCategory::Integration,
+                resource: $webhookEvent, webshopId: $model->webshop_id);
+
+            return response()->json(['data' => ['id' => $webhookEvent->public_id, 'status' => $webhookEvent->fresh()?->status->value]], 202);
+        });
     }
 
     private function find(CurrentWorkspace $current, string $publicId): WebshopConnection
