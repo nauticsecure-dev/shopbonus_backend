@@ -96,6 +96,13 @@ class WebshopConnection extends Model
         if ($this->getRawOriginal('credentials') === $other->getRawOriginal('credentials')) {
             return true;
         }
+        // Wix app mode: a renewed 4-hour instance token keeps the same app/instance/site/key authority.
+        if ($this->platform === EcommercePlatform::Wix && $this->credential('wix_app_id') !== null) {
+            return $other->credential('wix_app_id') !== null && hash_equals($this->credential('wix_app_id'), $other->credential('wix_app_id'))
+                && $this->external_shop_ref === $other->external_shop_ref
+                && $this->credential('site_id') === $other->credential('site_id')
+                && $this->credential('public_key') === $other->credential('public_key');
+        }
         $authority = $this->credential('oauth_authority');
 
         return $this->platform === EcommercePlatform::Shopify && $authority !== null

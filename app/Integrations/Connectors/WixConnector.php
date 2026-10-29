@@ -13,6 +13,7 @@ use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\ProviderOrderId;
+use App\Integrations\WixAppTokens;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\ExactJson;
@@ -34,7 +35,7 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
 
     public function connectRules(): array
     {
-        return ['instance_id' => ['required', 'uuid'], 'site_id' => ['required', 'uuid'], 'access_token' => ['required', 'string', 'min:16', 'max:4096', 'regex:/\A[A-Za-z0-9_.-]+\z/D'], 'public_key' => ['required', 'string', 'max:8192', function ($attribute, $value, $fail) {
+        return ['instance_id' => ['required', 'uuid'], 'site_id' => ['required', 'uuid'], 'access_token' => WixAppTokens::enabled() ? ['prohibited'] : ['required', 'string', 'min:16', 'max:4096', 'regex:/\A[A-Za-z0-9_.-]+\z/D'], 'public_key' => ['required', 'string', 'max:8192', function ($attribute, $value, $fail) {
             $key = openssl_pkey_get_public($value);
             $info = $key === false ? null : openssl_pkey_get_details($key);
             if (! is_array($info) || $info['type'] !== OPENSSL_KEYTYPE_RSA || $info['bits'] < 2048) {
@@ -48,7 +49,10 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
     {
         $c->external_shop_ref = strtolower($input['instance_id']);
 
-        return ['access_token' => $input['access_token'], 'site_id' => strtolower($input['site_id']), 'public_key' => $input['public_key']];
+        $base = ['site_id' => strtolower($input['site_id']), 'public_key' => $input['public_key']];
+
+        // App mode binds the connection to the configured app; tokens are minted per instance on demand.
+        return WixAppTokens::enabled() ? $base + ['wix_app_id' => (string) config('integrations.wix_app.app_id')] : $base + ['access_token' => $input['access_token']];
     }
 
     public function setupInstructions(WebshopConnection $c, string $url): array
@@ -144,11 +148,11 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
      */
     private function read(WebshopConnection $c, string $path, string $method = 'GET', array $body = []): array
     {
-        if ($c->credential('access_token') === null || $c->credential('site_id') === null) {
+        if ($c->credential('site_id') === null) {
             throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
         }
 
-        return app(PinnedJsonReader::class)->read($c, 'https://www.wixapis.com'.$path, ['headers' => ['Authorization' => $c->credential('access_token'), 'wix-site-id' => $c->credential('site_id')]], $method, $body)['data'];
+        return app(PinnedJsonReader::class)->read($c, 'https://www.wixapis.com'.$path, ['headers' => ['Authorization' => app(WixAppTokens::class)->accessToken($c), 'wix-site-id' => $c->credential('site_id')]], $method, $body)['data'];
     }
 
     private function identity(WebshopConnection $c): void

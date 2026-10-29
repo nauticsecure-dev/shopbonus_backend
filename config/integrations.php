@@ -29,6 +29,9 @@ return [
 
     'shopify_webhooks' => ['enabled' => (bool) env('SHOPIFY_WEBHOOK_SETUP_ENABLED', false)],
 
+    // Wix OAuth app (client_credentials per app instance). Off: senior supplies tokens manually.
+    'wix_app' => ['enabled' => (bool) env('WIX_APP_ENABLED', false), 'app_id' => env('WIX_APP_ID', ''), 'app_secret' => env('WIX_APP_SECRET', '')],
+
     'shopify_oauth' => [
         'enabled' => (bool) env('SHOPIFY_OAUTH_ENABLED', false),
         'client_id' => env('SHOPIFY_CLIENT_ID', ''),
