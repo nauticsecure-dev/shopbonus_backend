@@ -123,10 +123,50 @@ class ShopwareAppRegistration
             return;
         }
         $shops = ShopwareAppShop::whereNotNull('confirmed_at')->where(fn ($q) => $q->whereNull('connection_id')->orWhere('connection_id', $c->id))
-            ->lockForUpdate()->get()->filter(fn (ShopwareAppShop $s) => $this->sameStore($s, $c));
+            ->lockForUpdate()->get()->filter(fn (ShopwareAppShop $s) => $s->api_credentials !== null && $this->sameStore($s, $c));
         if ($shops->count() === 1) {
             $this->apply($c, $shops->first(), false);
         }
+    }
+
+    /** App webhooks: current shop secret, or the previous one within the in-flight allowance after rotation. */
+    public function signedByShop(ShopwareAppShop $shop, string $body, mixed $signature): bool
+    {
+        if (! is_string($signature) || $shop->shop_secret === null) {
+            return false;
+        }
+        $signature = strtolower($signature);
+        if (hash_equals(hash_hmac('sha256', $body, $shop->shop_secret), $signature)) {
+            return true;
+        }
+
+        return $shop->previous_shop_secret !== null && $shop->secrets_rotated_at !== null
+            && $shop->secrets_rotated_at->addSeconds(self::PREVIOUS_SECRET_ALLOWANCE)->isFuture()
+            && hash_equals(hash_hmac('sha256', $body, $shop->previous_shop_secret), $signature);
+    }
+
+    /** Signed app.deleted: the Admin API integration is gone, so the binding and credentials are revoked. */
+    public function revoke(int $shopPk, bool $keepUserData): void
+    {
+        DB::transaction(function () use ($shopPk, $keepUserData) {
+            $peek = ShopwareAppShop::find($shopPk);
+            $c = $peek?->connection_id === null ? null : WebshopConnection::whereKey($peek->connection_id)->lockForUpdate()->first();
+            $shop = ShopwareAppShop::whereKey($shopPk)->lockForUpdate()->first();
+            if ($shop === null) {
+                return;
+            }
+            if ($c !== null && $c->id === $shop->connection_id) {
+                $this->release($c, $shop);
+            }
+            $this->audit->record('integration.shopware_app_deleted', category: AuditCategory::Integration, resource: $shop,
+                metadata: ['shop_id' => $shop->shop_id, 'keep_user_data' => $keepUserData]);
+            if ($keepUserData) {
+                // Shopware asked to keep the shop for a later re-install; its secret still authenticates re-registration.
+                $shop->forceFill(['api_credentials' => null, 'connection_id' => null])->save();
+            } else {
+                $shop->delete();
+            }
+        });
     }
 
     private function bindConfirmed(int $shopPk): void

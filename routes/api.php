@@ -51,6 +51,7 @@ use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyComplianceController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyOAuthController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
+use App\Http\Controllers\Api\V1\Integrations\ShopwareAppWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Notifications\InboxController;
@@ -113,6 +114,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         ->withoutMiddleware('throttle:api')->middleware('throttle:shopware-app')->group(function () {
             Route::get('registration', [ShopwareAppController::class, 'register'])->name('register');
             Route::post('registration/confirm', [ShopwareAppController::class, 'confirm'])->name('confirm');
+            Route::post('webhook', [ShopwareAppWebhookController::class, 'receive'])
+                ->withoutMiddleware('throttle:shopware-app')->middleware('throttle:webhooks-shopware-app')->name('webhook');
         });
 
     Route::post('invitations/preview', [InvitationController::class, 'preview'])

@@ -4,6 +4,7 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -16,7 +17,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /** Shopware6 integration read credentials, entered manually or bound from the app registration handshake (ShopwareAppRegistration). */
-final class ShopwareConnector extends GenericSignedWebhookConnector implements PagedOrderReader
+final class ShopwareConnector extends GenericSignedWebhookConnector implements OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
@@ -92,6 +93,20 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
         }
         if (! $match) {
             throw ApiException::conflict('The provider store identity does not match this connection.', 'provider_store_mismatch');
+        }
+    }
+
+    /** Only the derived app-webhook hint (ShopwareAppWebhookController) carries a lookup ID; it is never order data. */
+    public function notificationOrderId(WebshopConnection $c, string $raw): ?string
+    {
+        $p = json_decode($raw, true);
+        if (! is_array($p) || ($p['source'] ?? null) !== 'shopware_app' || ! is_string($p['order_id'] ?? null)) {
+            return null;
+        }
+        try {
+            return ProviderOrderId::validate($this->platform(), $p['order_id']);
+        } catch (\InvalidArgumentException) {
+            return null;
         }
     }
 

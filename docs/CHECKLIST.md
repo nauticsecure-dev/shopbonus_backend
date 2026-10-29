@@ -741,7 +741,7 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
 - [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
 - [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
-- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix install/remove webhooks (token minting done B23l, search backfill done B23j); Shopware app webhooks/lifecycle (handshake done B23m); full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix install/remove webhooks (token minting done B23l, search backfill done B23j); Shopware live verification (handshake B23m, app webhooks B23n done); full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
 - [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.
 
 ### B23i — Shopify native webhook provisioning (2026-10-28)
@@ -782,3 +782,11 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Encrypted shop secrets and Admin API credentials in shopware_app_shops; binding to exactly one app-registration connection on the verified domain, in either order; generation bump and readiness reset; unbinding when the shop moves URL; manual credentials prohibited in app mode.
 - [x] 7 focused tests / 60 assertions; actual HTTP captures (200, 401 ×2, 422, 503, confirm 204/401) with an independently re-derived proof; OpenAPI + README; OpenApiCoverageTest passes.
 - [ ] Shopware app webhooks/lifecycle events, manifest, action buttons and live Shopware verification NOT RUN.
+
+### B23n — Shopware app webhooks and lifecycle (2026-10-29)
+
+- [x] Contract reviewed: official webhook guide (shop-secret body signature, source.shopId/eventId, timestamp for replay protection, ID-only entity-written payloads) and SDK (previous-secret 60s allowance, app.deleted keepUserData).
+- [x] Public endpoint, 600/min per IP, 1 MiB, ±600s, eventId dedupe; `order.written` → ID-only `order_lookup` events on the bound, generation-current connection; other events ignored.
+- [x] `app.deleted` revokes binding/credentials (generation bump), deletes the shop unless keepUserData; activation/deactivation audited; Shopware connector extracts lookup IDs only from the derived app hint.
+- [x] 5 focused tests / 58 assertions (with B23m: 12/118); actual HTTP captures (order.written, redelivery, ignored, forged 401, app.deleted); OpenAPI + README.
+- [ ] checkout.order.placed / order_transaction mapping, action buttons and live Shopware verification NOT RUN.

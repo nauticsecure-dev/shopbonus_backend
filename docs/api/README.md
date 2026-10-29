@@ -2300,6 +2300,70 @@ X-Request-Id: 01a186b6-4f09-72f8-af45-e20fd074d0f3
 {"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4f09-72f8-af45-e20fd074d0f3","details":{"reason":"signature_invalid"}}}
 ```
 
+### Shopware app webhooks — `POST /api/v1/integrations/shopware/app/webhook` (B23n)
+
+Captured 2026-10-29 with `php artisan serve` on an isolated SQLite file and the database queue (jobs queued, no worker, so no store reads). A verified webshop with an app-registration connection was seeded and the handshake ran over HTTP first. Signatures were computed independently with openssl. Evidence: [B23_SHOPWARE_APP_WEBHOOK_HTTP_CAPTURE.json](../integrations/B23_SHOPWARE_APP_WEBHOOK_HTTP_CAPTURE.json).
+
+Manifest `<webhooks>` should point `order.written`, `app.deleted`, `app.activated` and `app.deactivated` at this URL. Order hints only queue authenticated Admin API reads.
+
+```http
+POST /api/v1/integrations/shopware/app/webhook
+Content-Type: application/json
+shopware-shop-signature: <hex HMAC-SHA256(raw body, shop secret)>
+
+{"data":{"payload":[{"entity":"order","operation":"insert","primaryKey":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},{"entity":"order","operation":"update","primaryKey":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],"event":"order.written"},"source":{"url":"https://fietsen-utrecht.nl","appVersion":"1.0.0","shopId":"sHoP1a2B3c4D5e6F","eventId":"0d1f6a4e-0000-4000-8000-000000000001"},"timestamp":"<UNIX>"}
+```
+
+**Response 200 (two lookups queued)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-1888-7051-9d51-0d2936dbe6ce
+
+{"data":{"received":true,"lookups_queued":2}}
+```
+
+**Response 200 (same eventId again: nothing new)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-18ca-7208-aef2-b3d24d9af75a
+
+{"data":{"received":true,"lookups_queued":0}}
+```
+
+**Response 200 (product.written: ignored)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-18ff-7337-bcae-e6dd9096784a
+
+{"data":{"received":true,"ignored":true}}
+```
+
+**Response 401 (wrong shop secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186c2-1929-70a3-b7cd-1cf3ce584e80
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a186c2-1929-70a3-b7cd-1cf3ce584e80","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 200 (app.deleted, keepUserData false: binding and credentials revoked)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-1960-72db-baae-190f01e8c1c2
+
+{"data":{"received":true,"revoked":true}}
+```
+
 ---
 
 ## Orders: the live Order Sheet (B05, Trello #1)
