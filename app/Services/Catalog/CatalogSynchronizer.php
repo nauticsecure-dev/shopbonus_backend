@@ -74,15 +74,21 @@ class CatalogSynchronizer
             }
             $currency = $reader->catalogCurrency($connection);
             $max = max(1, (int) config('integrations.catalog.max_pages', 50));
+            $cursor = null;
+            $seen = [];
             for ($page = 1; $page <= $max; $page++) {
-                $result = $reader->catalogPage($connection, $sync->kind, $page, $currency);
+                $result = $reader->catalogPage($connection, $sync->kind, $cursor, $currency);
                 if (! $this->store($sync, $result['items'])) {
                     return $this->finish($sync, 'failed', 'credentials_changed');
                 }
                 $sync->forceFill(['pages' => $page])->save();
-                if (($result['pages'] > 0 && $page >= $result['pages']) || count($result['items']) < 100) {
+                if ($result['next'] === null) {
                     return $this->complete($sync);
                 }
+                if (isset($seen[$result['next']])) {
+                    return $this->finish($sync, 'failed', 'provider_pagination_invalid');
+                }
+                $cursor = $seen[$result['next']] = $result['next'];
             }
 
             return $this->finish($sync, 'partial', 'catalog_page_limit');

@@ -59,3 +59,7 @@ Backend re-audit found every #23 backend rule implemented except the "Code Does 
 ## Card #1 continuation — B25, 2026-10-29
 
 Adds the missing read-only catalog/coupon sync and per-connection capability report. WooCommerce products and native coupons sync over the pinned REST v3 read transport; other platforms honestly report UNSUPPORTED/LIMITED. The #1 **backend slice for catalog/coupons/capabilities is complete**; the whole card still needs live provider connections and orders, readers for the other platforms (#32), native storefront banner publication, AI Banner Studio, Order Sheet/catalog frontend and real Answer24 end-to-end evidence.
+
+## Card #32 continuation — B26, 2026-10-29
+
+Adds Shopify as the second native catalog/coupon reader (Admin GraphQL 2026-10, fields verified against the official reference). Products and single-code basic/free-shipping discounts sync read-only; BXGY, app and bulk-code discounts are skipped rather than approximated. #32 still needs readers and mappings for the remaining platforms, real installed stores for all ten integrations, storefront banner publication and live lifecycle evidence.

@@ -1,0 +1,272 @@
+{
+    "environment": "Real local PHP HTTP server (php -S with the Laravel HTTP kernel), isolated synthetic SQLite, file sessions, sync queue. Shopify Admin GraphQL 2026-10 responses and DNS resolver are synthetic capture stubs shaped on the official schema; no real Shopify store was contacted. The stub returns one DiscountCodeBasic and one DiscountCodeBxgy; the BXGY node is skipped by design.",
+    "captured_at": "2026-10-29",
+    "captures": [
+        {
+            "method": "POST",
+            "path": "/login",
+            "request": {
+                "email": "owner.shopify@example.test",
+                "password": "<LOCAL_PASSWORD>"
+            },
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "5",
+                "X-RateLimit-Remaining": "4",
+                "X-Request-Id": "01a1871f-51d5-734b-9082-5da079134b7a"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63hyhyrxt11h051c5ts4t8q",
+                    "first_name": "Jonathan",
+                    "email": "owner.shopify@example.test",
+                    "email_verified": true,
+                    "status": "active",
+                    "onboarding_intent": "consumer",
+                    "locale": "nl",
+                    "roles": [],
+                    "workspaces": [
+                        {
+                            "id": "01m63hyhz7bcezz0y276pnf17n",
+                            "name": "Fietsen Utrecht",
+                            "status": "draft",
+                            "role": "owner",
+                            "is_current": false
+                        }
+                    ],
+                    "destination": "workspace",
+                    "two_factor_enabled": false,
+                    "support_session": null
+                }
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a1871f-5417-716c-993c-5b31f560794a"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63hyn1v4z92f029ps3x6eaa",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T10:05:39+00:00",
+                    "finished_at": "2026-10-29T10:05:39+00:00"
+                }
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a1871f-54cf-7268-a019-565b82379e17"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63hyn6s39tmwt1etxzjpn14",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T10:05:39+00:00",
+                    "finished_at": "2026-10-29T10:05:39+00:00"
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a1871f-54ff-7042-b94c-5138abdcefe6"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "632910392",
+                        "sku": "SF-11",
+                        "name": "Stadsfiets Comfort",
+                        "description": "Comfortabele stadsfiets met 7 versnellingen.",
+                        "url": "https://fietsen-utrecht.nl/products/stadsfiets-comfort",
+                        "image_url": "https://cdn.shopify.com/s/files/stadsfiets.jpg",
+                        "categories": [
+                            {
+                                "id": "77",
+                                "name": "Stadsfietsen"
+                            }
+                        ],
+                        "price_minor": 49995,
+                        "regular_price_minor": null,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": "Fietsen",
+                        "status": "active",
+                        "visibility": null,
+                        "stock_status": "instock",
+                        "stock_quantity": 4,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a1871f-5519-72a5-b47a-86efbeaf2790"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "1057371343",
+                        "code": "WELKOM15",
+                        "discount_type": "percent",
+                        "amount": "15",
+                        "amount_minor": null,
+                        "percent_bps": 1500,
+                        "currency": "EUR",
+                        "minimum_spend_minor": 5000,
+                        "maximum_spend_minor": null,
+                        "usage_limit": 100,
+                        "usage_limit_per_customer": 1,
+                        "usage_count": 3,
+                        "stackable": true,
+                        "exclude_sale_items": false,
+                        "free_shipping": false,
+                        "customer_restricted": false,
+                        "scope": null,
+                        "status": "active",
+                        "expires_at": "2026-12-31T23:00:00+00:00",
+                        "active": true,
+                        "provider_updated_at": "2026-10-21T10:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            }
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/capabilities",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a1871f-552f-70eb-b64c-631b6ce286b0"
+            },
+            "response": {
+                "data": [
+                    {
+                        "capability": "orders",
+                        "status": "LIMITED",
+                        "reason": "The connection has not passed all native verification checks (status setup_required).",
+                        "last_verified_at": null
+                    },
+                    {
+                        "capability": "payments",
+                        "status": "LIMITED",
+                        "reason": "The connection has not passed all native verification checks (status setup_required).",
+                        "last_verified_at": null
+                    },
+                    {
+                        "capability": "refunds",
+                        "status": "LIMITED",
+                        "reason": "The connection has not passed all native verification checks (status setup_required).",
+                        "last_verified_at": null
+                    },
+                    {
+                        "capability": "products",
+                        "status": "AVAILABLE",
+                        "reason": null,
+                        "last_verified_at": "2026-10-29T10:05:39+00:00"
+                    },
+                    {
+                        "capability": "categories",
+                        "status": "AVAILABLE",
+                        "reason": "Categories as assigned to synced products.",
+                        "last_verified_at": "2026-10-29T10:05:39+00:00"
+                    },
+                    {
+                        "capability": "coupons_read",
+                        "status": "AVAILABLE",
+                        "reason": null,
+                        "last_verified_at": "2026-10-29T10:05:39+00:00"
+                    },
+                    {
+                        "capability": "coupons_write",
+                        "status": "UNSUPPORTED",
+                        "reason": "ShopBonus integrations are read-only; native coupons are never created or changed.",
+                        "last_verified_at": null
+                    },
+                    {
+                        "capability": "banner_embed",
+                        "status": "LIMITED",
+                        "reason": "Manual ShopBonus embed only; native storefront publication is not implemented for this platform.",
+                        "last_verified_at": null
+                    },
+                    {
+                        "capability": "webhooks",
+                        "status": "LIMITED",
+                        "reason": "No authenticated provider event received yet.",
+                        "last_verified_at": null
+                    },
+                    {
+                        "capability": "backfill",
+                        "status": "LIMITED",
+                        "reason": "Bounded native order discovery is implemented; not proven for this connection.",
+                        "last_verified_at": null
+                    }
+                ]
+            }
+        }
+    ]
+}

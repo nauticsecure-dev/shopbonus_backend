@@ -815,3 +815,11 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Routes: capabilities, products, coupons (manage), catalog-syncs GET/POST; focused CatalogSyncTest; real-server captures 401/200/422/202/404/403/409; OpenAPI + README.
 - [ ] Catalog/coupon readers for Shopify, Shopware, Wix, Lightspeed, Magento, CCV NOT BUILT (report UNSUPPORTED); live WooCommerce catalog run NOT RUN.
 - [ ] Native storefront banner publication, AI Banner Studio, Order Sheet/catalog UI NOT BUILT (frontend/provider scope).
+
+### B26 — Shopify catalog and code-discount reader, Trello #32 (2026-10-29)
+
+- [x] Field list verified on shopify.dev Admin GraphQL 2026-10 (Product, discountNodes, DiscountCodeBasic/FreeShipping, DiscountPercentage 0.00–1.00, DiscountAmount, DiscountMinimumSubtotal, DiscountContext, DiscountItems, DiscountStatus); deprecated `codeDiscountNodes`/`customerSelection`/`featuredImage` not used.
+- [x] `CatalogReader` now cursor-based (Woo cursor = page number); synchronizer refuses a repeated cursor (`provider_pagination_invalid`).
+- [x] `ShopifyApi::catalog/shopCurrency` fixed queries after the identity/domain/scope gate; `ShopifyCatalog` mappers; shared `CatalogValues` trait; exact-decimal percentage parsing.
+- [x] ShopifyCatalogTest (cursor paging, documented mapping, skipped BXGY/bulk, encrypted codes, missing read_discounts → failed pass); real-server capture B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
+- [ ] Shopware, Wix, Magento, BigCommerce, Lightspeed, CCV, Ecwid, PrestaShop catalog readers NOT BUILT; live Shopify catalog run NOT RUN.

@@ -105,6 +105,48 @@ class ShopifyApi
         return $products;
     }
 
+    private const CATALOG_PRODUCTS = 'query ShopbonusCatalogProducts($after: String) { products(first: 50, after: $after, sortKey: ID) { nodes { id legacyResourceId title description productType status onlineStoreUrl updatedAt totalInventory tracksInventory featuredMedia { preview { image { url } } } priceRangeV2 { minVariantPrice { amount currencyCode } } variants(first: 1) { nodes { sku } } collections(first: 10) { nodes { legacyResourceId title } } } pageInfo { hasNextPage endCursor } } }';
+
+    private const DISCOUNT_COMMON = 'status endsAt updatedAt usageLimit appliesOncePerCustomer asyncUsageCount codesCount { count } codes(first: 2) { nodes { code } } combinesWith { orderDiscounts productDiscounts shippingDiscounts } context { __typename } minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount currencyCode } } }';
+
+    private const CATALOG_DISCOUNTS = 'query ShopbonusCatalogDiscounts($after: String) { discountNodes(first: 25, after: $after, query: "method:code", sortKey: ID) { nodes { id discount { __typename ... on DiscountCodeBasic { '.self::DISCOUNT_COMMON.' customerGets { value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount currencyCode } appliesOnEachItem } } items { __typename ... on DiscountProducts { products(first: 10) { nodes { legacyResourceId } pageInfo { hasNextPage } } } ... on DiscountCollections { collections(first: 10) { nodes { legacyResourceId } pageInfo { hasNextPage } } } } } } ... on DiscountCodeFreeShipping { '.self::DISCOUNT_COMMON.' } } } pageInfo { hasNextPage endCursor } } }';
+
+    /** Store currency after the identity/domain gate (no extra scope). */
+    public function shopCurrency(WebshopConnection $connection): ?string
+    {
+        $this->identity($connection, null);
+        $code = $this->query($connection, 'query ShopbonusCurrency { shop { currencyCode } }')['shop']['currencyCode'] ?? null;
+
+        return is_string($code) ? $code : null;
+    }
+
+    /**
+     * One fixed catalog page: products (read_products) or code discounts (read_discounts).
+     *
+     * @return array{nodes: list<mixed>, next: string|null}
+     */
+    public function catalog(WebshopConnection $connection, string $kind, ?string $after): array
+    {
+        if (! in_array($kind, ['products', 'coupons'], true) || ($after !== null && ($after === '' || strlen($after) > 1024))) {
+            throw new \InvalidArgumentException('Invalid catalog kind or native cursor.');
+        }
+        $this->identity($connection, $kind === 'products' ? 'read_products' : 'read_discounts');
+        $root = $kind === 'products' ? 'products' : 'discountNodes';
+        $data = $this->query($connection, $kind === 'products' ? self::CATALOG_PRODUCTS : self::CATALOG_DISCOUNTS, ['after' => $after]);
+        $list = $data[$root] ?? null;
+        $max = $kind === 'products' ? 50 : 25;
+        if (! is_array($list) || ! is_array($list['nodes'] ?? null) || ! array_is_list($list['nodes']) || count($list['nodes']) > $max
+            || ! is_bool($list['pageInfo']['hasNextPage'] ?? null)) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $next = $list['pageInfo']['hasNextPage'] ? ($list['pageInfo']['endCursor'] ?? null) : null;
+        if ($list['pageInfo']['hasNextPage'] && (! is_string($next) || $next === '' || strlen($next) > 1024)) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+
+        return ['nodes' => $list['nodes'], 'next' => $next];
+    }
+
     /** @return array{ids:list<string>,next:?string} */
     public function discover(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
     {
@@ -190,7 +232,7 @@ class ShopifyApi
         }
     }
 
-    private function identity(WebshopConnection $connection, string $scope = 'read_orders'): void
+    private function identity(WebshopConnection $connection, ?string $scope = 'read_orders'): void
     {
         $data = $this->query($connection, self::SHOP);
         $shop = $data['shop'] ?? null;
@@ -202,6 +244,9 @@ class ShopifyApi
         if (! $workspace->isOwnershipVerified() || ! in_array(strtolower((string) $workspace->verified_domain),
             [DomainName::fromInput($shop['primaryDomain']['host']), DomainName::fromInput($shop['myshopifyDomain'])], true)) {
             throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
+        }
+        if ($scope === null) {
+            return;
         }
         if (! is_array($scopes) || ! array_is_list($scopes)) {
             throw ApiException::conflict('The provider has not proved the required read scopes.', 'provider_scope_missing');

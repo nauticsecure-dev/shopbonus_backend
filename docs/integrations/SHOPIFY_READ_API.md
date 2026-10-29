@@ -38,3 +38,7 @@ Official sources reviewed 2026-10-28:
 - [Version response headers](https://shopify.dev/docs/api/usage/versioning)
 
 Next boundaries: OAuth lifecycle and credential-bound seven-gate readiness; durable missed-event/order/refund reconciliation through the canonical ingestion pipeline; detailed product mappings; remaining native providers. Real installations and storefront/banner modules remain outside this Laravel-only implementation.
+
+## Catalog and code discounts (B26, 2026-10-29)
+
+`POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs` with `kind=products|coupons` now works for Shopify connections. Fixed queries only, after the same identity/verified-domain gate: `ShopbonusCatalogProducts` (50 per page, needs `read_products`), `ShopbonusCatalogDiscounts` (`discountNodes(first: 25, query: "method:code")`, needs `read_discounts`) and `ShopbonusCurrency` (`shop { currencyCode }`). Single-code `DiscountCodeBasic` and `DiscountCodeFreeShipping` map to coupon rows; BXGY, app and bulk-code discounts are skipped. Discount product/collection targets are limited to the first 10 (`product_ids_partial` / `category_ids_partial` when more exist). No mutations. Evidence: `ShopifyCatalogTest`, `B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json` (synthetic upstream).

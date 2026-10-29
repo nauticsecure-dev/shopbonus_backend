@@ -174,11 +174,13 @@ class WooCommerceConnector extends WebhookConnector implements CatalogReader, Pa
         return $code;
     }
 
-    public function catalogPage(WebshopConnection $connection, string $kind, int $page, string $currency): array
+    public function catalogPage(WebshopConnection $connection, string $kind, ?string $cursor, string $currency): array
     {
-        if (! in_array($kind, ['products', 'coupons'], true)) {
-            throw new InvalidArgumentException('Unsupported catalog kind.');
+        if (! in_array($kind, ['products', 'coupons'], true) || ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,3}\z/D', $cursor))) {
+            throw new InvalidArgumentException('Unsupported catalog kind or cursor.');
         }
+        // The cursor is the REST page number.
+        $page = $cursor === null ? 1 : (int) $cursor;
         $result = app(WooCommerceApi::class)->get($connection, $kind, $page, ['per_page' => 100], (int) config('integrations.catalog.max_pages', 50));
         $items = [];
         foreach (array_is_list($result['data']) ? $result['data'] : throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid') as $item) {
@@ -188,7 +190,9 @@ class WooCommerceConnector extends WebhookConnector implements CatalogReader, Pa
             $items[] = $kind === 'products' ? WooCommerceCatalog::product($item, $currency) : WooCommerceCatalog::coupon($item, $currency);
         }
 
-        return ['items' => $items, 'pages' => $result['pages']];
+        $last = ($result['pages'] > 0 && $page >= $result['pages']) || count($items) < 100;
+
+        return ['items' => $items, 'next' => $last ? null : (string) ($page + 1)];
     }
 
     public function syncOrders(WebshopConnection $connection, CarbonImmutable $since): iterable

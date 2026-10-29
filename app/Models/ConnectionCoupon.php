@@ -34,12 +34,12 @@ class ConnectionCoupon extends Model
             'expires_at' => 'immutable_datetime', 'provider_updated_at' => 'immutable_datetime', 'removed_at' => 'immutable_datetime'];
     }
 
-    /** Usable at the provider as far as the snapshot shows: published, not expired, uses left. */
+    /** Usable at the provider as far as the snapshot shows: published/active, not expired, uses left. */
     public function isActive(?CarbonImmutable $now = null): bool
     {
         $now ??= CarbonImmutable::now();
 
-        return in_array($this->status, [null, 'publish'], true) && $this->removed_at === null
+        return in_array($this->status, [null, 'publish', 'active'], true) && $this->removed_at === null
             && ($this->expires_at === null || $this->expires_at->isAfter($now))
             && ($this->usage_limit === null || $this->usage_count < $this->usage_limit);
     }

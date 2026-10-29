@@ -15823,3 +15823,58 @@ X-Request-Id: 01a186ff-88a0-71a0-8408-e45e9bcfe3ee
 
 {"error":{"status":409,"code":"connection_disconnected","message":"This connection is disconnected. Create a new one.","request_id":"01a186ff-88a0-71a0-8408-e45e9bcfe3ee"}}
 ```
+
+
+### Shopify catalog and code discounts (B26, Trello #32)
+
+Same endpoints; a Shopify connection now has a native reader. Fixed Admin GraphQL 2026-10 read queries only (products with `read_products`; `discountNodes(query: "method:code")` with `read_discounts`; `shop { currencyCode }`), after the existing store identity, verified-domain and scope gate. Single-code `DiscountCodeBasic` and `DiscountCodeFreeShipping` become coupons; BXGY, app and bulk-code discounts are skipped. Percentages are read as exact decimals (0.00–1.00). Captured on a real local PHP HTTP server with synthetic Shopify GraphQL stubs (no real store): `docs/integrations/B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json`. The stub also returned a BXGY discount, which is why the coupon pass reports 1 item.
+
+`POST /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/catalog-syncs  {"kind":"products"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1871f-5417-716c-993c-5b31f560794a
+
+{"data":{"id":"01m63hyn1v4z92f029ps3x6eaa","kind":"products","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T10:05:39+00:00","finished_at":"2026-10-29T10:05:39+00:00"}}
+```
+
+`POST /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/catalog-syncs  {"kind":"coupons"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1871f-54cf-7268-a019-565b82379e17
+
+{"data":{"id":"01m63hyn6s39tmwt1etxzjpn14","kind":"coupons","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T10:05:39+00:00","finished_at":"2026-10-29T10:05:39+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/products    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1871f-54ff-7042-b94c-5138abdcefe6
+
+{"data":[{"external_id":"632910392","sku":"SF-11","name":"Stadsfiets Comfort","description":"Comfortabele stadsfiets met 7 versnellingen.","url":"https://fietsen-utrecht.nl/products/stadsfiets-comfort","image_url":"https://cdn.shopify.com/s/files/stadsfiets.jpg","categories":[{"id":"77","name":"Stadsfietsen"}],"price_minor":49995,"regular_price_minor":null,"sale_price_minor":null,"currency":"EUR","type":"Fietsen","status":"active","visibility":null,"stock_status":"instock","stock_quantity":4,"provider_updated_at":"2026-10-20T09:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/coupons    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1871f-5519-72a5-b47a-86efbeaf2790
+
+{"data":[{"external_id":"1057371343","code":"WELKOM15","discount_type":"percent","amount":"15","amount_minor":null,"percent_bps":1500,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":1,"usage_count":3,"stackable":true,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/capabilities    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1871f-552f-70eb-b64c-631b6ce286b0
+
+{"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"categories","status":"AVAILABLE","reason":"Categories as assigned to synced products.","last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"coupons_read","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
+```

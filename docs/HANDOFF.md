@@ -1,3 +1,26 @@
+# Active handoff — #32 B26 Shopify catalog/discount reader; whole #32 not Done (2026-10-29, Claude)
+
+Branch `main`. Base `9d5281d` (B25, [CI 40851533268](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40851533268) SUCCESS on all 3 jobs). Owner: #1 backend done → moved to frontend (Hassan); continue #32 then #22. D-089 unchanged. Credentials senior-owned.
+
+B26:
+- `CatalogReader::catalogPage(..., ?string $cursor, ...)` now returns `{items, next}` (cursor-based). WooCommerce uses the REST page number as cursor. `CatalogSynchronizer` follows `next`, refuses a repeated cursor (`provider_pagination_invalid`).
+- `ShopifyApi::catalog()` / `shopCurrency()`: fixed Admin GraphQL 2026-10 queries `ShopbonusCatalogProducts` (products first 50, read_products), `ShopbonusCatalogDiscounts` (discountNodes first 25, `method:code`, read_discounts), `ShopbonusCurrency`; identity/domain gate first (`identity()` accepts a null scope for currency only).
+- `ShopifyCatalog` mappers (fields verified on shopify.dev 2026-10 reference; deprecated codeDiscountNodes/customerSelection/featuredImage avoided). Single-code DiscountCodeBasic/FreeShipping → coupon; BXGY/app/bulk skipped. Percentage parsed from the exact decimal string the pinned reader returns (0.00–1.00). Discount targets first 10 (`*_partial` keys when more).
+- Shared `CatalogValues` trait (extracted from WooCommerceCatalog). `ConnectionCoupon::isActive` accepts Shopify `active`.
+- No migration, no new route.
+
+Executed evidence:
+- ShopifyCatalogTest 3 PASS; CatalogSyncTest 4 PASS; Shopify suites PASS.
+- Full SQLite: 897 tests, 874 passed + 23 skipped, 10798 assertions.
+- Full MySQL 8: 897 tests, 895 passed + 2 skipped, 10881 assertions, 322.5s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server capture with synthetic Shopify GraphQL stubs: docs/integrations/B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json, OpenAPI examples, README, SHOPIFY_READ_API.md.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–130000 NOT applied there.
+
+Whole #32 remains not Done: catalog/coupon readers for Shopware, Wix, Magento, BigCommerce, Lightspeed, CCV, Ecwid, PrestaShop (only from verified official schemas); real installed stores for all ten integrations; storefront banner publication; live lifecycle evidence. Exact next: Shopware 6 Admin API products/promotions reader (verify the official Admin API schema first), then Wix Stores products + coupons, then #22.
+
+---
 # Active handoff — #1 B25 catalog/coupon sync + capability report; #1 backend slice complete, whole card not Done (2026-10-29, Claude)
 
 Branch `main`. Base `425571b` (B24, [CI 40847704631](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40847704631) SUCCESS on all 3 jobs). Owner request: continue remaining Frank cards (#1, #22, #32) easiest first; #23 backend done and moved to frontend (Hassan) by the owner. D-089 unchanged. Credentials senior-owned.
