@@ -51,3 +51,7 @@ Owner assigned credentials to the senior developer and requested main backend co
 ## Card #25 main-code continuation — 2026-10-26
 
 B14b `d561f8d` implements queued AI Create/Insights, strict evidence/privacy/budgets, reviewed editable private drafts, immutable A/B/holdout launch, consented assignment/withdrawal, validated event linkage and generic/WooCommerce/Shopify assignment metadata. Current editor membership revocation is enforced. CI `40281914885` passed full SQLite503+13skip / MySQL514+2skip and quality checks. Main documented backend slice can be handed to Hassan; senior developer configures credentials and validates live model/storefront/provider propagation. Whole-card Done still requires frontend, genuine site/cart/provider and staging acceptance. See `banners/AI_EXPERIMENTS.md`.
+
+## Card #23 continuation — B24, 2026-10-29
+
+Backend re-audit found every #23 backend rule implemented except the "Code Does Not Work" screenshot. B24 adds encrypted screenshot upload with Super Admin-only audited download. The #23 **backend slice is complete**; the whole card still needs real WooCommerce/second-platform/Mollie/Answer24 runs, frontend and production evidence. AI screenshot analysis (optional) not built. Card #23's 403-for-cross-workspace wording stays answered by the deliberate audited 404.

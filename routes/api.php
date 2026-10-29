@@ -311,6 +311,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('cookie-consents/stats', [AdminCookiePolicyController::class, 'stats'])->name('cookie-consents.stats');
                 });
                 Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
+                Route::get('disputes/{dispute}/evidence/{file}', [AdminDisputeController::class, 'evidence'])->name('disputes.evidence');
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {

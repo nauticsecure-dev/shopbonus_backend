@@ -1,3 +1,25 @@
+# Active handoff — #23 B24 "Code does not work" screenshot evidence; #23 backend slice complete, whole card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `737219f` (B23o + CI evidence). Owner request: continue all remaining Frank cards (#1, #22, #23, #32) easiest first. #31 was moved to Testing by the owner. D-089 unchanged. Credentials senior-owned.
+
+Audit of #23 against the code: every backend requirement already existed (12-month lots, oldest-expiry-first spend, one voucher model with Answer24 handoff and wallet/Mollie purchase, one-time compensation, workspace isolation, signed webhooks, audit chain) except the screenshot on the "Code Does Not Work" form. B24 adds it:
+- `POST /api/v1/consumer/disputes` accepts optional multipart `screenshots[]` (max 3, JPEG/PNG/WebP, 5 MB, content-sniffed and must decode with 16–8000 px dimensions).
+- Files are encrypted (`Crypt`) under `dispute-evidence/{dispute}/{uuid}.enc` before the row is created; a duplicate-report 409 or any failure removes them. Metadata in new `voucher_disputes.evidence` JSON (migration `2026_10_29_120000`).
+- New `GET /api/v1/admin/disputes/{dispute}/evidence/{file}`: Super Admin only, audited `admin.dispute_evidence_downloaded`, attachment + nosniff + no-store. Merchant view exposes only a screenshot count.
+- Not implemented: AI analysis of screenshots (card says "may"); replacement stays an admin decision applied at most once (existing).
+
+Executed evidence:
+- VoucherDisputeTest 6 tests PASS (new test: disguised file 422 with no stored file, encrypted at rest, orphan-free 409, consumer 403, merchant count only, admin byte-identical audited download, unknown/traversal 404).
+- Full SQLite: 890 tests, 867 passed + 23 skipped, 10619 assertions.
+- Full MySQL 8: 890 tests, 888 passed + 2 skipped, 10702 assertions, 319.8s.
+- Pint --test PASS; PHPStan L6 0 errors; OpenApiCoverageTest PASS.
+- Actual HTTP captures (php artisan serve, isolated SQLite, real session login + TOTP challenge): 422, 201, 403, 200 (byte-identical), 404, 401 in docs/support/B24_DISPUTE_SCREENSHOT_HTTP_CAPTURE.json, OpenAPI and README.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000, 110000 and 120000 are NOT applied there.
+
+Whole #23 remains not Done: real WooCommerce/second-platform/Mollie/Answer24 runs, frontend audit, backups and production evidence are external. Exact next (easiest first): #1 remaining backend gaps (catalog/coupon sync API, capability report per connection), then #32 per-provider line/catalog/coupon mappings from official schemas, then #22 (release QA, mostly external).
+
+---
 # Active handoff — #31 B23o Wix webhook envelope fix + AppRemoved, whole card IN_PROGRESS (2026-10-29, Claude)
 
 Branch `main`. Base `daecc72` (B23n, [CI 40842608297](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40842608297) SUCCESS on all 3 jobs). Session commits: `f23f3a9` B23i/j, `c478831` B23k, `0274a77` B23l, `9f0d7fa` B23m, `daecc72` B23n; all CI green. D-089 unchanged. Credentials senior-owned.

@@ -5175,10 +5175,22 @@ paths:
       summary: "Report a voucher problem"
       description: |
         About one of your vouchers (`voucher_id`) or purchases (`checkout_id`). Reasons: `code_invalid`, `code_already_used`, `refused_by_webshop`, `terms_differ`, `missing_after_payment`, `other`. Plain text only. One open report per voucher/purchase (409). Audited.
+
+        "Code does not work" screenshots (Trello #23): send `multipart/form-data` with up to 3 `screenshots[]` (JPEG/PNG/WebP, max 5 MB, 16–8000 px). The type is content-sniffed and the image must decode, so a disguised file is refused (422). Files are stored encrypted in private storage and only a Super Admin can download them (`GET /api/v1/admin/disputes/{dispute}/evidence/{file}`). Responses list `screenshots` metadata (id, sanitized name, type, size); the merchant view shows only their count. Examples captured before this field existed omit `screenshots`; current responses always include it (`[]` when none).
       x-access: verified
       requestBody:
         required: true
         content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [reason, description]
+              properties:
+                voucher_id: { type: string }
+                checkout_id: { type: string }
+                reason: { type: string, enum: [code_invalid, code_already_used, refused_by_webshop, terms_differ, missing_after_payment, other] }
+                description: { type: string, minLength: 10, maxLength: 2000 }
+                'screenshots[]': { type: array, maxItems: 3, items: { type: string, format: binary } }
           application/json:
             schema:
               type: object
@@ -5195,12 +5207,24 @@ paths:
             curl -i -X POST 'http://localhost:8000/api/v1/consumer/disputes' \
               -H 'Accept: application/json' -H 'Authorization: Bearer <token>' \
               -H 'Content-Type: application/json' -d '{"voucher_id":"<id>","reason":"code_invalid","description":"..."}'
+        - lang: curl
+          label: With screenshot (browser session)
+          source: |
+            curl -i -b jar -c jar -X POST 'http://localhost:8000/api/v1/consumer/disputes' \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' \
+              -H "X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>" \
+              -F voucher_id=<id> -F reason=code_invalid -F 'description=The webshop rejects this code at checkout.' \
+              -F 'screenshots[]=@checkout error.png;type=image/png'
       responses:
         '201':
-          description: "Opened."
+          description: "Opened. `with_screenshot` is a captured multipart report."
           content:
             application/json:
-              example: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}}
+              examples:
+                with_screenshot:
+                  value: {"data":{"id":"01m63e9zvtfsbcpexa7yh3kp5n","status":"open","reason":"code_invalid","description":"The webshop rejects this code at checkout.","screenshots":[{"id":"01a186e4-ff7a-730d-b093-2e8e830ffe65","name":"checkout_error.png","mime":"image/png","size":99}],"webshop":"Woon & Co","voucher_id":"01m63e8y3b5xys4p4xw9rcedc9","checkout_id":null,"resolution":null,"created_at":"2026-10-29T09:01:56+00:00"}}
+                json_without_screenshot:
+                  value: {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"open","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":null,"created_at":"2026-10-24T07:42:09+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
@@ -5208,7 +5232,11 @@ paths:
           content:
             application/json:
               example: {"error":{"status":409,"code":"dispute_already_open","message":"There is already an open report for this voucher.","request_id":"01a16cdc-261a-70cf-ac65-2c30f55ed593"}}
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '422':
+          description: "Invalid input, e.g. a disguised (non-image) screenshot."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a186e4-fedf-71b8-a7db-cfafc8e97601","fields":{"screenshots.0":["The screenshots.0 field must be a file of type: image/jpeg, image/png, image/webp.","The screenshots.0 field has invalid image dimensions."]}}}
     get:
       tags: [Consumer]
       operationId: myDisputes
@@ -5430,6 +5458,45 @@ paths:
             application/json:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cdc-2a8f-73e0-83ac-09ac69790070"}}
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/disputes/{dispute}/evidence/{file}:
+    parameters:
+      - { name: dispute, in: path, required: true, description: Dispute public ID., schema: { type: string } }
+      - { name: file, in: path, required: true, description: Screenshot ID (from the dispute's `screenshots`)., schema: { type: string } }
+    get:
+      tags: [Admin]
+      operationId: adminDownloadDisputeEvidence
+      summary: "Download a report screenshot"
+      description: |
+        Decrypts and streams a consumer's "Code does not work" screenshot as an attachment (`X-Content-Type-Options: nosniff`, `Cache-Control: no-store`). Super Admin only; consumers and merchants get 403. Every download is audited (`admin.dispute_evidence_downloaded`). Unknown or foreign file IDs return 404.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            # Browser session (after /login and /two-factor-challenge)
+            curl -i -b jar -c jar -X GET http://localhost:8000/api/v1/admin/disputes/<dispute id>/evidence/<file id> \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -o screenshot.png
+      responses:
+        '200':
+          description: "The original image (binary; captured: 99-byte PNG identical to the upload, served as `image/png`, `Content-Disposition: attachment; filename=\"checkout_error.png\"`)."
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary, description: 'Served with the stored type (image/jpeg, image/png or image/webp) as an attachment.' }
+        '401':
+          description: "Not signed in."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a186e5-4a7d-7311-b3de-2a946ba9022c"}}
+        '403':
+          description: "Not a platform administrator (captured as the reporting consumer)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a186e5-4a07-7276-ab90-95c7daf44462"}}
+        '404':
+          description: "No such screenshot on this report."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Screenshot not found.","request_id":"01a186e5-4a5e-7342-8502-80274f493bde"}}
 
   /api/v1/admin/disputes/{dispute}/status:
     parameters:

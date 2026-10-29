@@ -28,6 +28,9 @@ class DisputeController extends Controller
             'checkout_id' => ['required_without:voucher_id', 'nullable', 'string', 'max:40'],
             'reason' => ['required', Rule::in(VoucherDispute::REASONS)],
             'description' => ['required', 'string', 'min:10', 'max:2000', 'not_regex:/<[^>]*>/'],
+            'screenshots' => ['sometimes', 'array', 'max:3'],
+            // Content-sniffed type plus real decoding (dimensions) rejects disguised or corrupt files.
+            'screenshots.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:min_width=16,min_height=16,max_width=8000,max_height=8000'],
         ]);
         /** @var User $user */
         $user = $request->user();
@@ -37,7 +40,7 @@ class DisputeController extends Controller
         $checkout = isset($data['checkout_id']) ? (VoucherCheckout::where('public_id', $data['checkout_id'])->where('user_id', $user->id)->first()
             ?? throw new ApiException('Purchase not found.', 404, 'not_found')) : null;
 
-        return response()->json(['data' => self::present($disputes->open($user, $voucher, $checkout, $data['reason'], $data['description']))], 201);
+        return response()->json(['data' => self::present($disputes->open($user, $voucher, $checkout, $data['reason'], $data['description'], array_values($request->file('screenshots', []))))], 201);
     }
 
     public function index(Request $request): JsonResponse
@@ -58,6 +61,7 @@ class DisputeController extends Controller
     {
         $out = [
             'id' => $d->public_id, 'status' => $d->status, 'reason' => $d->reason, 'description' => $d->description,
+            'screenshots' => array_map(fn (array $m) => ['id' => $m['id'], 'name' => $m['name'], 'mime' => $m['mime'], 'size' => $m['size']], $d->evidence ?? []),
             'webshop' => DB::table('webshops')->where('id', $d->webshop_id)->value('name'),
             'voucher_id' => $d->voucher_id === null ? null : Voucher::whereKey($d->voucher_id)->value('public_id'),
             'checkout_id' => $d->checkout_id === null ? null : VoucherCheckout::whereKey($d->checkout_id)->value('public_id'),

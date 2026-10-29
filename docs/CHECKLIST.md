@@ -797,3 +797,11 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] AppInstalled/AppRemoved eventTypes confirmed in the official app-instances SDK; content-hash dedupe; AppRemoved → native-proof uninstall processing shared with Shopify; AppInstalled has no effect.
 - [x] Tests: WixConnectorTest (2/9) and WixAppRemovedTest (3/13): revoked → disconnect, valid grant → ignored, redelivery deduped, installed → no HTTP or effect.
 - [ ] Live Wix removal status codes NOT RUN.
+
+### B24 — "Code does not work" screenshot evidence, Trello #23 (2026-10-29)
+
+- [x] #23 backend audit: wallet expiry/oldest-first, one voucher model, one-time replacement, isolation and audit already implemented; only screenshot upload missing.
+- [x] Optional multipart `screenshots[]` (≤3, JPEG/PNG/WebP, ≤5 MB, content-sniffed, must decode); encrypted private storage; files removed on 409/failure; `voucher_disputes.evidence` metadata.
+- [x] Super Admin-only audited download (attachment, nosniff, no-store); consumer/merchant 403; merchant view shows count only.
+- [x] Focused test (disguised 422, encryption, orphan-free 409, 403, byte-identical download, 404); real-server captures 422/201/403/200/404/401; OpenAPI + README.
+- [ ] AI screenshot analysis (optional on card) NOT BUILT; live WooCommerce/Mollie/Answer24 E2E for #23 NOT RUN.

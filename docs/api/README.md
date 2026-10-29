@@ -5034,6 +5034,71 @@ X-Request-Id: 01a16cdc-2944-72d6-814f-10080476ed4a
 {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"resolved","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":{"note":"Invalid code confirmed by the webshop; card payment refunded","compensation":"refund","amount_minor":2000,"at":"2026-10-24T07:42:10+00:00"},"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"resolved","note":"resolved: Invalid code confirmed by the webshop; card payment refunded","at":"2026-10-24T07:42:10+00:00"},{"by":"admin","type":"compensated","note":"refund 2000","at":"2026-10-24T07:42:10+00:00"}]}}
 ```
 
+**"Code does not work" with a screenshot (Trello #23, B24)** — captured on `php artisan serve`, isolated SQLite, real session login and TOTP challenge for the admin. Multipart, up to 3 `screenshots[]` (JPEG/PNG/WebP ≤5 MB, must decode). Encrypted at rest; Super Admin download only, audited (`admin.dispute_evidence_downloaded`); merchants see only a count. Responses captured before B24 omit `screenshots`.
+
+`POST /api/v1/consumer/disputes  multipart: voucher_id, reason=code_invalid, description, screenshots[]=<PHP source renamed .png>`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a186e4-fedf-71b8-a7db-cfafc8e97601
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a186e4-fedf-71b8-a7db-cfafc8e97601","fields":{"screenshots.0":["The screenshots.0 field must be a file of type: image\/jpeg, image\/png, image\/webp.","The screenshots.0 field has invalid image dimensions."]}}}
+```
+
+`POST /api/v1/consumer/disputes  multipart: voucher_id, reason=code_invalid, description, screenshots[]=@"checkout error.png"`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a186e4-ff72-7359-bcc6-af1c417b0ed5
+
+{"data":{"id":"01m63e9zvtfsbcpexa7yh3kp5n","status":"open","reason":"code_invalid","description":"The webshop rejects this code at checkout.","screenshots":[{"id":"01a186e4-ff7a-730d-b093-2e8e830ffe65","name":"checkout_error.png","mime":"image\/png","size":99}],"webshop":"Woon & Co","voucher_id":"01m63e8y3b5xys4p4xw9rcedc9","checkout_id":null,"resolution":null,"created_at":"2026-10-29T09:01:56+00:00"}}
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/01a186e4-ff7a-730d-b093-2e8e830ffe65    (consumer session)`
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a186e5-4a07-7276-ab90-95c7daf44462
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a186e5-4a07-7276-ab90-95c7daf44462"}}
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/01a186e4-ff7a-730d-b093-2e8e830ffe65    (admin session after 2FA)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Content-Disposition: attachment; filename="checkout_error.png"
+X-Content-Type-Options: nosniff
+Cache-Control: no-store, private
+X-Request-Id: 01a186e5-4a31-7148-9197-0eb1def87eeb
+
+<99-byte PNG, byte-identical to the upload>
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/00000000-0000-4000-8000-000000000000    (admin)`
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+X-Request-Id: 01a186e5-4a5e-7342-8502-80274f493bde
+
+{"error":{"status":404,"code":"not_found","message":"Screenshot not found.","request_id":"01a186e5-4a5e-7342-8502-80274f493bde"}}
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/01a186e4-ff7a-730d-b093-2e8e830ffe65    (no session)`
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186e5-4a7d-7311-b3de-2a946ba9022c
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a186e5-4a7d-7311-b3de-2a946ba9022c"}}
+```
+
 **Admin: paid but unfulfilled checkouts**
 
 `GET /api/v1/admin/checkouts?state=paid_unfulfilled    (session cookie + X-XSRF-TOKEN)`

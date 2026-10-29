@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Api\V1\Consumer\CheckoutController;
 use App\Http\Controllers\Api\V1\Consumer\DisputeController as ConsumerDisputeController;
 use App\Http\Controllers\Controller;
 use App\Models\VoucherCheckout;
 use App\Models\VoucherDispute;
+use App\Services\Audit\AuditLogger;
 use App\Services\Disputes\DisputeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 /**
@@ -19,7 +22,7 @@ use Illuminate\Validation\Rule;
  */
 class DisputeController extends Controller
 {
-    public function __construct(private readonly DisputeService $disputes) {}
+    public function __construct(private readonly DisputeService $disputes, private readonly AuditLogger $audit) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -32,6 +35,21 @@ class DisputeController extends Controller
     public function show(string $dispute): JsonResponse
     {
         return response()->json(['data' => ConsumerDisputeController::present($this->find($dispute), withTimeline: true)]);
+    }
+
+    /** Private screenshot download for review; audited, never cached, never rendered inline. */
+    public function evidence(string $dispute, string $file): Response
+    {
+        $d = $this->find($dispute);
+        [$meta, $bytes] = $this->disputes->evidence($d, $file) ?? throw new ApiException('Screenshot not found.', 404, 'not_found');
+        $this->audit->record('admin.dispute_evidence_downloaded', category: AuditCategory::Admin, resource: $d, webshopId: $d->webshop_id, metadata: ['file_id' => $file]);
+
+        return response($bytes, 200, [
+            'Content-Type' => $meta['mime'],
+            'Content-Disposition' => 'attachment; filename="'.$meta['name'].'"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'no-store',
+        ]);
     }
 
     public function status(Request $request, string $dispute): JsonResponse

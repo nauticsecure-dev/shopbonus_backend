@@ -22,7 +22,10 @@ use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
@@ -174,6 +177,46 @@ class VoucherDisputeTest extends TestCase
         $this->assertSame(['opened', 'status_changed', 'merchant_response', 'status_changed', 'resolved', 'compensated'], array_column($timeline, 'type'));
         Sanctum::actingAs(User::factory()->create());
         $this->getJson("/api/v1/consumer/disputes/{$id}")->assertNotFound();
+    }
+
+    public function test_card23_code_does_not_work_report_keeps_screenshot_private_and_encrypted(): void
+    {
+        Storage::fake('local');
+        $v = $this->issued();
+        Sanctum::actingAs($this->anna);
+        $disguised = UploadedFile::fake()->createWithContent('screenshot.png', '<?php echo "x"; ?>');
+        $this->post('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'code_invalid', 'description' => 'The webshop rejects this code at checkout.',
+            'screenshots' => [$disguised]], ['Accept' => 'application/json'])->assertStatus(422)->assertJsonPath('error.code', 'validation_failed')->assertJsonStructure(['error' => ['fields' => ['screenshots.0']]]);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+
+        $shot = UploadedFile::fake()->image('checkout error.png', 400, 300);
+        $res = $this->post('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'code_invalid', 'description' => 'The webshop rejects this code at checkout.',
+            'screenshots' => [$shot]], ['Accept' => 'application/json'])->assertCreated();
+        $id = $res->json('data.id');
+        $file = $res->json('data.screenshots.0');
+        $this->assertSame(['checkout_error.png', 'image/png'], [$file['name'], $file['mime']]);
+        $stored = Storage::disk('local')->get("dispute-evidence/{$id}/{$file['id']}.enc");
+        $this->assertStringNotContainsString(substr((string) $shot->get(), 0, 16), (string) $stored);
+        $this->assertSame(1, AuditEvent::where('action', 'dispute.opened')->value('metadata')['screenshots']);
+
+        // A second report on the same voucher is refused and leaves no orphaned file.
+        $this->post('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'other', 'description' => 'Another report about this code.',
+            'screenshots' => [UploadedFile::fake()->image('again.png', 50, 50)]], ['Accept' => 'application/json'])->assertStatus(409);
+        $this->assertCount(1, Storage::disk('local')->allFiles());
+
+        // Consumer and merchant cannot download; the merchant only learns that evidence exists.
+        $this->get("/api/v1/admin/disputes/{$id}/evidence/{$file['id']}", ['Accept' => 'application/json'])->assertForbidden();
+        Sanctum::actingAs($this->owner);
+        $this->assertSame(1, $this->getJson($this->ws('/disputes'))->assertOk()->json('data.0.screenshots'));
+
+        $this->asAdmin();
+        $download = $this->get("/api/v1/admin/disputes/{$id}/evidence/{$file['id']}")->assertOk()
+            ->assertHeader('Content-Type', 'image/png')->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('no-store', (string) $download->headers->get('Cache-Control'));
+        $this->assertSame((string) $shot->get(), $download->getContent());
+        $this->assertSame(1, AuditEvent::where('action', 'admin.dispute_evidence_downloaded')->count());
+        $this->getJson("/api/v1/admin/disputes/{$id}/evidence/".Str::uuid())->assertNotFound();
+        $this->getJson("/api/v1/admin/disputes/{$id}/evidence/..%2F..%2Fx")->assertNotFound();
     }
 
     public function test_replacement_and_refund_compensation_and_rejection(): void

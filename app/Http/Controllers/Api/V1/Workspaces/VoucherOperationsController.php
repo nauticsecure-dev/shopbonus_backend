@@ -63,7 +63,7 @@ class VoucherOperationsController extends Controller
     }
 
     /**
-     * The consumer's description and timeline, but no consumer identity.
+     * The consumer's description and timeline, but no consumer identity or screenshots.
      *
      * @return array<string, mixed>
      */
@@ -73,6 +73,8 @@ class VoucherOperationsController extends Controller
         $voucher = $d->voucher_id === null ? null : Voucher::with('code')->find($d->voucher_id);
         $view['code_last4'] = $voucher?->code->code_last4;
         unset($view['checkout_id']);
+        // Screenshots can show consumer details; merchants only learn that evidence exists.
+        $view['screenshots'] = count($view['screenshots']);
 
         return $view;
     }

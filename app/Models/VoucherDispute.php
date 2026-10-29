@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $checkout_id
  * @property string $reason
  * @property string $description
+ * @property list<array{id: string, name: string, mime: string, size: int}>|null $evidence
  * @property string $status
  * @property string|null $compensation
  * @property int|null $compensation_amount_minor
@@ -44,7 +45,7 @@ class VoucherDispute extends Model
 
     protected function casts(): array
     {
-        return ['compensation_amount_minor' => 'integer', 'compensated_at' => 'immutable_datetime', 'resolved_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];
+        return ['evidence' => 'array', 'compensation_amount_minor' => 'integer', 'compensated_at' => 'immutable_datetime', 'resolved_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];
     }
 
     /** @return list<string> */
