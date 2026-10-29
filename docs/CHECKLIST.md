@@ -741,7 +741,7 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
 - [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
 - [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
-- [ ] Remaining Laravel implementation: Shopify privacy compliance callbacks (hook provisioning done B23i); Wix app token lifecycle (search backfill done B23j); Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix app token lifecycle (search backfill done B23j); Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
 - [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.
 
 ### B23i — Shopify native webhook provisioning (2026-10-28)
@@ -750,10 +750,19 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Opt-in senior configuration, approved OAuth app authority/signing-secret checks, per-connection lock, generation/store guards before/after external work, audit metadata without secrets.
 - [x] Provider-authoritative listing before creation and after ambiguous outcomes/rerun; existing foreign subscriptions untouched, truncated/filtered/duplicate mappings never certified.
 - [x] Operator repair command and bounded per-topic OAuth jobs; provisioning cannot promote readiness or ingest orders.
-- [x] Focused authorization, stale-generation, unknown outcome, replay and pagination tests; docs/checkpoint updates and final quality evidence (full SQLite 862/839+23skip, MySQL 862/860+2skip, Pint/PHPStan pass; CI recorded in HANDOFF). Command tests added. No new public endpoint, no fabricated HTTP examples.
+- [x] Focused authorization, stale-generation, unknown outcome, replay and pagination tests; docs/checkpoint updates and final quality evidence (full SQLite 862/839+23skip, MySQL 862/860+2skip, Pint/PHPStan pass; f23f3a9 CI40836390758 all3 SUCCESS). Command tests added. No new public endpoint, no fabricated HTTP examples.
 
 ### B23j — Wix durable order discovery (2026-10-28)
 
 - [x] Reviewed current eCommerce Search Orders fixed endpoint/query, UTC update window, bounded cursor and explicit non-initialized status coverage; continuation pages send cursor only (Wix forbids cursor with filter/sort); no transaction-derived settlement date invented. INITIALIZED orders remain unreachable via search.
 - [x] Reuse PagedOrderReader/BulkSynchronization/OrderRecovery with canonical UUIDs and native instance/site/domain authentication; no new endpoint/table.
 - [x] Focused cursor/store/window/status/invalid-response tests and accurate provider coverage limitations; documentation and checkpoint evidence.
+
+### B23k — Shopify privacy compliance intake (2026-10-29)
+
+- [x] Official contract reviewed (shopify.dev privacy-law-compliance + HTTPS delivery, 2026-10): three topics, TOML `compliance_topics` app-level URI, HMAC with app client secret, 401 on invalid HMAC, 200 ack, dedupe on X-Shopify-Webhook-Id, 30-day completion, shop/redact 48h after uninstall.
+- [x] Public route, per-IP limiter 300/min, 1 MiB limit, 503 when secret unconfigured; verification before anything is stored; rejection audit at most once per minute per reason.
+- [x] Durable encrypted storage once per webhook ID, redelivery counted, 30-day due date, topic shape validation with authentic-but-unexpected bodies kept for review; audit without customer data.
+- [x] Operator command lists pending/overdue requests with matching Shopify connection counts and records completed/retained once (audited). No automatic erasure or export (D-099, OPEN-SHOPIFY-PRIVACY-EXECUTION).
+- [x] 7 focused tests / 46 assertions; actual local HTTP captures (200 ×3 topics, duplicate, 401, 413, 503) in B23_COMPLIANCE_HTTP_CAPTURE.json; OpenAPI + README updated; OpenApiCoverageTest passes.
+- [ ] Execution of erasure/export once legal defines retention; live Shopify App Store compliance review NOT RUN.

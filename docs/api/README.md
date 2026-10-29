@@ -2147,6 +2147,72 @@ Content-Type: application/json
 {"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1694b-b8a3-7215-936d-10bce88e346d"}}
 ```
 
+### Shopify privacy compliance webhooks — `POST /api/v1/integrations/shopify/compliance` (B23k)
+
+Captured 2026-10-29 with `php artisan serve` on an isolated SQLite file, `CACHE_STORE=array`, sync queue, `APP_DEBUG=false`. Bodies were signed independently with `openssl dgst -sha256 -hmac` using a synthetic client secret; HMACs and delivery IDs are redacted. Synthetic data only, no Shopify store. Rate-limit headers omitted (array cache). Full evidence: [B23_COMPLIANCE_HTTP_CAPTURE.json](../integrations/B23_COMPLIANCE_HTTP_CAPTURE.json).
+
+App-level URI for the three mandatory topics in `shopify.app.toml` (`compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]`). Public, called only by Shopify. HMAC = base64 HMAC-SHA256(raw body, `SHOPIFY_CLIENT_SECRET`). A verified delivery is stored once per `X-Shopify-Webhook-Id`, encrypted, due in 30 days. **Nothing is erased or exported automatically**; operators list and resolve requests with `php artisan shopbonus:shopify-compliance` (D-099).
+
+```http
+POST /api/v1/integrations/shopify/compliance
+Content-Type: application/json
+X-Shopify-Topic: customers/redact
+X-Shopify-Webhook-Id: <UUID>
+X-Shopify-Hmac-Sha256: <HMAC>
+
+{"shop_id":954889,"shop_domain":"fietsen.myshopify.com","customer":{"id":191167,"email":"jan@example.com","phone":"555-625-1199"},"orders_to_redact":[299938,280263]}
+```
+
+**Response 200 (stored; the data_request and shop/redact captures are identical)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1869a-aab3-724f-bd7c-9b5dc487cd39
+
+{"data":{"received":true,"duplicate":false}}
+```
+
+**Response 200 (same X-Shopify-Webhook-Id again)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1869a-ab8e-7382-9dca-0500289c2ab7
+
+{"data":{"received":true,"duplicate":true}}
+```
+
+**Response 401 (signed with a different secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a1869a-abbe-7081-b912-71306e093290
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a1869a-abbe-7081-b912-71306e093290","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 413 (body of 1,048,577 bytes)**
+
+```http
+HTTP/1.1 413 Content Too Large
+Content-Type: application/json
+X-Request-Id: 01a1869b-f942-7079-85cc-fd60386b9a53
+
+{"error":{"status":413,"code":"payload_too_large","message":"The request body is too large.","request_id":"01a1869b-f942-7079-85cc-fd60386b9a53"}}
+```
+
+**Response 503 (`SHOPIFY_CLIENT_SECRET` empty)**
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+X-Request-Id: 01a1869a-e1d2-737a-a324-a4e1c07c1572
+
+{"error":{"status":503,"code":"shopify_app_not_configured","message":"The Shopify app is not configured.","request_id":"01a1869a-e1d2-737a-a324-a4e1c07c1572"}}
+```
+
 ---
 
 ## Orders: the live Order Sheet (B05, Trello #1)

@@ -1,0 +1,243 @@
+{
+ "environment": {
+  "captured_at": "2026-10-29",
+  "server": "php artisan serve (Laravel, PHP 8.4), isolated SQLite file, CACHE_STORE=array, QUEUE_CONNECTION=sync, APP_DEBUG=false",
+  "signing": "Bodies signed independently with openssl dgst -sha256 -hmac using a synthetic client secret; the 401 used a different secret; the 503 ran with SHOPIFY_CLIENT_SECRET empty. HMAC values redacted.",
+  "notes": "Synthetic shop/customer data only; no Shopify store was involved. Rate-limit headers omitted (array cache resets per request, so the remaining count is not meaningful). Stored payloads verified encrypted at rest in the capture database, which was deleted afterwards."
+ },
+ "captures": [
+  {
+   "label": "customers_redact_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "customers/redact",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": {
+     "shop_id": 954889,
+     "shop_domain": "fietsen.myshopify.com",
+     "customer": {
+      "id": 191167,
+      "email": "jan@example.com",
+      "phone": "555-625-1199"
+     },
+     "orders_to_redact": [
+      299938,
+      280263
+     ]
+    }
+   },
+   "status": 200,
+   "headers": {
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a1869a-aab3-724f-bd7c-9b5dc487cd39"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "duplicate": false
+    }
+   }
+  },
+  {
+   "label": "customers_data_request_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "customers/data_request",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": {
+     "shop_id": 954889,
+     "shop_domain": "fietsen.myshopify.com",
+     "orders_requested": [
+      299938
+     ],
+     "customer": {
+      "id": 191167,
+      "email": "jan@example.com",
+      "phone": null
+     },
+     "data_request": {
+      "id": 9999
+     }
+    }
+   },
+   "status": 200,
+   "headers": {
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a1869a-ab2f-7248-98b5-8afb9988097b"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "duplicate": false
+    }
+   }
+  },
+  {
+   "label": "shop_redact_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "shop/redact",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": {
+     "shop_id": 954889,
+     "shop_domain": "fietsen.myshopify.com"
+    }
+   },
+   "status": 200,
+   "headers": {
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a1869a-ab5f-7275-a8c8-478521ba9740"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "duplicate": false
+    }
+   }
+  },
+  {
+   "label": "redelivery_200_duplicate",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "customers/redact",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": {
+     "shop_id": 954889,
+     "shop_domain": "fietsen.myshopify.com",
+     "customer": {
+      "id": 191167,
+      "email": "jan@example.com",
+      "phone": "555-625-1199"
+     },
+     "orders_to_redact": [
+      299938,
+      280263
+     ]
+    }
+   },
+   "status": 200,
+   "headers": {
+    "Content-Type": "application/json",
+    "X-Request-Id": "01a1869a-ab8e-7382-9dca-0500289c2ab7"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "duplicate": true
+    }
+   }
+  },
+  {
+   "label": "invalid_hmac_401",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "customers/redact",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": {
+     "shop_id": 954889,
+     "shop_domain": "fietsen.myshopify.com",
+     "customer": {
+      "id": 191167,
+      "email": "jan@example.com",
+      "phone": "555-625-1199"
+     },
+     "orders_to_redact": [
+      299938,
+      280263
+     ]
+    }
+   },
+   "status": 401,
+   "headers": {
+    "X-Request-Id": "01a1869a-abbe-7081-b912-71306e093290",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 401,
+     "code": "webhook_rejected",
+     "message": "The webhook could not be verified.",
+     "request_id": "01a1869a-abbe-7081-b912-71306e093290",
+     "details": {
+      "reason": "signature_invalid"
+     }
+    }
+   }
+  },
+  {
+   "label": "secret_unconfigured_503",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "shop/redact",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": {
+     "shop_id": 954889,
+     "shop_domain": "fietsen.myshopify.com"
+    }
+   },
+   "status": 503,
+   "headers": {
+    "X-Request-Id": "01a1869a-e1d2-737a-a324-a4e1c07c1572",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 503,
+     "code": "shopify_app_not_configured",
+     "message": "The Shopify app is not configured.",
+     "request_id": "01a1869a-e1d2-737a-a324-a4e1c07c1572"
+    }
+   }
+  },
+  {
+   "label": "oversized_body_413",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopify/compliance",
+   "request": {
+    "headers": {
+     "X-Shopify-Topic": "shop/redact",
+     "X-Shopify-Webhook-Id": "<UUID>",
+     "X-Shopify-Hmac-Sha256": "<HMAC>"
+    },
+    "body": "<1048577 spaces>"
+   },
+   "status": 413,
+   "headers": {
+    "X-Request-Id": "01a1869b-f942-7079-85cc-fd60386b9a53",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "status": 413,
+     "code": "payload_too_large",
+     "message": "The request body is too large.",
+     "request_id": "01a1869b-f942-7079-85cc-fd60386b9a53"
+    }
+   }
+  }
+ ]
+}
