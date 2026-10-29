@@ -9,7 +9,7 @@ Executed evidence for this commit's tree:
 - Full SQLite: 889 tests, 866 passed + 23 skipped, 10584 assertions, 68.5s.
 - Full MySQL 8: 889 tests, 887 passed + 2 skipped, 10666 assertions, 311.9s.
 - Pint --test PASS; PHPStan L6 0 errors.
-- CI for this commit: not recorded here; check the Actions run for this SHA.
+- CI for f14afc8: [run 40843782709](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40843782709) SUCCESS on all 3 jobs (SQLite, MySQL, lint/static analysis).
 
 Main local `shopbonus` DB: migrations 2026_10_29_100000 (B23k) and 110000 (B23m) are NOT applied there.
 
