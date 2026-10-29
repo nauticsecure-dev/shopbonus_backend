@@ -1,3 +1,26 @@
+# Active handoff — #1 B25 catalog/coupon sync + capability report; #1 backend slice complete, whole card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `425571b` (B24, [CI 40847704631](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40847704631) SUCCESS on all 3 jobs). Owner request: continue remaining Frank cards (#1, #22, #32) easiest first; #23 backend done and moved to frontend (Hassan) by the owner. D-089 unchanged. Credentials senior-owned.
+
+B25 adds the missing #1 backend pieces (catalog/coupon sync, per-connection capability report):
+- Migration `2026_10_29_130000`: `catalog_syncs`, `connection_products`, `connection_coupons` (coupon `code` encrypted cast; email restrictions stored only as boolean `customer_restricted`).
+- `App\Integrations\Contracts\CatalogReader`; `WooCommerceConnector` implements it via `WooCommerceCatalog` mappers over official REST v3 `products`, `coupons` and `data/currencies/current` (added to the `WooCommerceApi` allowlist), using the existing pinned GET-only transport. `CATALOG_SYNC_MAX_PAGES` (default 50) × 100 per page.
+- `App\Services\Catalog\CatalogSynchronizer`: `start()` (409 `capability_unsupported` / `connection_disconnected` / `catalog_sync_running`), queued `SyncConnectionCatalog` job runs `run()`: cache lock, generation check, each page stored under the connection row lock only at the starting credential generation, unseen items marked `removed_at` only after a complete pass; page cap → `partial` + `catalog_page_limit`. Audits `integration.catalog_sync_requested/finished`.
+- `ConnectionCapabilities::report()`: orders, payments, refunds, products, categories, coupons_read, coupons_write (always UNSUPPORTED), banner_embed (LIMITED, manual embed), webhooks, backfill — AVAILABLE only on evidence.
+- Routes under `workspaces/{workspace}/connections/{connection}/`: `GET capabilities`, `GET products`, `GET catalog-syncs` (integrations.view); `GET coupons`, `POST catalog-syncs` (integrations.manage, commerce-probe throttle).
+
+Executed evidence:
+- CatalogSyncTest 4 tests PASS (sync + encrypted codes + no PII + GET-only, removal on complete pass but not partial, generation-change discard, 422/409/403/404 isolation).
+- Full SQLite: 894 tests, 871 passed + 23 skipped, 10740 assertions.
+- Full MySQL 8: 894 tests, 892 passed + 2 skipped, 10824 assertions, 326.1s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server captures (synthetic WooCommerce stubs, isolated SQLite): 401, 200, 422, 202, 404, 403, 409 in docs/integrations/B25_CATALOG_HTTP_CAPTURE.json, OpenAPI and docs/api/README.md.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000, 110000, 120000, 130000 are NOT applied there.
+
+Whole #1 remains not Done: live provider connections/orders, catalog/coupon readers for Shopify/Shopware/Wix/Lightspeed/Magento/CCV (#32), native storefront banner publication, AI Banner Studio, Order Sheet/catalog/coupon frontend and real Answer24 E2E. Exact next: #32 per-provider line-item/catalog/coupon mappings from official schemas (start with Shopify GraphQL products/discounts as a second `CatalogReader`), then #22 (release QA, mostly external).
+
+---
 # Active handoff — #23 B24 "Code does not work" screenshot evidence; #23 backend slice complete, whole card not Done (2026-10-29, Claude)
 
 Branch `main`. Base `737219f` (B23o + CI evidence). Owner request: continue all remaining Frank cards (#1, #22, #23, #32) easiest first. #31 was moved to Testing by the owner. D-089 unchanged. Credentials senior-owned.

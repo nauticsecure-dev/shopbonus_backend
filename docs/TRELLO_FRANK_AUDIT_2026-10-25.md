@@ -55,3 +55,7 @@ B14b `d561f8d` implements queued AI Create/Insights, strict evidence/privacy/bud
 ## Card #23 continuation — B24, 2026-10-29
 
 Backend re-audit found every #23 backend rule implemented except the "Code Does Not Work" screenshot. B24 adds encrypted screenshot upload with Super Admin-only audited download. The #23 **backend slice is complete**; the whole card still needs real WooCommerce/second-platform/Mollie/Answer24 runs, frontend and production evidence. AI screenshot analysis (optional) not built. Card #23's 403-for-cross-workspace wording stays answered by the deliberate audited 404.
+
+## Card #1 continuation — B25, 2026-10-29
+
+Adds the missing read-only catalog/coupon sync and per-connection capability report. WooCommerce products and native coupons sync over the pinned REST v3 read transport; other platforms honestly report UNSUPPORTED/LIMITED. The #1 **backend slice for catalog/coupons/capabilities is complete**; the whole card still needs live provider connections and orders, readers for the other platforms (#32), native storefront banner publication, AI Banner Studio, Order Sheet/catalog frontend and real Answer24 end-to-end evidence.

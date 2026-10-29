@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -29,7 +30,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store (no test store available).
  */
-class WooCommerceConnector extends WebhookConnector implements PagedOrderReader
+class WooCommerceConnector extends WebhookConnector implements CatalogReader, PagedOrderReader
 {
     public const ORDER_TOPICS = ['order.created', 'order.updated', 'order.restored'];
 
@@ -161,6 +162,33 @@ class WooCommerceConnector extends WebhookConnector implements PagedOrderReader
         }
 
         return $result;
+    }
+
+    public function catalogCurrency(WebshopConnection $connection): string
+    {
+        $code = app(WooCommerceApi::class)->get($connection, 'data/currencies/current')['data']['code'] ?? null;
+        if (! Money::isCurrency($code)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+
+        return $code;
+    }
+
+    public function catalogPage(WebshopConnection $connection, string $kind, int $page, string $currency): array
+    {
+        if (! in_array($kind, ['products', 'coupons'], true)) {
+            throw new InvalidArgumentException('Unsupported catalog kind.');
+        }
+        $result = app(WooCommerceApi::class)->get($connection, $kind, $page, ['per_page' => 100], (int) config('integrations.catalog.max_pages', 50));
+        $items = [];
+        foreach (array_is_list($result['data']) ? $result['data'] : throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid') as $item) {
+            if (! is_array($item) || (! is_int($item['id'] ?? null) && ! is_string($item['id'] ?? null)) || ! preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $item['id'])) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            $items[] = $kind === 'products' ? WooCommerceCatalog::product($item, $currency) : WooCommerceCatalog::coupon($item, $currency);
+        }
+
+        return ['items' => $items, 'pages' => $result['pages']];
     }
 
     public function syncOrders(WebshopConnection $connection, CarbonImmutable $since): iterable

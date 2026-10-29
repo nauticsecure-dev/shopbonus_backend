@@ -33,6 +33,9 @@ return [
     // Shopware app system: name and app secret from the Shopware Account (never in a distributed manifest).
     'shopware_app' => ['enabled' => (bool) env('SHOPWARE_APP_ENABLED', false), 'name' => env('SHOPWARE_APP_NAME', ''), 'secret' => env('SHOPWARE_APP_SECRET', '')],
 
+    // Read-only catalog/coupon snapshots (B25): at most this many native pages of 100 per pass; beyond it the pass is partial.
+    'catalog' => ['max_pages' => (int) env('CATALOG_SYNC_MAX_PAGES', 50)],
+
     'wix_app' => ['enabled' => (bool) env('WIX_APP_ENABLED', false), 'app_id' => env('WIX_APP_ID', ''), 'app_secret' => env('WIX_APP_SECRET', '')],
 
     'shopify_oauth' => [

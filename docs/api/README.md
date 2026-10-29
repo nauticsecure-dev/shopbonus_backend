@@ -15678,3 +15678,148 @@ Subsequent authenticated connection GET (same store, actual response):
   }
 }
 ```
+
+
+## Connection catalog, native coupons and capability report (B25, Trello #1)
+
+Read-only. Captured on a real local PHP HTTP server (Laravel kernel), isolated synthetic SQLite, sync queue; the WooCommerce REST responses and DNS resolver are synthetic capture stubs (no real store). Full capture: `docs/integrations/B25_CATALOG_HTTP_CAPTURE.json`. `capabilities`, `products` and `catalog-syncs` (GET) need `integrations.view`; `coupons` (codes decrypted) and starting a sync need `integrations.manage`. A complete pass marks items it did not see as `removed_at`; a `partial` pass (page cap) never removes. ShopBonus never creates or changes native coupons.
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/capabilities    (no session)`
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186ff-7efe-7254-83e4-5b3736f56d5e
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a186ff-7efe-7254-83e4-5b3736f56d5e"}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/capabilities    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-8302-7077-8e46-0ad5f25537b4
+
+{"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"LIMITED","reason":"Implemented; no complete sync with the current credentials yet.","last_verified_at":null},{"capability":"categories","status":"LIMITED","reason":"Implemented; no complete sync with the current credentials yet.","last_verified_at":null},{"capability":"coupons_read","status":"LIMITED","reason":"Implemented; no complete sync with the current credentials yet.","last_verified_at":null},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"orders"}    (owner session)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a186ff-8344-71ac-a9a2-27d460842e40
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a186ff-8344-71ac-a9a2-27d460842e40","fields":{"kind":["The selected kind is invalid."]}}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"products"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a186ff-8372-72c2-8416-7cd8582c56bb
+
+{"data":{"id":"01m63fz0w2fm6verhz96v4xd8x","kind":"products","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"coupons"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a186ff-841a-72a5-bec9-3cef167c7d64
+
+{"data":{"id":"01m63fz119w7t1frb23yp4y5et","kind":"coupons","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-8456-710a-8ad6-4792f9b426ca
+
+{"data":[{"id":"01m63fz119w7t1frb23yp4y5et","kind":"coupons","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"},{"id":"01m63fz0w2fm6verhz96v4xd8x","kind":"products","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"}]}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/products    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-8478-70e0-b8bf-df82873d9af6
+
+{"data":[{"external_id":"11","sku":"SF-11","name":"Stadsfiets Comfort","description":"Comfortabele stadsfiets met 7 versnellingen.","url":"https://fietsen-utrecht.nl/product/stadsfiets-comfort","image_url":"https://fietsen-utrecht.nl/img/sf-11.jpg","categories":[{"id":"5","name":"Stadsfietsen"}],"price_minor":49995,"regular_price_minor":54995,"sale_price_minor":49995,"currency":"EUR","type":"simple","status":"publish","visibility":"visible","stock_status":"instock","stock_quantity":4,"provider_updated_at":"2026-10-20T09:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/products?search=SF-11    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-849c-71a5-926d-b685756e223a
+
+{"data":[{"external_id":"11","sku":"SF-11","name":"Stadsfiets Comfort","description":"Comfortabele stadsfiets met 7 versnellingen.","url":"https://fietsen-utrecht.nl/product/stadsfiets-comfort","image_url":"https://fietsen-utrecht.nl/img/sf-11.jpg","categories":[{"id":"5","name":"Stadsfietsen"}],"price_minor":49995,"regular_price_minor":54995,"sale_price_minor":49995,"currency":"EUR","type":"simple","status":"publish","visibility":"visible","stock_status":"instock","stock_quantity":4,"provider_updated_at":"2026-10-20T09:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/coupons    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-84c6-7090-9ac8-62e786acd45d
+
+{"data":[{"external_id":"21","code":"welkom10","discount_type":"percent","amount":"10.00","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":1,"usage_count":3,"stackable":false,"exclude_sale_items":true,"free_shipping":false,"customer_restricted":false,"scope":{"product_ids":["11"]},"status":"publish","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/capabilities    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-84e9-7357-ab68-ab80ba954093
+
+{"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T09:30:54+00:00"},{"capability":"categories","status":"AVAILABLE","reason":"Categories as assigned to synced products.","last_verified_at":"2026-10-29T09:30:54+00:00"},{"capability":"coupons_read","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T09:30:54+00:00"},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt00/products    (owner session)`
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+X-Request-Id: 01a186ff-850d-735c-a8a7-a4a1d39e29c6
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a186ff-850d-735c-a8a7-a4a1d39e29c6"}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/coupons    (employee with integrations.view only)`
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a186ff-8836-7063-a70a-40219a9e8595
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a186ff-8836-7063-a70a-40219a9e8595","details":{"required_permission":"integrations.manage"}}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"products"}    (employee with integrations.view only)`
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a186ff-8866-73de-823e-38f464edd89e
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a186ff-8866-73de-823e-38f464edd89e","details":{"required_permission":"integrations.manage"}}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"products"}    (owner session; connection set to disconnected in the synthetic DB)`
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+X-Request-Id: 01a186ff-88a0-71a0-8408-e45e9bcfe3ee
+
+{"error":{"status":409,"code":"connection_disconnected","message":"This connection is disconnected. Create a new one.","request_id":"01a186ff-88a0-71a0-8408-e45e9bcfe3ee"}}
+```

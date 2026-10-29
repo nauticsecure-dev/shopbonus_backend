@@ -46,6 +46,7 @@ use App\Http\Controllers\Api\V1\Content\PublicContentController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
+use App\Http\Controllers\Api\V1\Integrations\CatalogController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyComplianceController;
@@ -466,7 +467,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}', [ConnectionController::class, 'show'])->middleware('workspace.can:integrations.view')->name('connections.show');
                 Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
                 Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
+                Route::get('connections/{connection}/capabilities', [CatalogController::class, 'capabilities'])->middleware('workspace.can:integrations.view')->name('connections.capabilities');
+                Route::get('connections/{connection}/products', [CatalogController::class, 'products'])->middleware('workspace.can:integrations.view')->name('connections.products');
+                Route::get('connections/{connection}/coupons', [CatalogController::class, 'coupons'])->middleware('workspace.can:integrations.manage')->name('connections.coupons');
+                Route::get('connections/{connection}/catalog-syncs', [CatalogController::class, 'syncs'])->middleware('workspace.can:integrations.view')->name('connections.catalog-syncs.index');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
+                    Route::post('connections/{connection}/catalog-syncs', [CatalogController::class, 'sync'])->middleware('throttle:commerce-probe')->name('connections.catalog-syncs.store');
                     Route::post('connections/{connection}/test-api', ConnectionApiTestController::class)->middleware('throttle:commerce-probe')->name('connections.test-api');
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
                     Route::post('integrations/shopify/oauth', [ShopifyOAuthController::class, 'start'])->middleware('throttle:commerce-probe')->name('connections.shopify-oauth.start');

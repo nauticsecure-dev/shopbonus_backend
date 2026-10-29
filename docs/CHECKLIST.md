@@ -805,3 +805,13 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Super Admin-only audited download (attachment, nosniff, no-store); consumer/merchant 403; merchant view shows count only.
 - [x] Focused test (disguised 422, encryption, orphan-free 409, 403, byte-identical download, 404); real-server captures 422/201/403/200/404/401; OpenAPI + README.
 - [ ] AI screenshot analysis (optional on card) NOT BUILT; live WooCommerce/Mollie/Answer24 E2E for #23 NOT RUN.
+
+### B25 — Catalog/coupon sync and capability report, Trello #1 (2026-10-29)
+
+- [x] Tables `catalog_syncs`, `connection_products`, `connection_coupons` (migration `2026_10_29_130000`); coupon code encrypted, email restrictions stored only as `customer_restricted`.
+- [x] `CatalogReader` contract; WooCommerce reader over official REST v3 `products`, `coupons`, `data/currencies/current` on the existing pinned GET-only transport; page cap `CATALOG_SYNC_MAX_PAGES` (50).
+- [x] `CatalogSynchronizer`: queued pass, cache lock, per-page write only at the starting credential generation, unseen items `removed_at` only after a complete pass, `partial`/`catalog_page_limit` otherwise; audited requested/finished.
+- [x] Capability report (10 capabilities AVAILABLE/LIMITED/UNSUPPORTED with reason and last_verified_at) from evidence only.
+- [x] Routes: capabilities, products, coupons (manage), catalog-syncs GET/POST; focused CatalogSyncTest; real-server captures 401/200/422/202/404/403/409; OpenAPI + README.
+- [ ] Catalog/coupon readers for Shopify, Shopware, Wix, Lightspeed, Magento, CCV NOT BUILT (report UNSUPPORTED); live WooCommerce catalog run NOT RUN.
+- [ ] Native storefront banner publication, AI Banner Studio, Order Sheet/catalog UI NOT BUILT (frontend/provider scope).
