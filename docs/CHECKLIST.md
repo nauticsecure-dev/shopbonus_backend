@@ -518,7 +518,8 @@ First small backend boundary; no chat route/model activation yet. Existing walle
 - [x] Execute SQLite/MySQL tests and quality/API contract checks; update TASKS/PROGRESS/HANDOFF and commit/push/verify CI. (`9caa4fd`; CI `40284066219` passed.)
 - [x] B17b–f main backend chat/provider/retry/history/private progress/feedback/review/settings/knowledge and100-question/backend E2E coverage delivered. (`d63f616` + `7616e88`; CI `40388179684` passed.) Frontend/live/deployed acceptance remains separate.
 
-- [ ] B18 E2E/security/load/release
+- [x] B18 backend slice (B28, 2026-10-29): full business journey test, role access matrix over every route, security headers/proxy trust, launch-check command, API inventory, launch/deploy/rollback runbook, composer audit clean.
+- [ ] B18 remainder: staging load test, live provider/Mollie/Answer24 runs, frontend/design QA, deployment and go-live sign-off (external).
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)
 
 ## B10b — #19 credential-independent TradeTracker transport (2026-10-25)

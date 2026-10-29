@@ -1,3 +1,27 @@
+# Active handoff — #22 B28 backend release slice (B18); card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `8352e08` (B27, [CI 40880825276](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40880825276) SUCCESS on all 3 jobs). Owner: "do all you can do" on #22; frontend testing goes to Hassan. D-089 unchanged. Credentials senior-owned.
+
+B28 (closes the backend part of B18):
+- `tests/Feature/Journey/BusinessJourneyTest.php`: card #22 steps 1–17 through the real API with cross-module integrity assertions. Only DNS, mail, Answer24, Mollie and the affiliate report are synthetic. A Mollie top-up funds rewards (an offer can't activate without funding).
+- `tests/Feature/Api/RoleAccessMatrixTest.php`: every `/api/v1` route as anonymous/suspended/unverified/consumer/owner/manager/employee/Super Admin (±2FA), asserting exact denial codes and exact per-role permissions. No defect found.
+- `App\Http\Middleware\SecurityHeaders` (global, appended): nosniff, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, HSTS on HTTPS (`shopbonus.security.hsts_max_age`, env `HSTS_MAX_AGE`, default 1 year). Existing controller headers are kept. Proxy trust via `shopbonus.security.trusted_proxies` (`TRUSTED_PROXIES`), applied in `AppServiceProvider::boot` with `TrustProxies::at`; default off, so behaviour is unchanged.
+- `shopbonus:launch-check [--json]` (25 checks, no values printed; FAIL exits 1).
+- `docs/release/API_INVENTORY.md` (326 routes, from `shopbonus:api-routes`) and `docs/release/LAUNCH_READINESS.md` (evidence map, deploy/rollback runbook, open items).
+- `composer audit`: 0 advisories/abandoned (PHP 8.4.17, Laravel 13.38.0).
+- No migration, no new route. `.env.example` gains TRUSTED_PROXIES and HSTS_MAX_AGE.
+
+Executed evidence:
+- BusinessJourneyTest 1 PASS (95 assertions); RoleAccessMatrixTest 4 PASS (1637 assertions); SecurityHeadersTest 2 PASS; LaunchCheckTest 2 PASS.
+- Full SQLite: 912 tests, 889 passed + 23 skipped, 12649 assertions.
+- Full MySQL 8: 912 tests, 910 passed + 2 skipped, 12734 assertions, 339.0s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–130000 NOT applied there.
+
+#22 remains not Done: frontend/design QA (Hassan); live store/Mollie/Answer24/affiliate runs and a staging load test (senior); owner/legal decisions (affiliate credit timing D-089, Answer24 lawful basis, live Mollie); deployment/infrastructure (TLS, TRUSTED_PROXIES, off-site backups, mail DNS, alerting). All of Frank's backend cards (#1, #22, #23, #32) now have their buildable backend delivered; the next work is staging verification with real credentials.
+
+---
 # Active handoff — #32 B27 remaining native catalog/coupon readers; #32 buildable backend complete, card not Done (2026-10-29, Claude)
 
 Branch `main`. Base `5816192` (B26, [CI 40875885780](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40875885780) SUCCESS on all 3 jobs). Owner: "do it all" for #32. D-089 unchanged. Credentials senior-owned.

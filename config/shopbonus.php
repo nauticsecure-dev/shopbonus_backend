@@ -53,6 +53,13 @@ return [
         'support_session_minutes' => (int) env('ADMIN_SUPPORT_SESSION_MINUTES', 30),
     ],
 
+    'security' => [
+        // HSTS max-age for HTTPS responses; 0 disables the header.
+        'hsts_max_age' => (int) env('HSTS_MAX_AGE', 31536000),
+        // TLS-terminating proxies/load balancers (comma list or "*"), so HTTPS is detected for secure cookies, HSTS and URLs.
+        'trusted_proxies' => env('TRUSTED_PROXIES'),
+    ],
+
     'identity' => [
         // Where the SPA lives; password-reset links point here.
         'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),

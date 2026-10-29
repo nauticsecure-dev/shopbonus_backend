@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Client\Events\ConnectionFailed;
 use Illuminate\Http\Client\Events\ResponseReceived;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Date;
@@ -55,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $proxies = config('shopbonus.security.trusted_proxies');
+        if (is_string($proxies) && trim($proxies) !== '') {
+            TrustProxies::at(trim($proxies) === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $proxies)))));
+        }
         Event::listen([ResponseReceived::class, ConnectionFailed::class], fn ($event) => app(ProviderObservations::class)->record($event));
         Queue::before(fn (JobProcessing $event) => app(Operations::class)->jobStarted($event));
         $this->app->scoped(RequestObservation::class);
