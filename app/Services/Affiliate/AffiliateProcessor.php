@@ -165,8 +165,8 @@ class AffiliateProcessor
             return;
         }
 
-        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at)
-            : new AffiliateRewardRule($tx->reward_terms_snapshot);
+        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network')
+            : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
         $instant = ($tx->reward_timing ?? config('shopbonus.affiliate.credit_timing')) === 'on_validated_attribution';
 
         if ($tx->reward_status === 'none') {
@@ -209,7 +209,7 @@ class AffiliateProcessor
     {
         $pending = $tx->wallet_pending_id === null ? null : WalletPendingCredit::find($tx->wallet_pending_id);
         $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::where('version', $tx->reward_rule_version)->first()
-            : new AffiliateRewardRule($tx->reward_terms_snapshot);
+            : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
         $amount = $rule?->rewardFor($tx->commission_minor) ?? (int) $tx->reward_amount; // approved commission may differ from the expected one
 
         if ($this->requiresReview($tx, $rule, $amount, $source, $actorUserId, $skipReview)) {

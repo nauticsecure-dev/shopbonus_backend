@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
+use App\Http\Controllers\Api\V1\Admin\MerchantCommissionController as AdminMerchantCommissionController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
 use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
 use App\Http\Controllers\Api\V1\Consumer\PromotionalClaimController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
+use App\Http\Controllers\Api\V1\Me\WalletController as MeWalletController;
 use App\Http\Controllers\Api\V1\Content\CookieConsentController;
 use App\Http\Controllers\Api\V1\Content\PublicContentController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
@@ -178,6 +180,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
+            Route::get('me/wallet', [MeWalletController::class, 'show'])->name('me.wallet.show');
             Route::get('notifications', [InboxController::class, 'index'])->name('notifications.index');
             Route::delete('notifications/{notification}', [InboxController::class, 'destroy'])->name('notifications.destroy');
             Route::patch('notifications/{notification}/read', [InboxController::class, 'read'])->name('notifications.read');
@@ -284,6 +287,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('transactions/{transaction}', [AdminAffiliateController::class, 'showTransaction'])->name('transactions.show');
                     Route::get('reward-rules', [AdminAffiliateController::class, 'rules'])->name('reward-rules.index');
                 });
+                Route::get('webshops/{webshop}/commission-agreements', [AdminMerchantCommissionController::class, 'index'])->name('webshops.commission-agreements.index');
                 Route::get('disputes', [AdminDisputeController::class, 'index'])->name('disputes.index');
                 Route::prefix('cms')->name('cms.')->group(function () {
                     Route::get('pages', [AdminCmsController::class, 'pages'])->name('pages.index');
@@ -339,6 +343,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('transactions/{transaction}/resolve', [AdminAffiliateController::class, 'resolve'])->name('transactions.resolve');
                         Route::post('reward-rules', [AdminAffiliateController::class, 'storeRule'])->name('reward-rules.store');
                         Route::post('reward-rules/{version}/deactivate', [AdminAffiliateController::class, 'deactivateRule'])->name('reward-rules.deactivate');
+                        Route::post('webshops/{webshop}/commission-agreements', [AdminMerchantCommissionController::class, 'store'])->name('webshops.commission-agreements.store');
+                        Route::post('webshops/{webshop}/commission-agreements/{version}/deactivate', [AdminMerchantCommissionController::class, 'deactivate'])->name('webshops.commission-agreements.deactivate');
+                        Route::post('webshops/{webshop}/commission-credits', [AdminMerchantCommissionController::class, 'credit'])->middleware('step_up.otp')->name('webshops.commission-credits.store');
                     });
                     Route::post('disputes/{dispute}/status', [AdminDisputeController::class, 'status'])->name('disputes.status');
                     Route::prefix('cms')->name('cms.')->group(function () {

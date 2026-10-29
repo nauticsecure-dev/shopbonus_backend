@@ -6,6 +6,7 @@ use App\Enums\AuditCategory;
 use App\Enums\LedgerEntryType;
 use App\Enums\WalletKind;
 use App\Enums\WalletUnit;
+use App\Events\WalletBalanceChanged;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Models\Wallet;
@@ -436,6 +437,10 @@ class WalletService
             'idempotency_key' => $key, 'related_entry_id' => $related, 'expires_at' => $expiresAt,
         ]);
         $w->forceFill(['available' => $available, 'reserved' => $reserved])->save();
+
+        if (in_array($type, [LedgerEntryType::Credit, LedgerEntryType::Debit, LedgerEntryType::Adjustment, LedgerEntryType::Reversal, LedgerEntryType::Expire], true)) {
+            DB::afterCommit(fn () => WalletBalanceChanged::forConsumerWallet($w, $type->value));
+        }
 
         return $entry;
     }

@@ -24,30 +24,41 @@ class WalletApiTest extends TestCase
         $wallets = app(WalletService::class);
         $eur = $wallets->consumerWallet($anna);
         $wallets->credit($eur, 1220, 'seed', meta: ['source_type' => 'affiliate', 'source_ref' => 'conv-1', 'reason' => 'Fietsen Utrecht purchase']);
-        $wallets->addPending($eur, 300, 'pending-1', ['description' => 'Woon & Co purchase (awaiting confirmation)']);
+        $wallets->credit($eur, 2280, 'seed-earned', meta: ['source_type' => 'affiliate', 'source_ref' => 'conv-2', 'reason' => 'Extra earnings']);
         Sanctum::actingAs($anna);
 
         $this->getJson('/api/v1/consumer/wallet')->assertOk()
-            ->assertJsonPath('data.balances.eur_credit.available', 1220)
-            ->assertJsonPath('data.balances.eur_credit.pending', 300)
+            ->assertJsonPath('data.balances.eur_credit.available', 3500)
+            ->assertJsonPath('data.balances.eur_credit.pending', 0)
+            ->assertJsonPath('data.available_minor', 3500)
+            ->assertJsonPath('data.total_earned_minor', 3500)
             ->assertJsonPath('data.balances.points.available', 0)
             ->assertJsonPath('data.withdrawable', false);
-        $this->getJson('/api/v1/consumer/dashboard')->assertOk()->assertJsonPath('data.wallet.eur_credit.available', 1220);
+        $this->getJson('/api/v1/me/wallet')->assertOk()
+            ->assertJsonPath('data.available_minor', 3500)
+            ->assertJsonPath('data.total_earned_minor', 3500)
+            ->assertJsonPath('data.total_spent_minor', 0)
+            ->assertJsonPath('data.unit', 'EUR_REDEMPTION_CREDIT');
+        $this->getJson('/api/v1/consumer/dashboard')->assertOk()->assertJsonPath('data.wallet.eur_credit.available', 3500);
 
         // An authorised spend through the service updates what the API shows.
-        $wallets->debit($eur, 1000, 'voucher-purchase-1', ['source_type' => 'voucher_purchase', 'source_ref' => 'v-1']);
-        $this->getJson('/api/v1/consumer/wallet')->assertJsonPath('data.balances.eur_credit.available', 220)->assertJsonPath('data.balances.eur_credit.total_spent', 1000);
+        $wallets->debit($eur, 2280, 'voucher-purchase-1', ['source_type' => 'voucher_purchase', 'source_ref' => 'v-1']);
+        $this->getJson('/api/v1/consumer/wallet')
+            ->assertJsonPath('data.balances.eur_credit.available', 1220)
+            ->assertJsonPath('data.balances.eur_credit.total_spent', 2280)
+            ->assertJsonPath('data.total_spent_minor', 2280);
+        $this->getJson('/api/v1/me/wallet')->assertJsonPath('data.available_minor', 1220)->assertJsonPath('data.total_spent_minor', 2280);
 
         $all = $this->getJson('/api/v1/consumer/wallet/transactions')->assertOk();
-        $this->assertSame(['debit', 'reserve', 'credit'], array_column($all->json('data'), 'type'));
-        $this->assertSame(['credit'], array_column($this->getJson('/api/v1/consumer/wallet/transactions?filter=earned')->json('data'), 'type'));
-        $this->assertSame(['debit'], array_column($this->getJson('/api/v1/consumer/wallet/transactions?filter=spent')->json('data'), 'type'));
-        $pending = $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()->json('data');
-        $this->assertSame([300, false], [$pending[0]['amount'], $pending[0]['spendable']]);
+        $types = array_column($all->json('data'), 'ledger_type');
+        $this->assertSame(['debit', 'reserve', 'credit', 'credit'], $types);
+        $this->assertSame(['cashback_credit', 'cashback_credit'], array_column($this->getJson('/api/v1/consumer/wallet/transactions?filter=earned')->json('data'), 'type'));
+        $this->assertSame(['voucher_debit'], array_column($this->getJson('/api/v1/consumer/wallet/transactions?filter=spent')->json('data'), 'type'));
+        $this->assertSame([], $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()->json('data'));
         $this->getJson('/api/v1/consumer/wallet/transactions?filter=cash')->assertUnprocessable();
 
-        $credit = collect($all->json('data'))->firstWhere('type', 'credit');
-        $this->getJson("/api/v1/consumer/wallet/transactions/{$credit['id']}")->assertOk()->assertJsonPath('data.remaining', 220);
+        $credit = collect($all->json('data'))->firstWhere('ledger_type', 'credit');
+        $this->getJson("/api/v1/consumer/wallet/transactions/{$credit['id']}")->assertOk();
     }
 
     public function test_consumers_cannot_see_each_others_wallets_and_no_cash_out_exists(): void

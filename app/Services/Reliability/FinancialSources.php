@@ -87,7 +87,7 @@ class FinancialSources
             $unknown[] = 'legacy_reward_evidence';
         } else {
             $snapshot['credit_evidence'] = $proof;
-            $rule = new AffiliateRewardRule($terms);
+            $rule = AffiliateRewardRule::fromEvidence($terms);
             $expected = $rule->rewardFor((int) $proof['commission_minor']);
             if ($rule->share_bps < 0 || $rule->share_bps > 10000 || $rule->version !== $tx->reward_rule_version || $rule->version !== $proof['rule_version'] || $expected !== $entry?->amount
                 || $proof['reward_amount'] !== $entry->amount || $proof['currency'] !== 'EUR'

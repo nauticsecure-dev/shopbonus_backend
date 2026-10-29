@@ -214,14 +214,40 @@ class AffiliateController extends Controller
     public function storeRule(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'unit' => ['required', Rule::enum(WalletUnit::class)], 'share_bps' => ['required', 'integer', 'min:1', 'max:10000'],
-            'min_commission_minor' => ['sometimes', 'integer', 'min:0'], 'max_reward_minor' => ['sometimes', 'nullable', 'integer', 'min:1'],
-            'review_above_minor' => ['sometimes', 'nullable', 'integer', 'min:1'], 'starts_at' => ['sometimes', 'nullable', 'date'], 'ends_at' => ['sometimes', 'nullable', 'date', 'after:starts_at'],
+            'unit' => ['required', Rule::enum(WalletUnit::class)],
+            'share_bps' => ['required', 'integer', 'min:1', 'max:10000'],
+            'min_commission_minor' => ['sometimes', 'integer', 'min:0'],
+            'max_reward_minor' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'review_above_minor' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'starts_at' => ['sometimes', 'nullable', 'date'],
+            'ends_at' => ['sometimes', 'nullable', 'date', 'after:starts_at'],
+            'webshop_id' => ['sometimes', 'nullable', 'ulid'],
+            'commission_source' => ['sometimes', 'nullable', Rule::in(['affiliate_network', 'direct_merchant'])],
+            'cashback_approved' => ['sometimes', 'boolean'],
         ]);
-        $rule = DB::transaction(function () use ($data, $request) {
+        $webshopId = null;
+        if (! empty($data['webshop_id'])) {
+            $webshopId = Webshop::where('public_id', $data['webshop_id'])->value('id')
+                ?? throw new ApiException('Webshop not found.', 404, 'not_found');
+        }
+        $rule = DB::transaction(function () use ($data, $request, $webshopId) {
             $version = (int) AffiliateRewardRule::lockForUpdate()->max('version') + 1;
 
-            return AffiliateRewardRule::create($data + ['version' => $version, 'active' => true, 'created_by' => $request->user()->id, 'min_commission_minor' => $data['min_commission_minor'] ?? 0]);
+            return AffiliateRewardRule::create([
+                'unit' => $data['unit'],
+                'share_bps' => $data['share_bps'],
+                'min_commission_minor' => $data['min_commission_minor'] ?? 0,
+                'max_reward_minor' => $data['max_reward_minor'] ?? null,
+                'review_above_minor' => $data['review_above_minor'] ?? null,
+                'starts_at' => $data['starts_at'] ?? null,
+                'ends_at' => $data['ends_at'] ?? null,
+                'webshop_id' => $webshopId,
+                'commission_source' => $data['commission_source'] ?? null,
+                'cashback_approved' => $data['cashback_approved'] ?? true,
+                'version' => $version,
+                'active' => true,
+                'created_by' => $request->user()->id,
+            ]);
         });
         $this->audit->record('affiliate.reward_rule_created', category: AuditCategory::Financial, actorUserId: $request->user()->id, metadata: $this->rule($rule));
 
@@ -286,8 +312,21 @@ class AffiliateController extends Controller
     /** @return array<string, mixed> */
     private function rule(AffiliateRewardRule $r): array
     {
-        return ['version' => $r->version, 'unit' => $r->unit->value, 'share_bps' => $r->share_bps, 'min_commission_minor' => $r->min_commission_minor,
-            'max_reward_minor' => $r->max_reward_minor, 'review_above_minor' => $r->review_above_minor, 'starts_at' => $r->starts_at?->toIso8601String(),
-            'ends_at' => $r->ends_at?->toIso8601String(), 'active' => $r->active];
+        return [
+            'version' => $r->version,
+            'unit' => $r->unit->value,
+            'share_bps' => $r->share_bps,
+            'consumer_share' => $r->share_bps / 10_000,
+            'shopbonus_share' => (10_000 - $r->share_bps) / 10_000,
+            'min_commission_minor' => $r->min_commission_minor,
+            'max_reward_minor' => $r->max_reward_minor,
+            'review_above_minor' => $r->review_above_minor,
+            'webshop_id' => $r->webshop_id === null ? null : Webshop::whereKey($r->webshop_id)->value('public_id'),
+            'commission_source' => $r->commission_source,
+            'cashback_approved' => (bool) ($r->cashback_approved ?? true),
+            'starts_at' => $r->starts_at?->toIso8601String(),
+            'ends_at' => $r->ends_at?->toIso8601String(),
+            'active' => $r->active,
+        ];
     }
 }

@@ -154,6 +154,8 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e4_and_e2e6_import_normalises_pending_is_not_spendable_and_approval_credits_once(): void
     {
+        // Legacy network-approval regime still supported via config override.
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->import($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
@@ -172,6 +174,20 @@ class AffiliateTest extends TestCase
         // A rejected row in the import is reported, the rest goes through.
         $bad = $this->import($this->daisycon, [], [['affiliatemarketing_id' => 'X']]);
         $this->assertCount(1, $bad['rejected']);
+    }
+
+    public function test_verified_conversion_credits_immediately_with_default_70_percent_split(): void
+    {
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-70', $ref, 'approved', commission: 10.00)]);
+        $tx = AffiliateTransaction::where('external_id', 'D-70')->sole();
+        $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
+        $this->assertSame([700, 0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
+        $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
     }
 
     public function test_card19_e2e4_unknown_or_inconsistent_conversions_enter_review(): void
