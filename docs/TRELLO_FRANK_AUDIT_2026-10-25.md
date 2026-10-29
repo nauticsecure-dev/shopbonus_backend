@@ -63,3 +63,7 @@ Adds the missing read-only catalog/coupon sync and per-connection capability rep
 ## Card #32 continuation — B26, 2026-10-29
 
 Adds Shopify as the second native catalog/coupon reader (Admin GraphQL 2026-10, fields verified against the official reference). Products and single-code basic/free-shipping discounts sync read-only; BXGY, app and bulk-code discounts are skipped rather than approximated. #32 still needs readers and mappings for the remaining platforms, real installed stores for all ten integrations, storefront banner publication and live lifecycle evidence.
+
+## Card #32 continuation — B27, 2026-10-29
+
+Native read-only catalog/coupon readers now exist for every platform that has a native read connector: WooCommerce, Shopify, BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6 and Wix (Catalog V1 and V3). Each mapping was checked against the official reference or core source; unsupported discount shapes are skipped. The #32 **backend code that can be built without live stores is complete**. Remaining: real installed stores and live order/payment/refund/catalog/coupon/lifecycle evidence for all ten integrations (senior-owned credentials), native read connectors for Lightspeed/CCV/OpenCart/Squarespace/Mijnwebwinkel (no verified contract or credentials), and storefront banner publication (merchant-side plugin/app scope, excluded from this backend).

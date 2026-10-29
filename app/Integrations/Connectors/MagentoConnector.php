@@ -4,6 +4,7 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -15,7 +16,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /** Adobe Commerce/Magento2.4 self-hosted/PaaS REST only. SaaS tenant API is a separate unsupported deployment. */
-final class MagentoConnector extends GenericSignedWebhookConnector implements PagedOrderReader
+final class MagentoConnector extends GenericSignedWebhookConnector implements CatalogReader, PagedOrderReader
 {
     public function __construct()
     {
@@ -221,5 +222,68 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Pa
         };
 
         return new NormalizedOrder(externalId: $this->str($o['entity_id'] ?? null), reference: $this->str($o['increment_id'] ?? null), firstName: $this->str($o['customer_firstname'] ?? $o['billing_address']['firstname'] ?? null), email: $this->str($o['customer_email'] ?? null), phone: $this->str($o['billing_address']['telephone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['status'] ?? null), placedAt: $this->utc($o['created_at'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->utc($o['updated_at'] ?? null));
+    }
+
+    /** @return array<string,mixed> this connection's store view config, after the identity gate */
+    private function storeConfig(WebshopConnection $c): array
+    {
+        $this->identity($c);
+        foreach ($this->read($c, 'store/storeConfigs') as $s) {
+            if (is_array($s) && (string) ($s['id'] ?? '') === $c->credential('store_id')) {
+                return $s;
+            }
+        }
+        throw ApiException::conflict('The provider store identity does not match this connection.', 'provider_store_mismatch');
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        $code = $this->storeConfig($c)['base_currency_code'] ?? null;
+
+        return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,4}\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        $page = $cursor === null ? 1 : (int) $cursor;
+        $config = $this->storeConfig($c);
+        $size = $kind === 'products' ? 100 : 50;
+        if ($kind === 'products') {
+            $p = $this->read($c, 'products', ['searchCriteria' => ['sort_orders' => [['field' => 'entity_id', 'direction' => 'ASC']], 'page_size' => $size, 'current_page' => $page]]);
+        } else {
+            $p = $this->read($c, 'salesRules/search', ['searchCriteria' => ['filter_groups' => [['filters' => [['field' => 'coupon_type', 'value' => 'SPECIFIC_COUPON', 'condition_type' => 'eq']]]],
+                'sort_orders' => [['field' => 'rule_id', 'direction' => 'ASC']], 'page_size' => $size, 'current_page' => $page]]);
+        }
+        $rows = $p['items'] ?? null;
+        $total = $p['total_count'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > $size || ! is_int($total)) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $codes = [];
+        $ruleIds = array_values(array_filter(array_map(fn ($r) => is_array($r) && is_int($r['rule_id'] ?? null) ? $r['rule_id'] : null, $rows)));
+        if ($kind === 'coupons' && $ruleIds !== []) {
+            $found = $this->read($c, 'coupons/search', ['searchCriteria' => ['filter_groups' => [['filters' => [['field' => 'rule_id', 'value' => implode(',', $ruleIds), 'condition_type' => 'in']]],
+                ['filters' => [['field' => 'is_primary', 'value' => '1', 'condition_type' => 'eq']]]], 'page_size' => 100, 'current_page' => 1]])['items'] ?? [];
+            foreach (is_array($found) ? $found : [] as $coupon) {
+                if (is_array($coupon) && is_int($coupon['rule_id'] ?? null)) {
+                    $codes[$coupon['rule_id']] = $coupon;
+                }
+            }
+        }
+        $timezone = is_string($config['timezone'] ?? null) ? $config['timezone'] : 'UTC';
+        $items = [];
+        foreach ($rows as $r) {
+            if (! is_array($r)) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            if (($item = $kind === 'products' ? MagentoCatalog::product($r, $currency) : MagentoCatalog::coupon($r, $codes[$r['rule_id'] ?? 0] ?? null, $currency, $timezone)) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => $rows !== [] && $page * $size < $total ? (string) ($page + 1) : null];
     }
 }

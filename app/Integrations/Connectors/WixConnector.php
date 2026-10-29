@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -21,7 +22,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class WixConnector extends WebhookConnector implements OrderNotification, PagedOrderReader
+final class WixConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     /** eventType values of com.wixpress.market.aim.api.AppInstanceService (@wix/auto_sdk_app-management_app-instances). */
     private const APP_INSTANCE_EVENTS = ['AppInstalled', 'AppRemoved'];
@@ -325,5 +326,62 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
         $paidAt = $refundAt = null;
 
         return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['number'] ?? null), firstName: $this->str($p['billingInfo']['contactDetails']['firstName'] ?? null), email: $this->str($p['buyerInfo']['email'] ?? null), phone: $this->str($p['billingInfo']['contactDetails']['phone'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['createdDate'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['updatedDate'] ?? null));
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        $this->identity($c);
+        $code = $this->read($c, '/site-properties/v4/properties')['properties']['paymentCurrency'] ?? null;
+
+        return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    /** Cursors are "v1:<offset>", "v3:<native cursor>" or "<offset>" for coupons. */
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($cursor !== null && (strlen($cursor) > 16100 || ! preg_match($kind === 'products' ? '/\A(?:v1:(?:0|[1-9][0-9]{0,6})|v3:[A-Za-z0-9_=+\/.-]{1,16000})\z/D' : '/\A(?:0|[1-9][0-9]{0,6})\z/D', $cursor))) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        $this->identity($c);
+        if ($kind === 'coupons') {
+            $offset = (int) $cursor;
+            $p = $this->read($c, '/stores/v2/coupons/query', 'POST', ['query' => ['paging' => ['limit' => 100, 'offset' => $offset]]]);
+            $rows = $p['coupons'] ?? null;
+            $next = is_array($rows) && $rows !== [] && is_int($p['totalResults'] ?? null) && $offset + count($rows) < $p['totalResults'] ? (string) ($offset + count($rows)) : null;
+            $map = fn (array $r) => WixCatalog::coupon($r, $currency);
+        } else {
+            $version = $cursor === null ? ($this->read($c, '/stores/v3/provision/version')['catalogVersion'] ?? null) : (str_starts_with($cursor, 'v3:') ? 'V3_CATALOG' : 'V1_CATALOG');
+            if ($version === 'V3_CATALOG') {
+                $paging = ['limit' => 100] + ($cursor === null ? [] : ['cursor' => substr($cursor, 3)]);
+                $p = $this->read($c, '/stores/v3/products/query', 'POST', ['query' => ['cursorPaging' => $paging], 'fields' => ['URL', 'PLAIN_DESCRIPTION', 'DIRECT_CATEGORIES_INFO']]);
+                $rows = $p['products'] ?? null;
+                $more = $p['pagingMetadata']['hasNext'] ?? false;
+                $token = $p['pagingMetadata']['cursors']['next'] ?? null;
+                $next = $more === true ? (is_string($token) && $token !== '' ? 'v3:'.$token : throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid')) : null;
+                $map = fn (array $r) => WixCatalog::productV3($r, $currency);
+            } elseif ($version === 'V1_CATALOG') {
+                $offset = $cursor === null ? 0 : (int) substr($cursor, 3);
+                $p = $this->read($c, '/stores-reader/v1/products/query', 'POST', ['query' => ['paging' => ['limit' => 100, 'offset' => $offset]]]);
+                $rows = $p['products'] ?? null;
+                $next = is_array($rows) && $rows !== [] && is_int($p['totalResults'] ?? null) && $offset + count($rows) < $p['totalResults'] ? 'v1:'.($offset + count($rows)) : null;
+                $map = fn (array $r) => WixCatalog::productV1($r, $currency);
+            } else {
+                throw ApiException::conflict('Wix Stores is not installed on this site.', 'provider_catalog_unavailable');
+            }
+        }
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $items = [];
+        foreach ($rows as $r) {
+            if (! is_array($r)) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            if (($item = $map($r)) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => $next];
     }
 }

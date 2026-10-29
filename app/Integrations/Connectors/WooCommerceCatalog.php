@@ -104,11 +104,6 @@ final class WooCommerceCatalog
         ];
     }
 
-    private static function enum(mixed $v): ?string
-    {
-        return is_string($v) && preg_match('/\A[a-z_-]{1,32}\z/D', $v) ? $v : null;
-    }
-
     /** @return list<string> */
     private static function ids(mixed $v): array
     {

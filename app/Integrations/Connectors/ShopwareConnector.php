@@ -4,6 +4,7 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -17,7 +18,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /** Shopware6 integration read credentials, entered manually or bound from the app registration handshake (ShopwareAppRegistration). */
-final class ShopwareConnector extends GenericSignedWebhookConnector implements OrderNotification, PagedOrderReader
+final class ShopwareConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
@@ -208,5 +209,47 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements O
         }
 
         return new NormalizedOrder(externalId: $this->str($o['id'] ?? null), reference: $this->str($o['orderNumber'] ?? null), firstName: $this->str($o['orderCustomer']['firstName'] ?? null), email: $this->str($o['orderCustomer']['email'] ?? null), phone: $this->str($o['billingAddress']['phoneNumber'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['stateMachineState']['technicalName'] ?? null), placedAt: $this->date($o['orderDateTime'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: null, providerUpdatedAt: $this->date($o['updatedAt'] ?? $o['createdAt'] ?? null));
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        $token = $this->token($c);
+        $this->identity($c, $token);
+        $row = $this->search($c, $token, 'currency', ['limit' => 1, 'filter' => [['type' => 'equals', 'field' => 'id', 'value' => ShopwareCatalog::SYSTEM_CURRENCY]]])['data'][0] ?? null;
+        $code = is_array($row) ? ($row['isoCode'] ?? null) : null;
+
+        return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,4}\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        $page = $cursor === null ? 1 : (int) $cursor;
+        $token = $this->token($c);
+        $this->identity($c, $token);
+        $channel = $c->credential('sales_channel_id');
+        $criteria = $kind === 'products'
+            ? ['filter' => [['type' => 'equals', 'field' => 'parentId', 'value' => null], ['type' => 'equals', 'field' => 'visibilities.salesChannelId', 'value' => $channel]],
+                'associations' => ['cover' => ['associations' => ['media' => (object) []]], 'categories' => (object) []]]
+            : ['filter' => [['type' => 'equals', 'field' => 'salesChannels.salesChannelId', 'value' => $channel]], 'associations' => ['discounts' => (object) []]];
+        $p = $this->search($c, $token, $kind === 'products' ? 'product' : 'promotion', $criteria + ['page' => $page, 'limit' => 100, 'total-count-mode' => 1, 'sort' => [['field' => 'id', 'order' => 'ASC']]]);
+        $rows = $p['data'] ?? null;
+        $total = $p['total'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $items = [];
+        foreach ($rows as $r) {
+            if (! is_array($r)) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            if (($item = $kind === 'products' ? ShopwareCatalog::product($r, $currency) : ShopwareCatalog::coupon($r, $currency)) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => is_int($total) ? ($page * 100 < $total ? (string) ($page + 1) : null) : (count($rows) === 100 ? (string) ($page + 1) : null)];
     }
 }

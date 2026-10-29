@@ -15878,3 +15878,68 @@ X-Request-Id: 01a1871f-552f-70eb-b64c-631b6ce286b0
 
 {"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"categories","status":"AVAILABLE","reason":"Categories as assigned to synced products.","last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"coupons_read","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
 ```
+
+
+### BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6 and Wix catalogs (B27, Trello #32)
+
+Same endpoints. Each platform reads only documented official fields through its existing pinned, identity-gated read transport; nothing is written to the store. Unsupported discount shapes are skipped (each fixture includes one, so every coupon pass reports 1 item). PrestaShop prices are stored as returned (the webservice reference does not state the tax basis) and a price with more decimals than the currency allows stays null. Captured on a real local PHP HTTP server with the synthetic official-schema fixtures of `PlatformCatalogTest` (no real stores): `docs/integrations/B27_PLATFORM_CATALOG_HTTP_CAPTURE.json`.
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6m7a4vetfxy69r97fke/coupons    (owner session; bigcommerce)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a769-7112-99f9-28816981b530
+
+{"data":[{"external_id":"5","code":"WELKOM10","discount_type":"percent","amount":"10","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":null,"usage_limit_per_customer":1,"usage_count":2,"stackable":false,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":null,"removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mkw2d5n7h02jzmw7hd/coupons    (owner session; ecwid)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a7fd-709e-bab1-f56d14b86262
+
+{"data":[{"external_id":"31","code":"WELKOM10","discount_type":"fixed_cart","amount":"10","amount_minor":1000,"percent_bps":null,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":null,"usage_limit_per_customer":1,"usage_count":4,"stackable":false,"exclude_sale_items":false,"free_shipping":true,"customer_restricted":true,"scope":{"product_ids":["501"]},"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mtrsy9pyjsbq9pmqyg/coupons    (owner session; magento)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a88f-722c-93c0-1833c349a5fe
+
+{"data":[{"external_id":"8","code":"WELKOM10","discount_type":"fixed_cart","amount":"10","amount_minor":1000,"percent_bps":null,"currency":"EUR","minimum_spend_minor":null,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":null,"usage_count":2,"stackable":true,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":null,"removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n0db7tk108aspr54nk/coupons    (owner session; prestashop)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a922-700f-9b1b-524c4947c81b
+
+{"data":[{"external_id":"3","code":"WELKOM10","discount_type":"percent","amount":"10","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":99,"usage_limit_per_customer":1,"usage_count":0,"stackable":true,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T22:59:59+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n587txsyr90r3dgsa4/coupons    (owner session; shopware)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a9bb-714c-aae1-3559846b802c
+
+{"data":[{"external_id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","code":"WELKOM10","discount_type":"percent","amount":"10","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":null,"maximum_spend_minor":null,"usage_limit":null,"usage_limit_per_customer":1,"usage_count":5,"stackable":false,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6qc7x7zfn8cmjdz2q3b/coupons    (owner session; wix)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-aa54-72aa-9cf3-3c486d827e30
+
+{"data":[{"external_id":"44444444-4444-4444-8444-444444444444","code":"WELKOM5","discount_type":"percent","amount":"5","amount_minor":null,"percent_bps":500,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":1,"usage_count":1,"stackable":false,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":{"product_ids":["33333333-3333-4333-8333-333333333333"]},"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":null,"removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```

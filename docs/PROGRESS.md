@@ -1,3 +1,29 @@
+# Active handoff — #32 B27 remaining native catalog/coupon readers; #32 buildable backend complete, card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `5816192` (B26, [CI 40875885780](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40875885780) SUCCESS on all 3 jobs). Owner: "do it all" for #32. D-089 unchanged. Credentials senior-owned.
+
+B27 adds `CatalogReader` to every remaining connector that has a native read transport, each mapping checked against the official reference or core source:
+- BigCommerce: `GET /v3/catalog/products?include=primary_image` (meta.pagination), `GET /v2/coupons` (page/limit, empty page 204), currency from `/v2/store`. Types percentage_discount/per_total_discount/per_item_discount/free_shipping; shipping_discount/promotion skipped.
+- Ecwid: `/products`, `/discount_coupons` (offset/limit/total), `profile.formatsAndUnits.currency`. ABS/PERCENT/SHIPPING and *_AND_SHIPPING.
+- Magento 2.4 (admin-schema-2.4.8): `products` (total_count), `salesRules/search` coupon_type SPECIFIC_COUPON + primary `coupons/search`; by_percent/by_fixed/cart_fixed; buy_x_get_y and auto-generated codes skipped; to_date → end of day in store timezone; currency from storeConfigs.
+- PrestaShop 9: `products`, `cart_rules` (limit offset,100), currency via `configurations` PS_CURRENCY_DEFAULT → `currencies/{id}`. Price stored as returned (tax basis not documented). Codeless rules skipped.
+- Shopware 6: `search/product` (main products visible in the bound sales channel) and `search/promotion` (sales channel, discounts association); system currency `b7d2554b…`. Individual codes, multiple/set-group/fixed-price discounts skipped.
+- Wix: Catalog version via `/stores/v3/provision/version`; V3 `/stores/v3/products/query` (cursor) or V1 `/stores-reader/v1/products/query` (offset); coupons `/stores/v2/coupons/query`; currency `/site-properties/v4/properties`. Fixed-price and buyXGetY skipped.
+- `PinnedJsonReader::read(..., allowEmpty: true)` returns an empty list for 204. Shared helpers moved to `CatalogValues` (row defaults, enum, exact percent, ISO/epoch dates).
+- No migration, no new route.
+
+Executed evidence:
+- PlatformCatalogTest 6 PASS (one products + coupons pass per platform, unsupported shape skipped, encrypted codes, no write methods).
+- Full SQLite: 903 tests, 880 passed + 23 skipped, 10898 assertions.
+- Full MySQL 8: 903 tests, 901 passed + 2 skipped, 10980 assertions, 331.0s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server capture with synthetic official-schema fixtures: docs/integrations/B27_PLATFORM_CATALOG_HTTP_CAPTURE.json, OpenAPI examples, README.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–130000 NOT applied there.
+
+Whole #32 remains not Done (external/out of scope): real installed stores and live evidence for all ten integrations (senior credentials); Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel have no native read connector (no verified contract/credentials) and report UNSUPPORTED; storefront banner publication is merchant-side plugin/app scope. Exact next: #22 (release QA, mostly external), or live verification on staging when the senior configures store credentials.
+
+---
 # Active handoff — #32 B26 Shopify catalog/discount reader; whole #32 not Done (2026-10-29, Claude)
 
 Branch `main`. Base `9d5281d` (B25, [CI 40851533268](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40851533268) SUCCESS on all 3 jobs). Owner: #1 backend done → moved to frontend (Hassan); continue #32 then #22. D-089 unchanged. Credentials senior-owned.

@@ -823,3 +823,11 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] `ShopifyApi::catalog/shopCurrency` fixed queries after the identity/domain/scope gate; `ShopifyCatalog` mappers; shared `CatalogValues` trait; exact-decimal percentage parsing.
 - [x] ShopifyCatalogTest (cursor paging, documented mapping, skipped BXGY/bulk, encrypted codes, missing read_discounts → failed pass); real-server capture B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
 - [ ] Shopware, Wix, Magento, BigCommerce, Lightspeed, CCV, Ecwid, PrestaShop catalog readers NOT BUILT; live Shopify catalog run NOT RUN.
+
+### B27 — BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6, Wix catalog readers, Trello #32 (2026-10-29)
+
+- [x] Official references checked: BigCommerce get-products/get-coupons/get-store-information; Ecwid search-products/search-discount-coupons/store-profile; Magento admin-schema-2.4.8 + RuleInterface constants; PrestaShop 9 webservice products/cart_rules/configurations/currencies + PS_CURRENCY_DEFAULT; Shopware core Product/Promotion definitions and discount constants; Wix catalog V1/V3, catalog version, coupons query, site properties.
+- [x] Mappers `BigCommerceCatalog`, `EcwidCatalog`, `MagentoCatalog`, `PrestaShopCatalog`, `ShopwareCatalog`, `WixCatalog`; shared `CatalogValues` (row defaults, exact percent, ISO/epoch dates); connectors implement `CatalogReader` behind their existing identity gates.
+- [x] `PinnedJsonReader` opt-in `allowEmpty` for 204 list pages (BigCommerce v2).
+- [x] PlatformCatalogTest: one products + coupons pass per platform, unsupported shape skipped, codes encrypted, no write methods; real-server capture B27_PLATFORM_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
+- [ ] Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel: no native read connector (UNSUPPORTED). Live installed-store runs for all platforms NOT RUN. Storefront banner publication NOT BUILT (merchant-side plugin/app scope).

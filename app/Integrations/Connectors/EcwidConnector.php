@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -16,10 +17,11 @@ use App\Integrations\ProviderOrderId;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\ExactJson;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class EcwidConnector extends WebhookConnector implements OrderNotification, PagedOrderReader
+final class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public function platform(): EcommercePlatform
     {
@@ -160,5 +162,43 @@ final class EcwidConnector extends WebhookConnector implements OrderNotification
         };
 
         return new NormalizedOrder(externalId: $this->str($p['internalId'] ?? null), reference: $this->str($p['vendorOrderNumber'] ?? $p['orderNumber'] ?? null), firstName: $this->str($p['billingPerson']['firstName'] ?? null), email: $this->str($p['email'] ?? null), phone: $this->str($p['billingPerson']['phone'] ?? null), amountMinor: null, currency: null, paymentStatus: $status, orderStatus: $this->str($p['fulfillmentStatus'] ?? null), placedAt: $this->date($p['createDate'] ?? null), paidAt: null, cancelledAt: null, refundedAt: null, providerUpdatedAt: $this->date($p['updateDate'] ?? null));
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        $this->identity($c);
+        $code = $this->read($c, '/profile')['formatsAndUnits']['currency'] ?? null;
+
+        return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        $offset = self::offset($cursor);
+        $this->identity($c);
+        $p = $this->read($c, $kind === 'products' ? '/products' : '/discount_coupons', ['offset' => $offset, 'limit' => 100]);
+        $rows = $p['items'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100 || ! is_int($p['total'] ?? null)) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $items = [];
+        foreach ($rows as $r) {
+            if (($item = ! is_array($r) ? throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid')
+                : ($kind === 'products' ? EcwidCatalog::product($r, $currency) : EcwidCatalog::coupon($r, $currency))) !== null) {
+                $items[] = $item;
+            }
+        }
+        $next = $offset + count($rows);
+
+        return ['items' => $items, 'next' => $rows !== [] && $next < $p['total'] ? (string) $next : null];
+    }
+
+    private static function offset(?string $cursor): int
+    {
+        if ($cursor !== null && ! preg_match('/\A(?:0|[1-9][0-9]{0,6})\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+
+        return (int) $cursor;
     }
 }

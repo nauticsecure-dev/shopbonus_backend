@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -20,7 +21,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class BigCommerceConnector extends WebhookConnector implements OrderNotification, PagedOrderReader
+final class BigCommerceConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public const TOPICS = ['store/order/created', 'store/order/updated', 'store/order/statusUpdated', 'store/order/refund/created', 'store/order/transaction/created'];
 
@@ -103,13 +104,13 @@ final class BigCommerceConnector extends WebhookConnector implements OrderNotifi
      * @param  array<string,mixed>  $query
      * @return array<mixed>
      */
-    private function read(WebshopConnection $c, string $path, array $query = []): array
+    private function read(WebshopConnection $c, string $path, array $query = [], bool $allowEmpty = false): array
     {
         if (! preg_match('/\A[a-z0-9]{3,32}\z/D', (string) $c->external_shop_ref) || $c->credential('access_token') === null) {
             throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
         }
 
-        return app(PinnedJsonReader::class)->read($c, 'https://api.bigcommerce.com/stores/'.$c->external_shop_ref.$path, ['headers' => ['X-Auth-Token' => $c->credential('access_token')]], 'GET', $query)['data'];
+        return app(PinnedJsonReader::class)->read($c, 'https://api.bigcommerce.com/stores/'.$c->external_shop_ref.$path, ['headers' => ['X-Auth-Token' => $c->credential('access_token')]], 'GET', $query, allowEmpty: $allowEmpty)['data'];
     }
 
     private function identity(WebshopConnection $c): void
@@ -240,5 +241,46 @@ final class BigCommerceConnector extends WebhookConnector implements OrderNotifi
         };
 
         return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null));
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        $this->identity($c);
+        $code = $this->read($c, '/v2/store')['currency'] ?? null;
+
+        return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,4}\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        $page = $cursor === null ? 1 : (int) $cursor;
+        $this->identity($c);
+        if ($kind === 'products') {
+            $p = $this->read($c, '/v3/catalog/products', ['page' => $page, 'limit' => 100, 'include' => 'primary_image']);
+            $rows = $p['data'] ?? null;
+            $pages = $p['meta']['pagination']['total_pages'] ?? null;
+            $more = is_int($pages) && $page < $pages;
+            $store = (string) ($this->read($c, '/v2/store')['secure_url'] ?? '');
+        } else {
+            // v2 lists carry no paging metadata; an empty page is 204.
+            $rows = $this->read($c, '/v2/coupons', ['page' => $page, 'limit' => 100], true);
+            $more = count($rows) === 100;
+            $store = '';
+        }
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $items = [];
+        foreach ($rows as $r) {
+            if (($item = ! is_array($r) ? throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid')
+                : ($kind === 'products' ? BigCommerceCatalog::product($r, $currency, $store) : BigCommerceCatalog::coupon($r, $currency))) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => $more ? (string) ($page + 1) : null];
     }
 }

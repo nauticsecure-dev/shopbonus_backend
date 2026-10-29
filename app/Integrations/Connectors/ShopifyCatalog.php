@@ -3,7 +3,6 @@
 namespace App\Integrations\Connectors;
 
 use App\Exceptions\ApiException;
-use Carbon\CarbonImmutable;
 
 /**
  * Maps Shopify Admin GraphQL 2026-10 Product and code-discount nodes
@@ -181,17 +180,5 @@ final class ShopifyCatalog
     private static function status(mixed $v): ?string
     {
         return is_string($v) && preg_match('/\A[A-Z_]{1,32}\z/D', $v) ? strtolower($v) : null;
-    }
-
-    private static function iso(mixed $v): ?CarbonImmutable
-    {
-        if (! is_string($v) || ! preg_match('/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})\z/D', $v)) {
-            return null;
-        }
-        try {
-            return CarbonImmutable::parse($v)->utc();
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }
