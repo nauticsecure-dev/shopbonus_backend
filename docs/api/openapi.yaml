@@ -94,6 +94,10 @@ tags:
   - name: CMS
     description: |
       Super Admin content studio (Trello #5): pages, legal versions, FAQ, images. Rich text is a strict JSON document, never HTML.
+  - name: Quality Center
+    description: |
+      Quality Center backend (Trello #37): inventory, coverage, imported runs, private evidence, findings and schedules. Super Admin, QA tester
+      (`shopbonus:qa-role <email> qa_tester`) and developer (`... developer`, findings assigned to them only) roles; all need confirmed 2FA.
   - name: Content
     description: |
       Published CMS content for visitors (Trello #5).
@@ -7756,6 +7760,1005 @@ paths:
             application/json:
               example: {"error":{"status":409,"code":"suggestion_not_open","message":"Only open suggestions can be applied.","request_id":"01a18811-42b4-70e7-ab25-9405e5ed89e6","details":{"status":"applied"}}}
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/summary:
+    get:
+      tags: [Quality Center]
+      operationId: qaSummary
+      summary: "Quality Center dashboard header"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Trello #37 §8: Total APIs | Tested | Coverage % | PASS | FAIL | BLOCKED | P0/P1 | Last Run | Next Run. Statuses come only from executed evidence of approved test cases (see `GET .../endpoints`). `pass_mocked` counts PASS endpoints whose evidence is labelled MOCKED. `last_probe` is the latest read-only production probe.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/summary' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured after one scan, three imported runs and a probe."
+          content:
+            application/json:
+              example: {"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+
+  /api/v1/admin/qa/endpoints:
+    get:
+      tags: [Quality Center]
+      operationId: qaEndpoints
+      summary: "API inventory with coverage status"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Every discovered /api/v1 route: method, path, handler, OpenAPI summary (purpose), access, permission, scope, tests, last run and status. `status`: pass | fail | blocked | not_implemented | stale | untested | removed (FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS across the endpoint's approved tests; evidence older than the endpoint's last change or than QA_STALE_AFTER_DAYS is stale). `review: "UNREFERENCED — REVIEW"` = a frontend usage report exists, does not list the route, and it serves no webhook/integration/external client; nothing is ever deleted. Filters: `filter` (new, changed, removed, undocumented, untested, failed, blocked, stale, unreferenced, passed), `q` (path/handler), `access`, `page`, `per_page` ≤ 100.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/endpoints?filter=untested&per_page=2' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Search (captured)."
+          content:
+            application/json:
+              examples:
+                search: { value: {"data":[{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj8jd81wgas3et77mkty","method":"GET","path":"/api/v1/consumer/wallet/transactions","name":"api.v1.consumer.wallet.transactions.index","handler":"Api\\V1\\Consumer\\WalletController@transactions","summary":"My wallet history","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":3,"per_page":2,"last_page":2}} }
+                untested: { value: {"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":362,"per_page":2,"last_page":181}} }
+                unreferenced: { value: {"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":339,"per_page":2,"last_page":170}} }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '422':
+          description: "Unknown filter."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-caf0-7182-b687-efee22183308","fields":{"filter":["The selected filter is invalid."]}}}
+
+  /api/v1/admin/qa/endpoints/{endpoint}:
+    parameters:
+      - { name: endpoint, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Quality Center]
+      operationId: qaEndpoint
+      summary: "One endpoint with its tests and latest results"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Coverage matrix row: requirement/test → route → permission → scope → latest result → run → Git SHA. Only approved cases count for `status`; drafts are listed with their status.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/endpoints/<endpoint>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":2,"last_run_at":"2026-10-29T18:07:52+00:00","frontend_referenced":true,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null,"test_cases":[{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":null},{"id":"01m64dhk63b1mhxrct5veq7ett","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","title":"test_status_comes_only_from_approved_executed_evidence","scenario":null,"source":"phpunit","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null,"run_id":"01m64dhk68zrrb9fkghmzzeax9","created_at":"2026-10-29T18:07:52+00:00"}}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/qa/components:
+    get:
+      tags: [Quality Center]
+      operationId: qaComponents
+      summary: "Jobs, events, listeners, commands, schedules, migrations and connectors"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Non-HTTP inventory. Connectors include the webshop connectors and the Mollie, Moneybird, Answer24, Daisycon and TradeTracker clients. `tested` = linked to an approved test case. Filters: `kind`, `removed` (boolean), `page`, `per_page`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/components?kind=schedule&per_page=3' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured (kind=schedule)."
+          content:
+            application/json:
+              example: {"data":[],"meta":{"current_page":1,"total":0,"per_page":3,"last_page":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+
+  /api/v1/admin/qa/snapshots:
+    get:
+      tags: [Quality Center]
+      operationId: qaSnapshots
+      summary: "Inventory snapshots per Git SHA"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Each scan with totals and the diff against the previous scan (added/changed/removed endpoints and components, undocumented routes). Newest first.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/snapshots?per_page=1' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}],"meta":{"current_page":1,"total":1,"per_page":1,"last_page":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+
+  /api/v1/admin/qa/inventory/scan:
+    post:
+      tags: [Quality Center]
+      operationId: qaScan
+      summary: "Scan the deployed code"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Discovers routes (fingerprint = method, path, middleware and handler source), OpenAPI operations, jobs, events, listeners, commands, schedules, migrations and connectors, and diffs against the previous scan. Also run after every deploy by `php artisan shopbonus:qa-discover --sha=<sha>`. One scan at a time (409 `scan_in_progress`). Audited (`qa.inventory_scanned`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/inventory/scan' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5"}
+      responses:
+        '201':
+          description: "Captured (first scan: everything is \"added\")."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '409':
+          description: "Another scan is running."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"scan_in_progress","message":"An inventory scan is already running.","request_id":"<request id>"}}
+        '422':
+          description: "Invalid SHA."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-c371-73f1-96c8-d574c933452b","fields":{"git_sha":["The git sha field format is invalid."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/frontend-usage:
+    post:
+      tags: [Quality Center]
+      operationId: qaFrontendUsage
+      summary: "Report which routes the frontend calls"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. The frontend build sends every `METHOD /api/v1/path` template it calls (max 2000). Routes not listed become `UNREFERENCED — REVIEW` unless they serve webhooks, integrations or external clients (`external_clients`). Never deletes anything. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/frontend-usage' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"routes":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile"]}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"routes":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile"]}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"referenced":2,"unknown_routes":1,"unreferenced_review":339,"external_clients":21}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '422':
+          description: "Not a `METHOD /api/v1/...` template."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc1f-7138-ad54-28af76854e25","fields":{"routes.0":["The routes.0 field format is invalid."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/test-cases:
+    get:
+      tags: [Quality Center]
+      operationId: qaTestCases
+      summary: "Test cases"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Executable tests live in Git; this lists what the Quality Center knows. Imported unknown keys and AI proposals start as `draft` and never count towards coverage until approved. Filters: `status`, `source` (phpunit, postman, browser, manual, ai), `q`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/test-cases?status=draft&per_page=2' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m64dhk651fbkwbk32r8tgv32","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","title":"test_ai_analysis_is_advisory_and_grounded_in_the_input","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null},{"id":"01m64dhk6659bjk76pc3ba9z28","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","title":"test_cli_import_for_ci_runners","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null}],"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+    post:
+      tags: [Quality Center]
+      operationId: qaStoreTestCase
+      summary: "Register a manual/Postman/browser test case"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. `scenario` links to the PDF scenario (01–25) or acceptance test (E2E-01–E2E-10). Created as draft. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/test-cases' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual"}
+      responses:
+        '201':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"draft","version":null,"approved_at":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '422':
+          description: "Duplicate key or invalid scenario."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f","fields":{"key":["The key has already been taken."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/test-cases/approve:
+    post:
+      tags: [Quality Center]
+      operationId: qaApproveTestCases
+      summary: "Approve draft test cases"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Human approval by key (max 1000). Only drafts change; unknown or already approved keys are counted as `skipped`. Audited (`qa.test_cases_approved`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/test-cases/approve' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"keys":["Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","E2E-07-shopify-install"]}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"keys":["Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","E2E-07-shopify-install"]}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"approved":2,"skipped":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '422':
+          description: "Missing keys."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The keys field is required.","request_id":"<request id>","details":{"errors":{"keys":["The keys field is required."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/test-cases/{testCase}/coverage:
+    parameters:
+      - { name: testCase, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [Quality Center]
+      operationId: qaSetCoverage
+      summary: "Replace the functions a test case covers"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Endpoint and component public ids (current only). Replaces the existing links. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PUT 'http://localhost:8000/api/v1/admin/qa/test-cases/<testCase>/coverage' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"endpoints":["<endpoint id>"],"components":[]}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"endpoints":["<endpoint id>"],"components":[]}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: "Unknown or removed id."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"Unknown or removed endpoint or component.","request_id":"<request id>","details":{"errors":{"endpoints":["Every id must be a current endpoint or component."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/coverage:
+    post:
+      tags: [Quality Center]
+      operationId: qaImportCoverage
+      summary: "Import a coverage map"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. `map`: `{test_key: ["GET /api/v1/...", "job:app/Jobs/X", ...]}`. Adds links for known tests and targets; unknown ones are reported, never invented. Also available as `shopbonus:qa-import --coverage=<file>`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/coverage' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"map":{"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence":["GET /api/v1/consumer/wallet"]}}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"map":{"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence":["GET /api/v1/consumer/wallet"]}}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"linked":2,"unknown_tests":[],"unknown_targets":["GET /api/v1/unknown"]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '422':
+          description: "Invalid map."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The map field is required.","request_id":"<request id>","details":{"errors":{"map":["The map field is required."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/runs:
+    get:
+      tags: [Quality Center]
+      operationId: qaRuns
+      summary: "Imported runs"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Newest first. Filters: `environment` (production, staging), `source` (junit, probe).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/runs?per_page=2' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},{"id":"01m64dhcezejjx7h5wmxnsfzh6","suite":"safe","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"probe","totals":{"total":3,"assertions":3,"pass":3,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":7,"report_sha256":"ae1336016d6bb54c7ecd8a2505ef978d4f2fc542104565d455c8a0df1f069981","created_at":"2026-10-29T18:07:45+00:00"}],"meta":{"current_page":1,"total":2,"per_page":2,"last_page":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+    post:
+      tags: [Quality Center]
+      operationId: qaImportRun
+      summary: "Import a JUnit report"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Multipart: `report` (JUnit XML, ≤ QA_MAX_REPORT_KB, no DOCTYPE), `suite` (safe, changed, full, weekly), `environment` (production, staging), `git_sha`, optional `mocked`, `source` (phpunit, postman, browser), `schedule_id`. Mapping: failure/error → fail; skipped with message `BLOCKED:` → blocked, `NOT_IMPLEMENTED:` → not_implemented, other skipped → skipped; a test without assertions is never PASS. Names containing "MOCKED" (or `mocked=true`) are labelled mocked. Messages are redacted. The same report is never imported twice (409 `run_duplicate`). CI uses `php artisan shopbonus:qa-import`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/runs' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -F 'report=@junit.xml' \
+              -F 'suite=changed' \
+              -F 'environment=staging' \
+              -F 'git_sha=2276fe6b9241893fe092b011e59bb0f027cc72a5'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: {"type":"object","properties":{"report":{"type":"string","format":"binary"},"suite":{"type":"string"},"environment":{"type":"string"},"git_sha":{"type":"string"}}}
+      responses:
+        '201':
+          description: "Captured (a real PHPUnit 12 JUnit report)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '409':
+          description: "Report already imported."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"run_duplicate","message":"This report was already imported.","request_id":"01a188d8-ccee-7209-aee4-ca481a7d7baf","details":{"run":"01m64dhk68zrrb9fkghmzzeax9"}}}
+        '422':
+          description: "Not XML, no test cases or DOCTYPE."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc7a-7147-9957-2badb51d4dba","fields":{"report":["The report field must be a file of type: application/xml, text/xml, text/plain."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/runs/{run}:
+    parameters:
+      - { name: run, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Quality Center]
+      operationId: qaRun
+      summary: "Run with results and evidence"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Results are paginated (`status`, `page`, `per_page`); evidence lists checksums only.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/runs/<run>?status=pass&per_page=2' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured (status=pass)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00","results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null}],"evidence":[]},"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/qa/runs/{run}/export:
+    parameters:
+      - { name: run, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Quality Center]
+      operationId: qaExportRun
+      summary: "Export a run as JSON, JUnit or HTML"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. `format` = json | junit | html. Attachment with `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`, `Content-Security-Policy: default-src 'none'`; HTML is escaped. Audited (`qa.run_exported`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/runs/<run>/export?format=json' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Report attachment (captured for all three formats; e.g. HTML 2.9 kB)."
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: "Unknown format."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cedc-72d5-b301-50fb3611cbec","fields":{"format":["The selected format is invalid."]}}}
+
+  /api/v1/admin/qa/runs/{run}/evidence:
+    parameters:
+      - { name: run, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Quality Center]
+      operationId: qaStoreEvidence
+      summary: "Attach private evidence to a run"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Multipart `file` (PNG, JPEG, WebP, PDF, JSON, XML or text; ≤ QA_MAX_EVIDENCE_KB), optional `result_id` (of this run) and `request_id`. Stored encrypted with its SHA-256; the same file for the same run is stored once (200 with the existing record). Retained QA_EVIDENCE_RETENTION_DAYS. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/runs/<run>/evidence' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -F 'file=@proof.png' \
+              -F 'request_id=req-capture-1'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: {"type":"object","properties":{"file":{"type":"string","format":"binary"},"request_id":{"type":"string"}}}
+      responses:
+        '201':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+        '200':
+          description: "Same file already stored (captured)."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: "File type not accepted (captured with HTML)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"This file type is not accepted as evidence.","request_id":"01a188d8-cf58-71e0-87ff-9b10e12f3259","details":{"errors":{"file":["Upload PNG, JPEG, WebP, PDF, JSON, XML or plain text."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/evidence/{evidence}:
+    parameters:
+      - { name: evidence, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Quality Center]
+      operationId: qaEvidence
+      summary: "Download evidence"
+      description: |
+        Trello #37. Access: Super Admin, QA tester or developer (developers only see findings assigned to them). Decrypted and checked against its SHA-256 (410 `evidence_unavailable` on mismatch). Developers can only download evidence of runs linked to findings assigned to them (404 otherwise). Attachment, nosniff, no-store, noindex. Audited (`qa.evidence_downloaded`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/evidence/<evidence>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "The original file (captured: 90-byte PNG identical to the upload)."
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin, QA tester or developer, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
+        '404':
+          description: "Unknown, or not linked to a finding assigned to this developer (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Evidence not found.","request_id":"01a188d8-cf7b-717d-9233-4017670c8a9a"}}
+        '410':
+          description: "Stored file missing or checksum mismatch."
+          content:
+            application/json:
+              example: {"error":{"status":410,"code":"evidence_unavailable","message":"The evidence file is missing or does not match its checksum.","request_id":"<request id>"}}
+
+  /api/v1/admin/qa/findings:
+    get:
+      tags: [Quality Center]
+      operationId: qaFindings
+      summary: "Findings"
+      description: |
+        Trello #37. Access: Super Admin, QA tester or developer (developers only see findings assigned to them). Developers see only findings assigned to them. Filters: `status` (open, fixed, retest_passed, retest_failed), `severity` (p0–p3).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/findings' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured as the assigned developer."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin, QA tester or developer, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
+    post:
+      tags: [Quality Center]
+      operationId: qaStoreFinding
+      summary: "Record a finding"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Related failures are grouped: an unresolved finding with the same routes and tests returns 409 `finding_exists`. `owner_id` must be a developer (or Super Admin). Routes must be current inventory routes. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/findings' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"<run id>","owner_id":"<developer user id>","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"]}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"<run id>","owner_id":"<developer user id>","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"]}
+      responses:
+        '201':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '409':
+          description: "Already recorded (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"finding_exists","message":"An unresolved finding already covers these routes and tests.","request_id":"01a188d8-d03d-7342-a1ea-38dd94e2f0df","details":{"finding":"01m64dhm15zxb1f002y6wq5zex"}}}
+        '422':
+          description: "Invalid severity, owner or route (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cfe8-7376-9409-6ce2cd6d4cf4","fields":{"severity":["The selected severity is invalid."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/findings/{finding}:
+    parameters:
+      - { name: finding, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Quality Center]
+      operationId: qaFinding
+      summary: "Finding with evidence, AI analysis and regression plan"
+      description: |
+        Trello #37. Access: Super Admin, QA tester or developer (developers only see findings assigned to them). `regression` = approved tests covering the affected routes or other routes of the same controllers, money/tenant/webhook paths first. `ai_analysis` is advisory (`advisory: true`, `needs_review: true`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/findings/<finding>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured after fix and independent retest."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true},"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin, QA tester or developer, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
+        '404':
+          description: "Unknown or not assigned to this developer."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Finding not found.","request_id":"01a188d8-d716-736d-98a1-975ec94e1066"}}
+
+  /api/v1/admin/qa/findings/{finding}/fix:
+    parameters:
+      - { name: finding, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Quality Center]
+      operationId: qaFixFinding
+      summary: "Record the fix commit"
+      description: |
+        Trello #37. Access: Super Admin or the assigned developer. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Assigned developer (or Super Admin). Allowed from `open` or `retest_failed`. Audited (`qa.finding_fixed`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/findings/<finding>/fix' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"fix_commit":"9f1c2ab"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"fix_commit":"9f1c2ab"}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"fixed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a developer or Super Admin (captured as QA tester)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d167-72cc-b69c-60f643660a50"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not open."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"finding_not_open","message":"Only open or failed-retest findings can be marked fixed.","request_id":"<request id>","details":{"status":"fixed"}}}
+        '422':
+          description: "Not a 7–40 character hex commit (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-d196-70ef-b273-3285c087f582","fields":{"fix_commit":["The fix commit field format is invalid."]}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/findings/{finding}/retest:
+    parameters:
+      - { name: finding, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Quality Center]
+      operationId: qaRetestFinding
+      summary: "Independent retest"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. QA tester or Super Admin who is neither the owner nor the fixer (403 `retest_not_independent`), with a run imported after the fix (409 `retest_run_outdated`). The outcome is derived: every linked test must PASS unmocked in that run → `retest_passed`, else `retest_failed`. Only findings without linked tests take an explicit `passed`. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/findings/<finding>/retest' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"run_id":"<run id>"}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"run_id":"<run id>"}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Developers cannot retest (captured); the fixer cannot retest their own fix (`retest_not_independent`)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d61a-72c9-a85d-869f76b2adc4"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Not fixed yet, or run older than the fix (captured)."
+          content:
+            application/json:
+              examples:
+                not_fixed: { value: {"error":{"status":409,"code":"finding_not_fixed","message":"Only fixed findings can be retested.","request_id":"01a188d8-d143-707d-87c6-2d01a92e8d73","details":{"status":"open"}}} }
+                outdated: { value: {"error":{"status":409,"code":"retest_run_outdated","message":"Use a run imported after the fix was recorded.","request_id":"01a188d8-d1e2-7319-91c2-787497ea8ee5"}} }
+        '422':
+          description: "Unknown run, or verdict missing for a finding without tests."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"Unknown run.","request_id":"<request id>","details":{"errors":{"run_id":["Unknown run."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/findings/{finding}/analyze:
+    parameters:
+      - { name: finding, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Quality Center]
+      operationId: qaAnalyzeFinding
+      summary: "Analyze with GPT (advisory)"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. OpenAI Responses API (`store: false`, strict JSON schema: affected_routes, test_ids, severity, evidence_ids, expected, actual, hypothesis, proposed_tests, confidence, needs_review) over redacted results and evidence metadata. References outside the input are rejected (503, nothing stored). Never changes status or severity; `needs_review` is always true; proposed tests become draft `ai` test cases. Daily quota QA_AI_DAILY_LIMIT, 5/min per user. Off until the senior sets QA_AI_*.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/findings/<finding>/analyze' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {}
+      responses:
+        '200':
+          description: "Captured with a synthetic model stub."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: "Analysis already running."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"analysis_in_progress","message":"An analysis is already running for this finding.","request_id":"<request id>"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+        '429':
+          description: "Daily limit."
+          content:
+            application/json:
+              example: {"error":{"status":429,"code":"qa_ai_daily_limit","message":"The daily AI analysis limit is reached.","request_id":"<request id>","details":{"retry_after_seconds":32400}}}
+        '503':
+          description: "Not configured or unsafe output."
+          content:
+            application/json:
+              examples:
+                not_configured: { value: {"error":{"status":503,"code":"qa_ai_not_configured","message":"AI analysis is not configured.","request_id":"<request id>"}} }
+                failed: { value: {"error":{"status":503,"code":"qa_analysis_failed","message":"The analysis could not be produced safely. Nothing was changed.","request_id":"<request id>"}} }
+
+  /api/v1/admin/qa/schedules:
+    get:
+      tags: [Quality Center]
+      operationId: qaSchedules
+      summary: "Test schedules"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. `executed_by: scheduler` = the production safe-suite probe run by `shopbonus:qa-probe` every 5 minutes (QA_PROBE_ENABLED); `ci_runner` = staging suites executed by CI/staging runners, which import results with `shopbonus:qa-import --schedule=<id>`.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/schedules' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":true,"last_run_at":null,"executed_by":"ci_runner"},{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}]}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+    post:
+      tags: [Quality Center]
+      operationId: qaStoreSchedule
+      summary: "Create a schedule"
+      description: |
+        Trello #37. Access: Super Admin only. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Super Admin only. Production schedules can only use the read-only `safe` suite. Triggers: every_5_minutes, after_deploy, nightly (02:00 UTC), weekly (Sunday 03:00 UTC). Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/admin/qa/schedules' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2}
+      responses:
+        '201':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2,"active":null,"last_run_at":null,"executed_by":"scheduler"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin (captured as QA tester)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d736-72bf-8130-0a1c9034a560"}}
+        '422':
+          description: "Production non-safe suite (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"Production schedules can only run the read-only safe suite.","request_id":"01a188d8-d760-706a-84cb-c935020ad7a8","details":{"errors":{"suite":["Production schedules can only run the read-only safe suite."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/schedules/{schedule}:
+    parameters:
+      - { name: schedule, in: path, required: true, schema: { type: string } }
+    patch:
+      tags: [Quality Center]
+      operationId: qaUpdateSchedule
+      summary: "Update or pause a schedule"
+      description: |
+        Trello #37. Access: Super Admin only. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Super Admin only. `name`, `suite`, `trigger`, `timeout_minutes`, `active`. Environment cannot change. Audited.
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X PATCH 'http://localhost:8000/api/v1/admin/qa/schedules/<schedule>' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>' \
+              -H 'Content-Type: application/json' -d '{"timeout_minutes":3}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            example: {"timeout_minutes":3}
+      responses:
+        '200':
+          description: "Captured."
+          content:
+            application/json:
+              example: {"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: "Not a Super Admin."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d736-72bf-8130-0a1c9034a560"}}
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: "Production non-safe suite."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"Production schedules can only run the read-only safe suite.","request_id":"01a188d8-d760-706a-84cb-c935020ad7a8","details":{"errors":{"suite":["Production schedules can only run the read-only safe suite."]}}}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/qa/openapi.json:
+    get:
+      tags: [Quality Center]
+      operationId: qaOpenapi
+      summary: "Protected OpenAPI contract for the API portal"
+      description: |
+        Trello #37. Access: Super Admin or QA tester. This versioned OpenAPI document as JSON, for the self-hosted Swagger UI/Stoplight portal (qa.shopbonus.nl, hosted by the frontend/infra). Never public: `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`. Audited (`qa.openapi_viewed`).
+      x-access: admin
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/admin/qa/openapi.json' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <decoded XSRF-TOKEN cookie>'
+      responses:
+        '200':
+          description: "The OpenAPI 3.1 document (captured: 1077026 bytes; example abbreviated)."
+          content:
+            application/json:
+              example: {"openapi":"3.1.0","info":{"title":"Shopbonus API","version":"…"},"paths":{"/api/v1/…":{}}}
+        '401':
+          description: "Not signed in (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a188d8-b776-73a4-b658-89f0560b35b3"}}
+        '403':
+          description: "Consumer (captured)."
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
 
   /api/v1/admin/cms/translations:
     get:

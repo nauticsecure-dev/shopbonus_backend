@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\OperationsOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
+use App\Http\Controllers\Api\V1\Admin\QaController;
 use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
@@ -383,6 +384,47 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     });
                     Route::post('disputes/{dispute}/resolve', [AdminDisputeController::class, 'resolve'])->name('disputes.resolve');
                     Route::post('checkouts/{checkout}/refund', [AdminDisputeController::class, 'refundCheckout'])->name('checkouts.refund');
+                });
+            });
+
+            // Quality Center (Trello #37). Every group includes super_admin; qa_tester runs, approves and retests;
+            // developer only reaches findings assigned to them (and their evidence) and records fix commits.
+            Route::prefix('admin/qa')->name('admin.qa.')->group(function () {
+                Route::middleware('platform:super_admin,qa_tester')->group(function () {
+                    Route::get('summary', [QaController::class, 'summary'])->name('summary');
+                    Route::get('endpoints', [QaController::class, 'endpoints'])->name('endpoints.index');
+                    Route::get('endpoints/{endpoint}', [QaController::class, 'showEndpoint'])->name('endpoints.show');
+                    Route::get('components', [QaController::class, 'components'])->name('components.index');
+                    Route::get('snapshots', [QaController::class, 'snapshots'])->name('snapshots.index');
+                    Route::get('test-cases', [QaController::class, 'testCases'])->name('test-cases.index');
+                    Route::get('runs', [QaController::class, 'runs'])->name('runs.index');
+                    Route::get('runs/{run}', [QaController::class, 'showRun'])->name('runs.show');
+                    Route::get('runs/{run}/export', [QaController::class, 'export'])->name('runs.export');
+                    Route::get('schedules', [QaController::class, 'schedules'])->name('schedules.index');
+                    Route::get('openapi.json', [QaController::class, 'openapi'])->name('openapi');
+                    Route::middleware('password.recent')->group(function () {
+                        Route::post('inventory/scan', [QaController::class, 'scan'])->name('inventory.scan');
+                        Route::post('frontend-usage', [QaController::class, 'frontendUsage'])->name('frontend-usage');
+                        Route::post('test-cases', [QaController::class, 'storeTestCase'])->name('test-cases.store');
+                        Route::post('test-cases/approve', [QaController::class, 'approveTestCases'])->name('test-cases.approve');
+                        Route::put('test-cases/{testCase}/coverage', [QaController::class, 'setCoverage'])->name('test-cases.coverage');
+                        Route::post('coverage', [QaController::class, 'importCoverage'])->name('coverage.import');
+                        Route::post('runs', [QaController::class, 'storeRun'])->name('runs.store');
+                        Route::post('runs/{run}/evidence', [QaController::class, 'storeEvidence'])->name('runs.evidence.store');
+                        Route::post('findings', [QaController::class, 'storeFinding'])->name('findings.store');
+                        Route::post('findings/{finding}/retest', [QaController::class, 'retestFinding'])->name('findings.retest');
+                        Route::post('findings/{finding}/analyze', [QaController::class, 'analyzeFinding'])->middleware('throttle:qa-ai')->name('findings.analyze');
+                    });
+                });
+                Route::middleware('platform:super_admin,qa_tester,developer')->group(function () {
+                    Route::get('findings', [QaController::class, 'findings'])->name('findings.index');
+                    Route::get('findings/{finding}', [QaController::class, 'showFinding'])->name('findings.show');
+                    Route::get('evidence/{evidence}', [QaController::class, 'downloadEvidence'])->name('evidence.download');
+                });
+                Route::post('findings/{finding}/fix', [QaController::class, 'fixFinding'])->middleware(['platform:super_admin,developer', 'password.recent'])->name('findings.fix');
+                Route::middleware(['platform:super_admin', 'password.recent'])->group(function () {
+                    Route::post('schedules', [QaController::class, 'storeSchedule'])->name('schedules.store');
+                    Route::patch('schedules/{schedule}', [QaController::class, 'updateSchedule'])->name('schedules.update');
                 });
             });
 

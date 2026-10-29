@@ -1,8 +1,8 @@
 # API route inventory (Trello #22)
 
-Generated 2026-10-29 from the running route table and `docs/api/openapi.yaml` with `php artisan shopbonus:api-routes` (all 334 routes: documented access matches the middleware). Regenerate before each release; the command exits non-zero on any contract drift.
+Generated 2026-10-29 from the running route table and `docs/api/openapi.yaml` with `php artisan shopbonus:api-routes` (all 362 routes: documented access matches the middleware). Regenerate before each release; the command exits non-zero on any contract drift.
 
-Access: admin 135, authenticated 4, integration 4, public 35, verified 156. Every route is exercised by `tests/Feature/Api/RoleAccessMatrixTest.php` as anonymous, suspended, unverified, consumer, owner, manager, employee and Super Admin; request/response contracts and captured examples are in `docs/api/openapi.yaml`.
+Access: admin 163, authenticated 4, integration 4, public 35, verified 156. Every route is exercised by `tests/Feature/Api/RoleAccessMatrixTest.php` as anonymous, suspended, unverified, consumer, owner, manager, employee and Super Admin (Quality Center routes under `/admin/qa` also admit `qa_tester`, and findings/evidence/fix `developer`; see `roles` in `shopbonus:api-routes`); request/response contracts and captured examples are in `docs/api/openapi.yaml`.
 
 | Method | Path | Access | Permission | Scope | Step-up | Rate limit | Audit category |
 |---|---|---|---|---|---|---|---|
@@ -94,6 +94,34 @@ Access: admin 135, authenticated 4, integration 4, public 35, verified 156. Ever
 | POST | `/api/v1/admin/platform-settings/{version}/publish` | admin | - | platform | recent password, email code | api | admin |
 | POST | `/api/v1/admin/platform-settings/{version}/review` | admin | - | platform | recent password | api | admin |
 | POST | `/api/v1/admin/platform-settings/{version}/rollback` | admin | - | platform | recent password, email code | api | admin |
+| GET | `/api/v1/admin/qa/components` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/coverage` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/qa/endpoints` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/endpoints/{endpoint}` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/evidence/{evidence}` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/findings` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/findings` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/qa/findings/{finding}` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/findings/{finding}/analyze` | admin | - | platform | recent password | api,qa-ai | admin |
+| POST | `/api/v1/admin/qa/findings/{finding}/fix` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/qa/findings/{finding}/retest` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/qa/frontend-usage` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/qa/inventory/scan` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/qa/openapi.json` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/runs` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/runs` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/qa/runs/{run}` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/runs/{run}/evidence` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/qa/runs/{run}/export` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/schedules` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/schedules` | admin | - | platform | recent password | api | admin |
+| PATCH | `/api/v1/admin/qa/schedules/{schedule}` | admin | - | platform | recent password | api | admin |
+| GET | `/api/v1/admin/qa/snapshots` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/summary` | admin | - | platform | - | api | admin |
+| GET | `/api/v1/admin/qa/test-cases` | admin | - | platform | - | api | admin |
+| POST | `/api/v1/admin/qa/test-cases` | admin | - | platform | recent password | api | admin |
+| POST | `/api/v1/admin/qa/test-cases/approve` | admin | - | platform | recent password | api | admin |
+| PUT | `/api/v1/admin/qa/test-cases/{testCase}/coverage` | admin | - | platform | recent password | api | admin |
 | GET | `/api/v1/admin/reconciliation` | admin | - | platform | - | api | admin |
 | POST | `/api/v1/admin/reconciliation` | admin | - | platform | recent password, email code | api,admin-diagnostics | admin |
 | GET | `/api/v1/admin/reconciliation/{run}` | admin | - | platform | - | api | admin |

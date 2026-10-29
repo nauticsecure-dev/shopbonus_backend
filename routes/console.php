@@ -61,3 +61,7 @@ Schedule::command('shopbonus:recover-integration-order --drain')->everyMinute()-
 
 Schedule::command('shopbonus:sync-integration-orders --drain')->everyMinute()->withoutOverlapping();
 Schedule::command('shopbonus:sync-integration-orders --auto')->everyFiveMinutes()->withoutOverlapping();
+
+// Quality Center (#37): read-only production probe (no-op until QA_PROBE_ENABLED) and evidence retention.
+Schedule::command('shopbonus:qa-probe')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('shopbonus:qa-probe --prune')->dailyAt('04:30')->withoutOverlapping();

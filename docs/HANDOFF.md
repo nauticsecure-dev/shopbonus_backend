@@ -1,3 +1,31 @@
+# Active handoff — #37 B30 Quality Center backend; backend slice done, card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `2276fe6` (B29, [CI 40895099427](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40895099427) SUCCESS on all 3 jobs). Owner: "do it" (build #33–#35, then #37's "Laravel Backend: Frank" part). D-089 unchanged. Credentials senior-owned. #12 still waits for the owner's cashback-timing decision.
+
+B30:
+- Roles: `PlatformRole::QaTester` (`qa_tester`) and `PlatformRole::Developer` (`developer`); `EnsurePlatformRole` takes several roles (`platform:super_admin,qa_tester`) and still requires confirmed 2FA. Every QA route group includes `super_admin`, so the RoleAccessMatrix rule (Super Admin passes every platform route) holds. Neither QA role reaches any other admin route. Grant: `php artisan shopbonus:qa-role <email> qa_tester|developer [--revoke]` (audited). `ApiRouteRegistry` now reports the real roles per route.
+- Migration `2026_10_29_150000_create_qa_tables`: qa_inventory_snapshots, qa_endpoints, qa_components, qa_test_cases, qa_test_coverage, qa_schedules, qa_test_runs, qa_test_results, qa_evidence, qa_findings, qa_ai_quotas.
+- `App\Services\Qa\QaInventory` (discovery): routes (fingerprint = method, path, middleware, handler source lines), OpenAPI summary/documented flag, jobs, events, listeners, commands, schedules, migrations, connectors (webshop connectors + Mollie/Moneybird/Answer24/Daisycon/TradeTracker clients). Diff vs previous scan (added/changed/removed/undocumented); removed rows keep `removed_at`, nothing is deleted. Cache lock, one scan at a time. `php artisan shopbonus:qa-discover --sha=<sha>` after every deploy.
+- `QaStatus`: per-endpoint status from approved test cases' latest results only: FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS; evidence older than the endpoint's last change or `QA_STALE_AFTER_DAYS` is STALE; mocked passes are labelled. `UNREFERENCED — REVIEW` only after a frontend usage report and never for webhook/integration/external routes. Dashboard summary (totals, coverage %, P0–P3 open findings, last run/probe/scan, next run).
+- `QaRuns`: JUnit import (no DOCTYPE, LIBXML_NONET; failure/error → fail, `BLOCKED:`/`NOT_IMPLEMENTED:` skipped prefixes, no assertions → never PASS, "MOCKED" names or `mocked=true`); report SHA-256 dedupe; keys use the PHP `class` attribute (dotted `classname` converted); unknown keys become draft cases; redacted messages (contact data, bearer tokens, IBANs, configured secrets). Coverage map import. JSON/JUnit/HTML export (escaped, attachment, no-store, noindex, CSP none). Encrypted evidence with SHA-256 check on download, per-run dedupe, retention; `shopbonus:qa-probe --prune` daily.
+- `QaFindings`: grouped by routes+tests fingerprint (409 `finding_exists`); owner must be a developer; developer fixes with commit; retest by someone other than owner/fixer, with a run imported strictly after the fix; outcome derived from that run (every linked test PASS, unmocked). Regression plan (tests on affected routes/same controllers, money/tenant/webhook first). Advisory GPT analysis via Responses API (`store:false`, strict schema with the card's fields), references restricted to the input, never changes status/severity, proposals become draft `ai` test cases; quota + 5/min throttle `qa-ai`; 503 until `QA_AI_*` is set.
+- `QaProbe` + `shopbonus:qa-probe` every 5 minutes (no-op until `QA_PROBE_ENABLED`): read-only HealthChecker + latency, run with source `probe`; failure → grouped incident via IncidentRecorder::monitoring.
+- Schedules (Super Admin): production only allows the `safe` suite. Staging suites are executed by CI/staging runners, which import with `shopbonus:qa-import --schedule=<id>`.
+- `GET /api/v1/admin/qa/openapi.json`: the OpenAPI contract for the self-hosted Swagger/Stoplight portal; no-store, noindex, audited.
+- 28 routes under `/api/v1/admin/qa`; inventory now 362 routes (admin 163). Env: QA_AI_ENABLED/API_KEY/MODEL/DAILY_LIMIT, QA_EVIDENCE_RETENTION_DAYS, QA_STALE_AFTER_DAYS, QA_PROBE_ENABLED, QA_PROBE_SLOW_MS, APP_RELEASE_SHA.
+
+Executed evidence:
+- QualityCenterTest 10 PASS (231 assertions); OpenApiCoverageTest PASS.
+- Full SQLite: 931 tests, 908 passed + 23 skipped, 13667 assertions.
+- Full MySQL 8: 931 tests, 929 passed + 2 skipped, 13750 assertions, 421.9s.
+- Pint PASS; PHPStan 0 errors. Migration rollback/reapply on isolated SQLite PASS (11 tables).
+- Real local HTTP server capture (61 requests; imports a real PHPUnit 12 JUnit log; model stub synthetic): `docs/qa/B30_QUALITY_CENTER_HTTP_CAPTURE.json`; examples in OpenAPI and README. The capture found and fixed one defect: a run imported in the same second as the fix was accepted as a retest (now 409 `retest_run_outdated`). Some 409/410/422/429/503 examples are illustrative (`<request id>`).
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–150000 NOT applied there.
+
+Not done (#37 is not Done): Quality Center UI and the qa.shopbonus.nl Swagger/Stoplight hosting (Hassan/infra; backend serves the protected spec); executing the 25 PDF scenarios, Postman/browser suites and the ten provider install/order/refund subruns on staging with real Mollie TEST/provider sandboxes (Hassan + senior credentials); CI wiring of `shopbonus:qa-import` and a coverage map generator; real GPT model verification (senior sets QA_AI_*); Martijn's release approval. Exact next: #12 after the owner decides D-089, or staging verification.
+
+---
 # Active handoff — #33/#34/#35 B29 CMS scheduled publishing and "Improve with AI"; backend slice done (2026-10-29, Claude)
 
 Branch `main`. Base `2bd4ba5` (B28, CI SUCCESS on all 3 jobs). Owner: "do it" after the board review (build #33–#35 CMS gaps, then #37 backend; #12 waits for the owner decision on D-089). D-089 unchanged. Credentials senior-owned.
