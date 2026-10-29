@@ -25,7 +25,8 @@ class WixConnectorTest extends TestCase
         $instance = '11111111-1111-4111-8111-111111111111';
         $c = new WebshopConnection(['external_shop_ref' => $instance, 'credentials' => ['public_key' => $info['key']]]);
         $event = ['id' => '22222222-2222-4222-8222-222222222222', 'entityFqdn' => 'wix.ecom.v1.order', 'entityId' => '33333333-3333-4333-8333-333333333333', 'slug' => 'created'];
-        $body = $this->encoded(['data' => ['instanceId' => $instance, 'eventType' => 'wix.ecom.v1.order_created', 'data' => json_encode($event)]]);
+        // Real Wix envelope (as parsed by @wix/sdk): `data` is a JSON string whose own `data` is a JSON string.
+        $body = $this->encoded(['data' => json_encode(['instanceId' => $instance, 'eventType' => 'wix.ecom.v1.order_created', 'data' => json_encode($event)])]);
         $header = $this->encoded(['alg' => 'RS256', 'typ' => 'JWT']);
         $message = $header.'.'.$body;
         openssl_sign($message, $signature, $key, OPENSSL_ALGO_SHA256);
@@ -34,6 +35,15 @@ class WixConnectorTest extends TestCase
         $a = new WixConnector;
         $this->assertSame('order_lookup', $a->verifyIncomingEvent($c, $r)->kind);
         $this->assertSame($event['entityId'], $a->notificationOrderId($c, $raw));
+        // A claim object instead of the JSON string is not the Wix format.
+        $objectBody = $this->encoded(['data' => ['instanceId' => $instance, 'eventType' => 'wix.ecom.v1.order_created', 'data' => json_encode($event)]]);
+        openssl_sign($header.'.'.$objectBody, $objectSig, $key, OPENSSL_ALGO_SHA256);
+        try {
+            $a->verifyIncomingEvent($c, Request::create('/', 'POST', [], [], [], [], $header.'.'.$objectBody.'.'.rtrim(strtr(base64_encode($objectSig), '+/', '-_'), '=')));
+            $this->fail('Object data claim accepted.');
+        } catch (InvalidWebhook $e) {
+            $this->assertSame('invalid_event', $e->reason);
+        }
         $bad = Request::create('/', 'POST', [], [], [], [], $this->encoded(['alg' => 'HS256']).'.'.$body.'.'.rtrim(strtr(base64_encode($signature), '+/', '-_'), '='));
         $this->expectException(InvalidWebhook::class);
         $a->verifyIncomingEvent($c, $bad);

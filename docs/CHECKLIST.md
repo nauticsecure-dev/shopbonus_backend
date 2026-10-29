@@ -741,7 +741,7 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
 - [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
 - [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
-- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix install/remove webhooks (token minting done B23l, search backfill done B23j); Shopware live verification (handshake B23m, app webhooks B23n done); full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix live verification (removal B23o, token minting B23l, search backfill B23j done); Shopware live verification (handshake B23m, app webhooks B23n done); full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
 - [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.
 
 ### B23i — Shopify native webhook provisioning (2026-10-28)
@@ -790,3 +790,10 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] `app.deleted` revokes binding/credentials (generation bump), deletes the shop unless keepUserData; activation/deactivation audited; Shopware connector extracts lookup IDs only from the derived app hint.
 - [x] 5 focused tests / 58 assertions (with B23m: 12/118); actual HTTP captures (order.written, redelivery, ignored, forged 401, app.deleted); OpenAPI + README.
 - [ ] checkout.order.placed / order_transaction mapping, action buttons and live Shopware verification NOT RUN.
+
+### B23o — Wix webhook envelope fix and AppRemoved (2026-10-29)
+
+- [x] Official @wix/sdk parseJWT reviewed: JWT `data` is a JSON string; the previous object-only parser rejected genuine webhooks. Fixed; object form refused; fixture corrected.
+- [x] AppInstalled/AppRemoved eventTypes confirmed in the official app-instances SDK; content-hash dedupe; AppRemoved → native-proof uninstall processing shared with Shopify; AppInstalled has no effect.
+- [x] Tests: WixConnectorTest (2/9) and WixAppRemovedTest (3/13): revoked → disconnect, valid grant → ignored, redelivery deduped, installed → no HTTP or effect.
+- [ ] Live Wix removal status codes NOT RUN.

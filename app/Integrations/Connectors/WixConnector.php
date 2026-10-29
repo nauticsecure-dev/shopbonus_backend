@@ -23,6 +23,9 @@ use Illuminate\Http\Request;
 
 final class WixConnector extends WebhookConnector implements OrderNotification, PagedOrderReader
 {
+    /** eventType values of com.wixpress.market.aim.api.AppInstanceService (@wix/auto_sdk_app-management_app-instances). */
+    private const APP_INSTANCE_EVENTS = ['AppInstalled', 'AppRemoved'];
+
     public function platform(): EcommercePlatform
     {
         return EcommercePlatform::Wix;
@@ -99,20 +102,33 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
                 throw new InvalidWebhook('invalid_timestamp');
             }
         }
-        $data = $body['data'] ?? null;
-        if (! is_array($data) || ($data['instanceId'] ?? null) !== $c->external_shop_ref || ! is_string($data['data'] ?? null)) {
-            throw new InvalidWebhook('store_mismatch');
+        // As in @wix/sdk parseJWT: the `data` claim is a JSON string holding instanceId, eventType and a JSON-string `data`.
+        if (! is_string($body['data'] ?? null)) {
+            throw new InvalidWebhook('invalid_event');
         }
         try {
-            $event = ExactJson::decode($data['data']);
+            $data = ExactJson::decode($body['data']);
+            $event = is_array($data) && is_string($data['data'] ?? null) ? ExactJson::decode($data['data']) : null;
         } catch (\JsonException) {
             throw new InvalidWebhook('invalid_json');
         }
-        if (! is_array($event) || ! is_string($event['id'] ?? null) || ! preg_match('/\A[A-Za-z0-9_-]{8,128}\z/D', $event['id'])) {
+        if (! is_array($data) || ($data['instanceId'] ?? null) !== $c->external_shop_ref) {
+            throw new InvalidWebhook('store_mismatch');
+        }
+        $topic = $data['eventType'] ?? null;
+        if (! is_array($event) || ! is_string($topic) || strlen($topic) > 128) {
+            throw new InvalidWebhook('invalid_event');
+        }
+        if (in_array($topic, self::APP_INSTANCE_EVENTS, true)) {
+            // App-instance events carry no event id ({appId}); dedupe on the signed content instead.
+            $id = 'app-'.hash('sha256', $topic.'|'.$data['instanceId'].'|'.$data['data']);
+        } elseif (is_string($event['id'] ?? null) && preg_match('/\A[A-Za-z0-9_-]{8,128}\z/D', $event['id'])) {
+            $id = $event['id'];
+        } else {
             throw new InvalidWebhook('invalid_event');
         }
 
-        return ['topic' => $data['eventType'] ?? null, 'event' => $event];
+        return ['topic' => $topic, 'event' => $event, 'id' => $id];
     }
 
     public function verifyIncomingEvent(WebshopConnection $c, Request $r): VerifiedEvent
@@ -120,6 +136,10 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
         $p = $this->signedData($c, $this->rawBody($r));
         $topic = $p['topic'];
         $e = $p['event'];
+        if ($topic === 'AppRemoved') {
+            // Disconnection still requires native revocation proof (ShopifyUninstall handles both platforms).
+            return new VerifiedEvent($p['id'], $topic, VerifiedEvent::KIND_DISCONNECT);
+        }
         $lookup = ($e['entityFqdn'] ?? null) === 'wix.ecom.v1.order' && in_array($e['slug'] ?? null, ['created', 'updated'], true) && $topic === 'wix.ecom.v1.order_'.$e['slug'];
         if ($lookup) {
             try {
@@ -129,7 +149,7 @@ final class WixConnector extends WebhookConnector implements OrderNotification, 
             }
         }
 
-        return new VerifiedEvent($e['id'], is_string($topic) ? $topic : null, $lookup ? VerifiedEvent::KIND_ORDER_LOOKUP : VerifiedEvent::KIND_OTHER);
+        return new VerifiedEvent($p['id'], $topic, $lookup ? VerifiedEvent::KIND_ORDER_LOOKUP : VerifiedEvent::KIND_OTHER);
     }
 
     public function notificationOrderId(WebshopConnection $c, string $raw): ?string
