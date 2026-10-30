@@ -4,6 +4,7 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -15,7 +16,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /** PrestaShop9 native Webservice reads; legacy Shopbonus signed module contract remains explicit. */
-final class PrestaShopConnector extends GenericSignedWebhookConnector implements PagedOrderReader
+final class PrestaShopConnector extends GenericSignedWebhookConnector implements CatalogReader, PagedOrderReader
 {
     public function __construct()
     {
@@ -229,5 +230,51 @@ final class PrestaShopConnector extends GenericSignedWebhookConnector implements
         };
 
         return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['reference'] ?? null), firstName: $this->str($payload['customer']['firstname'] ?? null), email: $this->str($payload['customer']['email'] ?? null), phone: $this->str($payload['address']['phone_mobile'] ?? $payload['address']['phone'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['current_state'] ?? null), placedAt: $date($p['date_add'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: null, providerUpdatedAt: $date($p['date_upd'] ?? null));
+    }
+
+    /** @return array{0: string, 1: string} default currency id and ISO code, after the identity gate */
+    private function defaultCurrency(WebshopConnection $c): array
+    {
+        $this->identity($c);
+        $id = $this->list($c, 'configurations', ['filter[name]' => '[PS_CURRENCY_DEFAULT]'], 10)[0]['value'] ?? null;
+        $code = is_string($id) && ctype_digit($id) ? ($this->read($c, 'currencies/'.$id)['currency']['iso_code'] ?? null) : null;
+        if (! Money::isCurrency($code)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+
+        return [$id, $code];
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        return $this->defaultCurrency($c)[1];
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,4}\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        $page = $cursor === null ? 1 : (int) $cursor;
+        [$currencyId] = $this->defaultCurrency($c);
+        $resource = $kind === 'products' ? 'products' : 'cart_rules';
+        $p = $this->read($c, $resource, ['display' => 'full', 'sort' => '[id_ASC]', 'limit' => (($page - 1) * 100).',100']);
+        // An empty webservice list is returned as an empty array.
+        $rows = $p === [] ? [] : ($p[$resource] ?? null);
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $timezone = (string) ($c->credential('timezone') ?? 'UTC');
+        $items = [];
+        foreach ($rows as $r) {
+            if (! is_array($r)) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            if (($item = $kind === 'products' ? PrestaShopCatalog::product($r, $currency, $timezone) : PrestaShopCatalog::coupon($r, $currency, $currencyId, $timezone)) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => count($rows) === 100 ? (string) ($page + 1) : null];
     }
 }

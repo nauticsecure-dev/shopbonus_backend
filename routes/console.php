@@ -39,6 +39,9 @@ Schedule::command('shopbonus:merchant-notifications')->everyFifteenMinutes()->wi
 // Banner campaigns scheduled in shop-local time.
 Schedule::command('shopbonus:publish-scheduled-banners')->everyMinute()->withoutOverlapping();
 
+// CMS pages scheduled for publication or archiving (#33–#35).
+Schedule::command('shopbonus:publish-scheduled-content')->everyMinute()->withoutOverlapping();
+
 // Private support history retention and recovery of stopped/timed-out research.
 Schedule::command('shopbonus:prune-support')->everyFiveMinutes()->withoutOverlapping();
 
@@ -65,3 +68,7 @@ Schedule::command('shopbonus:sync-integration-orders --auto')->everyFiveMinutes(
 Schedule::command('shopbonus:sync-affiliates')->hourly()->withoutOverlapping();
 
 Schedule::command('shopbonus:enrich-merchants')->dailyAt('02:30')->when(fn () => (bool) config('enrichment.enabled'))->withoutOverlapping();
+
+// Quality Center (#37): read-only production probe (no-op until QA_PROBE_ENABLED) and evidence retention.
+Schedule::command('shopbonus:qa-probe')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('shopbonus:qa-probe --prune')->dailyAt('04:30')->withoutOverlapping();

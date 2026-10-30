@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use JsonException;
 
-/** Bounded authenticated JSON reads only; Shopify POST bodies are fixed GraphQL queries. */
+/** Bounded authenticated JSON transport; callers supply only fixed reviewed native operations. */
 class PinnedJsonReader
 {
     public function __construct(private HostResolver $resolver) {}
@@ -24,7 +24,7 @@ class PinnedJsonReader
      * @param  array<string,mixed>  $query
      * @return array{data:array<mixed>,headers:array<string,string>}
      */
-    public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', #[\SensitiveParameter] array $query = [], bool $form = false): array
+    public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', #[\SensitiveParameter] array $query = [], bool $form = false, bool $allowEmpty = false): array
     {
         if ($connection->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
@@ -72,6 +72,12 @@ class PinnedJsonReader
             $seconds = max(1, min(3600, $seconds === false ? 60 : $seconds));
             Cache::put($cacheKey.':paused', now()->getTimestamp() + $seconds, $seconds);
             throw new ApiException('The provider API rate limit was reached.', 503, 'provider_rate_limited', headers: ['Retry-After' => (string) $seconds]);
+        }
+        if ($allowEmpty && $response->status() === 204) {
+            // Some list APIs (BigCommerce v2) answer an empty page with 204.
+            Cache::forget($cacheKey.':failures');
+
+            return ['data' => [], 'headers' => ['pages' => $response->header('X-WP-TotalPages'), 'version' => $response->header('X-Shopify-API-Version')]];
         }
         if ($response->status() !== 200) {
             if ($response->status() >= 500) {

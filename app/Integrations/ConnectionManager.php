@@ -56,6 +56,7 @@ class ConnectionManager
             $connection->credentials = $connector->connect($connection, $data);
             $connection->save();
             $connection->setRelation('webshop', $webshop);
+            app(ShopwareAppRegistration::class)->attach($connection);
 
             $this->audit->record('integration.connection_created', category: AuditCategory::Integration,
                 resource: $connection, webshopId: $webshop->id, metadata: ['platform' => $platform->value]);
@@ -91,6 +92,7 @@ class ConnectionManager
                 'connected_at' => null, 'last_event_at' => null, 'last_verified_order_at' => null,
                 'last_error_code' => null, 'last_error_at' => null,
             ])->save();
+            app(ShopwareAppRegistration::class)->attach($current);
             $this->audit->record('integration.credentials_replaced', category: AuditCategory::Integration,
                 resource: $current, webshopId: $current->webshop_id);
             $connection->refresh();

@@ -4,13 +4,14 @@ namespace App\Integrations\Http;
 
 use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
+use App\Http\Resources\ConnectionResource;
 use App\Integrations\ShopifyOAuth;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 
-/** Fixed native read queries only; never accepts caller-supplied GraphQL or mutations. */
+/** Fixed reviewed native operations only; no caller-supplied GraphQL or callback URL. */
 class ShopifyApi
 {
     public const VERSION = '2026-10';
@@ -104,6 +105,48 @@ class ShopifyApi
         return $products;
     }
 
+    private const CATALOG_PRODUCTS = 'query ShopbonusCatalogProducts($after: String) { products(first: 50, after: $after, sortKey: ID) { nodes { id legacyResourceId title description productType status onlineStoreUrl updatedAt totalInventory tracksInventory featuredMedia { preview { image { url } } } priceRangeV2 { minVariantPrice { amount currencyCode } } variants(first: 1) { nodes { sku } } collections(first: 10) { nodes { legacyResourceId title } } } pageInfo { hasNextPage endCursor } } }';
+
+    private const DISCOUNT_COMMON = 'status endsAt updatedAt usageLimit appliesOncePerCustomer asyncUsageCount codesCount { count } codes(first: 2) { nodes { code } } combinesWith { orderDiscounts productDiscounts shippingDiscounts } context { __typename } minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount currencyCode } } }';
+
+    private const CATALOG_DISCOUNTS = 'query ShopbonusCatalogDiscounts($after: String) { discountNodes(first: 25, after: $after, query: "method:code", sortKey: ID) { nodes { id discount { __typename ... on DiscountCodeBasic { '.self::DISCOUNT_COMMON.' customerGets { value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount currencyCode } appliesOnEachItem } } items { __typename ... on DiscountProducts { products(first: 10) { nodes { legacyResourceId } pageInfo { hasNextPage } } } ... on DiscountCollections { collections(first: 10) { nodes { legacyResourceId } pageInfo { hasNextPage } } } } } } ... on DiscountCodeFreeShipping { '.self::DISCOUNT_COMMON.' } } } pageInfo { hasNextPage endCursor } } }';
+
+    /** Store currency after the identity/domain gate (no extra scope). */
+    public function shopCurrency(WebshopConnection $connection): ?string
+    {
+        $this->identity($connection, null);
+        $code = $this->query($connection, 'query ShopbonusCurrency { shop { currencyCode } }')['shop']['currencyCode'] ?? null;
+
+        return is_string($code) ? $code : null;
+    }
+
+    /**
+     * One fixed catalog page: products (read_products) or code discounts (read_discounts).
+     *
+     * @return array{nodes: list<mixed>, next: string|null}
+     */
+    public function catalog(WebshopConnection $connection, string $kind, ?string $after): array
+    {
+        if (! in_array($kind, ['products', 'coupons'], true) || ($after !== null && ($after === '' || strlen($after) > 1024))) {
+            throw new \InvalidArgumentException('Invalid catalog kind or native cursor.');
+        }
+        $this->identity($connection, $kind === 'products' ? 'read_products' : 'read_discounts');
+        $root = $kind === 'products' ? 'products' : 'discountNodes';
+        $data = $this->query($connection, $kind === 'products' ? self::CATALOG_PRODUCTS : self::CATALOG_DISCOUNTS, ['after' => $after]);
+        $list = $data[$root] ?? null;
+        $max = $kind === 'products' ? 50 : 25;
+        if (! is_array($list) || ! is_array($list['nodes'] ?? null) || ! array_is_list($list['nodes']) || count($list['nodes']) > $max
+            || ! is_bool($list['pageInfo']['hasNextPage'] ?? null)) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $next = $list['pageInfo']['hasNextPage'] ? ($list['pageInfo']['endCursor'] ?? null) : null;
+        if ($list['pageInfo']['hasNextPage'] && (! is_string($next) || $next === '' || strlen($next) > 1024)) {
+            throw new ApiException('The provider pagination metadata is invalid.', 502, 'provider_pagination_invalid');
+        }
+
+        return ['nodes' => $list['nodes'], 'next' => $next];
+    }
+
     /** @return array{ids:list<string>,next:?string} */
     public function discover(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
     {
@@ -133,7 +176,63 @@ class ShopifyApi
         return ['ids' => $ids, 'next' => $next];
     }
 
-    private function identity(WebshopConnection $connection, string $scope = 'read_orders'): void
+    public const WEBHOOK_TOPICS = ['ORDERS_CREATE', 'ORDERS_UPDATED', 'ORDERS_PAID', 'ORDERS_CANCELLED', 'ORDERS_FULFILLED', 'REFUNDS_CREATE', 'APP_UNINSTALLED'];
+
+    /** @return list<array<string,mixed>> */
+    public function webhooks(WebshopConnection $connection, string $topic): array
+    {
+        $this->webhookTopic($topic);
+        $this->identity($connection);
+        $data = $this->query($connection, 'query ShopbonusWebhooks($topics: [WebhookSubscriptionTopic!]) { webhookSubscriptions(first: 100, topics: $topics) { nodes { id topic uri format filter includeFields } pageInfo { hasNextPage } } }', ['topics' => [$topic]]);
+        $list = $data['webhookSubscriptions'] ?? null;
+        if (! is_array($list) || ! is_array($list['nodes'] ?? null) || ! array_is_list($list['nodes']) || count($list['nodes']) > 100
+            || ($list['pageInfo']['hasNextPage'] ?? null) !== false) {
+            throw ApiException::conflict('The subscription list is incomplete. Review the provider configuration.', 'provider_hook_list_incomplete');
+        }
+        foreach ($list['nodes'] as $item) {
+            if (! is_array($item) || ($item['topic'] ?? null) !== $topic || ! is_string($item['id'] ?? null)
+                || ! preg_match('~\Agid://shopify/WebhookSubscription/[1-9][0-9]{0,18}\z~D', $item['id']) || ! is_string($item['uri'] ?? null)) {
+                throw new ApiException('The provider subscription response could not be read.', 502, 'provider_hook_invalid');
+            }
+        }
+
+        return $list['nodes'];
+    }
+
+    /** Fixed supported topic and server-owned callback only; no caller-supplied GraphQL or endpoint.
+     * @return array<string,mixed>
+     */
+    public function createWebhook(WebshopConnection $connection, string $topic): array
+    {
+        $this->webhookTopic($topic);
+        $uri = ConnectionResource::webhookUrl($connection);
+        $parts = parse_url($uri);
+        if (! is_array($parts) || ($parts['scheme'] ?? null) !== 'https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment']) || isset($parts['port'])) {
+            throw ApiException::conflict('Configure a public HTTPS application URL before provisioning webhooks.', 'webhook_callback_invalid');
+        }
+        $this->identity($connection);
+        $data = $this->query($connection, 'mutation ShopbonusCreateWebhook($topic: WebhookSubscriptionTopic!, $subscription: WebhookSubscriptionInput!) { webhookSubscriptionCreate(topic: $topic, webhookSubscription: $subscription) { webhookSubscription { id topic uri format filter includeFields } userErrors { field message } } }', ['topic' => $topic, 'subscription' => ['uri' => $uri, 'format' => 'JSON']]);
+        $result = $data['webhookSubscriptionCreate'] ?? null;
+        if (! is_array($result) || ! is_array($result['userErrors'] ?? null) || $result['userErrors'] !== []) {
+            throw ApiException::conflict('The provider did not confirm subscription creation. Inspect the native subscription list before retrying.', 'provider_hook_create_unconfirmed');
+        }
+        $hook = $result['webhookSubscription'] ?? null;
+        if (! is_array($hook) || ($hook['topic'] ?? null) !== $topic || ($hook['uri'] ?? null) !== $uri || ! is_string($hook['id'] ?? null)
+            || ! preg_match('~\Agid://shopify/WebhookSubscription/[1-9][0-9]{0,18}\z~D', $hook['id'])) {
+            throw new ApiException('The provider subscription response could not be read.', 502, 'provider_hook_invalid');
+        }
+
+        return $hook;
+    }
+
+    private function webhookTopic(string $topic): void
+    {
+        if (! in_array($topic, self::WEBHOOK_TOPICS, true)) {
+            throw new \InvalidArgumentException('Unsupported webhook topic.');
+        }
+    }
+
+    private function identity(WebshopConnection $connection, ?string $scope = 'read_orders'): void
     {
         $data = $this->query($connection, self::SHOP);
         $shop = $data['shop'] ?? null;
@@ -145,6 +244,9 @@ class ShopifyApi
         if (! $workspace->isOwnershipVerified() || ! in_array(strtolower((string) $workspace->verified_domain),
             [DomainName::fromInput($shop['primaryDomain']['host']), DomainName::fromInput($shop['myshopifyDomain'])], true)) {
             throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
+        }
+        if ($scope === null) {
+            return;
         }
         if (! is_array($scopes) || ! array_is_list($scopes)) {
             throw ApiException::conflict('The provider has not proved the required read scopes.', 'provider_scope_missing');
@@ -159,7 +261,7 @@ class ShopifyApi
      * @param  array<string,mixed>  $variables
      * @return array<string,mixed>
      */
-    private function query(WebshopConnection $connection, string $query, array $variables = [], bool $allowProtectedFields = false): array
+    private function query(WebshopConnection $connection, string $query, #[\SensitiveParameter] array $variables = [], bool $allowProtectedFields = false): array
     {
         if ($connection->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');

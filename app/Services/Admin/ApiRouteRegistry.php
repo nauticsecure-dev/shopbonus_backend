@@ -33,7 +33,7 @@ class ApiRouteRegistry
                     'documented_access' => $operation['x-access'] ?? null, 'permission' => $permission,
                     'contract_matches' => ($operation['x-access'] ?? null) === $actual && ($operation['x-permission'] ?? null) === $permission,
                     'scope' => $has('workspace') ? 'workspace_membership' : ($actual === 'admin' ? 'platform' : ($has('auth') ? 'authenticated_user_resource' : ($actual === 'integration' ? 'integration_scopes' : 'public'))),
-                    'roles' => $actual === 'admin' ? ['super_admin'] : [],
+                    'roles' => $actual === 'admin' ? explode(',', substr((string) collect($middleware)->first(fn ($m) => is_string($m) && str_starts_with($m, 'platform:')), strlen('platform:'))) : [],
                     'audit_category' => $operation['x-audit-category'] ?? match (true) {
                         preg_match('/wallet|checkout|funding|affiliate|financial/', $path) === 1 => 'financial',
                         preg_match('/voucher|dispute/', $path) === 1 => 'voucher',

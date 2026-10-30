@@ -18,6 +18,7 @@ use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -30,8 +31,6 @@ use Illuminate\Support\Str;
  */
 class DisputeService
 {
-    public const SCREENSHOT_DISK = 'local';
-
     public function __construct(
         private readonly WalletService $wallets,
         private readonly VoucherInventory $inventory,
@@ -39,49 +38,66 @@ class DisputeService
         private readonly AuditLogger $audit,
     ) {}
 
-    public function open(User $consumer, ?Voucher $voucher, ?VoucherCheckout $checkout, string $reason, string $description, ?UploadedFile $screenshot = null): VoucherDispute
+    public const EVIDENCE_DIR = 'dispute-evidence';
+
+    /** @param  list<UploadedFile>  $screenshots  already validated as decodable images */
+    public function open(User $consumer, ?Voucher $voucher, ?VoucherCheckout $checkout, string $reason, string $description, array $screenshots = []): VoucherDispute
     {
         $webshopId = $voucher->webshop_id ?? $checkout->webshop_id ?? throw new ApiException('Choose the voucher or purchase this is about.', 422, 'dispute_subject_required');
         $openKey = $voucher !== null ? 'voucher:'.$voucher->id : 'checkout:'.$checkout->id;
-        $shot = $screenshot === null ? null : $this->storeScreenshot($consumer, $screenshot);
+        $publicId = Str::lower((string) Str::ulid());
+        // Files are stored before the row so a storage failure changes nothing; a failed insert removes them again.
+        $evidence = array_map(fn (UploadedFile $f) => $this->storeEvidence($publicId, $f), $screenshots);
 
         try {
-            return DB::transaction(function () use ($consumer, $voucher, $checkout, $reason, $description, $webshopId, $openKey, $shot) {
-                $dispute = VoucherDispute::create(['user_id' => $consumer->id, 'webshop_id' => $webshopId, 'voucher_id' => $voucher?->id, 'checkout_id' => $checkout?->id,
-                    'reason' => $reason, 'description' => $description, 'status' => 'open', 'open_key' => $openKey,
-                    'screenshot_path' => $shot['path'] ?? null, 'screenshot_mime' => $shot['mime'] ?? null, 'screenshot_bytes' => $shot['bytes'] ?? null]);
-                $this->event($dispute, 'consumer', $consumer->id, 'opened', $shot === null ? null : 'screenshot_attached');
+            return DB::transaction(function () use ($consumer, $voucher, $checkout, $reason, $description, $webshopId, $openKey, $publicId, $evidence) {
+                $dispute = VoucherDispute::create(['public_id' => $publicId, 'user_id' => $consumer->id, 'webshop_id' => $webshopId, 'voucher_id' => $voucher?->id, 'checkout_id' => $checkout?->id,
+                    'reason' => $reason, 'description' => $description, 'evidence' => $evidence === [] ? null : $evidence, 'status' => 'open', 'open_key' => $openKey]);
+                $this->event($dispute, 'consumer', $consumer->id, 'opened', null);
                 $this->audit->record('dispute.opened', category: AuditCategory::Voucher, resource: $dispute, webshopId: $webshopId, actorUserId: $consumer->id,
-                    metadata: ['reason' => $reason, 'has_screenshot' => $shot !== null]);
+                    metadata: ['reason' => $reason, 'screenshots' => count($evidence)]);
 
                 return $dispute;
             });
         } catch (UniqueConstraintViolationException) {
-            if ($shot !== null) {
-                Storage::disk(self::SCREENSHOT_DISK)->delete($shot['path']);
-            }
+            Storage::disk('local')->deleteDirectory(self::EVIDENCE_DIR.'/'.$publicId);
             throw ApiException::conflict('There is already an open report for this voucher.', 'dispute_already_open');
         } catch (\Throwable $e) {
-            if ($shot !== null) {
-                Storage::disk(self::SCREENSHOT_DISK)->delete($shot['path']);
-            }
+            Storage::disk('local')->deleteDirectory(self::EVIDENCE_DIR.'/'.$publicId);
             throw $e;
         }
     }
 
-    /** @return array{path: string, mime: string, bytes: int} */
-    private function storeScreenshot(User $consumer, UploadedFile $file): array
+    /**
+     * Decrypted screenshot for an admin, or null when the file id is not part of this report.
+     *
+     * @return array{0: array{id: string, name: string, mime: string, size: int}, 1: string}|null
+     */
+    public function evidence(VoucherDispute $dispute, string $fileId): ?array
     {
-        $name = Str::lower((string) Str::ulid()).'.'.$file->guessExtension();
-        $dir = 'dispute-screenshots/'.$consumer->public_id;
-        if (Storage::disk(self::SCREENSHOT_DISK)->putFileAs($dir, $file, $name) === false) {
+        foreach ($dispute->evidence ?? [] as $meta) {
+            $path = self::EVIDENCE_DIR.'/'.$dispute->public_id.'/'.$fileId.'.enc';
+            if ($meta['id'] === $fileId && Str::isUuid($fileId) && Storage::disk('local')->exists($path)) {
+                return [$meta, base64_decode(Crypt::decryptString((string) Storage::disk('local')->get($path)))];
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array{id: string, name: string, mime: string, size: int} */
+    private function storeEvidence(string $disputeId, UploadedFile $file): array
+    {
+        $id = (string) Str::uuid7();
+        if (! Storage::disk('local')->put(self::EVIDENCE_DIR."/{$disputeId}/{$id}.enc", Crypt::encryptString(base64_encode((string) $file->get())))) {
             throw new ApiException('The screenshot could not be stored. Please try again.', 503, 'storage_unavailable');
         }
 
         return [
-            'path' => $dir.'/'.$name,
+            'id' => $id,
+            'name' => Str::limit(preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName()) ?? 'screenshot', 100, ''),
             'mime' => (string) $file->getMimeType(),
-            'bytes' => (int) $file->getSize(),
+            'size' => (int) $file->getSize(),
         ];
     }
 

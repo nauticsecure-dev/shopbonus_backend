@@ -2147,6 +2147,223 @@ Content-Type: application/json
 {"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1694b-b8a3-7215-936d-10bce88e346d"}}
 ```
 
+### Shopify privacy compliance webhooks — `POST /api/v1/integrations/shopify/compliance` (B23k)
+
+Captured 2026-10-29 with `php artisan serve` on an isolated SQLite file, `CACHE_STORE=array`, sync queue, `APP_DEBUG=false`. Bodies were signed independently with `openssl dgst -sha256 -hmac` using a synthetic client secret; HMACs and delivery IDs are redacted. Synthetic data only, no Shopify store. Rate-limit headers omitted (array cache). Full evidence: [B23_COMPLIANCE_HTTP_CAPTURE.json](../integrations/B23_COMPLIANCE_HTTP_CAPTURE.json).
+
+App-level URI for the three mandatory topics in `shopify.app.toml` (`compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]`). Public, called only by Shopify. HMAC = base64 HMAC-SHA256(raw body, `SHOPIFY_CLIENT_SECRET`). A verified delivery is stored once per `X-Shopify-Webhook-Id`, encrypted, due in 30 days. **Nothing is erased or exported automatically**; operators list and resolve requests with `php artisan shopbonus:shopify-compliance` (D-099).
+
+```http
+POST /api/v1/integrations/shopify/compliance
+Content-Type: application/json
+X-Shopify-Topic: customers/redact
+X-Shopify-Webhook-Id: <UUID>
+X-Shopify-Hmac-Sha256: <HMAC>
+
+{"shop_id":954889,"shop_domain":"fietsen.myshopify.com","customer":{"id":191167,"email":"jan@example.com","phone":"555-625-1199"},"orders_to_redact":[299938,280263]}
+```
+
+**Response 200 (stored; the data_request and shop/redact captures are identical)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1869a-aab3-724f-bd7c-9b5dc487cd39
+
+{"data":{"received":true,"duplicate":false}}
+```
+
+**Response 200 (same X-Shopify-Webhook-Id again)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1869a-ab8e-7382-9dca-0500289c2ab7
+
+{"data":{"received":true,"duplicate":true}}
+```
+
+**Response 401 (signed with a different secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a1869a-abbe-7081-b912-71306e093290
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a1869a-abbe-7081-b912-71306e093290","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 413 (body of 1,048,577 bytes)**
+
+```http
+HTTP/1.1 413 Content Too Large
+Content-Type: application/json
+X-Request-Id: 01a1869b-f942-7079-85cc-fd60386b9a53
+
+{"error":{"status":413,"code":"payload_too_large","message":"The request body is too large.","request_id":"01a1869b-f942-7079-85cc-fd60386b9a53"}}
+```
+
+**Response 503 (`SHOPIFY_CLIENT_SECRET` empty)**
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+X-Request-Id: 01a1869a-e1d2-737a-a324-a4e1c07c1572
+
+{"error":{"status":503,"code":"shopify_app_not_configured","message":"The Shopify app is not configured.","request_id":"01a1869a-e1d2-737a-a324-a4e1c07c1572"}}
+```
+
+### Shopware app registration — `GET /api/v1/integrations/shopware/app/registration`, `POST …/registration/confirm` (B23m)
+
+Captured 2026-10-29 with `php artisan serve` on an isolated SQLite file, `APP_URL=https://api.shopbonus.example`, `SHOPWARE_APP_NAME=ShopbonusApp` and a synthetic app secret. A bash client computed every signature independently with `openssl`, and the returned `proof` was re-derived with openssl and matched. The shop secret and `secretKey` are redacted. No Shopware installation was involved. Evidence: [B23_SHOPWARE_APP_HTTP_CAPTURE.json](../integrations/B23_SHOPWARE_APP_HTTP_CAPTURE.json).
+
+Manifest `<setup>`: `registrationUrl` = `https://<api>/api/v1/integrations/shopware/app/registration`, plus the app secret from the Shopware Account. The merchant creates the Shopbonus connection with `{"app_registration": true, "store_url": "https://<verified domain>", "sales_channel_id": "<32 hex>"}`; the order of installing the app and creating the connection doesn't matter.
+
+```http
+GET /api/v1/integrations/shopware/app/registration?shop-id=sHoP1a2B3c4D5e6F&shop-url=https%3A%2F%2Ffietsen-utrecht.nl&timestamp=<UNIX>
+shopware-app-signature: <hex HMAC-SHA256("shop-id=…&shop-url=…&timestamp=…", app secret)>
+sw-version: 6.7.0.0
+```
+
+**Response 200 (bare handshake object, as Shopware expects)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186b6-4e32-707a-93de-cafa3f9ee7ac
+
+{"proof":"ad71680dad376115bbc824da36669503d706b66743b33dc7ae066263732fd568","secret":"<64-character shop secret>","confirmation_url":"https://api.shopbonus.example/api/v1/integrations/shopware/app/registration/confirm"}
+```
+
+**Response 401 (signed with another app secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186b6-4ed0-72e3-90f9-f48e269ea1b4
+
+{"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4ed0-72e3-90f9-f48e269ea1b4","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 401 (already-confirmed shop re-registers without shopware-shop-signature)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186b6-4faf-72a5-a02a-87879cbafcbe
+
+{"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4faf-72a5-a02a-87879cbafcbe","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 422 (validly signed, but shop-url is http)**
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a186b7-7f97-700c-a7db-c2563036175c
+
+{"error":{"status":422,"code":"store_url_invalid","message":"Use an HTTPS store URL without credentials, query, fragment or a custom port.","request_id":"01a186b7-7f97-700c-a7db-c2563036175c"}}
+```
+
+**Response 503 (SHOPWARE_APP_ENABLED=false)**
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+X-Request-Id: 01a186b6-5ced-7290-b16a-581931977739
+
+{"error":{"status":503,"code":"shopware_app_not_configured","message":"The Shopware app is not configured.","request_id":"01a186b6-5ced-7290-b16a-581931977739"}}
+```
+
+```http
+POST /api/v1/integrations/shopware/app/registration/confirm
+Content-Type: application/json
+shopware-shop-signature: <hex HMAC-SHA256(raw body, pending shop secret)>
+
+{"apiKey":"SWIASYNTHETICAPIKEY01","secretKey":"<redacted>","timestamp":"<UNIX>","shopUrl":"https://fietsen-utrecht.nl","shopId":"sHoP1a2B3c4D5e6F"}
+```
+
+**Response 204**
+
+```http
+HTTP/1.1 204 No Content
+X-Request-Id: 01a186b6-4f78-715a-bab2-bb9a0fa1b453
+```
+
+**Response 401 (body signed with a wrong shop secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186b6-4f09-72f8-af45-e20fd074d0f3
+
+{"error":{"status":401,"code":"registration_rejected","message":"The registration request could not be verified.","request_id":"01a186b6-4f09-72f8-af45-e20fd074d0f3","details":{"reason":"signature_invalid"}}}
+```
+
+### Shopware app webhooks — `POST /api/v1/integrations/shopware/app/webhook` (B23n)
+
+Captured 2026-10-29 with `php artisan serve` on an isolated SQLite file and the database queue (jobs queued, no worker, so no store reads). A verified webshop with an app-registration connection was seeded and the handshake ran over HTTP first. Signatures were computed independently with openssl. Evidence: [B23_SHOPWARE_APP_WEBHOOK_HTTP_CAPTURE.json](../integrations/B23_SHOPWARE_APP_WEBHOOK_HTTP_CAPTURE.json).
+
+Manifest `<webhooks>` should point `order.written`, `app.deleted`, `app.activated` and `app.deactivated` at this URL. Order hints only queue authenticated Admin API reads.
+
+```http
+POST /api/v1/integrations/shopware/app/webhook
+Content-Type: application/json
+shopware-shop-signature: <hex HMAC-SHA256(raw body, shop secret)>
+
+{"data":{"payload":[{"entity":"order","operation":"insert","primaryKey":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},{"entity":"order","operation":"update","primaryKey":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],"event":"order.written"},"source":{"url":"https://fietsen-utrecht.nl","appVersion":"1.0.0","shopId":"sHoP1a2B3c4D5e6F","eventId":"0d1f6a4e-0000-4000-8000-000000000001"},"timestamp":"<UNIX>"}
+```
+
+**Response 200 (two lookups queued)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-1888-7051-9d51-0d2936dbe6ce
+
+{"data":{"received":true,"lookups_queued":2}}
+```
+
+**Response 200 (same eventId again: nothing new)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-18ca-7208-aef2-b3d24d9af75a
+
+{"data":{"received":true,"lookups_queued":0}}
+```
+
+**Response 200 (product.written: ignored)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-18ff-7337-bcae-e6dd9096784a
+
+{"data":{"received":true,"ignored":true}}
+```
+
+**Response 401 (wrong shop secret)**
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186c2-1929-70a3-b7cd-1cf3ce584e80
+
+{"error":{"status":401,"code":"webhook_rejected","message":"The webhook could not be verified.","request_id":"01a186c2-1929-70a3-b7cd-1cf3ce584e80","details":{"reason":"signature_invalid"}}}
+```
+
+**Response 200 (app.deleted, keepUserData false: binding and credentials revoked)**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186c2-1960-72db-baae-190f01e8c1c2
+
+{"data":{"received":true,"revoked":true}}
+```
+
 ---
 
 ## Orders: the live Order Sheet (B05, Trello #1)
@@ -4815,6 +5032,71 @@ Content-Type: application/json
 X-Request-Id: 01a16cdc-2944-72d6-814f-10080476ed4a
 
 {"data":{"id":"01m5pdr9f7d6zf69g911xryy6x","status":"resolved","reason":"code_invalid","description":"The webshop says this code does not exist.","webshop":"Woon & Co","voucher_id":"01m5pdr4zv96djgyr0ybmg0j51","checkout_id":null,"resolution":{"note":"Invalid code confirmed by the webshop; card payment refunded","compensation":"refund","amount_minor":2000,"at":"2026-10-24T07:42:10+00:00"},"created_at":"2026-10-24T07:42:09+00:00","timeline":[{"by":"consumer","type":"opened","note":null,"at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"status_changed","note":"waiting_for_merchant Asked Woon & Co to check the code","at":"2026-10-24T07:42:09+00:00"},{"by":"merchant","type":"merchant_response","note":"This code was not imported correctly, sorry.","at":"2026-10-24T07:42:09+00:00"},{"by":"system","type":"status_changed","note":"under_review","at":"2026-10-24T07:42:09+00:00"},{"by":"admin","type":"resolved","note":"resolved: Invalid code confirmed by the webshop; card payment refunded","at":"2026-10-24T07:42:10+00:00"},{"by":"admin","type":"compensated","note":"refund 2000","at":"2026-10-24T07:42:10+00:00"}]}}
+```
+
+**"Code does not work" with a screenshot (Trello #23, B24)** — captured on `php artisan serve`, isolated SQLite, real session login and TOTP challenge for the admin. Multipart, up to 3 `screenshots[]` (JPEG/PNG/WebP ≤5 MB, must decode). Encrypted at rest; Super Admin download only, audited (`admin.dispute_evidence_downloaded`); merchants see only a count. Responses captured before B24 omit `screenshots`.
+
+`POST /api/v1/consumer/disputes  multipart: voucher_id, reason=code_invalid, description, screenshots[]=<PHP source renamed .png>`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a186e4-fedf-71b8-a7db-cfafc8e97601
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a186e4-fedf-71b8-a7db-cfafc8e97601","fields":{"screenshots.0":["The screenshots.0 field must be a file of type: image\/jpeg, image\/png, image\/webp.","The screenshots.0 field has invalid image dimensions."]}}}
+```
+
+`POST /api/v1/consumer/disputes  multipart: voucher_id, reason=code_invalid, description, screenshots[]=@"checkout error.png"`
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+X-Request-Id: 01a186e4-ff72-7359-bcc6-af1c417b0ed5
+
+{"data":{"id":"01m63e9zvtfsbcpexa7yh3kp5n","status":"open","reason":"code_invalid","description":"The webshop rejects this code at checkout.","screenshots":[{"id":"01a186e4-ff7a-730d-b093-2e8e830ffe65","name":"checkout_error.png","mime":"image\/png","size":99}],"webshop":"Woon & Co","voucher_id":"01m63e8y3b5xys4p4xw9rcedc9","checkout_id":null,"resolution":null,"created_at":"2026-10-29T09:01:56+00:00"}}
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/01a186e4-ff7a-730d-b093-2e8e830ffe65    (consumer session)`
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a186e5-4a07-7276-ab90-95c7daf44462
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a186e5-4a07-7276-ab90-95c7daf44462"}}
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/01a186e4-ff7a-730d-b093-2e8e830ffe65    (admin session after 2FA)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Content-Disposition: attachment; filename="checkout_error.png"
+X-Content-Type-Options: nosniff
+Cache-Control: no-store, private
+X-Request-Id: 01a186e5-4a31-7148-9197-0eb1def87eeb
+
+<99-byte PNG, byte-identical to the upload>
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/00000000-0000-4000-8000-000000000000    (admin)`
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+X-Request-Id: 01a186e5-4a5e-7342-8502-80274f493bde
+
+{"error":{"status":404,"code":"not_found","message":"Screenshot not found.","request_id":"01a186e5-4a5e-7342-8502-80274f493bde"}}
+```
+
+`GET /api/v1/admin/disputes/01m63e9zvtfsbcpexa7yh3kp5n/evidence/01a186e4-ff7a-730d-b093-2e8e830ffe65    (no session)`
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186e5-4a7d-7311-b3de-2a946ba9022c
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a186e5-4a7d-7311-b3de-2a946ba9022c"}}
 ```
 
 **Admin: paid but unfulfilled checkouts**
@@ -15397,47 +15679,1275 @@ Subsequent authenticated connection GET (same store, actual response):
 }
 ```
 
-## Homepage CMS + public discovery helpers
 
-Structured consumer homepage (key=`homepage`, type=`landing`) plus search / reusable discount codes.
+## Connection catalog, native coupons and capability report (B25, Trello #1)
 
-| Method | Path |
-|--------|------|
-| GET | /api/v1/content/homepage?locale=nl\|en |
-| GET | /api/v1/public/search?q=&locale=nl&limit=8 |
-| GET | /api/v1/public/discount-codes?limit=10&search= |
-| GET | /api/v1/admin/content/homepage?locale= |
-| PUT | /api/v1/admin/content/homepage |
-| PATCH | /api/v1/admin/content/homepage/sections/{sectionKey} |
-| POST | /api/v1/admin/content/homepage/preview |
-| POST | /api/v1/admin/content/homepage/publish |
-| GET | /api/v1/admin/content/homepage/versions |
-| POST | /api/v1/admin/content/homepage/restore |
-| POST | /api/v1/admin/content/homepage/schedule |
-| POST | /api/v1/admin/content/homepage/ai-suggest |
-| POST | /api/v1/admin/content/homepage/assets |
+Read-only. Captured on a real local PHP HTTP server (Laravel kernel), isolated synthetic SQLite, sync queue; the WooCommerce REST responses and DNS resolver are synthetic capture stubs (no real store). Full capture: `docs/integrations/B25_CATALOG_HTTP_CAPTURE.json`. `capabilities`, `products` and `catalog-syncs` (GET) need `integrations.view`; `coupons` (codes decrypted) and starting a sync need `integrations.manage`. A complete pass marks items it did not see as `removed_at`; a `partial` pass (page cap) never removes. ShopBonus never creates or changes native coupons.
 
-Webshop list/detail cards may include `badge_label` / `cashback_label` (consumer share via `MerchantCommissionAgreement::consumerCashbackRate()`, never raw network commission).
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/capabilities    (no session)`
 
-Full inventory: `docs/homepage/API_INVENTORY.md`.
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+X-Request-Id: 01a186ff-7efe-7254-83e4-5b3736f56d5e
 
-## About Us CMS (/over-ons)
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a186ff-7efe-7254-83e4-5b3736f56d5e"}}
+```
 
-Structured company story landing (key=over-ons, 	ype=landing). Public Next route: /over-ons.
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/capabilities    (owner session)`
 
-| Method | Path |
-|--------|------|
-| GET | /api/v1/content/over-ons?locale=nl\|en |
-| GET | /api/v1/content/pages/over-ons |
-| GET | /api/v1/admin/content/over-ons?locale= |
-| PUT | /api/v1/admin/content/over-ons |
-| PATCH | /api/v1/admin/content/over-ons/sections/{sectionKey} |
-| POST | /api/v1/admin/content/over-ons/preview |
-| POST | /api/v1/admin/content/over-ons/publish |
-| GET | /api/v1/admin/content/over-ons/versions |
-| POST | /api/v1/admin/content/over-ons/restore |
-| POST | /api/v1/admin/content/over-ons/schedule |
-| POST | /api/v1/admin/content/over-ons/ai-suggest |
-| POST | /api/v1/admin/content/over-ons/assets |
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-8302-7077-8e46-0ad5f25537b4
 
-Commission split percentages are enriched from `shopbonus.affiliate.default_consumer_share_bps` on read (CMS copy cannot invent a conflicting financial rule). Team profiles stay unpublished until `show_profiles` + approved entries. Full inventory: `docs/over-ons/API_INVENTORY.md`.
+{"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"LIMITED","reason":"Implemented; no complete sync with the current credentials yet.","last_verified_at":null},{"capability":"categories","status":"LIMITED","reason":"Implemented; no complete sync with the current credentials yet.","last_verified_at":null},{"capability":"coupons_read","status":"LIMITED","reason":"Implemented; no complete sync with the current credentials yet.","last_verified_at":null},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"orders"}    (owner session)`
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+X-Request-Id: 01a186ff-8344-71ac-a9a2-27d460842e40
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a186ff-8344-71ac-a9a2-27d460842e40","fields":{"kind":["The selected kind is invalid."]}}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"products"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a186ff-8372-72c2-8416-7cd8582c56bb
+
+{"data":{"id":"01m63fz0w2fm6verhz96v4xd8x","kind":"products","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"coupons"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a186ff-841a-72a5-bec9-3cef167c7d64
+
+{"data":{"id":"01m63fz119w7t1frb23yp4y5et","kind":"coupons","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-8456-710a-8ad6-4792f9b426ca
+
+{"data":[{"id":"01m63fz119w7t1frb23yp4y5et","kind":"coupons","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"},{"id":"01m63fz0w2fm6verhz96v4xd8x","kind":"products","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T09:30:54+00:00","finished_at":"2026-10-29T09:30:54+00:00"}]}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/products    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-8478-70e0-b8bf-df82873d9af6
+
+{"data":[{"external_id":"11","sku":"SF-11","name":"Stadsfiets Comfort","description":"Comfortabele stadsfiets met 7 versnellingen.","url":"https://fietsen-utrecht.nl/product/stadsfiets-comfort","image_url":"https://fietsen-utrecht.nl/img/sf-11.jpg","categories":[{"id":"5","name":"Stadsfietsen"}],"price_minor":49995,"regular_price_minor":54995,"sale_price_minor":49995,"currency":"EUR","type":"simple","status":"publish","visibility":"visible","stock_status":"instock","stock_quantity":4,"provider_updated_at":"2026-10-20T09:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/products?search=SF-11    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-849c-71a5-926d-b685756e223a
+
+{"data":[{"external_id":"11","sku":"SF-11","name":"Stadsfiets Comfort","description":"Comfortabele stadsfiets met 7 versnellingen.","url":"https://fietsen-utrecht.nl/product/stadsfiets-comfort","image_url":"https://fietsen-utrecht.nl/img/sf-11.jpg","categories":[{"id":"5","name":"Stadsfietsen"}],"price_minor":49995,"regular_price_minor":54995,"sale_price_minor":49995,"currency":"EUR","type":"simple","status":"publish","visibility":"visible","stock_status":"instock","stock_quantity":4,"provider_updated_at":"2026-10-20T09:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/coupons    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-84c6-7090-9ac8-62e786acd45d
+
+{"data":[{"external_id":"21","code":"welkom10","discount_type":"percent","amount":"10.00","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":1,"usage_count":3,"stackable":false,"exclude_sale_items":true,"free_shipping":false,"customer_restricted":false,"scope":{"product_ids":["11"]},"status":"publish","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/capabilities    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a186ff-84e9-7357-ab68-ab80ba954093
+
+{"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T09:30:54+00:00"},{"capability":"categories","status":"AVAILABLE","reason":"Categories as assigned to synced products.","last_verified_at":"2026-10-29T09:30:54+00:00"},{"capability":"coupons_read","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T09:30:54+00:00"},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt00/products    (owner session)`
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+X-Request-Id: 01a186ff-850d-735c-a8a7-a4a1d39e29c6
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a186ff-850d-735c-a8a7-a4a1d39e29c6"}}
+```
+
+`GET /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/coupons    (employee with integrations.view only)`
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a186ff-8836-7063-a70a-40219a9e8595
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a186ff-8836-7063-a70a-40219a9e8595","details":{"required_permission":"integrations.manage"}}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"products"}    (employee with integrations.view only)`
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+X-Request-Id: 01a186ff-8866-73de-823e-38f464edd89e
+
+{"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a186ff-8866-73de-823e-38f464edd89e","details":{"required_permission":"integrations.manage"}}}
+```
+
+`POST /api/v1/workspaces/01m63fy0mr035f76ntds4qnty2/connections/01m63fy0qvw9b4k5szts0ppt39/catalog-syncs  {"kind":"products"}    (owner session; connection set to disconnected in the synthetic DB)`
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+X-Request-Id: 01a186ff-88a0-71a0-8408-e45e9bcfe3ee
+
+{"error":{"status":409,"code":"connection_disconnected","message":"This connection is disconnected. Create a new one.","request_id":"01a186ff-88a0-71a0-8408-e45e9bcfe3ee"}}
+```
+
+
+### Shopify catalog and code discounts (B26, Trello #32)
+
+Same endpoints; a Shopify connection now has a native reader. Fixed Admin GraphQL 2026-10 read queries only (products with `read_products`; `discountNodes(query: "method:code")` with `read_discounts`; `shop { currencyCode }`), after the existing store identity, verified-domain and scope gate. Single-code `DiscountCodeBasic` and `DiscountCodeFreeShipping` become coupons; BXGY, app and bulk-code discounts are skipped. Percentages are read as exact decimals (0.00–1.00). Captured on a real local PHP HTTP server with synthetic Shopify GraphQL stubs (no real store): `docs/integrations/B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json`. The stub also returned a BXGY discount, which is why the coupon pass reports 1 item.
+
+`POST /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/catalog-syncs  {"kind":"products"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1871f-5417-716c-993c-5b31f560794a
+
+{"data":{"id":"01m63hyn1v4z92f029ps3x6eaa","kind":"products","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T10:05:39+00:00","finished_at":"2026-10-29T10:05:39+00:00"}}
+```
+
+`POST /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/catalog-syncs  {"kind":"coupons"}    (owner session)`
+
+```http
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+X-Request-Id: 01a1871f-54cf-7268-a019-565b82379e17
+
+{"data":{"id":"01m63hyn6s39tmwt1etxzjpn14","kind":"coupons","status":"completed","pages":1,"items":1,"removed":0,"error_code":null,"started_at":"2026-10-29T10:05:39+00:00","finished_at":"2026-10-29T10:05:39+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/products    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1871f-54ff-7042-b94c-5138abdcefe6
+
+{"data":[{"external_id":"632910392","sku":"SF-11","name":"Stadsfiets Comfort","description":"Comfortabele stadsfiets met 7 versnellingen.","url":"https://fietsen-utrecht.nl/products/stadsfiets-comfort","image_url":"https://cdn.shopify.com/s/files/stadsfiets.jpg","categories":[{"id":"77","name":"Stadsfietsen"}],"price_minor":49995,"regular_price_minor":null,"sale_price_minor":null,"currency":"EUR","type":"Fietsen","status":"active","visibility":null,"stock_status":"instock","stock_quantity":4,"provider_updated_at":"2026-10-20T09:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/coupons    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1871f-5519-72a5-b47a-86efbeaf2790
+
+{"data":[{"external_id":"1057371343","code":"WELKOM15","discount_type":"percent","amount":"15","amount_minor":null,"percent_bps":1500,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":1,"usage_count":3,"stackable":true,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63hyhz7bcezz0y276pnf17n/connections/01m63hyj0va8zb8t54kxasrnfw/capabilities    (owner session)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a1871f-552f-70eb-b64c-631b6ce286b0
+
+{"data":[{"capability":"orders","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"payments","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"refunds","status":"LIMITED","reason":"The connection has not passed all native verification checks (status setup_required).","last_verified_at":null},{"capability":"products","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"categories","status":"AVAILABLE","reason":"Categories as assigned to synced products.","last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"coupons_read","status":"AVAILABLE","reason":null,"last_verified_at":"2026-10-29T10:05:39+00:00"},{"capability":"coupons_write","status":"UNSUPPORTED","reason":"ShopBonus integrations are read-only; native coupons are never created or changed.","last_verified_at":null},{"capability":"banner_embed","status":"LIMITED","reason":"Manual ShopBonus embed only; native storefront publication is not implemented for this platform.","last_verified_at":null},{"capability":"webhooks","status":"LIMITED","reason":"No authenticated provider event received yet.","last_verified_at":null},{"capability":"backfill","status":"LIMITED","reason":"Bounded native order discovery is implemented; not proven for this connection.","last_verified_at":null}]}
+```
+
+
+### BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6 and Wix catalogs (B27, Trello #32)
+
+Same endpoints. Each platform reads only documented official fields through its existing pinned, identity-gated read transport; nothing is written to the store. Unsupported discount shapes are skipped (each fixture includes one, so every coupon pass reports 1 item). PrestaShop prices are stored as returned (the webservice reference does not state the tax basis) and a price with more decimals than the currency allows stays null. Captured on a real local PHP HTTP server with the synthetic official-schema fixtures of `PlatformCatalogTest` (no real stores): `docs/integrations/B27_PLATFORM_CATALOG_HTTP_CAPTURE.json`.
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6m7a4vetfxy69r97fke/coupons    (owner session; bigcommerce)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a769-7112-99f9-28816981b530
+
+{"data":[{"external_id":"5","code":"WELKOM10","discount_type":"percent","amount":"10","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":null,"usage_limit_per_customer":1,"usage_count":2,"stackable":false,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":null,"removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mkw2d5n7h02jzmw7hd/coupons    (owner session; ecwid)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a7fd-709e-bab1-f56d14b86262
+
+{"data":[{"external_id":"31","code":"WELKOM10","discount_type":"fixed_cart","amount":"10","amount_minor":1000,"percent_bps":null,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":null,"usage_limit_per_customer":1,"usage_count":4,"stackable":false,"exclude_sale_items":false,"free_shipping":true,"customer_restricted":true,"scope":{"product_ids":["501"]},"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mtrsy9pyjsbq9pmqyg/coupons    (owner session; magento)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a88f-722c-93c0-1833c349a5fe
+
+{"data":[{"external_id":"8","code":"WELKOM10","discount_type":"fixed_cart","amount":"10","amount_minor":1000,"percent_bps":null,"currency":"EUR","minimum_spend_minor":null,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":null,"usage_count":2,"stackable":true,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":null,"removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n0db7tk108aspr54nk/coupons    (owner session; prestashop)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a922-700f-9b1b-524c4947c81b
+
+{"data":[{"external_id":"3","code":"WELKOM10","discount_type":"percent","amount":"10","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":99,"usage_limit_per_customer":1,"usage_count":0,"stackable":true,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T22:59:59+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n587txsyr90r3dgsa4/coupons    (owner session; shopware)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-a9bb-714c-aae1-3559846b802c
+
+{"data":[{"external_id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","code":"WELKOM10","discount_type":"percent","amount":"10","amount_minor":null,"percent_bps":1000,"currency":"EUR","minimum_spend_minor":null,"maximum_spend_minor":null,"usage_limit":null,"usage_limit_per_customer":1,"usage_count":5,"stackable":false,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":null,"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":"2026-10-21T10:00:00+00:00","removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+`GET /api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6qc7x7zfn8cmjdz2q3b/coupons    (owner session; wix)`
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Request-Id: 01a187c8-aa54-72aa-9cf3-3c486d827e30
+
+{"data":[{"external_id":"44444444-4444-4444-8444-444444444444","code":"WELKOM5","discount_type":"percent","amount":"5","amount_minor":null,"percent_bps":500,"currency":"EUR","minimum_spend_minor":5000,"maximum_spend_minor":null,"usage_limit":100,"usage_limit_per_customer":1,"usage_count":1,"stackable":false,"exclude_sale_items":false,"free_shipping":false,"customer_restricted":false,"scope":{"product_ids":["33333333-3333-4333-8333-333333333333"]},"status":"active","expires_at":"2026-12-31T23:00:00+00:00","active":true,"provider_updated_at":null,"removed_at":null}],"meta":{"current_page":1,"last_page":1,"total":1}}
+```
+
+## CMS scheduled publication and AI suggestions (B29, Trello #33, #34, #35)
+
+Captured on a real local PHP HTTP server (Laravel kernel), isolated synthetic SQLite, real `/login` + TOTP + password confirmation session. Only the OpenAI Responses endpoint is a synthetic deterministic stub; no real model was called. The scheduled publication was executed by the real `php artisan shopbonus:publish-scheduled-content` after its due time. Full capture: `docs/cms/B29_CMS_SCHEDULE_AI_HTTP_CAPTURE.json`. All routes are Super Admin; mutations need a recent password. A schedule publishes only the exact reviewed draft revision; an AI suggestion never publishes and may not add numbers, amounts, percentages, links or e-mail addresses.
+
+`GET /api/v1/admin/cms/schedules    (no session)` — schedules_401
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a18811-3d4c-716f-b39d-a7ae40151952
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a18811-3d4c-716f-b39d-a7ae40151952"}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions  {"kind":"improve","idempotency_key":"consumer-1"}    (consumer session)` — suggestion_403_consumer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a18811-3fbc-7328-9d86-71d0f080da46
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a18811-3fbc-7328-9d86-71d0f080da46"}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions  {"kind":"translate","target_locale":"nl","idempotency_key":"bad-1"}    (admin session)` — suggestion_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a18811-41f1-7271-846d-1efd39e85481
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"Improve keeps the language; translate needs a different target language.","request_id":"01a18811-41f1-7271-846d-1efd39e85481"}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions  {"kind":"improve","idempotency_key":"improve-1"}    (admin session)` — suggestion_201_improve
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-4212-72ec-867c-f8dff44be008
+
+{"data":{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}}}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions  {"kind":"improve","idempotency_key":"improve-1"}    (admin session)` — suggestion_200_replay
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-4256-7163-a023-3f76603444bd
+
+{"data":{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}}}}
+```
+
+`GET /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/suggestions    (admin session)` — suggestions_index_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-426d-7301-b8bd-7611a1262727
+
+{"data":[{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null}]}
+```
+
+`GET /api/v1/admin/cms/suggestions/01m6412ggy3d58gze5qcc65715    (admin session)` — suggestion_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-4281-7395-88b8-af2109207c29
+
+{"data":{"id":"01m6412ggy3d58gze5qcc65715","page":"01m6411gq33t3pz00kfnd32pte","kind":"improve","source_locale":"nl","target_locale":"nl","source_revision":1,"target_revision":1,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:54+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}}}}
+```
+
+`POST /api/v1/admin/cms/suggestions/01m6412ggy3d58gze5qcc65715/apply    (admin session)` — suggestion_apply_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-4296-7314-abbe-c1d67ac0d60e
+
+{"data":{"suggestion":"01m6412ggy3d58gze5qcc65715","status":"applied","locale":"nl","slug":"over-ons","draft_revision":2}}
+```
+
+`POST /api/v1/admin/cms/suggestions/01m6412ggy3d58gze5qcc65715/apply    (admin session)` — suggestion_apply_409
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a18811-42b4-70e7-ab25-9405e5ed89e6
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"suggestion_not_open","message":"Only open suggestions can be applied.","request_id":"01a18811-42b4-70e7-ab25-9405e5ed89e6","details":{"status":"applied"}}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/locales/nl/suggestions  {"kind":"translate","target_locale":"en","idempotency_key":"translate-1"}    (admin session)` — suggestion_201_translate
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-42c9-702b-a431-672e4bdcfa69
+
+{"data":{"id":"01m6412gpkzwwkcdc041q7yzak","page":"01m6411gq33t3pz00kfnd32pte","kind":"translate","source_locale":"nl","target_locale":"en","source_revision":2,"target_revision":null,"status":"proposed","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:55+00:00","decided_at":null,"proposed":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Save at participating webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Our story"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Read more","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"For webshops","href":"/voor-webshops"}}]}}}}
+```
+
+`POST /api/v1/admin/cms/suggestions/01m6412gpkzwwkcdc041q7yzak/reject    (admin session)` — suggestion_reject_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-42e7-7005-8d21-d787fbcaa53a
+
+{"data":{"id":"01m6412gpkzwwkcdc041q7yzak","page":"01m6411gq33t3pz00kfnd32pte","kind":"translate","source_locale":"nl","target_locale":"en","source_revision":2,"target_revision":null,"status":"rejected","error_code":null,"requires_human_approval":true,"created_at":"2026-10-29T14:29:55+00:00","decided_at":"2026-10-29T14:29:55+00:00"}}
+```
+
+`GET /api/v1/admin/cms/suggestions/01m6400000000000000000zzzz    (admin session)` — suggestion_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a18811-4301-7017-bae6-0cd017dd34c8
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Suggestion not found.","request_id":"01a18811-4301-7017-bae6-0cd017dd34c8"}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules  {"action":"publish","locale":"nl","revision":1,"due_at":"2026-10-29T14:31:10+00:00"}    (admin session)` — schedule_409_stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a18811-4315-73a4-8012-748f927e29a9
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"draft_revision_conflict","message":"The draft changed since you reviewed it. Reload to continue.","request_id":"01a18811-4315-73a4-8012-748f927e29a9","details":{"current_revision":2}}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules  {"action":"publish","locale":"nl","revision":2,"due_at":"2026-10-29T14:31:10+00:00"}    (admin session)` — schedule_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-432c-7059-976c-ed89cfefb2d0
+
+{"data":{"id":"01m6412gspzv9qc522cpkw7dgs","page":"01m6411gq33t3pz00kfnd32pte","action":"publish","locale":"nl","draft_revision":2,"legal_version":null,"effective_date":null,"due_at":"2026-10-29T14:31:10+00:00","status":"scheduled","outcome_code":null,"revision":null,"processed_at":null}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules  {"action":"publish","locale":"nl","revision":2,"due_at":"2026-10-29T14:31:10+00:00"}    (admin session)` — schedule_409_exists
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a18811-4348-726d-85fe-045e9c87e412
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"schedule_exists","message":"This page already has a pending schedule for that action. Cancel it first.","request_id":"01a18811-4348-726d-85fe-045e9c87e412"}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules  {"action":"archive","locale":"nl","due_at":"2026-10-29T14:31:10+00:00"}    (admin session)` — schedule_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a18811-435e-73ca-b298-75ea1c32f2a7
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a18811-435e-73ca-b298-75ea1c32f2a7","fields":{"locale":["The locale field is prohibited when action is archive."]}}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6411gq33t3pz00kfnd32pte/schedules  {"action":"archive","due_at":"2026-10-30T14:29:55+00:00"}    (admin session)` — schedule_201_archive
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-4378-724a-9fa7-dae4d8b6c2f1
+
+{"data":{"id":"01m6412gw25gp22t5rwa3cdb4f","page":"01m6411gq33t3pz00kfnd32pte","action":"archive","locale":null,"draft_revision":null,"legal_version":null,"effective_date":null,"due_at":"2026-10-30T14:29:55+00:00","status":"scheduled","outcome_code":null,"revision":null,"processed_at":null}}
+```
+
+`POST /api/v1/admin/cms/schedules/01m6412gw25gp22t5rwa3cdb4f/cancel    (admin session)` — schedule_cancel_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-4393-7391-be80-bbe1bddbf7ca
+
+{"data":{"id":"01m6412gw25gp22t5rwa3cdb4f","page":"01m6411gq33t3pz00kfnd32pte","action":"archive","locale":null,"draft_revision":null,"legal_version":null,"effective_date":null,"due_at":"2026-10-30T14:29:55+00:00","status":"cancelled","outcome_code":null,"revision":null,"processed_at":"2026-10-29T14:29:55+00:00"}}
+```
+
+`POST /api/v1/admin/cms/schedules/01m6412gw25gp22t5rwa3cdb4f/cancel    (admin session)` — schedule_cancel_409
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a18811-43ae-712c-b674-95d370847d47
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":409,"code":"schedule_not_pending","message":"Only pending schedules can be cancelled.","request_id":"01a18811-43ae-712c-b674-95d370847d47","details":{"status":"cancelled"}}}
+```
+
+`GET /api/v1/admin/cms/schedules?status=scheduled    (admin session)` — schedules_index_200_pending
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18811-43c6-73cb-8bea-9ab47902b6a1
+
+{"data":[{"id":"01m6412gspzv9qc522cpkw7dgs","page":"01m6411gq33t3pz00kfnd32pte","action":"publish","locale":"nl","draft_revision":2,"legal_version":null,"effective_date":null,"due_at":"2026-10-29T14:31:10+00:00","status":"scheduled","outcome_code":null,"revision":null,"processed_at":null}]}
+```
+
+`GET /api/v1/public/pages/nl/over-ons    (public)` — public_page_404_before
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a18811-43e9-7269-908b-2e2796847042
+Cache-Control: no-cache, private
+Content-Type: application/json
+
+{"error":{"status":404,"code":"not_found","message":"Page not found.","request_id":"01a18811-43e9-7269-908b-2e2796847042"}}
+```
+
+`GET /api/v1/admin/cms/schedules?status=done    (admin session)` — schedules_index_200_done
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Request-Id: 01a18812-8507-73ee-b7d0-22a70d25be8b
+
+{"data":[{"id":"01m6412gspzv9qc522cpkw7dgs","page":"01m6411gq33t3pz00kfnd32pte","action":"publish","locale":"nl","draft_revision":2,"legal_version":null,"effective_date":null,"due_at":"2026-10-29T14:31:10+00:00","status":"done","outcome_code":null,"revision":"01m641513tn8wx9rtx3dzkpcf3","processed_at":"2026-10-29T14:31:17+00:00"}]}
+```
+
+`GET /api/v1/public/pages/nl/over-ons    (public)` — public_page_200_after
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: max-age=60, public
+Content-Type: application/json
+X-Request-Id: 01a18812-851e-7182-a846-ca15d9ed9c5a
+
+{"data":{"key":"over-ons","type":"landing","locale":"nl","slug":"over-ons","content":{"title":"Over ShopBonus: samen voordeliger","seo_title":"Over ShopBonus: samen voordeliger","seo_description":"Spaar bij deelnemende webshops.","body":{"type":"doc","content":[{"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"Ons verhaal"}]},{"type":"paragraph","content":[{"type":"text","text":"Wij brengen consumenten en webshops samen."},{"type":"text","text":" Lees meer","marks":[{"type":"link","attrs":{"href":"/hulp"}}]}]},{"type":"button","attrs":{"label":"Voor webshops","href":"/voor-webshops"}}]}},"legal":null,"revision":1,"published_at":"2026-10-29T14:31:17+00:00","alternates":{"nl":"over-ons"}}}
+```
+
+## Quality Center backend (B30, Trello #37)
+
+Captured on a real local PHP HTTP server (Laravel kernel), isolated synthetic SQLite, real `/login` + 2FA (TOTP for the first user, recovery codes after that, because Fortify refuses a reused TOTP code) + password confirmation. The imported report is a real PHPUnit 12 JUnit log of `tests/Feature/Qa`; the probe ran through `php artisan shopbonus:qa-probe`. Only the OpenAI Responses endpoint is a synthetic deterministic stub (no real model was called). Binary downloads are recorded as size and SHA-256. Full capture: `docs/qa/B30_QUALITY_CENTER_HTTP_CAPTURE.json`.
+
+Roles: Super Admin (everything; only role that manages schedules), `qa_tester` (inventory, runs, coverage approval, evidence, findings, retests, AI analysis) and `developer` (only findings assigned to them, their evidence, fix commits). Grant with `php artisan shopbonus:qa-role <email> qa_tester|developer [--revoke]`. All need confirmed 2FA; mutations need a recent password. Status rules: PASS only with executed assertions; FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS; only approved tests count; mocked passes stay labelled. CI imports with `php artisan shopbonus:qa-import <junit.xml> --suite=full --environment=staging --sha=<sha> [--coverage=map.json]`; after each deploy run `php artisan shopbonus:qa-discover --sha=<sha>`.
+
+`GET /api/v1/admin/qa/summary    (no session)` — summary_401
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a188d8-b776-73a4-b658-89f0560b35b3
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a188d8-b776-73a4-b658-89f0560b35b3"}}
+```
+
+`GET /api/v1/admin/qa/openapi.json    (session)` — openapi_403_consumer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-baf3-7302-867a-2ddd8c648780
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
+```
+
+`GET /api/v1/admin/qa/summary    (session)` — summary_403_developer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-c345-7276-aca7-2001da20ce28
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+```
+
+`POST /api/v1/admin/qa/inventory/scan  {"git_sha":"not-a-sha"}    (session)` — scan_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-c371-73f1-96c8-d574c933452b
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-c371-73f1-96c8-d574c933452b","fields":{"git_sha":["The git sha field format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/inventory/scan  {"git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5"}    (session)` — scan_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-c39d-713b-b9ec-77fb318ae776
+
+{"data":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}}
+```
+
+`GET /api/v1/admin/qa/snapshots?per_page=1    (session)` — snapshots_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ca68-727b-a1ca-fc1aa3b94c38
+
+{"data":[{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}],"meta":{"current_page":1,"total":1,"per_page":1,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/endpoints?q=consumer/wallet&per_page=2    (session)` — endpoints_200_search
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ca8f-70ab-8d53-c56c41e56dce
+
+{"data":[{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj8jd81wgas3et77mkty","method":"GET","path":"/api/v1/consumer/wallet/transactions","name":"api.v1.consumer.wallet.transactions.index","handler":"Api\\V1\\Consumer\\WalletController@transactions","summary":"My wallet history","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":3,"per_page":2,"last_page":2}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=untested&per_page=2    (session)` — endpoints_200_untested
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cab8-709a-baa2-8289851e7b0d
+
+{"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":362,"per_page":2,"last_page":181}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=bogus    (session)` — endpoints_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-caf0-7182-b687-efee22183308
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-caf0-7182-b687-efee22183308","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+`GET /api/v1/admin/qa/components?kind=schedule&per_page=3    (session)` — components_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cb1c-7261-a603-7298a7065f20
+
+{"data":[],"meta":{"current_page":1,"total":0,"per_page":3,"last_page":1}}
+```
+
+`POST /api/v1/admin/qa/frontend-usage  {"routes":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile","GET /api/v1/not-a-route"]}    (session)` — frontend_usage_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cb39-73d9-9777-5761f4d13404
+
+{"data":{"referenced":2,"unknown_routes":1,"unreferenced_review":339,"external_clients":21}}
+```
+
+`POST /api/v1/admin/qa/frontend-usage  {"routes":["rm -rf /"]}    (session)` — frontend_usage_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cc1f-7138-ad54-28af76854e25
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc1f-7138-ad54-28af76854e25","fields":{"routes.0":["The routes.0 field format is invalid."]}}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=unreferenced&per_page=2    (session)` — endpoints_200_unreferenced
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cc41-7397-ad42-4b564956af51
+
+{"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":339,"per_page":2,"last_page":170}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"not-junit.json","mime":"application/json","bytes":42,"sha256":"b16d06647e037937c7af7fbbf64002a45feb15dee41ff2552fbce275a43eab49"}}    (session)` — runs_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cc7a-7147-9957-2badb51d4dba
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc7a-7147-9957-2badb51d4dba","fields":{"report":["The report field must be a file of type: application/xml, text/xml, text/plain."]}}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"junit.xml","mime":"application/xml","bytes":3274,"sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e"}}    (session)` — runs_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ccaf-7361-8b5f-e79d8b18574f
+
+{"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"junit.xml","mime":"application/xml","bytes":3274,"sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e"}}    (session)` — runs_store_409_duplicate
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-ccee-7209-aee4-ca481a7d7baf
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"run_duplicate","message":"This report was already imported.","request_id":"01a188d8-ccee-7209-aee4-ca481a7d7baf","details":{"run":"01m64dhk68zrrb9fkghmzzeax9"}}}
+```
+
+`POST /api/v1/admin/qa/coverage  {"map":{"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile","GET /api/v1/unknown"]}}    (session)` — coverage_import_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd14-71e1-b193-6b6bb399bd8b
+
+{"data":{"linked":2,"unknown_tests":[],"unknown_targets":["GET /api/v1/unknown"]}}
+```
+
+`GET /api/v1/admin/qa/test-cases?status=draft&per_page=2    (session)` — test_cases_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd49-7066-bb15-ec38ba9f0471
+
+{"data":[{"id":"01m64dhk651fbkwbk32r8tgv32","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","title":"test_ai_analysis_is_advisory_and_grounded_in_the_input","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null},{"id":"01m64dhk6659bjk76pc3ba9z28","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","title":"test_cli_import_for_ci_runners","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null}],"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+```
+
+`POST /api/v1/admin/qa/test-cases  {"key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual"}    (session)` — test_case_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd67-7394-88b9-a1581b8d68b4
+
+{"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"draft","version":null,"approved_at":null}}
+```
+
+`POST /api/v1/admin/qa/test-cases  {"key":"E2E-07-shopify-install","title":"dup","source":"manual"}    (session)` — test_case_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f","fields":{"key":["The key has already been taken."]}}}
+```
+
+`POST /api/v1/admin/qa/test-cases/approve  {"keys":["Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","E2E-07-shopify-install","missing-key"]}    (session)` — test_cases_approve_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdb2-721b-acaa-55c28ca182b0
+
+{"data":{"approved":2,"skipped":1}}
+```
+
+`PUT /api/v1/admin/qa/test-cases/01m64dhkbp425gdzkkn1w8bvfh/coverage  {"endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}    (session)` — test_case_coverage_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdd7-7397-8fbb-dc1e395dd6cc
+
+{"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}}
+```
+
+`GET /api/v1/admin/qa/endpoints/01m64dhj8hp0rnvqhfymfx7j55    (session)` — endpoint_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdfb-7048-81f5-be33454d2164
+
+{"data":{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":2,"last_run_at":"2026-10-29T18:07:52+00:00","frontend_referenced":true,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null,"test_cases":[{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":null},{"id":"01m64dhk63b1mhxrct5veq7ett","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","title":"test_status_comes_only_from_approved_executed_evidence","scenario":null,"source":"phpunit","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null,"run_id":"01m64dhk68zrrb9fkghmzzeax9","created_at":"2026-10-29T18:07:52+00:00"}}]}}
+```
+
+`GET /api/v1/admin/qa/endpoints/01m6400000000000000000zzzz    (session)` — endpoint_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-ce19-7336-978d-dfb83a1a4f67
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a188d8-ce19-7336-978d-dfb83a1a4f67"}}
+```
+
+`GET /api/v1/admin/qa/runs?per_page=2    (session)` — runs_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ce37-73b4-ad7d-3e58b7bc43ee
+
+{"data":[{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},{"id":"01m64dhcezejjx7h5wmxnsfzh6","suite":"safe","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"probe","totals":{"total":3,"assertions":3,"pass":3,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":7,"report_sha256":"ae1336016d6bb54c7ecd8a2505ef978d4f2fc542104565d455c8a0df1f069981","created_at":"2026-10-29T18:07:45+00:00"}],"meta":{"current_page":1,"total":2,"per_page":2,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9?status=pass&per_page=2    (session)` — run_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ce53-71b4-adf3-5756e94ff266
+
+{"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00","results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null}],"evidence":[]},"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=json    (session)` — export_json_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.json"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ce73-7060-8675-74182acc7962
+
+{"run":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},"results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxd","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_exports_are_escaped_private_downloads","status":"pass","assertions":13,"mocked":false,"duration_ms":53,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxe","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_evidence_is_encrypted_deduplicated_and_scoped","status":"pass","assertions":16,"mocked":false,"duration_ms":83,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxf","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_finding_workflow_needs_an_independent_evidence_based_retest","status":"pass","assertions":46,"mocked":false,"duration_ms":1842,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxg","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","status":"pass","assertions":20,"mocked":false,"duration_ms":1693,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxh","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_schedules_probe_frontend_usage_and_openapi","status":"pass","assertions":34,"mocked":false,"duration_ms":2167,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxj","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_role_command_grants_and_revokes","status":"pass","assertions":7,"mocked":false,"duration_ms":40,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxk","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","status":"pass","assertions":9,"mocked":false,"duration_ms":1379,"message":null}]}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=junit    (session)` — export_junit_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/xml; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.xml"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ce95-70e2-a725-8c6dd76c4682
+
+{"body_excerpt":"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites><testsuite name=\"changed@staging\" tests=\"10\" failures=\"0\" skipped=\"0\" assertions=\"231\" time=\"15.049\">\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_roles_are_separated\" assertions=\"13\" time=\"1.161\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_discovery_finds_new_changed_removed_and_undocumented_routes\" assertions=\"31\" time=\"5.285\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_status_comes_only_from_approved_executed_evidence\" assertions=\"42\" time=\"1.346\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_exports_are_escaped","body_bytes":1701,"body_sha256":"f80ca0929ad6a5e09baa4ca2c3838f5e3ae5ce11bac579ec3ebe4d7fb9cf278b"}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=html    (session)` — export_html_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.html"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ceb7-7006-bafe-6e44c35ef953
+
+{"body_excerpt":"<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\"><title>QA run 01m64dhk68zrrb9fkghmzzeax9</title></head><body><h1>QA run 01m64dhk68zrrb9fkghmzzeax9</h1><p>Suite changed · environment staging · Git 2276fe6b9241893fe092b011e59bb0f027cc72a5 · 2026-10-29T18:07:52+00:00</p><p>total: 10 · assertions: 231 · pass: 10 · fail: 0 · blocked: 0 · not_implemented: 0 · skipped: 0 · mocked: 0</p><table><thead><tr><th>Test</th><th>Status</th><th>Assertions</th><th>Message (redacted)</th></tr></thead><tbody>\n<tr><td>Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated</td><td>PASS</td><td>13</td><td></td></tr>\n<tr><td>Tests\\Feature\\Qa\\QualityCenterTest:","body_bytes":1929,"body_sha256":"9336a6f593067263fadfcca7b5a0021ccc7c33e3479676a5564072e9e4055fc8"}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=pdf    (session)` — export_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cedc-72d5-b301-50fb3611cbec
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cedc-72d5-b301-50fb3611cbec","fields":{"format":["The selected format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"request_id":"req-capture-1","file":{"file":"proof.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf04-715d-a261-6e4c3e66499f
+
+{"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"file":{"file":"proof-again.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_200_dedupe
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf39-733f-8ff9-a39c66f581cd
+
+{"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"file":{"file":"page.html","mime":"text/html","bytes":38,"sha256":"1e88fe5a73e9700a27597a02ed7ec3c4cc1eb8e0d6ca580cd4473a5e7e6dc194"}}    (session)` — evidence_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cf58-71e0-87ff-9b10e12f3259
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"This file type is not accepted as evidence.","request_id":"01a188d8-cf58-71e0-87ff-9b10e12f3259","details":{"errors":{"file":["Upload PNG, JPEG, WebP, PDF, JSON, XML or plain text."]}}}}
+```
+
+`GET /api/v1/admin/qa/evidence/01m64dhks0pvr9vjkeaxt1s89t    (session)` — evidence_404_developer_unassigned
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-cf7b-717d-9233-4017670c8a9a
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"Evidence not found.","request_id":"01a188d8-cf7b-717d-9233-4017670c8a9a"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"full","environment":"staging","git_sha":"2276fe6","report":{"file":"junit.xml","mime":"application/xml","bytes":447,"sha256":"4e9ad14c24c8aeb1de220ef779ed76476b2ad242ca91aacf8e5f8caa21fc9dc4"}}    (session)` — runs_store_201_failing
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf9b-70f2-8738-74c0a16b96c7
+
+{"data":{"id":"01m64dhkxbgzdchpfxs6rk36as","suite":"full","environment":"staging","git_sha":"2276fe6","source":"junit","totals":{"total":1,"assertions":6,"pass":0,"fail":1,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":410,"report_sha256":"4e9ad14c24c8aeb1de220ef779ed76476b2ad242ca91aacf8e5f8caa21fc9dc4","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhkxbgzdchpfxs6rk36as/evidence  {"request_id":"req-capture-2","file":{"file":"claim.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_201_failing_run
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cfc2-73e3-8817-a4b64089d86f
+
+{"data":{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"x","severity":"p9"}    (session)` — finding_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cfe8-7376-9409-6ce2cd6d4cf4
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cfe8-7376-9409-6ce2cd6d4cf4","fields":{"severity":["The selected severity is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"reproduction":"Two parallel claims on the last code."}    (session)` — finding_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d00c-7030-a3d2-0c1106503b5e
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"reproduction":"Two parallel claims on the last code."}    (session)` — finding_store_409_exists
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d03d-7342-a1ea-38dd94e2f0df
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"finding_exists","message":"An unresolved finding already covers these routes and tests.","request_id":"01a188d8-d03d-7342-a1ea-38dd94e2f0df","details":{"finding":"01m64dhm15zxb1f002y6wq5zex"}}}
+```
+
+`GET /api/v1/admin/qa/findings    (session)` — findings_200_developer
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d066-7032-8612-010c19f63ac2
+
+{"data":[{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex    (session)` — finding_show_200_developer
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d085-71ad-b23b-c70fbb5efc1a
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null,"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/analyze    (session)` — finding_analyze_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d0ce-736f-b4b0-4f0bb455b422
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhkxbgzdchpfxs6rk36as"}    (session)` — finding_retest_409_not_fixed
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d143-707d-87c6-2d01a92e8d73
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"finding_not_fixed","message":"Only fixed findings can be retested.","request_id":"01a188d8-d143-707d-87c6-2d01a92e8d73","details":{"status":"open"}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"abcdef1"}    (session)` — finding_fix_403_tester
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d167-72cc-b69c-60f643660a50
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d167-72cc-b69c-60f643660a50"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"not hex"}    (session)` — finding_fix_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-d196-70ef-b273-3285c087f582
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-d196-70ef-b273-3285c087f582","fields":{"fix_commit":["The fix commit field format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"9f1c2ab"}    (session)` — finding_fix_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d1bd-71e3-9bd2-8b6359cece40
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"fixed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhkxbgzdchpfxs6rk36as"}    (session)` — finding_retest_409_outdated
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d1e2-7319-91c2-787497ea8ee5
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"retest_run_outdated","message":"Use a run imported after the fix was recorded.","request_id":"01a188d8-d1e2-7319-91c2-787497ea8ee5"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"full","environment":"staging","git_sha":"9f1c2ab","report":{"file":"junit.xml","mime":"application/xml","bytes":287,"sha256":"6fc86c97b47a2cd67c971de111cf58402fc074bed00d190f301d313966c54caf"}}    (session)` — runs_store_201_retest
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d5ee-731f-a037-b4cc8fa26dbf
+
+{"data":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","source":"junit","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":390,"report_sha256":"6fc86c97b47a2cd67c971de111cf58402fc074bed00d190f301d313966c54caf","created_at":"2026-10-29T18:07:54+00:00"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhnfxhezvjk35nrnekvre"}    (session)` — finding_retest_403_developer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d61a-72c9-a85d-869f76b2adc4
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d61a-72c9-a85d-869f76b2adc4"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhnfxhezvjk35nrnekvre"}    (session)` — finding_retest_200_passed
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d688-72dc-9846-5b134162eac0
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`GET /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex    (session)` — finding_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d6ae-71c1-aab4-51af8a8dbb21
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true},"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+```
+
+`GET /api/v1/admin/qa/evidence/01m64dhks0pvr9vjkeaxt1s89t    (session)` — evidence_download_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Content-Disposition: attachment; filename="proof.png"
+X-Content-Type-Options: nosniff
+Cache-Control: no-store, private
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-d6eb-71ed-b5e5-07e7c04bb130
+
+{"body_binary":true,"body_bytes":90,"body_sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}
+```
+
+`GET /api/v1/admin/qa/findings/01m6400000000000000000zzzz    (session)` — finding_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-d716-736d-98a1-975ec94e1066
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"Finding not found.","request_id":"01a188d8-d716-736d-98a1-975ec94e1066"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly"}    (session)` — schedule_store_403_tester
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d736-72bf-8130-0a1c9034a560
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d736-72bf-8130-0a1c9034a560"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Production full","suite":"full","environment":"production","trigger":"nightly"}    (session)` — schedule_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-d760-706a-84cb-c935020ad7a8
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"Production schedules can only run the read-only safe suite.","request_id":"01a188d8-d760-706a-84cb-c935020ad7a8","details":{"errors":{"suite":["Production schedules can only run the read-only safe suite."]}}}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2}    (session)` — schedule_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d789-7345-bdb2-39e322fd66df
+
+{"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2,"active":null,"last_run_at":null,"executed_by":"scheduler"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120}    (session)` — schedule_store_201_staging
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d7b1-7304-85fb-67d9d0b8ce75
+
+{"data":{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":null,"last_run_at":null,"executed_by":"ci_runner"}}
+```
+
+`PATCH /api/v1/admin/qa/schedules/01m64dhnwqxgeq2wfn7hvxb8am  {"timeout_minutes":3}    (session)` — schedule_update_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d7dd-708f-86ff-b587fe236278
+
+{"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}}
+```
+
+`GET /api/v1/admin/qa/schedules    (session)` — schedules_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d806-73b5-af97-78ff8eb5ff9f
+
+{"data":[{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":true,"last_run_at":null,"executed_by":"ci_runner"},{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}]}
+```
+
+`GET /api/v1/admin/qa/openapi.json    (session)` — openapi_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-store, private
+X-Robots-Tag: noindex, nofollow
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d825-7176-94b6-20af1827b395
+
+{"openapi":"3.1.0","info_title":"Shopbonus API","paths":328,"body_bytes":1077026}
+```
+
+`GET /api/v1/admin/qa/summary    (session)` — summary_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-da28-711e-98fd-0b2c482f6ee6
+
+{"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
+```

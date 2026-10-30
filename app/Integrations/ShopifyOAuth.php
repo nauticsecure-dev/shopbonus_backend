@@ -9,6 +9,7 @@ use App\Enums\WorkspacePermission;
 use App\Exceptions\ApiException;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\ShopifyApi;
+use App\Jobs\ProvisionShopifyWebhook;
 use App\Models\ShopifyAuthorization;
 use App\Models\WebshopConnection;
 use App\Models\WebshopMembership;
@@ -109,6 +110,27 @@ class ShopifyOAuth
                 $c->credentials = ($c->credentials ?? []) + $pair + ['oauth_authority' => (string) Str::uuid(), 'oauth_config_hash' => $this->configHash()];
                 $c->save();
                 $s->forceFill(['status' => 'succeeded'])->save();
+                if (config('integrations.shopify_webhooks.enabled')) {
+                    $connectionId = $c->id;
+                    $generation = $c->credential_generation;
+                    $webshopId = $c->webshop_id;
+                    DB::afterCommit(function () use ($connectionId, $generation, $webshopId) {
+                        foreach (ShopifyApi::WEBHOOK_TOPICS as $topic) {
+                            try {
+                                if (config('queue.default') === 'sync') {
+                                    throw new ApiException('Configure an asynchronous queue for automatic webhook provisioning.', 503, 'webhook_async_queue_required');
+                                }
+                                ProvisionShopifyWebhook::dispatch($connectionId, $generation, $topic);
+                            } catch (\Throwable $e) {
+                                // Setup failures must not relabel a committed OAuth grant as failed.
+                                $this->audit->recordSafely('integration.webhook_dispatch_failed', category: AuditCategory::Integration,
+                                    resource: WebshopConnection::class, resourceId: $connectionId, webshopId: $webshopId,
+                                    metadata: ['generation' => $generation, 'topic' => $topic, 'failure' => $e instanceof ApiException ? $e->errorCode : 'dispatch_failed']);
+                                report($e);
+                            }
+                        }
+                    });
+                }
                 $this->audit->record('integration.oauth_authorized', category: AuditCategory::Integration, resource: $c, webshopId: $c->webshop_id);
 
                 return $c;

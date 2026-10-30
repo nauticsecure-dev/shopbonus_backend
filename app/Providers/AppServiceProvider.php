@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Client\Events\ConnectionFailed;
 use Illuminate\Http\Client\Events\ResponseReceived;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Facades\Date;
@@ -55,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $proxies = config('shopbonus.security.trusted_proxies');
+        if (is_string($proxies) && trim($proxies) !== '') {
+            TrustProxies::at(trim($proxies) === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $proxies)))));
+        }
         Event::listen([ResponseReceived::class, ConnectionFailed::class], fn ($event) => app(ProviderObservations::class)->record($event));
         Queue::before(fn (JobProcessing $event) => app(Operations::class)->jobStarted($event));
         $this->app->scoped(RequestObservation::class);
@@ -81,6 +86,8 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('ai-support', fn (Request $request) => Limit::perMinute(10)->by('support:'.($request->user()->id ?? $request->ip())));
         RateLimiter::for('commerce-probe', fn (Request $request) => Limit::perMinute(3)->by('commerce-probe:'.$request->user()?->getAuthIdentifier()));
+        RateLimiter::for('cms-ai', fn (Request $request) => Limit::perMinute(5)->by('cms-ai:'.$request->user()?->getAuthIdentifier()));
+        RateLimiter::for('qa-ai', fn (Request $request) => Limit::perMinute(5)->by('qa-ai:'.$request->user()?->getAuthIdentifier()));
         RateLimiter::for('admin-diagnostics', fn (Request $request) => Limit::perMinute(3)->by('admin-diagnostics:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('admin-step-up', fn (Request $request) => Limit::perHour(10)->by('step-up:'.$request->user()?->getAuthIdentifier()));
@@ -94,6 +101,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('ownership-check', fn (Request $request) => Limit::perMinute(10)->by('own:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(300)->by('webhook:'.$request->route('token')));
+        RateLimiter::for('shopify-compliance', fn (Request $request) => Limit::perMinute(300)->by('shopify-compliance:'.$request->ip()));
+        RateLimiter::for('shopware-app', fn (Request $request) => Limit::perMinute(60)->by('shopware-app:'.$request->ip()));
+        RateLimiter::for('webhooks-shopware-app', fn (Request $request) => Limit::perMinute(600)->by('shopware-app-webhook:'.$request->ip()));
 
         // Partner systems: per integration key, not per IP. Claim links: per IP (token guessing).
         RateLimiter::for('integrations', fn (Request $request) => Limit::perMinute(600)->by('integration:'.$request->header('X-Shopbonus-Key', $request->ip())));

@@ -88,7 +88,7 @@ class WooCommerceApi
         if ($connection->status === ConnectionStatus::Disconnected) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
-        if (! preg_match('~\A(?:orders(?:/[1-9][0-9]{0,18}(?:/refunds)?)?|products|coupons)\z~D', $resource)
+        if (! preg_match('~\A(?:orders(?:/[1-9][0-9]{0,18}(?:/refunds)?)?|products|coupons|data/currencies/current)\z~D', $resource)
             || $page < 1 || $page > min(10000, $maxPages)) {
             throw new \InvalidArgumentException('Unsupported provider resource or page.');
         }

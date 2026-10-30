@@ -1,0 +1,227 @@
+{
+ "environment": {
+  "captured_at": "2026-10-29",
+  "server": "php artisan serve, isolated SQLite file (deleted), CACHE_STORE=array, QUEUE_CONNECTION=database (jobs queued, no worker, so no outbound store reads), APP_DEBUG=false, synthetic Shopware app secret",
+  "setup": "A verified webshop fietsen-utrecht.nl with an app_registration Shopware connection was seeded with tinker; the handshake ran over HTTP (confirm 204) and bound it.",
+  "signing": "Signatures computed independently with openssl in a bash client; shop secret redacted.",
+  "observed": "After the sequence: 2 webhook_events (order.written, kind order_lookup, delivery_count 2), 2 queued jobs, 0 shopware_app_shops rows after app.deleted.",
+  "notes": "Synthetic shop only; no Shopware installation involved. Rate-limit headers omitted."
+ },
+ "captures": [
+  {
+   "label": "order_written_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/webhook",
+   "request": {
+    "headers": {
+     "shopware-shop-signature": "<HEX HMAC shop secret>",
+     "sw-version": "6.7.0.0"
+    },
+    "body": {
+     "data": {
+      "payload": [
+       {
+        "entity": "order",
+        "operation": "insert",
+        "primaryKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+       },
+       {
+        "entity": "order",
+        "operation": "update",
+        "primaryKey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+       }
+      ],
+      "event": "order.written"
+     },
+     "source": {
+      "url": "https://fietsen-utrecht.nl",
+      "appVersion": "1.0.0",
+      "shopId": "sHoP1a2B3c4D5e6F",
+      "eventId": "0d1f6a4e-0000-4000-8000-000000000001"
+     },
+     "timestamp": "<UNIX>"
+    }
+   },
+   "status": 200,
+   "headers": {
+    "X-Request-Id": "01a186c2-1888-7051-9d51-0d2936dbe6ce"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "lookups_queued": 2
+    }
+   }
+  },
+  {
+   "label": "order_written_redelivery_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/webhook",
+   "request": {
+    "headers": {
+     "shopware-shop-signature": "<HEX HMAC shop secret>",
+     "sw-version": "6.7.0.0"
+    },
+    "body": {
+     "data": {
+      "payload": [
+       {
+        "entity": "order",
+        "operation": "insert",
+        "primaryKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+       },
+       {
+        "entity": "order",
+        "operation": "update",
+        "primaryKey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+       }
+      ],
+      "event": "order.written"
+     },
+     "source": {
+      "url": "https://fietsen-utrecht.nl",
+      "appVersion": "1.0.0",
+      "shopId": "sHoP1a2B3c4D5e6F",
+      "eventId": "0d1f6a4e-0000-4000-8000-000000000001"
+     },
+     "timestamp": "<UNIX>"
+    }
+   },
+   "status": 200,
+   "headers": {
+    "X-Request-Id": "01a186c2-18ca-7208-aef2-b3d24d9af75a"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "lookups_queued": 0
+    }
+   }
+  },
+  {
+   "label": "other_event_ignored_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/webhook",
+   "request": {
+    "headers": {
+     "shopware-shop-signature": "<HEX HMAC shop secret>",
+     "sw-version": "6.7.0.0"
+    },
+    "body": {
+     "data": {
+      "payload": [
+       {
+        "entity": "product",
+        "primaryKey": "dddddddddddddddddddddddddddddddd"
+       }
+      ],
+      "event": "product.written"
+     },
+     "source": {
+      "url": "https://fietsen-utrecht.nl",
+      "appVersion": "1.0.0",
+      "shopId": "sHoP1a2B3c4D5e6F",
+      "eventId": "0d1f6a4e-0000-4000-8000-000000000002"
+     },
+     "timestamp": "<UNIX>"
+    }
+   },
+   "status": 200,
+   "headers": {
+    "X-Request-Id": "01a186c2-18ff-7337-bcae-e6dd9096784a"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "ignored": true
+    }
+   }
+  },
+  {
+   "label": "forged_401",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/webhook",
+   "request": {
+    "headers": {
+     "shopware-shop-signature": "<HMAC with a wrong secret>",
+     "sw-version": "6.7.0.0"
+    },
+    "body": {
+     "data": {
+      "payload": [
+       {
+        "entity": "order",
+        "operation": "insert",
+        "primaryKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+       },
+       {
+        "entity": "order",
+        "operation": "update",
+        "primaryKey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+       }
+      ],
+      "event": "order.written"
+     },
+     "source": {
+      "url": "https://fietsen-utrecht.nl",
+      "appVersion": "1.0.0",
+      "shopId": "sHoP1a2B3c4D5e6F",
+      "eventId": "0d1f6a4e-0000-4000-8000-000000000003"
+     },
+     "timestamp": "<UNIX>"
+    }
+   },
+   "status": 401,
+   "headers": {
+    "X-Request-Id": "01a186c2-1929-70a3-b7cd-1cf3ce584e80"
+   },
+   "response": {
+    "error": {
+     "status": 401,
+     "code": "webhook_rejected",
+     "message": "The webhook could not be verified.",
+     "request_id": "01a186c2-1929-70a3-b7cd-1cf3ce584e80",
+     "details": {
+      "reason": "signature_invalid"
+     }
+    }
+   }
+  },
+  {
+   "label": "app_deleted_200",
+   "method": "POST",
+   "path": "/api/v1/integrations/shopware/app/webhook",
+   "request": {
+    "headers": {
+     "shopware-shop-signature": "<HEX HMAC shop secret>",
+     "sw-version": "6.7.0.0"
+    },
+    "body": {
+     "data": {
+      "payload": {
+       "keepUserData": false
+      },
+      "event": "app.deleted"
+     },
+     "source": {
+      "url": "https://fietsen-utrecht.nl",
+      "appVersion": "1.0.0",
+      "shopId": "sHoP1a2B3c4D5e6F",
+      "eventId": "0d1f6a4e-0000-4000-8000-000000000004"
+     },
+     "timestamp": "<UNIX>"
+    }
+   },
+   "status": 200,
+   "headers": {
+    "X-Request-Id": "01a186c2-1960-72db-baae-190f01e8c1c2"
+   },
+   "response": {
+    "data": {
+     "received": true,
+     "revoked": true
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,967 @@
+{
+    "environment": "Real local PHP HTTP server (php -S with the Laravel HTTP kernel), isolated synthetic SQLite, file sessions, sync queue. Provider responses for BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6 and Wix are the synthetic official-schema fixtures from tests/Feature/Integrations/PlatformCatalogTest.php; no real store was contacted. Each coupon fixture also contains one unsupported discount shape that is skipped by design (items = 1).",
+    "captured_at": "2026-10-29",
+    "captures": [
+        {
+            "method": "POST",
+            "path": "/login",
+            "request": {
+                "email": "owner.platforms@example.test",
+                "password": "<LOCAL_PASSWORD>"
+            },
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "5",
+                "X-RateLimit-Remaining": "4",
+                "X-Request-Id": "01a187c8-a484-73cc-92a5-3371622e8d49"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wh6k189xpy4etqj4krevv",
+                    "first_name": "Louise",
+                    "email": "owner.platforms@example.test",
+                    "email_verified": true,
+                    "status": "active",
+                    "onboarding_intent": "consumer",
+                    "locale": "nl",
+                    "roles": [],
+                    "workspaces": [
+                        {
+                            "id": "01m63wh6k90ggbj1da29k1b25r",
+                            "name": "Fietsen Utrecht",
+                            "status": "draft",
+                            "role": "owner",
+                            "is_current": false
+                        }
+                    ],
+                    "destination": "workspace",
+                    "two_factor_enabled": false,
+                    "support_session": null
+                }
+            }
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6m7a4vetfxy69r97fke/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a6b3-701c-a038-f60bbdf44edb"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wh9pc178q1fh15m6x50kr",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "bigcommerce"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6m7a4vetfxy69r97fke/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a71e-73c1-b7f6-88658dd0bdc0"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wh9saa6vvzv2y432p3fpv",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "bigcommerce"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6m7a4vetfxy69r97fke/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a74e-7147-ad3b-6efdc5b8e0e4"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "77",
+                        "sku": "SF-1",
+                        "name": "Stadsfiets",
+                        "description": "Fiets",
+                        "url": "https://fietsen-utrecht.nl/stadsfiets/",
+                        "image_url": "https://cdn11.bigcommerce.com/s-abc123/sf.jpg",
+                        "categories": [
+                            {
+                                "id": "23",
+                                "name": null
+                            }
+                        ],
+                        "price_minor": 49995,
+                        "regular_price_minor": 54995,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": "physical",
+                        "status": "available",
+                        "visibility": "visible",
+                        "stock_status": "instock",
+                        "stock_quantity": 3,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "bigcommerce"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6m7a4vetfxy69r97fke/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a769-7112-99f9-28816981b530"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "5",
+                        "code": "WELKOM10",
+                        "discount_type": "percent",
+                        "amount": "10",
+                        "amount_minor": null,
+                        "percent_bps": 1000,
+                        "currency": "EUR",
+                        "minimum_spend_minor": 5000,
+                        "maximum_spend_minor": null,
+                        "usage_limit": null,
+                        "usage_limit_per_customer": 1,
+                        "usage_count": 2,
+                        "stackable": false,
+                        "exclude_sale_items": false,
+                        "free_shipping": false,
+                        "customer_restricted": false,
+                        "scope": null,
+                        "status": "active",
+                        "expires_at": "2026-12-31T23:00:00+00:00",
+                        "active": true,
+                        "provider_updated_at": null,
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "bigcommerce"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mkw2d5n7h02jzmw7hd/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a784-70ad-8362-adaee84d0c00"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wh9wg0r5xkh98cmrhwhbc",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "ecwid"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mkw2d5n7h02jzmw7hd/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a7b4-70b6-a59e-0eb5baee15b8"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wh9y07ea08s0tc5837bpc",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "ecwid"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mkw2d5n7h02jzmw7hd/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a7e4-706b-ac2c-08c10f5e0a33"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "501",
+                        "sku": "SF-1",
+                        "name": "Stadsfiets",
+                        "description": "Fiets",
+                        "url": "https://fietsen-utrecht.nl/Stadsfiets-p501",
+                        "image_url": "https://images-cdn.ecwid.com/sf.jpg",
+                        "categories": [
+                            {
+                                "id": "9",
+                                "name": null
+                            }
+                        ],
+                        "price_minor": 49995,
+                        "regular_price_minor": 54995,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": null,
+                        "status": "enabled",
+                        "visibility": null,
+                        "stock_status": "instock",
+                        "stock_quantity": 3,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "ecwid"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mkw2d5n7h02jzmw7hd/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a7fd-709e-bab1-f56d14b86262"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "31",
+                        "code": "WELKOM10",
+                        "discount_type": "fixed_cart",
+                        "amount": "10",
+                        "amount_minor": 1000,
+                        "percent_bps": null,
+                        "currency": "EUR",
+                        "minimum_spend_minor": 5000,
+                        "maximum_spend_minor": null,
+                        "usage_limit": null,
+                        "usage_limit_per_customer": 1,
+                        "usage_count": 4,
+                        "stackable": false,
+                        "exclude_sale_items": false,
+                        "free_shipping": true,
+                        "customer_restricted": true,
+                        "scope": {
+                            "product_ids": [
+                                "501"
+                            ]
+                        },
+                        "status": "active",
+                        "expires_at": "2026-12-31T23:00:00+00:00",
+                        "active": true,
+                        "provider_updated_at": "2026-10-21T10:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "ecwid"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mtrsy9pyjsbq9pmqyg/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a816-71e5-b0a6-fd27d0ba67d5"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wha14rb5qmapzvkzyek2r",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "magento"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mtrsy9pyjsbq9pmqyg/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a848-7159-85e0-cb96c2042c8e"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wha2j4evk0hbcx93xea76",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "magento"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mtrsy9pyjsbq9pmqyg/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a879-7384-bd96-be0bdd979b91"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "12",
+                        "sku": "SF-1",
+                        "name": "Stadsfiets",
+                        "description": "Fiets",
+                        "url": null,
+                        "image_url": null,
+                        "categories": [
+                            {
+                                "id": "3",
+                                "name": null
+                            }
+                        ],
+                        "price_minor": 49995,
+                        "regular_price_minor": null,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": "simple",
+                        "status": "enabled",
+                        "visibility": "catalog_search",
+                        "stock_status": null,
+                        "stock_quantity": null,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "magento"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6mtrsy9pyjsbq9pmqyg/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a88f-722c-93c0-1833c349a5fe"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "8",
+                        "code": "WELKOM10",
+                        "discount_type": "fixed_cart",
+                        "amount": "10",
+                        "amount_minor": 1000,
+                        "percent_bps": null,
+                        "currency": "EUR",
+                        "minimum_spend_minor": null,
+                        "maximum_spend_minor": null,
+                        "usage_limit": 100,
+                        "usage_limit_per_customer": null,
+                        "usage_count": 2,
+                        "stackable": true,
+                        "exclude_sale_items": false,
+                        "free_shipping": false,
+                        "customer_restricted": false,
+                        "scope": null,
+                        "status": "active",
+                        "expires_at": "2026-12-31T23:00:00+00:00",
+                        "active": true,
+                        "provider_updated_at": null,
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "magento"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n0db7tk108aspr54nk/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a8a6-7053-a803-fe7a70a1f419"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wha5hm1j7vg0vqtd13d42",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:36+00:00",
+                    "finished_at": "2026-10-29T13:10:36+00:00"
+                }
+            },
+            "platform": "prestashop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n0db7tk108aspr54nk/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a8d8-739d-b653-bbd25c04d873"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63wha72cfyertt1pmsf9zj7",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:37+00:00",
+                    "finished_at": "2026-10-29T13:10:37+00:00"
+                }
+            },
+            "platform": "prestashop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n0db7tk108aspr54nk/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a906-7282-8b6d-b0adfe4c86cd"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "4",
+                        "sku": "SF-1",
+                        "name": "Stadsfiets",
+                        "description": "Fiets",
+                        "url": null,
+                        "image_url": null,
+                        "categories": [
+                            {
+                                "id": "2",
+                                "name": null
+                            }
+                        ],
+                        "price_minor": null,
+                        "regular_price_minor": null,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": null,
+                        "status": "enabled",
+                        "visibility": "both",
+                        "stock_status": null,
+                        "stock_quantity": null,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "prestashop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n0db7tk108aspr54nk/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a922-700f-9b1b-524c4947c81b"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "3",
+                        "code": "WELKOM10",
+                        "discount_type": "percent",
+                        "amount": "10",
+                        "amount_minor": null,
+                        "percent_bps": 1000,
+                        "currency": "EUR",
+                        "minimum_spend_minor": 5000,
+                        "maximum_spend_minor": null,
+                        "usage_limit": 99,
+                        "usage_limit_per_customer": 1,
+                        "usage_count": 0,
+                        "stackable": true,
+                        "exclude_sale_items": false,
+                        "free_shipping": false,
+                        "customer_restricted": false,
+                        "scope": null,
+                        "status": "active",
+                        "expires_at": "2026-12-31T22:59:59+00:00",
+                        "active": true,
+                        "provider_updated_at": "2026-10-21T10:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "prestashop"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n587txsyr90r3dgsa4/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a93a-724e-a1fb-60d7704f545e"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63whaa6rs6jb0y8ttbpsmrv",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:37+00:00",
+                    "finished_at": "2026-10-29T13:10:37+00:00"
+                }
+            },
+            "platform": "shopware"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n587txsyr90r3dgsa4/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a973-71e4-a214-9930b733200a"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63whaby275wqryd87zdcq8f",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:37+00:00",
+                    "finished_at": "2026-10-29T13:10:37+00:00"
+                }
+            },
+            "platform": "shopware"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n587txsyr90r3dgsa4/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a9a3-7302-864e-0cfbbfbc4529"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "cccccccccccccccccccccccccccccccc",
+                        "sku": "SW10001",
+                        "name": "Stadsfiets",
+                        "description": null,
+                        "url": null,
+                        "image_url": "https://fietsen-utrecht.nl/media/sf.jpg",
+                        "categories": [
+                            {
+                                "id": "dddddddddddddddddddddddddddddddd",
+                                "name": "Stadsfietsen"
+                            }
+                        ],
+                        "price_minor": 49995,
+                        "regular_price_minor": null,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": null,
+                        "status": "active",
+                        "visibility": null,
+                        "stock_status": "instock",
+                        "stock_quantity": 3,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "shopware"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6n587txsyr90r3dgsa4/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-a9bb-714c-aae1-3559846b802c"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                        "code": "WELKOM10",
+                        "discount_type": "percent",
+                        "amount": "10",
+                        "amount_minor": null,
+                        "percent_bps": 1000,
+                        "currency": "EUR",
+                        "minimum_spend_minor": null,
+                        "maximum_spend_minor": null,
+                        "usage_limit": null,
+                        "usage_limit_per_customer": 1,
+                        "usage_count": 5,
+                        "stackable": false,
+                        "exclude_sale_items": false,
+                        "free_shipping": false,
+                        "customer_restricted": false,
+                        "scope": null,
+                        "status": "active",
+                        "expires_at": "2026-12-31T23:00:00+00:00",
+                        "active": true,
+                        "provider_updated_at": "2026-10-21T10:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "shopware"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6qc7x7zfn8cmjdz2q3b/catalog-syncs",
+            "request": {
+                "kind": "products"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-a9d5-72bb-83e3-5fe568ab6ab2"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63whaf2155t9ata2k4ernzj",
+                    "kind": "products",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:37+00:00",
+                    "finished_at": "2026-10-29T13:10:37+00:00"
+                }
+            },
+            "platform": "wix"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6qc7x7zfn8cmjdz2q3b/catalog-syncs",
+            "request": {
+                "kind": "coupons"
+            },
+            "auth": "spa",
+            "status": 202,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "3",
+                "X-RateLimit-Remaining": "2",
+                "X-Request-Id": "01a187c8-aa07-71c7-82b3-2753ea7da2b8"
+            },
+            "response": {
+                "data": {
+                    "id": "01m63whagjfspcdxdy3d12ff6s",
+                    "kind": "coupons",
+                    "status": "completed",
+                    "pages": 1,
+                    "items": 1,
+                    "removed": 0,
+                    "error_code": null,
+                    "started_at": "2026-10-29T13:10:37+00:00",
+                    "finished_at": "2026-10-29T13:10:37+00:00"
+                }
+            },
+            "platform": "wix"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6qc7x7zfn8cmjdz2q3b/products",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-aa3a-7245-b51b-0cacb095f199"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "33333333-3333-4333-8333-333333333333",
+                        "sku": "WX-1",
+                        "name": "Stadsfiets",
+                        "description": "Fiets",
+                        "url": "https://fietsen-utrecht.nl/product-page/stadsfiets",
+                        "image_url": "https://static.wixstatic.com/media/sf.jpg",
+                        "categories": [],
+                        "price_minor": 49995,
+                        "regular_price_minor": null,
+                        "sale_price_minor": null,
+                        "currency": "EUR",
+                        "type": "physical",
+                        "status": null,
+                        "visibility": "visible",
+                        "stock_status": "instock",
+                        "stock_quantity": null,
+                        "provider_updated_at": "2026-10-20T09:00:00+00:00",
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "wix"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/workspaces/01m63wh6k90ggbj1da29k1b25r/connections/01m63wh6qc7x7zfn8cmjdz2q3b/coupons",
+            "request": [],
+            "auth": "spa",
+            "status": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "X-RateLimit-Limit": "60",
+                "X-RateLimit-Remaining": "59",
+                "X-Request-Id": "01a187c8-aa54-72aa-9cf3-3c486d827e30"
+            },
+            "response": {
+                "data": [
+                    {
+                        "external_id": "44444444-4444-4444-8444-444444444444",
+                        "code": "WELKOM5",
+                        "discount_type": "percent",
+                        "amount": "5",
+                        "amount_minor": null,
+                        "percent_bps": 500,
+                        "currency": "EUR",
+                        "minimum_spend_minor": 5000,
+                        "maximum_spend_minor": null,
+                        "usage_limit": 100,
+                        "usage_limit_per_customer": 1,
+                        "usage_count": 1,
+                        "stackable": false,
+                        "exclude_sale_items": false,
+                        "free_shipping": false,
+                        "customer_restricted": false,
+                        "scope": {
+                            "product_ids": [
+                                "33333333-3333-4333-8333-333333333333"
+                            ]
+                        },
+                        "status": "active",
+                        "expires_at": "2026-12-31T23:00:00+00:00",
+                        "active": true,
+                        "provider_updated_at": null,
+                        "removed_at": null
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "total": 1
+                }
+            },
+            "platform": "wix"
+        }
+    ]
+}

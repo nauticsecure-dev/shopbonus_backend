@@ -4,6 +4,8 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -15,8 +17,8 @@ use App\Services\Onboarding\DomainName;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 
-/** Shopware6 integration read credentials. Module bridge remains explicit; no invented app-registration handshake. */
-final class ShopwareConnector extends GenericSignedWebhookConnector implements PagedOrderReader
+/** Shopware6 integration read credentials, entered manually or bound from the app registration handshake (ShopwareAppRegistration). */
+final class ShopwareConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
@@ -25,7 +27,9 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
 
     public function connectRules(): array
     {
-        return ['store_url' => ['nullable', 'url', 'max:255'], 'client_id' => ['required_with:store_url', 'string', 'min:16', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/D'], 'client_secret' => ['required_with:store_url', 'string', 'min:16', 'max:255'], 'sales_channel_id' => ['required_with:store_url', 'string', 'regex:/\A[a-f0-9]{32}\z/D']];
+        // app_registration: Admin API client credentials arrive through the Shopware app handshake instead.
+        return ['app_registration' => ['sometimes', 'accepted', 'prohibits:client_id,client_secret'], 'store_url' => ['nullable', 'required_with:app_registration', 'url', 'max:255'],
+            'client_id' => ['exclude_if:app_registration,true', 'required_with:store_url', 'string', 'min:16', 'max:255', 'regex:/\A[A-Za-z0-9_-]+\z/D'], 'client_secret' => ['exclude_if:app_registration,true', 'required_with:store_url', 'string', 'min:16', 'max:255'], 'sales_channel_id' => ['required_with:store_url', 'string', 'regex:/\A[a-f0-9]{32}\z/D']];
     }
 
     public function connect(WebshopConnection $c, array $input): array
@@ -34,7 +38,8 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
         if (! empty($input['store_url'])) {
             $base = WooCommerceApi::baseUrl($input['store_url']);
             $c->external_shop_ref = $base.'#channel='.$input['sales_channel_id'];
-            $credentials += ['store_url' => $base, 'client_id' => $input['client_id'], 'client_secret' => $input['client_secret'], 'sales_channel_id' => $input['sales_channel_id']];
+            $credentials += ['store_url' => $base, 'sales_channel_id' => $input['sales_channel_id']]
+                + (empty($input['app_registration']) ? ['client_id' => $input['client_id'], 'client_secret' => $input['client_secret']] : ['app_registration' => 'pending']);
         }
 
         return $credentials;
@@ -89,6 +94,20 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
         }
         if (! $match) {
             throw ApiException::conflict('The provider store identity does not match this connection.', 'provider_store_mismatch');
+        }
+    }
+
+    /** Only the derived app-webhook hint (ShopwareAppWebhookController) carries a lookup ID; it is never order data. */
+    public function notificationOrderId(WebshopConnection $c, string $raw): ?string
+    {
+        $p = json_decode($raw, true);
+        if (! is_array($p) || ($p['source'] ?? null) !== 'shopware_app' || ! is_string($p['order_id'] ?? null)) {
+            return null;
+        }
+        try {
+            return ProviderOrderId::validate($this->platform(), $p['order_id']);
+        } catch (\InvalidArgumentException) {
+            return null;
         }
     }
 
@@ -190,5 +209,47 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements P
         }
 
         return new NormalizedOrder(externalId: $this->str($o['id'] ?? null), reference: $this->str($o['orderNumber'] ?? null), firstName: $this->str($o['orderCustomer']['firstName'] ?? null), email: $this->str($o['orderCustomer']['email'] ?? null), phone: $this->str($o['billingAddress']['phoneNumber'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['stateMachineState']['technicalName'] ?? null), placedAt: $this->date($o['orderDateTime'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: null, providerUpdatedAt: $this->date($o['updatedAt'] ?? $o['createdAt'] ?? null));
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        $token = $this->token($c);
+        $this->identity($c, $token);
+        $row = $this->search($c, $token, 'currency', ['limit' => 1, 'filter' => [['type' => 'equals', 'field' => 'id', 'value' => ShopwareCatalog::SYSTEM_CURRENCY]]])['data'][0] ?? null;
+        $code = is_array($row) ? ($row['isoCode'] ?? null) : null;
+
+        return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,4}\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        $page = $cursor === null ? 1 : (int) $cursor;
+        $token = $this->token($c);
+        $this->identity($c, $token);
+        $channel = $c->credential('sales_channel_id');
+        $criteria = $kind === 'products'
+            ? ['filter' => [['type' => 'equals', 'field' => 'parentId', 'value' => null], ['type' => 'equals', 'field' => 'visibilities.salesChannelId', 'value' => $channel]],
+                'associations' => ['cover' => ['associations' => ['media' => (object) []]], 'categories' => (object) []]]
+            : ['filter' => [['type' => 'equals', 'field' => 'salesChannels.salesChannelId', 'value' => $channel]], 'associations' => ['discounts' => (object) []]];
+        $p = $this->search($c, $token, $kind === 'products' ? 'product' : 'promotion', $criteria + ['page' => $page, 'limit' => 100, 'total-count-mode' => 1, 'sort' => [['field' => 'id', 'order' => 'ASC']]]);
+        $rows = $p['data'] ?? null;
+        $total = $p['total'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100) {
+            throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+        }
+        $items = [];
+        foreach ($rows as $r) {
+            if (! is_array($r)) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            if (($item = $kind === 'products' ? ShopwareCatalog::product($r, $currency) : ShopwareCatalog::coupon($r, $currency)) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => is_int($total) ? ($page * 100 < $total ? (string) ($page + 1) : null) : (count($rows) === 100 ? (string) ($page + 1) : null)];
     }
 }

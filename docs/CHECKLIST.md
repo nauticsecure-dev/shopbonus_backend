@@ -535,7 +535,14 @@ First small backend boundary; no chat route/model activation yet. Existing walle
 - [x] Execute SQLite/MySQL tests and quality/API contract checks; update TASKS/PROGRESS/HANDOFF and commit/push/verify CI. (`9caa4fd`; CI `40284066219` passed.)
 - [x] B17b–f main backend chat/provider/retry/history/private progress/feedback/review/settings/knowledge and100-question/backend E2E coverage delivered. (`d63f616` + `7616e88`; CI `40388179684` passed.) Frontend/live/deployed acceptance remains separate.
 
-- [ ] B18 E2E/security/load/release
+- [x] B18 backend slice (B28, 2026-10-29): full business journey test, role access matrix over every route, security headers/proxy trust, launch-check command, API inventory, launch/deploy/rollback runbook, composer audit clean.
+- [ ] B18 remainder: staging load test, live provider/Mollie/Answer24 runs, frontend/design QA, deployment and go-live sign-off (external).
+- [x] B29 CMS scheduling (#33–#35, 2026-10-29): schedule publish/archive for a future time pinned to the reviewed draft revision; cancel; every-minute `shopbonus:publish-scheduled-content`; stale on later draft edits; legal approval required up front; Terms/Privacy archive refused; scheduler must still be an active Super Admin; interrupted runs reported; all audited.
+- [x] B29 CMS "Improve with AI" (#33–#35): improve (same locale) or translate (NL↔EN) suggestions through the Responses API with store:false and a strict schema; segment count/structure, links and facts preserved; daily quota, per-user idempotency, 503 when not configured; apply only writes the draft (never publishes) with revision check; reject; all audited.
+- [x] B30 Quality Center roles and discovery (#37, 2026-10-29): `qa_tester`/`developer` platform roles (2FA, console grant, no other admin access); inventory per Git SHA of routes, OpenAPI operations, jobs, events, listeners, commands, schedules, migrations and connectors; new/changed/removed/undocumented diff; nothing deleted; `UNREFERENCED — REVIEW` only after a frontend usage report and never for webhook/integration routes.
+- [x] B30 coverage and results (#37): approved test cases only; coverage links and map import; JUnit import with strict status rules (no assertions never PASS, BLOCKED/NOT_IMPLEMENTED prefixes, MOCKED label, STALE after change or age); duplicate reports refused; redacted messages; JSON/JUnit/HTML export; encrypted, checksum-verified, deduplicated evidence with retention.
+- [x] B30 findings, AI and schedules (#37): grouped findings assigned to developers; fix commit; independent retest derived from a run imported after the fix; regression plan; advisory GPT analysis restricted to its input and never changing status; Super Admin schedules (production safe suite only); read-only probe every 5 minutes with incident alert; protected OpenAPI JSON.
+- [ ] B30 remainder (#37): Quality Center UI and qa.shopbonus.nl portal hosting (Hassan/infra); 25 PDF scenarios, Postman/browser suites and ten provider subruns on staging; CI wiring; live model verification; release approval.
 - [ ] B19 Integration marketplace listing (BLOCKED: empty card)
 
 ## B10b — #19 credential-independent TradeTracker transport (2026-10-25)
@@ -758,5 +765,93 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] Optional PrestaShop9, Shopware6 and Magento2.4 self-hosted/PaaS native read boundaries reuse the registry/pinned transport/canonical pipeline; exact shop/channel/store binding, no invented paid/refund dates, conservative missing-evidence handling. Mapping and binding tests passed; real compatibility remains unverified.
 - [x] Exact decimal JSON decoding and bounded Woo/Shopify line mapping; encrypted current projection and immutable event snapshots, unknown eligibility and null-vs-empty semantics. Money/line/stale projection tests passed.
 - [x] Actual running-server API examples, OpenAPI/README, targeted tests, sequential broad SQLite/MySQL checks and local migrations recorded. Latest final integrations90tests609assertions MySQL, contract3tests3720assertions, Pint/PHPStan/audit pass. Final exactf90860f CI40778138872 all3SUCCESS/847tests each.
-- [ ] Remaining Laravel implementation: Shopify privacy/hook lifecycle; Wix app token lifecycle/backfill; Shopware native app handshake/signatures/lifecycle; full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
+- [ ] Remaining Laravel implementation: Shopify privacy execution after legal retention decision (intake done B23k, hook provisioning done B23i); Wix live verification (removal B23o, token minting B23l, search backfill B23j done); Shopware live verification (handshake B23m, app webhooks B23n done); full native line/catalog/coupon/capture/refund mappings. Do not tick from adapter availability or a mocked probe.
 - [ ] Lightspeed C current API/version/payment/refund contract and eligible-plan proof; preserve explicit unavailable restriction until verified. OpenCart/other native merchant modules, storefront activation and genuine provider/install/refund acceptance remain external and NOT RUN.
+
+### B23i — Shopify native webhook provisioning (2026-10-28)
+
+- [x] Fixed reviewed2026-10 list/create queries for seven supported order/refund/uninstall topics; JSON and exact connection callback only, no caller GraphQL/URI.
+- [x] Opt-in senior configuration, approved OAuth app authority/signing-secret checks, per-connection lock, generation/store guards before/after external work, audit metadata without secrets.
+- [x] Provider-authoritative listing before creation and after ambiguous outcomes/rerun; existing foreign subscriptions untouched, truncated/filtered/duplicate mappings never certified.
+- [x] Operator repair command and bounded per-topic OAuth jobs; provisioning cannot promote readiness or ingest orders.
+- [x] Focused authorization, stale-generation, unknown outcome, replay and pagination tests; docs/checkpoint updates and final quality evidence (full SQLite 862/839+23skip, MySQL 862/860+2skip, Pint/PHPStan pass; f23f3a9 CI40836390758 all3 SUCCESS). Command tests added. No new public endpoint, no fabricated HTTP examples.
+
+### B23j — Wix durable order discovery (2026-10-28)
+
+- [x] Reviewed current eCommerce Search Orders fixed endpoint/query, UTC update window, bounded cursor and explicit non-initialized status coverage; continuation pages send cursor only (Wix forbids cursor with filter/sort); no transaction-derived settlement date invented. INITIALIZED orders remain unreachable via search.
+- [x] Reuse PagedOrderReader/BulkSynchronization/OrderRecovery with canonical UUIDs and native instance/site/domain authentication; no new endpoint/table.
+- [x] Focused cursor/store/window/status/invalid-response tests and accurate provider coverage limitations; documentation and checkpoint evidence.
+
+### B23k — Shopify privacy compliance intake (2026-10-29)
+
+- [x] Official contract reviewed (shopify.dev privacy-law-compliance + HTTPS delivery, 2026-10): three topics, TOML `compliance_topics` app-level URI, HMAC with app client secret, 401 on invalid HMAC, 200 ack, dedupe on X-Shopify-Webhook-Id, 30-day completion, shop/redact 48h after uninstall.
+- [x] Public route, per-IP limiter 300/min, 1 MiB limit, 503 when secret unconfigured; verification before anything is stored; rejection audit at most once per minute per reason.
+- [x] Durable encrypted storage once per webhook ID, redelivery counted, 30-day due date, topic shape validation with authentic-but-unexpected bodies kept for review; audit without customer data.
+- [x] Operator command lists pending/overdue requests with matching Shopify connection counts and records completed/retained once (audited). No automatic erasure or export (D-099, OPEN-SHOPIFY-PRIVACY-EXECUTION).
+- [x] 7 focused tests / 46 assertions; actual local HTTP captures (200 ×3 topics, duplicate, 401, 413, 503) in B23_COMPLIANCE_HTTP_CAPTURE.json; OpenAPI + README updated; OpenApiCoverageTest passes.
+- [ ] Execution of erasure/export once legal defines retention; live Shopify App Store compliance review NOT RUN.
+
+### B23l — Wix app-instance token minting (2026-10-29)
+
+- [x] Current official contract reviewed: client_credentials at /oauth2/token with app ID/secret/instance ID, 4-hour token, no refresh; legacy custom auth deprecated. Response fields confirmed against @wix/sdk AppStrategy source.
+- [x] Opt-in config; app-mode connect binds `wix_app_id`, prohibits a manual token; manual mode unchanged.
+- [x] On-demand renewal (<5 min left) under a per-connection lock with raw-credential/generation guards, strict response validation, encrypted storage and audit; renewal preserves in-flight authority, manual rotation does not.
+- [x] App changed → 409, mode disabled → 503, invalid or rejected mint stores nothing; 5 focused tests / 22 assertions plus existing Wix discovery tests. OpenAPI create/replace descriptions updated (no new endpoint or response shape).
+- [ ] App Instance Installed/Removed webhook handling and live Wix app verification NOT RUN.
+
+### B23m — Shopware app registration handshake (2026-10-29)
+
+- [x] Official contract reviewed: registration guide plus shopware/app-php-sdk source (exact query-signature, proof, confirmation-body, dual-signature and rotation rules).
+- [x] Opt-in config; public GET registration and POST confirmation, per-IP limiter 60/min, ±600s timestamps, app/shop signatures, consumed pending secret, URL equality, secret rotation with previous secret and rotation time.
+- [x] Encrypted shop secrets and Admin API credentials in shopware_app_shops; binding to exactly one app-registration connection on the verified domain, in either order; generation bump and readiness reset; unbinding when the shop moves URL; manual credentials prohibited in app mode.
+- [x] 7 focused tests / 60 assertions; actual HTTP captures (200, 401 ×2, 422, 503, confirm 204/401) with an independently re-derived proof; OpenAPI + README; OpenApiCoverageTest passes.
+- [ ] Shopware app webhooks/lifecycle events, manifest, action buttons and live Shopware verification NOT RUN.
+
+### B23n — Shopware app webhooks and lifecycle (2026-10-29)
+
+- [x] Contract reviewed: official webhook guide (shop-secret body signature, source.shopId/eventId, timestamp for replay protection, ID-only entity-written payloads) and SDK (previous-secret 60s allowance, app.deleted keepUserData).
+- [x] Public endpoint, 600/min per IP, 1 MiB, ±600s, eventId dedupe; `order.written` → ID-only `order_lookup` events on the bound, generation-current connection; other events ignored.
+- [x] `app.deleted` revokes binding/credentials (generation bump), deletes the shop unless keepUserData; activation/deactivation audited; Shopware connector extracts lookup IDs only from the derived app hint.
+- [x] 5 focused tests / 58 assertions (with B23m: 12/118); actual HTTP captures (order.written, redelivery, ignored, forged 401, app.deleted); OpenAPI + README.
+- [ ] checkout.order.placed / order_transaction mapping, action buttons and live Shopware verification NOT RUN.
+
+### B23o — Wix webhook envelope fix and AppRemoved (2026-10-29)
+
+- [x] Official @wix/sdk parseJWT reviewed: JWT `data` is a JSON string; the previous object-only parser rejected genuine webhooks. Fixed; object form refused; fixture corrected.
+- [x] AppInstalled/AppRemoved eventTypes confirmed in the official app-instances SDK; content-hash dedupe; AppRemoved → native-proof uninstall processing shared with Shopify; AppInstalled has no effect.
+- [x] Tests: WixConnectorTest (2/9) and WixAppRemovedTest (3/13): revoked → disconnect, valid grant → ignored, redelivery deduped, installed → no HTTP or effect.
+- [ ] Live Wix removal status codes NOT RUN.
+
+### B24 — "Code does not work" screenshot evidence, Trello #23 (2026-10-29)
+
+- [x] #23 backend audit: wallet expiry/oldest-first, one voucher model, one-time replacement, isolation and audit already implemented; only screenshot upload missing.
+- [x] Optional multipart `screenshots[]` (≤3, JPEG/PNG/WebP, ≤5 MB, content-sniffed, must decode); encrypted private storage; files removed on 409/failure; `voucher_disputes.evidence` metadata.
+- [x] Super Admin-only audited download (attachment, nosniff, no-store); consumer/merchant 403; merchant view shows count only.
+- [x] Focused test (disguised 422, encryption, orphan-free 409, 403, byte-identical download, 404); real-server captures 422/201/403/200/404/401; OpenAPI + README.
+- [ ] AI screenshot analysis (optional on card) NOT BUILT; live WooCommerce/Mollie/Answer24 E2E for #23 NOT RUN.
+
+### B25 — Catalog/coupon sync and capability report, Trello #1 (2026-10-29)
+
+- [x] Tables `catalog_syncs`, `connection_products`, `connection_coupons` (migration `2026_10_29_130000`); coupon code encrypted, email restrictions stored only as `customer_restricted`.
+- [x] `CatalogReader` contract; WooCommerce reader over official REST v3 `products`, `coupons`, `data/currencies/current` on the existing pinned GET-only transport; page cap `CATALOG_SYNC_MAX_PAGES` (50).
+- [x] `CatalogSynchronizer`: queued pass, cache lock, per-page write only at the starting credential generation, unseen items `removed_at` only after a complete pass, `partial`/`catalog_page_limit` otherwise; audited requested/finished.
+- [x] Capability report (10 capabilities AVAILABLE/LIMITED/UNSUPPORTED with reason and last_verified_at) from evidence only.
+- [x] Routes: capabilities, products, coupons (manage), catalog-syncs GET/POST; focused CatalogSyncTest; real-server captures 401/200/422/202/404/403/409; OpenAPI + README.
+- [ ] Catalog/coupon readers for Shopify, Shopware, Wix, Lightspeed, Magento, CCV NOT BUILT (report UNSUPPORTED); live WooCommerce catalog run NOT RUN.
+- [ ] Native storefront banner publication, AI Banner Studio, Order Sheet/catalog UI NOT BUILT (frontend/provider scope).
+
+### B26 — Shopify catalog and code-discount reader, Trello #32 (2026-10-29)
+
+- [x] Field list verified on shopify.dev Admin GraphQL 2026-10 (Product, discountNodes, DiscountCodeBasic/FreeShipping, DiscountPercentage 0.00–1.00, DiscountAmount, DiscountMinimumSubtotal, DiscountContext, DiscountItems, DiscountStatus); deprecated `codeDiscountNodes`/`customerSelection`/`featuredImage` not used.
+- [x] `CatalogReader` now cursor-based (Woo cursor = page number); synchronizer refuses a repeated cursor (`provider_pagination_invalid`).
+- [x] `ShopifyApi::catalog/shopCurrency` fixed queries after the identity/domain/scope gate; `ShopifyCatalog` mappers; shared `CatalogValues` trait; exact-decimal percentage parsing.
+- [x] ShopifyCatalogTest (cursor paging, documented mapping, skipped BXGY/bulk, encrypted codes, missing read_discounts → failed pass); real-server capture B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
+- [ ] Shopware, Wix, Magento, BigCommerce, Lightspeed, CCV, Ecwid, PrestaShop catalog readers NOT BUILT; live Shopify catalog run NOT RUN.
+
+### B27 — BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6, Wix catalog readers, Trello #32 (2026-10-29)
+
+- [x] Official references checked: BigCommerce get-products/get-coupons/get-store-information; Ecwid search-products/search-discount-coupons/store-profile; Magento admin-schema-2.4.8 + RuleInterface constants; PrestaShop 9 webservice products/cart_rules/configurations/currencies + PS_CURRENCY_DEFAULT; Shopware core Product/Promotion definitions and discount constants; Wix catalog V1/V3, catalog version, coupons query, site properties.
+- [x] Mappers `BigCommerceCatalog`, `EcwidCatalog`, `MagentoCatalog`, `PrestaShopCatalog`, `ShopwareCatalog`, `WixCatalog`; shared `CatalogValues` (row defaults, exact percent, ISO/epoch dates); connectors implement `CatalogReader` behind their existing identity gates.
+- [x] `PinnedJsonReader` opt-in `allowEmpty` for 204 list pages (BigCommerce v2).
+- [x] PlatformCatalogTest: one products + coupons pass per platform, unsupported shape skipped, codes encrypted, no write methods; real-server capture B27_PLATFORM_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
+- [ ] Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel: no native read connector (UNSUPPORTED). Live installed-store runs for all platforms NOT RUN. Storefront banner publication NOT BUILT (merchant-side plugin/app scope).

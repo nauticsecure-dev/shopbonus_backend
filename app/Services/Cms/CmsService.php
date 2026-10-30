@@ -231,7 +231,7 @@ class CmsService
     /**
      * @param  array{legal_version?: string|null, effective_date?: string|null, approve?: bool}  $legal
      */
-    public function publish(CmsPage $page, string $locale, int $actorId, array $legal = []): CmsRevision
+    public function publish(CmsPage $page, string $locale, int $actorId, array $legal = [], ?int $expectedDraftRevision = null): CmsRevision
     {
         if ($page->archived_at !== null) {
             throw ApiException::conflict('Archived pages cannot be published.', 'page_archived');
@@ -241,10 +241,14 @@ class CmsService
             throw new ApiException('Legal pages need a version, an effective date and explicit approval to publish.', 422, 'legal_approval_required');
         }
 
-        return DB::transaction(function () use ($page, $locale, $actorId, $legal, $isLegal) {
+        return DB::transaction(function () use ($page, $locale, $actorId, $legal, $isLegal, $expectedDraftRevision) {
             $l = CmsPageLocale::where('page_id', $page->id)->where('locale', $locale)->lockForUpdate()->first() ?? throw new ApiException('This translation does not exist.', 404, 'not_found');
             if ($l->draft_content === null) {
                 throw ApiException::conflict('There is no draft to publish.', 'nothing_to_publish');
+            }
+            // A scheduled publication only publishes the exact draft that was reviewed.
+            if ($expectedDraftRevision !== null && $l->draft_revision !== $expectedDraftRevision) {
+                throw ApiException::conflict('The draft changed after it was scheduled.', 'draft_changed');
             }
             if ($isLegal && CmsRevision::where('page_id', $page->id)->where('locale', $locale)->where('legal_version', $legal['legal_version'])->exists()) {
                 throw ApiException::conflict('This legal version was already published; use a new version number.', 'legal_version_exists');

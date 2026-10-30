@@ -51,3 +51,23 @@ Owner assigned credentials to the senior developer and requested main backend co
 ## Card #25 main-code continuation — 2026-10-26
 
 B14b `d561f8d` implements queued AI Create/Insights, strict evidence/privacy/budgets, reviewed editable private drafts, immutable A/B/holdout launch, consented assignment/withdrawal, validated event linkage and generic/WooCommerce/Shopify assignment metadata. Current editor membership revocation is enforced. CI `40281914885` passed full SQLite503+13skip / MySQL514+2skip and quality checks. Main documented backend slice can be handed to Hassan; senior developer configures credentials and validates live model/storefront/provider propagation. Whole-card Done still requires frontend, genuine site/cart/provider and staging acceptance. See `banners/AI_EXPERIMENTS.md`.
+
+## Card #23 continuation — B24, 2026-10-29
+
+Backend re-audit found every #23 backend rule implemented except the "Code Does Not Work" screenshot. B24 adds encrypted screenshot upload with Super Admin-only audited download. The #23 **backend slice is complete**; the whole card still needs real WooCommerce/second-platform/Mollie/Answer24 runs, frontend and production evidence. AI screenshot analysis (optional) not built. Card #23's 403-for-cross-workspace wording stays answered by the deliberate audited 404.
+
+## Card #1 continuation — B25, 2026-10-29
+
+Adds the missing read-only catalog/coupon sync and per-connection capability report. WooCommerce products and native coupons sync over the pinned REST v3 read transport; other platforms honestly report UNSUPPORTED/LIMITED. The #1 **backend slice for catalog/coupons/capabilities is complete**; the whole card still needs live provider connections and orders, readers for the other platforms (#32), native storefront banner publication, AI Banner Studio, Order Sheet/catalog frontend and real Answer24 end-to-end evidence.
+
+## Card #32 continuation — B26, 2026-10-29
+
+Adds Shopify as the second native catalog/coupon reader (Admin GraphQL 2026-10, fields verified against the official reference). Products and single-code basic/free-shipping discounts sync read-only; BXGY, app and bulk-code discounts are skipped rather than approximated. #32 still needs readers and mappings for the remaining platforms, real installed stores for all ten integrations, storefront banner publication and live lifecycle evidence.
+
+## Card #32 continuation — B27, 2026-10-29
+
+Native read-only catalog/coupon readers now exist for every platform that has a native read connector: WooCommerce, Shopify, BigCommerce, Ecwid, Magento, PrestaShop, Shopware 6 and Wix (Catalog V1 and V3). Each mapping was checked against the official reference or core source; unsupported discount shapes are skipped. The #32 **backend code that can be built without live stores is complete**. Remaining: real installed stores and live order/payment/refund/catalog/coupon/lifecycle evidence for all ten integrations (senior-owned credentials), native read connectors for Lightspeed/CCV/OpenCart/Squarespace/Mijnwebwinkel (no verified contract or credentials), and storefront banner publication (merchant-side plugin/app scope, excluded from this backend).
+
+## Card #22 continuation — B28, 2026-10-29
+
+Backend release slice delivered: `BusinessJourneyTest` runs the card's 17-step journey through the real API (only DNS, mail, Answer24, Mollie and the affiliate report are synthetic) with cross-module integrity assertions. `RoleAccessMatrixTest` calls every `/api/v1` route as anonymous, suspended, unverified, consumer, owner, manager, employee and Super Admin; no permission defect was found. New `SecurityHeaders` middleware (nosniff, frame deny, no-referrer, HSTS on HTTPS) and `TRUSTED_PROXIES`; `shopbonus:launch-check`; `docs/release/API_INVENTORY.md` and `LAUNCH_READINESS.md`; `composer audit` clean. The card is **not Done**: frontend/design QA (Hassan), live provider/Mollie/Answer24 runs and a staging load test (senior developer), owner/legal decisions and the deployment remain.

@@ -13,15 +13,11 @@ use App\Services\Disputes\DisputeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
- * "Report voucher problem" / Code Does Not Work (Trello #20) for the
- * consumer's own vouchers and purchases only. Optional screenshot evidence
- * is stored privately and served only to the owning consumer (or staff
- * routes that already authorize the dispute).
+ * "Report voucher problem" (Trello #20) for the consumer's own vouchers
+ * and purchases only.
  */
 class DisputeController extends Controller
 {
@@ -32,8 +28,9 @@ class DisputeController extends Controller
             'checkout_id' => ['required_without:voucher_id', 'nullable', 'string', 'max:40'],
             'reason' => ['required', Rule::in(VoucherDispute::REASONS)],
             'description' => ['required', 'string', 'min:10', 'max:2000', 'not_regex:/<[^>]*>/'],
-            'screenshot' => ['nullable', 'file', 'mimes:png,jpg,jpeg,webp', 'mimetypes:image/png,image/jpeg,image/webp',
-                'max:4096', 'dimensions:min_width=16,min_height=16,max_width=6000,max_height=6000'],
+            'screenshots' => ['sometimes', 'array', 'max:3'],
+            // Content-sniffed type plus real decoding (dimensions) rejects disguised or corrupt files.
+            'screenshots.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:5120', 'dimensions:min_width=16,min_height=16,max_width=8000,max_height=8000'],
         ]);
         /** @var User $user */
         $user = $request->user();
@@ -43,9 +40,7 @@ class DisputeController extends Controller
         $checkout = isset($data['checkout_id']) ? (VoucherCheckout::where('public_id', $data['checkout_id'])->where('user_id', $user->id)->first()
             ?? throw new ApiException('Purchase not found.', 404, 'not_found')) : null;
 
-        return response()->json(['data' => self::present($disputes->open(
-            $user, $voucher, $checkout, $data['reason'], $data['description'], $request->file('screenshot')
-        ))], 201);
+        return response()->json(['data' => self::present($disputes->open($user, $voucher, $checkout, $data['reason'], $data['description'], array_values($request->file('screenshots', []))))], 201);
     }
 
     public function index(Request $request): JsonResponse
@@ -61,28 +56,12 @@ class DisputeController extends Controller
         return response()->json(['data' => self::present($d, withTimeline: true)]);
     }
 
-    public function screenshot(Request $request, string $id): Response
-    {
-        $d = VoucherDispute::where('public_id', $id)->where('user_id', $request->user()->id)->first()
-            ?? throw new ApiException('Report not found.', 404, 'not_found');
-        if ($d->screenshot_path === null || ! Storage::disk(DisputeService::SCREENSHOT_DISK)->exists($d->screenshot_path)) {
-            throw new ApiException('No screenshot attached.', 404, 'not_found');
-        }
-
-        return Storage::disk(DisputeService::SCREENSHOT_DISK)->response($d->screenshot_path, 'screenshot', [
-            'Content-Type' => (string) $d->screenshot_mime,
-            'Cache-Control' => 'private, max-age=300',
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Security-Policy' => "default-src 'none'",
-        ], 'inline');
-    }
-
     /** @return array<string, mixed> */
     public static function present(VoucherDispute $d, bool $withTimeline = false): array
     {
         $out = [
             'id' => $d->public_id, 'status' => $d->status, 'reason' => $d->reason, 'description' => $d->description,
-            'has_screenshot' => $d->screenshot_path !== null,
+            'screenshots' => array_map(fn (array $m) => ['id' => $m['id'], 'name' => $m['name'], 'mime' => $m['mime'], 'size' => $m['size']], $d->evidence ?? []),
             'webshop' => DB::table('webshops')->where('id', $d->webshop_id)->value('name'),
             'voucher_id' => $d->voucher_id === null ? null : Voucher::whereKey($d->voucher_id)->value('public_id'),
             'checkout_id' => $d->checkout_id === null ? null : VoucherCheckout::whereKey($d->checkout_id)->value('public_id'),

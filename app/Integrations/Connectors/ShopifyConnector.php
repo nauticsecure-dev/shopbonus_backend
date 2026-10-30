@@ -4,6 +4,8 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
+use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -31,7 +33,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store.
  */
-class ShopifyConnector extends WebhookConnector implements PagedOrderReader
+class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedOrderReader
 {
     public const ORDER_TOPICS = ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'orders/fulfilled'];
 
@@ -243,5 +245,31 @@ class ShopifyConnector extends WebhookConnector implements PagedOrderReader
     public function discoverOrders(WebshopConnection $connection, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
     {
         return app(ShopifyApi::class)->discover($connection, $since, $until, $cursor);
+    }
+
+    public function catalogCurrency(WebshopConnection $connection): string
+    {
+        $code = app(ShopifyApi::class)->shopCurrency($connection);
+        if (! Money::isCurrency($code)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+
+        return $code;
+    }
+
+    public function catalogPage(WebshopConnection $connection, string $kind, ?string $cursor, string $currency): array
+    {
+        $page = app(ShopifyApi::class)->catalog($connection, $kind, $cursor);
+        $items = [];
+        foreach ($page['nodes'] as $node) {
+            if (! is_array($node)) {
+                throw new ApiException('The provider list response could not be read.', 502, 'provider_response_invalid');
+            }
+            if (($item = $kind === 'products' ? ShopifyCatalog::product($node, $currency) : ShopifyCatalog::coupon($node, $currency)) !== null) {
+                $items[] = $item;
+            }
+        }
+
+        return ['items' => $items, 'next' => $page['next']];
     }
 }

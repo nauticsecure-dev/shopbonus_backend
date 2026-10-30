@@ -1,3 +1,292 @@
+# Active handoff — #37 B30 Quality Center backend; backend slice done, card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `2276fe6` (B29, [CI 40895099427](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40895099427) SUCCESS on all 3 jobs). Owner: "do it" (build #33–#35, then #37's "Laravel Backend: Frank" part). D-089 unchanged. Credentials senior-owned. #12 still waits for the owner's cashback-timing decision.
+
+B30:
+- Roles: `PlatformRole::QaTester` (`qa_tester`) and `PlatformRole::Developer` (`developer`); `EnsurePlatformRole` takes several roles (`platform:super_admin,qa_tester`) and still requires confirmed 2FA. Every QA route group includes `super_admin`, so the RoleAccessMatrix rule (Super Admin passes every platform route) holds. Neither QA role reaches any other admin route. Grant: `php artisan shopbonus:qa-role <email> qa_tester|developer [--revoke]` (audited). `ApiRouteRegistry` now reports the real roles per route.
+- Migration `2026_10_29_150000_create_qa_tables`: qa_inventory_snapshots, qa_endpoints, qa_components, qa_test_cases, qa_test_coverage, qa_schedules, qa_test_runs, qa_test_results, qa_evidence, qa_findings, qa_ai_quotas.
+- `App\Services\Qa\QaInventory` (discovery): routes (fingerprint = method, path, middleware, handler source lines), OpenAPI summary/documented flag, jobs, events, listeners, commands, schedules, migrations, connectors (webshop connectors + Mollie/Moneybird/Answer24/Daisycon/TradeTracker clients). Diff vs previous scan (added/changed/removed/undocumented); removed rows keep `removed_at`, nothing is deleted. Cache lock, one scan at a time. `php artisan shopbonus:qa-discover --sha=<sha>` after every deploy.
+- `QaStatus`: per-endpoint status from approved test cases' latest results only: FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS; evidence older than the endpoint's last change or `QA_STALE_AFTER_DAYS` is STALE; mocked passes are labelled. `UNREFERENCED — REVIEW` only after a frontend usage report and never for webhook/integration/external routes. Dashboard summary (totals, coverage %, P0–P3 open findings, last run/probe/scan, next run).
+- `QaRuns`: JUnit import (no DOCTYPE, LIBXML_NONET; failure/error → fail, `BLOCKED:`/`NOT_IMPLEMENTED:` skipped prefixes, no assertions → never PASS, "MOCKED" names or `mocked=true`); report SHA-256 dedupe; keys use the PHP `class` attribute (dotted `classname` converted); unknown keys become draft cases; redacted messages (contact data, bearer tokens, IBANs, configured secrets). Coverage map import. JSON/JUnit/HTML export (escaped, attachment, no-store, noindex, CSP none). Encrypted evidence with SHA-256 check on download, per-run dedupe, retention; `shopbonus:qa-probe --prune` daily.
+- `QaFindings`: grouped by routes+tests fingerprint (409 `finding_exists`); owner must be a developer; developer fixes with commit; retest by someone other than owner/fixer, with a run imported strictly after the fix; outcome derived from that run (every linked test PASS, unmocked). Regression plan (tests on affected routes/same controllers, money/tenant/webhook first). Advisory GPT analysis via Responses API (`store:false`, strict schema with the card's fields), references restricted to the input, never changes status/severity, proposals become draft `ai` test cases; quota + 5/min throttle `qa-ai`; 503 until `QA_AI_*` is set.
+- `QaProbe` + `shopbonus:qa-probe` every 5 minutes (no-op until `QA_PROBE_ENABLED`): read-only HealthChecker + latency, run with source `probe`; failure → grouped incident via IncidentRecorder::monitoring.
+- Schedules (Super Admin): production only allows the `safe` suite. Staging suites are executed by CI/staging runners, which import with `shopbonus:qa-import --schedule=<id>`.
+- `GET /api/v1/admin/qa/openapi.json`: the OpenAPI contract for the self-hosted Swagger/Stoplight portal; no-store, noindex, audited.
+- 28 routes under `/api/v1/admin/qa`; inventory now 362 routes (admin 163). Env: QA_AI_ENABLED/API_KEY/MODEL/DAILY_LIMIT, QA_EVIDENCE_RETENTION_DAYS, QA_STALE_AFTER_DAYS, QA_PROBE_ENABLED, QA_PROBE_SLOW_MS, APP_RELEASE_SHA.
+
+Executed evidence:
+- QualityCenterTest 10 PASS (231 assertions); OpenApiCoverageTest PASS.
+- Full SQLite: 931 tests, 908 passed + 23 skipped, 13667 assertions.
+- Full MySQL 8: 931 tests, 929 passed + 2 skipped, 13750 assertions, 421.9s.
+- Pint PASS; PHPStan 0 errors. Migration rollback/reapply on isolated SQLite PASS (11 tables).
+- Real local HTTP server capture (61 requests; imports a real PHPUnit 12 JUnit log; model stub synthetic): `docs/qa/B30_QUALITY_CENTER_HTTP_CAPTURE.json`; examples in OpenAPI and README. The capture found and fixed one defect: a run imported in the same second as the fix was accepted as a retest (now 409 `retest_run_outdated`). Some 409/410/422/429/503 examples are illustrative (`<request id>`).
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–150000 NOT applied there.
+
+Not done (#37 is not Done): Quality Center UI and the qa.shopbonus.nl Swagger/Stoplight hosting (Hassan/infra; backend serves the protected spec); executing the 25 PDF scenarios, Postman/browser suites and the ten provider install/order/refund subruns on staging with real Mollie TEST/provider sandboxes (Hassan + senior credentials); CI wiring of `shopbonus:qa-import` and a coverage map generator; real GPT model verification (senior sets QA_AI_*); Martijn's release approval. Exact next: #12 after the owner decides D-089, or staging verification.
+
+---
+# Active handoff — #33/#34/#35 B29 CMS scheduled publishing and "Improve with AI"; backend slice done (2026-10-29, Claude)
+
+Branch `main`. Base `2bd4ba5` (B28, CI SUCCESS on all 3 jobs). Owner: "do it" after the board review (build #33–#35 CMS gaps, then #37 backend; #12 waits for the owner decision on D-089). D-089 unchanged. Credentials senior-owned.
+
+B29:
+- Migration `2026_10_29_140000_create_cms_schedules_and_suggestions`: `cms_publication_schedules`, `cms_ai_suggestions`, `cms_ai_quotas`.
+- `App\Services\Cms\CmsScheduler`: schedule publish (per locale, pinned `draft_revision`) or archive for `due_at` > now + 1 min. Refuses archived pages, duplicate pending schedules, stale revision (409 `draft_revision_conflict`), legal publish without version/effective date/approve (422), Terms/Privacy archive (409). `runDue()` claims rows (scheduled→running), re-checks the scheduler is an active Super Admin, publishes through `CmsService::publish(..., expectedDraftRevision)` (new parameter, 409 `draft_changed` inside the lock) → `stale` when the draft changed. Rows stuck in `running` > 10 min become `failed/interrupted`. Audits `cms.schedule_created|cancelled|executed|stale|failed`.
+- `shopbonus:publish-scheduled-content`, scheduled every minute without overlap.
+- `App\Services\Cms\CmsSuggestions`: `improve` (same locale) or `translate` (other locale) of the current draft (or published content). Extracts text segments (title, SEO, text nodes, button labels, image alts), sends them to the OpenAI Responses API (`store:false`, strict `{segments: string[]}`), rejects wrong count, empty/too long segments, `<>`, any URL/email/number/currency not in the source, or the API key; re-inserts segments into the original structure and validates with the CMS rich-text allowlist. Idempotent per user + `request_key` (409 on different payload), daily quota (429 + Retry-After), per-user throttle `cms-ai` 5/min, 503 `cms_ai_not_configured` when off. `apply` saves the draft only (revision checked, never publishes); `reject`. Audited.
+- Config `config/cms.php`; env `CMS_AI_ENABLED` (default false), `CMS_AI_API_KEY` (falls back to `OPENAI_API_KEY`), `CMS_AI_MODEL`, `CMS_AI_DAILY_LIMIT`=20.
+- 8 routes under `/api/v1/admin/cms` (reads: schedules, page suggestions, suggestion detail; `password.recent`: create/cancel schedule, request/apply/reject suggestion). Inventory now 334 routes.
+
+Executed evidence:
+- CmsScheduleAndSuggestionTest 9 PASS; all CMS tests 19 PASS (244 assertions).
+- Full SQLite: 921 tests, 898 passed + 23 skipped, 12912 assertions.
+- Full MySQL 8: 921 tests, 919 passed + 2 skipped, 12996 assertions, 343.3s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server capture (23 requests, model upstream faked): `docs/cms/B29_CMS_SCHEDULE_AI_HTTP_CAPTURE.json`; examples in OpenAPI and README. Some 409/422/429/503 examples are illustrative.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–140000 NOT applied there.
+
+Not done: Hassan's UI (schedule picker, suggestion diff/apply); senior sets `CMS_AI_*` and verifies a real model response. Exact next: #37 Quality Center backend (B30).
+
+---
+# Active handoff — #22 B28 backend release slice (B18); card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `8352e08` (B27, [CI 40880825276](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40880825276) SUCCESS on all 3 jobs). Owner: "do all you can do" on #22; frontend testing goes to Hassan. D-089 unchanged. Credentials senior-owned.
+
+B28 (closes the backend part of B18):
+- `tests/Feature/Journey/BusinessJourneyTest.php`: card #22 steps 1–17 through the real API with cross-module integrity assertions. Only DNS, mail, Answer24, Mollie and the affiliate report are synthetic. A Mollie top-up funds rewards (an offer can't activate without funding).
+- `tests/Feature/Api/RoleAccessMatrixTest.php`: every `/api/v1` route as anonymous/suspended/unverified/consumer/owner/manager/employee/Super Admin (±2FA), asserting exact denial codes and exact per-role permissions. No defect found.
+- `App\Http\Middleware\SecurityHeaders` (global, appended): nosniff, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, HSTS on HTTPS (`shopbonus.security.hsts_max_age`, env `HSTS_MAX_AGE`, default 1 year). Existing controller headers are kept. Proxy trust via `shopbonus.security.trusted_proxies` (`TRUSTED_PROXIES`), applied in `AppServiceProvider::boot` with `TrustProxies::at`; default off, so behaviour is unchanged.
+- `shopbonus:launch-check [--json]` (25 checks, no values printed; FAIL exits 1).
+- `docs/release/API_INVENTORY.md` (326 routes, from `shopbonus:api-routes`) and `docs/release/LAUNCH_READINESS.md` (evidence map, deploy/rollback runbook, open items).
+- `composer audit`: 0 advisories/abandoned (PHP 8.4.17, Laravel 13.38.0).
+- No migration, no new route. `.env.example` gains TRUSTED_PROXIES and HSTS_MAX_AGE.
+
+Executed evidence:
+- BusinessJourneyTest 1 PASS (95 assertions); RoleAccessMatrixTest 4 PASS (1637 assertions); SecurityHeadersTest 2 PASS; LaunchCheckTest 2 PASS.
+- Full SQLite: 912 tests, 889 passed + 23 skipped, 12649 assertions.
+- Full MySQL 8: 912 tests, 910 passed + 2 skipped, 12734 assertions, 339.0s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–130000 NOT applied there.
+
+#22 remains not Done: frontend/design QA (Hassan); live store/Mollie/Answer24/affiliate runs and a staging load test (senior); owner/legal decisions (affiliate credit timing D-089, Answer24 lawful basis, live Mollie); deployment/infrastructure (TLS, TRUSTED_PROXIES, off-site backups, mail DNS, alerting). All of Frank's backend cards (#1, #22, #23, #32) now have their buildable backend delivered; the next work is staging verification with real credentials.
+
+---
+# Active handoff — #32 B27 remaining native catalog/coupon readers; #32 buildable backend complete, card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `5816192` (B26, [CI 40875885780](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40875885780) SUCCESS on all 3 jobs). Owner: "do it all" for #32. D-089 unchanged. Credentials senior-owned.
+
+B27 adds `CatalogReader` to every remaining connector that has a native read transport, each mapping checked against the official reference or core source:
+- BigCommerce: `GET /v3/catalog/products?include=primary_image` (meta.pagination), `GET /v2/coupons` (page/limit, empty page 204), currency from `/v2/store`. Types percentage_discount/per_total_discount/per_item_discount/free_shipping; shipping_discount/promotion skipped.
+- Ecwid: `/products`, `/discount_coupons` (offset/limit/total), `profile.formatsAndUnits.currency`. ABS/PERCENT/SHIPPING and *_AND_SHIPPING.
+- Magento 2.4 (admin-schema-2.4.8): `products` (total_count), `salesRules/search` coupon_type SPECIFIC_COUPON + primary `coupons/search`; by_percent/by_fixed/cart_fixed; buy_x_get_y and auto-generated codes skipped; to_date → end of day in store timezone; currency from storeConfigs.
+- PrestaShop 9: `products`, `cart_rules` (limit offset,100), currency via `configurations` PS_CURRENCY_DEFAULT → `currencies/{id}`. Price stored as returned (tax basis not documented). Codeless rules skipped.
+- Shopware 6: `search/product` (main products visible in the bound sales channel) and `search/promotion` (sales channel, discounts association); system currency `b7d2554b…`. Individual codes, multiple/set-group/fixed-price discounts skipped.
+- Wix: Catalog version via `/stores/v3/provision/version`; V3 `/stores/v3/products/query` (cursor) or V1 `/stores-reader/v1/products/query` (offset); coupons `/stores/v2/coupons/query`; currency `/site-properties/v4/properties`. Fixed-price and buyXGetY skipped.
+- `PinnedJsonReader::read(..., allowEmpty: true)` returns an empty list for 204. Shared helpers moved to `CatalogValues` (row defaults, enum, exact percent, ISO/epoch dates).
+- No migration, no new route.
+
+Executed evidence:
+- PlatformCatalogTest 6 PASS (one products + coupons pass per platform, unsupported shape skipped, encrypted codes, no write methods).
+- Full SQLite: 903 tests, 880 passed + 23 skipped, 10898 assertions.
+- Full MySQL 8: 903 tests, 901 passed + 2 skipped, 10980 assertions, 331.0s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server capture with synthetic official-schema fixtures: docs/integrations/B27_PLATFORM_CATALOG_HTTP_CAPTURE.json, OpenAPI examples, README.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–130000 NOT applied there.
+
+Whole #32 remains not Done (external/out of scope): real installed stores and live evidence for all ten integrations (senior credentials); Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel have no native read connector (no verified contract/credentials) and report UNSUPPORTED; storefront banner publication is merchant-side plugin/app scope. Exact next: #22 (release QA, mostly external), or live verification on staging when the senior configures store credentials.
+
+---
+# Active handoff — #32 B26 Shopify catalog/discount reader; whole #32 not Done (2026-10-29, Claude)
+
+Branch `main`. Base `9d5281d` (B25, [CI 40851533268](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40851533268) SUCCESS on all 3 jobs). Owner: #1 backend done → moved to frontend (Hassan); continue #32 then #22. D-089 unchanged. Credentials senior-owned.
+
+B26:
+- `CatalogReader::catalogPage(..., ?string $cursor, ...)` now returns `{items, next}` (cursor-based). WooCommerce uses the REST page number as cursor. `CatalogSynchronizer` follows `next`, refuses a repeated cursor (`provider_pagination_invalid`).
+- `ShopifyApi::catalog()` / `shopCurrency()`: fixed Admin GraphQL 2026-10 queries `ShopbonusCatalogProducts` (products first 50, read_products), `ShopbonusCatalogDiscounts` (discountNodes first 25, `method:code`, read_discounts), `ShopbonusCurrency`; identity/domain gate first (`identity()` accepts a null scope for currency only).
+- `ShopifyCatalog` mappers (fields verified on shopify.dev 2026-10 reference; deprecated codeDiscountNodes/customerSelection/featuredImage avoided). Single-code DiscountCodeBasic/FreeShipping → coupon; BXGY/app/bulk skipped. Percentage parsed from the exact decimal string the pinned reader returns (0.00–1.00). Discount targets first 10 (`*_partial` keys when more).
+- Shared `CatalogValues` trait (extracted from WooCommerceCatalog). `ConnectionCoupon::isActive` accepts Shopify `active`.
+- No migration, no new route.
+
+Executed evidence:
+- ShopifyCatalogTest 3 PASS; CatalogSyncTest 4 PASS; Shopify suites PASS.
+- Full SQLite: 897 tests, 874 passed + 23 skipped, 10798 assertions.
+- Full MySQL 8: 897 tests, 895 passed + 2 skipped, 10881 assertions, 322.5s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server capture with synthetic Shopify GraphQL stubs: docs/integrations/B26_SHOPIFY_CATALOG_HTTP_CAPTURE.json, OpenAPI examples, README, SHOPIFY_READ_API.md.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000–130000 NOT applied there.
+
+Whole #32 remains not Done: catalog/coupon readers for Shopware, Wix, Magento, BigCommerce, Lightspeed, CCV, Ecwid, PrestaShop (only from verified official schemas); real installed stores for all ten integrations; storefront banner publication; live lifecycle evidence. Exact next: Shopware 6 Admin API products/promotions reader (verify the official Admin API schema first), then Wix Stores products + coupons, then #22.
+
+---
+# Active handoff — #1 B25 catalog/coupon sync + capability report; #1 backend slice complete, whole card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `425571b` (B24, [CI 40847704631](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40847704631) SUCCESS on all 3 jobs). Owner request: continue remaining Frank cards (#1, #22, #32) easiest first; #23 backend done and moved to frontend (Hassan) by the owner. D-089 unchanged. Credentials senior-owned.
+
+B25 adds the missing #1 backend pieces (catalog/coupon sync, per-connection capability report):
+- Migration `2026_10_29_130000`: `catalog_syncs`, `connection_products`, `connection_coupons` (coupon `code` encrypted cast; email restrictions stored only as boolean `customer_restricted`).
+- `App\Integrations\Contracts\CatalogReader`; `WooCommerceConnector` implements it via `WooCommerceCatalog` mappers over official REST v3 `products`, `coupons` and `data/currencies/current` (added to the `WooCommerceApi` allowlist), using the existing pinned GET-only transport. `CATALOG_SYNC_MAX_PAGES` (default 50) × 100 per page.
+- `App\Services\Catalog\CatalogSynchronizer`: `start()` (409 `capability_unsupported` / `connection_disconnected` / `catalog_sync_running`), queued `SyncConnectionCatalog` job runs `run()`: cache lock, generation check, each page stored under the connection row lock only at the starting credential generation, unseen items marked `removed_at` only after a complete pass; page cap → `partial` + `catalog_page_limit`. Audits `integration.catalog_sync_requested/finished`.
+- `ConnectionCapabilities::report()`: orders, payments, refunds, products, categories, coupons_read, coupons_write (always UNSUPPORTED), banner_embed (LIMITED, manual embed), webhooks, backfill — AVAILABLE only on evidence.
+- Routes under `workspaces/{workspace}/connections/{connection}/`: `GET capabilities`, `GET products`, `GET catalog-syncs` (integrations.view); `GET coupons`, `POST catalog-syncs` (integrations.manage, commerce-probe throttle).
+
+Executed evidence:
+- CatalogSyncTest 4 tests PASS (sync + encrypted codes + no PII + GET-only, removal on complete pass but not partial, generation-change discard, 422/409/403/404 isolation).
+- Full SQLite: 894 tests, 871 passed + 23 skipped, 10740 assertions.
+- Full MySQL 8: 894 tests, 892 passed + 2 skipped, 10824 assertions, 326.1s.
+- Pint PASS; PHPStan 0 errors; OpenApiCoverageTest PASS.
+- Real local HTTP server captures (synthetic WooCommerce stubs, isolated SQLite): 401, 200, 422, 202, 404, 403, 409 in docs/integrations/B25_CATALOG_HTTP_CAPTURE.json, OpenAPI and docs/api/README.md.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000, 110000, 120000, 130000 are NOT applied there.
+
+Whole #1 remains not Done: live provider connections/orders, catalog/coupon readers for Shopify/Shopware/Wix/Lightspeed/Magento/CCV (#32), native storefront banner publication, AI Banner Studio, Order Sheet/catalog/coupon frontend and real Answer24 E2E. Exact next: #32 per-provider line-item/catalog/coupon mappings from official schemas (start with Shopify GraphQL products/discounts as a second `CatalogReader`), then #22 (release QA, mostly external).
+
+---
+# Active handoff — #23 B24 "Code does not work" screenshot evidence; #23 backend slice complete, whole card not Done (2026-10-29, Claude)
+
+Branch `main`. Base `737219f` (B23o + CI evidence). Owner request: continue all remaining Frank cards (#1, #22, #23, #32) easiest first. #31 was moved to Testing by the owner. D-089 unchanged. Credentials senior-owned.
+
+Audit of #23 against the code: every backend requirement already existed (12-month lots, oldest-expiry-first spend, one voucher model with Answer24 handoff and wallet/Mollie purchase, one-time compensation, workspace isolation, signed webhooks, audit chain) except the screenshot on the "Code Does Not Work" form. B24 adds it:
+- `POST /api/v1/consumer/disputes` accepts optional multipart `screenshots[]` (max 3, JPEG/PNG/WebP, 5 MB, content-sniffed and must decode with 16–8000 px dimensions).
+- Files are encrypted (`Crypt`) under `dispute-evidence/{dispute}/{uuid}.enc` before the row is created; a duplicate-report 409 or any failure removes them. Metadata in new `voucher_disputes.evidence` JSON (migration `2026_10_29_120000`).
+- New `GET /api/v1/admin/disputes/{dispute}/evidence/{file}`: Super Admin only, audited `admin.dispute_evidence_downloaded`, attachment + nosniff + no-store. Merchant view exposes only a screenshot count.
+- Not implemented: AI analysis of screenshots (card says "may"); replacement stays an admin decision applied at most once (existing).
+
+Executed evidence:
+- VoucherDisputeTest 6 tests PASS (new test: disguised file 422 with no stored file, encrypted at rest, orphan-free 409, consumer 403, merchant count only, admin byte-identical audited download, unknown/traversal 404).
+- Full SQLite: 890 tests, 867 passed + 23 skipped, 10619 assertions.
+- Full MySQL 8: 890 tests, 888 passed + 2 skipped, 10702 assertions, 319.8s.
+- Pint --test PASS; PHPStan L6 0 errors; OpenApiCoverageTest PASS.
+- Actual HTTP captures (php artisan serve, isolated SQLite, real session login + TOTP challenge): 422, 201, 403, 200 (byte-identical), 404, 401 in docs/support/B24_DISPUTE_SCREENSHOT_HTTP_CAPTURE.json, OpenAPI and README.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000, 110000 and 120000 are NOT applied there.
+
+Whole #23 remains not Done: real WooCommerce/second-platform/Mollie/Answer24 runs, frontend audit, backups and production evidence are external. Exact next (easiest first): #1 remaining backend gaps (catalog/coupon sync API, capability report per connection), then #32 per-provider line/catalog/coupon mappings from official schemas, then #22 (release QA, mostly external).
+
+---
+# Active handoff — #31 B23o Wix webhook envelope fix + AppRemoved, whole card IN_PROGRESS (2026-10-29, Claude)
+
+Branch `main`. Base `daecc72` (B23n, [CI 40842608297](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40842608297) SUCCESS on all 3 jobs). Session commits: `f23f3a9` B23i/j, `c478831` B23k, `0274a77` B23l, `9f0d7fa` B23m, `daecc72` B23n; all CI green. D-089 unchanged. Credentials senior-owned.
+
+B23o fixes a real defect from B23e–h: `WixConnector::signedData` required the JWT `data` claim to be an object, but the official `@wix/sdk` parseJWT shows it is a JSON string (inner `data` also a JSON string). Every genuine Wix webhook would have been rejected (401 `store_mismatch`). The connector now parses the string envelope only, and the test fixture uses it. `AppRemoved` → `KIND_DISCONNECT`, processed by `ShopifyUninstall` (now Shopify + Wix): native Get App Instance outside locks, disconnect only on a definite 401/403, replay with a valid grant ignored. `AppInstalled` is stored without effect. App-instance events dedupe on a content hash (no event id). No migration, no endpoint or response change.
+
+Executed evidence for this commit's tree:
+- WixConnectorTest 2/9 and WixAppRemovedTest 3/13 PASS; Integrations + Api folders 162 tests PASS.
+- Full SQLite: 889 tests, 866 passed + 23 skipped, 10584 assertions, 68.5s.
+- Full MySQL 8: 889 tests, 887 passed + 2 skipped, 10666 assertions, 311.9s.
+- Pint --test PASS; PHPStan L6 0 errors.
+- CI for f14afc8: [run 40843782709](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40843782709) SUCCESS on all 3 jobs (SQLite, MySQL, lint/static analysis).
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000 (B23k) and 110000 (B23m) are NOT applied there.
+
+Exact next (remaining #31 Laravel gaps): remaining provider line/catalog/coupon/payment/refund mappings, per provider and only from official schemas (Wix lineItems from the Order object; BigCommerce products; Shopware lineItems; Magento items). Lightspeed C only with a verified current official contract. Shopify privacy execution waits on OPEN-SHOPIFY-PRIVACY-EXECUTION (D-099). Live provider verification for every platform is NOT RUN. The B23n handoff is below.
+
+---
+# Active handoff — #31 B23n Shopware app webhooks, whole card IN_PROGRESS (2026-10-29, Claude)
+
+Branch `main`. Base `9f0d7fa` (B23m, [CI 40841263271](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40841263271) SUCCESS on all 3 jobs). Session commits: `f23f3a9` B23i/j, `c478831` B23k, `0274a77` B23l, `9f0d7fa` B23m; all CI green. D-089 unchanged. Credentials senior-owned.
+
+B23n: `ShopwareAppWebhookController` at public `POST /api/v1/integrations/shopware/app/webhook` (limiter `webhooks-shopware-app` 600/min per IP). It verifies the shop-secret signature via `ShopwareAppRegistration::signedByShop` (previous secret within 60s of rotation), requires a confirmed `source.shopId` and a ±600s timestamp, and dedupes on eventId. `order.written` stores one derived `order_lookup` WebhookEvent per order ID (max 25) on the bound, generation-current connection; `ShopwareConnector` now implements `OrderNotification`, reading only that derived hint. `app.deleted` → `ShopwareAppRegistration::revoke` (unbind, strip credentials, generation bump; delete the shop unless keepUserData). Activation/deactivation are audited; other events are ignored. No migration.
+
+Executed evidence for this commit's tree:
+- ShopwareAppWebhookTest: 5 tests, 58 assertions; with ShopwareAppRegistrationTest 12/118 PASS. OpenApiCoverageTest PASS.
+- Full SQLite: 886 tests, 863 passed + 23 skipped, 10569 assertions, 61.3s.
+- Full MySQL 8: 886 tests, 884 passed + 2 skipped, 10654 assertions, 305.6s.
+- Pint --test PASS; PHPStan L6 0 errors.
+- Actual HTTP captures: docs/integrations/B23_SHOPWARE_APP_WEBHOOK_HTTP_CAPTURE.json, OpenAPI, README (database queue; no outbound reads).
+- CI for daecc72: run 40842608297 SUCCESS on all 3 jobs.
+
+Main local `shopbonus` DB: migrations 2026_10_29_100000 (B23k) and 110000 (B23m) are NOT applied there; run `php artisan migrate` when the senior is ready.
+
+Exact next (remaining #31 Laravel gaps): Wix App Instance Installed/Removed webhooks (verify the current Wix contract and its app-level JWT payload first); remaining provider line/catalog/coupon/payment/refund mappings (per provider, only from official schemas); Lightspeed C only with a verified current official contract. Shopify privacy execution waits on OPEN-SHOPIFY-PRIVACY-EXECUTION (D-099). Live provider verification for every platform remains NOT RUN. The B23m handoff is below.
+
+---
+# Active handoff — #31 B23m Shopware app registration, whole card IN_PROGRESS (2026-10-29, Claude)
+
+Branch `main`. Base `0274a77` (B23l, [CI 40839539332](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40839539332) SUCCESS on all 3 jobs). Session commits so far: `f23f3a9` B23i/j, `c478831` B23k, `0274a77` B23l; all CI green. D-089 unchanged. Credentials senior-owned.
+
+B23m: `App\Integrations\ShopwareAppRegistration`, `ShopwareAppController`, model `ShopwareAppShop`, public routes `GET /api/v1/integrations/shopware/app/registration` and `POST …/registration/confirm` (limiter `shopware-app` 60/min per IP). Opt-in `SHOPWARE_APP_ENABLED/NAME/SECRET`. The signature/proof/rotation algorithms match the official shopware/app-php-sdk source (downloaded and read on 2026-10-29); re-registration always requires the dual signature. Shopware connections accept `app_registration: true` (+ `store_url`, `sales_channel_id`; client credentials prohibited). The confirmed handshake's Admin API credentials are bound into exactly one such connection on the verified domain, whichever comes first (`ConnectionManager::create/replaceCredentials` call `attach()`), bumping the generation and resetting readiness. Lock order: connections, then the app shop row. Details: docs/integrations/REMAINING_BACKEND.md.
+
+Migration: `2026_10_29_110000_create_shopware_app_shops` (new table, FK to webshop_connections nullOnDelete). Applied only by test suites and the isolated capture DB; **not to the main local `shopbonus` DB or production.** The B23k migration `2026_10_29_100000` is likewise not applied to the main DB.
+
+Executed evidence for this commit's tree:
+- ShopwareAppRegistrationTest: 7 tests, 60 assertions PASS. Integrations folder plus OpenApiCoverageTest PASS.
+- Full SQLite: 881 tests, 858 passed + 23 skipped, 10505 assertions, 61.3s.
+- Full MySQL 8: 881 tests, 879 passed + 2 skipped, 10585 assertions, 300.3s.
+- Pint --test PASS; PHPStan L6 0 errors.
+- Actual HTTP captures: docs/integrations/B23_SHOPWARE_APP_HTTP_CAPTURE.json, OpenAPI, README (proof re-derived with openssl and matched).
+- CI for 9f0d7fa: run 40841263271 SUCCESS on all 3 jobs.
+
+Exact next (remaining #31 Laravel gaps): (1) Shopware app webhooks: app-level endpoint, `shopware-shop-signature` with the current secret (previous within 60s of `secrets_rotated_at`), route by `source.shopId` to the bound connection into the existing WebhookEvent pipeline, `app.deleted`/`app.deactivated` lifecycle → revoke the binding and credentials; (2) Wix App Instance Installed/Removed webhooks; (3) remaining provider line/catalog/coupon/payment/refund mappings; (4) Lightspeed C only with a verified current official contract. Shopify privacy execution waits on OPEN-SHOPIFY-PRIVACY-EXECUTION (D-099). The B23l handoff is below.
+
+---
+# Active handoff — #31 B23l Wix app-instance tokens, whole card IN_PROGRESS (2026-10-29, Claude)
+
+Branch `main`. Base `c478831` (B23k, [CI 40838253435](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40838253435) SUCCESS on all 3 jobs). Earlier `f23f3a9` CI 40836390758 also passed all 3. D-089 unchanged. Credentials senior-owned.
+
+B23l: new `App\Integrations\WixAppTokens`; opt-in `WIX_APP_ENABLED/WIX_APP_ID/WIX_APP_SECRET` (`config('integrations.wix_app')`). With app mode on, Wix connect/replace prohibits `access_token` and stores `wix_app_id`. `WixConnector::read` gets its Authorization from `WixAppTokens::accessToken()`: a manual token when not app-bound, otherwise a token minted via `POST https://www.wixapis.com/oauth2/token` (client_credentials, 4h). It re-mints when less than 5 minutes are left, under a cache lock and transaction guard, stores the token encrypted with `access_token_expires_at`, and audits it. `WebshopConnection::hasSameCredentialAuthority` treats app-bound Wix renewals as the same authority (same app ID, instance, site, public key). Errors: `wix_app_changed` 409, `wix_app_not_configured` 503, `provider_response_invalid`/`provider_authentication_failed` with credentials untouched. No migration, no new endpoint; OpenAPI create/replace descriptions updated.
+
+Executed evidence for this commit's tree:
+- WixAppTokensTest: 5 tests, 22 assertions PASS. WixDiscoveryTest still passes.
+- Full SQLite: 874 tests, 851 passed + 23 skipped, 10422 assertions, 64.0s.
+- Full MySQL 8: 874 tests, 872 passed + 2 skipped, 10505 assertions, 307.5s.
+- Pint --test PASS; PHPStan L6 0 errors.
+- CI for 0274a77: run 40839539332 SUCCESS on all 3 jobs.
+
+Exact next (remaining #31 Laravel gaps): Shopware 6 native app registration handshake/signatures/lifecycle (verify the current official app-system docs: registration GET with shopware-app-signature, confirmation POST, app-secret HMAC on webhooks and action buttons). Then Wix App Instance Installed/Removed webhooks; remaining provider line/catalog/coupon/payment/refund mappings; Lightspeed C only with a verified current official contract. Shopify privacy execution waits on OPEN-SHOPIFY-PRIVACY-EXECUTION (D-099). The B23k handoff is below.
+
+---
+# Active handoff — #31 B23k Shopify privacy compliance intake, whole card IN_PROGRESS (2026-10-29, Claude)
+
+Branch `main`. Base `f23f3a96d4199ccf0a7aa75b62881d96d3645ea4` (B23i/B23j, [CI 40836390758](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40836390758) SUCCESS on all 3 jobs: SQLite, MySQL, lint/static). This commit adds B23k. D-089 is unchanged. Credentials are senior-owned.
+
+B23k: public `POST /api/v1/integrations/shopify/compliance` (route `api.v1.integrations.shopify.compliance`, limiter `shopify-compliance` 300/min per IP) for `customers/data_request`, `customers/redact` and `shop/redact`. Order of checks: app client secret configured (else 503 `shopify_app_not_configured`), body ≤1 MiB (else 413), base64 HMAC-SHA256 of the raw body with `SHOPIFY_CLIENT_SECRET` (else 401 `webhook_rejected`/`signature_invalid`), topic is one of the three and webhook ID is present (else 401 `invalid_event_headers`). The request is stored once per `X-Shopify-Webhook-Id` in the new `shopify_compliance_requests` table (encrypted raw body, payload hash, event ID, topic, shop domain/ID when the shape is valid, `payload_valid`, status `pending`, `due_at` = received + 30 days). Redelivery returns 200 `duplicate:true` and increments `delivery_count`. An authentic body that doesn't fit its topic is kept with `payload_valid=false`. Audit events record receipt, resolution and rate-limited rejections, with no customer data. Operator command `shopbonus:shopify-compliance` lists pending requests (with the matching Shopify connection count and an overdue flag) and `--resolve=<ID> --outcome=completed|retained` records the outcome once.
+
+**Nothing is erased or exported automatically.** See D-099 and OPEN-SHOPIFY-PRIVACY-EXECUTION. Legal/owner must decide which fields may be erased before this is automated, and someone must work the queue within 30 days. The senior must add the URI under `compliance_topics` in `shopify.app.toml`.
+
+Migration: `2026_10_29_100000_create_shopify_compliance_requests` (additive, new table only). Applied by the test suites and the isolated capture DB only. **Not applied to the main local `shopbonus` DB or production.**
+
+Executed evidence for this commit's tree:
+- ShopifyComplianceTest: 7 tests, 46 assertions PASS. OpenApiCoverageTest PASS.
+- Full SQLite: 869 tests, 846 passed + 23 skipped, 10401 assertions, 56.8s.
+- Full MySQL 8: 869 tests, 867 passed + 2 skipped, 10483 assertions, 520.1s.
+- Pint --test PASS; PHPStan L6 0 errors.
+- Actual HTTP captures (php artisan serve, isolated SQLite, openssl-signed synthetic bodies): 200 for each of the three topics, duplicate 200, 401, 413, 503. Stored in docs/integrations/B23_COMPLIANCE_HTTP_CAPTURE.json, docs/api/openapi.yaml and docs/api/README.md. Rate-limit headers omitted (array cache). No live Shopify store or App Store review.
+- CI for c478831: run 40838253435 SUCCESS on all 3 jobs.
+
+Limitations: no dual-secret window during client-secret rotation (Shopify can take up to 1h to switch digests; its 8 retries over 4h should cover that). `X-Shopify-Shop-Domain` is not trusted; the signed body's `shop_domain` is used.
+
+Exact next (remaining #31 Laravel gaps, in order): Wix app token install/renewal (verify the current official Wix OAuth/app-instance token contract first); Shopware native app registration handshake/signatures/lifecycle; remaining provider line/catalog/coupon/payment/refund mappings; Lightspeed C only once its current official contract is verified. Shopify privacy execution waits on OPEN-SHOPIFY-PRIVACY-EXECUTION. Previous B23i/B23j handoff is below.
+
+---
+# Active handoff — #31 B23i/B23j committed checkpoint, whole card IN_PROGRESS (2026-10-29, Claude)
+
+Branch `main`, base `8f76727b9ee9463963c89da9fd8f0b4bb6e97531`. This commit finishes the Codex WIP for B23i (Shopify webhook provisioning) and B23j (Wix durable order discovery); nothing was reset or rebuilt. No new migration, public route, package or live provider action. Entire #31 IN_PROGRESS. D-089 affiliate timing unchanged. Credentials senior-owned.
+
+Review fixes made by Claude on top of the WIP:
+- **Wix pagination bug (fixed):** the WIP sent filter+sort together with `cursorPaging.cursor` on page 2+. The official Search Orders doc states "`cursor` can not be used together with `filter` or `sort`" and its 2nd-request example sends only `cursorPaging`. Continuation pages now send only `{cursorPaging:{limit:25,cursor}}`; every returned row is still status/window/UUID validated. Test asserts both request shapes.
+- Wix cursor maxLength is 16000 natively; the existing journal column is 2048 chars, so a longer cursor fails closed (`provider_pagination_invalid`) rather than truncating. The doc example cursor for a comparable filter is ~720 chars. Widening the column needs a migration and was not done.
+- Command `shopbonus:provision-shopify-webhooks` now prints an error for an unknown connection; added tests for the command (invalid ULID/topic/review flags → exit 2, sync queue without --inline refused, inline create, async 7-job dispatch, disabled refusal) and for a review ID with no outstanding intent (`webhook_intent_review_invalid`, no mutation).
+- Reviewed and kept: after-commit OAuth dispatch (audited failure never relabels the grant), durable create intent before mutation with list-first recovery, generation/authority/store rechecks under row lock before intent and observation, cache lock owner-safe release, dedicated committing OAuth fixture resets `RefreshDatabaseState` (verified under both drivers with RefreshDatabase tests running after it).
+
+Executed evidence (this machine, exact working tree committed here):
+- Focused SQLite: ShopifyWebhookSetupTest + WixDiscoveryTest 13 tests/56 assertions PASS; with ShopifyOAuthProvisionDispatchTest + BulkSynchronizationTest 20 tests PASS.
+- Focused MySQL 8 (`shopbonus_testing`): same 4 files 20 tests/83 assertions PASS/44.0s.
+- Full SQLite: 862 tests, 839 passed + 23 skipped, 10343 assertions, 61.1s.
+- Full MySQL: 862 tests, 860 passed + 2 skipped, 10426 assertions, 301.9s.
+- Pint --test PASS; PHPStan L6 0 errors. OpenAPI coverage test included in full suites (no endpoint change, no new HTTP captures needed).
+- CI for f23f3a9: run 40836390758 SUCCESS on all 3 jobs (SQLite, MySQL, lint/static analysis).
+
+Known limitations (documented in docs/integrations/REMAINING_BACKEND.md): Wix Search never returns INITIALIZED orders (webhook/Get Order only); Shopify provisioning not verified against a live store and does not inspect TOML-declared app subscriptions; `--review-intent` must only follow manual confirmation in Shopify. Historical reconciliation migration down-index failure observed under DatabaseMigrations teardown remains unfixed and unrelated; do not claim historical rollback works.
+
+Exact next: Shopify mandatory privacy compliance webhooks (customers/data_request, customers/redact, shop/redact). These are app-level (single configured URI, HMAC with app client secret, shop/redact ~48h after uninstall when the connection may be disconnected), so they need a new public route + OpenAPI entry with real captured examples per AGENTS rule 11, and mapping onto existing PrivacyRequest/retention rules (D-013) without deleting accounting evidence. Then Wix app token install/renewal, Shopware native app lifecycle/signatures, remaining provider line/catalog/coupon/payment/refund mappings, Lightspeed C only with a verified current official contract.
+
+---
+
 # Active handoff — #31 B23e–h backend checkpoint, whole card IN_PROGRESS (2026-10-28)
 
 Branch `main`, base `78642dedf9ccfd02b544f7460f85ab989b189577`. Application `74608718c15afd96a045c5ee2017a85556548381` and timestamp follow-up `f90860ff5f91d720285b3978f352812190f27a18` committed/pushed. [Final CI40778138872](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40778138872) SUCCESS all3jobs for exactf90860f: quality/audit, SQLite824pass+23skip/10278assertions/52.29s and MySQL845pass+2skip/10361assertions/218.01s (847tests/database). Prior7460871 CI40777263930 also all3SUCCESS/846each. This is a docs-only closeout; no uncommitted application/test changes. Timestamp follow-up rejects ambiguous PrestaShop DST times and leaves Wix payment/refund record-created timestamps null, preserving authoritative current status/amount without inventing settlement-time proof. No pre-existing user changes overwritten. Owner requests all main code and focused testing. **OAuth/bulk/Woo+Shopify line boundary implemented; remaining provider/lifecycle/catalog gaps are still PARTIAL, not whole-card Done.** D-089/D-098 apply.

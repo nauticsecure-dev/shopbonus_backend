@@ -1,0 +1,13 @@
+{
+  "captured_at": "2026-10-29T09:01:56Z",
+  "environment": "php artisan serve on localhost:8766, isolated SQLite (scratchpad), file sessions, array cache, real /login + /two-factor-challenge (TOTP) session cookies. Synthetic consumer/admin/webshop; no provider involved.",
+  "requests": [
+    {"name": "store_422_disguised", "request": "POST /api/v1/consumer/disputes multipart, screenshots[] = PHP source named disguised.png", "status": 422, "request_id": "01a186e4-fedf-71b8-a7db-cfafc8e97601", "body": {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a186e4-fedf-71b8-a7db-cfafc8e97601","fields":{"screenshots.0":["The screenshots.0 field must be a file of type: image/jpeg, image/png, image/webp.","The screenshots.0 field has invalid image dimensions."]}}}},
+    {"name": "store_201", "request": "POST /api/v1/consumer/disputes multipart, screenshots[] = 32x32 PNG (99 bytes) named 'checkout error.png'", "status": 201, "request_id": "01a186e4-ff72-7359-bcc6-af1c417b0ed5", "body": {"data":{"id":"01m63e9zvtfsbcpexa7yh3kp5n","status":"open","reason":"code_invalid","description":"The webshop rejects this code at checkout.","screenshots":[{"id":"01a186e4-ff7a-730d-b093-2e8e830ffe65","name":"checkout_error.png","mime":"image/png","size":99}],"webshop":"Woon & Co","voucher_id":"01m63e8y3b5xys4p4xw9rcedc9","checkout_id":null,"resolution":null,"created_at":"2026-10-29T09:01:56+00:00"}}},
+    {"name": "consumer_download_403", "status": 403, "request_id": "01a186e5-4a07-7276-ab90-95c7daf44462", "body": {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a186e5-4a07-7276-ab90-95c7daf44462"}}},
+    {"name": "admin_download_200", "status": 200, "request_id": "01a186e5-4a31-7148-9197-0eb1def87eeb", "headers": {"Content-Type": "image/png", "Content-Disposition": "attachment; filename=\"checkout_error.png\"", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store, private"}, "body": "99-byte PNG; cmp against the uploaded file: identical"},
+    {"name": "admin_download_404", "status": 404, "request_id": "01a186e5-4a5e-7342-8502-80274f493bde", "body": {"error":{"status":404,"code":"not_found","message":"Screenshot not found.","request_id":"01a186e5-4a5e-7342-8502-80274f493bde"}}},
+    {"name": "unauthenticated_401", "status": 401, "request_id": "01a186e5-4a7d-7311-b3de-2a946ba9022c", "body": {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a186e5-4a7d-7311-b3de-2a946ba9022c"}}}
+  ],
+  "not_covered": "AI screenshot analysis (card says 'may') is not implemented; no file leaves ShopBonus."
+}

@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
 use App\Http\Controllers\Api\V1\Admin\OperationsOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
+use App\Http\Controllers\Api\V1\Admin\QaController;
 use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
@@ -58,10 +59,13 @@ use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
 use App\Http\Controllers\Api\V1\Discovery\PublicSearchController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
-use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\CatalogController;
+use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
+use App\Http\Controllers\Api\V1\Integrations\ShopifyComplianceController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyOAuthController;
+use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
+use App\Http\Controllers\Api\V1\Integrations\ShopwareAppWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Notifications\InboxController;
@@ -117,6 +121,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // One provider IP serves many merchants, so the per-IP api limiter is replaced by a per-connection one.
     Route::post('webhooks/{platform}/{token}', [WebhookController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('webhooks.receive');
+    // Shopify mandatory privacy webhooks: one app-level URI, signed with the app client secret.
+    Route::post('integrations/shopify/compliance', [ShopifyComplianceController::class, 'receive'])
+        ->withoutMiddleware('throttle:api')->middleware('throttle:shopify-compliance')->name('integrations.shopify.compliance');
+    // Shopware app-system registration handshake (manifest <setup>); signed by the shop, see ShopwareAppRegistration.
+    Route::prefix('integrations/shopware/app')->name('integrations.shopware.app.')
+        ->withoutMiddleware('throttle:api')->middleware('throttle:shopware-app')->group(function () {
+            Route::get('registration', [ShopwareAppController::class, 'register'])->name('register');
+            Route::post('registration/confirm', [ShopwareAppController::class, 'confirm'])->name('confirm');
+            Route::post('webhook', [ShopwareAppWebhookController::class, 'receive'])
+                ->withoutMiddleware('throttle:shopware-app')->middleware('throttle:webhooks-shopware-app')->name('webhook');
+        });
 
     Route::post('invitations/preview', [InvitationController::class, 'preview'])
         ->middleware('throttle:invitation-preview')->name('invitations.preview');
@@ -333,6 +348,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('pages/{page}/locales/{locale}/preview', [AdminCmsController::class, 'preview'])->name('pages.preview');
                     Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
                     Route::get('faq', [AdminCmsController::class, 'faq'])->name('faq.index');
+                    Route::get('schedules', [AdminCmsController::class, 'schedules'])->name('schedules.index');
+                    Route::get('pages/{page}/suggestions', [AdminCmsController::class, 'suggestions'])->name('suggestions.index');
+                    Route::get('suggestions/{suggestion}', [AdminCmsController::class, 'showSuggestion'])->name('suggestions.show');
                     Route::get('cookie-policies', [AdminCookiePolicyController::class, 'index'])->name('cookie-policies.index');
                     Route::get('cookie-consents/stats', [AdminCookiePolicyController::class, 'stats'])->name('cookie-consents.stats');
                 });
@@ -357,6 +375,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('versions', [AdminAboutUsCmsController::class, 'versions'])->name('versions');
                 });
                 Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
+                Route::get('disputes/{dispute}/evidence/{file}', [AdminDisputeController::class, 'evidence'])->name('disputes.evidence');
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
@@ -414,6 +433,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('pages/{page}/locales/{locale}/publish', [AdminCmsController::class, 'publish'])->name('pages.publish');
                         Route::post('pages/{page}/revisions/{revision}/restore', [AdminCmsController::class, 'restore'])->name('pages.restore');
                         Route::post('pages/{page}/archive', [AdminCmsController::class, 'archive'])->name('pages.archive');
+                        Route::post('pages/{page}/schedules', [AdminCmsController::class, 'storeSchedule'])->name('schedules.store');
+                        Route::post('schedules/{schedule}/cancel', [AdminCmsController::class, 'cancelSchedule'])->name('schedules.cancel');
+                        Route::post('pages/{page}/locales/{locale}/suggestions', [AdminCmsController::class, 'requestSuggestion'])->middleware('throttle:cms-ai')->name('suggestions.store');
+                        Route::post('suggestions/{suggestion}/apply', [AdminCmsController::class, 'applySuggestion'])->name('suggestions.apply');
+                        Route::post('suggestions/{suggestion}/reject', [AdminCmsController::class, 'rejectSuggestion'])->name('suggestions.reject');
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
                         Route::post('faq/categories', [AdminCmsController::class, 'storeFaqCategory'])->name('faq.categories.store');
                         Route::post('faq/items', [AdminCmsController::class, 'storeFaqItem'])->name('faq.items.store');
@@ -478,6 +502,47 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 });
             });
 
+            // Quality Center (Trello #37). Every group includes super_admin; qa_tester runs, approves and retests;
+            // developer only reaches findings assigned to them (and their evidence) and records fix commits.
+            Route::prefix('admin/qa')->name('admin.qa.')->group(function () {
+                Route::middleware('platform:super_admin,qa_tester')->group(function () {
+                    Route::get('summary', [QaController::class, 'summary'])->name('summary');
+                    Route::get('endpoints', [QaController::class, 'endpoints'])->name('endpoints.index');
+                    Route::get('endpoints/{endpoint}', [QaController::class, 'showEndpoint'])->name('endpoints.show');
+                    Route::get('components', [QaController::class, 'components'])->name('components.index');
+                    Route::get('snapshots', [QaController::class, 'snapshots'])->name('snapshots.index');
+                    Route::get('test-cases', [QaController::class, 'testCases'])->name('test-cases.index');
+                    Route::get('runs', [QaController::class, 'runs'])->name('runs.index');
+                    Route::get('runs/{run}', [QaController::class, 'showRun'])->name('runs.show');
+                    Route::get('runs/{run}/export', [QaController::class, 'export'])->name('runs.export');
+                    Route::get('schedules', [QaController::class, 'schedules'])->name('schedules.index');
+                    Route::get('openapi.json', [QaController::class, 'openapi'])->name('openapi');
+                    Route::middleware('password.recent')->group(function () {
+                        Route::post('inventory/scan', [QaController::class, 'scan'])->name('inventory.scan');
+                        Route::post('frontend-usage', [QaController::class, 'frontendUsage'])->name('frontend-usage');
+                        Route::post('test-cases', [QaController::class, 'storeTestCase'])->name('test-cases.store');
+                        Route::post('test-cases/approve', [QaController::class, 'approveTestCases'])->name('test-cases.approve');
+                        Route::put('test-cases/{testCase}/coverage', [QaController::class, 'setCoverage'])->name('test-cases.coverage');
+                        Route::post('coverage', [QaController::class, 'importCoverage'])->name('coverage.import');
+                        Route::post('runs', [QaController::class, 'storeRun'])->name('runs.store');
+                        Route::post('runs/{run}/evidence', [QaController::class, 'storeEvidence'])->name('runs.evidence.store');
+                        Route::post('findings', [QaController::class, 'storeFinding'])->name('findings.store');
+                        Route::post('findings/{finding}/retest', [QaController::class, 'retestFinding'])->name('findings.retest');
+                        Route::post('findings/{finding}/analyze', [QaController::class, 'analyzeFinding'])->middleware('throttle:qa-ai')->name('findings.analyze');
+                    });
+                });
+                Route::middleware('platform:super_admin,qa_tester,developer')->group(function () {
+                    Route::get('findings', [QaController::class, 'findings'])->name('findings.index');
+                    Route::get('findings/{finding}', [QaController::class, 'showFinding'])->name('findings.show');
+                    Route::get('evidence/{evidence}', [QaController::class, 'downloadEvidence'])->name('evidence.download');
+                });
+                Route::post('findings/{finding}/fix', [QaController::class, 'fixFinding'])->middleware(['platform:super_admin,developer', 'password.recent'])->name('findings.fix');
+                Route::middleware(['platform:super_admin', 'password.recent'])->group(function () {
+                    Route::post('schedules', [QaController::class, 'storeSchedule'])->name('schedules.store');
+                    Route::patch('schedules/{schedule}', [QaController::class, 'updateSchedule'])->name('schedules.update');
+                });
+            });
+
             Route::post('invitations/accept', [InvitationController::class, 'accept'])
                 ->middleware('throttle:invitation-preview')->name('invitations.accept');
             Route::post('claims/accept', [ClaimController::class, 'accept'])->middleware('throttle:claims')->name('claims.accept');
@@ -510,7 +575,6 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::post('disputes', [DisputeController::class, 'store'])->middleware('throttle:checkout')->name('disputes.store');
                 Route::get('disputes', [DisputeController::class, 'index'])->name('disputes.index');
                 Route::get('disputes/{id}', [DisputeController::class, 'show'])->name('disputes.show');
-                Route::get('disputes/{id}/screenshot', [DisputeController::class, 'screenshot'])->middleware('throttle:code-reveal')->name('disputes.screenshot');
                 Route::get('affiliate-activity', [AffiliateActivityController::class, 'index'])->name('affiliate-activity.index');
 
                 Route::post('checkouts/quote', [CheckoutController::class, 'quote'])->name('checkouts.quote');
@@ -573,18 +637,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
                 Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
                 Route::get('connections/{connection}/capabilities', [CatalogController::class, 'capabilities'])->middleware('workspace.can:integrations.view')->name('connections.capabilities');
-                Route::get('connections/{connection}/health', [CatalogController::class, 'health'])->middleware('workspace.can:integrations.view')->name('connections.health');
                 Route::get('connections/{connection}/products', [CatalogController::class, 'products'])->middleware('workspace.can:integrations.view')->name('connections.products');
-                Route::get('connections/{connection}/coupons', [CatalogController::class, 'coupons'])->middleware('workspace.can:integrations.view')->name('connections.coupons');
+                Route::get('connections/{connection}/coupons', [CatalogController::class, 'coupons'])->middleware('workspace.can:integrations.manage')->name('connections.coupons');
+                Route::get('connections/{connection}/catalog-syncs', [CatalogController::class, 'syncs'])->middleware('workspace.can:integrations.view')->name('connections.catalog-syncs.index');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
+                    Route::post('connections/{connection}/catalog-syncs', [CatalogController::class, 'sync'])->middleware('throttle:commerce-probe')->name('connections.catalog-syncs.store');
                     Route::post('connections/{connection}/test-api', ConnectionApiTestController::class)->middleware('throttle:commerce-probe')->name('connections.test-api');
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
                     Route::post('integrations/shopify/oauth', [ShopifyOAuthController::class, 'start'])->middleware('throttle:commerce-probe')->name('connections.shopify-oauth.start');
                     Route::post('connections/{connection}/credentials', [ConnectionController::class, 'replaceCredentials'])->name('connections.credentials');
                     Route::delete('connections/{connection}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
                     Route::post('connections/{connection}/events/{event}/retry', [ConnectionController::class, 'retryEvent'])->name('connections.events.retry');
-                    Route::post('connections/{connection}/sync/products', [CatalogController::class, 'syncProducts'])->middleware('throttle:commerce-probe')->name('connections.sync.products');
-                    Route::post('connections/{connection}/sync/coupons', [CatalogController::class, 'syncCoupons'])->middleware('throttle:commerce-probe')->name('connections.sync.coupons');
                 });
 
                 // Live Order Sheet (Trello #1).
