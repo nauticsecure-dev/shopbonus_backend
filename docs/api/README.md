@@ -16951,3 +16951,1535 @@ X-Request-Id: 01a188d8-da28-711e-98fd-0b2c482f6ee6
 
 {"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
 ```
+
+## Restored HassanDev endpoints with re-captured examples (B31)
+
+Merge `9f927ef` kept main's `openapi.yaml` and dropped the 92 operations documented on the HassanDev branch. B31 restored their paths, parameters and request schemas, and replaced every example with a capture from a real local PHP HTTP server: isolated SQLite, demo seed plus capture fixtures, real `/login` + password confirmation and the emailed step-up flow (the synthetic code was set in the capture DB). Admin 2FA was disabled and the API rate limit raised for the capture only. Not captured: AI suggest 200 (needs a live OpenAI key; 503 `*_ai_not_configured` captured) and enrichment retry 202 (503 `enrichment_not_configured` captured). Activation tokens and voucher codes are redacted. Full capture: `docs/qa/B31_MERGE_RECOVERY_HTTP_CAPTURE.json`.
+
+`GET /api/v1/public/webshops/modehuis/cover    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Cache-Control: max-age=86400, public
+X-Content-Type-Options: nosniff
+Content-Security-Policy: default-src 'none'
+Content-Length: 79
+Content-Disposition: inline; filename=cover
+
+<79 bytes>
+```
+
+`GET /api/v1/public/webshops/sportlab/cover    (no session)` — no_cover
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Cover not found.", "request_id": "01a18e40-b5f6-7055-a35a-eb718c9cf44a"}}
+```
+
+`GET /api/v1/public/search?q=woon&limit=3    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"q": "woon", "groups": {"webshops": [{"type": "webshop", "label": "Woon & Co", "description": "Alles voor een stijlvol thuis.", "href": "/webshops/woon-en-co-demo", "slug": "woon-en-co-demo"}, {"type": "webshop", "label": "Woon & Co", "description": "Alles voor een stijlvol thuis.", "href": "/webshops/woon-en-co", "slug": "woon-en-co"}], "categories": [], "offers": [{"type": "offer", "label": "Woon & Co voordeel 1", "description": "€5.00 from €25.00", "href": "/webshops/woon-en-co/offers/woon-co-voordeel-1-ncsjbg", "slug": "woon-co-voordeel-1-ncsjbg", "webshop_slug": "woon-en-co"}, {"type": "offer", "label": "Woon & Co voordeel 2", "description": "12% from €25.00, maximum €25.00", "href": "/webshops/woon-en-co/offers/woon-co-voordeel-2-kvhevs", "slug": "woon-co-voordeel-2-kvhevs", "webshop_slug": "woon-en-co"}], "discount_codes": []}}}
+```
+
+`GET /api/v1/public/search?limit=99    (no session)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b654-731f-8a31-3d18f0d95ad4", "fields": {"limit": ["The limit field must not be greater than 20."]}}}
+```
+
+`GET /api/v1/public/discount-codes?limit=2    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416em670ad8f874ajg9y0", "slug": "homepage-demo-korting-bhj9uz", "offer_slug": "homepage-demo-korting-bhj9uz", "title": "Homepage demo korting", "summary": "10% from €25.00", "terms": null, "ends_at": null, "code": "WELKOM10", "webshop": {"slug": "woon-en-co-demo", "name": "Woon & Co", "image_url": "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200", "logo_url": null, "cover_url": "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200"}, "href": "/webshops/woon-en-co-demo"}]}
+```
+
+`GET /api/v1/public/discount-codes?limit=0    (no session)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b69d-737c-bb93-eb0d2d75f6c3", "fields": {"limit": ["The limit field must be at least 1."]}}}
+```
+
+`GET /api/v1/content/homepage    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "homepage", "type": "landing", "locale": "nl", "slug": "homepage", "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_ … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/homepage?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b6dc-732f-8a1f-f51bcb9068cf", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/voor-webshops    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust":  … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/voor-webshops?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b717-7385-9cd5-9c8509ea6394", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/pages/voor-webshops    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust":  … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/pages/voor-webshops?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b750-7074-b1b8-28527c096883", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/over-ons    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee v … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/over-ons?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b78a-7256-8e68-d543c9f11d13", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/pages/over-ons    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee v … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/pages/over-ons?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b7c1-727a-a1b3-4a9e6f229fbb", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`POST /api/v1/consumer/activation/verify  {"token": "<activation-token>"}    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"status": "eligible", "claim_status": "open", "expires_at": "2026-11-29T19:19:21+00:00", "webshop": {"name": "Woon & Co"}, "offer": {"summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "ends_at": null, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false}, "requirements": {"verified_account": true, "email_matches_order": true}, "explanation": "ShopBonus beloning gekoppeld aan een eerdere aankoop bij deze webshop. Log in of maak een account met het e-mailadres van de bestelling om te activeren."}}
+```
+
+`POST /api/v1/consumer/activation/verify  {"token": "xxxxxxxxxxxxxxxxxxxxxxxx"}    (no session)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "claim_not_found", "message": "This claim link is not valid.", "request_id": "01a18e40-b804-715a-bc42-335f4d4d5b37"}}
+```
+
+`POST /api/v1/consumer/activation/verify    (no session)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b81e-7202-a8c9-0f8ad5e8bc05", "fields": {"token": ["The token field is required."]}}}
+```
+
+`GET /api/v1/me/wallet    (no session)` — unauthenticated
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18e40-b83b-7151-a8b4-f660ae937694"}}
+```
+
+`GET /api/v1/admin/network    (no session)` — unauthenticated
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18e40-b85f-701a-bd9b-c5335e567642"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers    (no session)` — unauthenticated
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18e40-b883-71e7-aa6a-cddc2e18d751"}}
+```
+
+`GET /api/v1/me/wallet    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"available_minor": 1250, "reserved_minor": 0, "pending_minor": 0, "pending_cashback_minor": 0, "total_earned_minor": 1250, "total_spent_minor": 0, "currency": "EUR", "unit": "EUR_REDEMPTION_CREDIT", "updated_at": "2026-10-30T19:19:29+00:00", "withdrawable": false, "notice": "ShopBonus credit and points are not money: they cannot be withdrawn or transferred.", "balances": {"eur_credit": {"unit": "eur_credit", "available": 1250, "available_minor": 1250, "reserved": 0, "total_earned": 1250, "total_earned_minor": 1250, "total_spent": 0, "total_spent_minor": 0, "total_expired": 0, "next_expiry": null, "reserved_minor": 0, "pending": 0, "pending_cashback_minor": 0}, "points": {"unit": "points", "available": 0, "available_minor": 0, "reserved": 0, "total_earned": 0, "total_earned_minor": 0, "total_spent": 0, "total_spent_minor": 0, "total_expired": 0, "next_expiry": null, "reserved_minor": 0, "pending": 0, "pending_cashback_minor": 0}}}}
+```
+
+`GET /api/v1/me/vouchers    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"status": "issued", "source_type": "merchant_reward", "claimed_at": null, "expires_at": "2027-01-28T19:19:21+00:00"}], "meta": {"issued": 1, "redeemed": 0, "expired": 0, "cancelled": 0, "source_id": "owned_vouchers", "checked_at": "2026-10-30T19:19:29+00:00"}}
+```
+
+`GET /api/v1/me/voucher-quotes/01m67415jpb2q31jrpjpexyzbg    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"price_minor": 0, "wallet_usable_minor": 0, "mollie_due_minor": 0, "stock_available": true, "currency": "EUR", "purchasable": false, "source_id": "quote:01m67415jpb2q31jrpjpexyzbg:v1", "checked_at": "2026-10-30T19:19:29+00:00"}}
+```
+
+`GET /api/v1/me/voucher-quotes/01m000000000000000000000000    (consumer@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bb0c-705a-bbda-8efb181175fd"}}
+```
+
+`PATCH /api/v1/consumer/preferences  {"notifications": {"vouchers_discounts": true, "reminders": true, "offers_inspiration": false}}    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"notifications": {"vouchers_discounts": true, "reminders": true, "offers_inspiration": false}, "categories": [], "mandatory_mail": "Account, security and transaction emails are always sent and do not depend on these settings."}}
+```
+
+`PATCH /api/v1/consumer/preferences  {"notifications": {"reminders": "sometimes"}}    (consumer@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-bb4c-7159-abf8-b79565514f87", "fields": {"notifications.reminders": ["The notifications.reminders field must be true or false."]}}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "<activation-token>"}    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"status": "activated", "voucher_id": "01m67416tdt5agf7s0he0d57x6", "voucher_status": "issued", "code": "<voucher code>", "issued_at": "2026-10-30T19:19:29+00:00", "expires_at": "2027-01-28T19:19:29+00:00", "webshop": {"name": "Woon & Co"}, "offer": {"summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "ends_at": null, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false}, "dashboard_path": "/mijn-voordelen"}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "<activation-token>"}    (consumer@shopbonus.local)` — repeat_same_user
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"status": "activated", "voucher_id": "01m67416tdt5agf7s0he0d57x6", "voucher_status": "issued", "code": "<voucher code>", "issued_at": "2026-10-30T19:19:29+00:00", "expires_at": "2027-01-28T19:19:29+00:00", "webshop": {"name": "Woon & Co"}, "offer": {"summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "ends_at": null, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false}, "dashboard_path": "/mijn-voordelen"}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "<activation-token>"}    (consumer@shopbonus.local)` — email_mismatch
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{"error": {"status": 403, "code": "claim_email_mismatch", "message": "Sign in with the email address used for the order to claim this voucher.", "request_id": "01a18e40-bbb7-73f6-bd99-88fbf66c846d"}}
+```
+
+`GET /api/v1/me/orders/SB-10421/reward    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"order_reference": "SB-10421", "payment_status": "paid", "reward_eligible": false, "reward_minor": 500, "reward_status": "issued", "currency": "EUR", "source_type": "answer24_claim", "claimed_at": "2026-10-30T19:19:29+00:00", "release_date": null, "source_id": "order_reward:01m67416t3fk0km6fsa169mf9e:01m67416tdt5agf7s0he0d57x6", "checked_at": "2026-10-30T19:19:29+00:00"}}
+```
+
+`GET /api/v1/me/orders/SB-00000/reward    (consumer@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bc0b-722c-ab50-3b8c8616386f"}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "yyyyyyyyyyyyyyyyyyyyyyyy"}    (consumer@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "claim_not_found", "message": "This claim link is not valid.", "request_id": "01a18e40-bc29-7294-8409-3a110d298634"}}
+```
+
+`GET /api/v1/admin/network    (consumer@shopbonus.local)` — forbidden
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{"error": {"status": 403, "code": "platform_role_required", "message": "This action requires a platform administrator.", "request_id": "01a18e40-bc43-731a-829e-399684ed8269"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers    (consumer@shopbonus.local)` — not_member
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-bc64-717a-8551-9d6513d7de84"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/cost    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"consumer_reward_minor": 500, "shopbonus_fee_rate": 0.3, "shopbonus_fee_minor": 150, "merchant_total_economic_cost_minor": 650, "cost_available": true, "basis": "fixed_value", "currency": "EUR", "source_id": "offer:01m67415jpb2q31jrpjpexyzbg:v1", "checked_at": "2026-10-30T19:19:30+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m000000000000000000000000/cost    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bea3-704d-9099-5c1e9ce775e1"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/campaigns/01m6741fpv3xhnppskpdqjts02/performance    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"impressions": 0, "clicks": 0, "tracked_order_starts": null, "attributed_paid_orders": 0, "from": "2026-10-01", "to": "2026-10-30", "source_id": "campaign:01m6741fpv3xhnppskpdqjts02", "checked_at": "2026-10-30T19:19:30+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/campaigns/01m000000000000000000000000/performance    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bf15-7190-8492-aeeeff15fffb"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/integrations/health    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"connection_id": "01m67416sv8egpb2555dv3thsf", "platform": "woocommerce", "capabilities": {"order_ingestion_available": true, "verification": "unverified", "method": "webhook"}, "last_sync_at": null, "last_error_codes": [], "source_id": "integration:01m67416sv8egpb2555dv3thsf", "checked_at": "2026-10-30T19:19:30+00:00"}]}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/wallet    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"available_minor": 998050, "reserved_minor": 1950, "currency": "EUR", "unit": "EUR_REDEMPTION_CREDIT", "source_id": "merchant_wallet:01m67415hga62b9vcvd5rxhbpe", "checked_at": "2026-10-30T19:19:30+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/codes/import-template    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Cache-Control: no-store, private
+Content-Disposition: attachment; filename=code-import-template.csv
+X-Content-Type-Options: nosniff
+
+code
+SHOP-CODE-0001
+
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416vc9thgcq72cw9masbs", "status": "issued", "origin": "merchant_reward", "code": "****B467", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": "2026-10-30T19:19:21+00:00", "expires_at": "2027-01-28T19:19:21+00:00", "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00"}, {"id": "01m67416v1y55pyy1rncntpevn", "status": "reserved", "origin": "answer24_claim", "code": "****C97E", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": null, "expires_at": null, "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00"}, {"id": "01m67416tdt5agf7s0he0d57x6", "status": "issued", "origin": "answer24_claim", "code": "****21B6", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": "2026-10-30T19:19:29+00:00", "expires_at": "2027-01-28T19:19:29+00:00", "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00"}], "meta": {"current_page": 1, "last_page": 1, "per_page": 25, "total": 3}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/export    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Cache-Control: no-store, private
+Content-Disposition: attachment; filename=vouchers-01m67415hga62b9vcvd5rxhbpe.csv
+X-Content-Type-Options: nosniff
+
+voucher_id,status,origin,code,offer_id,issued_at,expires_at,redeemed_at
+01m67416tdt5agf7s0he0d57x6,issued,answer24_claim,****21B6,01m67415jpb2q31jrpjpexyzbg,2026-10-30T19:19:29+00:00,2027-01-28T19:19:29+00:00,
+01m67416v1y55pyy1rncntpevn,reserved,answer24_claim,****C97E,01m67415jpb2q31jrpjpexyzbg,,,
+01m67416vc9thgcq72cw9masbs,issued,merchant_reward,****B467,01m67415jpb2q31jrpjpexyzbg,2026-10-30T19:
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m67416vc9thgcq72cw9masbs    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416vc9thgcq72cw9masbs", "status": "issued", "origin": "merchant_reward", "code": "****B467", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": "2026-10-30T19:19:21+00:00", "expires_at": "2027-01-28T19:19:21+00:00", "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00", "terms": {"version": 1, "locked": true, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "redemption_source": null}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m000000000000000000000000    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "voucher_not_found", "message": "Voucher not found.", "request_id": "01a18e40-c00d-70f7-b379-dd0e12b9ec71"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m67416vc9thgcq72cw9masbs/dispute  {"reason": "code_invalid", "description": "The webshop says this code does not exist."}    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741g1s2jxj3ppk6nk6n0c5", "status": "open", "reason": "code_invalid", "description": "The webshop says this code does not exist.", "screenshots": 0, "webshop": "Woon & Co", "voucher_id": "01m67416vc9thgcq72cw9masbs", "resolution": null, "created_at": "2026-10-30T19:19:30+00:00", "timeline": [{"by": "merchant", "type": "opened", "note": "merchant_initiated", "at": "2026-10-30T19:19:30+00:00"}], "code_last4": "B467"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m67416vc9thgcq72cw9masbs/dispute  {"reason": "other", "description": "short"}    (merchant@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c051-731b-bdf8-d96bf8871544", "fields": {"description": ["The description field must be at least 10 characters."]}}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/codes/01m67415knfwkvxpg9s5bphr53/platform-validation  {"mode": "manual_confirm", "note": "Checked in WooCommerce admin."}    (merchant@shopbonus.local)` — manual_confirm
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67415knfwkvxpg9s5bphr53", "code": "****B3DE", "status": "available", "reusable": false, "uses_count": 0, "platform_validation": "verified", "batch_id": null, "assigned": null, "reserved_at": null, "issued_at": null, "redeemed_at": null, "invalidated_at": null, "invalid_reason": null, "created_at": "2026-10-30T19:19:19+00:00"}, "verification": {"platform_validation": "verified", "detail": {"reason": "merchant_confirmed", "note": "Checked in WooCommerce admin.", "confirmed_by": "01m67414wsgfvfp1qd3xzn2s9m"}}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/codes/01m67415knfwkvxpg9s5bphr53/platform-validation  {"mode": "guess"}    (merchant@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c09c-73dd-8fc0-0c4608ec39e3", "fields": {"mode": ["The selected mode is invalid."]}}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/analytics/attribution/orders    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416t3fk0km6fsa169mf9e", "external_order_id": "ord-sb-10421", "reference": "SB-10421", "currency": "EUR", "amount_minor": 7500, "refunded_minor": 0, "net_minor": 7500, "payment_status": "paid", "attribution_type": "unattributed", "has_click_id": false, "is_repeat_order": false, "paid_at": "2026-10-30T19:19:21+00:00"}, {"id": "01m67416txjan18ppwka26pjkq", "external_order_id": "ord-sb-10422", "reference": "SB-10422", "currency": "EUR", "amount_minor": 7500, "refunded_minor": 0, "net_minor": 7500, "payment_status": "paid", "attribution_type": "unattributed", "has_click_id": false, "is_repeat_order": false, "paid_at": "2026-10-30T19:19:21+00:00"}], "meta": {"current_page": 1, "last_page": 1, "per_page": 25, "total": 2}, "timezone": "Europe/Amsterdam", "generated_at": "2026-10-30T19:19:30+00:00"}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/duplicate    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741g7naqbe0wgwcadqeztc", "acquisition": "merchant_reward", "status": "draft", "lifecycle_status": "draft", "inventory": {"total": 0, "available": 0, "reserved": 0, "issued": 0, "redeemed": 0}, "allowed_actions": ["edit", "import_codes", "publish", "activate", "end", "archive", "duplicate"], "terms": {"version": 1, "locked": false, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1 (copy)", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "missing_for_activation": [], "cost_preview": {"applies": true, "available": true, "basis": "fixed_value", "estimated_maximum": false, "currency": "EUR", "fee_rate_bps": 3000, "per_voucher": {"reward_minor": 500, "fee_minor": 150, "merchant_commitment_minor": 650}, "allocation": null, "note": "Estimated maximum commitment preview only. Nothing is charged when configuring an offer; funding and reservations use the merchant wallet."}, "preview": {"published": false, "offer_id": "01m6741g7naqbe0wgwcadqeztc", "status": "draft", "how_to_obtain": "earn_with_purchase", "title": "Woon & Co voordeel 1 (copy)", "summary": "€5.00 from €25.00", "badge_label": "€5 voucher", "offer_line": "Vanaf €25 · €5 vouch … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/publish    (merchant@shopbonus.local)` — already_active
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "invalid_status_transition", "message": "An offer cannot go from active to published.", "request_id": "01a18e40-c117-7019-9b04-7da0a67d32d0"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m6741g7naqbe0wgwcadqeztc/publish    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741g7naqbe0wgwcadqeztc", "acquisition": "merchant_reward", "status": "active", "lifecycle_status": "sold_out", "inventory": {"total": 0, "available": 0, "reserved": 0, "issued": 0, "redeemed": 0}, "allowed_actions": ["edit", "import_codes", "pause", "end", "archive", "duplicate"], "terms": {"version": 1, "locked": true, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1 (copy)", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "missing_for_activation": [], "cost_preview": {"applies": true, "available": true, "basis": "fixed_value", "estimated_maximum": false, "currency": "EUR", "fee_rate_bps": 3000, "per_voucher": {"reward_minor": 500, "fee_minor": 150, "merchant_commitment_minor": 650}, "allocation": null, "note": "Estimated maximum commitment preview only. Nothing is charged when configuring an offer; funding and reservations use the merchant wallet."}, "preview": {"published": false, "offer_id": "01m6741g7naqbe0wgwcadqeztc", "status": "active", "how_to_obtain": "earn_with_purchase", "title": "Woon & Co voordeel 1 (copy)", "summary": "€5.00 from €25.00", "badge_label": "€5 voucher", "offer_line": "Vanaf €25 · €5 voucher", "jour … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m6741g7naqbe0wgwcadqeztc/archive    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741g7naqbe0wgwcadqeztc", "acquisition": "merchant_reward", "status": "archived", "lifecycle_status": "archived", "inventory": {"total": 0, "available": 0, "reserved": 0, "issued": 0, "redeemed": 0}, "allowed_actions": ["duplicate"], "terms": {"version": 1, "locked": true, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1 (copy)", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "missing_for_activation": [], "cost_preview": {"applies": true, "available": true, "basis": "fixed_value", "estimated_maximum": false, "currency": "EUR", "fee_rate_bps": 3000, "per_voucher": {"reward_minor": 500, "fee_minor": 150, "merchant_commitment_minor": 650}, "allocation": null, "note": "Estimated maximum commitment preview only. Nothing is charged when configuring an offer; funding and reservations use the merchant wallet."}, "preview": {"published": false, "offer_id": "01m6741g7naqbe0wgwcadqeztc", "status": "archived", "how_to_obtain": "earn_with_purchase", "title": "Woon & Co voordeel 1 (copy)", "summary": "€5.00 from €25.00", "badge_label": "€5 voucher", "offer_line": "Vanaf €25 · €5 voucher", "journey": {"headline": "Spend at least €25.00 and e … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m6741g7naqbe0wgwcadqeztc/resume    (merchant@shopbonus.local)` — archived
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "invalid_status_transition", "message": "An offer cannot go from archived to active.", "request_id": "01a18e40-c187-726c-9b88-17f386f24bfc"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/resume    (merchant@shopbonus.local)` — not_paused
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "invalid_status_transition", "message": "An offer cannot go from active to active.", "request_id": "01a18e40-c1a5-737b-839e-a0834d571056"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m000000000000000000000000/archive    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-c1c3-7394-ad30-b428b184ad01"}}
+```
+
+`GET /api/v1/admin/merchant-enrichments    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416x61mggtrev9yctk2gq", "webshop_id": "01m674166qgs3wmw5dajh61s6j", "webshop_name": "Beauty Studio", "status": "failed", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "ba5ace6a9a0a2c21ecad4645e0df77f4731d0cb223973e09a2323626dc12176c", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": null, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": "provider_unavailable", "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": null, "human_review_required": true, "reviews": []}, {"id": "01m67416x3xsn84hpbnd39v9y8", "webshop_id": "01m674164f8defp59fqaprm59j", "webshop_name": "Techwinkel", "status": "awaiting_review", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "25932ee4e975d1d07069c71335420b772bbd473a8e2d9ba834ecb9f6bed49107", "text … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416x0mytq4s7zscben4vz", "webshop_id": "01m674161sts3c137vse3rr0ab", "webshop_name": "Modehuis", "status": "awaiting_review", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "f524ca1a79cde97ba0a20dd516d71afd84e18d3a5eef7d582e861a190829074d", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": {"short_description": "Duurzame mode voor iedereen.", "description": "Modehuis verkoopt duurzame kleding en accessoires.", "categories": ["fashion"]}, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": null, "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": null, "human_review_required": true, "reviews": []}, "availability": {"configured": false, "provider": "openai", "auto_publish": false, "effective_daily_run_limit": 50}}
+```
+
+`GET /api/v1/admin/merchant-enrichments/01m000000000000000000000000    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-c40a-70c1-8986-5aeb77f049be"}}
+```
+
+`GET /api/v1/admin/network    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"generated_at": "2026-10-30T19:19:31+00:00", "from": "2026-09-30T22:00:00+00:00", "to": "2026-10-30T22:59:59+00:00", "shops": 9, "viewable_exposure": 0, "unique_verified_members": 7, "verified_gmv": {"paid_orders": 2, "net_minor": 15000}, "vouchers": {"earned": 2, "spent": 0}, "external_affiliate": {"confirmed_commission_minor": 0, "pending_commission_minor": 0, "reversed_commission_minor": 0, "net_commission_minor": 0, "note": "Network contracts differ from the direct 30% merchant fee; gross ≠ profit."}, "direct_fees": {"fee_rate_bps": 3000, "settled_fee_minor": 0, "settled_reward_minor": 0}, "wallet_liabilities_reserved_minor": 1950, "network_journeys": {"count": 0, "gmv_minor": 0, "top_referring": [], "top_receiving": []}, "unmatched_paid_orders": 2, "limitations": {"moneybird": "Invoice drafts only until Moneybird credentials are configured.", "cross_shop_settlement": "Journeys are recorded; Wallet deduction between shops requires an agreed settlement model.", "live_affiliates": "Daisycon/TradeTracker adapters are fixture-verified; live network accounts NOT VERIFIED."}, "period_name": "30d", "timezone": "Europe/Amsterdam"}}
+```
+
+`GET /api/v1/admin/search?q=woon&limit=3    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"query": "woon", "groups": [{"type": "webshops", "label": "Webshops", "results": [{"type": "webshop", "id": "01m67415zdbsyj89xt49rr98f3", "title": "Woon & Co", "subtitle": "approved", "href": "/admin/webshops/01m67415zdbsyj89xt49rr98f3"}, {"type": "webshop", "id": "01m67415hga62b9vcvd5rxhbpe", "title": "Woon & Co", "subtitle": "approved", "href": "/admin/webshops/01m67415hga62b9vcvd5rxhbpe"}]}]}}
+```
+
+`GET /api/v1/admin/search?q=w    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c46d-7199-90c5-0e6b8cadecf2", "fields": {"q": ["The q field must be at least 2 characters."]}}}
+```
+
+`GET /api/v1/admin/vouchers    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416vc9thgcq72cw9masbs", "status": "issued", "origin": "merchant_reward", "webshop": {"id": "01m67415hga62b9vcvd5rxhbpe", "name": "Woon & Co"}, "code_last4": "B467", "issued_at": "2026-10-30T19:19:21+00:00", "redeemed_at": null, "expires_at": "2027-01-28T19:19:21+00:00"}, {"id": "01m67416v1y55pyy1rncntpevn", "status": "reserved", "origin": "answer24_claim", "webshop": {"id": "01m67415hga62b9vcvd5rxhbpe", "name": "Woon & Co"}, "code_last4": "C97E", "issued_at": null, "redeemed_at": null, "expires_at": null}, {"id": "01m67416tdt5agf7s0he0d57x6", "status": "issued", "origin": "answer24_claim", "webshop": {"id": "01m67415hga62b9vcvd5rxhbpe", "name": "Woon & Co"}, "code_last4": "21B6", "issued_at": "2026-10-30T19:19:29+00:00", "redeemed_at": null, "expires_at": "2027-01-28T19:19:29+00:00"}], "meta": {"current_page": 1, "per_page": 25, "total": 3, "last_page": 1}}
+```
+
+`GET /api/v1/admin/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements    (superadmin@shopbonus.local)` — empty
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [], "current": null}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz/approve  {"note": "Copy and cover match the shop."}    (superadmin@shopbonus.local)` — password_required
+
+```http
+HTTP/1.1 423 Locked
+Content-Type: application/json
+
+{"error": {"status": 423, "code": "password_confirmation_required", "message": "Confirm your password to continue.", "request_id": "01a18e40-c4c7-7340-9ae5-2eaed7239ddd"}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz/approve  {"note": "Copy and cover match the shop."}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416x0mytq4s7zscben4vz", "webshop_id": "01m674161sts3c137vse3rr0ab", "webshop_name": "Modehuis", "status": "published", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "f524ca1a79cde97ba0a20dd516d71afd84e18d3a5eef7d582e861a190829074d", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": {"short_description": "Duurzame mode voor iedereen.", "description": "Modehuis verkoopt duurzame kleding en accessoires.", "categories": ["fashion"]}, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": null, "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": "2026-10-30T19:19:32+00:00", "human_review_required": true, "reviews": [{"id": "01m6741hf8nvg3h91f2031wamd", "reviewed_by": "01m67413jy40j2yetm1c4ajjq4", "decision": "approved", "note": "Copy and cover match the shop.", "created_at": "2026-10-30T19:19:32+00:00"}]}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x3xsn84hpbnd39v9y8/approve  {"note": "ok"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c600-727b-82bd-4e84468e1e78", "fields": {"note": ["The note field must be at least 5 characters."]}}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x3xsn84hpbnd39v9y8/reject  {"note": "Description does not match the shop."}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416x3xsn84hpbnd39v9y8", "webshop_id": "01m674164f8defp59fqaprm59j", "webshop_name": "Techwinkel", "status": "rejected", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "25932ee4e975d1d07069c71335420b772bbd473a8e2d9ba834ecb9f6bed49107", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": {"short_description": "Duurzame mode voor iedereen.", "description": "Modehuis verkoopt duurzame kleding en accessoires.", "categories": ["fashion"]}, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": null, "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": null, "human_review_required": true, "reviews": [{"id": "01m6741hhefby8sqeyw4snsd0d", "reviewed_by": "01m67413jy40j2yetm1c4ajjq4", "decision": "rejected", "note": "Description does not match the shop.", "created_at": "2026-10-30T19:19:32+00:00"}]}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz/reject  {"note": "Second thoughts on this copy."}    (superadmin@shopbonus.local)` — not_reviewable
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "enrichment_not_reviewable", "message": "Only completed enrichment proposals can be rejected.", "request_id": "01a18e40-c643-70d2-9947-f28c7a2dd84b"}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x61mggtrev9yctk2gq/retry    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "enrichment_not_configured", "message": "Merchant enrichment is not configured.", "request_id": "01a18e40-c667-722f-8097-9c9afe409c90"}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m000000000000000000000000/retry    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-c681-72a0-8e22-a7e47daac215"}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements  {"commission_type": "percentage", "commission_rate_bps": 800, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "cashback_approved": true}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "active": true, "starts_at": null, "ends_at": null}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements  {"commission_type": "percentage", "consumer_share_bps": 7000, "shopbonus_share_bps": 3000}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c6c0-7053-acd0-9b30c6830f89", "fields": {"commission_rate_bps": ["The commission rate bps field is required when commission type is percentage."]}}}
+```
+
+`GET /api/v1/admin/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "active": true, "starts_at": null, "ends_at": null}], "current": 1}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5001", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — step_up_required
+
+```http
+HTTP/1.1 423 Locked
+Content-Type: application/json
+
+{"error": {"status": 423, "code": "step_up_code_required", "message": "Confirm this action with the code sent to your email.", "request_id": "01a18e40-c71a-735b-9d77-a07b7e6dc497"}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5001", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741j5ryr2gv121j7j1kk6t", "status": "credited", "commission_minor": 400, "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "exception_reason": null, "agreement": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "merchant": "Woon & Co", "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "status": "credited"}}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5001", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — replay
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741j5ryr2gv121j7j1kk6t", "status": "credited", "commission_minor": 400, "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "exception_reason": null, "agreement": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "merchant": "Woon & Co", "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "status": "credited"}}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5002", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — missing_key
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c8f8-7275-9d8a-09bc4c01ea3b", "fields": {"key": ["The key field is required."]}}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements/1/deactivate    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "active": false, "starts_at": null, "ends_at": null}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements/99/deactivate    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Agreement not found.", "request_id": "01a18e40-c93b-73f7-aaa4-a999e3a1ae2b"}}
+```
+
+`GET /api/v1/admin/content/homepage    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416ctdzhk5bttd2ehvehc", "key": "homepage", "type": "landing", "locale": "nl", "slug": "homepage", "draft_revision": 1, "draft": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops  … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/homepage  {"revision": 1, "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_slugs": [], "limit": 4}, "how_it_works": {"heading": "Zo werkt ShopBonus", "subtitle": "In 3 simpele stappen naar meer voordeel.", "steps": [{"title": "Ontdek voordeel", "description": "Zoek je favoriete webshop en bekijk actuele kortingscodes en cashbackaanbiedingen."}, {"title": "Shop via ShopBonus", "description": "Klik door naar de webshop en bestel zoals je gewend bent. Gebruik eventueel een geldige kortingscode."}, {"title": "Spaar voor vouchers", "description": "Ontvang bij deelnemende, geldige aankopen cashback in je ShopBonus-wallet. Wissel je saldo in voor een voucher."}]}, "discount_codes": {"heading": "Actuele kortingscodes", "cta_label": "Bekijk alle kortingscodes →", "cta_href": "/kortingscodes", "limit": 2}, "wallet_preview": {"heading": "Jouw ShopBonus-wallet", "guest_text": "Maak een gratis account en spaar cashback voor vouchers bij favoriete webshops.", "guest_cta": {"label": "Account aanmaken", "href": "/account"}, "voucher_cta": {"label": "Voucher kiezen", "href": "/mijn-voordelen"}, "transactions_cta": {"label": "Bekijk transacties", "href": "/mijn-voordelen"}}, "footer": {"blurb": "ShopBonus helpt je sparen voor vouchers bij deelnemende webshops."}, "section_order": ["hero", "search", "popular_webshops", "how_it_works", "discount_codes", "wallet_preview"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "homepage", "draft_revision": 2}}
+```
+
+`PUT /api/v1/admin/content/homepage  {"revision": 1, "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_slugs": [], "limit": 4}, "how_it_works": {"heading": "Zo werkt ShopBonus", "subtitle": "In 3 simpele stappen naar meer voordeel.", "steps": [{"title": "Ontdek voordeel", "description": "Zoek je favoriete webshop en bekijk actuele kortingscodes en cashbackaanbiedingen."}, {"title": "Shop via ShopBonus", "description": "Klik door naar de webshop en bestel zoals je gewend bent. Gebruik eventueel een geldige kortingscode."}, {"title": "Spaar voor vouchers", "description": "Ontvang bij deelnemende, geldige aankopen cashback in je ShopBonus-wallet. Wissel je saldo in voor een voucher."}]}, "discount_codes": {"heading": "Actuele kortingscodes", "cta_label": "Bekijk alle kortingscodes →", "cta_href": "/kortingscodes", "limit": 2}, "wallet_preview": {"heading": "Jouw ShopBonus-wallet", "guest_text": "Maak een gratis account en spaar cashback voor vouchers bij favoriete webshops.", "guest_cta": {"label": "Account aanmaken", "href": "/account"}, "voucher_cta": {"label": "Voucher kiezen", "href": "/mijn-voordelen"}, "transactions_cta": {"label": "Bekijk transacties", "href": "/mijn-voordelen"}}, "footer": {"blurb": "ShopBonus helpt je sparen voor vouchers bij deelnemende webshops."}, "section_order": ["hero", "search", "popular_webshops", "how_it_works", "discount_codes", "wallet_preview"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-c99b-726e-b84f-0eb4d7dfce03", "details": {"current_revision": 2}}}
+```
+
+`PUT /api/v1/admin/content/homepage  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c9bd-73bc-96a4-b2f51bf0353d", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/homepage/sections/hero  {"revision": 2, "section": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "homepage", "draft_revision": 3, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/homepage/sections/not-a-section  {"revision": 3, "section": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ca25-7337-a86e-ae2c23c0bffa", "fields": {"section": ["Unknown homepage section."]}}}
+```
+
+`POST /api/v1/admin/content/homepage/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "homepage", "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_slugs": [], "limit": 4}, "how_it_works … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/homepage/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741jm7reseh86ae1nprmb7", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}}
+```
+
+`GET /api/v1/admin/content/homepage/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416dqb9v86vhq9ywnxfa9", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741jm7reseh86ae1nprmb7", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}, {"id": "01m67416dx6vzf33wq41mq3n0x", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/homepage/restore  {"revision_id": "01m67416dx6vzf33wq41mq3n0x"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741jp64ff3a94dsamdy4gf", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}}
+```
+
+`POST /api/v1/admin/content/homepage/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-cadd-7054-a60a-e80879404fc0"}}
+```
+
+`POST /api/v1/admin/content/homepage/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:33+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 5, "schedule": {"publish_at": "2026-11-01T19:19:33+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/homepage/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:33+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cb3d-7265-9dde-b7161a95a729", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/homepage/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "homepage_ai_not_configured", "message": "Homepage AI suggestions are not configured.", "request_id": "01a18e40-cb64-710a-999a-62614916313b"}}
+```
+
+`POST /api/v1/admin/content/homepage/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cb7f-73f1-b42d-606a466edf32", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/homepage/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741jy5es704t8tmj3p97r7", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741jy5es704t8tmj3p97r7"}}
+```
+
+`POST /api/v1/admin/content/homepage/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cbde-7143-bc16-4346c8c9abbd", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/voor-webshops    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416fyt4ehk8as161xnagb", "key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "draft_revision": 1, "draft": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_as … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/voor-webshops  {"revision": 1, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 2}}
+```
+
+`PUT /api/v1/admin/content/voor-webshops  {"revision": 1, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-cc54-734b-a8d9-92bd219cd3f8", "details": {"current_revision": 2}}}
+```
+
+`PUT /api/v1/admin/content/voor-webshops  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cc7d-7076-8e1c-184fff09bd3b", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/voor-webshops/sections/hero  {"revision": 2, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 3, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/voor-webshops/sections/not-a-section  {"revision": 3, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ccf0-73c1-8914-5188cab71005", "fields": {"section": ["Unknown merchant landing section."]}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/voor-webshops/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741karbw645490f5hesnh9", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}}
+```
+
+`GET /api/v1/admin/content/voor-webshops/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416gxebkht4b70b8q4j2c", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741karbw645490f5hesnh9", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}, {"id": "01m67416h5wptkhf8xtszkpv47", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/voor-webshops/restore  {"revision_id": "01m67416h5wptkhf8xtszkpv47"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741kcp9ahhdrm6jnc4pnnd", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-cdac-72a8-8c28-73fd125f6862"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:34+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 5, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ce0f-72b4-943f-e7ddb8b669c4", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "merchant_landing_ai_not_configured", "message": "Merchant landing AI suggestions are not configured.", "request_id": "01a18e40-ce2c-72ee-9265-f060863ad4b6"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ce48-714b-a3c3-bf6fbf11633b", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741kkjthx153hnhe1hxzgb", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741kkjthx153hnhe1hxzgb"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ce8c-70bc-845d-9d7fc130ccea", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/pages/voor-webshops    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416fyt4ehk8as161xnagb", "key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "draft_revision": 5, "draft": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_as … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/pages/voor-webshops  {"revision": 5, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 6}}
+```
+
+`PUT /api/v1/admin/content/pages/voor-webshops  {"revision": 5, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-cef7-73c8-9500-b056ae40e5b3", "details": {"current_revision": 6}}}
+```
+
+`PUT /api/v1/admin/content/pages/voor-webshops  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cf1c-721c-9aa5-aa51dfa885de", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/pages/voor-webshops/sections/hero  {"revision": 6, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 7, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/pages/voor-webshops/sections/not-a-section  {"revision": 7, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cf80-726a-97ff-4c06d88511be", "fields": {"section": ["Unknown merchant landing section."]}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741kz67m9daspsqmfyzk5y", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}}
+```
+
+`GET /api/v1/admin/content/pages/voor-webshops/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416gxebkht4b70b8q4j2c", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741kz67m9daspsqmfyzk5y", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}, {"id": "01m6741kcp9ahhdrm6jnc4pnnd", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}, {"id": "01m6741karbw645490f5hesnh9", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}, {"id": "01m67416h5wptkhf8xtszkpv47", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/restore  {"revision_id": "01m67416h5wptkhf8xtszkpv47"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741m19wfy5600mmmhv7qhd", "locale": "nl", "number": 5, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-d043-70a5-a0e9-91ded829068f"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:34+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 9, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d0a9-73e8-bdfe-a5759dcc0671", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "merchant_landing_ai_not_configured", "message": "Merchant landing AI suggestions are not configured.", "request_id": "01a18e40-d0ca-7212-befa-b1768b23ffea"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d0e2-7154-9049-7685316f20c4", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741m8e70aasw6c0nb4sy9t", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741m8e70aasw6c0nb4sy9t"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d127-73a8-a2f3-123f585348a3", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/over-ons    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416evhwg6hbv25kx9mps4", "key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "draft_revision": 1, "draft": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/over-ons  {"revision": 1, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 2}}
+```
+
+`PUT /api/v1/admin/content/over-ons  {"revision": 1, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-d191-7184-a1f8-fe9870205015", "details": {"current_revision": 2}}}
+```
+
+`PUT /api/v1/admin/content/over-ons  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d1b9-7398-a9c0-ce818e770e92", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/over-ons/sections/hero  {"revision": 2, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 3, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/over-ons/sections/not-a-section  {"revision": 3, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d222-7283-ae51-9ed9fa0b5d56", "fields": {"section": ["Unknown About Us section."]}}}
+```
+
+`POST /api/v1/admin/content/over-ons/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan  … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/over-ons/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741mm70g56p4jbxa1memfk", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}}
+```
+
+`GET /api/v1/admin/content/over-ons/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416fk8kq4cxbf82tz0qpw", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741mm70g56p4jbxa1memfk", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m67416frxz192eqzb23rpcjk", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/over-ons/restore  {"revision_id": "01m67416frxz192eqzb23rpcjk"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741mp552ekn613m7nefxtb", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}}
+```
+
+`POST /api/v1/admin/content/over-ons/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-d2df-7243-942b-b4c38d5896f7"}}
+```
+
+`POST /api/v1/admin/content/over-ons/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:35+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 5, "schedule": {"publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/over-ons/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d346-7265-bf54-25eeeffdfa57", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/over-ons/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "about_us_ai_not_configured", "message": "About Us AI suggestions are not configured.", "request_id": "01a18e40-d369-72fb-828c-fab865caa4a1"}}
+```
+
+`POST /api/v1/admin/content/over-ons/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d382-7323-8d00-06cf04e66c85", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/over-ons/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741mxcm614x959x2g35y08", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741mxcm614x959x2g35y08"}}
+```
+
+`POST /api/v1/admin/content/over-ons/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d3c0-720d-b39d-8af1e441c569", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/pages/over-ons    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416evhwg6hbv25kx9mps4", "key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "draft_revision": 5, "draft": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/pages/over-ons  {"revision": 5, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": null}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 6}}
+```
+
+`PUT /api/v1/admin/content/pages/over-ons  {"revision": 5, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": null}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-d42c-714f-95da-591fda8ae830", "details": {"current_revision": 6}}}
+```
+
+`PUT /api/v1/admin/content/pages/over-ons  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d44f-70b5-8a75-1f3bd1995884", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/pages/over-ons/sections/hero  {"revision": 6, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 7, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/pages/over-ons/sections/not-a-section  {"revision": 7, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d4b2-714b-b8ac-d6240b237921", "fields": {"section": ["Unknown About Us section."]}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan  … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/pages/over-ons/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741n8y5r7z2wqp7d4x9ass", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}}
+```
+
+`GET /api/v1/admin/content/pages/over-ons/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416fk8kq4cxbf82tz0qpw", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741n8y5r7z2wqp7d4x9ass", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m6741mp552ekn613m7nefxtb", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m6741mm70g56p4jbxa1memfk", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m67416frxz192eqzb23rpcjk", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/restore  {"revision_id": "01m67416frxz192eqzb23rpcjk"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741nb30te9cbnx9eh4fg5e", "locale": "nl", "number": 5, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:36+00:00"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-d579-7161-a8f7-7be731f33a73"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:36+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 9, "schedule": {"publish_at": "2026-11-01T19:19:36+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:36+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d5d7-729c-9001-e50126b710f4", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "about_us_ai_not_configured", "message": "About Us AI suggestions are not configured.", "request_id": "01a18e40-d5f4-7325-b8c4-b89db5b3bcee"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d611-7068-a475-499f664635c6", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741nhxqh4cb5he2k587hjq", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741nhxqh4cb5he2k587hjq"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d653-73a1-96e3-f0a0a2c9caae", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```

@@ -226,6 +226,11 @@ class PublicCatalog
         return $this->listedProfiles()->where('slug', $slug)->whereNotNull('logo_path')->first();
     }
 
+    public function cover(string $slug): ?WebshopPublicProfile
+    {
+        return $this->listedProfiles()->where('slug', $slug)->whereNotNull('cover_path')->first();
+    }
+
     // ------------------------------------------------------------------ internals
 
     /** @return Builder<WebshopPublicProfile> */
