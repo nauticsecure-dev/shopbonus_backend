@@ -5093,7 +5093,7 @@ paths:
       operationId: checkoutStatus
       summary: "Own checkout status"
       description: |
-        `pending_payment`, `completed` (`voucher_id` set), `failed`, `expired` or `paid_unfulfilled` (paid after the reservation lapsed; Shopbonus support refunds it, B11b). The page the consumer returns to from Mollie polls this. Another consumer's checkout is 404.
+        `pending_payment`, `completed` (`voucher_id` set), `failed`, `expired`, `paid_unfulfilled` (paid after the reservation lapsed; Shopbonus support refunds it, B11b), `refund_pending` or `refunded`. The page the consumer returns to from Mollie polls this. Another consumer's checkout is 404.
       x-access: verified
       x-codeSamples:
         - lang: curl
@@ -5626,7 +5626,7 @@ paths:
         Use `state=paid_unfulfilled` for paid purchases that need a refund.
       x-access: admin
       parameters:
-        - { name: state, in: query, required: false, schema: { type: string, enum: [pending_payment, completed, failed, expired, paid_unfulfilled, refunded] } }
+        - { name: state, in: query, required: false, schema: { type: string, enum: [pending_payment, completed, failed, expired, paid_unfulfilled, refund_pending, refunded] } }
       x-codeSamples:
         - lang: curl
           source: |
@@ -5653,7 +5653,7 @@ paths:
       operationId: adminRefundCheckout
       summary: "Refund a paid but unfulfilled checkout"
       description: |
-        Step-up required. Refunds the whole Mollie payment once (Idempotency-Key `refund:checkout:<id>`), state → `refunded`. Other states → 409. Audited.
+        Step-up required. Refunds the remaining Mollie payment (Idempotency-Key `refund:checkout:<id>`, plus `:after:<failed refund id>` on a retry). Mollie settles refunds asynchronously: state → `refund_pending` until `shopbonus:expire-checkouts` (every 5 minutes) sees the refund `refunded` (→ `refunded`) or `failed`/`canceled` (→ back to `paid_unfulfilled`, refundable again, alerted). `payment.refund_status` is not exposed yet. Other states → 409. Audited.
       x-access: admin
       requestBody:
         required: true
@@ -5673,10 +5673,10 @@ paths:
               -H 'Content-Type: application/json' -d '{"note":"..."}'
       responses:
         '200':
-          description: "Refunded."
+          description: "Refund accepted by Mollie as pending. Example from the B11b capture with `state` changed to the B31 value (`refund_pending`); the rest of the body is unchanged."
           content:
             application/json:
-              example: {"data":{"id":"01m5pdr69v44a0e6p83qxvtxrx","state":"refunded","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"reservation_lost","expires_at":"2026-10-24T07:42:06+00:00","completed_at":null}}
+              example: {"data":{"id":"01m5pdr69v44a0e6p83qxvtxrx","state":"refund_pending","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":0,"payment_part_minor":2000,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":null,"failure_reason":"reservation_lost","expires_at":"2026-10-24T07:42:06+00:00","completed_at":null}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin."

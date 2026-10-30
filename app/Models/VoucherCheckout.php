@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * A consumer's purchase of a wallet_purchase offer. State:
  * pending_payment → completed | failed | expired; paid but not fulfillable
- * → paid_unfulfilled (→ refunded).
+ * → paid_unfulfilled (→ refund_pending → refunded, or back to paid_unfulfilled
+ * when Mollie fails the refund).
  *
  * @property int $id
  * @property string $public_id

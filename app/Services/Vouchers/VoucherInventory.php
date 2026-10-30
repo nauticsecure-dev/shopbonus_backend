@@ -119,6 +119,10 @@ class VoucherInventory
         if ($order->webshop_id !== $voucher->webshop_id || $order->payment_status !== PaymentStatus::Paid) {
             throw ApiException::conflict('Redemption needs a verified paid order of the same webshop.', 'redemption_order_invalid');
         }
+        $orderedAt = $order->placed_at ?? $order->paid_at ?? now();
+        if ($voucher->expires_at !== null && $voucher->expires_at->lessThan($orderedAt)) {
+            throw ApiException::conflict('This voucher had expired when the order was placed.', 'voucher_expired');
+        }
 
         return $this->markRedeemed($voucher, ['redeemed_order_id' => $order->id, 'redemption_source' => 'order', 'redemption_reference' => $order->reference],
             null, ['source' => 'order', 'order_id' => $order->public_id]);

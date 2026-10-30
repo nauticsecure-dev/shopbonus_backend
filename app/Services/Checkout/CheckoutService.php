@@ -97,7 +97,12 @@ class CheckoutService
     public function start(User $user, Offer $offer, string $key, bool $useWallet = true): VoucherCheckout
     {
         if (($existing = $this->byKey($user, $key)) !== null) {
-            return $existing;
+            // A retry after an unanswered payment request asks Mollie again with the same key.
+            if ($existing->state === 'pending_payment' && $existing->payment_part_minor > 0 && $existing->payment()->doesntExist()) {
+                $this->createPayment($existing, $offer);
+            }
+
+            return $existing->refresh();
         }
 
         $quote = $this->quote($user, $offer, $useWallet);
@@ -176,6 +181,46 @@ class CheckoutService
         return $changed;
     }
 
+    /**
+     * Scheduled: asks Mollie for refunds still in flight. A refunded one settles
+     * a refund_pending checkout; a failed or canceled one returns the amount to
+     * the refundable balance and the checkout to paid_unfulfilled. Returns the count changed.
+     */
+    public function syncRefunds(): int
+    {
+        $changed = 0;
+        VoucherCheckoutPayment::whereNotNull('refund_ref')->whereIn('refund_status', ['queued', 'pending', 'processing'])->orderBy('id')
+            ->each(function (VoucherCheckoutPayment $p) use (&$changed) {
+                try {
+                    $remote = $this->mollie->getRefund($p->provider_ref, (string) $p->refund_ref);
+                } catch (ApiException $e) {
+                    report($e); // provider unreachable: try again next run
+
+                    return;
+                }
+                if ($remote['status'] === $p->refund_status) {
+                    return;
+                }
+                DB::transaction(function () use ($p, $remote) {
+                    $payment = VoucherCheckoutPayment::whereKey($p->id)->lockForUpdate()->firstOrFail();
+                    $c = VoucherCheckout::whereKey($payment->checkout_id)->lockForUpdate()->firstOrFail();
+                    $failed = in_array($remote['status'], ['failed', 'canceled'], true);
+                    $payment->forceFill(['refund_status' => $remote['status']] + ($failed ? ['refunded_minor' => max(0, $payment->refunded_minor - (int) $payment->refund_amount_minor)] : []))->save();
+                    if ($c->state === 'refund_pending' && ($remote['status'] === 'refunded' || $failed)) {
+                        $c->forceFill(['state' => $failed ? 'paid_unfulfilled' : 'refunded'])->save();
+                    }
+                    $this->audit->record('checkout.refund_'.($failed ? 'failed' : 'status_changed'), category: AuditCategory::Financial, resource: $c, webshopId: $c->webshop_id,
+                        metadata: ['refund_status' => $remote['status'], 'amount' => $payment->refund_amount_minor]);
+                    if ($failed) {
+                        report(new \RuntimeException("Refund {$payment->refund_ref} for checkout {$c->public_id} {$remote['status']}; refund again."));
+                    }
+                });
+                $changed++;
+            });
+
+        return $changed;
+    }
+
     // ------------------------------------------------------------------ internals
 
     /**
@@ -209,17 +254,26 @@ class CheckoutService
         return $quote['payment_part_minor'] === 0 ? $this->complete($checkout) : $checkout;
     }
 
+    /**
+     * Mollie's Idempotency-Key makes a repeated request return the same payment.
+     * When the outcome is unknown (timeout, provider 5xx) the checkout stays
+     * pending so a retry can recover that payment; a clear refusal fails it.
+     */
     private function createPayment(VoucherCheckout $checkout, Offer $offer): void
     {
         try {
             $payment = $this->mollie->createPayment($checkout->payment_part_minor, $checkout->currency, 'ShopBonus voucher: '.$offer->currentVersion?->name,
-                config('shopbonus.identity.frontend_url').'/checkout/'.$checkout->public_id, route('api.v1.payments.mollie.webhook'), ['checkout_id' => $checkout->public_id]);
+                config('shopbonus.identity.frontend_url').'/checkout/'.$checkout->public_id, route('api.v1.payments.mollie.webhook'), ['checkout_id' => $checkout->public_id],
+                idempotencyKey: 'checkout:'.$checkout->public_id);
         } catch (Throwable $e) {
-            $this->fail($checkout, 'payment_creation_failed');
+            $unknown = $e instanceof ApiException && ($e->errorCode === 'payment_provider_unavailable' || (int) ($e->details['provider_status'] ?? 0) >= 500);
+            if (! $unknown) {
+                $this->fail($checkout, 'payment_creation_failed');
+            }
             throw $e instanceof ApiException ? $e : new ApiException('The payment could not be started.', 502, 'payment_provider_error');
         }
 
-        VoucherCheckoutPayment::create(['checkout_id' => $checkout->id, 'provider' => 'mollie', 'provider_ref' => $payment['id'], 'amount_minor' => $checkout->payment_part_minor,
+        VoucherCheckoutPayment::firstOrCreate(['checkout_id' => $checkout->id], ['provider' => 'mollie', 'provider_ref' => $payment['id'], 'amount_minor' => $checkout->payment_part_minor,
             'currency' => $checkout->currency, 'status' => $payment['status'], 'checkout_url' => $payment['checkout_url'], 'test_mode' => $this->mollie->testMode()]);
     }
 

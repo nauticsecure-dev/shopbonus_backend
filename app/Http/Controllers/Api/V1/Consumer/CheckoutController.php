@@ -56,17 +56,19 @@ class CheckoutController extends Controller
     {
         $c->loadMissing('payment');
         $offer = Offer::with('currentVersion')->find($c->offer_id);
+        $voucher = $c->voucher_id === null ? null : Voucher::whereKey($c->voucher_id)->first(['public_id', 'terms_snapshot']);
 
         return [
             'id' => $c->public_id,
             'state' => $c->state,
-            'offer' => ['slug' => $offer?->slug, 'title' => $offer?->currentVersion?->name],
+            // The title the consumer bought (frozen with the reserved voucher), not a later edit.
+            'offer' => ['slug' => $offer?->slug, 'title' => $voucher?->terms_snapshot['name'] ?? $offer?->currentVersion?->name],
             'price_minor' => $c->price_minor, 'wallet_part_minor' => $c->wallet_part_minor, 'payment_part_minor' => $c->payment_part_minor, 'currency' => $c->currency,
             'payment' => $c->payment === null ? null : [
                 'provider' => 'mollie', 'status' => $c->payment->status, 'test_mode' => $c->payment->test_mode,
                 'checkout_url' => $c->state === 'pending_payment' && in_array($c->payment->status, ['open', 'pending'], true) ? $c->payment->checkout_url : null,
             ],
-            'voucher_id' => $c->state === 'completed' ? Voucher::whereKey($c->voucher_id)->value('public_id') : null,
+            'voucher_id' => $c->state === 'completed' ? $voucher?->public_id : null,
             'failure_reason' => $c->failure_reason,
             'expires_at' => $c->expires_at->toIso8601String(),
             'completed_at' => $c->completed_at?->toIso8601String(),

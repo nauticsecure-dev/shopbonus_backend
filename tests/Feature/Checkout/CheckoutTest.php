@@ -44,6 +44,9 @@ class CheckoutTest extends TestCase
     /** Overrides the amount Mollie reports (a mismatching payment). */
     private ?string $mollieAmount = null;
 
+    /** HTTP status Mollie answers the next payment creation requests with (null = 201). */
+    private array $mollieCreateFailures = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -53,6 +56,9 @@ class CheckoutTest extends TestCase
 
         Http::fake(['api.mollie.com/v2/*' => function (HttpRequest $request) {
             if ($request->method() === 'POST' && str_ends_with($request->url(), '/payments')) {
+                if (($failure = array_shift($this->mollieCreateFailures)) !== null) {
+                    return Http::response(['status' => $failure, 'title' => 'Error'], $failure);
+                }
                 $id = 'tr_'.substr(md5((string) $request['metadata']['checkout_id']), 0, 10);
 
                 return Http::response(['id' => $id, 'status' => 'open', 'amount' => $request['amount'], 'metadata' => $request['metadata'],
@@ -129,6 +135,15 @@ class CheckoutTest extends TestCase
         $this->assertContains('ledger_purchase_allocation', $orphan['evidence']['issues']);
     }
 
+    public function test_checkout_history_keeps_the_title_that_was_bought(): void
+    {
+        $this->fund(2000);
+        $id = $this->buy()->assertCreated()->assertJsonPath('data.offer.title', '€25 korting')->json('data.id');
+        DB::table('offer_versions')->where('id', $this->offer->current_version_id)->update(['name' => 'Renamed later']);
+
+        $this->getJson("/api/v1/consumer/checkouts/{$id}")->assertOk()->assertJsonPath('data.offer.title', '€25 korting');
+    }
+
     public function test_card20_e2e2_blockers_stop_the_purchase_without_any_change(): void
     {
         $wallet = $this->fund(500);
@@ -180,6 +195,28 @@ class CheckoutTest extends TestCase
         $this->assertSame(1, Voucher::where('consumer_user_id', $this->anna->id)->where('status', VoucherStatus::Issued)->count());
         Sanctum::actingAs($this->anna);
         $this->getJson('/api/v1/consumer/checkouts/'.$c->public_id)->assertJsonPath('data.state', 'completed')->assertJsonPath('data.payment.checkout_url', null);
+    }
+
+    public function test_an_unanswered_payment_request_is_retried_with_the_same_mollie_idempotency_key(): void
+    {
+        $this->fund(500);
+        $this->mollieCreateFailures = [503];
+        $this->buy('retry-checkout-0001')->assertStatus(502)->assertJsonPath('error.code', 'payment_provider_error');
+        $checkout = VoucherCheckout::sole();
+        $this->assertSame('pending_payment', $checkout->state); // outcome unknown: reservations kept for the retry
+        $this->assertNull($checkout->payment);
+
+        $this->buy('retry-checkout-0001')->assertSuccessful()->assertJsonPath('data.state', 'pending_payment');
+        $this->assertSame(1, VoucherCheckout::count());
+        $this->assertNotNull($checkout->fresh()->payment);
+        $keys = collect(Http::recorded())->map(fn ($pair) => $pair[0])->filter(fn (HttpRequest $r) => $r->method() === 'POST')
+            ->map(fn (HttpRequest $r) => $r->header('Idempotency-Key')[0] ?? null)->unique()->values()->all();
+        $this->assertSame(['checkout:'.$checkout->public_id], $keys);
+
+        // A clear refusal (4xx) fails the checkout and releases everything.
+        $this->mollieCreateFailures = [422];
+        $this->buy('refused-checkout-0001')->assertStatus(502);
+        $this->assertSame('failed', VoucherCheckout::where('idempotency_key', 'refused-checkout-0001')->value('state'));
     }
 
     public function test_card20_e2e6_failed_canceled_or_expired_payment_releases_everything(): void

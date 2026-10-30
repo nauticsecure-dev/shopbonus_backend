@@ -17,7 +17,6 @@ use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletPendingCredit;
 use App\Services\Audit\AuditLogger;
-use App\Services\Cashback\RewardSourceGuard;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +42,6 @@ class AffiliateProcessor
     public function __construct(
         private readonly WalletService $wallets,
         private readonly AuditLogger $audit,
-        private readonly RewardSourceGuard $sources,
     ) {}
 
     public function ingest(AffiliateConnection $connection, AffiliateTransactionData $data, string $source, ?int $actorUserId = null): AffiliateTransaction
@@ -166,19 +164,16 @@ class AffiliateProcessor
         }
 
         if ($tx->webshop_id !== null && $tx->order_reference_hash !== null && $tx->reward_status === 'none') {
-            $directs = MerchantCommissionConversion::where('webshop_id', $tx->webshop_id)
+            $direct = MerchantCommissionConversion::where('webshop_id', $tx->webshop_id)
+                ->where('order_reference_hash', $tx->order_reference_hash)
                 ->where('status', 'credited')
-                ->orderBy('id')
-                ->limit(500)
-                ->pluck('external_id');
-            foreach ($directs as $externalId) {
-                if ($this->sources->orderReferenceHash($tx->webshop_id, (string) $externalId) === $tx->order_reference_hash) {
-                    $from = $tx->status;
-                    $tx->forceFill(['status' => 'disputed', 'review_reason' => 'direct_merchant_reward_already_credited'])->save();
-                    $this->event($tx, $source, $from, 'disputed', $tx->network_status, 'direct_merchant_reward_already_credited', $actorUserId);
+                ->exists();
+            if ($direct) {
+                $from = $tx->status;
+                $tx->forceFill(['status' => 'disputed', 'review_reason' => 'direct_merchant_reward_already_credited'])->save();
+                $this->event($tx, $source, $from, 'disputed', $tx->network_status, 'direct_merchant_reward_already_credited', $actorUserId);
 
-                    return;
-                }
+                return;
             }
         }
 

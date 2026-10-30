@@ -75,7 +75,7 @@ class DisputeController extends Controller
 
     public function checkouts(Request $request): JsonResponse
     {
-        $data = $request->validate(['state' => ['sometimes', Rule::in(['pending_payment', 'completed', 'failed', 'expired', 'paid_unfulfilled', 'refunded'])]]);
+        $data = $request->validate(['state' => ['sometimes', Rule::in(['pending_payment', 'completed', 'failed', 'expired', 'paid_unfulfilled', 'refund_pending', 'refunded'])]]);
 
         return response()->json(['data' => VoucherCheckout::when(isset($data['state']), fn ($q) => $q->where('state', $data['state']))->orderByDesc('id')->limit(200)->get()
             ->map(fn (VoucherCheckout $c) => CheckoutController::present($c))->all()]);

@@ -13,6 +13,7 @@ use App\Models\AffiliateTransaction;
 use App\Models\CookieConsent;
 use App\Models\CookiePolicy;
 use App\Models\FinancialReconciliationCheck;
+use App\Models\MerchantCommissionConversion;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
@@ -225,6 +226,23 @@ class AffiliateTest extends TestCase
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame([700, 0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
+    }
+
+    public function test_order_already_credited_as_direct_merchant_conversion_is_never_credited_again(): void
+    {
+        // More than the old 500-row window, with the matching order credited last.
+        foreach ([...array_map(fn ($i) => 'DIRECT-'.$i, range(1, 500)), 'ORD-1'] as $externalId) {
+            MerchantCommissionConversion::create(['webshop_id' => $this->shop->id, 'user_id' => $this->anna->id, 'external_id' => $externalId,
+                'idempotency_key' => 'fixture:'.$externalId, 'order_amount_minor' => 5000, 'commission_minor' => 500, 'consumer_credit_minor' => 350,
+                'shopbonus_revenue_minor' => 150, 'status' => 'credited', 'agreement_snapshot' => [], 'converted_at' => now()]);
+        }
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-DUP', $ref, 'approved', order: 'ORD-1')]);
+        $tx = AffiliateTransaction::where('external_id', 'D-DUP')->sole();
+        $this->assertSame(['disputed', 'direct_merchant_reward_already_credited', 'none'], [$tx->status, $tx->review_reason, $tx->reward_status]);
+        $this->assertSame(0, $this->wallet()->fresh()->total_earned);
     }
 
     public function test_card19_e2e4_unknown_or_inconsistent_conversions_enter_review(): void

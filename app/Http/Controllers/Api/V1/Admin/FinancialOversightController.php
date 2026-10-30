@@ -24,7 +24,7 @@ class FinancialOversightController extends Controller
             'affiliate_mismatches' => AffiliateTransaction::whereNotNull('review_reason')->orderByDesc('id')->paginate($size)->through(fn (AffiliateTransaction $t) => [
                 'id' => $t->public_id, 'network' => $t->network, 'status' => $t->status, 'network_status' => $t->network_status,
                 'review_reason' => $t->review_reason, 'commission_minor' => $t->commission_minor, 'currency' => $t->currency, 'reward_status' => $t->reward_status]),
-            'failed_issuance' => VoucherCheckout::whereIn('state', ['failed', 'paid_unfulfilled'])->orderByDesc('id')->paginate($size)->through(fn (VoucherCheckout $c) => [
+            'failed_issuance' => VoucherCheckout::whereIn('state', ['failed', 'paid_unfulfilled', 'refund_pending'])->orderByDesc('id')->paginate($size)->through(fn (VoucherCheckout $c) => [
                 'id' => $c->public_id, 'state' => $c->state, 'failure_reason' => $c->failure_reason, 'price_minor' => $c->price_minor, 'currency' => $c->currency]),
             'payments' => VoucherCheckout::whereHas('payment')->with('payment')->orderByDesc('id')->paginate($size)->through(fn (VoucherCheckout $c) => [
                 'id' => $c->public_id, 'state' => $c->state, 'provider' => $c->payment?->provider, 'provider_ref' => $c->payment?->provider_ref,
