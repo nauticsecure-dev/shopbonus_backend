@@ -222,8 +222,9 @@ One voucher model and one code inventory; acquisition methods are typed origins 
 - [x] Tests: card #7 E2E 3 (issued voucher keeps v1 after edit), E2E 4 (paste with duplicate + invalid, CSV, preview, totals, batch audit), **E2E 5 real concurrency (forked processes, MySQL)**, E2E 6 lifecycle + repeated redemption rejected, E2E 9 (500 codes, three batches, filters, export), E2E 10 cross-tenant + failed upload; idempotent reservation per order (`c07f778`)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS updated (`c07f778`)
 - [x] Verified redemption: codes in paid verified orders (Woo `coupon_lines`, Shopify `discount_codes`, format v1 `coupon_codes`) redeem the issued voucher once (`c07f778`)
-- [ ] **BLOCKED** Platform coupon verification via provider coupon APIs (blocked: no coupon adapters/credentials; status stays `merchant_verification_required`)
-- [ ] **MOVED** Card #7 E2E 7 real webshop coupon check (blocked as above) and E2E 8 merchant funding enforcement (B12)
+- [x] Platform coupon verification: WooCommerce coupon read via `WooCommerceApi::findCouponByCode`; `POST …/codes/{code}/platform-validation` (`provider_check` | `manual_confirm`); statuses `verified` / `mismatch` / `unsupported_integration` / `sync_error` / `merchant_verification_required`; import still defaults to merchant verification
+- [x] Card #7 E2E 7 (Woo verify + unsupported fallback) and E2E 8 (funding idempotency) covered in `OffersCodesE2ETest` (+ existing FundingTest / VoucherInventoryTest)
+- [x] Trello #17: `scheduled` and `archived` offer statuses (`archived_at`), publish/resume/archive/duplicate, lifecycle display plus inventory on the offer resource, paginated offer filters, code import template, voucher list/show/export (masked, no PII) and merchant-initiated disputes, dashboard connection health / recent activity / quick actions / empty flag, `shopbonus:advance-offer-lifecycle` every minute, and `free_shipping` terms (`WebshopDashboardOffersE2ETest`, 10 cases)
 
 ## B07 Answer24 (Trello #1 "Answer24 required processing", #3 B.7–C.10, #23 "Answer24 responsibilities", #10)
 
@@ -337,7 +338,9 @@ No Daisycon/TradeTracker credentials or sandbox: adapters map the networks' docu
 - [x] Rewards through `WalletService`: pending → confirmed once; rejected before credit → cancelled; reversed after credit → unspent part reversed, rest flagged (never negative); above review threshold → disputed (`37edebf`)
 - [x] Admin (Super Admin; mutations need step-up): connections CRUD/test/sync/import, programs list + match, selection run + decisions, transactions list + resolve (link click, reject), reward rules (`37edebf`)
 - [x] Consumer `GET /consumer/affiliate-activity` (own matched transactions, status explained, reward; never commission data) (`37edebf`)
-- [x] Tests: card #19 E2E 2, 3, 4 (fixtures), 5, 6, 7, 9; card #23 test 6 (instant mode) (`37edebf`)
+- [x] Tests: card #19 E2E 1 (fixture credential errors), 2, 3, 4 (fixtures), 5, 6, 7, 8 (wallet integrity), 9, 10 (ops/queue/admin/consumer); card #23 test 6 (instant mode); points-unit reward path; marketing-consent visit gate
+- [x] Queued `SyncAffiliateConnection` job + `shopbonus:sync-affiliates` (default queue; `--sync` inline); admin sync `async=true` → 202
+- [x] Click `expires_at` + marketing consent evidence on tracked visits (policy published → consent required)
 - [x] Docs with real captures; PROGRESS/HANDOFF/TASKS/DECISIONS updated (`37edebf`)
 - [ ] **HANDOFF** Live Daisycon/TradeTracker verification (senior developer configures accounts; B10b ships the SOAP transport; see docs/integrations/VERIFICATION.md)
 - [ ] **BLOCKED** Card #19 E2E 1 and 4 against real provider data; staging p95 (no staging)
@@ -405,12 +408,13 @@ Every number comes from the authoritative tables (offers, codes, vouchers, claim
 - [x] Owner combined dashboard `GET /api/v1/owner/dashboard`: per owned webshop KPIs and totals; only webshops the user owns (`2bfa953`)
 - [x] Tests: card #8 KPI definitions reconcile with the inventory, chart timezone/zero days, switching webshops never mixes data, notifications dedupe and stay in their workspace; owner dashboard isolation (`2bfa953`)
 - [x] Docs with real captures (`2bfa953`)
-- [ ] **MOVED** Banner funnel metrics (impressions, CTR, attribution, A/B, holdout) → B14; Super Admin network dashboard → B16
+- [x] Banner funnel metrics filled by B14; overview adds attribution breakdown, repeats, network contribution and drill-down `GET …/analytics/attribution/orders` (Trello #24)
+- [x] Super Admin network overview `GET /api/v1/admin/network` (aggregates only; settlement recorded, never silent cross-shop Wallet deduction)
 - [ ] **BLOCKED** Staging p95 for dashboard endpoints (no staging)
 
 ## B14 Banner campaigns backend (Trello #25, #24 §1–2)
 
-The live editor, renderer and embed script are frontend; the backend owns campaigns, versions, rules, public config, events, attribution and results. Checkout, payment and account pages are always excluded.
+The live editor UI (`/dashboard/banners`, `/dashboard/banners/{id}/studio`), Shadow DOM renderer and embed script (`public/embed/v1.js`) ship with the frontend/public assets; the backend owns campaigns, versions, rules, public config, events, attribution and results. Checkout, payment and account pages are always excluded. See `docs/banners/E2E_CHECKLIST.md` (exactly 10 E2E tests).
 
 - [x] `banner_campaigns` (draft config with optimistic `draft_revision`, status draft/scheduled/live/paused, linked offer) + immutable `banner_versions` (sanitized published config) (`e5df771`)
 - [x] Strict config schema: templates ribbon/inline_card/floating/teaser/popup/exit_intent/cart_progress; anchors; plain-text content with length limits; https CTA URL; colors; fonts; animation; devices; uploaded image asset only (no external URLs) (`e5df771`)
@@ -457,7 +461,9 @@ Editable content is a strict JSON document (ProseMirror/Tiptap-style node allowl
 - [x] Docs with real captures (`b2abb82`)
 - [x] Error envelope and domain messages pass through `__()`; `lang/nl.json` translates the generic messages and the consumer-facing domain messages (`b2abb82`)
 - [ ] **MOVED** Translating every remaining domain error message to NL (add keys to `lang/nl.json`; ongoing, owner/copywriter review)
-- [ ] **BLOCKED** Card #5 E2E 1 frontend part and E2E 10 staging p95 (frontend; no staging)
+- [x] Frontend Content Studio (`/admin/cms` pages/FAQ/cookies), inline edit on `/pagina/[slug]`, public `/faq`, cookie settings + allowlisted loader, NL/EN chrome dictionaries + `/me` locale hydrate (2026-10-30)
+- [x] Frontend Playwright smoke `e2e/cms-i18n-consent.spec.ts` (locale, draft chrome, preview auth, FAQ, consent settings, admin gate)
+- [ ] **BLOCKED** Assisted translation drafts (B17 AI) and staging p95 &lt; 200 ms (no staging)
 
 ## B16 Super Admin cockpit, security, monitoring (Trello #21, #6, #23)
 

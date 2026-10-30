@@ -1,6 +1,6 @@
 # Verified support chat — #26 backend
 
-Trello: https://trello.com/c/aWBrCkQK. Laravel backend only. No frontend/embed implementation. B17a evidence internals remain in [EVIDENCE.md](EVIDENCE.md); this document supersedes its original “not built” inventory for the components listed here.
+Trello: https://trello.com/c/aWBrCkQK. Laravel backend + Next.js consumer/Workspace UI. B17a evidence internals remain in [EVIDENCE.md](EVIDENCE.md). HTTP tool aliases, contract field names, diagnostic retry packet and frontend surfaces: [ROUTE_INVENTORY.md](ROUTE_INVENTORY.md).
 
 ## Configuration and deployment
 

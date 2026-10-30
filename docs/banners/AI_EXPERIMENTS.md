@@ -1,6 +1,6 @@
 # #25 backend handoff: AI proposals and experiments
 
-This extends the existing banner config, lifecycle, assets, pairing, event ledger and reporting. Laravel/API only. The merchant-site embed/editor and real cart bridge remain client/plugin work; no renderer or external installation was deployed by this checkpoint.
+This extends the existing banner config, lifecycle, assets, pairing, event ledger and reporting. The public embed (`/embed/v1.js`) and Live Editor UI are deployed as client assets; cart totals still require a storefront `ShopBonusCart` bridge. AI Create/Insights remain queue-gated with human review only (never auto-publish).
 
 ## Senior developer setup
 

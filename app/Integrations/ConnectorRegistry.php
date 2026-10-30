@@ -49,7 +49,9 @@ class ConnectorRegistry
      */
     public function catalogue(): array
     {
-        return array_map(function (EcommercePlatform $platform) {
+        $capabilities = app(CapabilityMatrix::class);
+
+        return array_map(function (EcommercePlatform $platform) use ($capabilities) {
             $entry = $this->entry($platform);
 
             return [
@@ -64,6 +66,9 @@ class ConnectorRegistry
                 'verification' => $entry['verification'] ?? 'unverified',
                 'profile' => $entry['profile'] ?? null,
                 'blocked_reason' => $entry['blocked_reason'] ?? null,
+                'capabilities' => $capabilities->forPlatform($platform),
+                'category' => in_array($platform, [EcommercePlatform::LightspeedC, EcommercePlatform::LightspeedE], true)
+                    ? 'marketplace' : 'webshop',
             ];
         }, EcommercePlatform::cases());
     }

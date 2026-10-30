@@ -82,7 +82,15 @@ class SupportEvidenceTest extends TestCase
         $e = $this->tools()->retrieve($user, 'get_my_wallet', ['unit' => 'eur_credit']);
         $result = $this->answer($user, [$e]);
         $this->assertSame('VERIFIED', $result['status']);
-        $this->assertStringContainsString('EUR 10.00; reserved: EUR 5.00; pending: EUR 7.00; spent: EUR 25.00', $result['answer']);
+        $available = number_format($e->facts['available_minor'] / 100, 2, '.', '');
+        $reserved = number_format($e->facts['reserved_minor'] / 100, 2, '.', '');
+        $pending = number_format($e->facts['pending_minor'] / 100, 2, '.', '');
+        $spent = number_format($e->facts['spent_minor'] / 100, 2, '.', '');
+        $this->assertStringContainsString("EUR {$available}; reserved: EUR {$reserved}; pending: EUR {$pending}; spent: EUR {$spent}", $result['answer']);
+        $this->assertSame(1000, $e->facts['available_minor']);
+        $this->assertSame(500, $e->facts['reserved_minor']);
+        $this->assertSame(2500, $e->facts['spent_minor']);
+        $this->assertSame('EUR_REDEMPTION_CREDIT', $e->facts['unit']);
         $this->assertStringNotContainsString('999', $result['answer']);
         $this->assertNull($result['action']);
         $this->assertSame([$e->id], $result['evidence_ids']);
@@ -99,7 +107,7 @@ class SupportEvidenceTest extends TestCase
         $user = User::factory()->create();
         $walletCount = Wallet::count();
         $e = $this->tools()->retrieve($user, 'get_my_wallet', ['unit' => 'eur_credit']);
-        $this->assertSame(0, $e->facts['available']);
+        $this->assertSame(0, $e->facts['available_minor']);
         $this->answer($user, [$e]);
         $this->assertSame($walletCount, Wallet::count());
         $this->fails('support_answer_invalid', fn () => $this->answer(User::factory()->create(), [$e]));
@@ -181,12 +189,15 @@ class SupportEvidenceTest extends TestCase
         $offer = $service->create($membership, OfferAcquisition::MerchantReward, ['name' => 'Test', 'discount_type' => 'fixed', 'discount_value' => 1000]);
         $e = $this->tools()->retrieve($owner, 'get_offer_cost', ['offer_id' => $offer->public_id], $shop->public_id);
         $this->assertSame([1000, 300, 1300], [$e->facts['consumer_reward_minor'], $e->facts['shopbonus_fee_minor'], $e->facts['merchant_total_economic_cost_minor']]);
+        $this->assertSame(0.3, $e->facts['shopbonus_fee_rate']);
+        $this->assertTrue($e->facts['cost_available']);
         $this->assertStringContainsString('total 1300 minor units', $this->answer($owner, [$e])['answer']);
         $other = Webshop::factory()->withMember($owner)->create();
         $this->fails('not_found', fn () => $this->tools()->retrieve($owner, 'get_offer_cost', ['offer_id' => $offer->public_id], $other->public_id), 404);
         $percentage = $service->create($membership, OfferAcquisition::MerchantReward, ['name' => 'Uncapped', 'discount_type' => 'percentage', 'discount_value' => 1000]);
         $unknown = $this->tools()->retrieve($owner, 'get_offer_cost', ['offer_id' => $percentage->public_id], $shop->public_id);
         $this->assertNull($unknown->facts['merchant_total_economic_cost_minor']);
+        $this->assertFalse($unknown->facts['cost_available']);
         $this->assertSame('PARTIALLY_VERIFIED', $this->answer($owner, [$unknown])['status']);
     }
 
@@ -296,7 +307,7 @@ class SupportEvidenceTest extends TestCase
         foreach ([[], ['unknown'], [$e->id, $e->id], [123], ['foo' => $e->id]] as $ids) {
             $this->fails('support_answer_invalid', fn () => $this->answer($user, [$e], ['evidence_ids' => $ids]));
         }
-        $forged = new ToolEvidence($user->id, $e->tool, $e->arguments, null, 'en', $e->sourceId, ['available' => 99999] + $e->facts, CarbonImmutable::now());
+        $forged = new ToolEvidence($user->id, $e->tool, $e->arguments, null, 'en', $e->sourceId, ['available_minor' => 99999] + $e->facts, CarbonImmutable::now());
         $this->fails('support_evidence_changed', fn () => $this->answer($user, [$forged]), 409);
     }
 

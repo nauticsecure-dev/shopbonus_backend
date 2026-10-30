@@ -17,5 +17,8 @@ final class AffiliateProgramData
         public readonly bool $categoryRestricted,
         public readonly bool $cashbackAllowed,
         public readonly string $trackingUrlTemplate,
+        public readonly ?string $merchantUrl = null,
+        /** @var array<string, mixed>|null */
+        public readonly ?array $rawEvidence = null,
     ) {}
 }

@@ -16,8 +16,14 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 /**
  * POST /register (Fortify). Creates the identity plus its legal acceptances
- * and optional consent atomically. Only the listed fields are read: any
- * client-sent role, status, admin flag or webshop ID is ignored.
+ * and optional consent atomically.
+ *
+ * Roles at signup (via `account_type` only):
+ * - `consumer` → consumer account role
+ * - `merchant` → merchant / webshop-owner account role
+ *
+ * `super_admin` and any client-sent `role` / `roles` / admin flags are ignored;
+ * Super Admin is provisioned only via `php artisan shopbonus:grant-super-admin`.
  */
 class CreateNewUser implements CreatesNewUsers
 {
@@ -38,6 +44,9 @@ class CreateNewUser implements CreatesNewUsers
             $input['email'] = User::normalizeEmail($input['email']);
         }
 
+        // Strip privilege fields so they cannot be smuggled through mass-assignment.
+        unset($input['role'], $input['roles'], $input['status'], $input['is_admin'], $input['super_admin']);
+
         $data = Validator::make($input, [
             'account_type' => ['required', Rule::enum(OnboardingIntent::class)],
             'first_name' => ['required', 'string', 'max:100'],
@@ -51,6 +60,7 @@ class CreateNewUser implements CreatesNewUsers
             'marketing_opt_in' => ['sometimes', 'boolean'],
             'locale' => ['sometimes', Rule::in(User::SUPPORTED_LOCALES)],
         ], [
+            'account_type.Illuminate\Validation\Rules\Enum' => 'Choose consumer or merchant (webshop owner). Super Admin cannot be self-registered.',
             'terms_version.in' => 'The Terms have been updated. Reload the page and review them.',
             'privacy_version.in' => 'The Privacy Statement has been updated. Reload the page and review it.',
         ])->validate();
@@ -61,6 +71,7 @@ class CreateNewUser implements CreatesNewUsers
                     'first_name' => $data['first_name'],
                     'email' => $data['email'],
                     'password' => $data['password'],
+                    // Maps to AccountRole consumer|merchant — never super_admin.
                     'onboarding_intent' => $data['account_type'],
                     'locale' => $data['locale'] ?? 'nl',
                 ]);

@@ -11,11 +11,13 @@ use App\Models\Webshop;
 use App\Services\Onboarding\Network\HostResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Tests\Concerns\UsesFixtureRsaKeys;
 use Tests\TestCase;
 
 class NativeStoreBindingTest extends TestCase
 {
     use RefreshDatabase;
+    use UsesFixtureRsaKeys;
 
     public function test_wrong_native_store_identity_stops_every_adapter_before_any_order_read(): void
     {
@@ -33,8 +35,7 @@ class NativeStoreBindingTest extends TestCase
                 return [];
             }
         });
-        $key = openssl_pkey_new(['private_key_bits' => 2048]);
-        $public = openssl_pkey_get_details($key)['key'];
+        $public = $this->fixturePublicKeyPem();
         $cases = [
             [EcommercePlatform::BigCommerce, ['store_hash' => 'abc123', 'access_token' => 'SYNTHETIC_bc_token', 'client_secret' => 'SYNTHETIC_bc_secret'], '4711', 1],
             [EcommercePlatform::Ecwid, ['store_id' => '1003', 'access_token' => 'SYNTHETIC_ecwid_token', 'client_secret' => 'SYNTHETIC_ecwid_secret'], '4711', 1],

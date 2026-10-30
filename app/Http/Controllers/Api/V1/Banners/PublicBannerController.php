@@ -81,7 +81,7 @@ class PublicBannerController extends Controller
         ]);
         $installation = $this->installation($request, $data['key']);
 
-        return response()->json(['data' => $measurement->ingest($installation, $data['events'])], 202);
+        return response()->json(['data' => $measurement->ingest($installation, $data['events'], $request->userAgent())], 202);
     }
 
     public function asset(string $id): Response

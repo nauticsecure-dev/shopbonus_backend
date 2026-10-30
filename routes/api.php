@@ -7,12 +7,16 @@ use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
 use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
+use App\Http\Controllers\Api\V1\Admin\AboutUsCmsController as AdminAboutUsCmsController;
+use App\Http\Controllers\Api\V1\Admin\HomepageCmsController as AdminHomepageCmsController;
+use App\Http\Controllers\Api\V1\Admin\MerchantLandingCmsController as AdminMerchantLandingCmsController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
 use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncidentDiagnosticController;
+use App\Http\Controllers\Api\V1\Admin\MerchantEnrichmentController as AdminMerchantEnrichmentController;
 use App\Http\Controllers\Api\V1\Admin\MonitoringController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
@@ -32,6 +36,7 @@ use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Auth\SupportSessionController;
 use App\Http\Controllers\Api\V1\Banners\PublicBannerController;
 use App\Http\Controllers\Api\V1\Claims\ClaimController;
+use App\Http\Controllers\Api\V1\Consumer\ActivationController;
 use App\Http\Controllers\Api\V1\Consumer\AffiliateActivityController;
 use App\Http\Controllers\Api\V1\Consumer\BenefitsController;
 use App\Http\Controllers\Api\V1\Consumer\CheckoutController;
@@ -44,11 +49,17 @@ use App\Http\Controllers\Api\V1\Consumer\PromotionalClaimController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
 use App\Http\Controllers\Api\V1\Me\WalletController as MeWalletController;
 use App\Http\Controllers\Api\V1\Content\CookieConsentController;
+use App\Http\Controllers\Api\V1\Content\AboutUsController;
+use App\Http\Controllers\Api\V1\Content\HomepageController;
+use App\Http\Controllers\Api\V1\Content\MerchantLandingController;
 use App\Http\Controllers\Api\V1\Content\PublicContentController;
+use App\Http\Controllers\Api\V1\Discovery\PublicDiscountCodesController;
 use App\Http\Controllers\Api\V1\Discovery\PublicDiscoveryController;
+use App\Http\Controllers\Api\V1\Discovery\PublicSearchController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
+use App\Http\Controllers\Api\V1\Integrations\CatalogController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyOAuthController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
@@ -64,6 +75,7 @@ use App\Http\Controllers\Api\V1\Onboarding\OwnershipVerificationController;
 use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Api\V1\Payments\MollieWebhookController;
 use App\Http\Controllers\Api\V1\Support\ChatController;
+use App\Http\Controllers\Api\V1\Support\ToolAliasController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerAiController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerController;
 use App\Http\Controllers\Api\V1\Workspaces\BannerExperimentController;
@@ -128,10 +140,13 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('webshops', [PublicDiscoveryController::class, 'webshops'])->name('webshops.index');
         Route::get('webshops/{slug}', [PublicDiscoveryController::class, 'webshop'])->name('webshops.show');
         Route::get('webshops/{slug}/logo', [PublicDiscoveryController::class, 'logo'])->name('webshops.logo');
+        Route::get('webshops/{slug}/cover', [PublicDiscoveryController::class, 'cover'])->name('webshops.cover');
         // Affiliate "Visit webshop": redirect through the selected network (Trello #19). Signed-in consumers are attributed.
         Route::get('webshops/{slug}/visit', [VisitController::class, 'visit'])->middleware('throttle:visits')->name('webshops.visit');
         Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
         Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
+        Route::get('search', PublicSearchController::class)->middleware('throttle:public-search')->name('search');
+        Route::get('discount-codes', PublicDiscountCodesController::class)->middleware('throttle:public-search')->name('discount-codes.index');
         // Published CMS content (Trello #5).
         Route::get('legal-requirements', [PublicContentController::class, 'legalRequirements'])->name('legal-requirements.show');
         Route::get('pages', [PublicContentController::class, 'pages'])->name('pages.index');
@@ -143,6 +158,15 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::post('cookie-consents', [CookieConsentController::class, 'store'])->middleware('throttle:claims')->name('cookie-consents.store');
         Route::get('cookie-consents/{consentId}', [CookieConsentController::class, 'show'])->name('cookie-consents.show');
     });
+
+    // Published consumer homepage (structured landing CMS).
+    Route::get('content/homepage', [HomepageController::class, 'show'])->name('content.homepage.show');
+    // Published webshop-owner landing (structured CMS).
+    Route::get('content/voor-webshops', [MerchantLandingController::class, 'show'])->name('content.voor-webshops.show');
+    Route::get('content/pages/voor-webshops', [MerchantLandingController::class, 'show'])->name('content.pages.voor-webshops.show');
+    // Published About Us landing (structured CMS).
+    Route::get('content/over-ons', [AboutUsController::class, 'show'])->name('content.over-ons.show');
+    Route::get('content/pages/over-ons', [AboutUsController::class, 'show'])->name('content.pages.over-ons.show');
 
     Route::get('public/settings', fn (PlatformSettings $settings) => response()->json(['data' => $settings->published()]))->name('public.settings');
 
@@ -168,6 +192,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // Claim link preview (public; the token is the secret).
     Route::post('claims/preview', [ClaimController::class, 'preview'])->middleware('throttle:claims')->name('claims.preview');
 
+    // Consumer activation invitation preview (Trello #18; same tokens as claims/preview).
+    Route::post('consumer/activation/verify', [ActivationController::class, 'verify'])
+        ->middleware('throttle:claims')->name('consumer.activation.verify');
+
     // Authenticated, verified or not (unverified users may only do this).
     Route::middleware(['auth:sanctum', 'account.active', 'support.session'])->group(function () {
         Route::get('me', [MeController::class, 'show'])->name('me');
@@ -182,6 +210,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
             Route::get('me/wallet', [MeWalletController::class, 'show'])->name('me.wallet.show');
+            Route::get('me/orders/{reference}/reward', [ToolAliasController::class, 'orderReward'])->name('me.orders.reward');
+            Route::get('me/vouchers', [ToolAliasController::class, 'vouchers'])->name('me.vouchers.index');
+            Route::get('me/voucher-quotes/{offerId}', [ToolAliasController::class, 'voucherQuote'])->name('me.voucher-quotes.show');
             Route::get('notifications', [InboxController::class, 'index'])->name('notifications.index');
             Route::delete('notifications/{notification}', [InboxController::class, 'destroy'])->name('notifications.destroy');
             Route::patch('notifications/{notification}/read', [InboxController::class, 'read'])->name('notifications.read');
@@ -251,6 +282,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('platform-settings', [AdminPlatformSettingController::class, 'index'])->name('platform-settings.index');
                 Route::get('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'index'])->name('incident-diagnostics.index');
                 Route::get('incident-diagnostics/{diagnostic}', [AdminIncidentDiagnosticController::class, 'show'])->name('incident-diagnostics.show');
+                Route::get('merchant-enrichments', [AdminMerchantEnrichmentController::class, 'index'])->name('merchant-enrichments.index');
+                Route::get('merchant-enrichments/{run}', [AdminMerchantEnrichmentController::class, 'show'])->name('merchant-enrichments.show');
                 Route::get('operations-overview', OperationsOverviewController::class)->name('operations-overview');
                 Route::get('monitoring', MonitoringController::class)->name('monitoring');
                 Route::get('reconciliation', [ReconciliationController::class, 'index'])->name('reconciliation.index');
@@ -269,7 +302,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('wallets/{wallet}/ledger', [AdminWalletController::class, 'ledger'])->name('wallets.ledger');
                 Route::get('wallet-reconciliation-flags', [AdminWalletController::class, 'flags'])->name('wallet-flags.index');
                 Route::get('cockpit', [AdminCockpitController::class, 'show'])->name('cockpit');
+                Route::get('network', [AdminCockpitController::class, 'network'])->name('network');
                 Route::get('activity', [AdminCockpitController::class, 'activity'])->name('activity');
+                Route::get('search', [AdminCockpitController::class, 'search'])->middleware('throttle:business-search')->name('search');
+                Route::get('vouchers', [AdminCockpitController::class, 'vouchers'])->name('vouchers.index');
                 Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
                 Route::get('users/{user}', [AdminUserController::class, 'show'])->name('users.show');
                 Route::get('support-sessions', [AdminSupportSessionController::class, 'index'])->name('support-sessions.index');
@@ -300,12 +336,35 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('cookie-policies', [AdminCookiePolicyController::class, 'index'])->name('cookie-policies.index');
                     Route::get('cookie-consents/stats', [AdminCookiePolicyController::class, 'stats'])->name('cookie-consents.stats');
                 });
+                Route::prefix('content/homepage')->name('content.homepage.')->group(function () {
+                    Route::get('/', [AdminHomepageCmsController::class, 'show'])->name('show');
+                    Route::get('versions', [AdminHomepageCmsController::class, 'versions'])->name('versions');
+                });
+                Route::prefix('content/voor-webshops')->name('content.voor-webshops.')->group(function () {
+                    Route::get('/', [AdminMerchantLandingCmsController::class, 'show'])->name('show');
+                    Route::get('versions', [AdminMerchantLandingCmsController::class, 'versions'])->name('versions');
+                });
+                Route::prefix('content/pages/voor-webshops')->name('content.pages.voor-webshops.')->group(function () {
+                    Route::get('/', [AdminMerchantLandingCmsController::class, 'show'])->name('show');
+                    Route::get('versions', [AdminMerchantLandingCmsController::class, 'versions'])->name('versions');
+                });
+                Route::prefix('content/over-ons')->name('content.over-ons.')->group(function () {
+                    Route::get('/', [AdminAboutUsCmsController::class, 'show'])->name('show');
+                    Route::get('versions', [AdminAboutUsCmsController::class, 'versions'])->name('versions');
+                });
+                Route::prefix('content/pages/over-ons')->name('content.pages.over-ons.')->group(function () {
+                    Route::get('/', [AdminAboutUsCmsController::class, 'show'])->name('show');
+                    Route::get('versions', [AdminAboutUsCmsController::class, 'versions'])->name('versions');
+                });
                 Route::get('disputes/{dispute}', [AdminDisputeController::class, 'show'])->name('disputes.show');
                 Route::get('checkouts', [AdminDisputeController::class, 'checkouts'])->name('checkouts.index');
 
                 Route::middleware('password.recent')->group(function () {
                     Route::post('incidents/{incident}/diagnostics', [AdminIncidentDiagnosticController::class, 'store'])->middleware(['step_up.otp', 'throttle:admin-diagnostics'])->name('incident-diagnostics.store');
                     Route::post('incident-diagnostics/{diagnostic}/review', [AdminIncidentDiagnosticController::class, 'review'])->middleware('step_up.otp')->name('incident-diagnostics.review');
+                    Route::post('merchant-enrichments/{run}/approve', [AdminMerchantEnrichmentController::class, 'approve'])->name('merchant-enrichments.approve');
+                    Route::post('merchant-enrichments/{run}/reject', [AdminMerchantEnrichmentController::class, 'reject'])->name('merchant-enrichments.reject');
+                    Route::post('merchant-enrichments/{run}/retry', [AdminMerchantEnrichmentController::class, 'retry'])->name('merchant-enrichments.retry');
                     Route::post('audit/export', [AdminAuditExportController::class, 'export'])->middleware(['step_up.otp', 'throttle:order-export'])->name('audit.export');
                     Route::post('platform-settings', [AdminPlatformSettingController::class, 'store'])->name('platform-settings.store');
                     Route::post('platform-settings/{version}/review', [AdminPlatformSettingController::class, 'submit'])->name('platform-settings.review');
@@ -364,6 +423,56 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::put('cookie-policies/{policy}', [AdminCookiePolicyController::class, 'update'])->name('cookie-policies.update');
                         Route::post('cookie-policies/{policy}/publish', [AdminCookiePolicyController::class, 'publish'])->name('cookie-policies.publish');
                     });
+                    Route::prefix('content/homepage')->name('content.homepage.')->group(function () {
+                        Route::put('/', [AdminHomepageCmsController::class, 'saveDraft'])->name('draft');
+                        Route::patch('sections/{sectionKey}', [AdminHomepageCmsController::class, 'saveSection'])->name('sections.update');
+                        Route::post('preview', [AdminHomepageCmsController::class, 'preview'])->name('preview');
+                        Route::post('publish', [AdminHomepageCmsController::class, 'publish'])->name('publish');
+                        Route::post('restore', [AdminHomepageCmsController::class, 'restore'])->name('restore');
+                        Route::post('schedule', [AdminHomepageCmsController::class, 'schedule'])->name('schedule');
+                        Route::post('ai-suggest', [AdminHomepageCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::post('assets', [AdminHomepageCmsController::class, 'uploadAsset'])->name('assets.store');
+                    });
+                    Route::prefix('content/voor-webshops')->name('content.voor-webshops.')->group(function () {
+                        Route::put('/', [AdminMerchantLandingCmsController::class, 'saveDraft'])->name('draft');
+                        Route::patch('sections/{sectionKey}', [AdminMerchantLandingCmsController::class, 'saveSection'])->name('sections.update');
+                        Route::post('preview', [AdminMerchantLandingCmsController::class, 'preview'])->name('preview');
+                        Route::post('publish', [AdminMerchantLandingCmsController::class, 'publish'])->name('publish');
+                        Route::post('restore', [AdminMerchantLandingCmsController::class, 'restore'])->name('restore');
+                        Route::post('schedule', [AdminMerchantLandingCmsController::class, 'schedule'])->name('schedule');
+                        Route::post('ai-suggest', [AdminMerchantLandingCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::post('assets', [AdminMerchantLandingCmsController::class, 'uploadAsset'])->name('assets.store');
+                    });
+                    Route::prefix('content/pages/voor-webshops')->name('content.pages.voor-webshops.')->group(function () {
+                        Route::put('/', [AdminMerchantLandingCmsController::class, 'saveDraft'])->name('draft');
+                        Route::patch('sections/{sectionKey}', [AdminMerchantLandingCmsController::class, 'saveSection'])->name('sections.update');
+                        Route::post('preview', [AdminMerchantLandingCmsController::class, 'preview'])->name('preview');
+                        Route::post('publish', [AdminMerchantLandingCmsController::class, 'publish'])->name('publish');
+                        Route::post('restore', [AdminMerchantLandingCmsController::class, 'restore'])->name('restore');
+                        Route::post('schedule', [AdminMerchantLandingCmsController::class, 'schedule'])->name('schedule');
+                        Route::post('ai-suggest', [AdminMerchantLandingCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::post('assets', [AdminMerchantLandingCmsController::class, 'uploadAsset'])->name('assets.store');
+                    });
+                    Route::prefix('content/over-ons')->name('content.over-ons.')->group(function () {
+                        Route::put('/', [AdminAboutUsCmsController::class, 'saveDraft'])->name('draft');
+                        Route::patch('sections/{sectionKey}', [AdminAboutUsCmsController::class, 'saveSection'])->name('sections.update');
+                        Route::post('preview', [AdminAboutUsCmsController::class, 'preview'])->name('preview');
+                        Route::post('publish', [AdminAboutUsCmsController::class, 'publish'])->name('publish');
+                        Route::post('restore', [AdminAboutUsCmsController::class, 'restore'])->name('restore');
+                        Route::post('schedule', [AdminAboutUsCmsController::class, 'schedule'])->name('schedule');
+                        Route::post('ai-suggest', [AdminAboutUsCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::post('assets', [AdminAboutUsCmsController::class, 'uploadAsset'])->name('assets.store');
+                    });
+                    Route::prefix('content/pages/over-ons')->name('content.pages.over-ons.')->group(function () {
+                        Route::put('/', [AdminAboutUsCmsController::class, 'saveDraft'])->name('draft');
+                        Route::patch('sections/{sectionKey}', [AdminAboutUsCmsController::class, 'saveSection'])->name('sections.update');
+                        Route::post('preview', [AdminAboutUsCmsController::class, 'preview'])->name('preview');
+                        Route::post('publish', [AdminAboutUsCmsController::class, 'publish'])->name('publish');
+                        Route::post('restore', [AdminAboutUsCmsController::class, 'restore'])->name('restore');
+                        Route::post('schedule', [AdminAboutUsCmsController::class, 'schedule'])->name('schedule');
+                        Route::post('ai-suggest', [AdminAboutUsCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::post('assets', [AdminAboutUsCmsController::class, 'uploadAsset'])->name('assets.store');
+                    });
                     Route::post('disputes/{dispute}/resolve', [AdminDisputeController::class, 'resolve'])->name('disputes.resolve');
                     Route::post('checkouts/{checkout}/refund', [AdminDisputeController::class, 'refundCheckout'])->name('checkouts.refund');
                 });
@@ -387,9 +496,13 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
                 Route::get('preferences', [PreferenceController::class, 'show'])->name('preferences.show');
                 Route::put('preferences', [PreferenceController::class, 'update'])->name('preferences.update');
+                Route::patch('preferences', [PreferenceController::class, 'update'])->name('preferences.patch');
                 Route::get('favorites', [PreferenceController::class, 'favorites'])->name('favorites.index');
                 Route::put('favorites/{slug}', [PreferenceController::class, 'addFavorite'])->name('favorites.store');
                 Route::delete('favorites/{slug}', [PreferenceController::class, 'removeFavorite'])->name('favorites.destroy');
+
+                Route::post('activation/complete', [ActivationController::class, 'complete'])
+                    ->middleware('throttle:claims')->name('activation.complete');
 
                 Route::post('offers/{slug}/claim', [PromotionalClaimController::class, 'store'])->middleware('throttle:claims')->name('offers.claim');
                 Route::get('vouchers', [BenefitsController::class, 'vouchers'])->name('vouchers.index');
@@ -397,6 +510,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::post('disputes', [DisputeController::class, 'store'])->middleware('throttle:checkout')->name('disputes.store');
                 Route::get('disputes', [DisputeController::class, 'index'])->name('disputes.index');
                 Route::get('disputes/{id}', [DisputeController::class, 'show'])->name('disputes.show');
+                Route::get('disputes/{id}/screenshot', [DisputeController::class, 'screenshot'])->middleware('throttle:code-reveal')->name('disputes.screenshot');
                 Route::get('affiliate-activity', [AffiliateActivityController::class, 'index'])->name('affiliate-activity.index');
 
                 Route::post('checkouts/quote', [CheckoutController::class, 'quote'])->name('checkouts.quote');
@@ -458,6 +572,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}', [ConnectionController::class, 'show'])->middleware('workspace.can:integrations.view')->name('connections.show');
                 Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
                 Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
+                Route::get('connections/{connection}/capabilities', [CatalogController::class, 'capabilities'])->middleware('workspace.can:integrations.view')->name('connections.capabilities');
+                Route::get('connections/{connection}/health', [CatalogController::class, 'health'])->middleware('workspace.can:integrations.view')->name('connections.health');
+                Route::get('connections/{connection}/products', [CatalogController::class, 'products'])->middleware('workspace.can:integrations.view')->name('connections.products');
+                Route::get('connections/{connection}/coupons', [CatalogController::class, 'coupons'])->middleware('workspace.can:integrations.view')->name('connections.coupons');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
                     Route::post('connections/{connection}/test-api', ConnectionApiTestController::class)->middleware('throttle:commerce-probe')->name('connections.test-api');
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
@@ -465,6 +583,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::post('connections/{connection}/credentials', [ConnectionController::class, 'replaceCredentials'])->name('connections.credentials');
                     Route::delete('connections/{connection}', [ConnectionController::class, 'destroy'])->name('connections.destroy');
                     Route::post('connections/{connection}/events/{event}/retry', [ConnectionController::class, 'retryEvent'])->name('connections.events.retry');
+                    Route::post('connections/{connection}/sync/products', [CatalogController::class, 'syncProducts'])->middleware('throttle:commerce-probe')->name('connections.sync.products');
+                    Route::post('connections/{connection}/sync/coupons', [CatalogController::class, 'syncCoupons'])->middleware('throttle:commerce-probe')->name('connections.sync.coupons');
                 });
 
                 // Live Order Sheet (Trello #1).
@@ -476,28 +596,46 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 // Offers (Trello #7). Drafts can be prepared during onboarding (card #9);
                 // activating and resuming need a commercially active webshop.
                 Route::get('offers', [OfferController::class, 'index'])->middleware('workspace.can:offers.view')->name('offers.index');
+                Route::get('offers/{offer}/cost', [ToolAliasController::class, 'offerCost'])->middleware('workspace.can:offers.view')->name('offers.cost');
                 Route::get('offers/{offer}', [OfferController::class, 'show'])->middleware('workspace.can:offers.view')->name('offers.show');
+                Route::get('campaigns/{campaign}/performance', [ToolAliasController::class, 'campaignPerformance'])
+                    ->middleware(['workspace.can:orders.view', 'workspace.can:offers.view'])->name('campaigns.performance');
+                Route::get('integrations/health', [ToolAliasController::class, 'integrationHealth'])
+                    ->middleware('workspace.can:integrations.view')->name('integrations.health');
+                Route::get('wallet', [ToolAliasController::class, 'workspaceWallet'])->middleware('workspace.can:finance.view')->name('wallet.show');
                 Route::middleware('workspace.can:offers.manage')->group(function () {
                     Route::post('offers', [OfferController::class, 'store'])->name('offers.store');
                     Route::patch('offers/{offer}', [OfferController::class, 'update'])->name('offers.update');
                     Route::post('offers/{offer}/activate', [OfferController::class, 'activate'])->middleware('workspace.commercial')->name('offers.activate');
+                    Route::post('offers/{offer}/publish', [OfferController::class, 'publish'])->middleware('workspace.commercial')->name('offers.publish');
                     Route::post('offers/{offer}/pause', [OfferController::class, 'pause'])->name('offers.pause');
+                    Route::post('offers/{offer}/resume', [OfferController::class, 'resume'])->middleware('workspace.commercial')->name('offers.resume');
                     Route::post('offers/{offer}/end', [OfferController::class, 'end'])->name('offers.end');
+                    Route::post('offers/{offer}/archive', [OfferController::class, 'archive'])->name('offers.archive');
+                    Route::post('offers/{offer}/duplicate', [OfferController::class, 'duplicate'])->name('offers.duplicate');
                 });
 
                 // Code inventory per offer (Trello #7 §5–7).
                 Route::get('offers/{offer}/codes', [VoucherCodeController::class, 'index'])->middleware('workspace.can:vouchers.view')->name('codes.index');
+                Route::get('offers/{offer}/codes/import-template', [VoucherCodeController::class, 'importTemplate'])->middleware('workspace.can:vouchers.view')->name('codes.import-template');
                 Route::get('offers/{offer}/codes/export', [VoucherCodeController::class, 'export'])
                     ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('codes.export');
                 Route::get('codes/{code}/history', [VoucherCodeController::class, 'history'])->middleware('workspace.can:vouchers.view')->name('codes.history');
                 Route::get('code-imports/{batch}', [VoucherCodeController::class, 'showBatch'])->middleware('workspace.can:vouchers.view')->name('code-imports.show');
                 Route::get('disputes', [VoucherOperationsController::class, 'disputes'])->middleware('workspace.can:vouchers.view')->name('disputes.index');
+                Route::get('vouchers', [VoucherOperationsController::class, 'index'])->middleware('workspace.can:vouchers.view')->name('vouchers.index');
+                Route::get('vouchers/export', [VoucherOperationsController::class, 'export'])
+                    ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('vouchers.export');
+                Route::get('vouchers/{voucher}', [VoucherOperationsController::class, 'show'])->middleware('workspace.can:vouchers.view')->name('vouchers.show');
                 Route::middleware('workspace.can:vouchers.manage')->group(function () {
                     Route::post('offers/{offer}/code-imports', [VoucherCodeController::class, 'import'])->middleware('throttle:code-import')->name('code-imports.store');
                     Route::post('code-imports/{batch}/commit', [VoucherCodeController::class, 'commitBatch'])->name('code-imports.commit');
                     Route::post('codes/{code}/reveal', [VoucherCodeController::class, 'reveal'])->middleware('throttle:code-reveal')->name('codes.reveal');
                     Route::post('codes/{code}/invalidate', [VoucherCodeController::class, 'invalidate'])->name('codes.invalidate');
+                    Route::post('codes/{code}/platform-validation', [VoucherCodeController::class, 'verifyPlatform'])
+                        ->middleware('throttle:code-reveal')->name('codes.platform-validation');
                     Route::post('vouchers/redeem', [VoucherOperationsController::class, 'redeem'])->middleware('throttle:code-reveal')->name('vouchers.redeem');
+                    Route::post('vouchers/{voucher}/dispute', [VoucherOperationsController::class, 'dispute'])->name('vouchers.dispute');
                     Route::post('disputes/{dispute}/respond', [VoucherOperationsController::class, 'respond'])->name('disputes.respond');
                 });
 
@@ -550,6 +688,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('dashboard', [DashboardController::class, 'show'])->name('dashboard');
                     Route::get('analytics/claims', [DashboardController::class, 'claims'])->name('analytics.claims');
                     Route::get('analytics/overview', [DashboardController::class, 'overview'])->name('analytics.overview');
+                    Route::get('analytics/attribution/orders', [DashboardController::class, 'attributionOrders'])->name('analytics.attribution.orders');
                     Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
                     Route::post('notifications/read-all', [DashboardController::class, 'readAll'])->name('notifications.read-all');
                     Route::post('notifications/{notification}/read', [DashboardController::class, 'read'])->name('notifications.read');

@@ -105,6 +105,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('privacy', fn (Request $request) => Limit::perHour(5)->by('privacy:'.$request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('visits', fn (Request $request) => Limit::perMinute(30)->by('visit:'.$request->ip()));
+        RateLimiter::for('public-search', fn (Request $request) => Limit::perMinute(60)->by('public-search:'.$request->ip()));
 
         RateLimiter::for('checkout', fn (Request $request) => Limit::perMinute(10)->by('checkout:'.$request->user()?->getAuthIdentifier()));
 

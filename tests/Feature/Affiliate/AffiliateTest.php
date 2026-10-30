@@ -3,11 +3,15 @@
 namespace Tests\Feature\Affiliate;
 
 use App\Enums\PlatformRole;
+use App\Enums\WalletUnit;
+use App\Jobs\SyncAffiliateConnection;
 use App\Models\AffiliateClick;
 use App\Models\AffiliateConnection;
 use App\Models\AffiliateProgram;
 use App\Models\AffiliateRewardRule;
 use App\Models\AffiliateTransaction;
+use App\Models\CookieConsent;
+use App\Models\CookiePolicy;
 use App\Models\FinancialReconciliationCheck;
 use App\Models\User;
 use App\Models\Wallet;
@@ -20,6 +24,7 @@ use App\Services\Reliability\FinancialReconciliation;
 use App\Services\Reliability\FinancialSources;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
@@ -27,9 +32,10 @@ use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
 
 /**
- * B10: affiliate tracking and rewards (Trello #19 E2E 2–7, 9; #23 test 6).
+ * B10: affiliate tracking and rewards (Trello #19 E2E 1–10; #23 test 6).
  * Network payloads are fixtures in the networks' documented shapes: the
- * adapters are NOT VERIFIED against live accounts.
+ * adapters are NOT VERIFIED against live accounts. E2E 1 live connect remains
+ * gated on publisher credentials (OPEN-PROVIDER-CAPABILITIES).
  */
 class AffiliateTest extends TestCase
 {
@@ -111,6 +117,37 @@ class AffiliateTest extends TestCase
     {
         Sanctum::actingAs($this->admin);
         $this->withHeaders(['Referer' => 'http://localhost:3000/', 'Origin' => 'http://localhost:3000'])->withSession(['auth.password_confirmed_at' => time()]);
+    }
+
+    public function test_card19_e2e1_network_setup_rejects_invalid_credentials_with_actionable_status(): void
+    {
+        Http::fake([
+            'services.daisycon.com/*' => Http::response(['error' => 'unauthorized'], 401),
+        ]);
+        $this->asAdminWithStepUp();
+
+        $this->postJson('/api/v1/admin/affiliate/connections', [
+            'network' => 'daisycon',
+            'name' => 'Daisycon Bad',
+            'credentials' => ['publisher_id' => 'not-digits', 'access_token' => 'x', 'media_id' => '1'],
+        ])->assertUnprocessable();
+
+        $created = $this->postJson('/api/v1/admin/affiliate/connections', [
+            'network' => 'daisycon',
+            'name' => 'Daisycon Bad',
+            'credentials' => ['publisher_id' => '99', 'access_token' => 'bad-token', 'media_id' => '1'],
+        ])->assertCreated();
+
+        $created->assertJsonPath('data.status', 'reauthentication_required')
+            ->assertJsonPath('data.last_error', 'credentials_rejected')
+            ->assertJsonPath('data.verified', false);
+        $this->assertArrayNotHasKey('credentials', $created->json('data'));
+        $this->assertStringContainsString('reauthentication', (string) $created->json('data.status'));
+
+        // TradeTracker stays Limited until TRADETRACKER_API_ENABLED is turned on.
+        $this->postJson("/api/v1/admin/affiliate/connections/{$this->tradetracker->public_id}/test")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'limited');
     }
 
     public function test_card19_e2e2_highest_comparable_rate_wins_and_restricted_rates_are_not_compared(): void
@@ -237,6 +274,7 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e7_rejection_cancels_pending_and_reversal_never_reclaims_spent_credit(): void
     {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->import($this->daisycon, [$this->daisyconProgram()]);
         $ref1 = $this->annaClicks();
         $ref2 = $this->annaClicks();
@@ -260,6 +298,7 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e9_postbacks_cannot_approve_and_stale_updates_are_ignored(): void
     {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->import($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
@@ -325,6 +364,7 @@ class AffiliateTest extends TestCase
 
     public function test_admin_connection_setup_rules_and_consumer_activity(): void
     {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         Http::fake(['services.daisycon.com/*' => Http::response(['error' => 'invalid_token'], 401)]);
         $this->asAdminWithStepUp();
 
@@ -454,6 +494,7 @@ class AffiliateTest extends TestCase
 
     public function test_zero_approved_commission_closes_the_original_pending_reward_without_a_credit(): void
     {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->import($this->daisycon, [$this->daisyconProgram()]);
         $click = $this->annaClicks();
         $this->import($this->daisycon, [], [$this->daisyconTx('ZERO', $click, 'pending', commission: 10)]);
@@ -466,6 +507,7 @@ class AffiliateTest extends TestCase
 
     public function test_pending_source_reconciliation_rejects_another_consumers_wallet_link(): void
     {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->import($this->daisycon, [$this->daisyconProgram()]);
         $this->import($this->daisycon, [], [$this->daisyconTx('PENDING-OWNER', $this->annaClicks(), 'pending')]);
         $tx = AffiliateTransaction::sole();
@@ -477,5 +519,113 @@ class AffiliateTest extends TestCase
         $check = app(FinancialSources::class)->inspect($tx->fresh());
         $this->assertContains('affiliate_pending_identity', $check['evidence']['issues']);
         $this->assertSame(0, $foreign->fresh()->available);
+    }
+
+    public function test_card19_e2e8_wallet_integrity_preserves_balances_on_failed_and_concurrent_paths(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('E2E8', $ref, 'approved', commission: 10.00)]);
+
+        $wallet = $this->wallet()->fresh();
+        $this->assertSame(500, $wallet->available); // 50% rule from setUp share_bps=5000
+        $wallets = app(WalletService::class);
+
+        $reservation = $wallets->reserve($wallet, 200, 'voucher-checkout:e2e8');
+        $this->assertSame([300, 200], [$wallet->fresh()->available, $wallet->fresh()->reserved]);
+        $wallets->release($reservation); // failed purchase releases reservation
+        $this->assertSame([500, 0], [$wallet->fresh()->available, $wallet->fresh()->reserved]);
+
+        $wallets->debit($wallet, 100, 'voucher-purchase:e2e8');
+        $this->assertSame(400, $wallet->fresh()->available);
+        $this->assertGreaterThanOrEqual(0, $wallet->fresh()->available);
+        $this->assertSame([], $wallets->reconcile());
+        $this->assertSame(1, WalletLedgerEntry::where('wallet_id', $wallet->id)->where('type', 'credit')->count());
+        $this->assertSame(1, WalletLedgerEntry::where('wallet_id', $wallet->id)->where('type', 'debit')->count());
+    }
+
+    public function test_card19_e2e10_operations_queue_admin_monitoring_and_consumer_filters(): void
+    {
+        Bus::fake([SyncAffiliateConnection::class]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('OPS-1', $this->annaClicks(), 'pending')]);
+
+        $this->asAdminWithStepUp();
+        $this->postJson("/api/v1/admin/affiliate/connections/{$this->daisycon->public_id}/sync", ['async' => true])
+            ->assertStatus(202)
+            ->assertJsonPath('data.queued', true);
+        Bus::assertDispatched(SyncAffiliateConnection::class, fn (SyncAffiliateConnection $job) => $job->connectionId === $this->daisycon->id);
+
+        $list = $this->getJson('/api/v1/admin/affiliate/transactions?status=pending')->assertOk();
+        $this->assertSame(1, $list->json('meta.total'));
+        $this->assertArrayHasKey('pending', $list->json('totals'));
+        $this->getJson('/api/v1/admin/affiliate/connections')->assertOk()->assertJsonPath('data.0.verified', false);
+        $this->getJson('/api/v1/admin/affiliate/reward-rules')->assertOk()->assertJsonPath('current', 1);
+        $this->getJson('/api/v1/admin/affiliate/programs?unmatched=1')->assertOk();
+
+        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
+        $activity = $this->getJson('/api/v1/consumer/affiliate-activity?locale=nl')->assertOk();
+        $this->assertNotEmpty($activity->json('data.0.explanation'));
+        $this->assertStringContainsString('behandeling', (string) $activity->json('data.0.explanation'));
+        $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk();
+        $this->artisan('shopbonus:sync-affiliates')->assertSuccessful();
+        Bus::assertDispatched(SyncAffiliateConnection::class);
+    }
+
+    public function test_card19_points_unit_reward_credits_the_points_wallet_once(): void
+    {
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create([
+            'version' => 2,
+            'unit' => WalletUnit::Points->value,
+            'share_bps' => 10000,
+            'min_commission_minor' => 0,
+            'active' => true,
+            'created_by' => $this->admin->id,
+        ]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('PTS-1', $this->annaClicks(), 'approved', commission: 5.00)]);
+
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame(['points', 500, 'credited'], [$tx->reward_unit, $tx->reward_amount, $tx->reward_status]);
+        $points = app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points);
+        $this->assertSame([500, 0], [$points->fresh()->available, $points->fresh()->pending]);
+        $this->assertSame(0, $this->wallet()->fresh()->available); // eur_credit untouched
+    }
+
+    public function test_visit_without_marketing_consent_is_untracked_when_policy_published(): void
+    {
+        CookiePolicy::create([
+            'version' => '2026-10-30',
+            'status' => 'published',
+            'requires_reconsent' => false,
+            'created_by' => $this->admin->id,
+            'categories' => [
+                ['key' => 'necessary', 'required' => true, 'trackers' => []],
+                ['key' => 'preferences', 'required' => false, 'trackers' => []],
+                ['key' => 'analytics', 'required' => false, 'trackers' => []],
+                ['key' => 'marketing', 'required' => false, 'trackers' => []],
+            ],
+            'texts' => ['nl' => ['title' => 'Cookies', 'body' => 'x', 'accept_all' => 'Ok', 'reject_optional' => 'Nee', 'customize' => 'Meer'], 'en' => ['title' => 'Cookies', 'body' => 'x', 'accept_all' => 'Ok', 'reject_optional' => 'No', 'customize' => 'More']],
+            'published_at' => now(),
+            'published_by' => $this->admin->id,
+        ]);
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(0, AffiliateClick::count());
+
+        CookieConsent::create([
+            'consent_id' => 'consent-ok-1',
+            'policy_version' => '2026-10-30',
+            'choices' => ['necessary' => true, 'preferences' => false, 'analytics' => false, 'marketing' => true],
+            'action' => 'customize',
+        ]);
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit?consent_id=consent-ok-1')->assertRedirect();
+        $click = AffiliateClick::sole();
+        $this->assertTrue($click->marketing_consent);
+        $this->assertNotNull($click->expires_at);
+        $this->assertTrue($click->expires_at->greaterThan(now()->addDays(20)));
     }
 }

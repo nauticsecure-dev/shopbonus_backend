@@ -12,7 +12,7 @@ final readonly class ToolEvidence
 
     /**
      * @param  array<string, string>  $arguments
-     * @param  array<string, int|string|bool|null>  $facts
+     * @param  array<string, mixed>  $facts
      */
     public function __construct(
         public int $actorId,

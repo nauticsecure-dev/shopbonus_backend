@@ -11,10 +11,11 @@ use Symfony\Component\HttpFoundation\Response;
  * API language (Trello #5 "I18N"): the frontend sends the visitor's or
  * user's chosen language as `Accept-Language` (nl or en). Validation and auth
  * messages follow it; `Content-Language` says which one was used. Requests
- * without a supported preference keep the default (English).
+ * without a supported preference use Dutch (NL default; EN fully available).
  */
 class SetRequestLocale
 {
+    /** Ordered for future locales (e.g. de) without requiring them at launch. */
     public const SUPPORTED = ['nl', 'en'];
 
     public function handle(Request $request, Closure $next): Response
@@ -24,7 +25,8 @@ class SetRequestLocale
             && str_contains(strtolower((string) $request->header('Accept-Language')), $preferred);
 
         // Always set it: a long-running worker must not carry one request's language into the next.
-        App::setLocale($explicit ? $preferred : (string) config('app.locale'));
+        // Default is NL when Accept-Language is missing or unsupported.
+        App::setLocale($explicit ? $preferred : (string) config('app.locale', 'nl'));
 
         $response = $next($request);
         $response->headers->set('Content-Language', App::getLocale());

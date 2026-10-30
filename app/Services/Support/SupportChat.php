@@ -116,8 +116,25 @@ class SupportChat
             $this->tools->retrieve($actor, $snapshot['tool'], $snapshot['arguments'], $workspace, $c->locale);
         }
 
-        return ['id' => $m->public_id, 'conversation_id' => $c->public_id, 'question' => $m->question, 'status' => $m->status,
-            'result' => $m->result, 'retry_used' => $m->retry_used, 'created_at' => $m->created_at->toIso8601String(), 'completed_at' => $m->completed_at?->toIso8601String()];
+        $result = is_array($m->result) ? $m->result : [];
+
+        // Contract projection (message_id/answer/evidence) plus nested result for existing clients.
+        return [
+            'id' => $m->public_id,
+            'message_id' => $m->public_id,
+            'conversation_id' => $c->public_id,
+            'question' => $m->question,
+            'status' => $m->status,
+            'answer' => $result['answer'] ?? null,
+            'evidence_ids' => $result['evidence_ids'] ?? [],
+            'checked_at' => $result['checked_at'] ?? null,
+            'retry_used' => (bool) $m->retry_used,
+            'action' => $result['action'] ?? null,
+            'checks' => $result['checks'] ?? null,
+            'result' => $m->result,
+            'created_at' => $m->created_at->toIso8601String(),
+            'completed_at' => $m->completed_at?->toIso8601String(),
+        ];
     }
 
     public function execute(int $id): void
@@ -178,13 +195,23 @@ class SupportChat
                 $trace[] = ['tool' => $plan['tool'], 'outcome' => 'unavailable'];
             }
             if ($plan['intent'] === 'reward' && $p['max_retry'] === 1 && $plan['reference'] !== null) {
+                $known = $evidence[0]->facts ?? ['available_minor' => null];
+                $diagnostic = SupportAnswerChecks::diagnostic(
+                    $m->question,
+                    'MISSING_REWARD_STATUS',
+                    is_array($known) ? array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])) : [],
+                    ['order_reward_status'],
+                    ['get_my_order_reward_status'],
+                    1,
+                );
+                $metrics['diagnostic'] = $diagnostic;
                 $m->retry_used = true;
                 $this->progress($m, 'RETRYING');
-                $trace[] = ['tool' => 'get_my_order_reward_status', 'outcome' => 'attempted'];
+                $trace[] = ['tool' => 'get_my_order_reward_status', 'outcome' => 'attempted', 'diagnostic' => $diagnostic['failure_reason']];
                 $evidence[] = $this->tools->retrieve($actor, 'get_my_order_reward_status', ['order_reference' => $plan['reference']], $workspace, $c->locale);
                 $trace[count($trace) - 1]['outcome'] = 'retrieved';
                 $required = $primaryFailed ? ['get_my_order_reward_status'] : [...$required, 'get_my_order_reward_status'];
-            } elseif ($plan['intent'] === 'reward' || $primaryFailed) {
+            } elseif ($primaryFailed) {
                 throw new ProviderFailure('evidence_unavailable');
             }
             $this->quota($actor, $p['daily_request_limit']);
@@ -300,6 +327,7 @@ class SupportChat
     {
         try {
             event(new SupportProgress(SupportConversation::findOrFail($m->conversation_id)->public_id, $m->public_id, $m->status, $event));
+            Cache::put('support-ai:last-broadcast-at', now()->toIso8601String(), 86400);
         } catch (Throwable) {
             $this->audit->recordSafely('support.broadcast_unavailable', category: AuditCategory::Security, resource: $m);
         }
@@ -330,11 +358,27 @@ class SupportChat
     private function action(array $plan, ?string $workspace): ?array
     {
         $route = match ($plan['intent']) {
-            'wallet','reward' => '/app/wallet', 'vouchers','quote' => '/app/vouchers',
-            'funding' => '/app/workspaces/'.$workspace.'/wallet', 'offer_cost' => '/app/workspaces/'.$workspace.'/offers',
-            'campaign' => '/app/workspaces/'.$workspace.'/banners', 'integration' => '/app/workspaces/'.$workspace.'/integrations', default => null,
+            'wallet', 'reward' => '/app/wallet',
+            'vouchers', 'quote' => '/app/vouchers',
+            'funding' => '/app/workspaces/'.($workspace ?? 'current').'/wallet',
+            'offer_cost' => '/app/workspaces/'.($workspace ?? 'current').'/offers',
+            'campaign' => '/app/workspaces/'.($workspace ?? 'current').'/banners',
+            'integration' => '/app/workspaces/'.($workspace ?? 'current').'/integrations',
+            default => null,
+        };
+        if ($route === null) {
+            return null;
+        }
+        $label = match ($plan['intent']) {
+            'wallet', 'reward' => 'Bekijk mijn tegoed',
+            'vouchers', 'quote' => 'Bekijk mijn vouchers',
+            'funding' => 'Bekijk webshopfinanciering',
+            'offer_cost' => 'Bekijk aanbiedingen',
+            'campaign' => 'Bekijk campagneoverzicht',
+            'integration' => 'Bekijk integraties',
+            default => 'Bekijk details',
         };
 
-        return $route === null ? null : ['label' => 'View details', 'route' => $route];
+        return ['label' => $label, 'route' => $route];
     }
 }

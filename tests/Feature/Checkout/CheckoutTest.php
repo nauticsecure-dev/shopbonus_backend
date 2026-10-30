@@ -136,7 +136,8 @@ class CheckoutTest extends TestCase
         Sanctum::actingAs($this->anna);
 
         $this->postJson('/api/v1/consumer/checkouts/quote', ['offer' => $this->offer->slug])->assertOk()
-            ->assertJsonPath('data.wallet_part_minor', 500)->assertJsonPath('data.payment_part_minor', 1500)->assertJsonPath('data.blockers', ['payments_unavailable']);
+            ->assertJsonPath('data.wallet_part_minor', 500)->assertJsonPath('data.payment_part_minor', 1500)
+            ->assertJsonPath('data.shortfall_minor', 1500)->assertJsonPath('data.blockers', ['payments_unavailable']);
         $this->buy()->assertStatus(409)->assertJsonPath('error.code', 'checkout_blocked')->assertJsonPath('error.details.blockers', ['payments_unavailable']);
 
         app(OfferService::class)->transition($this->offer, OfferStatus::Paused);

@@ -48,8 +48,12 @@ class CodeImporter
     {
         $extension = strtolower((string) $file->getClientOriginalExtension());
 
-        if (in_array($extension, ['xlsx', 'xls', 'ods'], true)) {
-            throw new ApiException('Spreadsheet files are not supported. Save the sheet as CSV and upload that.', 415, 'unsupported_media_type');
+        if (in_array($extension, ['xlsx', 'xlsm'], true)) {
+            return app(SpreadsheetCodeReader::class)->lines($file);
+        }
+
+        if (in_array($extension, ['xls', 'ods'], true)) {
+            throw new ApiException('Legacy .xls/.ods are not supported. Upload .xlsx or CSV.', 415, 'unsupported_media_type');
         }
 
         $handle = fopen($file->getRealPath(), 'r');
@@ -85,8 +89,8 @@ class CodeImporter
      */
     public function preview(WebshopMembership $actor, Offer $offer, array $lines, string $source): VoucherCodeBatch
     {
-        if ($offer->status === OfferStatus::Ended) {
-            throw ApiException::conflict('Codes cannot be added to an ended offer.', 'offer_ended');
+        if (in_array($offer->status, [OfferStatus::Ended, OfferStatus::Archived], true)) {
+            throw ApiException::conflict('Codes cannot be added to an ended or archived offer.', $offer->status === OfferStatus::Archived ? 'offer_archived' : 'offer_ended');
         }
 
         $lines = array_values(array_filter(array_map('trim', $lines), fn (string $l) => $l !== ''));

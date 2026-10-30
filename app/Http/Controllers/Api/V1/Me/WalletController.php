@@ -20,6 +20,9 @@ class WalletController extends Controller
 
         return response()->json(['data' => [
             'available_minor' => (int) ($eur['available'] ?? 0),
+            'reserved_minor' => (int) ($eur['reserved_minor'] ?? $eur['reserved'] ?? 0),
+            'pending_minor' => (int) ($eur['pending_cashback_minor'] ?? $eur['pending'] ?? 0),
+            'pending_cashback_minor' => (int) ($eur['pending_cashback_minor'] ?? $eur['pending'] ?? 0),
             'total_earned_minor' => (int) ($eur['total_earned'] ?? 0),
             'total_spent_minor' => (int) ($eur['total_spent'] ?? 0),
             'currency' => 'EUR',

@@ -9,10 +9,13 @@ use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\ProviderOrderId;
 use App\Models\WebshopConnection;
 use Illuminate\Http\Request;
+use Tests\Concerns\UsesFixtureRsaKeys;
 use Tests\TestCase;
 
 class WixConnectorTest extends TestCase
 {
+    use UsesFixtureRsaKeys;
+
     private function encoded(array $v): string
     {
         return rtrim(strtr(base64_encode(json_encode($v)), '+/', '-_'), '=');
@@ -20,10 +23,9 @@ class WixConnectorTest extends TestCase
 
     public function test_rsa_signed_notification_requires_fixed_algorithm_and_bound_instance(): void
     {
-        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-        $info = openssl_pkey_get_details($key);
+        $key = $this->fixturePrivateKey();
         $instance = '11111111-1111-4111-8111-111111111111';
-        $c = new WebshopConnection(['external_shop_ref' => $instance, 'credentials' => ['public_key' => $info['key']]]);
+        $c = new WebshopConnection(['external_shop_ref' => $instance, 'credentials' => ['public_key' => $this->fixturePublicKeyPem()]]);
         $event = ['id' => '22222222-2222-4222-8222-222222222222', 'entityFqdn' => 'wix.ecom.v1.order', 'entityId' => '33333333-3333-4333-8333-333333333333', 'slug' => 'created'];
         $body = $this->encoded(['data' => ['instanceId' => $instance, 'eventType' => 'wix.ecom.v1.order_created', 'data' => json_encode($event)]]);
         $header = $this->encoded(['alg' => 'RS256', 'typ' => 'JWT']);

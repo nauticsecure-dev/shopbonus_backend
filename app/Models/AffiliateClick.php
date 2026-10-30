@@ -14,7 +14,10 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $webshop_id
  * @property int $program_id
  * @property string|null $ip_hash
+ * @property string|null $consent_id_hash
+ * @property bool $marketing_consent
  * @property CarbonImmutable $created_at
+ * @property CarbonImmutable|null $expires_at
  */
 class AffiliateClick extends Model
 {
@@ -24,6 +27,19 @@ class AffiliateClick extends Model
 
     protected function casts(): array
     {
-        return ['created_at' => 'immutable_datetime'];
+        return [
+            'created_at' => 'immutable_datetime',
+            'expires_at' => 'immutable_datetime',
+            'marketing_consent' => 'boolean',
+        ];
+    }
+
+    public function isExpired(?CarbonImmutable $at = null): bool
+    {
+        if ($this->expires_at === null) {
+            return false;
+        }
+
+        return $this->expires_at->lessThanOrEqualTo($at ?? CarbonImmutable::now());
     }
 }

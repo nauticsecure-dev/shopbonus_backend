@@ -11,6 +11,7 @@ use App\Models\OfferVersion;
 use App\Models\WebshopMembership;
 use App\Services\Audit\AuditLogger;
 use App\Services\Funding\MerchantFunding;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
@@ -58,6 +59,9 @@ class OfferService
      */
     public function update(WebshopMembership $actor, Offer $offer, array $changes): Offer
     {
+        if ($offer->status === OfferStatus::Archived) {
+            throw ApiException::conflict('Archived offers cannot be edited.', 'offer_archived');
+        }
         if ($offer->status === OfferStatus::Ended) {
             throw ApiException::conflict('Ended offers cannot be edited.', 'offer_ended');
         }
@@ -108,18 +112,106 @@ class OfferService
             }
 
             $from = $offer->status;
-            $offer->forceFill([
-                'status' => $to,
-                'activated_at' => $to === OfferStatus::Active ? ($offer->activated_at ?? now()) : $offer->activated_at,
-                'paused_at' => $to === OfferStatus::Paused ? now() : null,
-                'ended_at' => $to === OfferStatus::Ended ? now() : null,
-            ])->save();
+            $fill = ['status' => $to];
+            if ($to === OfferStatus::Active) {
+                $fill['activated_at'] = $offer->activated_at ?? now();
+                $fill['paused_at'] = null;
+            }
+            if ($to === OfferStatus::Paused) {
+                $fill['paused_at'] = now();
+            }
+            if ($to === OfferStatus::Scheduled) {
+                $fill['paused_at'] = null;
+            }
+            if ($to === OfferStatus::Ended) {
+                $fill['ended_at'] = $offer->ended_at ?? now();
+            }
+            if ($to === OfferStatus::Archived) {
+                $fill['archived_at'] = $offer->archived_at ?? now();
+            }
+            $offer->forceFill($fill)->save();
 
             $this->audit->record('offer.status_changed', category: AuditCategory::Voucher, resource: $offer, webshopId: $offer->webshop_id,
                 metadata: ['from' => $from->value, 'to' => $to->value, 'version' => $version->version]);
 
             return $offer->setRelation('currentVersion', $version);
         });
+    }
+
+    /** Draft → scheduled when the start is still in the future, otherwise active. */
+    public function publish(Offer $offer): Offer
+    {
+        if ($offer->status !== OfferStatus::Draft) {
+            throw ApiException::conflict("An offer cannot go from {$offer->status->value} to published.", 'invalid_status_transition');
+        }
+
+        $version = OfferVersion::whereKey($offer->current_version_id)->firstOrFail();
+        $to = $version->starts_at !== null && $version->starts_at->isFuture() ? OfferStatus::Scheduled : OfferStatus::Active;
+        if ($to === OfferStatus::Scheduled) {
+            $this->assertSchedulable($offer, $version);
+        }
+
+        return $this->transition($offer, $to);
+    }
+
+    public function archive(Offer $offer): Offer
+    {
+        return $this->transition($offer, OfferStatus::Archived);
+    }
+
+    /** New draft with the same terms and no codes. */
+    public function duplicate(WebshopMembership $actor, Offer $offer): Offer
+    {
+        $source = OfferVersion::whereKey($offer->current_version_id)->firstOrFail();
+
+        return DB::transaction(function () use ($actor, $offer, $source) {
+            $copy = $this->create($actor, $offer->acquisition, [
+                ...$source->only(OfferVersion::TERM_FIELDS),
+                'name' => self::copyName($source->name),
+            ]);
+            $this->audit->record('offer.duplicated', category: AuditCategory::Voucher, resource: $copy, webshopId: $copy->webshop_id,
+                metadata: ['source_offer_id' => $offer->public_id]);
+
+            return $copy;
+        });
+    }
+
+    /**
+     * Scheduled → active once starts_at is reached. Active, paused and scheduled → ended once ends_at is past.
+     *
+     * @return array{activated: int, ended: int}
+     */
+    public function advanceLifecycle(?CarbonImmutable $now = null): array
+    {
+        $now ??= CarbonImmutable::now();
+        $ended = 0;
+        $activated = 0;
+
+        $dueEnd = Offer::query()
+            ->whereIn('status', [OfferStatus::Active->value, OfferStatus::Paused->value, OfferStatus::Scheduled->value])
+            ->whereHas('currentVersion', fn ($q) => $q->whereNotNull('ends_at')->where('ends_at', '<=', $now))
+            ->orderBy('id')
+            ->get();
+        foreach ($dueEnd as $offer) {
+            $this->transition($offer, OfferStatus::Ended);
+            $ended++;
+        }
+
+        $dueStart = Offer::query()
+            ->where('status', OfferStatus::Scheduled)
+            ->whereHas('currentVersion', fn ($q) => $q->whereNotNull('starts_at')->where('starts_at', '<=', $now))
+            ->orderBy('id')
+            ->get();
+        foreach ($dueStart as $offer) {
+            try {
+                $this->transition($offer, OfferStatus::Active);
+                $activated++;
+            } catch (ApiException) {
+                // Incomplete or unfunded offers stay scheduled until a merchant can open them.
+            }
+        }
+
+        return ['activated' => $activated, 'ended' => $ended];
     }
 
     /** @return list<string> */
@@ -143,7 +235,14 @@ class OfferService
         return $missing;
     }
 
-    private function assertActivatable(Offer $offer, OfferVersion $v): void
+    private static function copyName(string $name): string
+    {
+        $suffix = ' (copy)';
+
+        return mb_substr($name, 0, 150 - mb_strlen($suffix)).$suffix;
+    }
+
+    private function assertSchedulable(Offer $offer, OfferVersion $v): void
     {
         $missing = $this->missingForActivation($offer, $v);
 
@@ -154,6 +253,11 @@ class OfferService
         if ($v->ends_at !== null && $v->ends_at->isPast()) {
             throw new ApiException('The offer end date is in the past.', 422, 'offer_expired');
         }
+    }
+
+    private function assertActivatable(Offer $offer, OfferVersion $v): void
+    {
+        $this->assertSchedulable($offer, $v);
 
         // Card #24 / #9: a sponsored reward cannot go live unfunded.
         if ($offer->acquisition === OfferAcquisition::MerchantReward && ! app(MerchantFunding::class)->canFund($offer->webshop_id, $v)) {

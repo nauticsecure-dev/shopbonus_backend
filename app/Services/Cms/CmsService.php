@@ -22,14 +22,54 @@ class CmsService
 {
     public const LOCALES = ['nl', 'en'];
 
-    public function __construct(private readonly RichText $richText, private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly RichText $richText,
+        private readonly HomepageSchema $homepage,
+        private readonly MerchantLandingSchema $merchantLanding,
+        private readonly AboutUsSchema $aboutUs,
+        private readonly AuditLogger $audit,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $content
      * @return array<string, mixed>
      */
-    public function validateContent(array $content): array
+    public function validateContent(array $content, ?string $type = null, ?string $key = null): array
     {
+        if ($key === 'voor-webshops') {
+            $data = $this->merchantLanding->validate($content);
+            if (isset($data['body']) && is_array($data['body'])) {
+                $data['body'] = $this->richText->validate($data['body'], 'content.body');
+            } else {
+                $data['body'] = $this->richText->validate(['type' => 'doc', 'content' => []], 'content.body');
+            }
+
+            return $data;
+        }
+
+        // Info pages may reuse key=over-ons; only structured landing uses AboutUsSchema.
+        if ($key === 'over-ons' && $type === 'landing') {
+            $data = $this->aboutUs->validate($content);
+            if (isset($data['body']) && is_array($data['body'])) {
+                $data['body'] = $this->richText->validate($data['body'], 'content.body');
+            } else {
+                $data['body'] = $this->richText->validate(['type' => 'doc', 'content' => []], 'content.body');
+            }
+
+            return $data;
+        }
+
+        if ($type === 'landing' || $key === 'homepage') {
+            $data = $this->homepage->validate($content);
+            if (isset($data['body']) && is_array($data['body'])) {
+                $data['body'] = $this->richText->validate($data['body'], 'content.body');
+            } else {
+                $data['body'] = $this->richText->validate(['type' => 'doc', 'content' => []], 'content.body');
+            }
+
+            return $data;
+        }
+
         $data = Validator::make($content, [
             'title' => ['required', 'string', 'max:120', 'not_regex:/[<>]/'],
             'seo_title' => ['sometimes', 'nullable', 'string', 'max:70', 'not_regex:/[<>]/'],
@@ -45,6 +85,105 @@ class CmsService
     }
 
     /**
+     * Creates the consumer homepage (landing) with NL+EN defaults when missing.
+     */
+    public function ensureHomepage(?int $actorId = null): CmsPage
+    {
+        $existing = CmsPage::where('key', 'homepage')->first();
+        if ($existing !== null) {
+            return $existing->load('locales');
+        }
+
+        return DB::transaction(function () use ($actorId) {
+            $locked = CmsPage::where('key', 'homepage')->lockForUpdate()->first();
+            if ($locked !== null) {
+                return $locked->load('locales');
+            }
+            $actor = $actorId ?? (int) (DB::table('users')->orderBy('id')->value('id') ?? 0);
+            $page = CmsPage::create(['key' => 'homepage', 'type' => 'landing', 'audience' => 'public', 'created_by' => max(1, $actor)]);
+            foreach (self::LOCALES as $locale) {
+                CmsPageLocale::create([
+                    'page_id' => $page->id,
+                    'locale' => $locale,
+                    'slug' => $locale === 'nl' ? 'homepage' : 'homepage-en',
+                    'draft_content' => $this->validateContent($this->homepage->defaults($locale), 'landing', 'homepage'),
+                    'draft_updated_at' => now(),
+                    'draft_updated_by' => $page->created_by,
+                ]);
+            }
+            $this->audit->record('cms.page_created', category: AuditCategory::Admin, resource: $page, actorUserId: $page->created_by, metadata: ['key' => 'homepage', 'type' => 'landing', 'auto' => true]);
+
+            return $page->load('locales');
+        });
+    }
+
+    /**
+     * Creates the webshop-owner landing (key=voor-webshops) with NL+EN defaults when missing.
+     */
+    public function ensureMerchantLanding(?int $actorId = null): CmsPage
+    {
+        $existing = CmsPage::where('key', 'voor-webshops')->first();
+        if ($existing !== null) {
+            return $existing->load('locales');
+        }
+
+        return DB::transaction(function () use ($actorId) {
+            $locked = CmsPage::where('key', 'voor-webshops')->lockForUpdate()->first();
+            if ($locked !== null) {
+                return $locked->load('locales');
+            }
+            $actor = $actorId ?? (int) (DB::table('users')->orderBy('id')->value('id') ?? 0);
+            $page = CmsPage::create(['key' => 'voor-webshops', 'type' => 'landing', 'audience' => 'public', 'created_by' => max(1, $actor)]);
+            foreach (self::LOCALES as $locale) {
+                CmsPageLocale::create([
+                    'page_id' => $page->id,
+                    'locale' => $locale,
+                    'slug' => $locale === 'nl' ? 'voor-webshops' : 'voor-webshops-en',
+                    'draft_content' => $this->validateContent($this->merchantLanding->defaults($locale), 'landing', 'voor-webshops'),
+                    'draft_updated_at' => now(),
+                    'draft_updated_by' => $page->created_by,
+                ]);
+            }
+            $this->audit->record('cms.page_created', category: AuditCategory::Admin, resource: $page, actorUserId: $page->created_by, metadata: ['key' => 'voor-webshops', 'type' => 'landing', 'auto' => true]);
+
+            return $page->load('locales');
+        });
+    }
+
+    /**
+     * Creates the About Us landing (key=over-ons, type=landing) with NL+EN defaults when missing.
+     */
+    public function ensureAboutUs(?int $actorId = null): CmsPage
+    {
+        $existing = CmsPage::where('key', 'over-ons')->where('type', 'landing')->first();
+        if ($existing !== null) {
+            return $existing->load('locales');
+        }
+
+        return DB::transaction(function () use ($actorId) {
+            $locked = CmsPage::where('key', 'over-ons')->where('type', 'landing')->lockForUpdate()->first();
+            if ($locked !== null) {
+                return $locked->load('locales');
+            }
+            $actor = $actorId ?? (int) (DB::table('users')->orderBy('id')->value('id') ?? 0);
+            $page = CmsPage::create(['key' => 'over-ons', 'type' => 'landing', 'audience' => 'public', 'created_by' => max(1, $actor)]);
+            foreach (self::LOCALES as $locale) {
+                CmsPageLocale::create([
+                    'page_id' => $page->id,
+                    'locale' => $locale,
+                    'slug' => $locale === 'nl' ? 'over-ons' : 'over-ons-en',
+                    'draft_content' => $this->validateContent($this->aboutUs->defaults($locale), 'landing', 'over-ons'),
+                    'draft_updated_at' => now(),
+                    'draft_updated_by' => $page->created_by,
+                ]);
+            }
+            $this->audit->record('cms.page_created', category: AuditCategory::Admin, resource: $page, actorUserId: $page->created_by, metadata: ['key' => 'over-ons', 'type' => 'landing', 'auto' => true]);
+
+            return $page->load('locales');
+        });
+    }
+
+    /**
      * @param  array<string, array{slug: string, content: array<string, mixed>}>  $locales
      */
     public function create(string $key, string $type, string $audience, array $locales, int $actorId): CmsPage
@@ -52,7 +191,7 @@ class CmsService
         return DB::transaction(function () use ($key, $type, $audience, $locales, $actorId) {
             $page = CmsPage::create(['key' => $key, 'type' => $type, 'audience' => $audience, 'created_by' => $actorId]);
             foreach ($locales as $locale => $l) {
-                CmsPageLocale::create(['page_id' => $page->id, 'locale' => $locale, 'slug' => $l['slug'], 'draft_content' => $this->validateContent($l['content']),
+                CmsPageLocale::create(['page_id' => $page->id, 'locale' => $locale, 'slug' => $l['slug'], 'draft_content' => $this->validateContent($l['content'], $type, $key),
                     'draft_updated_at' => now(), 'draft_updated_by' => $actorId]);
             }
             $this->audit->record('cms.page_created', category: AuditCategory::Admin, resource: $page, actorUserId: $actorId, metadata: ['key' => $key, 'type' => $type]);
@@ -68,7 +207,7 @@ class CmsService
      */
     public function saveDraft(CmsPage $page, string $locale, array $content, int $revision, ?string $slug, int $actorId): CmsPageLocale
     {
-        $content = $this->validateContent($content);
+        $content = $this->validateContent($content, $page->type, $page->key);
 
         return DB::transaction(function () use ($page, $locale, $content, $revision, $slug, $actorId) {
             $l = CmsPageLocale::where('page_id', $page->id)->where('locale', $locale)->lockForUpdate()->first();

@@ -117,7 +117,12 @@ class ErrorRecorder
 
     private function relativePath(string $path): string
     {
-        return Str::after($path, base_path().DIRECTORY_SEPARATOR);
+        $base = str_replace('\\', '/', base_path()).'/';
+        $normalized = str_replace('\\', '/', $path);
+
+        return str_starts_with($normalized, $base)
+            ? substr($normalized, strlen($base))
+            : $normalized;
     }
 
     private function currentUserId(): ?int

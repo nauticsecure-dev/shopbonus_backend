@@ -88,6 +88,9 @@ class OfferVersion extends Model
     public function summary(): string
     {
         $money = fn (int $minor) => '€'.number_format($minor / 100, 2, '.', '');
+        if ($this->discount_type === 'free_shipping') {
+            return 'Free shipping'.($this->min_order_minor ? ' from '.$money($this->min_order_minor) : '');
+        }
         $value = $this->discount_type === 'percentage'
             ? rtrim(rtrim(number_format($this->discount_value / 100, 2, '.', ''), '0'), '.').'%'
             : $money($this->discount_value);

@@ -22,16 +22,33 @@ class DashboardController extends Controller
 {
     public function __construct(private readonly MerchantAnalytics $analytics) {}
 
-    public function show(CurrentWorkspace $current, MerchantFunding $funding): JsonResponse
+    public function show(Request $request, CurrentWorkspace $current, MerchantFunding $funding): JsonResponse
     {
         $webshop = $current->webshop();
+        $filters = $request->validate([
+            'status' => ['sometimes', 'string', Rule::in(['all', 'active', 'paused', 'draft', 'ended', 'expired', 'scheduled', 'archived'])],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+        $status = ($filters['status'] ?? 'all') === 'all' ? null : $filters['status'];
+        $offers = $this->analytics->offers(
+            $webshop->id,
+            (int) ($filters['per_page'] ?? 10),
+            (int) ($filters['page'] ?? 1),
+            $status,
+        );
 
         return response()->json(['data' => [
             'webshop' => ['id' => $webshop->public_id, 'name' => $webshop->name, 'status' => $webshop->status->value],
             'greeting' => $this->greeting(),
             'kpis' => $this->analytics->kpis($webshop->id),
+            'connection_health' => $this->analytics->connectionHealth($webshop->id),
+            'recent_activity' => $this->analytics->recentActivity($webshop->id),
+            'quick_actions' => $this->analytics->quickActions($webshop->id),
+            'empty' => $this->analytics->isEmpty($webshop->id),
             'definitions' => MerchantAnalytics::DEFINITIONS,
-            'offers' => $this->analytics->offers($webshop->id),
+            'offers' => $offers['data'],
+            'offers_meta' => $offers['meta'],
             'notifications' => [
                 'unread' => MerchantNotification::where('webshop_id', $webshop->id)->whereNull('read_at')->count(),
                 'latest' => MerchantNotification::where('webshop_id', $webshop->id)->orderByDesc('id')->limit(5)->get()->map(fn ($n) => self::notification($n))->all(),
@@ -67,6 +84,30 @@ class DashboardController extends Controller
         $to = CarbonImmutable::parse($data['to'] ?? CarbonImmutable::now($tz)->format('Y-m-d'), $tz)->endOfDay();
 
         return response()->json(['data' => $this->analytics->overview($current->webshop(), $from->utc(), $to->utc()) + ['timezone' => $tz]]);
+    }
+
+    /** Chart drill-down: attributed paid orders for this workspace only (Trello #24 §6). */
+    public function attributionOrders(Request $request, CurrentWorkspace $current): JsonResponse
+    {
+        $data = $request->validate([
+            'from' => ['sometimes', 'date_format:Y-m-d'],
+            'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'type' => ['sometimes', Rule::in(['click', 'voucher', 'view', 'unattributed'])],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+        $tz = (string) config('shopbonus.business_timezone');
+        $from = CarbonImmutable::parse($data['from'] ?? CarbonImmutable::now($tz)->subDays(29)->format('Y-m-d'), $tz)->startOfDay();
+        $to = CarbonImmutable::parse($data['to'] ?? CarbonImmutable::now($tz)->format('Y-m-d'), $tz)->endOfDay();
+
+        return response()->json($this->analytics->attributionOrders(
+            $current->webshop(),
+            $from->utc(),
+            $to->utc(),
+            $data['type'] ?? null,
+            (int) ($data['per_page'] ?? 25),
+            (int) ($data['page'] ?? 1),
+        ) + ['timezone' => $tz, 'generated_at' => now()->toIso8601String()]);
     }
 
     public function notifications(Request $request, CurrentWorkspace $current): JsonResponse

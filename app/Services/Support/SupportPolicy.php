@@ -12,22 +12,94 @@ use Illuminate\Validation\Rule;
 
 final class SupportPolicy
 {
-    public const CODES = ['NO_UNVERIFIED_REFUND_PROMISE', 'NO_UNVERIFIED_RELEASE_DATE', 'BLOCK_GENERAL_ASSISTANT'];
+    public const CODES = ['NO_UNVERIFIED_REFUND_PROMISE', 'NO_UNVERIFIED_RELEASE_DATE', 'BLOCK_GENERAL_ASSISTANT', 'NO_REFUND_PROMISE'];
 
     public const ACTIONS = ['BLOCK', 'REWRITE', 'ESCALATE', 'REVIEW'];
 
     /** @return array<string, mixed> */
+    public static function defaults(): array
+    {
+        return [
+            'enabled' => false,
+            'model' => null,
+            'languages' => ['en', 'nl'],
+            'daily_request_limit' => 100,
+            'timeout_seconds' => 20,
+            'max_retry' => 1,
+            'restrictions' => [],
+            'default_language' => 'nl',
+            'tone' => 'friendly_professional',
+            'empathy' => 'balanced',
+            'answer_detail' => 'concise',
+            'target_answer_words' => 45,
+            'max_answer_words' => 120,
+            'max_clarification_questions' => 1,
+            'show_progress_updates' => true,
+            'show_verified_badge' => true,
+            'suggest_relevant_actions' => true,
+            'human_escalation' => 'enabled',
+            'reasoning_effort' => 'medium',
+            'text_verbosity' => 'low',
+            'max_output_tokens' => 1200,
+            'tool_choice' => 'required',
+            'parallel_tool_calls' => false,
+            'store' => false,
+            'stream' => false,
+            'response_deadline_ms' => 12000,
+            'progress_message_delay_ms' => 500,
+            'max_research_retries' => 1,
+            'max_function_rounds' => 3,
+            'daily_cost_limit_eur' => 20,
+            'fallback_model' => null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
     public static function rules(): array
     {
-        return ['value' => ['required', 'array:enabled,model,languages,daily_request_limit,timeout_seconds,max_retry,restrictions'],
-            'value.enabled' => ['required', 'boolean:strict'], 'value.model' => ['present', 'nullable', 'string', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
-            'value.languages' => ['required', 'array', 'list', 'min:1', 'max:2'], 'value.languages.*' => ['required', 'distinct', Rule::in(['en', 'nl'])],
-            'value.daily_request_limit' => ['required', 'integer:strict', 'between:0,1000'], 'value.timeout_seconds' => ['required', 'integer:strict', 'between:5,20'],
-            'value.max_retry' => ['required', 'integer:strict', 'in:0,1'], 'value.restrictions' => ['present', 'array', 'list', 'max:3'],
-            'value.restrictions.*' => ['required', 'array:rule_code,match_type,action,enabled'],
+        $allowed = implode(',', array_keys(self::defaults()));
+
+        return [
+            'value' => ['required', 'array:'.$allowed],
+            'value.enabled' => ['required', 'boolean:strict'],
+            'value.model' => ['present', 'nullable', 'string', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
+            'value.languages' => ['required', 'array', 'list', 'min:1', 'max:2'],
+            'value.languages.*' => ['required', 'distinct', Rule::in(['en', 'nl'])],
+            'value.daily_request_limit' => ['required', 'integer:strict', 'between:0,1000'],
+            'value.timeout_seconds' => ['required', 'integer:strict', 'between:5,20'],
+            'value.max_retry' => ['required', 'integer:strict', 'in:0,1'],
+            'value.restrictions' => ['present', 'array', 'list', 'max:8'],
+            'value.restrictions.*' => ['required', 'array'],
             'value.restrictions.*.rule_code' => ['required', 'distinct', Rule::in(self::CODES)],
-            'value.restrictions.*.match_type' => ['required', 'in:semantic_claim'], 'value.restrictions.*.action' => ['required', Rule::in(self::ACTIONS)],
-            'value.restrictions.*.enabled' => ['required', 'boolean:strict']];
+            'value.restrictions.*.match_type' => ['required', 'in:semantic_claim'],
+            'value.restrictions.*.action' => ['required', Rule::in(self::ACTIONS)],
+            'value.restrictions.*.enabled' => ['required', 'boolean:strict'],
+            'value.restrictions.*.scope' => ['sometimes', Rule::in(['ALL', 'CONSUMER', 'WORKSPACE'])],
+            'value.default_language' => ['sometimes', Rule::in(['en', 'nl'])],
+            'value.tone' => ['sometimes', Rule::in(['friendly_professional', 'warm', 'formal'])],
+            'value.empathy' => ['sometimes', Rule::in(['low', 'balanced', 'high'])],
+            'value.answer_detail' => ['sometimes', Rule::in(['brief', 'concise', 'detailed'])],
+            'value.target_answer_words' => ['sometimes', 'integer:strict', 'between:10,200'],
+            'value.max_answer_words' => ['sometimes', 'integer:strict', 'between:20,400'],
+            'value.max_clarification_questions' => ['sometimes', 'integer:strict', 'between:0,3'],
+            'value.show_progress_updates' => ['sometimes', 'boolean:strict'],
+            'value.show_verified_badge' => ['sometimes', 'boolean:strict'],
+            'value.suggest_relevant_actions' => ['sometimes', 'boolean:strict'],
+            'value.human_escalation' => ['sometimes', Rule::in(['enabled', 'disabled'])],
+            'value.reasoning_effort' => ['sometimes', Rule::in(['low', 'medium', 'high'])],
+            'value.text_verbosity' => ['sometimes', Rule::in(['low', 'medium', 'high'])],
+            'value.max_output_tokens' => ['sometimes', 'integer:strict', 'between:256,4000'],
+            'value.tool_choice' => ['sometimes', Rule::in(['required', 'auto', 'none'])],
+            'value.parallel_tool_calls' => ['sometimes', 'boolean:strict'],
+            'value.store' => ['sometimes', 'boolean:strict'],
+            'value.stream' => ['sometimes', 'boolean:strict'],
+            'value.response_deadline_ms' => ['sometimes', 'integer:strict', 'between:3000,30000'],
+            'value.progress_message_delay_ms' => ['sometimes', 'integer:strict', 'between:0,5000'],
+            'value.max_research_retries' => ['sometimes', 'integer:strict', 'in:0,1'],
+            'value.max_function_rounds' => ['sometimes', 'integer:strict', 'between:1,5'],
+            'value.daily_cost_limit_eur' => ['sometimes', 'numeric', 'between:0,1000'],
+            'value.fallback_model' => ['sometimes', 'nullable', 'string', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -35,12 +107,12 @@ final class SupportPolicy
     {
         $published = app(PlatformSettings::class)->published(false);
         $v = $published['values']['support.ai'] ?? [];
-        $p = array_merge(['enabled' => false, 'model' => null, 'languages' => ['en', 'nl'], 'daily_request_limit' => 100,
-            'timeout_seconds' => 20, 'max_retry' => 1, 'restrictions' => []], is_array($v) ? $v : []);
+        $p = array_merge(self::defaults(), is_array($v) ? $v : []);
         $p['enabled'] = config('support_ai.enabled') && $p['enabled'];
         $p['model'] ??= (string) config('support_ai.model');
         $p['daily_request_limit'] = max(0, min((int) config('support_ai.daily_request_limit'), $p['daily_request_limit'], 1000));
         $p['timeout_seconds'] = max(5, min((int) config('support_ai.timeout_seconds'), $p['timeout_seconds'], 20));
+        $p['max_retry'] = max(0, min(1, (int) ($p['max_research_retries'] ?? $p['max_retry'])));
         $p['version'] = $published['versions']['support.ai'] ?? 'default-disabled';
         $p['fingerprint'] = hash('sha256', json_encode($p, JSON_THROW_ON_ERROR));
 
@@ -51,10 +123,17 @@ final class SupportPolicy
     public function action(array $p, string $intent): ?string
     {
         $code = match ($intent) {
-            'escalate' => self::CODES[0], 'release_date' => self::CODES[1], 'unknown' => self::CODES[2], default => null
+            'escalate' => 'NO_UNVERIFIED_REFUND_PROMISE',
+            'release_date' => 'NO_UNVERIFIED_RELEASE_DATE',
+            'unknown' => 'BLOCK_GENERAL_ASSISTANT',
+            default => null,
         };
         foreach ($p['restrictions'] as $r) {
-            if ($r['enabled'] && $r['rule_code'] === $code) {
+            if (! ($r['enabled'] ?? false)) {
+                continue;
+            }
+            $rule = $r['rule_code'] ?? '';
+            if ($rule === $code || ($intent === 'release_date' && $rule === 'NO_REFUND_PROMISE') || ($intent === 'escalate' && $rule === 'NO_REFUND_PROMISE')) {
                 return $r['action'];
             }
         }

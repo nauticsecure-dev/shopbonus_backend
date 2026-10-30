@@ -14,6 +14,9 @@ Schedule::command('shopbonus:prune-webhook-payloads')->dailyAt('03:15')->without
 // Voucher claim windows (90-day Answer24 rule) and redemption validity.
 Schedule::command('shopbonus:expire-vouchers')->hourly()->withoutOverlapping();
 
+// Scheduled offers open, and active/paused/scheduled offers close, on their dates.
+Schedule::command('shopbonus:advance-offer-lifecycle')->everyMinute()->withoutOverlapping();
+
 // Answer24 one-hour grouping windows.
 Schedule::command('shopbonus:close-contact-windows')->everyMinute()->withoutOverlapping();
 
@@ -58,3 +61,7 @@ Schedule::command('shopbonus:recover-integration-order --drain')->everyMinute()-
 
 Schedule::command('shopbonus:sync-integration-orders --drain')->everyMinute()->withoutOverlapping();
 Schedule::command('shopbonus:sync-integration-orders --auto')->everyFiveMinutes()->withoutOverlapping();
+
+Schedule::command('shopbonus:sync-affiliates')->hourly()->withoutOverlapping();
+
+Schedule::command('shopbonus:enrich-merchants')->dailyAt('02:30')->when(fn () => (bool) config('enrichment.enabled'))->withoutOverlapping();

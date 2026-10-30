@@ -43,6 +43,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $cancelled_at
  * @property CarbonImmutable|null $refunded_at
  * @property string|null $attribution_click_id
+ * @property string $attribution_type
+ * @property int|null $referring_webshop_id
+ * @property bool $is_repeat_order
  * @property CarbonImmutable|null $provider_updated_at
  * @property int|null $last_webhook_event_id
  * @property CarbonImmutable $created_at
@@ -53,9 +56,9 @@ class WebshopOrder extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'customer_key', 'last_webhook_event_id', 'banner_assignment_id'];
+    protected $hidden = ['id', 'webshop_id', 'connection_id', 'customer_email_hash', 'customer_key', 'last_webhook_event_id', 'banner_assignment_id', 'referring_webshop_id'];
 
-    protected $attributes = ['refunded_minor' => 0, 'eligibility_status' => 'not_evaluated', 'contact_status' => 'not_evaluated', 'attribution_click_id' => null];
+    protected $attributes = ['refunded_minor' => 0, 'eligibility_status' => 'not_evaluated', 'contact_status' => 'not_evaluated', 'attribution_click_id' => null, 'attribution_type' => 'unattributed', 'is_repeat_order' => false];
 
     protected function casts(): array
     {
@@ -66,6 +69,7 @@ class WebshopOrder extends Model
             'customer_phone' => 'encrypted',
             'has_phone' => 'boolean',
             'contact_consent' => 'boolean',
+            'is_repeat_order' => 'boolean',
             'eligibility_reasons' => 'array',
             'amount_minor' => 'integer',
             'refunded_minor' => 'integer',

@@ -117,9 +117,10 @@ class AffiliateSync
         foreach ($programs as $p) {
             $program = AffiliateProgram::firstOrNew(['connection_id' => $connection->id, 'external_id' => $p->externalId]);
             $program->forceFill([
-                'name' => $p->name, 'domain' => $p->domain, 'active' => $p->active, 'commission_type' => $p->commissionType,
+                'name' => $p->name, 'domain' => $p->domain, 'merchant_url' => $p->merchantUrl, 'active' => $p->active, 'commission_type' => $p->commissionType,
                 'commission_value' => $p->commissionValue, 'currency' => $p->currency, 'category_restricted' => $p->categoryRestricted,
-                'cashback_allowed' => $p->cashbackAllowed, 'tracking_url_template' => $p->trackingUrlTemplate, 'last_seen_at' => now(),
+                'cashback_allowed' => $p->cashbackAllowed, 'tracking_url_template' => $p->trackingUrlTemplate,
+                'raw_evidence' => $p->rawEvidence, 'last_seen_at' => now(),
             ]);
             // Auto-match only on a domain the merchant proved they control (B03c); everything else is an admin decision.
             if ($program->webshop_id === null && $p->domain !== null) {

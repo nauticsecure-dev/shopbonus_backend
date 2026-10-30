@@ -13,7 +13,11 @@ Regressions: `AffiliateTest::test_increased_approved_commission_requires_review_
 
 [Actual synthetic source evidence and HTTP calls](B22_FINANCIAL_EVIDENCE.json) include session/password confirmation, rejected foreign-currency acceptance and authorized increased-commission acceptance. The deliberately corrupted wallet is a separate fixture from the affiliate-credit wallet, so authorization tests do not post new financial operations against the corrupted cache. Secrets/cookies/passwords were not published. No real provider, cash collection or revenue recognition is claimed.
 
-Still required: a durable whole-platform run/finding report, cross-source ownership/allocation/reversal/orphan checks, original-policy coverage reporting, queue/dependency evidence, database/security audit beyond these scoped fixes and encrypted backup/isolated restore. Points/EUR conversion and legacy missing evidence must never be guessed. The confirmed policy for new rewards is after network approval (owner D-089).
+Still required: provider cash settlement/revenue recognition, production-size restore drills, offsite backup acceptance, and external alert delivery. Points/EUR conversion and legacy missing evidence must never be guessed. The confirmed policy for new rewards is after network approval (owner D-089).
+
+## REL-DM-001 — direct-merchant conversions omitted from reconciliation (high, fixed 2026-10-30)
+
+Direct-merchant credits wrote typed `direct_merchant` ledger rows and `MerchantCommissionConversion` evidence, but `FinancialSources` had no source model for them. Ledger scans therefore classified valid credits as UNKNOWN `untyped_credit_source`. Fix: add `direct_merchant` to `FinancialSources::MODELS`, inspect splits/snapshots/duplicates/reversals, treat ledger orphans as discrepancies, and start new runs at `scope_version` 3. Ledger `source_ref` for new credits is the conversion `public_id`. Regressions: `PlatformReliabilityE2ETest` scenarios 03/07/09.
 
 ## B22-F005 — zero commission left a false pending state (medium, fixed 2026-10-28)
 

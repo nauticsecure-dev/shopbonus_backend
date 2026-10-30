@@ -15,15 +15,30 @@ use Illuminate\Support\Facades\DB;
 class AffiliateActivityController extends Controller
 {
     private const EXPLAIN = [
-        'pending' => 'The webshop has not confirmed this purchase yet. Your reward is pending and cannot be spent yet.',
-        'approved' => 'The purchase was confirmed.',
-        'rejected' => 'The webshop did not confirm this purchase (for example a return or cancellation).',
-        'reversed' => 'The purchase was later cancelled.',
-        'tracked' => 'We received a signal of this purchase and are waiting for the network\'s details.',
+        'nl' => [
+            'pending' => 'De webshop heeft deze aankoop nog niet bevestigd. Je beloning staat in behandeling en is nog niet besteedbaar.',
+            'approved' => 'De aankoop is bevestigd.',
+            'rejected' => 'De webshop heeft deze aankoop niet bevestigd (bijvoorbeeld een retour of annulering).',
+            'reversed' => 'De aankoop is later geannuleerd.',
+            'tracked' => 'We hebben een signaal van deze aankoop ontvangen en wachten op de netwerkdetails.',
+        ],
+        'en' => [
+            'pending' => 'The webshop has not confirmed this purchase yet. Your reward is pending and cannot be spent yet.',
+            'approved' => 'The purchase was confirmed.',
+            'rejected' => 'The webshop did not confirm this purchase (for example a return or cancellation).',
+            'reversed' => 'The purchase was later cancelled.',
+            'tracked' => 'We received a signal of this purchase and are waiting for the network\'s details.',
+        ],
     ];
 
     public function index(Request $request): JsonResponse
     {
+        $locale = in_array($request->user()->locale ?? 'nl', ['nl', 'en'], true) ? ($request->user()->locale ?? 'nl') : 'nl';
+        if (in_array($request->query('locale'), ['nl', 'en'], true)) {
+            $locale = $request->query('locale');
+        }
+        $explain = self::EXPLAIN[$locale];
+
         $page = AffiliateTransaction::where('user_id', $request->user()->id)->whereNotIn('status', ['disputed', 'unmatched'])
             ->orderByDesc('transaction_at')->paginate(25);
         $names = DB::table('webshops')->whereIn('id', collect($page->items())->pluck('webshop_id'))->pluck('name', 'id');
@@ -36,10 +51,13 @@ class AffiliateActivityController extends Controller
                 'order_amount_minor' => $t->order_amount_minor,
                 'currency' => $t->currency,
                 'status' => $t->status,
-                'explanation' => self::EXPLAIN[$t->status] ?? null,
+                'explanation' => $explain[$t->status] ?? null,
                 'reward' => $t->reward_amount === null ? null : ['amount' => $t->reward_amount, 'unit' => $t->reward_unit, 'status' => $t->reward_status],
             ])->all(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+            'notice' => $locale === 'nl'
+                ? 'Beloningen hangen af van goedgekeurde, bevestigde aankopen. Pending tegoed is niet besteedbaar.'
+                : 'Rewards depend on eligible, confirmed purchases. Pending credit is not spendable.',
         ]);
     }
 }

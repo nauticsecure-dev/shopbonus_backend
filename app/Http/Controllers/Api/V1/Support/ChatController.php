@@ -27,7 +27,7 @@ class ChatController extends Controller
         $data = $r->validate(['message' => ['required', 'string', 'max:2000'], 'conversation_id' => ['sometimes', 'nullable', 'ulid'],
             'workspace_id' => ['sometimes', 'nullable', 'ulid'], 'reference' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[a-zA-Z0-9._-]+$/D'],
             'locale' => ['sometimes', Rule::in(['en', 'nl'])],
-            'current_page' => ['sometimes', 'nullable', 'string', 'max:200', 'regex:#^/(?:app(?:/[a-zA-Z0-9/_-]*)?|mijn-voordelen|profiel|webshops(?:/[a-zA-Z0-9/_-]*)?)$#D'],
+            'current_page' => ['sometimes', 'nullable', 'string', 'max:200', 'regex:#^/(?:app(?:/[a-zA-Z0-9/_-]*)?|dashboard(?:/[a-zA-Z0-9/_-]*)?|mijn-voordelen|profiel|webshops(?:/[a-zA-Z0-9/_-]*)?)$#D'],
             'user_id' => ['prohibited'], 'role' => ['prohibited'], 'allowed_tools' => ['prohibited']]);
         $key = validator(['key' => $r->header('Idempotency-Key')], ['key' => ['required', 'uuid']])->validate()['key'];
         $m = $chat->submit($r->user(), $data, $key)->fresh();

@@ -25,6 +25,7 @@ class DirectMerchantCashback
     public function __construct(
         private readonly WalletService $wallets,
         private readonly AuditLogger $audit,
+        private readonly RewardSourceGuard $sources,
     ) {}
 
     /**
@@ -52,6 +53,17 @@ class DirectMerchantCashback
         }
         if ($dup = MerchantCommissionConversion::where('webshop_id', $webshop->id)->where('external_id', $data['external_id'])->lockForUpdate()->first()) {
             return $dup;
+        }
+
+        if ($conflict = $this->sources->assertDirectAllowed($webshop->id, $data['external_id'])) {
+            return MerchantCommissionConversion::create([
+                'webshop_id' => $webshop->id, 'user_id' => $consumer->id, 'agreement_id' => null,
+                'external_id' => $data['external_id'], 'idempotency_key' => $idempotencyKey,
+                'order_amount_minor' => $data['order_amount_minor'], 'commission_minor' => 0, 'consumer_credit_minor' => 0,
+                'shopbonus_revenue_minor' => 0, 'currency' => strtoupper($data['currency'] ?? 'EUR'), 'status' => 'exception',
+                'exception_reason' => $conflict, 'agreement_snapshot' => [],
+                'converted_at' => $data['converted_at'] ?? CarbonImmutable::now(),
+            ]);
         }
 
         $currency = strtoupper($data['currency'] ?? 'EUR');
@@ -101,19 +113,14 @@ class DirectMerchantCashback
 
         $consumerCredit = $agreement->consumerCreditFor($commission);
         $platform = $commission - $consumerCredit;
-        $wallet = $this->wallets->consumerWallet($consumer, WalletUnit::EurCredit);
-        $entry = $this->wallets->credit($wallet, $consumerCredit, 'direct-merchant:'.$idempotencyKey, meta: [
-            'source_type' => 'direct_merchant',
-            'source_ref' => $data['external_id'],
-            'reason' => 'Direct merchant cashback — '.$webshop->name,
-        ]);
-
+        // Create the conversion identity first so the append-only ledger can reference public_id
+        // (same pattern as affiliate). wallet_entry_id is filled after the credit in this transaction.
         $row = MerchantCommissionConversion::create([
             'webshop_id' => $webshop->id, 'user_id' => $consumer->id, 'agreement_id' => $agreement->id,
             'external_id' => $data['external_id'], 'idempotency_key' => $idempotencyKey,
             'order_amount_minor' => $data['order_amount_minor'], 'commission_minor' => $commission,
             'consumer_credit_minor' => $consumerCredit, 'shopbonus_revenue_minor' => $platform,
-            'currency' => $currency, 'status' => 'credited', 'wallet_entry_id' => $entry->id,
+            'currency' => $currency, 'status' => 'credited', 'wallet_entry_id' => null,
             'agreement_snapshot' => $agreement->evidence() + [
                 'merchant' => $webshop->name,
                 'consumer_credit_minor' => $consumerCredit,
@@ -122,6 +129,13 @@ class DirectMerchantCashback
             ],
             'converted_at' => $at,
         ]);
+        $wallet = $this->wallets->consumerWallet($consumer, WalletUnit::EurCredit);
+        $entry = $this->wallets->credit($wallet, $consumerCredit, 'direct-merchant:'.$idempotencyKey, meta: [
+            'source_type' => 'direct_merchant',
+            'source_ref' => $row->public_id,
+            'reason' => 'Direct merchant cashback — '.$webshop->name,
+        ]);
+        $row->forceFill(['wallet_entry_id' => $entry->id])->save();
 
         $this->audit->record('cashback.direct_merchant_credited', category: AuditCategory::Financial, resource: $row, actorUserId: $consumer->id, webshopId: $webshop->id,
             metadata: ['commission_minor' => $commission, 'consumer_credit_minor' => $consumerCredit, 'ledger' => $entry->public_id]);

@@ -106,7 +106,9 @@ class RecoveryTest extends TestCase
     {
         config(['recovery.enabled' => false]);
         $this->artisan('shopbonus:backup')->assertFailed();
-        symlink($this->database, $this->media.'/linked');
+        if (! @symlink($this->database, $this->media.'/linked')) {
+            $this->markTestSkipped('Symlinks require elevated privileges or Developer Mode on Windows.');
+        }
         $this->expectException(RuntimeException::class);
         app(Backups::class)->create();
     }

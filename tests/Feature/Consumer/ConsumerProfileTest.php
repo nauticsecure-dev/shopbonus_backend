@@ -276,7 +276,7 @@ class ConsumerProfileTest extends TestCase
         $this->assertSame(['pets', 'sports_outdoor'], $this->getJson('/api/v1/consumer/preferences')->json('data.categories'));
         $vouchers = $this->getJson('/api/v1/consumer/vouchers')->assertOk()->json('data');
         $this->assertCount(1, $vouchers);
-        $this->assertSame(['issued', '••••0001', 'Fietsen Utrecht'], [$vouchers[0]['status'], $vouchers[0]['code_masked'], $vouchers[0]['webshop']['name']]);
+        $this->assertSame(['ACTIVE', '••••0001', 'Fietsen Utrecht'], [$vouchers[0]['status'], $vouchers[0]['code_masked'], $vouchers[0]['webshop']['name']]);
         $this->assertSame('ANNA-0001', $this->getJson('/api/v1/consumer/vouchers/'.$vouchers[0]['id'])->json('data.code'));
 
         $dashboard = $this->getJson('/api/v1/consumer/dashboard')->assertOk();

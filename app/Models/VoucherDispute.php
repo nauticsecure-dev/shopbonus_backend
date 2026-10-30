@@ -19,6 +19,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $checkout_id
  * @property string $reason
  * @property string $description
+ * @property string|null $screenshot_path
+ * @property string|null $screenshot_mime
+ * @property int|null $screenshot_bytes
  * @property string $status
  * @property string|null $compensation
  * @property int|null $compensation_amount_minor
@@ -40,7 +43,7 @@ class VoucherDispute extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'user_id', 'webshop_id', 'voucher_id', 'checkout_id', 'resolved_by', 'open_key'];
+    protected $hidden = ['id', 'user_id', 'webshop_id', 'voucher_id', 'checkout_id', 'resolved_by', 'open_key', 'screenshot_path', 'screenshot_mime', 'screenshot_bytes'];
 
     protected function casts(): array
     {

@@ -5,7 +5,9 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CatalogCapable;
 use App\Integrations\Contracts\PagedOrderReader;
+use App\Integrations\Data\CapabilityState;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
@@ -29,7 +31,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store (no test store available).
  */
-class WooCommerceConnector extends WebhookConnector implements PagedOrderReader
+class WooCommerceConnector extends WebhookConnector implements CatalogCapable, PagedOrderReader
 {
     public const ORDER_TOPICS = ['order.created', 'order.updated', 'order.restored'];
 
@@ -282,5 +284,151 @@ class WooCommerceConnector extends WebhookConnector implements PagedOrderReader
         }
 
         return ['ids' => $ids, 'next' => count($ids) === 25 && ($result['pages'] === 0 || $page < $result['pages']) ? (string) ($page + 1) : null];
+    }
+
+    /** @return array<string, array{state: CapabilityState, reason: ?string, last_verified_at: ?string}> */
+    public function getCapabilities(WebshopConnection $connection): array
+    {
+        $read = $connection->credential('consumer_key') !== null && $connection->credential('consumer_secret') !== null;
+
+        return [
+            'orders' => ['state' => CapabilityState::Available, 'reason' => null, 'last_verified_at' => null],
+            'payments' => ['state' => CapabilityState::Available, 'reason' => null, 'last_verified_at' => null],
+            'refunds' => ['state' => CapabilityState::Available, 'reason' => null, 'last_verified_at' => null],
+            'products' => ['state' => $read ? CapabilityState::Available : CapabilityState::Limited, 'reason' => $read ? null : 'Read-only REST credentials required for product sync.', 'last_verified_at' => null],
+            'categories' => ['state' => $read ? CapabilityState::Limited : CapabilityState::Unsupported, 'reason' => 'Categories are derived from product payloads when present.', 'last_verified_at' => null],
+            'coupons_read' => ['state' => $read ? CapabilityState::Available : CapabilityState::Limited, 'reason' => $read ? null : 'Read-only REST credentials required for coupon sync.', 'last_verified_at' => null],
+            'coupons_write' => ['state' => CapabilityState::Unsupported, 'reason' => 'Coupon writes are out of scope.', 'last_verified_at' => null],
+            'banner_embed' => ['state' => CapabilityState::Limited, 'reason' => 'Manual WordPress embed; native publication not implemented.', 'last_verified_at' => null],
+            'webhooks' => ['state' => CapabilityState::Available, 'reason' => null, 'last_verified_at' => null],
+            'backfill' => ['state' => $read ? CapabilityState::Available : CapabilityState::Limited, 'reason' => null, 'last_verified_at' => null],
+        ];
+    }
+
+    public function getProducts(WebshopConnection $connection, ?string $cursor = null): array
+    {
+        $page = $cursor === null ? 1 : (int) $cursor;
+        if ($page < 1) {
+            throw new InvalidArgumentException('Invalid product cursor.');
+        }
+        $result = $this->readPage($connection, 'products', $page, 50);
+        $items = [];
+        foreach ($result['data'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $currency = is_string($row['currency'] ?? null) && Money::isCurrency($row['currency']) ? $row['currency'] : 'EUR';
+            $price = null;
+            try {
+                if (is_string($row['price'] ?? null) && $row['price'] !== '') {
+                    $price = Money::toMinor($row['price'], $currency);
+                }
+            } catch (InvalidArgumentException) {
+                $price = null;
+            }
+            $image = is_array($row['images'][0] ?? null) ? ($row['images'][0]['src'] ?? null) : null;
+            $cats = [];
+            foreach (is_array($row['categories'] ?? null) ? $row['categories'] : [] as $cat) {
+                if (is_array($cat) && is_string($cat['name'] ?? null)) {
+                    $cats[] = $cat['name'];
+                }
+            }
+            $items[] = [
+                'external_product_id' => (string) $row['id'],
+                'sku' => is_string($row['sku'] ?? null) ? $row['sku'] : null,
+                'name' => is_string($row['name'] ?? null) ? $row['name'] : null,
+                'description' => is_string($row['short_description'] ?? null) ? strip_tags($row['short_description']) : null,
+                'product_url' => is_string($row['permalink'] ?? null) ? $row['permalink'] : null,
+                'image_url' => is_string($image) ? $image : null,
+                'category' => $cats[0] ?? null,
+                'price_minor' => $price,
+                'currency' => $currency,
+                'availability' => is_string($row['stock_status'] ?? null) ? $row['stock_status'] : null,
+                'updated_at' => is_string($row['date_modified_gmt'] ?? null) ? $row['date_modified_gmt'] : null,
+            ];
+        }
+
+        $next = count($result['data']) === 50 && ($result['pages'] === 0 || $page < $result['pages'])
+            ? (string) ($page + 1) : null;
+
+        return ['items' => $items, 'cursor' => $next, 'exhausted' => $next === null];
+    }
+
+    public function getCategories(WebshopConnection $connection): array
+    {
+        // Woo product categories require an extra resource; keep LIMITED: derive empty until dedicated endpoint is authorised.
+        return [];
+    }
+
+    public function getCoupons(WebshopConnection $connection, ?string $cursor = null): array
+    {
+        $page = $cursor === null ? 1 : (int) $cursor;
+        if ($page < 1) {
+            throw new InvalidArgumentException('Invalid coupon cursor.');
+        }
+        $result = $this->readPage($connection, 'coupons', $page, 50);
+        $items = [];
+        foreach ($result['data'] as $row) {
+            if (! is_array($row) || ! is_string($row['code'] ?? null)) {
+                continue;
+            }
+            $items[] = [
+                'external_coupon_id' => (string) ($row['id'] ?? ''),
+                'code' => $row['code'],
+                'discount_type' => is_string($row['discount_type'] ?? null) ? $row['discount_type'] : null,
+                'discount_value' => is_string($row['amount'] ?? null) ? $row['amount'] : null,
+                'minimum_spend' => is_string($row['minimum_amount'] ?? null) ? $row['minimum_amount'] : null,
+                'excluded_categories' => is_array($row['excluded_product_categories'] ?? null) ? $row['excluded_product_categories'] : [],
+                'start_at' => is_string($row['date_created_gmt'] ?? null) ? $row['date_created_gmt'] : null,
+                'end_at' => is_string($row['date_expires_gmt'] ?? null) ? $row['date_expires_gmt'] : null,
+                'usage_limits' => [
+                    'usage_limit' => $row['usage_limit'] ?? null,
+                    'usage_limit_per_user' => $row['usage_limit_per_user'] ?? null,
+                    'usage_count' => $row['usage_count'] ?? null,
+                ],
+                'stacking_rules' => ['individual_use' => (bool) ($row['individual_use'] ?? false)],
+                'status' => is_string($row['status'] ?? null) ? $row['status'] : 'publish',
+            ];
+        }
+        $next = count($result['data']) === 50 && ($result['pages'] === 0 || $page < $result['pages'])
+            ? (string) ($page + 1) : null;
+
+        return ['items' => $items, 'cursor' => $next, 'exhausted' => $next === null];
+    }
+
+    public function getRefunds(WebshopConnection $connection, string $orderId): array
+    {
+        $order = $this->fetchOrder($connection, $orderId);
+
+        return is_array($order['refunds'] ?? null) ? $order['refunds'] : [];
+    }
+
+    public function publishBanner(WebshopConnection $connection, array $banner): array
+    {
+        return [
+            'ok' => false,
+            'method' => 'manual_embed',
+            'external_ref' => null,
+            'notice' => 'Native WordPress publication is not implemented. Use the approved ShopBonus embed snippet.',
+        ];
+    }
+
+    public function unpublishBanner(WebshopConnection $connection, string $externalRef): array
+    {
+        return [
+            'ok' => false,
+            'method' => 'manual_embed',
+            'notice' => 'Remove the manual embed from the storefront. Native unpublish is unsupported.',
+        ];
+    }
+
+    public function getSyncHealth(WebshopConnection $connection): array
+    {
+        return [
+            'healthy' => $connection->last_error_code === null && $connection->credentials !== null,
+            'last_success_at' => $connection->last_verified_order_at,
+            'lag_seconds' => $connection->last_event_at === null ? null : max(0, now()->diffInSeconds($connection->last_event_at)),
+            'error' => $connection->last_error_code,
+        ];
     }
 }

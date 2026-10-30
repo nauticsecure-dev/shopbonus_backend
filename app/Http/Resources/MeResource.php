@@ -32,9 +32,11 @@ class MeResource extends JsonResource
             'email' => $user->email,
             'email_verified' => $user->email_verified_at !== null,
             'status' => $user->status->value,
+            // Primary role: consumer | merchant (from signup) | super_admin (console only).
+            'role' => $user->accountRole()->value,
             'onboarding_intent' => $user->onboarding_intent->value,
             'locale' => $user->preferredLocale(),
-            // Server-owned platform roles and active workspace memberships.
+            // Platform roles only (today: super_admin). Never granted via public registration.
             'roles' => $user->platformRoles()->whereNull('revoked_at')->pluck('role')->map->value->values()->all(),
             'workspaces' => $user->memberships()
                 ->where('status', MembershipStatus::Active)

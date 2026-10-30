@@ -173,7 +173,7 @@ class SessionTest extends TestCase
         $data = $this->getJson('/api/v1/me')->assertOk()->json('data');
 
         $this->assertSame(
-            ['id', 'first_name', 'email', 'email_verified', 'status', 'onboarding_intent', 'locale', 'roles', 'workspaces', 'destination', 'two_factor_enabled', 'support_session'],
+            ['id', 'first_name', 'email', 'email_verified', 'status', 'role', 'onboarding_intent', 'locale', 'roles', 'workspaces', 'destination', 'two_factor_enabled', 'support_session'],
             array_keys($data),
         );
         $this->assertSame($user->public_id, $data['id']);

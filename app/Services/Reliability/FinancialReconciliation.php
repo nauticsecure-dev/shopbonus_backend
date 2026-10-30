@@ -31,8 +31,9 @@ class FinancialReconciliation
             $sources[$type] = ['max' => (int) $model::max('id'), 'cursor' => 0, 'checked' => 0, 'done' => false];
         }
 
+        // scope_version 3 adds first-class direct_merchant conversion checks. Older runs keep their original source_state.
         return FinancialReconciliationRun::firstOrCreate(['run_key' => $key], ['wallet_watermark' => (int) Wallet::max('id'),
-            'scope_version' => 2, 'source_state' => $sources]);
+            'scope_version' => 3, 'source_state' => $sources]);
     }
 
     /** Process at most $limit wallets; cursor and immutable proof commit together. */
@@ -102,6 +103,10 @@ class FinancialReconciliation
     {
         $state = $run->source_state ?? [];
         foreach (FinancialSources::MODELS as $type => $model) {
+            // Older scope runs omit newer source types; never invent watermarks mid-flight.
+            if (! isset($state[$type])) {
+                continue;
+            }
             $part = $state[$type];
             if ($part['done']) {
                 continue;

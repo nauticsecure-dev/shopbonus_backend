@@ -128,7 +128,7 @@ class EmailVerificationCodes
             return null;
         });
 
-        if ($failure !== null) {
+        if ( $failure !== null) {
             $this->audit->recordSafely(
                 action: 'identity.verification_code_failed',
                 outcome: AuditOutcome::Failure,

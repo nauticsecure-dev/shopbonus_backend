@@ -63,11 +63,60 @@ class Operations
         });
         $components['incidents'] = $this->safe(fn () => ['status' => SecurityIncident::whereNotIn('status', ['resolved', 'ignored'])->exists() ? 'WARNING' : 'UNKNOWN',
             'open' => SecurityIncident::whereNotIn('status', ['resolved', 'ignored'])->count()]);
+        $components['security'] = $this->safe(function () {
+            $open = SecurityIncident::whereNotIn('status', ['resolved', 'ignored']);
+            $critical = (clone $open)->where('severity', 'critical')->count();
+            $high = (clone $open)->where('severity', 'high')->count();
+            $total = (clone $open)->count();
+
+            return [
+                'status' => $critical > 0 ? 'CRITICAL' : ($high > 0 ? 'WARNING' : ($total > 0 ? 'WARNING' : 'UNKNOWN')),
+                'open_critical' => $critical,
+                'open_high' => $high,
+                'open_total' => $total,
+                'definition' => 'Open security/monitoring incidents. Absence of open rows is UNKNOWN, not HEALTHY — silent collectors are not proof of safety.',
+            ];
+        });
         $components['backups'] = $this->safe(fn () => app(Backups::class)->status());
+        $components['acceptance_metrics'] = $this->safe(fn () => $this->acceptanceMetrics());
 
         return ['observed_at' => now()->toIso8601String(), 'components' => $components,
-            'links' => ['monitoring' => '/api/v1/admin/monitoring', 'incidents' => '/api/v1/admin/incidents', 'financial' => '/api/v1/admin/reconciliation'],
+            'links' => [
+                'monitoring' => '/api/v1/admin/monitoring',
+                'incidents' => '/api/v1/admin/incidents',
+                'financial' => '/api/v1/admin/reconciliation',
+                'audit' => '/api/v1/admin/activity',
+                'cockpit' => '/api/v1/admin/cockpit',
+            ],
             'limits' => 'Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof.'];
+    }
+
+    /** Compact acceptance counters for Super Admin ops; never invent HEALTHY from missing samples. */
+    private function acceptanceMetrics(): array
+    {
+        $run = FinancialReconciliationRun::latest('id')->first();
+        $api = app(ApiMonitoring::class)->report();
+        $backups = app(Backups::class)->status();
+        $failedJobs = (int) DB::table('failed_jobs')->count();
+        $openCritical = SecurityIncident::whereNotIn('status', ['resolved', 'ignored'])->where('severity', 'critical')->count();
+        $apiState = $api['state'] ?? 'UNKNOWN';
+
+        return [
+            'status' => ($run !== null && $run->discrepancies > 0) || $openCritical > 0
+                || (($backups['status'] ?? null) === 'CRITICAL') || $apiState === 'CRITICAL' ? 'CRITICAL'
+                : (($failedJobs > 0 || $apiState === 'WARNING') ? 'WARNING' : 'UNKNOWN'),
+            'ledger_discrepancy_count' => $run?->discrepancies,
+            'reconciliation_run' => $run?->public_id,
+            'reconciliation_elapsed_including_scheduling_ms' => $run === null ? null
+                : max(0, (int) $run->created_at->diffInMilliseconds($run->completed_at ?? now())),
+            'critical_api_status' => $apiState,
+            'failed_queue_jobs' => $failedJobs,
+            'open_critical_security_findings' => $openCritical,
+            'backup_status' => $backups['status'] ?? 'UNKNOWN',
+            'backup_success_pct_30d' => $backups['backup_success_percent_30d'] ?? null,
+            'last_verified_restore_at' => $backups['last_verified_restore_at'] ?? null,
+            'definition' => 'Observed counters only. Duplicate financial detection is per-source in reconciliation evidence; P95 lives under api monitoring.',
+        ];
     }
 
     public function observe(): void

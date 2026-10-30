@@ -11,12 +11,16 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Daisycon publisher API (REST + OAuth bearer token).
+ * Daisycon publisher API (REST + OAuth 2.1 bearer token).
  *
- * NOT VERIFIED: endpoint paths and field names follow Daisycon's public
- * publisher API documentation as understood on 2026-10-23, but no account
- * or sandbox was available. Verify per docs/integrations/VERIFICATION.md
- * before enabling production sync (OPEN-PROVIDER-CAPABILITIES).
+ * Paths follow Daisycon's publisher FAQ examples (2025–2026):
+ *   GET /publisher/{publisher-id}/programs
+ *   GET /publisher/{publisher-id}/transactions?start=&end=&page=&per_page=
+ * Live: https://services.daisycon.com — Sandbox: https://services-sandbox.daisycon.com
+ *
+ * NOT VERIFIED against a live publisher account. Store a valid OAuth access
+ * token (refresh handled outside this adapter until OPEN-PROVIDER-CAPABILITIES).
+ * Verify per docs/integrations/VERIFICATION.md before production sync.
  */
 class DaisyconAdapter extends BaseAffiliateAdapter
 {
@@ -29,13 +33,18 @@ class DaisyconAdapter extends BaseAffiliateAdapter
 
     public function credentialRules(): array
     {
-        return ['publisher_id' => ['required', 'string', 'max:32', 'regex:/^\d+$/'], 'access_token' => ['required', 'string', 'max:2000'], 'media_id' => ['required', 'string', 'max:32']];
+        return [
+            'publisher_id' => ['required', 'string', 'max:32', 'regex:/^\d+$/'],
+            'access_token' => ['required', 'string', 'max:4000'],
+            'media_id' => ['required', 'string', 'max:32'],
+            'refresh_token' => ['sometimes', 'nullable', 'string', 'max:4000'],
+        ];
     }
 
     public function testConnection(AffiliateConnection $connection): array
     {
         try {
-            $response = $this->client($connection)->get('/publishers/'.$connection->credentials['publisher_id'].'/programs', ['per_page' => 1]);
+            $response = $this->client($connection)->get($this->publisherPath($connection, 'programs'), ['per_page' => 1]);
         } catch (ConnectionException) {
             return ['ok' => false, 'status' => 'error', 'error' => 'connection_failed'];
         }
@@ -49,18 +58,31 @@ class DaisyconAdapter extends BaseAffiliateAdapter
 
     public function fetchPrograms(AffiliateConnection $connection): array
     {
-        $rows = $this->client($connection)->get('/publishers/'.$connection->credentials['publisher_id'].'/programs', ['media_id' => $connection->credentials['media_id'], 'per_page' => 1000])->throw()->json() ?? [];
+        $rows = $this->client($connection)->get($this->publisherPath($connection, 'programs'), [
+            'media_id' => $connection->credentials['media_id'],
+            'per_page' => 1000,
+        ])->throw()->json() ?? [];
 
-        return array_map(fn (array $row) => $this->normalizeProgram($row), $rows);
+        return array_map(fn (array $row) => $this->normalizeProgram($row), is_array($rows) ? $rows : []);
     }
 
     public function fetchTransactions(AffiliateConnection $connection, ?CarbonImmutable $since): array
     {
-        $rows = $this->client($connection)->get('/publishers/'.$connection->credentials['publisher_id'].'/transactions', [
-            'start' => ($since ?? CarbonImmutable::now()->subDays(90))->format('Y-m-d'), 'per_page' => 1000,
+        $start = ($since ?? CarbonImmutable::now()->subDays(90))->format('Y-m-d');
+        $end = CarbonImmutable::now()->format('Y-m-d');
+        $rows = $this->client($connection)->get($this->publisherPath($connection, 'transactions'), [
+            'start' => $start,
+            'end' => $end,
+            'page' => 1,
+            'per_page' => 1000,
         ])->throw()->json() ?? [];
 
-        return array_map(fn (array $row) => $this->normalizeTransaction($row), $rows);
+        return array_map(fn (array $row) => $this->normalizeTransaction($row), is_array($rows) ? $rows : []);
+    }
+
+    private function publisherPath(AffiliateConnection $connection, string $resource): string
+    {
+        return '/publisher/'.$connection->credentials['publisher_id'].'/'.$resource;
     }
 
     public function normalizeProgram(array $raw): AffiliateProgramData
@@ -79,6 +101,8 @@ class DaisyconAdapter extends BaseAffiliateAdapter
             categoryRestricted: (bool) ($commission['restricted'] ?? false),
             cashbackAllowed: (bool) ($raw['cashback_allowed'] ?? false),
             trackingUrlTemplate: (string) ($raw['tracking_url'] ?? '').'&ws={click_ref}',
+            merchantUrl: isset($raw['url']) ? (string) $raw['url'] : null,
+            rawEvidence: $raw,
         );
     }
 

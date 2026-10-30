@@ -22,7 +22,9 @@ use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
@@ -142,12 +144,34 @@ class VoucherDisputeTest extends TestCase
         $this->postJson($this->ws('/vouchers/redeem'), ['code' => 'X'])->assertForbidden();
     }
 
+    public function test_code_does_not_work_accepts_screenshot_once_and_serves_it_privately(): void
+    {
+        Storage::fake('local');
+        $v = $this->issued();
+        Sanctum::actingAs($this->anna);
+        $file = UploadedFile::fake()->image('checkout-error.png', 640, 480);
+
+        $id = $this->post('/api/v1/consumer/disputes', [
+            'voucher_id' => $v->public_id,
+            'reason' => 'code_invalid',
+            'description' => 'Code rejected at checkout with this screenshot.',
+            'screenshot' => $file,
+        ], ['Accept' => 'application/json'])->assertCreated()
+            ->assertJsonPath('data.status', 'open')
+            ->assertJsonPath('data.has_screenshot', true)
+            ->json('data.id');
+
+        $this->get("/api/v1/consumer/disputes/{$id}/screenshot")->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        Sanctum::actingAs(User::factory()->create());
+        $this->get("/api/v1/consumer/disputes/{$id}/screenshot")->assertNotFound();
+    }
+
     public function test_card20_e2e9_dispute_review_and_wallet_compensation_once(): void
     {
         $v = $this->issued();
         Sanctum::actingAs($this->anna);
         $id = $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'code_invalid', 'description' => 'The webshop says the code does not exist.'])
-            ->assertCreated()->assertJsonPath('data.status', 'open')->json('data.id');
+            ->assertCreated()->assertJsonPath('data.status', 'open')->assertJsonPath('data.has_screenshot', false)->json('data.id');
         $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'other', 'description' => 'Second report about the same'])->assertStatus(409);
 
         $this->asAdmin();

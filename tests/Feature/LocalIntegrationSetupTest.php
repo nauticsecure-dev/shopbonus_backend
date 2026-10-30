@@ -48,7 +48,9 @@ class LocalIntegrationSetupTest extends TestCase
         $this->assertSame(0, $exit, Artisan::output());
         $file = $this->scratch.'/app/private/local-integration/credentials.json';
         $manifest = json_decode(file_get_contents($file), true);
-        $this->assertSame(0600, fileperms($file) & 0777);
+        if (PHP_OS_FAMILY !== 'Windows') {
+            $this->assertSame(0600, fileperms($file) & 0777);
+        }
         $this->assertSame(4, User::count());
         $this->assertSame(10, VoucherCode::count());
         $this->assertTrue(User::where('email', $manifest['accounts']['admin']['email'])->sole()->isSuperAdmin());

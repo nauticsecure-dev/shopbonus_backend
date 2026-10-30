@@ -167,6 +167,8 @@ class TradeTrackerAdapter extends BaseAffiliateAdapter
             categoryRestricted: (bool) ($info['commission']['categoryRestricted'] ?? false),
             cashbackAllowed: in_array($info['policyCashbackStatus'] ?? null, ['allowed', true], true),
             trackingUrlTemplate: $this->trackingTemplate((string) ($info['trackingURL'] ?? ''), 'r'),
+            merchantUrl: isset($raw['URL']) ? (string) $raw['URL'] : null,
+            rawEvidence: $raw,
         );
     }
 

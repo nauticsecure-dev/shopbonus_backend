@@ -4,7 +4,6 @@ namespace App\Services\Checkout;
 
 use App\Enums\AuditCategory;
 use App\Enums\OfferAcquisition;
-use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
@@ -52,7 +51,16 @@ class CheckoutService
     /**
      * Server-side price and split. Never mutates anything.
      *
-     * @return array{price_minor: int, currency: string, wallet_available: int, wallet_part_minor: int, payment_part_minor: int, blockers: list<string>}
+     * @return array{
+     *   price_minor: int,
+     *   currency: string,
+     *   wallet_available: int,
+     *   wallet_part_minor: int,
+     *   payment_part_minor: int,
+     *   shortfall_minor: int,
+     *   validity_days: int|null,
+     *   blockers: list<string>
+     * }
      */
     public function quote(User $user, Offer $offer, bool $useWallet = true): array
     {
@@ -61,19 +69,29 @@ class CheckoutService
         $available = Wallet::where('owner_type', 'user')->where('owner_id', $user->id)->where('kind', WalletKind::ConsumerCredit)->where('unit', WalletUnit::EurCredit)->value('available') ?? 0;
         $walletPart = $useWallet ? min($available, $price) : 0;
         $paymentPart = $price - $walletPart;
+        $shortfall = max(0, $price - $available);
 
         $blockers = array_keys(array_filter([
             'not_for_sale' => $offer->acquisition !== OfferAcquisition::WalletPurchase || $price <= 0,
-            'offer_not_active' => $offer->status !== OfferStatus::Active,
+            'offer_not_active' => ! $offer->status->isPurchasableStorage(),
             'webshop_not_active' => $offer->webshop()->firstOrFail()->status !== WebshopStatus::Approved,
             'outside_validity' => ($version?->starts_at?->isFuture() ?? false) || ($version?->ends_at?->isPast() ?? false),
             'sold_out' => ! VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->exists(),
+            // Shortfall requiring money: blocked when Mollie is unavailable (covers insufficient wallet).
             'payments_unavailable' => $paymentPart > 0 && ! $this->mollie->available(),
             'email_not_verified' => $user->email_verified_at === null,
         ]));
 
-        return ['price_minor' => $price, 'currency' => (string) ($version->currency ?? 'EUR'), 'wallet_available' => $available,
-            'wallet_part_minor' => $walletPart, 'payment_part_minor' => $paymentPart, 'blockers' => $blockers];
+        return [
+            'price_minor' => $price,
+            'currency' => (string) ($version->currency ?? 'EUR'),
+            'wallet_available' => $available,
+            'wallet_part_minor' => $walletPart,
+            'payment_part_minor' => $paymentPart,
+            'shortfall_minor' => $shortfall,
+            'validity_days' => $version?->redemption_validity_days,
+            'blockers' => $blockers,
+        ];
     }
 
     public function start(User $user, Offer $offer, string $key, bool $useWallet = true): VoucherCheckout

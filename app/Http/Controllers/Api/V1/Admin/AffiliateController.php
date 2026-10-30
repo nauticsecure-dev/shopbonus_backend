@@ -7,6 +7,7 @@ use App\Enums\AuditCategory;
 use App\Enums\WalletUnit;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncAffiliateConnection;
 use App\Models\AffiliateClick;
 use App\Models\AffiliateConnection;
 use App\Models\AffiliateProgram;
@@ -86,6 +87,14 @@ class AffiliateController extends Controller
             throw ApiException::conflict('This connection is disabled.', 'connection_disabled');
         }
 
+        $async = (bool) $request->boolean('async', false);
+        if ($async) {
+            SyncAffiliateConnection::dispatch($c->id);
+            $this->audit->record('affiliate.sync_queued', category: AuditCategory::Integration, resource: $c, actorUserId: $request->user()->id);
+
+            return response()->json(['data' => ['queued' => true, 'connection' => $this->connection($c)]], 202);
+        }
+
         return response()->json(['data' => $sync->sync($c) + ['connection' => $this->connection($c->refresh())]]);
     }
 
@@ -157,8 +166,14 @@ class AffiliateController extends Controller
 
     public function transactions(Request $request): JsonResponse
     {
-        $filters = $request->validate(['status' => ['sometimes', Rule::in(['tracked', 'pending', 'approved', 'rejected', 'reversed', 'unmatched', 'disputed'])]]);
-        $page = AffiliateTransaction::when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))->orderByDesc('id')->paginate(50);
+        $filters = $request->validate([
+            'status' => ['sometimes', Rule::in(['tracked', 'pending', 'approved', 'rejected', 'reversed', 'unmatched', 'disputed'])],
+            'network' => ['sometimes', 'string', 'max:32'],
+        ]);
+        $page = AffiliateTransaction::query()
+            ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))
+            ->when(isset($filters['network']), fn ($q) => $q->where('network', strtolower($filters['network'])))
+            ->orderByDesc('id')->paginate(50);
 
         return response()->json(['data' => collect($page->items())->map(fn ($t) => $this->transaction($t))->all(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],

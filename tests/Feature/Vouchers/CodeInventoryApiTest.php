@@ -92,14 +92,14 @@ class CodeInventoryApiTest extends TestCase
         $this->assertSame(['codes.import_previewed', 'codes.import_committed'], AuditEvent::where('action', 'like', 'codes.import%')->orderBy('id')->pluck('action')->all());
     }
 
-    public function test_e2e4_csv_upload_with_header_and_xlsx_refused(): void
+    public function test_e2e4_csv_upload_with_header_and_legacy_xls_refused(): void
     {
         $csv = UploadedFile::fake()->createWithContent('codes.csv', "batch,code\nA,CSV-0001\nA,CSV-0002\nA,CSV-0001\n");
         $this->post($this->url("/offers/{$this->offer->public_id}/code-imports"), ['file' => $csv], ['Accept' => 'application/json'])
             ->assertCreated()->assertJsonPath('data.source', 'file')->assertJsonPath('data.totals.valid', 2)->assertJsonPath('data.totals.duplicate_in_upload', 1);
 
-        $xlsx = UploadedFile::fake()->createWithContent('codes.xlsx', 'PK...');
-        $this->post($this->url("/offers/{$this->offer->public_id}/code-imports"), ['file' => $xlsx], ['Accept' => 'application/json'])
+        $xls = UploadedFile::fake()->createWithContent('codes.xls', 'legacy-binary');
+        $this->post($this->url("/offers/{$this->offer->public_id}/code-imports"), ['file' => $xls], ['Accept' => 'application/json'])
             ->assertStatus(415)->assertJsonPath('error.code', 'unsupported_media_type');
     }
 

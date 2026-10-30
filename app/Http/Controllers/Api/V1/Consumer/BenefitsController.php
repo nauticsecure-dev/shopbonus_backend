@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Consumer;
 
 use App\Enums\AuditCategory;
+use App\Enums\LedgerEntryType;
 use App\Enums\VoucherStatus;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCheckout;
+use App\Models\Wallet;
+use App\Models\WalletLedgerEntry;
 use App\Models\WebshopPublicProfile;
 use App\Services\Audit\AuditLogger;
 use App\Services\Discovery\PublicCatalog;
@@ -96,11 +99,27 @@ class BenefitsController extends Controller
         $favorites = DB::table('consumer_favorite_webshops')->where('user_id', $user->id)->pluck('webshop_id')->map(fn ($id) => (int) $id)->all();
         $wallet = WalletController::summary($user);
 
+        // Recent ledger activity (available credits/debits only — never pending affiliate).
+        $walletIds = Wallet::where('owner_type', 'user')->where('owner_id', $user->id)->pluck('id');
+        $recentActivity = WalletLedgerEntry::whereIn('wallet_id', $walletIds)
+            ->whereIn('type', [LedgerEntryType::Credit, LedgerEntryType::Debit])
+            ->orderByDesc('id')->limit(5)->get()
+            ->map(fn (WalletLedgerEntry $e) => [
+                'id' => $e->public_id,
+                'type' => $e->type->value,
+                'amount' => $e->amount,
+                'reason' => $e->reason,
+                'at' => $e->created_at?->toIso8601String(),
+            ])->all();
+
         return response()->json(['data' => [
             'first_name' => $user->first_name,
             'email_verified' => $user->email_verified_at !== null,
             'wallet' => $wallet['balances'],
             'available_minor' => $wallet['available_minor'],
+            'pending_minor' => $wallet['pending_cashback_minor'] ?? 0,
+            'pending_cashback_minor' => $wallet['pending_cashback_minor'] ?? 0,
+            'reserved_minor' => $wallet['reserved_minor'] ?? 0,
             'total_earned_minor' => $wallet['total_earned_minor'],
             'total_spent_minor' => $wallet['total_spent_minor'],
             'vouchers' => [
@@ -110,7 +129,9 @@ class BenefitsController extends Controller
                     ->whereBetween('expires_at', [now(), now()->addDays(30)])->count(),
             ],
             'recent_vouchers' => $this->present($recent->all()),
+            'recent_activity' => $recentActivity,
             'favorites' => array_slice($catalog->cardsFor($favorites), 0, 4),
+            'relevant_offers' => array_slice($catalog->offers(['per_page' => 4, 'available' => true, 'sort' => 'newest'])['data'] ?? [], 0, 4),
             'savings_goal' => null,
         ]]);
     }
@@ -171,6 +192,8 @@ class BenefitsController extends Controller
                 'expires_at' => $v->expires_at?->toIso8601String(),
                 'redeemed_at' => $v->redeemed_at?->toIso8601String(),
                 'days_left' => $daysLeft,
+                'expires_soon' => $usable && $v->expires_at !== null && $v->expires_at->lessThan(now()->addDays(14)),
+                'website_url' => $profile?->website_url,
             ];
         }, $vouchers);
     }

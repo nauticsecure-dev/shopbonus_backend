@@ -2,9 +2,11 @@
 
 namespace App\Services\Analytics;
 
+use App\Enums\ConnectionStatus;
 use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherStatus;
+use App\Models\AuditEvent;
 use App\Models\BannerCampaign;
 use App\Models\ContactOpportunity;
 use App\Models\Offer;
@@ -12,8 +14,12 @@ use App\Models\SponsorshipObligation;
 use App\Models\Voucher;
 use App\Models\VoucherClaim;
 use App\Models\VoucherCode;
+use App\Models\VoucherDispute;
 use App\Models\Webshop;
+use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
+use App\Services\Attribution\NetworkAnalytics;
+use App\Services\Attribution\OrderAttribution;
 use App\Services\Funding\MerchantFunding;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
@@ -33,9 +39,15 @@ class MerchantAnalytics
         'issued_vouchers' => 'Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.',
         'claimed_vouchers' => 'Answer24 claim links accepted by a verified consumer.',
         'redeemed_vouchers' => 'Vouchers with a verified redemption (paid order containing the code, or merchant verification).',
+        'scheduled_offers' => 'Offers with status scheduled (not yet opened).',
+        'paused_offers' => 'Offers with status paused.',
+        'open_disputes' => 'Voucher reports for this webshop that are not resolved or rejected.',
     ];
 
-    public function __construct(private readonly MerchantFunding $funding) {}
+    public function __construct(
+        private readonly MerchantFunding $funding,
+        private readonly NetworkAnalytics $network,
+    ) {}
 
     /** @return array<string, int> */
     public function kpis(int $webshopId): array
@@ -46,34 +58,122 @@ class MerchantAnalytics
             'issued_vouchers' => Voucher::where('webshop_id', $webshopId)->whereNotNull('issued_at')->count(),
             'claimed_vouchers' => VoucherClaim::where('webshop_id', $webshopId)->where('status', 'claimed')->count(),
             'redeemed_vouchers' => Voucher::where('webshop_id', $webshopId)->where('status', VoucherStatus::Redeemed)->count(),
+            'scheduled_offers' => Offer::where('webshop_id', $webshopId)->where('status', OfferStatus::Scheduled)->count(),
+            'paused_offers' => Offer::where('webshop_id', $webshopId)->where('status', OfferStatus::Paused)->count(),
+            'open_disputes' => VoucherDispute::where('webshop_id', $webshopId)->whereNotIn('status', VoucherDispute::CLOSED)->count(),
         ];
+    }
+
+    /** @return array{status: string, total: int, connected: int, attention: int, last_error_at: string|null} */
+    public function connectionHealth(int $webshopId): array
+    {
+        $rows = WebshopConnection::where('webshop_id', $webshopId)->get(['status', 'last_error_at']);
+        if ($rows->isEmpty()) {
+            return ['status' => 'none', 'total' => 0, 'connected' => 0, 'attention' => 0, 'last_error_at' => null];
+        }
+
+        $attention = $rows->filter(fn (WebshopConnection $c) => in_array($c->status, [ConnectionStatus::Error, ConnectionStatus::Limited], true))->count();
+        $connected = $rows->filter(fn (WebshopConnection $c) => $c->status === ConnectionStatus::Connected)->count();
+        $lastError = $rows->max('last_error_at');
+        $status = match (true) {
+            $attention > 0 => 'attention',
+            $connected > 0 => 'healthy',
+            $rows->contains(fn (WebshopConnection $c) => $c->status === ConnectionStatus::SetupRequired) => 'setup_required',
+            default => 'disconnected',
+        };
+
+        return [
+            'status' => $status,
+            'total' => $rows->count(),
+            'connected' => $connected,
+            'attention' => $attention,
+            'last_error_at' => $lastError?->toIso8601String(),
+        ];
+    }
+
+    /** @return list<array{action: string, at: string, resource_type: string|null}> */
+    public function recentActivity(int $webshopId, int $limit = 8): array
+    {
+        return AuditEvent::where('webshop_id', $webshopId)->orderByDesc('id')->limit($limit)->get()
+            ->map(fn (AuditEvent $event) => [
+                'action' => $event->action,
+                'at' => $event->occurred_at->toIso8601String(),
+                'resource_type' => $event->resource_type,
+            ])->all();
+    }
+
+    /** @return list<array{key: string, available: bool}> */
+    public function quickActions(int $webshopId): array
+    {
+        $hasOffer = Offer::where('webshop_id', $webshopId)->exists();
+        $connected = WebshopConnection::where('webshop_id', $webshopId)->where('status', ConnectionStatus::Connected)->exists();
+
+        return [
+            ['key' => 'create_offer', 'available' => true],
+            ['key' => 'import_codes', 'available' => $hasOffer],
+            ['key' => 'connect_store', 'available' => ! $connected],
+            ['key' => 'top_up_funding', 'available' => $this->funding->wallet($webshopId)->available === 0],
+            ['key' => 'review_vouchers', 'available' => Voucher::where('webshop_id', $webshopId)->exists()],
+        ];
+    }
+
+    public function isEmpty(int $webshopId): bool
+    {
+        return ! Offer::where('webshop_id', $webshopId)->exists() && ! Voucher::where('webshop_id', $webshopId)->exists();
     }
 
     /**
      * Offers table: available stock (not the imported quantity) and issued count.
+     * Paused/expired/ended offers are discoverable via $status (never silently dropped when status=all).
      *
-     * @return list<array<string, mixed>>
+     * @return array{data: list<array<string, mixed>>, meta: array{current_page: int, last_page: int, per_page: int, total: int}}
      */
-    public function offers(int $webshopId, int $limit = 10): array
+    public function offers(int $webshopId, int $perPage = 10, int $page = 1, ?string $status = null): array
     {
-        $offers = Offer::with('currentVersion')->where('webshop_id', $webshopId)->whereIn('status', [OfferStatus::Active, OfferStatus::Paused, OfferStatus::Draft])
-            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END")->orderByDesc('id')->limit($limit)->get();
+        $statuses = match ($status) {
+            'active' => [OfferStatus::Active],
+            'paused' => [OfferStatus::Paused],
+            'draft' => [OfferStatus::Draft],
+            'ended', 'expired' => [OfferStatus::Ended],
+            'scheduled' => [OfferStatus::Scheduled],
+            'archived' => [OfferStatus::Archived],
+            default => [OfferStatus::Active, OfferStatus::Paused, OfferStatus::Draft, OfferStatus::Ended, OfferStatus::Scheduled, OfferStatus::Archived],
+        };
+
+        $query = Offer::with('currentVersion')->where('webshop_id', $webshopId)->whereIn('status', $statuses)
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 WHEN 'draft' THEN 2 WHEN 'scheduled' THEN 3 WHEN 'ended' THEN 4 ELSE 5 END")->orderByDesc('id');
+        $total = (clone $query)->count();
+        $perPage = max(1, min(50, $perPage));
+        $page = max(1, $page);
+        $offers = $query->forPage($page, $perPage)->get();
         $stock = VoucherCode::whereIn('offer_id', $offers->pluck('id'))->where('status', VoucherCodeStatus::Available)->groupBy('offer_id')->selectRaw('offer_id, COUNT(*) n')->pluck('n', 'offer_id');
         $issued = Voucher::whereIn('offer_id', $offers->pluck('id'))->whereNotNull('issued_at')->groupBy('offer_id')->selectRaw('offer_id, COUNT(*) n')->pluck('n', 'offer_id');
         $threshold = (int) config('shopbonus.notifications.low_inventory_threshold', 20);
 
-        return $offers->map(function (Offer $o) use ($stock, $issued, $threshold) {
+        $data = $offers->map(function (Offer $o) use ($stock, $issued, $threshold) {
             $v = $o->currentVersion;
             $available = (int) ($stock[$o->id] ?? 0);
-            $expired = $v?->ends_at !== null && $v->ends_at->isPast();
+            $o->setAttribute('available_codes_count', $available);
+            $expired = $o->status === OfferStatus::Ended || ($v?->ends_at !== null && $v->ends_at->isPast());
 
             return [
                 'id' => $o->public_id, 'name' => $v?->name, 'summary' => $v?->summary(), 'type' => $v?->discount_type, 'acquisition' => $o->acquisition->value,
                 'min_order_minor' => $v?->min_order_minor, 'available_codes' => $available, 'issued' => (int) ($issued[$o->id] ?? 0),
-                'status' => $expired ? 'expired' : $o->status->value,
+                'status' => $expired && $o->status !== OfferStatus::Ended ? 'expired' : ($expired ? 'expired' : $o->status->value),
+                'lifecycle_status' => $o->lifecycleStatus(),
                 'attention' => array_values(array_filter([$o->status === OfferStatus::Active && $available < $threshold ? 'low_inventory' : null, $expired ? 'expired' : null])),
             ];
         })->sortBy(fn ($row) => [$row['attention'] === [] ? 1 : 0])->values()->all();
+
+        return [
+            'data' => $data,
+            'meta' => [
+                'current_page' => $page,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
+                'per_page' => $perPage,
+                'total' => $total,
+            ],
+        ];
     }
 
     /**
@@ -134,6 +234,88 @@ class MerchantAnalytics
             'answer24' => ['opportunities' => array_map('intval', $funnel->all()), 'claims' => VoucherClaim::where('webshop_id', $webshop->id)->whereBetween('claimed_at', [$from, $to])->count()],
             'funding' => ['available_minor' => $this->funding->wallet($webshop)->available, 'reserved_minor' => $this->funding->wallet($webshop)->reserved],
             'banner_metrics' => $this->bannerMetrics($webshop->id, $from, $to),
+            'attribution' => $this->attributionBreakdown($webshop->id, $from, $to),
+            'repeats' => [
+                'repeat_paid_orders' => (clone $orders)->where('is_repeat_order', true)->count(),
+                'definition' => 'Paid orders whose customer_key already had an earlier paid order in this shop.',
+            ],
+            'network' => $this->network->merchantContribution($webshop, $from, $to),
+            'attribution_priority' => config('shopbonus.banners.attribution_priority'),
+            'note' => 'Attributed revenue is association evidence, not incremental lift. Use A/B + holdout for lift.',
+        ];
+    }
+
+    /**
+     * Permission-filtered drill-down of attributed paid orders (no cross-tenant PII).
+     *
+     * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
+     */
+    public function attributionOrders(Webshop $webshop, CarbonImmutable $from, CarbonImmutable $to, ?string $type, int $perPage = 25, int $page = 1): array
+    {
+        $query = WebshopOrder::query()
+            ->where('webshop_id', $webshop->id)
+            ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$from, $to])
+            ->when($type !== null, fn ($q) => $q->where('attribution_type', $type))
+            ->orderByDesc('paid_at');
+
+        $total = (clone $query)->count();
+        $perPage = max(1, min(100, $perPage));
+        $page = max(1, $page);
+        $rows = $query->forPage($page, $perPage)->get([
+            'public_id', 'external_order_id', 'reference', 'currency', 'amount_minor', 'refunded_minor',
+            'payment_status', 'attribution_type', 'attribution_click_id', 'is_repeat_order', 'paid_at',
+        ]);
+
+        return [
+            'data' => $rows->map(fn (WebshopOrder $o) => [
+                'id' => $o->public_id,
+                'external_order_id' => $o->external_order_id,
+                'reference' => $o->reference,
+                'currency' => $o->currency,
+                'amount_minor' => $o->amount_minor,
+                'refunded_minor' => $o->refunded_minor,
+                'net_minor' => (int) $o->amount_minor - (int) $o->refunded_minor,
+                'payment_status' => $o->payment_status->value,
+                'attribution_type' => $o->attribution_type,
+                'has_click_id' => $o->attribution_click_id !== null,
+                'is_repeat_order' => $o->is_repeat_order,
+                'paid_at' => $o->paid_at?->toIso8601String(),
+            ])->all(),
+            'meta' => [
+                'current_page' => $page,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
+                'per_page' => $perPage,
+                'total' => $total,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function attributionBreakdown(int $webshopId, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $rows = WebshopOrder::query()
+            ->where('webshop_id', $webshopId)
+            ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$from, $to])
+            ->selectRaw('attribution_type, COUNT(*) n, COALESCE(SUM(amount_minor - refunded_minor),0) revenue')
+            ->groupBy('attribution_type')
+            ->get()
+            ->keyBy('attribution_type');
+
+        $bucket = fn (string $type) => [
+            'orders' => (int) ($rows[$type]->n ?? 0),
+            'net_revenue_minor' => (int) ($rows[$type]->revenue ?? 0),
+        ];
+
+        return [
+            'click' => $bucket(OrderAttribution::TYPE_CLICK),
+            'voucher' => $bucket(OrderAttribution::TYPE_VOUCHER),
+            'view' => $bucket(OrderAttribution::TYPE_VIEW),
+            'unattributed' => $bucket(OrderAttribution::TYPE_UNATTRIBUTED),
+            'confidence_note' => 'click > voucher > view > unattributed; success-page visits never count as paid.',
         ];
     }
 

@@ -15396,3 +15396,48 @@ Subsequent authenticated connection GET (same store, actual response):
   }
 }
 ```
+
+## Homepage CMS + public discovery helpers
+
+Structured consumer homepage (key=`homepage`, type=`landing`) plus search / reusable discount codes.
+
+| Method | Path |
+|--------|------|
+| GET | /api/v1/content/homepage?locale=nl\|en |
+| GET | /api/v1/public/search?q=&locale=nl&limit=8 |
+| GET | /api/v1/public/discount-codes?limit=10&search= |
+| GET | /api/v1/admin/content/homepage?locale= |
+| PUT | /api/v1/admin/content/homepage |
+| PATCH | /api/v1/admin/content/homepage/sections/{sectionKey} |
+| POST | /api/v1/admin/content/homepage/preview |
+| POST | /api/v1/admin/content/homepage/publish |
+| GET | /api/v1/admin/content/homepage/versions |
+| POST | /api/v1/admin/content/homepage/restore |
+| POST | /api/v1/admin/content/homepage/schedule |
+| POST | /api/v1/admin/content/homepage/ai-suggest |
+| POST | /api/v1/admin/content/homepage/assets |
+
+Webshop list/detail cards may include `badge_label` / `cashback_label` (consumer share via `MerchantCommissionAgreement::consumerCashbackRate()`, never raw network commission).
+
+Full inventory: `docs/homepage/API_INVENTORY.md`.
+
+## About Us CMS (/over-ons)
+
+Structured company story landing (key=over-ons, 	ype=landing). Public Next route: /over-ons.
+
+| Method | Path |
+|--------|------|
+| GET | /api/v1/content/over-ons?locale=nl\|en |
+| GET | /api/v1/content/pages/over-ons |
+| GET | /api/v1/admin/content/over-ons?locale= |
+| PUT | /api/v1/admin/content/over-ons |
+| PATCH | /api/v1/admin/content/over-ons/sections/{sectionKey} |
+| POST | /api/v1/admin/content/over-ons/preview |
+| POST | /api/v1/admin/content/over-ons/publish |
+| GET | /api/v1/admin/content/over-ons/versions |
+| POST | /api/v1/admin/content/over-ons/restore |
+| POST | /api/v1/admin/content/over-ons/schedule |
+| POST | /api/v1/admin/content/over-ons/ai-suggest |
+| POST | /api/v1/admin/content/over-ons/assets |
+
+Commission split percentages are enriched from `shopbonus.affiliate.default_consumer_share_bps` on read (CMS copy cannot invent a conflicting financial rule). Team profiles stay unpublished until `show_profiles` + approved entries. Full inventory: `docs/over-ons/API_INVENTORY.md`.

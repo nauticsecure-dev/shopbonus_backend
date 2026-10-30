@@ -17,7 +17,10 @@ use App\Services\Checkout\MollieClient;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Voucher disputes and compensation (Trello #20). Every compensation is a
@@ -27,6 +30,8 @@ use Illuminate\Support\Facades\DB;
  */
 class DisputeService
 {
+    public const SCREENSHOT_DISK = 'local';
+
     public function __construct(
         private readonly WalletService $wallets,
         private readonly VoucherInventory $inventory,
@@ -34,23 +39,50 @@ class DisputeService
         private readonly AuditLogger $audit,
     ) {}
 
-    public function open(User $consumer, ?Voucher $voucher, ?VoucherCheckout $checkout, string $reason, string $description): VoucherDispute
+    public function open(User $consumer, ?Voucher $voucher, ?VoucherCheckout $checkout, string $reason, string $description, ?UploadedFile $screenshot = null): VoucherDispute
     {
         $webshopId = $voucher->webshop_id ?? $checkout->webshop_id ?? throw new ApiException('Choose the voucher or purchase this is about.', 422, 'dispute_subject_required');
         $openKey = $voucher !== null ? 'voucher:'.$voucher->id : 'checkout:'.$checkout->id;
+        $shot = $screenshot === null ? null : $this->storeScreenshot($consumer, $screenshot);
 
         try {
-            return DB::transaction(function () use ($consumer, $voucher, $checkout, $reason, $description, $webshopId, $openKey) {
+            return DB::transaction(function () use ($consumer, $voucher, $checkout, $reason, $description, $webshopId, $openKey, $shot) {
                 $dispute = VoucherDispute::create(['user_id' => $consumer->id, 'webshop_id' => $webshopId, 'voucher_id' => $voucher?->id, 'checkout_id' => $checkout?->id,
-                    'reason' => $reason, 'description' => $description, 'status' => 'open', 'open_key' => $openKey]);
-                $this->event($dispute, 'consumer', $consumer->id, 'opened', null);
-                $this->audit->record('dispute.opened', category: AuditCategory::Voucher, resource: $dispute, webshopId: $webshopId, actorUserId: $consumer->id, metadata: ['reason' => $reason]);
+                    'reason' => $reason, 'description' => $description, 'status' => 'open', 'open_key' => $openKey,
+                    'screenshot_path' => $shot['path'] ?? null, 'screenshot_mime' => $shot['mime'] ?? null, 'screenshot_bytes' => $shot['bytes'] ?? null]);
+                $this->event($dispute, 'consumer', $consumer->id, 'opened', $shot === null ? null : 'screenshot_attached');
+                $this->audit->record('dispute.opened', category: AuditCategory::Voucher, resource: $dispute, webshopId: $webshopId, actorUserId: $consumer->id,
+                    metadata: ['reason' => $reason, 'has_screenshot' => $shot !== null]);
 
                 return $dispute;
             });
         } catch (UniqueConstraintViolationException) {
+            if ($shot !== null) {
+                Storage::disk(self::SCREENSHOT_DISK)->delete($shot['path']);
+            }
             throw ApiException::conflict('There is already an open report for this voucher.', 'dispute_already_open');
+        } catch (\Throwable $e) {
+            if ($shot !== null) {
+                Storage::disk(self::SCREENSHOT_DISK)->delete($shot['path']);
+            }
+            throw $e;
         }
+    }
+
+    /** @return array{path: string, mime: string, bytes: int} */
+    private function storeScreenshot(User $consumer, UploadedFile $file): array
+    {
+        $name = Str::lower((string) Str::ulid()).'.'.$file->guessExtension();
+        $dir = 'dispute-screenshots/'.$consumer->public_id;
+        if (Storage::disk(self::SCREENSHOT_DISK)->putFileAs($dir, $file, $name) === false) {
+            throw new ApiException('The screenshot could not be stored. Please try again.', 503, 'storage_unavailable');
+        }
+
+        return [
+            'path' => $dir.'/'.$name,
+            'mime' => (string) $file->getMimeType(),
+            'bytes' => (int) $file->getSize(),
+        ];
     }
 
     public function merchantRespond(VoucherDispute $dispute, int $actorUserId, string $message): VoucherDispute
@@ -66,6 +98,32 @@ class DisputeService
 
             return $d;
         });
+    }
+
+    public function openByMerchant(int $actorUserId, Voucher $voucher, string $reason, string $description): VoucherDispute
+    {
+        $subjectUserId = $voucher->consumer_user_id ?? $actorUserId;
+
+        try {
+            return DB::transaction(function () use ($actorUserId, $voucher, $reason, $description, $subjectUserId) {
+                $dispute = VoucherDispute::create([
+                    'user_id' => $subjectUserId,
+                    'webshop_id' => $voucher->webshop_id,
+                    'voucher_id' => $voucher->id,
+                    'reason' => $reason,
+                    'description' => $description,
+                    'status' => 'open',
+                    'open_key' => 'voucher:'.$voucher->id,
+                ]);
+                $this->event($dispute, 'merchant', $actorUserId, 'opened', 'merchant_initiated');
+                $this->audit->record('dispute.opened', category: AuditCategory::Voucher, resource: $dispute, webshopId: $voucher->webshop_id, actorUserId: $actorUserId,
+                    metadata: ['reason' => $reason, 'initiated_by' => 'merchant']);
+
+                return $dispute;
+            });
+        } catch (UniqueConstraintViolationException) {
+            throw ApiException::conflict('There is already an open report for this voucher.', 'dispute_already_open');
+        }
     }
 
     public function setStatus(VoucherDispute $dispute, string $status, int $actorUserId, ?string $note): VoucherDispute

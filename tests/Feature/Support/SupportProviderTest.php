@@ -17,7 +17,7 @@ class SupportProviderTest extends TestCase
     {
         config(['support_ai.api_key' => 'fixture-secret']);
         Http::fake(['https://api.openai.com/v1/responses' => Http::response($body, $status)]);
-        $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available' => 0], CarbonImmutable::now());
+        $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available_minor' => 0], CarbonImmutable::now());
         try {
             app(SupportProvider::class)->select([$e], ['model' => 'fixture-model', 'version' => 'test', 'timeout_seconds' => 5]);
             $this->fail('Unverified provider output was accepted.');
@@ -66,7 +66,7 @@ class SupportProviderTest extends TestCase
     {
         config(['support_ai.api_key' => 'fixture-secret']);
         Http::fake(['https://api.openai.com/v1/responses' => Http::failedConnection()]);
-        $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available' => 0], CarbonImmutable::now());
+        $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available_minor' => 0], CarbonImmutable::now());
         $this->expectException(ProviderFailure::class);
         app(SupportProvider::class)->select([$e], ['model' => 'fixture-model', 'version' => 'test', 'timeout_seconds' => 5]);
     }

@@ -15,7 +15,24 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    // Include native Fortify auth paths so the SPA can call them with credentials.
+    'paths' => [
+        'api/*',
+        'sanctum/csrf-cookie',
+        'login',
+        'logout',
+        'register',
+        'forgot-password',
+        'reset-password',
+        'user/password',
+        'user/confirm-password',
+        'two-factor-challenge',
+        'user/two-factor-authentication',
+        'user/confirmed-two-factor-authentication',
+        'user/two-factor-recovery-codes',
+        'user/two-factor-qr-code',
+        'user/two-factor-secret-key',
+    ],
 
     'allowed_methods' => ['*'],
 

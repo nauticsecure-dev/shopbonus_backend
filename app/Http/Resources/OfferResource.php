@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Models\Offer;
 use App\Models\OfferVersion;
 use App\Services\Finance\FeeCalculator;
+use App\Services\Offers\OfferPresentation;
 use App\Services\Offers\OfferService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -24,16 +25,24 @@ class OfferResource extends JsonResource
         /** @var OfferVersion $v */
         $v = $offer->currentVersion;
 
+        $webshop = $offer->relationLoaded('webshop') ? $offer->webshop : $offer->webshop()->with('publicProfile')->first();
+
         return [
             'id' => $offer->public_id,
             'acquisition' => $offer->acquisition->value,
             'status' => $offer->status->value,
+            'lifecycle_status' => $offer->lifecycleStatus(),
+            'inventory' => $offer->inventoryCounts(),
+            'allowed_actions' => $offer->allowedActions(),
             'terms' => self::terms($v),
             'missing_for_activation' => app(OfferService::class)->missingForActivation($offer, $v),
             'cost_preview' => app(FeeCalculator::class)->offerPreview($offer->acquisition, $v),
+            // Merchant-only draft card; never exposes unpublished offers publicly.
+            'preview' => $webshop === null ? null : app(OfferPresentation::class)->forMerchant($offer, $webshop, $webshop->publicProfile),
             'activated_at' => $offer->activated_at?->toIso8601String(),
             'paused_at' => $offer->paused_at?->toIso8601String(),
             'ended_at' => $offer->ended_at?->toIso8601String(),
+            'archived_at' => $offer->archived_at?->toIso8601String(),
             'created_at' => $offer->created_at->toIso8601String(),
         ];
     }
