@@ -49,6 +49,7 @@ class RegistrationTest extends TestCase
             ->assertJsonPath('data.first_name', 'Jan')
             ->assertJsonPath('data.email', 'jan@example.nl')
             ->assertJsonPath('data.email_verified', false)
+            ->assertJsonPath('data.role', 'consumer')
             ->assertJsonPath('data.onboarding_intent', 'consumer')
             ->assertJsonPath('data.destination', 'verify_email')
             ->assertJsonMissingPath('data.password');
@@ -99,10 +100,30 @@ class RegistrationTest extends TestCase
 
         $this->postJson('/api/v1/auth/email/verify-code', ['code' => $this->lastCodeFor($user)])
             ->assertOk()
+            ->assertJsonPath('data.role', 'merchant')
             ->assertJsonPath('data.onboarding_intent', 'merchant')
             ->assertJsonPath('data.destination', 'webshop_setup')
             ->assertJsonPath('data.roles', [])
             ->assertJsonPath('data.workspaces', []);
+    }
+
+    public function test_registration_rejects_super_admin_and_ignores_client_role_fields(): void
+    {
+        $this->register(['account_type' => 'super_admin', 'email' => 'hacker@shop.nl'])
+            ->assertStatus(422)
+            ->assertJsonStructure(['error' => ['fields' => ['account_type']]]);
+
+        $this->register([
+            'account_type' => 'consumer',
+            'email' => 'safe@shop.nl',
+            'role' => 'super_admin',
+            'roles' => ['super_admin'],
+            'is_admin' => true,
+        ])->assertCreated()
+            ->assertJsonPath('data.role', 'consumer')
+            ->assertJsonPath('data.roles', []);
+
+        $this->assertFalse(User::where('email', 'safe@shop.nl')->sole()->isSuperAdmin());
     }
 
     public function test_registration_requires_terms_and_current_versions(): void

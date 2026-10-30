@@ -90,6 +90,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | CMS / homepage
+    |--------------------------------------------------------------------------
+    */
+
+    'cms' => [
+        // Extra https hosts allowed in homepage section hrefs (frontend + APP_URL are always included).
+        'href_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('CMS_HREF_HOSTS', 'localhost,127.0.0.1,shopbonus.nl,www.shopbonus.nl'))))),
+        // Homepage AI suggestions (never auto-apply). Off by default.
+        'ai_suggest_enabled' => (bool) env('CMS_AI_SUGGEST_ENABLED', false),
+        'ai_api_key' => env('CMS_AI_API_KEY', env('OPENAI_API_KEY')),
+        'ai_model' => env('CMS_AI_MODEL', 'gpt-4o-mini'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Workspaces (Trello #16)
     |--------------------------------------------------------------------------
     */
@@ -132,6 +147,45 @@ return [
         'currencies' => ['EUR'],
         // Answer24 / reward claim window default (Trello: 90 days).
         'default_claim_validity_days' => 90,
+        // Suggested starting values per discovery category (Trello #9). Suggestions only.
+        'branch_defaults' => [
+            'fashion' => [
+                'discount_type' => 'percentage',
+                'discount_value' => 1500, // 15%
+                'min_order_minor' => 7500,
+                'max_discount_minor' => 1500,
+                'claim_validity_days' => 90,
+                'redemption_validity_days' => 90,
+                'note' => 'Fashion often supports a higher cashback percentage.',
+            ],
+            'electronics' => [
+                'discount_type' => 'percentage',
+                'discount_value' => 500, // 5%
+                'min_order_minor' => 20000,
+                'max_discount_minor' => 2500,
+                'claim_validity_days' => 90,
+                'redemption_validity_days' => 60,
+                'note' => 'Electronics typically use a lower suggested percentage.',
+            ],
+            'home_living' => [
+                'discount_type' => 'percentage',
+                'discount_value' => 1000, // 10%
+                'min_order_minor' => 10000,
+                'max_discount_minor' => 1000,
+                'claim_validity_days' => 90,
+                'redemption_validity_days' => 90,
+                'note' => 'Home & interior: configurable spend threshold and maximum reward.',
+            ],
+            'default' => [
+                'discount_type' => 'percentage',
+                'discount_value' => 1000,
+                'min_order_minor' => 10000,
+                'max_discount_minor' => 1000,
+                'claim_validity_days' => 90,
+                'redemption_validity_days' => 90,
+                'note' => 'Balanced starting point for most webshops.',
+            ],
+        ],
     ],
 
     /*
@@ -154,11 +208,18 @@ return [
 
     // Banner campaigns on the merchant's site (Trello #25, #24 §1–2).
     'banners' => [
-        'attribution_days' => 30,
+        'attribution_days' => (int) env('BANNER_ATTRIBUTION_DAYS', 30),
+        // Documented multi-banner priority when an order could match more than one signal.
+        'attribution_priority' => ['click', 'voucher', 'view', 'unattributed'],
         'pairing_ttl_minutes' => 10,
         'editor_token_ttl_minutes' => 30,
         'events_per_batch' => 50,
         'event_retention_days' => 90,
+        // User-Agent substrings treated as bots (case-insensitive); rejected at ingest.
+        'bot_user_agents' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+            'BANNER_BOT_USER_AGENTS',
+            'bot,crawler,spider,slurp,facebookexternalhit,preview,headlesschrome,phantomjs,selenium'
+        ))))),
     ],
 
     // Merchant notifications (Trello #8 §6).
@@ -191,9 +252,12 @@ return [
 
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
-        // on_network_approval (owner's safe default): pending until the network approves.
-        // on_validated_attribution (card #23): credit immediately after attribution checks.
-        'credit_timing' => env('AFFILIATE_CREDIT_TIMING', 'on_network_approval'),
+        // on_validated_attribution: credit immediately after Laravel verifies attribution
+        // and eligible commission (consumer product: no pending cashback balance).
+        // on_network_approval: hold pending until the network approves (legacy/admin override).
+        'credit_timing' => env('AFFILIATE_CREDIT_TIMING', 'on_validated_attribution'),
+        // Default consumer share of eligible commission (70% / ShopBonus 30%).
+        'default_consumer_share_bps' => (int) env('AFFILIATE_DEFAULT_CONSUMER_SHARE_BPS', 7000),
         // Network used when programs cannot be compared reliably.
         'fallback_network' => env('AFFILIATE_FALLBACK_NETWORK', 'daisycon'),
         // Reference basket for comparing percentage against fixed commissions.
@@ -203,7 +267,10 @@ return [
         'attribution_window_days' => 30,
         'networks' => [
             'tradetracker' => ['enabled' => (bool) env('TRADETRACKER_API_ENABLED', false)],
-            'daisycon' => ['base_url' => env('DAISYCON_API_BASE_URL', 'https://services.daisycon.com')],
+            'daisycon' => [
+                'base_url' => env('DAISYCON_API_BASE_URL', 'https://services.daisycon.com'),
+                // Sandbox: https://services-sandbox.daisycon.com (15 req/min/IP).
+            ],
         ],
     ],
 

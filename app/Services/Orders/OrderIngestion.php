@@ -9,6 +9,7 @@ use App\Models\OrderEvent;
 use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
+use App\Services\Attribution\OrderAttribution;
 use App\Services\Banners\BannerExperiments;
 use App\Support\PhoneNumber;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -98,6 +99,7 @@ class OrderIngestion
         $order = new WebshopOrder($key + ['connection_id' => $connection->id]);
         $this->fill($order, $o, $event);
         $order->save();
+        app(OrderAttribution::class)->resolve($order, $o->couponCodes);
 
         $this->history($order, $event, 'created', null, $order->payment_status, ['complete' => $order->ingestion_status === 'complete'], lineItems: $o->lineItems);
 
@@ -125,6 +127,7 @@ class OrderIngestion
 
         $this->fill($order, $o, $event);
         $order->save();
+        app(OrderAttribution::class)->resolve($order, $o->couponCodes);
 
         $type = $order->payment_status !== $from ? 'payment_changed' : 'updated';
         $this->history($order, $event, $type, $from, $order->payment_status, ['complete' => $order->ingestion_status === 'complete'], $incomingAt, $o->lineItems);

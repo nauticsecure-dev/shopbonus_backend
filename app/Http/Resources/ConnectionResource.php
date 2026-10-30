@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Integrations\CapabilityMatrix;
 use App\Integrations\ConnectorRegistry;
 use App\Models\WebshopConnection;
 use Illuminate\Http\Request;
@@ -67,6 +68,7 @@ class ConnectionResource extends JsonResource
 
         if ($this->withSetup && $c->status->receivesEvents()) {
             $data['setup'] = app(ConnectorRegistry::class)->for($c->platform)->setupInstructions($c, self::webhookUrl($c));
+            $data['capabilities'] = app(CapabilityMatrix::class)->forConnection($c);
         }
 
         if ($this->secrets !== []) {

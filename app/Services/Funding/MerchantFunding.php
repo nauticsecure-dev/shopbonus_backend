@@ -56,10 +56,18 @@ class MerchantFunding
      */
     public function costOf(OfferVersion $v): array
     {
-        $reward = $v->discount_type === 'fixed' ? $v->discount_value : (int) ($v->max_discount_minor ?? 0);
+        $reward = match ($v->discount_type) {
+            'fixed' => $v->discount_value,
+            'free_shipping' => 0,
+            default => (int) ($v->max_discount_minor ?? 0),
+        };
         $fee = $this->fees->feeOnReward($reward);
 
-        return ['reward_minor' => $reward, 'fee_minor' => $fee, 'total_minor' => $reward + $fee, 'basis' => $v->discount_type === 'fixed' ? 'fixed' : (string) config('shopbonus.funding.percentage_basis')];
+        return ['reward_minor' => $reward, 'fee_minor' => $fee, 'total_minor' => $reward + $fee, 'basis' => match ($v->discount_type) {
+            'fixed' => 'fixed',
+            'free_shipping' => 'free_shipping',
+            default => (string) config('shopbonus.funding.percentage_basis'),
+        }];
     }
 
     public function required(): bool

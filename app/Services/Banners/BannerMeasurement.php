@@ -50,15 +50,22 @@ class BannerMeasurement
 
     /**
      * @param  list<array<string, mixed>>  $events
-     * @return array{accepted: int, duplicates: int, rejected: int, click_ids: array<string, string>}
+     * @return array{accepted: int, duplicates: int, rejected: int, bots: int, click_ids: array<string, string>}
      */
-    public function ingest(BannerInstallation $installation, array $events): array
+    public function ingest(BannerInstallation $installation, array $events, ?string $userAgent = null): array
     {
         $tz = (string) config('shopbonus.business_timezone');
         $campaigns = BannerCampaign::where('webshop_id', $installation->webshop_id)->whereIn('public_id', array_column($events, 'campaign'))->pluck('id', 'public_id');
-        $out = ['accepted' => 0, 'duplicates' => 0, 'rejected' => 0, 'click_ids' => []];
+        $out = ['accepted' => 0, 'duplicates' => 0, 'rejected' => 0, 'bots' => 0, 'click_ids' => []];
+        $isBot = $this->isBot($userAgent);
 
         foreach ($events as $e) {
+            if ($isBot) {
+                $out['bots']++;
+                $out['rejected']++;
+
+                continue;
+            }
             $campaignId = $campaigns[$e['campaign']] ?? null;
             $at = CarbonImmutable::parse($e['occurred_at'])->utc();
             if ($campaignId === null || $at->isFuture() && $at->diffInMinutes(now()) > 5 || $at->lessThan(now()->subDays(2))) {
@@ -158,5 +165,20 @@ class BannerMeasurement
         unset($config['content']['image_asset_id']);
 
         return $config;
+    }
+
+    public function isBot(?string $userAgent): bool
+    {
+        if ($userAgent === null || trim($userAgent) === '') {
+            return false;
+        }
+        $ua = mb_strtolower($userAgent);
+        foreach ((array) config('shopbonus.banners.bot_user_agents', []) as $needle) {
+            if ($needle !== '' && str_contains($ua, mb_strtolower((string) $needle))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

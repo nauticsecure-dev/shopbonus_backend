@@ -8,6 +8,7 @@ use App\Models\AffiliateProgram;
 use App\Models\AffiliateRewardRule;
 use App\Models\AffiliateTransaction;
 use App\Models\FundingTopUp;
+use App\Models\MerchantCommissionConversion;
 use App\Models\SponsorshipObligation;
 use App\Models\Voucher;
 use App\Models\VoucherCheckout;
@@ -23,7 +24,8 @@ class FinancialSources
 {
     /** @var array<string, class-string<Model>> */
     public const MODELS = ['affiliate' => AffiliateTransaction::class, 'checkout' => VoucherCheckout::class,
-        'funding' => FundingTopUp::class, 'sponsorship' => SponsorshipObligation::class, 'ledger' => WalletLedgerEntry::class];
+        'funding' => FundingTopUp::class, 'sponsorship' => SponsorshipObligation::class,
+        'direct_merchant' => MerchantCommissionConversion::class, 'ledger' => WalletLedgerEntry::class];
 
     /** @return array{status:string,evidence:array<string,mixed>} */
     public function inspect(Model $source): array
@@ -33,6 +35,7 @@ class FinancialSources
             $source instanceof VoucherCheckout => $this->checkout($source),
             $source instanceof FundingTopUp => $this->funding($source),
             $source instanceof SponsorshipObligation => $this->sponsorship($source),
+            $source instanceof MerchantCommissionConversion => $this->directMerchant($source),
             $source instanceof WalletLedgerEntry => $this->ledger($source),
             default => throw new \InvalidArgumentException('Unknown financial source.'),
         };
@@ -87,7 +90,7 @@ class FinancialSources
             $unknown[] = 'legacy_reward_evidence';
         } else {
             $snapshot['credit_evidence'] = $proof;
-            $rule = new AffiliateRewardRule($terms);
+            $rule = AffiliateRewardRule::fromEvidence($terms);
             $expected = $rule->rewardFor((int) $proof['commission_minor']);
             if ($rule->share_bps < 0 || $rule->share_bps > 10000 || $rule->version !== $tx->reward_rule_version || $rule->version !== $proof['rule_version'] || $expected !== $entry?->amount
                 || $proof['reward_amount'] !== $entry->amount || $proof['currency'] !== 'EUR'
@@ -229,6 +232,103 @@ class FinancialSources
         return true;
     }
 
+    /**
+     * Direct-merchant conversions: consumer + ShopBonus shares must total commission;
+     * credited rows must match the wallet credit and frozen agreement snapshot.
+     *
+     * @return array{list<string>,list<string>,array<string,mixed>}
+     */
+    private function directMerchant(MerchantCommissionConversion $row): array
+    {
+        $issues = $unknown = [];
+        $snapshot = [
+            'status' => $row->status,
+            'commission_minor' => $row->commission_minor,
+            'consumer_credit_minor' => $row->consumer_credit_minor,
+            'shopbonus_revenue_minor' => $row->shopbonus_revenue_minor,
+            'currency' => $row->currency,
+            'external_id' => $row->external_id,
+        ];
+
+        if ($row->status === 'exception') {
+            if ($row->wallet_entry_id !== null || $row->consumer_credit_minor !== 0 || $row->shopbonus_revenue_minor !== 0) {
+                $issues[] = 'direct_merchant_exception_has_credit';
+            }
+            if (WalletLedgerEntry::where('source_type', 'direct_merchant')
+                ->where(fn ($q) => $q->where('source_ref', $row->public_id)->orWhere('source_ref', $row->external_id))
+                ->where('type', 'credit')->exists()) {
+                $issues[] = 'direct_merchant_exception_ledger_credit';
+            }
+
+            return [$issues, $unknown, $snapshot];
+        }
+
+        if ($row->consumer_credit_minor + $row->shopbonus_revenue_minor !== $row->commission_minor) {
+            $issues[] = 'direct_merchant_split_total';
+        }
+        if ($row->currency !== 'EUR') {
+            $issues[] = 'direct_merchant_currency';
+        }
+
+        $snap = $row->agreement_snapshot;
+        if (! is_array($snap) || ! isset($snap['consumer_share_bps'], $snap['shopbonus_share_bps'], $snap['version'])) {
+            $unknown[] = 'legacy_direct_merchant_agreement_snapshot';
+        } else {
+            $snapshot['agreement_snapshot'] = [
+                'version' => $snap['version'],
+                'consumer_share_bps' => $snap['consumer_share_bps'],
+                'shopbonus_share_bps' => $snap['shopbonus_share_bps'],
+            ];
+            if ((int) $snap['consumer_share_bps'] + (int) $snap['shopbonus_share_bps'] !== 10_000) {
+                $issues[] = 'direct_merchant_historical_share_total';
+            }
+            $expectedConsumer = intdiv($row->commission_minor * (int) $snap['consumer_share_bps'], 10_000);
+            if ($expectedConsumer !== $row->consumer_credit_minor
+                || $row->commission_minor - $expectedConsumer !== $row->shopbonus_revenue_minor) {
+                $issues[] = 'direct_merchant_historical_calculation';
+            }
+        }
+
+        if ($row->status === 'credited') {
+            if ($row->wallet_entry_id === null || $row->consumer_credit_minor <= 0) {
+                $issues[] = 'direct_merchant_credit_missing';
+            } else {
+                $entry = WalletLedgerEntry::find($row->wallet_entry_id);
+                $wallet = $entry === null ? null : Wallet::find($entry->wallet_id);
+                $refOk = $entry !== null && in_array($entry->source_ref, [$row->public_id, $row->external_id], true);
+                if ($entry === null || $entry->type !== LedgerEntryType::Credit || $entry->amount !== $row->consumer_credit_minor
+                    || $entry->source_type !== 'direct_merchant' || ! $refOk
+                    || $wallet?->owner_type !== 'user' || $wallet->owner_id !== $row->user_id
+                    || $wallet->kind->value !== 'consumer_credit' || $wallet->unit->value !== 'eur_credit') {
+                    $issues[] = 'direct_merchant_credit_identity';
+                }
+                $credits = WalletLedgerEntry::where('source_type', 'direct_merchant')
+                    ->where(fn ($q) => $q->where('source_ref', $row->public_id)->orWhere('source_ref', $row->external_id))
+                    ->where('type', 'credit')->count();
+                if ($credits !== 1) {
+                    $issues[] = 'direct_merchant_duplicate_credit';
+                }
+            }
+        }
+
+        if ($row->status === 'reversed' && $row->wallet_entry_id !== null) {
+            $entry = WalletLedgerEntry::find($row->wallet_entry_id);
+            if ($entry === null) {
+                $issues[] = 'direct_merchant_reversal_original_missing';
+            } else {
+                $reversed = -(int) WalletLedgerEntry::where('related_entry_id', $entry->id)->where('type', 'reversal')->sum('amount');
+                $unrecovered = (int) WalletReconciliationFlag::where('wallet_id', $entry->wallet_id)
+                    ->where('reason', 'reversal_exceeds_unspent')->where('details->credit', $entry->public_id)->sum('amount');
+                $snapshot['reversal'] = ['original' => $entry->amount, 'compensated' => $reversed, 'flagged' => $unrecovered];
+                if ($reversed + $unrecovered !== $entry->amount) {
+                    $issues[] = 'direct_merchant_reversal_incomplete';
+                }
+            }
+        }
+
+        return [$issues, $unknown, $snapshot];
+    }
+
     /** @return array{list<string>,list<string>,array<string,mixed>} */
     private function ledger(WalletLedgerEntry $e): array
     {
@@ -253,6 +353,11 @@ class FinancialSources
         } elseif ($e->type === LedgerEntryType::Credit && $e->source_type === 'top_up'
             && ! FundingTopUp::where('public_id', $e->source_ref)->where('credit_entry_id', $e->id)->exists()) {
             $issues[] = 'ledger_orphan_funding_credit';
+        } elseif ($e->type === LedgerEntryType::Credit && $e->source_type === 'direct_merchant'
+            && ! MerchantCommissionConversion::where('wallet_entry_id', $e->id)->where(function ($q) use ($e) {
+                $q->where('public_id', $e->source_ref)->orWhere('external_id', $e->source_ref);
+            })->exists()) {
+            $issues[] = 'ledger_orphan_direct_merchant_credit';
         } elseif ($e->type === LedgerEntryType::Reversal) {
             $original = WalletLedgerEntry::find($e->related_entry_id);
             if ($original === null || $original->wallet_id !== $e->wallet_id || $e->amount >= 0 || -$e->amount > $original->amount) {
@@ -260,7 +365,7 @@ class FinancialSources
             }
         } elseif ($e->type === LedgerEntryType::Adjustment && ($e->actor_user_id === null || $e->reason === null)) {
             $issues[] = 'ledger_adjustment_authority';
-        } elseif ($e->type === LedgerEntryType::Credit && ! in_array($e->source_type, ['affiliate', 'top_up'], true)) {
+        } elseif ($e->type === LedgerEntryType::Credit && ! in_array($e->source_type, ['affiliate', 'top_up', 'direct_merchant'], true)) {
             $unknown[] = 'untyped_credit_source';
         }
 

@@ -407,7 +407,9 @@ class SupportChatTest extends TestCase
         $extra = $workspace ? ['workspace_id' => $this->activeWebshop($this->user)->public_id] : [];
         $m = $this->runMessage($this->send($q, $extra));
         $expected = match ($intent) {
-            'wallet','vouchers','funding' => 'VERIFIED', 'escalate' => 'ESCALATED', default => 'NEEDS_CLARIFICATION'
+            'wallet', 'reward', 'vouchers', 'funding' => 'VERIFIED',
+            'escalate' => 'ESCALATED',
+            default => 'NEEDS_CLARIFICATION',
         };
         $this->assertSame($expected, $m->status);
         $this->assertLessThanOrEqual(1, $m->metrics['additional_retrieval_rounds']);

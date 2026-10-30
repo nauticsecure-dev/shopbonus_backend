@@ -48,3 +48,10 @@ Broadcast::channel('shopbonus.user.{userId}.notifications', function (User $user
     return $user->isActive() && $user->email_verified_at !== null && $user->public_id === $userId
         && ! ($token instanceof PersonalAccessToken && ($token->name === SupportSessions::TOKEN_NAME || app(SupportSessions::class)->forToken($token) !== null));
 });
+
+Broadcast::channel('shopbonus.user.{userId}.wallet', function (User $user, string $userId) {
+    $token = $user->currentAccessToken();
+
+    return $user->isActive() && $user->email_verified_at !== null && $user->public_id === $userId
+        && ! ($token instanceof PersonalAccessToken && ($token->name === SupportSessions::TOKEN_NAME || app(SupportSessions::class)->forToken($token) !== null));
+});

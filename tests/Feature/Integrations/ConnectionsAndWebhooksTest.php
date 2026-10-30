@@ -87,7 +87,7 @@ class ConnectionsAndWebhooksTest extends TestCase
 
     public function test_card1_e2e2_unsupported_platforms_cannot_be_connected(): void
     {
-        foreach (['lightspeed_c', 'mijnwebwinkel'] as $platform) {
+        foreach (['lightspeed_e', 'mijnwebwinkel'] as $platform) {
             $this->postJson($this->url('/connections'), ['platform' => $platform])
                 ->assertStatus(409)->assertJsonPath('error.code', 'platform_not_available');
         }

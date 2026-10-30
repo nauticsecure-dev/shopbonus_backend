@@ -8,6 +8,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Production-safe by default. Opt in locally with shopbonus:setup-local-integration.
+        // Production-safe by default. Local/testing installs demo users, shops and CMS.
+        if (! app()->environment(['local', 'testing'])) {
+            return;
+        }
+
+        $this->call([
+            DemoUsersAndShopsSeeder::class,
+        ]);
     }
 }

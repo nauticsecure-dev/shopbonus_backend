@@ -43,6 +43,42 @@ class WooCommerceApi
         return $id;
     }
 
+    /** Matches ShopBonus voucher code format (4–64 [A-Za-z0-9_-]). */
+    public static function couponCode(string $code): string
+    {
+        $code = trim($code);
+        if (! preg_match('/\A[A-Za-z0-9_-]{4,64}\z/D', $code)) {
+            throw new ApiException('Coupon code format is invalid.', 422, 'coupon_code_invalid');
+        }
+
+        return $code;
+    }
+
+    /**
+     * Look up a single coupon by exact code. Returns null when the store has no match.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findCouponByCode(WebshopConnection $connection, string $code): ?array
+    {
+        $result = $this->get($connection, 'coupons', page: 1, query: ['code' => $code, 'per_page' => 10], maxPages: 1);
+        $rows = $result['data'];
+        if (! is_array($rows) || ! array_is_list($rows)) {
+            throw new ApiException('The provider coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+        $needle = mb_strtoupper(self::couponCode($code));
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! is_string($row['code'] ?? null)) {
+                continue;
+            }
+            if (mb_strtoupper((string) $row['code']) === $needle) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @param  array<string,mixed>  $query
      * @return array{data:array<mixed>,pages:int}
@@ -68,7 +104,14 @@ class WooCommerceApi
         if (! $shop->isOwnershipVerified() || strtolower((string) $shop->verified_domain) !== DomainName::fromInput($host)) {
             throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
         }
-        $query = array_intersect_key($query, array_flip(['per_page', 'modified_after', 'modified_before', 'dates_are_gmt', 'orderby', 'order']));
+        $allowed = ['per_page', 'modified_after', 'modified_before', 'dates_are_gmt', 'orderby', 'order'];
+        if ($resource === 'coupons') {
+            $allowed[] = 'code';
+        }
+        $query = array_intersect_key($query, array_flip($allowed));
+        if (isset($query['code'])) {
+            $query['code'] = self::couponCode((string) $query['code']);
+        }
         $query['page'] = $page;
         $query['per_page'] = max(1, min(100, (int) ($query['per_page'] ?? 100)));
         $result = $this->reader->read($connection, $base.'/wp-json/wc/v3/'.$resource, ['basic' => [$key, $secret]], query: $query);

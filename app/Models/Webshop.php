@@ -121,6 +121,12 @@ class Webshop extends Model
         return $this->hasOne(WebshopPublicProfile::class);
     }
 
+    /** @return HasMany<MerchantEnrichmentRun, $this> */
+    public function enrichmentRuns(): HasMany
+    {
+        return $this->hasMany(MerchantEnrichmentRun::class);
+    }
+
     /** @return HasOne<BusinessProfile, $this> */
     public function businessProfile(): HasOne
     {

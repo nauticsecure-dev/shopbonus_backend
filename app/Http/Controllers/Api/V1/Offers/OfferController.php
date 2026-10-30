@@ -24,14 +24,24 @@ class OfferController extends Controller
 
     public function index(Request $request, CurrentWorkspace $current): AnonymousResourceCollection
     {
-        $filters = $request->validate(['status' => ['sometimes', Rule::enum(OfferStatus::class)], 'search' => ['sometimes', 'string', 'max:100']]);
+        $filters = $request->validate([
+            'status' => ['sometimes', Rule::enum(OfferStatus::class)],
+            'lifecycle' => ['sometimes', Rule::in(['archived', 'expired', 'scheduled', 'sold_out', 'active', 'paused', 'draft'])],
+            'acquisition' => ['sometimes', Rule::enum(OfferAcquisition::class)],
+            'search' => ['sometimes', 'string', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
 
-        $offers = Offer::with('currentVersion')
+        $offers = Offer::with(['currentVersion', 'webshop.publicProfile'])->withInventoryCounts()
             ->where('webshop_id', $current->webshop()->id)
             ->when($filters['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
+            ->when($filters['acquisition'] ?? null, fn ($q, $a) => $q->where('acquisition', $a))
+            ->when($filters['lifecycle'] ?? null, fn ($q, $l) => $q->lifecycle($l))
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->whereHas('currentVersion',
                 fn ($v) => $v->where('name', 'like', '%'.addcslashes($s, '%_\\').'%')))
-            ->latest('id')->get();
+            ->latest('id')
+            ->paginate((int) ($filters['per_page'] ?? 25));
 
         return OfferResource::collection($offers);
     }
@@ -40,6 +50,7 @@ class OfferController extends Controller
     {
         $data = $request->validated();
         $offer = $this->offers->create($current->membership(), OfferAcquisition::from($data['acquisition']), $data);
+        $offer->setRelation('webshop', $current->webshop()->loadMissing('publicProfile'));
 
         return OfferResource::make($offer)->response()->setStatusCode(201);
     }
@@ -56,8 +67,10 @@ class OfferController extends Controller
 
     public function update(SaveOfferRequest $request, CurrentWorkspace $current, string $offer): JsonResponse
     {
-        return OfferResource::make($this->offers->update($current->membership(), $this->find($current, $offer), $request->validated()))
-            ->response()->setStatusCode(200);
+        $model = $this->offers->update($current->membership(), $this->find($current, $offer), $request->validated());
+        $model->setRelation('webshop', $current->webshop()->loadMissing('publicProfile'));
+
+        return OfferResource::make($model)->response()->setStatusCode(200);
     }
 
     public function activate(CurrentWorkspace $current, string $offer): JsonResponse
@@ -75,6 +88,31 @@ class OfferController extends Controller
         return $this->transition($current, $offer, OfferStatus::Ended);
     }
 
+    public function publish(CurrentWorkspace $current, string $offer): JsonResponse
+    {
+        $model = $this->offers->publish($this->find($current, $offer));
+
+        return OfferResource::make($model)->response()->setStatusCode(200);
+    }
+
+    public function resume(CurrentWorkspace $current, string $offer): JsonResponse
+    {
+        return $this->transition($current, $offer, OfferStatus::Active);
+    }
+
+    public function archive(CurrentWorkspace $current, string $offer): JsonResponse
+    {
+        return OfferResource::make($this->offers->archive($this->find($current, $offer)))->response()->setStatusCode(200);
+    }
+
+    public function duplicate(CurrentWorkspace $current, string $offer): JsonResponse
+    {
+        $copy = $this->offers->duplicate($current->membership(), $this->find($current, $offer));
+        $copy->setRelation('webshop', $current->webshop()->loadMissing('publicProfile'));
+
+        return OfferResource::make($copy)->response()->setStatusCode(201);
+    }
+
     private function transition(CurrentWorkspace $current, string $offer, OfferStatus $to): JsonResponse
     {
         return OfferResource::make($this->offers->transition($this->find($current, $offer), $to))->response()->setStatusCode(200);
@@ -83,7 +121,7 @@ class OfferController extends Controller
     private function find(CurrentWorkspace $current, string $publicId): Offer
     {
         return (Str::isUlid($publicId)
-            ? Offer::with('currentVersion')->where('webshop_id', $current->webshop()->id)->where('public_id', Str::lower($publicId))->first()
+            ? Offer::with(['currentVersion', 'webshop.publicProfile'])->where('webshop_id', $current->webshop()->id)->where('public_id', Str::lower($publicId))->first()
             : null) ?? throw new NotFoundHttpException;
     }
 }

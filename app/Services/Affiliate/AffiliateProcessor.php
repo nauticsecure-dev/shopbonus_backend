@@ -11,11 +11,13 @@ use App\Models\AffiliateProgram;
 use App\Models\AffiliateReconciliationEvent;
 use App\Models\AffiliateRewardRule;
 use App\Models\AffiliateTransaction;
+use App\Models\MerchantCommissionConversion;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletPendingCredit;
 use App\Services\Audit\AuditLogger;
+use App\Services\Cashback\RewardSourceGuard;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -30,13 +32,19 @@ use Illuminate\Support\Facades\DB;
  *   webshop, inside the attribution window. Otherwise: unmatched (review).
  * - A second report of the same click or order reference: disputed, no reward.
  * - Postbacks are untrusted: they only record "tracked"; rewards need sync/import.
- * - Rewards follow `affiliate.credit_timing` (default on_network_approval).
+ * - Rewards follow `affiliate.credit_timing` (default on_validated_attribution:
+ *   credit immediately after attribution; network rejection does not auto-reverse).
+ * - on_network_approval remains available as a legacy/admin override.
  */
 class AffiliateProcessor
 {
     private const TRUSTED = ['sync', 'import', 'admin'];
 
-    public function __construct(private readonly WalletService $wallets, private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly WalletService $wallets,
+        private readonly AuditLogger $audit,
+        private readonly RewardSourceGuard $sources,
+    ) {}
 
     public function ingest(AffiliateConnection $connection, AffiliateTransactionData $data, string $source, ?int $actorUserId = null): AffiliateTransaction
     {
@@ -136,6 +144,7 @@ class AffiliateProcessor
         return match (true) {
             $click === null => [null, 'unknown_click'],
             $click->webshop_id !== $program->webshop_id => [null, 'click_for_other_webshop'],
+            $click->isExpired($data->transactionAt) => [null, 'click_expired'],
             $click->created_at->greaterThan($data->transactionAt->addMinutes(5)) || $click->created_at->lessThan($data->transactionAt->subDays($window)) => [null, 'click_outside_window'],
             $click->user_id === null => [$click, 'anonymous_click'],
             default => [$click, null],
@@ -156,6 +165,23 @@ class AffiliateProcessor
             return;
         }
 
+        if ($tx->webshop_id !== null && $tx->order_reference_hash !== null && $tx->reward_status === 'none') {
+            $directs = MerchantCommissionConversion::where('webshop_id', $tx->webshop_id)
+                ->where('status', 'credited')
+                ->orderBy('id')
+                ->limit(500)
+                ->pluck('external_id');
+            foreach ($directs as $externalId) {
+                if ($this->sources->orderReferenceHash($tx->webshop_id, (string) $externalId) === $tx->order_reference_hash) {
+                    $from = $tx->status;
+                    $tx->forceFill(['status' => 'disputed', 'review_reason' => 'direct_merchant_reward_already_credited'])->save();
+                    $this->event($tx, $source, $from, 'disputed', $tx->network_status, 'direct_merchant_reward_already_credited', $actorUserId);
+
+                    return;
+                }
+            }
+        }
+
         // No approved FX/points conversion exists; never treat foreign minor units as EUR.
         if (strtoupper($tx->currency) !== 'EUR') {
             $from = $tx->status;
@@ -165,8 +191,8 @@ class AffiliateProcessor
             return;
         }
 
-        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at)
-            : new AffiliateRewardRule($tx->reward_terms_snapshot);
+        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network')
+            : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
         $instant = ($tx->reward_timing ?? config('shopbonus.affiliate.credit_timing')) === 'on_validated_attribution';
 
         if ($tx->reward_status === 'none') {
@@ -209,7 +235,7 @@ class AffiliateProcessor
     {
         $pending = $tx->wallet_pending_id === null ? null : WalletPendingCredit::find($tx->wallet_pending_id);
         $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::where('version', $tx->reward_rule_version)->first()
-            : new AffiliateRewardRule($tx->reward_terms_snapshot);
+            : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
         $amount = $rule?->rewardFor($tx->commission_minor) ?? (int) $tx->reward_amount; // approved commission may differ from the expected one
 
         if ($this->requiresReview($tx, $rule, $amount, $source, $actorUserId, $skipReview)) {

@@ -77,6 +77,12 @@ class Voucher extends Model
         return $this->belongsTo(VoucherCode::class, 'voucher_code_id');
     }
 
+    /** @return BelongsTo<Webshop, $this> */
+    public function webshop(): BelongsTo
+    {
+        return $this->belongsTo(Webshop::class);
+    }
+
     /** @return BelongsTo<User, $this> */
     public function consumer(): BelongsTo
     {
@@ -87,5 +93,11 @@ class Voucher extends Model
     public function offerVersion(): BelongsTo
     {
         return $this->belongsTo(OfferVersion::class);
+    }
+
+    /** @return BelongsTo<Offer, $this> */
+    public function offer(): BelongsTo
+    {
+        return $this->belongsTo(Offer::class);
     }
 }

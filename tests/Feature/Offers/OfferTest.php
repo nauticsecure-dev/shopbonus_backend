@@ -62,8 +62,8 @@ class OfferTest extends TestCase
             $reopened->assertJsonPath("data.terms.{$field}", $value);
         }
 
-        // Card #7 §4 cost preview: €10 maximum reward + 30% = €13 commitment, from the shared FeeCalculator.
-        $reopened->assertJsonPath('data.cost_preview.basis', 'maximum_discount')
+        // Card #7/#9 cost preview: 10% of €100 capped at €10 → €10 reward + 30% = €13 commitment.
+        $reopened->assertJsonPath('data.cost_preview.basis', 'eligible_order_capped')
             ->assertJsonPath('data.cost_preview.per_voucher', ['reward_minor' => 1000, 'fee_minor' => 300, 'merchant_commitment_minor' => 1300])
             ->assertJsonPath('data.cost_preview.allocation.merchant_commitment_minor', 650000);
     }

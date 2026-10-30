@@ -4,7 +4,6 @@ namespace App\Services\Vouchers;
 
 use App\Enums\AuditCategory;
 use App\Enums\AuditOutcome;
-use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
@@ -253,7 +252,7 @@ class VoucherInventory
 
     private function assertIssuable(Offer $offer, OfferVersion $version): void
     {
-        if ($offer->status !== OfferStatus::Active) {
+        if (! $offer->status->isPurchasableStorage()) {
             throw ApiException::conflict('This offer is not active.', 'offer_not_active', ['status' => $offer->status->value]);
         }
 

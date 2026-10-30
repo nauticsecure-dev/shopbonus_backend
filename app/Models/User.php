@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AccountRole;
 use App\Enums\OnboardingIntent;
 use App\Enums\PlatformRole;
 use App\Enums\UserStatus;
@@ -168,6 +169,23 @@ class User extends Authenticatable implements HasLocalePreference
     public function isSuperAdmin(): bool
     {
         return $this->hasPlatformRole(PlatformRole::SuperAdmin);
+    }
+
+    /**
+     * Resolved primary role for the SPA and post-login routing.
+     * Super Admin wins; otherwise the signup intent (merchant/consumer).
+     * Workspace membership never overrides a consumer intent into merchant
+     * for display alone — DestinationResolver already handles access.
+     */
+    public function accountRole(): AccountRole
+    {
+        if ($this->isSuperAdmin()) {
+            return AccountRole::SuperAdmin;
+        }
+
+        return $this->onboarding_intent === OnboardingIntent::Merchant
+            ? AccountRole::Merchant
+            : AccountRole::Consumer;
     }
 
     /** @return HasMany<LegalAcceptance, $this> */

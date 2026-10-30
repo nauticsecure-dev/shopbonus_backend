@@ -33,10 +33,24 @@ class PublicDiscoveryController extends Controller
             'search' => ['sometimes', 'nullable', 'string', 'max:100'],
             'category' => ['sometimes', 'nullable', Rule::in(array_keys(config('shopbonus.discovery.categories')))],
             'has_offers' => ['sometimes', 'boolean'],
-            'sort' => ['sometimes', Rule::in(['relevance', 'name', 'newest'])],
+            'sort' => ['sometimes', Rule::in(['relevance', 'name', 'newest', 'most_offers'])],
             'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:'.config('shopbonus.discovery.max_per_page')],
+            'slugs' => ['sometimes', 'nullable', 'string', 'max:800'],
         ]);
+
+        if (! empty($filters['slugs'])) {
+            $filters['slugs'] = array_values(array_filter(array_map(
+                static fn (string $s) => strtolower(trim($s)),
+                explode(',', (string) $filters['slugs'])
+            ), static fn (string $s) => $s !== '' && preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $s) === 1));
+            $filters['slugs'] = array_slice($filters['slugs'], 0, 24);
+            if ($filters['slugs'] === []) {
+                unset($filters['slugs']);
+            } else {
+                $filters['per_page'] = max((int) ($filters['per_page'] ?? 20), count($filters['slugs']));
+            }
+        }
 
         return response()->json($this->catalog->webshops($this->typed($filters, ['has_offers'])));
     }
@@ -52,6 +66,21 @@ class PublicDiscoveryController extends Controller
 
         return Storage::disk(PublicProfileService::DISK)->response($profile->logo_path, 'logo', [
             'Content-Type' => (string) $profile->logo_mime,
+            'Cache-Control' => 'public, max-age=86400',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'",
+        ], 'inline');
+    }
+
+    public function cover(string $slug): Response
+    {
+        $profile = $this->catalog->logo($slug) ?? throw new ApiException('Cover not found.', 404, 'not_found');
+        if ($profile->cover_path === null) {
+            throw new ApiException('Cover not found.', 404, 'not_found');
+        }
+
+        return Storage::disk(PublicProfileService::DISK)->response($profile->cover_path, 'cover', [
+            'Content-Type' => (string) ($profile->cover_mime ?? 'image/webp'),
             'Cache-Control' => 'public, max-age=86400',
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'",

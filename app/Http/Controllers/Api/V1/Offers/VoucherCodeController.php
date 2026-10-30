@@ -14,6 +14,7 @@ use App\Models\VoucherCodeBatch;
 use App\Models\VoucherEvent;
 use App\Services\Audit\AuditLogger;
 use App\Services\Vouchers\CodeImporter;
+use App\Services\Vouchers\PlatformCouponVerification;
 use App\Services\Workspaces\CurrentWorkspace;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -31,6 +32,7 @@ class VoucherCodeController extends Controller
     public function __construct(
         private readonly CodeImporter $importer,
         private readonly AuditLogger $audit,
+        private readonly PlatformCouponVerification $platformCoupons,
     ) {}
 
     public function index(Request $request, CurrentWorkspace $current, string $offer): JsonResponse
@@ -108,6 +110,41 @@ class VoucherCodeController extends Controller
         return response()->json(['data' => $events]);
     }
 
+    /**
+     * Provider coupon check or controlled merchant confirmation (Trello #7 §8).
+     * Never claims Verified unless the platform matched or the merchant confirmed.
+     */
+    public function verifyPlatform(Request $request, CurrentWorkspace $current, string $code): JsonResponse
+    {
+        $data = $request->validate([
+            'mode' => ['required', Rule::in(['provider_check', 'manual_confirm'])],
+            'note' => ['required_if:mode,manual_confirm', 'nullable', 'string', 'min:3', 'max:255'],
+        ]);
+        $model = $this->code($current, $code)->load('offer.currentVersion');
+
+        $actor = $current->membership()->user()->firstOrFail();
+        $result = $data['mode'] === 'manual_confirm'
+            ? $this->platformCoupons->confirmManually($model, $actor, (string) $data['note'])
+            : $this->platformCoupons->verifyAgainstProvider($model, $model->offer?->currentVersion);
+
+        return VoucherCodeResource::make($model->refresh()->load(['batch', 'currentVoucher.consumer']))
+            ->additional(['verification' => $result])
+            ->response()
+            ->setStatusCode(200);
+    }
+
+    public function importTemplate(CurrentWorkspace $current, string $offer): StreamedResponse
+    {
+        $this->offer($current, $offer);
+
+        return response()->streamDownload(function () {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['code'], escape: '');
+            fputcsv($out, ['SHOP-CODE-0001'], escape: '');
+            fclose($out);
+        }, 'code-import-template.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store']);
+    }
+
     public function export(Request $request, CurrentWorkspace $current, string $offer): StreamedResponse
     {
         $model = $this->offer($current, $offer);
@@ -153,7 +190,9 @@ class VoucherCodeController extends Controller
             'batch' => ['sometimes', 'string', 'size:26'],
             'search' => ['sometimes', 'string', 'max:64'],
             'assigned' => ['sometimes', 'boolean'],
-            'platform_validation' => ['sometimes', 'string', 'max:32'],
+            'platform_validation' => ['sometimes', 'string', 'max:64'],
+            'added_from' => ['sometimes', 'date'],
+            'added_to' => ['sometimes', 'date', 'after_or_equal:added_from'],
             'sort' => ['sometimes', Rule::in(['created_at', '-created_at', 'status', '-status'])],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:200'],
         ]);
@@ -178,6 +217,8 @@ class VoucherCodeController extends Controller
                 return filter_var($filters['assigned'], FILTER_VALIDATE_BOOLEAN) ? $q->whereHas('currentVoucher', $live) : $q->whereDoesntHave('currentVoucher', $live);
             })
             ->when($filters['platform_validation'] ?? null, fn ($q, $v) => $q->where('platform_validation', $v))
+            ->when($filters['added_from'] ?? null, fn ($q, $v) => $q->where('created_at', '>=', $v))
+            ->when($filters['added_to'] ?? null, fn ($q, $v) => $q->where('created_at', '<=', $v))
             ->orderBy(ltrim($sort, '-'), str_starts_with($sort, '-') ? 'desc' : 'asc')
             ->orderBy('id', str_starts_with($sort, '-') ? 'desc' : 'asc');
     }

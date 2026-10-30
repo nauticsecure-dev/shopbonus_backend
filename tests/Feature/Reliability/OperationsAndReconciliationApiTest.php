@@ -33,7 +33,7 @@ class OperationsAndReconciliationApiTest extends TestCase
         $this->postJson('/api/v1/admin/reconciliation', ['request_key' => $key])->assertStatus(202)->assertJsonPath('data.run', $id);
         $this->assertDatabaseCount('financial_reconciliation_runs', 1);
         $this->getJson('/api/v1/admin/reconciliation?per_page=101')->assertUnprocessable();
-        $this->getJson('/api/v1/admin/reconciliation/'.$id)->assertOk()->assertJsonPath('data.scope_version', 2)->assertDontSee('run_key');
+        $this->getJson('/api/v1/admin/reconciliation/'.$id)->assertOk()->assertJsonPath('data.scope_version', 3)->assertDontSee('run_key');
         $this->postJson('/api/v1/admin/reconciliation/'.$id.'/resume', ['reason' => 'Investigated storage failure'])->assertConflict();
         $this->postJson('/api/v1/admin/reconciliation', ['request_key' => (string) Str::uuid()])->assertStatus(429);
         $this->travel(61)->seconds();

@@ -98,6 +98,16 @@ class PublicDiscoveryTest extends TestCase
         $this->assertSame(['fietsen-utrecht'], array_column($this->getJson('/api/v1/public/webshops?has_offers=1')->json('data'), 'slug'));
         $this->assertSame(['Woon & Co', 'Fietsen Utrecht'], array_column($this->getJson('/api/v1/public/webshops?sort=newest')->json('data'), 'name'));
 
+        // CMS featured order: requested slug list is preserved.
+        $this->assertSame(
+            ['woon-co', 'fietsen-utrecht'],
+            array_column($this->getJson('/api/v1/public/webshops?slugs=woon-co,fietsen-utrecht')->json('data'), 'slug')
+        );
+        $this->assertSame(
+            ['fietsen-utrecht'],
+            array_column($this->getJson('/api/v1/public/webshops?slugs=fietsen-utrecht,missing-shop')->json('data'), 'slug')
+        );
+
         $page2 = $this->getJson('/api/v1/public/webshops?sort=name&per_page=1&page=2')->assertOk();
         $this->assertSame(['Woon & Co'], array_column($page2->json('data'), 'name'));
         $this->assertSame(['current_page' => 2, 'last_page' => 2, 'per_page' => 1, 'total' => 2], $page2->json('meta'));
@@ -120,7 +130,7 @@ class PublicDiscoveryTest extends TestCase
             ->assertJsonPath('data.name', 'Fietsen Utrecht')
             ->assertJsonPath('data.website_url', 'https://fietsen-utrecht.nl')
             ->assertJsonPath('data.offers.0.availability', 'available');
-        $this->assertSame(['slug', 'name', 'short_description', 'logo_url', 'categories', 'description', 'website_url', 'offers'], array_keys($detail->json('data')));
+        $this->assertSame(['slug', 'name', 'short_description', 'logo_url', 'cover_url', 'categories', 'badge_label', 'cashback_label', 'description', 'website_url', 'benefits', 'offers'], array_keys($detail->json('data')));
 
         $raw = $detail->getContent();
         foreach ([$this->fietsen->public_id, $this->owner->email, 'secret-domain.nl', 'agreement', 'kvk', 'members', 'connection', '"id"'] as $private) {

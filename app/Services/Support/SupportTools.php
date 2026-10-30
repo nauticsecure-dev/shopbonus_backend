@@ -88,7 +88,7 @@ final class SupportTools
         return new ToolEvidence($actor->id, $tool, $arguments, $shop?->public_id, $locale, $source, $facts, CarbonImmutable::now());
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function wallet(User $actor, string $unit, ?Webshop $shop): array
     {
         if ($shop !== null || WalletUnit::tryFrom($unit) === null) {
@@ -98,12 +98,16 @@ final class SupportTools
         $balance = WalletController::summary($actor)['balances'][$unit];
 
         return ['consumer_wallet:'.$unit, [
-            'available' => $balance['available'], 'reserved' => $balance['reserved'], 'pending' => $balance['pending'],
-            'spent' => $balance['total_spent'], 'unit' => $unit, 'currency' => $unit === 'eur_credit' ? 'EUR' : null,
+            'available_minor' => (int) $balance['available'],
+            'reserved_minor' => (int) $balance['reserved'],
+            'pending_minor' => (int) $balance['pending'],
+            'spent_minor' => (int) $balance['total_spent'],
+            'currency' => $unit === 'eur_credit' ? 'EUR' : null,
+            'unit' => $unit === 'eur_credit' ? 'EUR_REDEMPTION_CREDIT' : 'POINTS',
         ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function voucher(User $actor, string $id, ?Webshop $shop): array
     {
         if ($shop !== null) {
@@ -113,13 +117,19 @@ final class SupportTools
         if ($v === null) {
             $this->deny($actor, 404);
         }
+        $claim = VoucherClaim::where('voucher_id', $v->id)->where('claimed_by', $actor->id)->first();
 
-        return ['voucher:'.$v->public_id, ['status' => $v->status->value, 'source_type' => $v->origin->value,
-            'issued_at' => $v->issued_at?->toIso8601String(), 'expires_at' => $v->expires_at?->toIso8601String(),
-            'redeemed_at' => $v->redeemed_at?->toIso8601String()]];
+        return ['voucher:'.$v->public_id, [
+            'status' => $v->status->value,
+            'source_type' => $v->origin->value,
+            'claimed_at' => $claim?->claimed_at?->toIso8601String(),
+            'issued_at' => $v->issued_at?->toIso8601String(),
+            'expires_at' => $v->expires_at?->toIso8601String(),
+            'redeemed_at' => $v->redeemed_at?->toIso8601String(),
+        ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function funding(User $actor, ?Webshop $shop): array
     {
         $shop = $this->permission($actor, $shop, WorkspacePermission::FinanceView);
@@ -127,11 +137,15 @@ final class SupportTools
         $w = Wallet::where('owner_type', 'webshop')->where('owner_id', $shop->id)
             ->where('kind', WalletKind::MerchantFunding)->where('unit', WalletUnit::EurCredit)->first();
 
-        return ['merchant_wallet:'.$shop->public_id, ['available' => $w->available ?? 0, 'reserved' => $w->reserved ?? 0,
-            'unit' => 'eur_credit', 'currency' => 'EUR']];
+        return ['merchant_wallet:'.$shop->public_id, [
+            'available_minor' => (int) ($w->available ?? 0),
+            'reserved_minor' => (int) ($w->reserved ?? 0),
+            'currency' => 'EUR',
+            'unit' => 'EUR_REDEMPTION_CREDIT',
+        ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function offer(User $actor, ?Webshop $shop, string $id): array
     {
         $shop = $this->permission($actor, $shop, WorkspacePermission::OffersView);
@@ -142,16 +156,20 @@ final class SupportTools
         $preview = $this->fees->offerPreview($offer->acquisition, $offer->currentVersion);
         // Keep non-direct/unknown percentage cost unavailable; never turn a missing cap into zero.
         $known = ($preview['applies'] ?? false) && ($preview['available'] ?? false);
+        $rateBps = (int) ($preview['fee_rate_bps'] ?? $this->fees->feeRateBps());
 
         return ['offer:'.$offer->public_id.':v'.$offer->currentVersion->version, [
-            'available' => $known, 'basis' => $preview['basis'] ?? null, 'currency' => $preview['currency'] ?? null,
+            'cost_available' => $known,
+            'basis' => $preview['basis'] ?? null,
+            'currency' => $preview['currency'] ?? null,
             'consumer_reward_minor' => $known ? $preview['per_voucher']['reward_minor'] : null,
+            'shopbonus_fee_rate' => $known ? round($rateBps / 10000, 4) : null,
             'shopbonus_fee_minor' => $known ? $preview['per_voucher']['fee_minor'] : null,
             'merchant_total_economic_cost_minor' => $known ? $preview['per_voucher']['merchant_commitment_minor'] : null,
         ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function knowledge(User $actor, ?Webshop $shop, string $id, string $locale): array
     {
         $audiences = ['public', $shop === null ? 'consumers' : 'merchants'];
@@ -173,12 +191,18 @@ final class SupportTools
         $approvedAt = $version !== null && $version->origin !== 'backfill' && $version->recorded_by !== null && ($version->snapshot['published'] ?? false)
             ? $version->created_at->toIso8601String() : null;
 
-        return ['faq:'.$item->public_id.':v'.$item->revision, ['scope' => $item->audience, 'version' => $item->revision,
+        return ['faq:'.$item->public_id.':v'.$item->revision, [
+            'document_id' => $item->public_id,
+            'scope' => $item->audience,
+            'version' => $item->revision,
             'locale' => isset($item->translations[$locale]) ? $locale : 'nl',
-            'approved_at' => $approvedAt, 'question' => $translation['question'], 'content' => $content]];
+            'approved_at' => $approvedAt,
+            'question' => $translation['question'],
+            'content' => $content,
+        ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function reward(User $actor, string $reference, ?Webshop $shop): array
     {
         if ($shop !== null) {
@@ -191,9 +215,17 @@ final class SupportTools
             $pending = Str::isUlid($reference) ? WalletPendingCredit::where('public_id', strtolower($reference))
                 ->whereIn('wallet_id', Wallet::where('owner_type', 'user')->where('owner_id', $actor->id)->where('kind', WalletKind::ConsumerCredit)->where('unit', WalletUnit::EurCredit)->select('id'))->first() : null;
             if ($pending !== null) {
-                return ['wallet_reward:'.$pending->public_id, ['payment_status' => null, 'reward_status' => $pending->status,
-                    'reward_eligible' => null, 'reward_minor' => $pending->amount, 'currency' => 'EUR', 'source_type' => 'wallet_pending_credit',
-                    'claimed_at' => null, 'release_date' => null]];
+                return ['wallet_reward:'.$pending->public_id, [
+                    'order_reference' => $pending->public_id,
+                    'payment_status' => null,
+                    'reward_status' => $pending->status,
+                    'reward_eligible' => null,
+                    'reward_minor' => $pending->amount,
+                    'currency' => 'EUR',
+                    'source_type' => 'wallet_pending_credit',
+                    'claimed_at' => null,
+                    'release_date' => null,
+                ]];
             }
         }
         if ($order->count() !== 1) {
@@ -202,30 +234,51 @@ final class SupportTools
         $order = $order->sole();
         $v = Voucher::where('consumer_user_id', $actor->id)->where('source_order_id', $order->id)->orderByDesc('id')->firstOrFail();
         $claim = VoucherClaim::where('voucher_id', $v->id)->where('claimed_by', $actor->id)->first();
+        $sourceId = 'order_reward:'.$order->public_id.':'.$v->public_id;
 
-        return ['order_reward:'.$order->public_id.':'.$v->public_id, [
-            'payment_status' => $order->payment_status->value, 'reward_status' => $v->status->value,
+        return [$sourceId, [
+            'order_reference' => $order->reference ?? $order->public_id,
+            'payment_status' => $order->payment_status->value,
+            'reward_status' => $v->status->value,
             'reward_eligible' => $order->eligibility_status === 'eligible',
             'reward_minor' => ($v->terms_snapshot['discount_type'] ?? null) === 'fixed' ? ($v->terms_snapshot['discount_value'] ?? null) : null,
-            'currency' => $v->terms_snapshot['currency'] ?? null, 'source_type' => $v->origin->value,
-            'claimed_at' => $claim?->claimed_at?->toIso8601String(), 'release_date' => null,
+            'currency' => $v->terms_snapshot['currency'] ?? null,
+            'source_type' => $v->origin->value,
+            'claimed_at' => $claim?->claimed_at?->toIso8601String(),
+            'release_date' => null,
         ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function vouchers(User $actor, ?Webshop $shop): array
     {
         if ($shop !== null) {
             $this->deny($actor, 403);
         }
+        $rows = Voucher::where('consumer_user_id', $actor->id)->orderByDesc('id')->limit(50)->get();
+        $items = $rows->map(function (Voucher $v) use ($actor) {
+            $claim = VoucherClaim::where('voucher_id', $v->id)->where('claimed_by', $actor->id)->first();
+
+            return [
+                'status' => $v->status->value,
+                'source_type' => $v->origin->value,
+                'claimed_at' => $claim?->claimed_at?->toIso8601String(),
+                'expires_at' => $v->expires_at?->toIso8601String(),
+            ];
+        })->values()->all();
+
         $q = Voucher::where('consumer_user_id', $actor->id);
 
-        return ['owned_vouchers', ['issued' => (clone $q)->where('status', 'issued')->count(),
-            'redeemed' => (clone $q)->where('status', 'redeemed')->count(), 'expired' => (clone $q)->where('status', 'expired')->count(),
-            'cancelled' => (clone $q)->where('status', 'cancelled')->count()]];
+        return ['owned_vouchers', [
+            'items' => $items,
+            'issued' => (clone $q)->where('status', 'issued')->count(),
+            'redeemed' => (clone $q)->where('status', 'redeemed')->count(),
+            'expired' => (clone $q)->where('status', 'expired')->count(),
+            'cancelled' => (clone $q)->where('status', 'cancelled')->count(),
+        ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function quote(User $actor, string $id, ?Webshop $shop): array
     {
         if ($shop !== null) {
@@ -236,14 +289,19 @@ final class SupportTools
             $this->deny($actor, 404);
         }
         $q = app(CheckoutService::class)->quote($actor, $offer);
+        $sourceId = 'quote:'.$offer->public_id.':v'.$offer->currentVersion?->version;
 
-        return ['quote:'.$offer->public_id.':v'.$offer->currentVersion?->version, ['price_minor' => $q['price_minor'],
-            'wallet_usable_minor' => $q['wallet_part_minor'], 'mollie_due_minor' => $q['payment_part_minor'],
-            'currency' => $q['currency'], 'stock_available' => ! in_array('sold_out', $q['blockers'], true),
-            'purchasable' => $q['blockers'] === []]];
+        return [$sourceId, [
+            'price_minor' => $q['price_minor'],
+            'wallet_usable_minor' => $q['wallet_part_minor'],
+            'mollie_due_minor' => $q['payment_part_minor'],
+            'currency' => $q['currency'],
+            'stock_available' => ! in_array('sold_out', $q['blockers'], true),
+            'purchasable' => $q['blockers'] === [],
+        ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function campaign(User $actor, ?Webshop $shop, string $id): array
     {
         $shop = $this->permission($actor, $shop, WorkspacePermission::OrdersView);
@@ -254,12 +312,20 @@ final class SupportTools
         }
         $today = CarbonImmutable::now((string) config('shopbonus.business_timezone'))->startOfDay();
         $r = app(BannerMeasurement::class)->results($c, $today->subDays(29), $today, null);
+        $sourceId = 'campaign:'.$c->public_id;
 
-        return ['campaign:'.$c->public_id, ['impressions' => $r['viewable_impressions'], 'clicks' => $r['cta_clicks'],
-            'tracked_order_starts' => null, 'attributed_paid_orders' => $r['attributed_orders'], 'from' => $r['from'], 'to' => $r['to']]];
+        return [$sourceId, [
+            'impressions' => $r['viewable_impressions'],
+            'clicks' => $r['cta_clicks'],
+            // Existing measurement does not track checkout starts; never invent them as sales.
+            'tracked_order_starts' => null,
+            'attributed_paid_orders' => $r['attributed_orders'],
+            'from' => $r['from'],
+            'to' => $r['to'],
+        ]];
     }
 
-    /** @return array{string, array<string, int|string|bool|null>} */
+    /** @return array{string, array<string, mixed>} */
     private function integration(User $actor, ?Webshop $shop, string $id): array
     {
         $shop = $this->permission($actor, $shop, WorkspacePermission::IntegrationsView);
@@ -269,11 +335,20 @@ final class SupportTools
         }
         $registry = app(ConnectorRegistry::class);
         $entry = $registry->entry($c->platform);
-        $cap = ['order_ingestion_available' => $registry->isAvailable($c->platform), 'verification' => $entry['verification'] ?? 'unverified', 'method' => $c->method->value];
+        $capabilities = [
+            'order_ingestion_available' => $registry->isAvailable($c->platform),
+            'verification' => $entry['verification'] ?? 'unverified',
+            'method' => $c->method->value,
+        ];
+        $sourceId = 'integration:'.$c->public_id;
 
-        return ['integration:'.$c->public_id, ['platform' => $c->platform->value, 'status' => $c->status->value,
-            'capabilities' => json_encode($cap, JSON_THROW_ON_ERROR), 'last_sync_at' => $c->last_event_at?->toIso8601String(),
-            'last_error_code' => $c->last_error_code === null ? null : 'integration_error']];
+        return [$sourceId, [
+            'platform' => $c->platform->value,
+            'status' => $c->status->value,
+            'capabilities' => $capabilities,
+            'last_sync_at' => $c->last_event_at?->toIso8601String(),
+            'last_error_codes' => $c->last_error_code === null ? [] : ['integration_error'],
+        ]];
     }
 
     /** Revalidate conversation scope independently of any individual research tool. */

@@ -303,6 +303,22 @@ Exact next: normal docs-closeout commit/push/check clean; then continue remainin
 
 # Verified Backend Progress
 
+## Windows local installation — 2026-10-27
+
+User requested installation in this checkout. Branch `HassanDev`, base `665bc1d`.
+Composer installed 150 locked packages using Wamp PHP 8.4.15 with SOAP; platform check passed.
+Created ignored `.env` and application key, new MySQL `shopbonus`, database cache/queue/session.
+Initial migration failed because Wamp defaults to MyISAM (1,000-byte index limit).
+Confirmed only the two newly created tables (`users`, `migrations`) existed with zero rows,
+removed those task-owned empty tables, set the MySQL connection engine to InnoDB and retried.
+All 46 migrations passed; 122/122 tables are InnoDB. No global DB settings changed.
+Actual HTTP health/readiness/docs/catalog: 200; unauthenticated me: 401.
+API/identity suite: 86 passed, 4,063 assertions, 23.181s, SQLite memory.
+Composer platform requirements, empty database queue `--once`, launcher migrate status passed.
+Added `start-local.ps1` and `LOCAL_SETUP.md`; server started on loopback port 8000.
+Full regression/MySQL test suites, live providers and frontend integration NOT RUN.
+Changes remain uncommitted; no push or seed performed.
+
 ## Project status as of 2026-10-25
 
 Greenfield Laravel 13.38 / PHP 8.4 API in this repository (decision D-001). B01–B07 are implemented and tested: foundation, identity, workspaces/onboarding, connectors, orders, offers/vouchers, and Answer24 (eligibility, signed channel, handoff, claim, reminders; outbound dispatch off by default). B08–B15 are done (B10 adapters NOT VERIFIED live; Mollie stubbed; Moneybird not connected). B16a (admin 2FA, step-up code, support sessions) and B16b (cockpit, user administration) are done; B16c is committed/CI-green (`4786e65`); B16d is committed/tested (`7b2c8d1`), implementation CI passed; whole-card limitations remain. Statuses below come from committed code and commands actually run.

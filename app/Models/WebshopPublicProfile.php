@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\DB;
  * @property string|null $website_url
  * @property string|null $logo_path
  * @property string|null $logo_mime
+ * @property string|null $cover_url
+ * @property string|null $cover_path
+ * @property string|null $cover_mime
  * @property bool $published
  * @property CarbonImmutable|null $published_at
  * @property CarbonImmutable|null $first_published_at

@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $category_restricted
  * @property bool $cashback_allowed
  * @property string $tracking_url_template
+ * @property string|null $merchant_url
+ * @property array<string, mixed>|null $raw_evidence
  * @property CarbonImmutable|null $last_seen_at
  * @property-read AffiliateConnection $connection
  */
@@ -39,7 +41,8 @@ class AffiliateProgram extends Model
 
     protected function casts(): array
     {
-        return ['active' => 'boolean', 'category_restricted' => 'boolean', 'cashback_allowed' => 'boolean', 'commission_value' => 'integer', 'last_seen_at' => 'immutable_datetime'];
+        return ['active' => 'boolean', 'category_restricted' => 'boolean', 'cashback_allowed' => 'boolean', 'commission_value' => 'integer',
+            'raw_evidence' => 'array', 'raw_evidence' => 'array', 'last_seen_at' => 'immutable_datetime'];
     }
 
     /** @return list<string> */

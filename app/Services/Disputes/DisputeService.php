@@ -116,6 +116,32 @@ class DisputeService
         });
     }
 
+    public function openByMerchant(int $actorUserId, Voucher $voucher, string $reason, string $description): VoucherDispute
+    {
+        $subjectUserId = $voucher->consumer_user_id ?? $actorUserId;
+
+        try {
+            return DB::transaction(function () use ($actorUserId, $voucher, $reason, $description, $subjectUserId) {
+                $dispute = VoucherDispute::create([
+                    'user_id' => $subjectUserId,
+                    'webshop_id' => $voucher->webshop_id,
+                    'voucher_id' => $voucher->id,
+                    'reason' => $reason,
+                    'description' => $description,
+                    'status' => 'open',
+                    'open_key' => 'voucher:'.$voucher->id,
+                ]);
+                $this->event($dispute, 'merchant', $actorUserId, 'opened', 'merchant_initiated');
+                $this->audit->record('dispute.opened', category: AuditCategory::Voucher, resource: $dispute, webshopId: $voucher->webshop_id, actorUserId: $actorUserId,
+                    metadata: ['reason' => $reason, 'initiated_by' => 'merchant']);
+
+                return $dispute;
+            });
+        } catch (UniqueConstraintViolationException) {
+            throw ApiException::conflict('There is already an open report for this voucher.', 'dispute_already_open');
+        }
+    }
+
     public function setStatus(VoucherDispute $dispute, string $status, int $actorUserId, ?string $note): VoucherDispute
     {
         return DB::transaction(function () use ($dispute, $status, $actorUserId, $note) {
