@@ -252,10 +252,10 @@ return [
 
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
-        // on_validated_attribution: credit immediately after Laravel verifies attribution
-        // and eligible commission (consumer product: no pending cashback balance).
-        // on_network_approval: hold pending until the network approves (legacy/admin override).
-        'credit_timing' => env('AFFILIATE_CREDIT_TIMING', 'on_validated_attribution'),
+        // on_network_approval (owner-confirmed default, D-089): pending and not spendable
+        // until the network approves. on_validated_attribution (card #23 instant credit)
+        // remains a compatibility path; enabling it needs a new owner decision.
+        'credit_timing' => env('AFFILIATE_CREDIT_TIMING', 'on_network_approval'),
         // Default consumer share of eligible commission (70% / ShopBonus 30%).
         'default_consumer_share_bps' => (int) env('AFFILIATE_DEFAULT_CONSUMER_SHARE_BPS', 7000),
         // Network used when programs cannot be compared reliably.

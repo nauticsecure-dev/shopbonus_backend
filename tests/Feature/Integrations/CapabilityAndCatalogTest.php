@@ -2,14 +2,15 @@
 
 namespace Tests\Feature\Integrations;
 
-use App\Models\CatalogCoupon;
-use App\Models\CatalogProduct;
+use App\Models\AffiliateConnection;
+use App\Models\AffiliateTransaction;
+use App\Models\MerchantCommissionConversion;
 use App\Models\User;
 use App\Models\Webshop;
-use App\Models\WebshopConnection;
 use App\Services\Cashback\RewardSourceGuard;
 use App\Services\Onboarding\Network\HostResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -70,21 +71,18 @@ class CapabilityAndCatalogTest extends TestCase
         $this->assertSame('webshop', $platforms['woocommerce']['category']);
     }
 
-    public function test_connection_capabilities_and_health_endpoints(): void
+    public function test_connection_capability_report_is_honest_before_verification(): void
     {
         $created = $this->postJson($this->url('/connections'), ['platform' => 'woocommerce'])->assertCreated();
         $id = $created->json('data.id');
 
-        $caps = $this->getJson($this->url("/connections/{$id}/capabilities"))->assertOk()->json('data.capabilities');
-        $this->assertSame('AVAILABLE', $caps['webhooks']['state']);
-        $this->assertSame('LIMITED', $caps['products']['state']);
-
-        $health = $this->getJson($this->url("/connections/{$id}/health"))->assertOk()->json('data');
-        $this->assertSame(0, $health['products_synced']);
-        $this->assertSame(0, $health['eligible_coupons']);
+        // No authenticated event and no completed sync yet: nothing is claimed AVAILABLE.
+        $caps = collect($this->getJson($this->url("/connections/{$id}/capabilities"))->assertOk()->json('data'))->pluck('status', 'capability');
+        $this->assertSame(['LIMITED', 'LIMITED', 'LIMITED', 'UNSUPPORTED'], [$caps['webhooks'], $caps['products'], $caps['orders'], $caps['coupons_write']]);
+        $this->getJson($this->url("/connections/{$id}/catalog-syncs"))->assertOk()->assertJsonCount(0, 'data');
     }
 
-    public function test_woocommerce_product_and_coupon_sync_upserts_and_marks_expired_ineligible(): void
+    public function test_woocommerce_product_and_coupon_sync_marks_expired_coupons_inactive(): void
     {
         $created = $this->postJson($this->url('/connections'), [
             'platform' => 'woocommerce',
@@ -93,79 +91,43 @@ class CapabilityAndCatalogTest extends TestCase
             'consumer_secret' => 'cs_'.str_repeat('b', 20),
         ])->assertCreated();
         $id = $created->json('data.id');
-        $connection = WebshopConnection::where('public_id', $id)->sole();
 
-        Http::fake(function (\Illuminate\Http\Client\Request $request) {
-            $url = $request->url();
-            if (str_contains($url, '/products')) {
-                return Http::response([
-                    [
-                        'id' => 101,
-                        'name' => 'Blue Mug',
-                        'sku' => 'MUG-1',
-                        'price' => '12.50',
-                        'currency' => 'EUR',
-                        'permalink' => 'https://fietsen-utrecht.nl/product/mug',
-                        'short_description' => 'Ceramic',
-                        'stock_status' => 'instock',
-                        'date_modified_gmt' => '2026-10-28T10:00:00',
-                        'images' => [['src' => 'https://cdn.example/mug.jpg']],
-                        'categories' => [['name' => 'Drinkware']],
-                    ],
-                ], 200, ['X-WP-TotalPages' => '1']);
+        Http::fake(function (Request $request) {
+            $path = (string) parse_url($request->url(), PHP_URL_PATH);
+            if (str_ends_with($path, '/data/currencies/current')) {
+                return Http::response(['code' => 'EUR', 'name' => 'Euro', 'symbol' => '&euro;']);
             }
-            if (str_contains($url, '/coupons')) {
-                return Http::response([
-                    [
-                        'id' => 7,
-                        'code' => 'SAVE10',
-                        'discount_type' => 'percent',
-                        'amount' => '10',
-                        'status' => 'publish',
-                        'date_expires_gmt' => null,
-                        'individual_use' => true,
-                        'excluded_product_categories' => [],
-                        'usage_limit' => 100,
-                        'usage_count' => 1,
-                    ],
-                    [
-                        'id' => 8,
-                        'code' => 'OLD20',
-                        'discount_type' => 'percent',
-                        'amount' => '20',
-                        'status' => 'publish',
-                        'date_expires_gmt' => '2020-01-01T00:00:00',
-                        'individual_use' => false,
-                        'excluded_product_categories' => [],
-                    ],
-                ], 200, ['X-WP-TotalPages' => '1']);
+            if (str_ends_with($path, '/products')) {
+                return Http::response([[
+                    'id' => 101, 'name' => 'Blue Mug', 'sku' => 'MUG-1', 'type' => 'simple', 'status' => 'publish', 'catalog_visibility' => 'visible',
+                    'price' => '12.50', 'regular_price' => '12.50', 'sale_price' => '', 'permalink' => 'https://fietsen-utrecht.nl/product/mug',
+                    'description' => 'Ceramic', 'short_description' => '', 'stock_status' => 'instock', 'stock_quantity' => null,
+                    'date_modified_gmt' => '2026-10-28T10:00:00', 'images' => [['src' => 'https://fietsen-utrecht.nl/img/mug.jpg']],
+                    'categories' => [['id' => 3, 'name' => 'Drinkware', 'slug' => 'drinkware']],
+                ]], 200, ['X-WP-TotalPages' => '1']);
+            }
+            if (str_ends_with($path, '/coupons')) {
+                $coupon = fn (int $id, string $code, string $amount, ?string $expires) => [
+                    'id' => $id, 'code' => $code, 'discount_type' => 'percent', 'amount' => $amount, 'status' => 'publish', 'date_expires_gmt' => $expires,
+                    'individual_use' => true, 'product_ids' => [], 'excluded_product_ids' => [], 'product_categories' => [], 'excluded_product_categories' => [],
+                    'usage_limit' => 100, 'usage_limit_per_user' => null, 'usage_count' => 1, 'free_shipping' => false, 'exclude_sale_items' => false,
+                    'minimum_amount' => '0.00', 'maximum_amount' => '0.00', 'email_restrictions' => [], 'date_modified_gmt' => '2026-10-21T10:00:00',
+                ];
+
+                return Http::response([$coupon(7, 'SAVE10', '10', null), $coupon(8, 'OLD20', '20', '2020-01-01T00:00:00')], 200, ['X-WP-TotalPages' => '1']);
             }
 
             return Http::response(['error' => 'unexpected'], 500);
         });
 
-        $this->postJson($this->url("/connections/{$id}/sync/products"))->assertStatus(202)
-            ->assertJsonPath('data.imported', 1)
-            ->assertJsonPath('data.exhausted', true);
-
-        $this->postJson($this->url("/connections/{$id}/sync/coupons"))->assertStatus(202)
-            ->assertJsonPath('data.imported', 2);
-
-        $this->assertSame(1, CatalogProduct::where('connection_id', $connection->id)->count());
-        $product = CatalogProduct::where('external_product_id', '101')->sole();
-        $this->assertSame('Blue Mug', $product->name);
-        $this->assertSame(1250, $product->price_minor);
-        $this->assertSame('Drinkware', $product->category);
-
-        $eligible = CatalogCoupon::where('connection_id', $connection->id)->where('eligible_public', true)->get();
-        $this->assertCount(1, $eligible);
-        $this->assertSame('SAVE10', $eligible->first()->code);
-        $this->assertFalse(CatalogCoupon::where('code', 'OLD20')->sole()->eligible_public);
+        $this->postJson($this->url("/connections/{$id}/catalog-syncs"), ['kind' => 'products'])->assertStatus(202);
+        $this->postJson($this->url("/connections/{$id}/catalog-syncs"), ['kind' => 'coupons'])->assertStatus(202);
 
         $this->getJson($this->url("/connections/{$id}/products"))->assertOk()
-            ->assertJsonPath('data.0.name', 'Blue Mug');
-        $this->getJson($this->url("/connections/{$id}/coupons"))->assertOk()
-            ->assertJsonCount(2, 'data');
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.name', 'Blue Mug')
+            ->assertJsonPath('data.0.price_minor', 1250)->assertJsonPath('data.0.categories.0.name', 'Drinkware');
+        $coupons = collect($this->getJson($this->url("/connections/{$id}/coupons"))->assertOk()->assertJsonCount(2, 'data')->json('data'))->pluck('active', 'code');
+        $this->assertSame(['SAVE10' => true, 'OLD20' => false], $coupons->all());
     }
 
     public function test_reward_source_guard_blocks_cross_path_duplicates(): void
@@ -173,7 +135,7 @@ class CapabilityAndCatalogTest extends TestCase
         $guard = app(RewardSourceGuard::class);
         $hash = $guard->orderReferenceHash($this->shop->id, 'ORDER-42');
 
-        $connection = \App\Models\AffiliateConnection::create([
+        $connection = AffiliateConnection::create([
             'network' => 'daisycon',
             'name' => 'Fixture',
             'status' => 'connected',
@@ -181,7 +143,7 @@ class CapabilityAndCatalogTest extends TestCase
             'postback_token_hash' => hash('sha256', 'fixture-catalog'),
         ]);
 
-        \App\Models\AffiliateTransaction::create([
+        AffiliateTransaction::create([
             'network' => 'daisycon',
             'connection_id' => $connection->id,
             'external_id' => 'aff-catalog-1',
@@ -199,7 +161,7 @@ class CapabilityAndCatalogTest extends TestCase
         $this->assertSame('affiliate_reward_already_credited', $guard->assertDirectAllowed($this->shop->id, 'ORDER-42'));
         $this->assertNull($guard->assertDirectAllowed($this->shop->id, 'OTHER'));
 
-        \App\Models\MerchantCommissionConversion::create([
+        MerchantCommissionConversion::create([
             'webshop_id' => $this->shop->id,
             'user_id' => $this->owner->id,
             'agreement_id' => null,
