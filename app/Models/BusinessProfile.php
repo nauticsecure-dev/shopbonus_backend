@@ -37,7 +37,7 @@ class BusinessProfile extends Model
 
     protected $guarded = ['id', 'webshop_id', 'confirmed_at', 'confirmed_by'];
 
-    protected $attributes = ['preferred_language' => 'nl', 'source' => 'manual'];
+    protected $attributes = ['preferred_language' => 'nl', 'country_code' => 'NL', 'source' => 'manual'];
 
     /** Fields required before the profile can be confirmed. */
     public const REQUIRED = ['legal_name', 'website_url', 'contact_email', 'address_line', 'postal_code', 'city', 'country_code'];
