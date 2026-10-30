@@ -57,6 +57,8 @@ class EmailVerificationCodes
         });
 
         $user->notify(new EmailVerificationCode($code, $ttl));
+        // log verification code for testing
+        \Log::info("Verification code sent for user {$user->id}: {$code}");
 
         $this->audit->recordSafely(
             action: 'identity.verification_code_sent',
