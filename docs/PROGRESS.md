@@ -1,3 +1,8 @@
+# Active handoff — `shopbonus:create-admin` command (2026-10-30, Claude)
+
+Owner request: a command to create an admin with name, email and password. `php artisan shopbonus:create-admin [--name=] [--email=] [--password=]` prompts for missing values (password hidden, asked twice), validates with the signup rules (`Password::defaults()`: min 10, letters + numbers, breached-password check in production; unique normalized email), then creates a verified active user, grants Super Admin (`granted_via: console`) and audits `admin.super_admin_granted` (`created: true`) in one transaction. Existing email → fails and points to `shopbonus:grant-super-admin`. 2FA is still required before the admin API opens. Test: `tests/Feature/Admin/CreateSuperAdminCommandTest.php` (3 PASS on SQLite and MySQL); PHPStan 0. No migration or route. Previous: B30 `a412e89`, [CI 40929686025](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40929686025) SUCCESS on all 3 jobs.
+
+---
 # Active handoff — #37 B30 Quality Center backend; backend slice done, card not Done (2026-10-29, Claude)
 
 Branch `main`. Base `2276fe6` (B29, [CI 40895099427](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40895099427) SUCCESS on all 3 jobs). Owner: "do it" (build #33–#35, then #37's "Laravel Backend: Frank" part). D-089 unchanged. Credentials senior-owned. #12 still waits for the owner's cashback-timing decision.
