@@ -176,12 +176,13 @@ class TeamService
                 throw new ApiException('This invitation is invalid or has expired.', 410, 'invitation_invalid');
             }
 
-            // An invitation is only as valid as the authority behind it today.
+            // An invitation is only as valid as the authority behind it today,
+            // including every permission it grants.
             $inviter = WebshopMembership::with('webshop')->where('webshop_id', $invitation->webshop_id)
-                ->where('user_id', $invitation->invited_by)->first();
+                ->where('user_id', $invitation->invited_by)->lockForUpdate()->first();
             $authorityLost = $inviter === null
                 || ! $inviter->allows(WorkspacePermission::TeamManage)
-                || $invitation->role->rank() > $inviter->role->rank();
+                || ! $this->stillGrantable($inviter, $invitation);
 
             if ($authorityLost || ! $inviter->webshop->status->allowsMemberAccess()) {
                 throw new ApiException('This invitation is invalid or has expired.', 410, 'invitation_invalid');
@@ -349,6 +350,17 @@ class TeamService
         }
 
         return array_values(array_unique($grants));
+    }
+
+    private function stillGrantable(WebshopMembership $inviter, WebshopInvitation $invitation): bool
+    {
+        try {
+            $this->assertCanGrant($inviter, $invitation->role, $invitation->permissions ?? []);
+        } catch (ApiException) {
+            return false;
+        }
+
+        return true;
     }
 
     private function assertCanManage(WebshopMembership $actor, WebshopMembership $target): void

@@ -1297,7 +1297,7 @@ paths:
       operationId: acceptInvitation
       summary: "Accept an invitation"
       description: |
-        The signed-in user's email must equal the invited email (403 `invitation_recipient_mismatch`, audited as a security event). The invitation must be pending and unexpired, the inviter must still hold `team.manage` and a role at least as high as the invited one, and the webshop must not be suspended; otherwise 410 `invitation_invalid`. Creates the membership, or reactivates it for someone previously removed. Single use under a row lock.
+        The signed-in user's email must equal the invited email (403 `invitation_recipient_mismatch`, audited as a security event). The invitation must be pending and unexpired, the inviter must still hold `team.manage` and a role at least as high as the invited one, and still hold every permission the invitation grants, and the webshop must not be suspended; otherwise 410 `invitation_invalid`. Creates the membership, or reactivates it for someone previously removed. Single use under a row lock.
       x-access: verified
       requestBody:
         required: true

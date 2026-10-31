@@ -1,3 +1,13 @@
+# Continuation checkpoint — B40 invitation acceptance revalidates every grant (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `0b7f6fc` (B39). Card #16 (Webshop Onboarding & Workspace Management), Oluwasola finding 1: acceptance checked the inviter's `team.manage` and role rank but applied the invitation's stored permissions without checking that the inviter still holds each one. `TeamService::acceptInvitation` now reruns the same `assertCanGrant` rule used when inviting (role rank, owner-only, every permission held) against the inviter's current membership, locked for update in the acceptance transaction; any failure is the existing 410 `invitation_invalid` and the invitation stays pending. OpenAPI description updated. No migrations, routes or packages.
+
+Executed: new `TeamTest::test_invitation_dies_when_inviter_loses_a_granted_permission_or_rank` fails without the fix (200 instead of 410) and passes with it. tests/Feature/Workspaces 38/38 (255 assertions) PASS on SQLite and on MySQL `shopbonus_testing`; Pint and PHPStan (TeamService) PASS. Main DB untouched.
+
+#16 backend still open: realtime subscription revocation for removed members (finding 2) and a dedicated ownership-transfer workflow (finding 5, needs approved design). Frontend items (permission editor, invite review, access history) are Hassan's. Next exact: push, check CI; then #17 merchant manual redemption of reusable codes (VoucherOperationsController picks the oldest issued voucher) or #20 durable Mollie payment intent.
+
+---
+
 # Continuation checkpoint — B39 merchant dispute history paginated (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `52c8046` (B38). Source: `MS0DLCAX - shopbonus (4).json`, Oluwasola's review of #17 (Webshop Dashboard, Offers & Voucher Management), finding 7: `GET /workspaces/{workspace}/disputes` returned at most 200 rows with no way to reach older ones. Now server-paginated newest first (`page`, `per_page` 1–100, default 25) with the same `meta` shape as the voucher list; `data` stays an array, so existing callers keep working. OpenAPI parameters/example/description updated. No migrations, routes, packages or provider calls.
