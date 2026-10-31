@@ -26,11 +26,19 @@ class SetRequestLocale
 
         // Always set it: a long-running worker must not carry one request's language into the next.
         // Default is NL when Accept-Language is missing or unsupported.
-        App::setLocale($explicit ? $preferred : (string) config('app.locale', 'nl'));
+        $default = (string) config('app.locale', 'nl');
+        $locale = $explicit ? $preferred : $default;
+        App::setLocale($locale);
 
-        $response = $next($request);
-        $response->headers->set('Content-Language', App::getLocale());
+        try {
+            $response = $next($request);
+            $response->headers->set('Content-Language', $locale);
 
-        return $response;
+            return $response;
+        } finally {
+            // setLocale also writes app.locale: restore the configured default
+            // so a worker's next request cannot inherit this visitor's choice.
+            App::setLocale($default);
+        }
     }
 }

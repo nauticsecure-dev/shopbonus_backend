@@ -229,3 +229,11 @@ Trello review of the Frank list (B31). Reviewer requests that conflict with reco
 ### D-103 — Separate voucher points prices (owner, 2026-10-31)
 
 Owner approved: merchants may set a separate positive integer points price per voucher offer. Points purchases use only the consumer points wallet; no conversion to EUR and no Mollie shortfall. Existing EUR-credit checkout retains D-053. Prices must be versioned, captured immutably at checkout, and revalidated under locks. Missing points pricing or insufficient available points blocks purchase; pending/reserved points cannot fund it. This resolves OPEN-REWARD-UNITS only for explicit points-priced voucher checkout, not the separate points earning/conversion-rate policy.
+
+### D-104 — Explicit per-program points earning (owner, 2026-10-31)
+
+Owner chose “Require an explicit configured rate” for new points earning rules. New points rules must identify the affiliate program and an explicit earning rate before activation; no assumed points/euro conversion. Existing reward snapshots must retain their historical terms. D-103 points voucher pricing remains independent of earning rates. Implementation follows the locale CI repair checkpoint.
+
+### D-105 — Commission remainder stays allocation reporting (owner, 2026-10-31)
+
+Owner chose “Keep allocation reporting” for #30. The commission remainder remains management allocation/unrecognized revenue evidence, not posted formal accounting revenue. Existing financial reconciliation and its labels are intentional; no revenue ledger or accounting activation is authorized by the card wording. Formal recognition remains a separate approved accounting task.

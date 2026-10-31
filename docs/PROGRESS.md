@@ -1,3 +1,15 @@
+# Continuation checkpoint — B37 locale CI repair verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3 (draft). B36 `05104b0` is pushed. First exact PR merge-build CI41184307319: quality PASS; both test jobs failed on the same locale regression. SQLite1142total/1116pass+25skip+1fail/19699assertions. Failure: English validation used Dutch “beleidsversie” under shipped APP_FALLBACK_LOCALE=nl. New QA pipeline correctly retained the failure and uploaded sanitized artifacts; tested merge SHA74f638a99d88b38af5e80120c69cd363f9b958d2. Never call that run green.
+
+B37 adds explicit English attribute labels (Laravel messages retained) and restores the configured default after each request, including worker reuse. Regression tests force NL fallback and alternate NL/EN/unsupported/no-preference plus configurable EN default. Symfony test requests inject English unless explicitly blank; the absence fixture now accounts for that.
+
+Executed: SQLite CookieConsentTest3/58 PASS with NL config; MySQL same3/58 PASS (14.048s). API3/7505 PASS, PHPStan L6 and Pint checks PASS. Four real HTTP422 captures with NL defaults in docs/qa/B37_LOCALE_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped; isolated DB/storage removed. No migrations/provider calls/packages.
+
+Owner also resolved D-104: require explicit per-program points earning rate before new points rules activate, preserving existing reward snapshots. D-105: keep commission remainder allocation reporting, no formal revenue posting. Next: commit/push B37 and implement D-104 as the next backend boundary. Other remaining work stays in docs/qa/FRANK_BACKEND_REMAINING.md. Native APIs were researched only: E-Series uses Ecwid officially, but source-namespace/duplicate-effect guards must be audited before enabling that alias. Mijnwebwinkel needs partner API access/contract, CCV current webshop docs and Squarespace schemas need further review. No connector was activated from a name alone. Main DB migrations still not applied.
+
+---
+
 # Continuation checkpoint — B36 independent retest proof verified (2026-10-31, Codex)
 
 Branch `frank/review-fixes`; B32 `1a3eee0`, points B33 `fe699ad`, affiliate B34 `40d8e83`, CI B35 `1284bc1`. B36 corrects remaining #37/#36 false-positive proof paths: read-only bounded Git ancestry distinguishes descendants/unrelated builds; later scan chronology is never positive build proof. Unknown endpoint ancestry remains time_only/STALE even when freshly imported. Unknown finding builds require explicit independent attestation, separately audited. Both execution and import must follow the recorded fix. Unlinked/manual PASS requires executed unmocked assertions plus unexpired, decryptable, checksum-verified evidence attached to a passing result. Linked browser/manual results and endpoint PASS use the same valid-evidence requirement; expired/corrupt files cannot certify success. Existing independent-role restrictions retained. Added Dutch error translations, including earlier points/schedule errors. No routes, migrations, provider calls or packages.

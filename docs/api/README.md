@@ -19685,3 +19685,92 @@ Captured response 200:
   }
 }
 ```
+
+
+## Validation language with NL fallback — 2026-10-31
+
+English requests now use English field labels even when APP_FALLBACK_LOCALE=nl. Each request restores the configured default locale afterward, so unsupported/missing preferences cannot inherit another visitor’s language. [Actual local HTTP captures](../qa/B37_LOCALE_HTTP_CAPTURE.json), isolated SQLite/storage with NL defaults:
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, Accept-Language: nl-NL. Captured 422, Content-Language: nl.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "De ingevulde gegevens zijn ongeldig.",
+    "request_id": "01a19114-adda-70fc-b791-84757d086c10",
+    "fields": {
+      "policy_version": [
+        "Beleidsversie is verplicht."
+      ],
+      "action": [
+        "Actie is verplicht."
+      ]
+    }
+  }
+}
+```
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, Accept-Language: en. Captured 422, Content-Language: en.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19114-ae42-72a2-bed2-0950cba40a0c",
+    "fields": {
+      "policy_version": [
+        "The policy version field is required."
+      ],
+      "action": [
+        "The action field is required."
+      ]
+    }
+  }
+}
+```
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, Accept-Language: fr-FR. Captured 422, Content-Language: nl.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "De ingevulde gegevens zijn ongeldig.",
+    "request_id": "01a19114-ae5b-702d-b3b3-0bfa4535766b",
+    "fields": {
+      "policy_version": [
+        "Beleidsversie is verplicht."
+      ],
+      "action": [
+        "Actie is verplicht."
+      ]
+    }
+  }
+}
+```
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, no Accept-Language header. Captured 422, Content-Language: nl.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "De ingevulde gegevens zijn ongeldig.",
+    "request_id": "01a19114-ae74-727f-b360-14ac8eefc8d9",
+    "fields": {
+      "policy_version": [
+        "Beleidsversie is verplicht."
+      ],
+      "action": [
+        "Actie is verplicht."
+      ]
+    }
+  }
+}
+```

@@ -9478,10 +9478,18 @@ paths:
             application/json:
               example: {"error":{"status":409,"code":"policy_outdated","message":"The cookie policy changed. Reload to see the current choices.","request_id":"01a16dfe-d9da-70ae-a369-609cf76c8dfe","details":{"current_version":"2026.2"}}}
         '422':
-          description: "Invalid input (captured with Accept-Language: nl)."
+          description: Actual local validation captures with NL defaults and explicit NL/EN preferences (B37).
           content:
             application/json:
-              example: {"error":{"status":422,"code":"validation_failed","message":"De ingevulde gegevens zijn ongeldig.","request_id":"01a16dfe-daac-7396-9c61-e2190c9eb7bd","fields":{"policy_version":["Beleidsversie is verplicht."],"action":["Actie is verplicht."]}}}
+              examples:
+                dutch:
+                  value: {"error":{"status":422,"code":"validation_failed","message":"De ingevulde gegevens zijn ongeldig.","request_id":"01a19114-adda-70fc-b791-84757d086c10","fields":{"policy_version":["Beleidsversie is verplicht."],"action":["Actie is verplicht."]}}}
+                english:
+                  value: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19114-ae42-72a2-bed2-0950cba40a0c","fields":{"policy_version":["The policy version field is required."],"action":["The action field is required."]}}}
+                unsupported_default:
+                  value: {"error":{"status":422,"code":"validation_failed","message":"De ingevulde gegevens zijn ongeldig.","request_id":"01a19114-ae5b-702d-b3b3-0bfa4535766b","fields":{"policy_version":["Beleidsversie is verplicht."],"action":["Actie is verplicht."]}}}
+                missing_default:
+                  value: {"error":{"status":422,"code":"validation_failed","message":"De ingevulde gegevens zijn ongeldig.","request_id":"01a19114-ae74-727f-b360-14ac8eefc8d9","fields":{"policy_version":["Beleidsversie is verplicht."],"action":["Actie is verplicht."]}}}
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v1/public/cookie-consents/{consentId}:

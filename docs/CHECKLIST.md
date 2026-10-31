@@ -915,3 +915,12 @@ B35 evidence: SQLite/MySQL QA17/297 each; API3/7505; Pint/PHPStan PASS; real CLI
 - [x] Capture changed QA API results and document conservative limitations; run focused SQLite/MySQL checks.
 
 B36 evidence: SQLite26/7835 and MySQL23/330 PASS; API3/7505; Pint/PHPStan PASS; actual Git branch proof and seven HTTP guard captures. Implementing commit `fix: require build and evidence proof for QA retests`; B35 SHA `1284bc1`.
+
+### B37 — CI locale/fallback regression repair
+
+- [x] Reproduce English validation labels falling back to Dutch under the shipped NL fallback configuration.
+- [x] Provide English attribute labels without replacing Laravel's validation messages; preserve configured default locale.
+- [x] Test alternating languages and unsupported/missing preferences under explicit NL/EN defaults.
+- [x] Capture actual HTTP validation responses; update API docs and record focused SQLite/MySQL/static/format evidence.
+
+B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual HTTP captures. Implementing commit `fix: isolate validation labels and request locale defaults`; B36 SHA `05104b0`.
