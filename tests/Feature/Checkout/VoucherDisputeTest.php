@@ -184,6 +184,18 @@ class VoucherDisputeTest extends TestCase
         $this->getJson("/api/v1/consumer/disputes/{$id}")->assertNotFound();
     }
 
+    public function test_merchant_voucher_list_keeps_the_name_the_voucher_was_issued_under(): void
+    {
+        $v = $this->issued();
+        app(OfferService::class)->update($this->shop->memberships()->sole(), $this->offer, ['name' => '€30 korting']);
+        $later = $this->issued();
+
+        Sanctum::actingAs($this->owner);
+        $rows = collect($this->getJson($this->ws('/vouchers'))->assertOk()->json('data'))->pluck('offer_name', 'id');
+        $this->assertSame(['€25 korting', '€30 korting'], [$rows[$v->public_id], $rows[$later->public_id]]);
+        $this->getJson($this->ws("/vouchers/{$v->public_id}"))->assertOk()->assertJsonPath('data.offer_name', '€25 korting');
+    }
+
     public function test_merchant_dispute_history_is_paginated_newest_first(): void
     {
         Sanctum::actingAs($this->anna);

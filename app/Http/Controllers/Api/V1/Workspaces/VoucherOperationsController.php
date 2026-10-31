@@ -164,7 +164,8 @@ class VoucherOperationsController extends Controller
             'origin' => $voucher->origin->value,
             'code' => '****'.$voucher->code->code_last4,
             'offer_id' => $voucher->offer?->public_id,
-            'offer_name' => $voucher->offer?->currentVersion?->name,
+            // The name the voucher was issued under, not a later edit of the offer.
+            'offer_name' => $voucher->terms_snapshot['name'] ?? $voucher->offer?->currentVersion?->name,
             'issued_at' => $voucher->issued_at?->toIso8601String(),
             'expires_at' => $voucher->expires_at?->toIso8601String(),
             'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),

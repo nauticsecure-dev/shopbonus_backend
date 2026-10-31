@@ -1,3 +1,13 @@
+# Continuation checkpoint — B42 merchant voucher rows keep the issued offer name (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `f2d8d5a` (B41). Card #17, Oluwasola finding 9: merchant voucher list/detail/export rows took `offer_name` from the offer's current version, so editing an offer relabelled vouchers already issued. `presentVoucher` now uses `terms_snapshot.name` (frozen at reservation), falling back to the current name only if a snapshot lacks one. Search still matches the current offer name (documented). OpenAPI description updated. No migrations/routes.
+
+Executed: new `VoucherDisputeTest::test_merchant_voucher_list_keeps_the_name_the_voucher_was_issued_under` fails on the old code (old voucher shown as the new name) and passes now. SQLite Checkout+Api+Offers 96 tests / 93 pass + 3 pre-existing MySQL-only skips; MySQL VoucherDisputeTest 10/10. Pint PASS.
+
+#17 backend still open: per-consumer issuance limit (product decision: is it wanted, and per offer?), queued large exports. Next exact: push, check CI; then #20 durable Mollie payment intent, or #16 realtime revocation.
+
+---
+
 # Continuation checkpoint — B41 merchant redemption of reusable codes names the voucher (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `f16b9c1` (B40). Card #17 (Webshop Dashboard, Offers & Voucher Management), Oluwasola finding 2: `POST /workspaces/{workspace}/vouchers/redeem` redeemed the oldest issued voucher behind a code, so with a reusable code it could mark another consumer's voucher used. Unique codes are unchanged (one voucher per code). A reusable code now needs `voucher_id` (the public ID the customer shows): without it 422 `voucher_id_required`; an ID not issued on that code (or another webshop's) is the existing 404 `voucher_not_found`. Expiry/once-only rules are unchanged (`VoucherInventory::redeemByMerchant`). OpenAPI request field, description and 422 example (from the test run) updated. Provider-confirmed redemption already attributes reusable codes by buyer email (`RedemptionMatcher::buyersVoucher`). No migrations/routes/packages.
