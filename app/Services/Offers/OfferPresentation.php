@@ -41,6 +41,7 @@ class OfferPresentation
             'discount_type' => $v?->discount_type,
             'discount_value' => $v?->discount_value,
             'currency' => $v->currency ?? 'EUR',
+            'price_points' => $offer->acquisition === OfferAcquisition::WalletPurchase ? $v?->price_points : null,
             'min_order_minor' => $v?->min_order_minor,
             'max_discount_minor' => $v?->max_discount_minor,
             'claim_validity_days' => $v?->claim_validity_days,

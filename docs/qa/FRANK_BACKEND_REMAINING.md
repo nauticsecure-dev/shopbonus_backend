@@ -4,8 +4,8 @@ Source: Downloads `MS0DLCAX - shopbonus (3).json`, active Frank list; reviewer c
 
 | Card | Backend work / acceptance still open | Separate Hassan / senior work |
 | --- | --- | --- |
-| [#19](https://trello.com/c/QBffQWek) | D-103 separate points-priced checkout; distinct orders must not be deduped solely by click; stale network selections; missing-policy tracking must fail closed; configurable earning rules still need an explicit rate/rounding policy | Consumer UI; native network acceptance |
-| [#20](https://trello.com/c/KPfe6qGp) | D-103 points pricing and checkout; validate existing payment/refund recovery under MySQL | Checkout/My Vouchers UI; real Mollie TEST acceptance |
+| [#19](https://trello.com/c/QBffQWek) | D-103 points checkout implemented and focused SQLite/MySQL verified; distinct orders must not be deduped solely by click; stale network selections; missing-policy tracking must fail closed; configurable earning rules still need an explicit rate/rounding policy | Consumer UI; native network acceptance |
+| [#20](https://trello.com/c/KPfe6qGp) | D-103 points checkout implemented and verified; existing payment/refund focused MySQL tests pass; review longer-lived uncertain payment recovery | Checkout/My Vouchers UI; real Mollie TEST acceptance |
 | [#21](https://trello.com/c/IsmQwCbL) | Validate committed review fixes and complete remaining security/operations evidence | Cockpit UI and deployed monitoring |
 | [#22](https://trello.com/c/SxfIv4Ir) | Release inventory and independently executed backend evidence; deployment remains unverified | Frontend sample APIs/charts; ten native-provider acceptance runs; release approval |
 | [#23](https://trello.com/c/rclMXYPz) | Remaining native connector capabilities require verified provider contracts; privacy/financial decisions remain explicit | Native install artifacts/storefront integration; actual provider runs |

@@ -869,12 +869,14 @@ Evidence: implementing commit `fix: finish Frank review CI repair on SQLite and 
 
 ### B33 — Separate points-priced voucher checkout, #19/#20 (D-103)
 
-- [ ] Add optional positive integer points price to immutable offer terms; at least one explicit price before activation.
-- [ ] Validate merchant pricing and consumer payment unit; preserve existing EUR-credit behavior.
-- [ ] Persist points price/unit separately from monetary amounts; reserve/capture points atomically through WalletService.
-- [ ] Block missing points price, insufficient points, monetary fallback and altered idempotent requests.
-- [ ] Revalidate the current locked offer version and stock; preserve frozen issuance terms and existing tenant/user guards.
-- [ ] Extend financial reconciliation to prove exact unit, owner, debit and immutable price.
-- [ ] Test success/replay, insufficient/pending/reserved points, rollback, unit isolation, version changes and security negatives.
-- [ ] Capture changed public/merchant/consumer API examples from a real isolated HTTP server; update OpenAPI and README.
-- [ ] Record executed checks and exact commit; whole Trello cards retain independent/frontend/live acceptance.
+- [x] Add optional positive integer points price to immutable offer terms; at least one explicit price before activation.
+- [x] Validate merchant pricing and consumer payment unit; preserve existing EUR-credit behavior.
+- [x] Persist points price/unit separately from monetary amounts; reserve/capture points atomically through WalletService.
+- [x] Block missing points price, insufficient points, monetary fallback and altered idempotent requests.
+- [x] Revalidate the current locked offer version and stock; preserve frozen issuance terms and existing tenant/user guards.
+- [x] Extend financial reconciliation to prove exact unit, owner, debit and immutable price.
+- [x] Test success/replay, insufficient/pending/reserved points, rollback, unit isolation, version changes and security negatives.
+- [x] Capture changed public/merchant/consumer API examples from a real isolated HTTP server; update OpenAPI and README.
+- [x] Record executed checks and exact commit; whole Trello cards retain independent/frontend/live acceptance.
+
+B33 evidence: implementing commit `feat: support separately priced points voucher checkout`; focused SQLite 55 total/52 passed/3 skipped, MySQL 55 passed including four-process replay; API capture 18 exchanges; PHPStan L6 PASS. SHA recorded in subsequent handoff. B32 SHA: `1a3eee0`.

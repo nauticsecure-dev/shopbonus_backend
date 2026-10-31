@@ -1,3 +1,15 @@
+# Continuation checkpoint — B33 separate points checkout verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 commit `1a3eee0` preserves and completes Claude's pending CI fixes. B33 follows owner D-103: optional versioned `price_points`, explicit consumer `wallet_unit=points`, separate checkout points fields. Points purchases never convert units or call Mollie; insufficient/pending/reserved points cannot fund them. Existing EUR-credit behavior remains D-053. Checkout revalidates offer/version under locks, freezes price/unit/identity, and captures through WalletService + VoucherInventory atomically. Financial reconciliation verifies the actual unit and immutable voucher price. Same key with another offer/unit returns 409. No new routes/packages.
+
+Migration `2026_10_31_110000_add_separate_points_checkout_prices` adds nullable offer price_points and checkout wallet_unit (legacy default eur_credit), price_points and wallet_part_points. Deliberately non-destructive down() retains contractual prices/units. Applied only in isolated test/capture DBs; main local shopbonus NOT migrated.
+
+Executed focused SQLite: 55 total /52 passed +3 skipped /5605 assertions /5.969s. Same selection MySQL: 55 passed /5617 assertions /35.248s, including real four-process points replay and existing checkout races. Includes API coverage, offers and financial reconciliation. PHPStan L6 PASS. Pint --test PASS. No repeated full suite for this boundary; full B32 SQLite/MySQL evidence is recorded below and does not cover B33. 18 actual HTTP exchanges in docs/qa/B33_POINTS_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped and task-owned DB/credentials removed; no real provider call. Protected PDF download returned401; 175 individual checks remain unverified.
+
+Next: commit B33; repair remaining verified #19 selection/deduplication/missing-cookie-policy defects, then #37 CI report/discovery wiring. Current uncommitted files are B33 only. Whole Frank cards are not Done; docs/qa/FRANK_BACKEND_REMAINING.md tracks boundaries. Senior configures credentials/deployment; Hassan owns UI and independent provider/staging acceptance. No push/PR yet.
+
+---
+
 # Continuation checkpoint — B32 CI repair verified (2026-10-31, Codex)
 
 Branch `frank/review-fixes`, starting HEAD `b607592`. Preserved Claude's uncommitted code/migration/formatter cleanup and staged deletion of three stray tools scripts. Current export has ten active Frank cards (#19/#20/#21/#22/#23/#26/#29/#30/#36/#37). See `docs/qa/FRANK_BACKEND_REMAINING.md`; reviewers' policy requests do not override D-089/D-053.

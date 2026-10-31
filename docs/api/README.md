@@ -18483,3 +18483,648 @@ Content-Type: application/json
 
 {"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d653-73a1-96e3-f0a0a2c9caae", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
 ```
+
+
+## Separate points prices — D-103, 2026-10-31
+
+Merchants may set `price_points` (1–100000000, or null to disable) through the existing offer POST/PATCH APIs. Wallet-purchase activation requires `price_minor` or `price_points`. Offer versions and issued terms preserve the price. Public offers expose `price_points`. This is independent of the EUR discount value.
+
+Checkout quote/start accept `wallet_unit: "points"`; omitted means `eur_credit`. Points purchases require `use_wallet: true` and enough available points. Pending/reserved points and EUR balances do not cover shortfalls. No euro conversion or Mollie request occurs. All `*_minor` payment amounts are zero; `price_points` and `wallet_part_points` hold integer quantities. Existing EUR-credit/Mollie behavior is unchanged. A changed offer/unit on the same key returns 409 `checkout_request_conflict`.
+
+Actual HTTP captures from `php artisan serve` on isolated SQLite with synthetic fixtures, based on `1a3eee0` plus the points changes: [B33_POINTS_HTTP_CAPTURE.json](../qa/B33_POINTS_HTTP_CAPTURE.json). No upstream calls. Existing middleware error examples remain applicable. The following request/response bodies were captured from that running server (Authorization tokens excluded):
+
+### create_points_offer — `POST /api/v1/workspaces/{workspace}/offers`
+
+Request:
+
+```json
+{
+  "acquisition": "wallet_purchase",
+  "name": "Points voucher",
+  "discount_type": "fixed",
+  "discount_value": 1000,
+  "price_points": 250,
+  "redemption_validity_days": 30
+}
+```
+
+Response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68f1ahvwnra9zgs7rn35fwj",
+    "acquisition": "wallet_purchase",
+    "status": "draft",
+    "lifecycle_status": "draft",
+    "inventory": {
+      "total": 0,
+      "available": 0,
+      "reserved": 0,
+      "issued": 0,
+      "redeemed": 0
+    },
+    "allowed_actions": [
+      "edit",
+      "import_codes",
+      "publish",
+      "activate",
+      "end",
+      "archive",
+      "duplicate"
+    ],
+    "terms": {
+      "version": 1,
+      "locked": false,
+      "summary": "€10.00",
+      "name": "Points voucher",
+      "public_description": null,
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": null,
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "price_minor": null,
+      "price_points": 250,
+      "starts_at": null,
+      "ends_at": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "categories": [],
+      "products": [],
+      "combinable": null,
+      "code_mode": null,
+      "allocation_limit": null
+    },
+    "missing_for_activation": [],
+    "cost_preview": {
+      "applies": false,
+      "reason": "consumer_funded"
+    },
+    "preview": {
+      "published": false,
+      "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+      "status": "draft",
+      "how_to_obtain": "buy_with_wallet",
+      "title": "Points voucher",
+      "summary": "€10.00",
+      "badge_label": "€10 voucher",
+      "offer_line": "€10 voucher",
+      "journey": {
+        "headline": "€10.00",
+        "steps": [],
+        "claim_window": null,
+        "redemption_window": "Redeem within 30 days after claim.",
+        "campaign": null
+      },
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "price_points": 250,
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "starts_at": null,
+      "ends_at": null,
+      "conditions": null,
+      "combinable": false,
+      "categories": [],
+      "webshop": {
+        "name": "Points Demo",
+        "short_description": null,
+        "description": null,
+        "logo_url": null,
+        "cover_url": null,
+        "website_url": "https://points.example.test",
+        "verified_domain": "points.example.test",
+        "ownership_verified": true
+      }
+    },
+    "activated_at": null,
+    "paused_at": null,
+    "ended_at": null,
+    "archived_at": null,
+    "created_at": "2026-10-31T07:50:53+00:00"
+  }
+}
+```
+
+### versioned_points_price — `PATCH /api/v1/workspaces/{workspace}/offers/{offer}`
+
+Request:
+
+```json
+{
+  "price_points": 500
+}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68f1ahvwnra9zgs7rn35fwj",
+    "acquisition": "wallet_purchase",
+    "status": "active",
+    "lifecycle_status": "active",
+    "inventory": {
+      "total": 2,
+      "available": 1,
+      "reserved": 0,
+      "issued": 1,
+      "redeemed": 0
+    },
+    "allowed_actions": [
+      "edit",
+      "import_codes",
+      "pause",
+      "end",
+      "archive",
+      "duplicate"
+    ],
+    "terms": {
+      "version": 2,
+      "locked": true,
+      "summary": "€10.00",
+      "name": "Points voucher",
+      "public_description": null,
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "price_minor": null,
+      "price_points": 500,
+      "starts_at": null,
+      "ends_at": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "categories": [],
+      "products": [],
+      "combinable": false,
+      "code_mode": "unique",
+      "allocation_limit": null
+    },
+    "missing_for_activation": [],
+    "cost_preview": {
+      "applies": false,
+      "reason": "consumer_funded"
+    },
+    "preview": {
+      "published": false,
+      "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+      "status": "active",
+      "how_to_obtain": "buy_with_wallet",
+      "title": "Points voucher",
+      "summary": "€10.00",
+      "badge_label": "€10 voucher",
+      "offer_line": "€10 voucher",
+      "journey": {
+        "headline": "€10.00",
+        "steps": [],
+        "claim_window": null,
+        "redemption_window": "Redeem within 30 days after claim.",
+        "campaign": null
+      },
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "price_points": 500,
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "starts_at": null,
+      "ends_at": null,
+      "conditions": null,
+      "combinable": false,
+      "categories": [],
+      "webshop": {
+        "name": "Points Demo",
+        "short_description": null,
+        "description": null,
+        "logo_url": null,
+        "cover_url": null,
+        "website_url": "https://points.example.test",
+        "verified_domain": "points.example.test",
+        "ownership_verified": true
+      }
+    },
+    "activated_at": "2026-10-31T07:50:54+00:00",
+    "paused_at": null,
+    "ended_at": null,
+    "archived_at": null,
+    "created_at": "2026-10-31T07:50:53+00:00"
+  }
+}
+```
+
+### public_points_offer — `GET /api/v1/public/offers`
+
+Request:
+
+```json
+null
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher",
+      "summary": "€10.00",
+      "offer_kind": "voucher_purchase",
+      "cta_hint": "view_code_and_shop",
+      "how_to_obtain": "buy_with_wallet",
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "min_order_minor": null,
+      "price_minor": null,
+      "price_points": 250,
+      "ends_at": null,
+      "availability": "available",
+      "cashback_label": null,
+      "benefit_label": "€10 korting",
+      "combinable": false,
+      "webshop": {
+        "slug": "points-demo",
+        "name": "Points Demo"
+      }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 20,
+    "total": 1
+  }
+}
+```
+
+### points_quote — `POST /api/v1/consumer/checkouts/quote`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_available_points": 1000,
+    "wallet_part_points": 250,
+    "shortfall_points": 0,
+    "price_minor": 0,
+    "currency": "EUR",
+    "wallet_available": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "shortfall_minor": 0,
+    "validity_days": 30,
+    "blockers": []
+  }
+}
+```
+
+### points_purchase — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68f1b2ran2sz7q3wgrne9wy",
+    "state": "completed",
+    "offer": {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher"
+    },
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_part_points": 250,
+    "price_minor": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "currency": "EUR",
+    "payment": null,
+    "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+    "failure_reason": null,
+    "expires_at": "2026-10-31T08:20:54+00:00",
+    "completed_at": "2026-10-31T07:50:54+00:00"
+  }
+}
+```
+
+### points_replay — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68f1b2ran2sz7q3wgrne9wy",
+    "state": "completed",
+    "offer": {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher"
+    },
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_part_points": 250,
+    "price_minor": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "currency": "EUR",
+    "payment": null,
+    "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+    "failure_reason": null,
+    "expires_at": "2026-10-31T08:20:54+00:00",
+    "completed_at": "2026-10-31T07:50:54+00:00"
+  }
+}
+```
+
+### points_shortfall — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "checkout_blocked",
+    "message": "This voucher cannot be bought right now.",
+    "request_id": "01a190f0-ac16-725f-9967-ee985cc47875",
+    "details": {
+      "blockers": [
+        "insufficient_points"
+      ]
+    }
+  }
+}
+```
+
+### points_wallet_required — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points",
+  "use_wallet": false
+}
+```
+
+Response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "checkout_blocked",
+    "message": "This voucher cannot be bought right now.",
+    "request_id": "01a190f0-ac31-706f-baa1-ffa5ae1ed8f1",
+    "details": {
+      "blockers": [
+        "points_wallet_required"
+      ]
+    }
+  }
+}
+```
+
+### changed_unit_replay — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "eur_credit"
+}
+```
+
+Response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "checkout_request_conflict",
+    "message": "This checkout key belongs to a different purchase.",
+    "request_id": "01a190f0-aca9-7384-a2e3-9e92545c8bb2"
+  }
+}
+```
+
+### frozen_points_checkout — `GET /api/v1/consumer/checkouts/{id}`
+
+Request:
+
+```json
+null
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68f1b2ran2sz7q3wgrne9wy",
+    "state": "completed",
+    "offer": {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher"
+    },
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_part_points": 250,
+    "price_minor": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "currency": "EUR",
+    "payment": null,
+    "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+    "failure_reason": null,
+    "expires_at": "2026-10-31T08:20:54+00:00",
+    "completed_at": "2026-10-31T07:50:54+00:00"
+  }
+}
+```
+
+### negative_points_price — `POST /api/v1/workspaces/{workspace}/offers`
+
+Request:
+
+```json
+{
+  "acquisition": "wallet_purchase",
+  "name": "Points voucher",
+  "discount_type": "fixed",
+  "discount_value": 1000,
+  "price_points": -1,
+  "redemption_validity_days": 30
+}
+```
+
+Response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a190f0-a9ae-72d8-8327-31d1adb5c23e",
+    "fields": {
+      "price_points": [
+        "The price points field must be at least 1."
+      ]
+    }
+  }
+}
+```
+
+### invalid_wallet_unit — `POST /api/v1/consumer/checkouts/quote`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "cash"
+}
+```
+
+Response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a190f0-abdc-730a-a15a-c3dd2ce4ee24",
+    "fields": {
+      "wallet_unit": [
+        "The selected wallet unit is invalid."
+      ]
+    }
+  }
+}
+```
+
+### quote_unauthenticated — `POST /api/v1/consumer/checkouts/quote`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a190f0-abc0-71e7-934a-09e6c875ce81"
+  }
+}
+```
+
+### other_user_checkout — `GET /api/v1/consumer/checkouts/{id}`
+
+Request:
+
+```json
+null
+```
+
+Response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Checkout not found.",
+    "request_id": "01a190f0-acd9-72ba-b614-2395bb88dfac"
+  }
+}
+```
+
+### other_workspace_offer — `POST /api/v1/workspaces/{workspace}/offers`
+
+Request:
+
+```json
+{
+  "acquisition": "wallet_purchase",
+  "name": "Points voucher",
+  "discount_type": "fixed",
+  "discount_value": 1000,
+  "price_points": 250,
+  "redemption_validity_days": 30
+}
+```
+
+Response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "The requested resource was not found.",
+    "request_id": "01a190f0-ad26-7113-b147-603adff77215"
+  }
+}
+```

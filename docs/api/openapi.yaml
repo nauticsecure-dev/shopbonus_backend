@@ -2365,7 +2365,8 @@ paths:
                 currency: { type: string, enum: [EUR] }
                 min_order_minor: { type: [integer, 'null'] }
                 max_discount_minor: { type: [integer, 'null'], description: Required to activate a percentage merchant reward. }
-                price_minor: { type: [integer, 'null'], description: Wallet price; required to activate a wallet_purchase offer. }
+                price_minor: { type: [integer, 'null'], description: EUR-credit price in cents; wallet_purchase requires this or price_points. }
+                price_points: { type: [integer, 'null'], minimum: 1, maximum: 100000000, description: Separate integer points price; no EUR conversion or Mollie shortfall. }
                 starts_at: { type: [string, 'null'], format: date-time }
                 ends_at: { type: [string, 'null'], format: date-time }
                 claim_validity_days: { type: [integer, 'null'], description: Default 90 for merchant rewards (Answer24 claim window). }
@@ -2387,7 +2388,12 @@ paths:
           description: "Draft created (captured without max_discount_minor, so the preview is unavailable and activation reports it missing)."
           content:
             application/json:
-              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"draft","terms":{"version":1,"locked":false,"summary":"10% from \u20ac100.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1000,"currency":null,"min_order_minor":10000,"max_discount_minor":null,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":null,"code_mode":null,"allocation_limit":500},"missing_for_activation":["max_discount_minor"],"cost_preview":{"applies":true,"available":false,"reason":"maximum_discount_required"},"activated_at":null,"paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"draft","terms":{"version":1,"locked":false,"summary":"10% from \u20ac100.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1000,"currency":null,"min_order_minor":10000,"max_discount_minor":null,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":null,"code_mode":null,"allocation_limit":500},"missing_for_activation":["max_discount_minor"],"cost_preview":{"applies":true,"available":false,"reason":"maximum_discount_required"},"activated_at":null,"paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"id":"01m68f1ahvwnra9zgs7rn35fwj","acquisition":"wallet_purchase","status":"draft","lifecycle_status":"draft","inventory":{"total":0,"available":0,"reserved":0,"issued":0,"redeemed":0},"allowed_actions":["edit","import_codes","publish","activate","end","archive","duplicate"],"terms":{"version":1,"locked":false,"summary":"€10.00","name":"Points voucher","public_description":null,"discount_type":"fixed","discount_value":1000,"currency":null,"min_order_minor":null,"max_discount_minor":null,"price_minor":null,"price_points":250,"starts_at":null,"ends_at":null,"claim_validity_days":null,"redemption_validity_days":30,"categories":[],"products":[],"combinable":null,"code_mode":null,"allocation_limit":null},"missing_for_activation":[],"cost_preview":{"applies":false,"reason":"consumer_funded"},"preview":{"published":false,"offer_id":"01m68f1ahvwnra9zgs7rn35fwj","status":"draft","how_to_obtain":"buy_with_wallet","title":"Points voucher","summary":"€10.00","badge_label":"€10 voucher","offer_line":"€10 voucher","journey":{"headline":"€10.00","steps":[],"claim_window":null,"redemption_window":"Redeem within 30 days after claim.","campaign":null},"discount_type":"fixed","discount_value":1000,"currency":"EUR","price_points":250,"min_order_minor":null,"max_discount_minor":null,"claim_validity_days":null,"redemption_validity_days":30,"starts_at":null,"ends_at":null,"conditions":null,"combinable":false,"categories":[],"webshop":{"name":"Points Demo","short_description":null,"description":null,"logo_url":null,"cover_url":null,"website_url":"https://points.example.test","verified_domain":"points.example.test","ownership_verified":true}},"activated_at":null,"paused_at":null,"ended_at":null,"archived_at":null,"created_at":"2026-10-31T07:50:53+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
@@ -2419,7 +2425,12 @@ paths:
           description: "Offer (captured after an edit created version 2)."
           content:
             application/json:
-              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"},"versions":[{"version":1,"locked":true,"created_at":"2026-10-23T15:22:43+00:00"},{"version":2,"locked":true,"created_at":"2026-10-23T15:22:43+00:00"}]}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"},"versions":[{"version":1,"locked":true,"created_at":"2026-10-23T15:22:43+00:00"},{"version":2,"locked":true,"created_at":"2026-10-23T15:22:43+00:00"}]}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"id":"01m68f1ahvwnra9zgs7rn35fwj","acquisition":"wallet_purchase","status":"active","lifecycle_status":"active","inventory":{"total":2,"available":2,"reserved":0,"issued":0,"redeemed":0},"allowed_actions":["edit","import_codes","pause","end","archive","duplicate"],"terms":{"version":1,"locked":true,"summary":"€10.00","name":"Points voucher","public_description":null,"discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":null,"max_discount_minor":null,"price_minor":null,"price_points":250,"starts_at":null,"ends_at":null,"claim_validity_days":null,"redemption_validity_days":30,"categories":[],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":null},"missing_for_activation":[],"cost_preview":{"applies":false,"reason":"consumer_funded"},"preview":{"published":false,"offer_id":"01m68f1ahvwnra9zgs7rn35fwj","status":"active","how_to_obtain":"buy_with_wallet","title":"Points voucher","summary":"€10.00","badge_label":"€10 voucher","offer_line":"€10 voucher","journey":{"headline":"€10.00","steps":[],"claim_window":null,"redemption_window":"Redeem within 30 days after claim.","campaign":null},"discount_type":"fixed","discount_value":1000,"currency":"EUR","price_points":250,"min_order_minor":null,"max_discount_minor":null,"claim_validity_days":null,"redemption_validity_days":30,"starts_at":null,"ends_at":null,"conditions":null,"combinable":false,"categories":[],"webshop":{"name":"Points Demo","short_description":null,"description":null,"logo_url":null,"cover_url":null,"website_url":"https://points.example.test","verified_domain":"points.example.test","ownership_verified":true}},"activated_at":"2026-10-31T07:50:54+00:00","paused_at":null,"ended_at":null,"archived_at":null,"created_at":"2026-10-31T07:50:53+00:00"},"versions":[{"version":1,"locked":true,"created_at":"2026-10-31T07:50:53+00:00"}]}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
@@ -2445,7 +2456,8 @@ paths:
                 currency: { type: string, enum: [EUR] }
                 min_order_minor: { type: [integer, 'null'] }
                 max_discount_minor: { type: [integer, 'null'], description: Required to activate a percentage merchant reward. }
-                price_minor: { type: [integer, 'null'], description: Wallet price; required to activate a wallet_purchase offer. }
+                price_minor: { type: [integer, 'null'], description: EUR-credit price in cents; wallet_purchase requires this or price_points. }
+                price_points: { type: [integer, 'null'], minimum: 1, maximum: 100000000, description: Separate integer points price; no EUR conversion or Mollie shortfall. }
                 starts_at: { type: [string, 'null'], format: date-time }
                 ends_at: { type: [string, 'null'], format: date-time }
                 claim_validity_days: { type: [integer, 'null'], description: Default 90 for merchant rewards (Answer24 claim window). }
@@ -2467,7 +2479,12 @@ paths:
           description: "Updated (captured on an active offer: version 2)."
           content:
             application/json:
-              example: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m5mnpwkmz9v9bkhspfsznzns","acquisition":"merchant_reward","status":"active","terms":{"version":2,"locked":true,"summary":"15% from \u20ac100.00, maximum \u20ac10.00","name":"Woon & Co: 10% korting","public_description":"Op je volgende aankoop vanaf \u20ac100","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":10000,"max_discount_minor":1000,"price_minor":null,"starts_at":null,"ends_at":null,"claim_validity_days":90,"redemption_validity_days":90,"categories":["wonen"],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":500},"missing_for_activation":[],"cost_preview":{"applies":true,"available":true,"basis":"maximum_discount","currency":"EUR","fee_rate_bps":3000,"per_voucher":{"reward_minor":1000,"fee_minor":300,"merchant_commitment_minor":1300},"allocation":{"vouchers":500,"merchant_commitment_minor":650000},"note":"Preview only. Funding and invoicing are handled by the merchant wallet; nothing is charged here."},"activated_at":"2026-10-23T15:22:43+00:00","paused_at":null,"ended_at":null,"created_at":"2026-10-23T15:22:43+00:00"}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"id":"01m68f1ahvwnra9zgs7rn35fwj","acquisition":"wallet_purchase","status":"active","lifecycle_status":"active","inventory":{"total":2,"available":1,"reserved":0,"issued":1,"redeemed":0},"allowed_actions":["edit","import_codes","pause","end","archive","duplicate"],"terms":{"version":2,"locked":true,"summary":"€10.00","name":"Points voucher","public_description":null,"discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":null,"max_discount_minor":null,"price_minor":null,"price_points":500,"starts_at":null,"ends_at":null,"claim_validity_days":null,"redemption_validity_days":30,"categories":[],"products":[],"combinable":false,"code_mode":"unique","allocation_limit":null},"missing_for_activation":[],"cost_preview":{"applies":false,"reason":"consumer_funded"},"preview":{"published":false,"offer_id":"01m68f1ahvwnra9zgs7rn35fwj","status":"active","how_to_obtain":"buy_with_wallet","title":"Points voucher","summary":"€10.00","badge_label":"€10 voucher","offer_line":"€10 voucher","journey":{"headline":"€10.00","steps":[],"claim_window":null,"redemption_window":"Redeem within 30 days after claim.","campaign":null},"discount_type":"fixed","discount_value":1000,"currency":"EUR","price_points":500,"min_order_minor":null,"max_discount_minor":null,"claim_validity_days":null,"redemption_validity_days":30,"starts_at":null,"ends_at":null,"conditions":null,"combinable":false,"categories":[],"webshop":{"name":"Points Demo","short_description":null,"description":null,"logo_url":null,"cover_url":null,"website_url":"https://points.example.test","verified_domain":"points.example.test","ownership_verified":true}},"activated_at":"2026-10-31T07:50:54+00:00","paused_at":null,"ended_at":null,"archived_at":null,"created_at":"2026-10-31T07:50:53+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
@@ -3624,7 +3641,12 @@ paths:
           description: "Page of offers (captured: one available, one sold out)."
           content:
             application/json:
-              example: {"data":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}},{"slug":"15-op-meubels-0wvxcf","title":"15% op meubels","summary":"15%, maximum \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":null,"price_minor":null,"ends_at":null,"availability":"sold_out","webshop":{"slug":"woon-co","name":"Woon & Co"}}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":2}}
+              examples:
+                historical:
+                  value: {"data":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}},{"slug":"15-op-meubels-0wvxcf","title":"15% op meubels","summary":"15%, maximum \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"percentage","discount_value":1500,"currency":"EUR","min_order_minor":null,"price_minor":null,"ends_at":null,"availability":"sold_out","webshop":{"slug":"woon-co","name":"Woon & Co"}}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":2}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":[{"slug":"points-voucher-nu6aoc","title":"Points voucher","summary":"€10.00","offer_kind":"voucher_purchase","cta_hint":"view_code_and_shop","how_to_obtain":"buy_with_wallet","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":null,"price_minor":null,"price_points":250,"ends_at":null,"availability":"available","cashback_label":null,"benefit_label":"€10 korting","combinable":false,"webshop":{"slug":"points-demo","name":"Points Demo"}}],"meta":{"current_page":1,"last_page":1,"per_page":20,"total":1}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
@@ -4993,6 +5015,7 @@ paths:
       operationId: checkoutQuote
       summary: "Price and payment split for an offer"
       description: |
+        D-103: wallet_unit defaults to eur_credit. For points, price_points and wallet_part_points are separate integer quantities; all monetary amounts are zero, no Mollie call occurs, and insufficient_points or points_wallet_required blocks purchase. Missing points pricing is not_for_sale. Price/unit are frozen; changing offer or unit on key replay returns 409 checkout_request_conflict. Actual points HTTP examples: docs/qa/B33_POINTS_HTTP_CAPTURE.json (2026-10-31, isolated local SQLite).
         Server-side price (`price_minor`, euro cents) and split: `wallet_part_minor` from the `eur_credit` wallet, `payment_part_minor` via Mollie. `blockers` lists why it cannot be bought now: `not_for_sale`, `offer_not_active`, `webshop_not_active`, `outside_validity`, `sold_out`, `payments_unavailable`, `email_not_verified`. Changes nothing: no code or wallet value is reserved.
       x-access: verified
       requestBody:
@@ -5004,7 +5027,8 @@ paths:
               required: [offer]
               properties:
                 offer: { type: string, description: Offer slug (public discovery). }
-                use_wallet: { type: boolean, default: true, description: Pay as much as possible from the eur_credit wallet. }
+                use_wallet: { type: boolean, default: true, description: Use the selected wallet; must be true for points. }
+                wallet_unit: { type: string, enum: [eur_credit, points], default: eur_credit, description: Explicit spending unit; points requires a configured points price and sufficient available points. }
             example: {"offer": "eur25-korting-op-meubels-air4ck"}
       x-codeSamples:
         - lang: curl
@@ -5017,7 +5041,12 @@ paths:
           description: "Quote (captured: wallet covers it)."
           content:
             application/json:
-              example: {"data":{"price_minor":2000,"currency":"EUR","wallet_available":3100,"wallet_part_minor":2000,"payment_part_minor":0,"blockers":[]}}
+              examples:
+                historical:
+                  value: {"data":{"price_minor":2000,"currency":"EUR","wallet_available":3100,"wallet_part_minor":2000,"payment_part_minor":0,"blockers":[]}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"wallet_unit":"points","price_points":250,"wallet_available_points":1000,"wallet_part_points":250,"shortfall_points":0,"price_minor":0,"currency":"EUR","wallet_available":0,"wallet_part_minor":0,"payment_part_minor":0,"shortfall_minor":0,"validity_days":30,"blockers":[]}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '404':
           description: "Unknown offer."
@@ -5032,6 +5061,7 @@ paths:
       operationId: startCheckout
       summary: "Buy a voucher (wallet, Mollie or both)"
       description: |
+        D-103: wallet_unit defaults to eur_credit. For points, price_points and wallet_part_points are separate integer quantities; all monetary amounts are zero, no Mollie call occurs, and insufficient_points or points_wallet_required blocks purchase. Missing points pricing is not_for_sale. Price/unit are frozen; changing offer or unit on key replay returns 409 checkout_request_conflict. Actual points HTTP examples: docs/qa/B33_POINTS_HTTP_CAPTURE.json (2026-10-31, isolated local SQLite).
         Wallet-only (`payment_part_minor` 0): the wallet debit, the code allocation and the voucher issuance happen in one transaction, and the response is `completed`. Any failure rolls all of it back.
                 Otherwise the wallet part and one code are reserved (bounded) and a Mollie payment is created; send the consumer to `payment.checkout_url`. The voucher is issued only after the Mollie webhook and a server-side check say `paid`; returning from Mollie proves nothing.
                 A repeat with the same `Idempotency-Key` returns the same checkout (200). 409 `checkout_blocked` (with the quote blockers) or `offer_out_of_stock` (lost a race for the last code; nothing changed). Mollie runs in test mode only (`MOLLIE_ALLOW_LIVE`). No code is ever in this response: it appears in My Vouchers.
@@ -5047,7 +5077,8 @@ paths:
               required: [offer]
               properties:
                 offer: { type: string, description: Offer slug (public discovery). }
-                use_wallet: { type: boolean, default: true, description: Pay as much as possible from the eur_credit wallet. }
+                use_wallet: { type: boolean, default: true, description: Use the selected wallet; must be true for points. }
+                wallet_unit: { type: string, enum: [eur_credit, points], default: eur_credit, description: Explicit spending unit; points requires a configured points price and sufficient available points. }
             example: {"offer": "eur25-korting-op-meubels-air4ck"}
       x-codeSamples:
         - lang: curl
@@ -5060,12 +5091,22 @@ paths:
           description: "Started (captured: \u20ac11.00 wallet + \u20ac9.00 Mollie)."
           content:
             application/json:
-              example: {"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"pending_payment","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"open","test_mode":true,"checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/f3b34a800b"},"voucher_id":null,"failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":null}}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"pending_payment","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"open","test_mode":true,"checkout_url":"https:\/\/www.mollie.com\/checkout\/select-method\/f3b34a800b"},"voucher_id":null,"failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":null}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"id":"01m68f1b2ran2sz7q3wgrne9wy","state":"completed","offer":{"slug":"points-voucher-nu6aoc","title":"Points voucher"},"wallet_unit":"points","price_points":250,"wallet_part_points":250,"price_minor":0,"wallet_part_minor":0,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m68f1b2w6s1rfry1reka49bb","failure_reason":null,"expires_at":"2026-10-31T08:20:54+00:00","completed_at":"2026-10-31T07:50:54+00:00"}}
         '200':
           description: "Same Idempotency-Key: same checkout."
           content:
             application/json:
-              example: {"data":{"id":"01m5pd8fzpy18bajpnwcqnkecz","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":2000,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:31+00:00"}}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m5pd8fzpy18bajpnwcqnkecz","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":2000,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m5pd8g05ak30hy67ndss1s4v","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:31+00:00"}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"id":"01m68f1b2ran2sz7q3wgrne9wy","state":"completed","offer":{"slug":"points-voucher-nu6aoc","title":"Points voucher"},"wallet_unit":"points","price_points":250,"wallet_part_points":250,"price_minor":0,"wallet_part_minor":0,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m68f1b2w6s1rfry1reka49bb","failure_reason":null,"expires_at":"2026-10-31T08:20:54+00:00","completed_at":"2026-10-31T07:50:54+00:00"}}
         '400':
           description: "Idempotency-Key missing or malformed."
           content:
@@ -5076,7 +5117,12 @@ paths:
           description: "Blocked, sold out or payments unavailable."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"checkout_blocked","message":"This voucher cannot be bought right now.","request_id":"<id>","details":{"blockers":["sold_out"]}}}
+              examples:
+                historical:
+                  value: {"error":{"status":409,"code":"checkout_blocked","message":"This voucher cannot be bought right now.","request_id":"<id>","details":{"blockers":["sold_out"]}}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"error":{"status":409,"code":"checkout_blocked","message":"This voucher cannot be bought right now.","request_id":"01a190f0-ac16-725f-9967-ee985cc47875","details":{"blockers":["insufficient_points"]}}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '502':
@@ -5093,6 +5139,7 @@ paths:
       operationId: checkoutStatus
       summary: "Own checkout status"
       description: |
+        D-103: wallet_unit defaults to eur_credit. For points, price_points and wallet_part_points are separate integer quantities; all monetary amounts are zero, no Mollie call occurs, and insufficient_points or points_wallet_required blocks purchase. Missing points pricing is not_for_sale. Price/unit are frozen; changing offer or unit on key replay returns 409 checkout_request_conflict. Actual points HTTP examples: docs/qa/B33_POINTS_HTTP_CAPTURE.json (2026-10-31, isolated local SQLite).
         `pending_payment`, `completed` (`voucher_id` set), `failed`, `expired`, `paid_unfulfilled` (paid after the reservation lapsed; Shopbonus support refunds it, B11b), `refund_pending` or `refunded`. The page the consumer returns to from Mollie polls this. Another consumer's checkout is 404.
       x-access: verified
       x-codeSamples:
@@ -5105,7 +5152,12 @@ paths:
           description: "Status."
           content:
             application/json:
-              example: {"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":"01m5pd8g6wwgnnb2qdty25kc2p","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:32+00:00"}}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m5pd8g6jxyja6prwr6bcwm98","state":"completed","offer":{"slug":"eur25-korting-op-meubels-air4ck","title":"\u20ac25 korting op meubels"},"price_minor":2000,"wallet_part_minor":1100,"payment_part_minor":900,"currency":"EUR","payment":{"provider":"mollie","status":"paid","test_mode":true,"checkout_url":null},"voucher_id":"01m5pd8g6wwgnnb2qdty25kc2p","failure_reason":null,"expires_at":"2026-10-24T08:03:31+00:00","completed_at":"2026-10-24T07:33:32+00:00"}}
+                points:
+                  summary: Actual local HTTP capture 2026-10-31 (B33)
+                  value: {"data":{"id":"01m68f1b2ran2sz7q3wgrne9wy","state":"completed","offer":{"slug":"points-voucher-nu6aoc","title":"Points voucher"},"wallet_unit":"points","price_points":250,"wallet_part_points":250,"price_minor":0,"wallet_part_minor":0,"payment_part_minor":0,"currency":"EUR","payment":null,"voucher_id":"01m68f1b2w6s1rfry1reka49bb","failure_reason":null,"expires_at":"2026-10-31T08:20:54+00:00","completed_at":"2026-10-31T07:50:54+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '404':
           description: "Not yours."

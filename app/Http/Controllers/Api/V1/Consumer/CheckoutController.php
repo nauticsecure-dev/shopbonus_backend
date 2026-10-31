@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Consumer;
 
+use App\Enums\WalletUnit;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\Offer;
@@ -11,6 +12,7 @@ use App\Models\VoucherCheckout;
 use App\Services\Checkout\CheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Voucher checkout for the signed-in consumer (Trello #20). Prices and
@@ -23,20 +25,20 @@ class CheckoutController extends Controller
 
     public function quote(Request $request): JsonResponse
     {
-        $data = $request->validate(['offer' => ['required', 'string', 'max:100'], 'use_wallet' => ['sometimes', 'boolean']]);
+        $data = $request->validate(['offer' => ['required', 'string', 'max:100'], 'use_wallet' => ['sometimes', 'boolean'], 'wallet_unit' => ['sometimes', Rule::enum(WalletUnit::class)]]);
 
-        return response()->json(['data' => $this->checkouts->quote($request->user(), $this->offer($data['offer']), (bool) ($data['use_wallet'] ?? true))]);
+        return response()->json(['data' => $this->checkouts->quote($request->user(), $this->offer($data['offer']), (bool) ($data['use_wallet'] ?? true), WalletUnit::from($data['wallet_unit'] ?? 'eur_credit'))]);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate(['offer' => ['required', 'string', 'max:100'], 'use_wallet' => ['sometimes', 'boolean']]);
+        $data = $request->validate(['offer' => ['required', 'string', 'max:100'], 'use_wallet' => ['sometimes', 'boolean'], 'wallet_unit' => ['sometimes', Rule::enum(WalletUnit::class)]]);
         $key = (string) $request->header('Idempotency-Key', '');
         if (preg_match('/^[A-Za-z0-9._:-]{8,100}$/', $key) !== 1) {
             throw new ApiException('Send a unique Idempotency-Key header (8–100 characters) with each purchase.', 400, 'idempotency_key_required');
         }
 
-        $checkout = $this->checkouts->start($request->user(), $this->offer($data['offer']), $key, (bool) ($data['use_wallet'] ?? true));
+        $checkout = $this->checkouts->start($request->user(), $this->offer($data['offer']), $key, (bool) ($data['use_wallet'] ?? true), WalletUnit::from($data['wallet_unit'] ?? 'eur_credit'));
 
         return response()->json(['data' => self::present($checkout)], $checkout->wasRecentlyCreated ? 201 : 200);
     }
@@ -63,6 +65,7 @@ class CheckoutController extends Controller
             'state' => $c->state,
             // The title the consumer bought (frozen with the reserved voucher), not a later edit.
             'offer' => ['slug' => $offer?->slug, 'title' => $voucher?->terms_snapshot['name'] ?? $offer?->currentVersion?->name],
+            'wallet_unit' => $c->wallet_unit->value, 'price_points' => $c->price_points, 'wallet_part_points' => $c->wallet_part_points,
             'price_minor' => $c->price_minor, 'wallet_part_minor' => $c->wallet_part_minor, 'payment_part_minor' => $c->payment_part_minor, 'currency' => $c->currency,
             'payment' => $c->payment === null ? null : [
                 'provider' => 'mollie', 'status' => $c->payment->status, 'test_mode' => $c->payment->test_mode,

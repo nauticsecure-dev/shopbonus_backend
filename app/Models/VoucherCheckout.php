@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\WalletUnit;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $webshop_id
  * @property string $idempotency_key
  * @property string $state
+ * @property WalletUnit $wallet_unit
+ * @property int|null $price_points
+ * @property int $wallet_part_points
  * @property int $price_minor
  * @property int $wallet_part_minor
  * @property int $payment_part_minor
@@ -38,12 +42,24 @@ class VoucherCheckout extends Model
 
     protected $guarded = ['id'];
 
+    protected $attributes = ['wallet_unit' => 'eur_credit', 'wallet_part_points' => 0];
+
     protected $hidden = ['id', 'user_id', 'offer_id', 'webshop_id', 'wallet_reservation_id', 'voucher_id', 'idempotency_key'];
 
     protected function casts(): array
     {
-        return ['price_minor' => 'integer', 'wallet_part_minor' => 'integer', 'payment_part_minor' => 'integer',
+        return ['wallet_unit' => WalletUnit::class, 'price_points' => 'integer', 'wallet_part_points' => 'integer', 'price_minor' => 'integer', 'wallet_part_minor' => 'integer', 'payment_part_minor' => 'integer',
             'expires_at' => 'immutable_datetime', 'completed_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $checkout) {
+            if ($checkout->isDirty(['user_id', 'offer_id', 'webshop_id', 'idempotency_key', 'wallet_unit',
+                'price_minor', 'wallet_part_minor', 'payment_part_minor', 'currency', 'price_points', 'wallet_part_points'])) {
+                throw new \LogicException('Checkout price, unit and purchase identity are immutable.');
+            }
+        });
     }
 
     /** @return list<string> */
