@@ -5423,7 +5423,7 @@ paths:
       operationId: redeemVoucher
       summary: "Verify that a customer used a voucher"
       description: |
-        Merchant redemption verification (Trello #20) when no provider evidence exists. The oldest issued voucher of this webshop with that code becomes `redeemed` once, with source `merchant`, actor and optional reference. Already redeemed → 409; expired → 409 `voucher_expired`; unknown or another webshop's code → 404. Viewing, copying or "Visit webshop" never redeem.
+        Merchant redemption verification (Trello #20) when no provider evidence exists. The issued voucher of this webshop with that code becomes `redeemed` once. A reusable code is shared by several customers, so it also needs `voucher_id` (the voucher the customer shows; 422 `voucher_id_required` without it, 404 if it does not belong to that code). The voucher becomes `redeemed` once, with source `merchant`, actor and optional reference. Already redeemed → 409; expired → 409 `voucher_expired`; unknown or another webshop's code → 404. Viewing, copying or "Visit webshop" never redeem.
       x-access: verified
       x-permission: vouchers.manage
       requestBody:
@@ -5435,6 +5435,7 @@ paths:
               required: [code]
               properties:
                 code: { type: string, maxLength: 100 }
+                voucher_id: { type: string, maxLength: 40, description: 'Required for reusable codes: the voucher ID the customer shows.' }
                 reference: { type: string, maxLength: 120, description: e.g. the webshop order number. }
             example: {"code": "MEUBEL-25-A", "reference": "Order WC-5531"}
       x-codeSamples:
@@ -5461,7 +5462,11 @@ paths:
           content:
             application/json:
               example: {"error":{"status":409,"code":"voucher_not_redeemable","message":"This voucher was already redeemed or is not issued.","request_id":"01a16cdc-2544-73ed-9aad-d70499dff64d","details":{"status":"redeemed"}}}
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '422':
+          description: "Invalid input, or a reusable code without `voucher_id`."
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"voucher_id_required","message":"This code is shared by several customers; give the voucher ID the customer shows.","request_id":"01a191c5-bff7-73ab-8370-bb7e2c49a1b1"}}
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /api/v1/workspaces/{workspace}/disputes:

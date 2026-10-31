@@ -313,6 +313,33 @@ class CheckoutTest extends TestCase
         $this->assertSame(3, Voucher::where('offer_id', $this->offer->id)->where('status', VoucherStatus::Issued)->count());
     }
 
+    public function test_merchant_redeems_a_reusable_code_only_for_the_named_voucher(): void
+    {
+        $this->offer = $this->walletOffer(1000, ['ZOMER10'], ['code_mode' => 'reusable']);
+        $this->fund(1000);
+        $annas = $this->buy()->assertCreated()->json('data.voucher_id');
+        $piet = User::factory()->create();
+        $this->fund(1000, $piet);
+        Sanctum::actingAs($piet);
+        $piets = $this->withHeaders(['Idempotency-Key' => 'buy-piet'])->postJson('/api/v1/consumer/checkouts', ['offer' => $this->offer->slug])
+            ->assertCreated()->assertJsonPath('data.state', 'completed')->json('data.voucher_id');
+        $shop = $this->offer->webshop;
+        // Another webshop's reusable code: Piet's voucher must not be reachable through it.
+        $this->walletOffer(1000, ['ANDERS10'], ['code_mode' => 'reusable']);
+
+        Sanctum::actingAs($shop->memberships()->sole()->user);
+        $redeem = fn (array $body) => $this->postJson("/api/v1/workspaces/{$shop->public_id}/vouchers/redeem", $body);
+        $redeem(['code' => 'ZOMER10'])->assertStatus(422)->assertJsonPath('error.code', 'voucher_id_required');
+        $redeem(['code' => 'ZOMER10', 'voucher_id' => 'unknown'])->assertNotFound();
+        $redeem(['code' => 'ANDERS10', 'voucher_id' => $piets])->assertNotFound();
+        $this->assertSame(0, Voucher::where('status', VoucherStatus::Redeemed)->count());
+
+        $redeem(['code' => 'zomer10', 'voucher_id' => $piets, 'reference' => 'Order 77'])->assertOk()
+            ->assertJsonPath('data.voucher_id', $piets)->assertJsonPath('data.status', 'redeemed');
+        $this->assertSame(VoucherStatus::Issued, Voucher::where('public_id', $annas)->sole()->status);
+        $redeem(['code' => 'ZOMER10', 'voucher_id' => $piets])->assertStatus(409)->assertJsonPath('error.code', 'voucher_not_redeemable');
+    }
+
     public function test_live_mollie_keys_are_refused_by_default(): void
     {
         config(['shopbonus.payments.mollie.key' => 'live_abcdefghijklmnopqrstuvwxyzABCD']);

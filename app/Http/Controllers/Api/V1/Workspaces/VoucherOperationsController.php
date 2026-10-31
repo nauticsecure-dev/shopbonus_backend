@@ -33,13 +33,21 @@ class VoucherOperationsController extends Controller
 {
     public function redeem(Request $request, CurrentWorkspace $current, VoucherInventory $inventory, AuditLogger $audit): JsonResponse
     {
-        $data = $request->validate(['code' => ['required', 'string', 'max:100'], 'reference' => ['sometimes', 'nullable', 'string', 'max:120']]);
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:100'],
+            'voucher_id' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'reference' => ['sometimes', 'nullable', 'string', 'max:120'],
+        ]);
         $webshop = $current->webshop();
 
-        $codeId = VoucherCode::where('webshop_id', $webshop->id)->where('code_hash', VoucherCode::hashFor($webshop->id, $data['code']))->value('id');
-        // One code can back several vouchers (reusable): take the oldest one still issued.
-        $voucher = $codeId === null ? null : Voucher::where('voucher_code_id', $codeId)->whereIn('status', [VoucherStatus::Issued, VoucherStatus::Redeemed, VoucherStatus::Expired])
-            ->orderByRaw("CASE WHEN status = 'issued' THEN 0 ELSE 1 END")->orderBy('id')->first();
+        $code = VoucherCode::where('webshop_id', $webshop->id)->where('code_hash', VoucherCode::hashFor($webshop->id, $data['code']))->first(['id', 'reusable']);
+        // A reusable code backs many consumers' vouchers and cannot say whose was used:
+        // the merchant names the voucher the customer showed.
+        if ($code?->reusable && ($data['voucher_id'] ?? null) === null) {
+            throw new ApiException('This code is shared by several customers; give the voucher ID the customer shows.', 422, 'voucher_id_required');
+        }
+        $voucher = $code === null ? null : Voucher::where('voucher_code_id', $code->id)->whereIn('status', [VoucherStatus::Issued, VoucherStatus::Redeemed, VoucherStatus::Expired])
+            ->when($code->reusable, fn ($q) => $q->where('public_id', $data['voucher_id']))->first();
         if ($voucher === null) {
             $audit->recordSafely('voucher.redeem_unknown_code', category: AuditCategory::Voucher, webshopId: $webshop->id, actorUserId: $current->membership()->user_id);
 

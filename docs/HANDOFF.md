@@ -1,3 +1,15 @@
+# Continuation checkpoint — B41 merchant redemption of reusable codes names the voucher (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `f16b9c1` (B40). Card #17 (Webshop Dashboard, Offers & Voucher Management), Oluwasola finding 2: `POST /workspaces/{workspace}/vouchers/redeem` redeemed the oldest issued voucher behind a code, so with a reusable code it could mark another consumer's voucher used. Unique codes are unchanged (one voucher per code). A reusable code now needs `voucher_id` (the public ID the customer shows): without it 422 `voucher_id_required`; an ID not issued on that code (or another webshop's) is the existing 404 `voucher_not_found`. Expiry/once-only rules are unchanged (`VoucherInventory::redeemByMerchant`). OpenAPI request field, description and 422 example (from the test run) updated. Provider-confirmed redemption already attributes reusable codes by buyer email (`RedemptionMatcher::buyersVoucher`). No migrations/routes/packages.
+
+Frontend impact (Hassan): the merchant redeem form must send `voucher_id` for reusable-code offers; consumers already see the voucher ID on My Vouchers.
+
+Executed: new `CheckoutTest::test_merchant_redeems_a_reusable_code_only_for_the_named_voucher` fails on the old code (200 for code alone) and passes now. SQLite Checkout+Offers+Api+Vouchers 119 tests / 113 pass + 6 skipped (pre-existing MySQL-only concurrency skips) / 10892 assertions; MySQL `shopbonus_testing` Checkout 33/33 (310 assertions). Pint, PHPStan PASS.
+
+#17 backend still open: per-consumer issuance limit (needs product decision), queued large exports, voucher list rows showing current offer name instead of `terms_snapshot` name. Next exact: push, check CI; then the #17 list-row snapshot name (small), or #20 durable Mollie payment intent.
+
+---
+
 # Continuation checkpoint — B40 invitation acceptance revalidates every grant (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `0b7f6fc` (B39). Card #16 (Webshop Onboarding & Workspace Management), Oluwasola finding 1: acceptance checked the inviter's `team.manage` and role rank but applied the invitation's stored permissions without checking that the inviter still holds each one. `TeamService::acceptInvitation` now reruns the same `assertCanGrant` rule used when inviting (role rank, owner-only, every permission held) against the inviter's current membership, locked for update in the acceptance transaction; any failure is the existing 410 `invitation_invalid` and the invitation stays pending. OpenAPI description updated. No migrations, routes or packages.
