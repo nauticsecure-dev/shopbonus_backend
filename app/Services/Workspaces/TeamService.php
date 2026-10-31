@@ -37,7 +37,7 @@ class TeamService
 
     public const MAX_RESENDS = 5;
 
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly RealtimeAccess $realtime) {}
 
     // ---------------------------------------------------------------- invitations
 
@@ -240,8 +240,12 @@ class TeamService
         $newRole = $role ?? $target->role;
         $grants = $this->assertCanGrant($actor, $newRole, $permissions ?? ($target->permissions ?? []));
         $before = ['role' => $target->role->value, 'grants' => $target->permissions ?? []];
+        $couldSeeOrders = $target->allows(WorkspacePermission::OrdersView);
 
         $target->forceFill(['role' => $newRole, 'permissions' => $grants === [] ? null : $grants])->save();
+        if ($couldSeeOrders && ! $target->allows(WorkspacePermission::OrdersView)) {
+            $this->realtime->terminate($target->user_id); // the live order channel needs orders.view
+        }
 
         $this->audit->record('team.member_updated', category: AuditCategory::Workspace,
             resource: (new User)->getMorphClass(), resourceId: $target->user_id, webshopId: $target->webshop_id,
@@ -400,6 +404,7 @@ class TeamService
         if ($status !== MembershipStatus::Active) {
             User::whereKey($target->user_id)->where('current_webshop_id', $target->webshop_id)
                 ->update(['current_webshop_id' => null]);
+            $this->realtime->terminate($target->user_id);
         }
 
         $this->audit->record($action, category: AuditCategory::Workspace,

@@ -11335,6 +11335,20 @@ Content-Type: application/json
 {"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-support"}}
 ```
 
+
+### `POST /api/broadcasting/user-auth` — realtime user sign-in (Trello #16)
+
+Not a live capture; behaviour from `tests/Feature/Workspaces/RealtimeRevocationTest.php`. Same auth as `/api/broadcasting/auth` (Sanctum cookie or token, active account). The Pusher/Reverb client calls it once per connection (Laravel Echo: `pusher.signin()` / user authentication enabled) so the server knows whose sockets they are. The signed user identity is the **public** user ID. Support (impersonation) sessions get 403; unauthenticated 401.
+
+When a member is removed or suspended, or loses `orders.view`, Shopbonus calls Reverb `terminate_connections` for that user after the change commits: every open socket of that user closes, the client reconnects, and channel auth then refuses what was withdrawn. A client that never signs in cannot be found by user and keeps an already-open subscription until it reconnects.
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"auth":"<REDACTED_EPHEMERAL_USER_AUTH>","user_data":"{\"id\":\"<user public_id>\"}"}
+```
+
 ### `GET /api/v1/notifications` — rate-limit
 
 ```bash

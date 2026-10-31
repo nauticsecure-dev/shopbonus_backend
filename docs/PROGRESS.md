@@ -1,3 +1,18 @@
+# Continuation checkpoint — B45 realtime revocation terminates open sockets (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `0c75e1b` (B44, CI run 41199933613 PASS: lint, MySQL, SQLite). Card #16 (Webshop Onboarding & Workspace Management), Oluwasola finding 2: channel auth (routes/channels.php) is rechecked on subscribe, but a removed member's already-open subscription to `webshops.{id}.orders` kept receiving events. Now:
+- `POST /api/broadcasting/user-auth` (Laravel `Broadcast::userRoutes`, same middleware as channel auth) signs a Pusher/Reverb connection in as the user's **public** ID (`RealtimeAccess::signInIdentity`); support sessions 403.
+- `TeamService` calls `RealtimeAccess::terminate()` after commit when a membership is suspended/removed/admin-revoked (`changeStatus`) or an edit drops `orders.view`; it calls Reverb `terminate_connections` for that user. The client reconnects and channel auth refuses the lost channel. A broadcaster failure is reported and never blocks the revocation. log/null drivers: no-op.
+- Docs: docs/api/README.md section (described from tests, not a live capture).
+
+Frontend (Hassan): enable Echo/pusher-js user authentication against `/api/broadcasting/user-auth` (call `signin()` after connect). Without it the server cannot find the user's sockets and an open subscription lasts until the client reconnects. Not covered: webshop suspension and account deactivation do not terminate sockets yet (same mechanism would apply).
+
+Executed: new tests/Feature/Workspaces/RealtimeRevocationTest.php (4 tests; 3 fail without the TeamService wiring); full SQLite suite 1162 / 1137 pass + 25 skipped; MySQL tests/Feature/Workspaces 42/42. Pint, PHPStan PASS. Not verified against a running Reverb server.
+
+#16 backend still open: ownership-transfer workflow (needs approved design). Next exact: push, check CI; then #17 queued large exports, or #31/#32 line items once provider order schemas are verified.
+
+---
+
 # Continuation checkpoint — B44 honest integration capabilities, refund gate, Shopware state events (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `e0f9f23` (B43). Card #31 (Platform API & Webhook Engineering), Oluwasola findings 1, 2 (from #32), 5 and 6:
