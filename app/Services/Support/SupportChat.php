@@ -380,8 +380,7 @@ class SupportChat
             'funding' => $nl ? 'Bekijk webshopfinanciering' : 'View merchant funding',
             'offer_cost' => $nl ? 'Bekijk aanbiedingen' : 'View offers',
             'campaign' => $nl ? 'Bekijk campagneoverzicht' : 'View campaign overview',
-            'integration' => $nl ? 'Bekijk integraties' : 'View integrations',
-            default => $nl ? 'Bekijk details' : 'View details',
+            default => $nl ? 'Bekijk integraties' : 'View integrations', // only 'integration' remains: $route is null otherwise
         };
 
         return ['label' => $label, 'route' => $route];

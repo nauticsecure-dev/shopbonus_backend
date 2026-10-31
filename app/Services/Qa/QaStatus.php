@@ -89,7 +89,7 @@ class QaStatus
     /**
      * How a result relates to the endpoint's last change, from the tested build.
      *
-     * @param  Collection<int, object>  $scans  inventory snapshots, oldest first
+     * @param  Collection<int, \stdClass>  $scans  inventory snapshots, oldest first
      */
     private static function provenance(string $runSha, CarbonImmutable $executedAt, QaEndpoint $endpoint, Collection $scans): string
     {

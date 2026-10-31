@@ -133,7 +133,6 @@ class Operations
         DB::table('operational_observations')->whereIn('id', $ids)->delete();
     }
 
-    /** @return array<string,mixed> */
     /** @return list<string> */
     private static function queues(): array
     {
@@ -145,6 +144,8 @@ class Operations
     /**
      * Worst status across the monitored queues. Top-level fields describe
      * `default` (unchanged contract); `queues` has one entry per queue.
+     *
+     * @return array<string,mixed>
      */
     private function queue(): array
     {

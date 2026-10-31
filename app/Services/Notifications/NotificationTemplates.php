@@ -93,6 +93,7 @@ final class NotificationTemplates
     }
 
     /** @param array<string, string> $value
+     * @param  array<string, string|null>  $variables
      * @return array<string, string>
      */
     private function substitute(array $value, string $amount, array $variables = []): array
@@ -106,8 +107,10 @@ final class NotificationTemplates
         return array_map(fn ($text) => trim((string) preg_replace('/ {2,}/', ' ', strtr($text, $map))), $value);
     }
 
-    /** @return array<string, mixed> */
-    /** @param array<string, string|null> $variables */
+    /**
+     * @param  array<string, string|null>  $variables
+     * @return array<string, mixed>
+     */
     public function resolve(string $event, string $locale, ?string $amount = null, array $variables = []): array
     {
         foreach (array_unique([$locale, 'nl']) as $candidate) {

@@ -1,3 +1,74 @@
+# Active handoff — B31 Trello review fixes for the 10 cards in the Frank list (2026-10-31, Claude)
+
+Branch `frank/review-fixes` (not merged, not pushed), base `main` `59916e9`. Commits: `e171ca5` regressions, `5546489` OpenAPI recovery, `1175fe1` money/vouchers, `322d538` cockpit/support/notifications, `52adf2a` Quality Center, plus a docs commit. Source: the reviewer (Oluwasola Peter) comments on #19 #20 #21 #22 #23 #26 #29 #30 #36 #37. Each item was checked against the code before it was changed. D-089 unchanged and re-applied. Credentials senior-owned.
+
+Fixed (each with a regression test):
+- Regressions from the HassanDev merge (`9f927ef`/`4aa26c2`/`2b0db78`/`04ecbfd`/`05a47b8`):
+  - Plaintext OTP log removed.
+  - `AFFILIATE_CREDIT_TIMING` default restored to `on_network_approval` (D-089). Config, `.env.example` and docs had been switched to instant credit.
+  - `TradeTrackerSoapClient::__doRequest` accepts PHP 8.5's optional `$uriParserClass`.
+  - OnboardingTest now expects `kvk_number` (country defaults to NL).
+  - CapabilityAndCatalogTest targets the canonical `catalog-syncs` API. HassanDev's parallel catalog code (`CatalogSync` service, `CatalogProduct`, `CatalogCoupon`, `CapabilityMatrix`) has no routes left; it is still used by LiveBannerStudioE2ETest. Remove or merge it in a later task.
+- OpenAPI: merge `9f927ef` dropped the 92 operations HassanDev had documented. They are restored with paths, parameters and schemas, and every example was re-captured on a real local server (168 exchanges, `docs/qa/B31_MERGE_RECOVERY_HTTP_CAPTURE.json`, README section).
+  - Not captured, labelled illustrative: AI suggest 200 (live OpenAI key) and enrichment retry 202 (503 captured).
+- Cover endpoint 404'd for shops without a logo (looked up via `logo()`). Fixed.
+- #19:
+  - The direct/affiliate duplicate check uses an indexed `merchant_commission_conversions.order_reference_hash` (migration `2026_10_30_200000`, backfilled). It previously checked only the first 500 rows.
+- #20/#23 vouchers:
+  - A reusable code redeems only the buyer's own voucher (order email hash).
+  - An order placed after expiry never redeems (`voucher_expired`).
+  - One compensation per voucher across consumer, merchant and checkout reports (409 `voucher_already_compensated`, voucher row lock).
+  - Mollie refunds are tracked by provider status (migration `2026_10_30_210000`): checkout `refund_pending` → `refunded`, or back to `paid_unfulfilled` on failed/canceled. Retries use a new idempotency key. Synced by `shopbonus:expire-checkouts`.
+  - Payment creation sends `Idempotency-Key: checkout:<id>`. Timeouts and 5xx keep the checkout for a retry; 4xx fails it.
+  - Checkout history shows the purchased title.
+- #21:
+  - Suspending an admin ends the support sessions they started.
+  - Cockpit `change_percent` compares with totals as of the end of the previous period; open actions → null.
+  - One consumer definition (`User::consumers()` scope) for the cards, the user list and search.
+- #26:
+  - Order references like `FS-20482`, `#1042` and `bestelling 77812` are recognised.
+  - Pending and reserved credit are worded separately.
+  - Action labels follow the locale.
+  - Deterministic FAQ matching for free-text questions.
+  - `provider_cost_estimate` comes from `SUPPORT_AI_PRICE_EUR_PER_MILLION_*` (null when unset; billed cost still null).
+- #29:
+  - Templates may use `{{webshop_name}}` and `{{first_name}}` (plain text, bounded).
+  - SPA paths come from `shopbonus.identity.frontend_paths` (`FRONTEND_PATH_*`; defaults unchanged `/app/...`).
+- #30:
+  - Backups include dispute, ownership-verification and QA evidence.
+  - The operations overview watches every `RELIABILITY_MONITORED_QUEUES` queue (default `default,affiliate`).
+- #36/#37 Quality Center:
+  - Freshness follows the tested build: `provenance` is sha_verified, sha_outdated or time_only.
+  - Runs accept `executed_at` / `--executed-at`.
+  - Fingerprints include the controller class, type-hinted App classes and route middleware.
+  - Discovery adds middleware, policies and the affiliate adapters.
+  - Retests need a build containing the fix (`retest_build_outdated` / `retest_build_unverified` unless `build_includes_fix`).
+  - Browser/manual PASS needs attached evidence (`QA_EVIDENCE_REQUIRED_SOURCES`).
+
+Not changed (owner or other input needed):
+- Reviewers asked for instant credit (#23, #36) and pending credit (#19, #22). D-089 stands.
+- Insufficient wallet → Mollie remainder is D-053, not a bug.
+- Points funding checkout is still OPEN-REWARD-UNITS.
+- Admin direct-merchant commission credit (`commission-credits`) credits immediately. Check it against D-089 with the owner.
+- The frontend paths for emails and support actions must be confirmed by the frontend; the defaults remain unverified.
+- Hourly backups vs RPO ≤ 15 min, offsite verification, connectors for 4 platforms, CI/Postman wiring, the 175 PDF v2 checks, E2E evidence packages, and all frontend items: not in this batch.
+- PHPStan: 97 errors repository-wide, all in HassanDev code from `4aa26c2` (none in lines changed here). They need a separate cleanup task.
+- PHP 8.5 is not installed locally; the SOAP signature is verified on 8.4 only.
+
+Evidence:
+- Full SQLite suite 1117 tests (1093 passed + 24 skipped) after the last code commit. Full MySQL run: see PROGRESS.
+- OpenApiCoverageTest PASS.
+- Pint PASS.
+- Capture environment (isolated SQLite, local server) and capture uploads/sessions removed afterwards.
+
+Main local `shopbonus` DB: migrations `2026_10_30_200000` and `210000` NOT applied there.
+
+Exact next:
+- Push the branch and open a PR after the owner/senior review.
+- Answer the reviewers on the D-089/D-053 items.
+- Separate tasks: HassanDev PHPStan cleanup, and the duplicate catalog code.
+
+---
 # Active handoff — `shopbonus:create-admin` command (2026-10-30, Claude)
 
 Owner request: a command to create an admin with name, email and password. `php artisan shopbonus:create-admin [--name=] [--email=] [--password=]` prompts for missing values (password hidden, asked twice), validates with the signup rules (`Password::defaults()`: min 10, letters + numbers, breached-password check in production; unique normalized email), then creates a verified active user, grants Super Admin (`granted_via: console`) and audits `admin.super_admin_granted` (`created: true`) in one transaction. Existing email → fails and points to `shopbonus:grant-super-admin`. 2FA is still required before the admin API opens. Test: `tests/Feature/Admin/CreateSuperAdminCommandTest.php` (3 PASS on SQLite and MySQL); PHPStan 0. No migration or route. Previous: B30 `a412e89`, [CI 40929686025](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40929686025) SUCCESS on all 3 jobs.

@@ -173,7 +173,6 @@ final class SupportTools
         ]];
     }
 
-    /** @return array{string, array<string, mixed>} */
     /**
      * Deterministic FAQ lookup for a free-text question (no model involved): the
      * published article for this audience sharing the most significant words
@@ -197,7 +196,7 @@ final class SupportTools
                 }
                 // Question words count double: they name the topic.
                 $q = $words((string) $t['question']);
-                $a = $words(is_array($t['answer']) ? RichText::plainText($t['answer']) : (string) $t['answer']);
+                $a = $words(RichText::plainText($t['answer']));
 
                 return [$item->public_id => 2 * count(array_intersect($asked, $q)) + count(array_intersect($asked, $a))];
             })->filter()->sortDesc();
@@ -208,6 +207,7 @@ final class SupportTools
         return (string) $scores->keys()->first();
     }
 
+    /** @return array{string, array<string, mixed>} */
     private function knowledge(User $actor, ?Webshop $shop, string $id, string $locale): array
     {
         $audiences = ['public', $shop === null ? 'consumers' : 'merchants'];
