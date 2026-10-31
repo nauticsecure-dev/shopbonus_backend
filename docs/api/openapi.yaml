@@ -7927,6 +7927,7 @@ paths:
       operationId: qaComponents
       summary: "Jobs, events, listeners, commands, schedules, migrations and connectors"
       description: |
+        Includes general service/model/controller/request/resource/rule/enum/provider/support/logging/integration components in addition to jobs/events/commands/policies/middleware/connectors. Untested remains untested; source inventory does not prove execution. Backend source changes conservatively invalidate route evidence, including transitive dependencies.
         Trello #37. Access: Super Admin or QA tester. Non-HTTP inventory. Connectors include the webshop connectors and the Mollie, Moneybird, Answer24, Daisycon and TradeTracker clients. `tested` = linked to an approved test case. Filters: `kind`, `removed` (boolean), `page`, `per_page`.
       x-access: admin
       x-codeSamples:
@@ -7939,7 +7940,12 @@ paths:
           description: "Captured (kind=schedule)."
           content:
             application/json:
-              example: {"data":[],"meta":{"current_page":1,"total":0,"per_page":3,"last_page":1}}
+              examples:
+                historical:
+                  value: {"data":[],"meta":{"current_page":1,"total":0,"per_page":3,"last_page":1}}
+                ci_capture:
+                  summary: Actual local HTTP capture 2026-10-31 (B35)
+                  value: {"data":[{"id":"01m68fwsw2fhxkghagfq614k67","kind":"service","name":"app/Services/Admin/ApiRouteRegistry","tested":false,"first_seen_sha":"40d8e83","changed_sha":"40d8e83","changed_at":"2026-10-31T08:05:53+00:00","removed_at":null}],"meta":{"current_page":1,"total":142,"per_page":1,"last_page":142}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
@@ -8239,7 +8245,8 @@ paths:
       operationId: qaRuns
       summary: "Imported runs"
       description: |
-        Trello #37. Access: Super Admin or QA tester. Newest first. Filters: `environment` (production, staging), `source` (junit, probe).
+        CI imports are labelled mocked regardless of the requested mocked flag. An attached schedule must match suite/environment (409 qa_schedule_mismatch). Actual HTTP examples: docs/qa/B35_CI_HTTP_CAPTURE.json.
+        Trello #37. Access: Super Admin or QA tester. Newest first. Filters: `environment` (production, staging, ci), `source` (junit, probe). CI is isolated regression execution and always mocked, never staging/provider acceptance.
       x-access: admin
       x-codeSamples:
         - lang: curl
@@ -8251,7 +8258,12 @@ paths:
           description: "Captured."
           content:
             application/json:
-              example: {"data":[{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},{"id":"01m64dhcezejjx7h5wmxnsfzh6","suite":"safe","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"probe","totals":{"total":3,"assertions":3,"pass":3,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":7,"report_sha256":"ae1336016d6bb54c7ecd8a2505ef978d4f2fc542104565d455c8a0df1f069981","created_at":"2026-10-29T18:07:45+00:00"}],"meta":{"current_page":1,"total":2,"per_page":2,"last_page":1}}
+              examples:
+                historical:
+                  value: {"data":[{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},{"id":"01m64dhcezejjx7h5wmxnsfzh6","suite":"safe","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"probe","totals":{"total":3,"assertions":3,"pass":3,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":7,"report_sha256":"ae1336016d6bb54c7ecd8a2505ef978d4f2fc542104565d455c8a0df1f069981","created_at":"2026-10-29T18:07:45+00:00"}],"meta":{"current_page":1,"total":2,"per_page":2,"last_page":1}}
+                ci_capture:
+                  summary: Actual local HTTP capture 2026-10-31 (B35)
+                  value: {"data":[{"id":"01m68fwt78gv770nshywd0f4ga","suite":"full","environment":"ci","git_sha":"40d8e83","source":"junit","totals":{"total":17,"assertions":297,"pass":17,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":17},"duration_ms":31493,"report_sha256":"f08c42af2f4674976f3ed569c8f360b801ee6fe8ea757503ce2a033b2fc7b533","created_at":"2026-10-31T08:05:54+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
@@ -8263,6 +8275,7 @@ paths:
       operationId: qaImportRun
       summary: "Import a JUnit report"
       description: |
+        CI imports are labelled mocked regardless of the requested mocked flag. An attached schedule must match suite/environment (409 qa_schedule_mismatch). Actual HTTP examples: docs/qa/B35_CI_HTTP_CAPTURE.json.
         Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Multipart: `report` (JUnit XML, ≤ QA_MAX_REPORT_KB, no DOCTYPE), `suite` (safe, changed, full, weekly), `environment` (production, staging), `git_sha`, optional `mocked`, `source` (phpunit, postman, browser), `schedule_id`. Mapping: failure/error → fail; skipped with message `BLOCKED:` → blocked, `NOT_IMPLEMENTED:` → not_implemented, other skipped → skipped; a test without assertions is never PASS. Names containing "MOCKED" (or `mocked=true`) are labelled mocked. Messages are redacted. The same report is never imported twice (409 `run_duplicate`). CI uses `php artisan shopbonus:qa-import`. B31: optional `executed_at` (ISO 8601, not in the future, at most 90 days old; CLI `--executed-at`) records when CI ran the suite; freshness uses it instead of the import time. Without it the import time stands in.
       x-access: admin
       x-codeSamples:
@@ -8278,13 +8291,18 @@ paths:
         required: true
         content:
           multipart/form-data:
-            schema: {"type":"object","properties":{"report":{"type":"string","format":"binary"},"suite":{"type":"string"},"environment":{"type":"string"},"git_sha":{"type":"string"}}}
+            schema: {"type":"object","properties":{"report":{"type":"string","format":"binary"},"suite":{"type":"string"},"environment":{"type":"string","enum":["production","staging","ci"]},"git_sha":{"type":"string"}}}
       responses:
         '201':
           description: "Captured (a real PHPUnit 12 JUnit report)."
           content:
             application/json:
-              example: {"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"}}
+              examples:
+                historical:
+                  value: {"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"}}
+                ci_capture:
+                  summary: Actual local HTTP capture 2026-10-31 (B35)
+                  value: {"data":{"id":"01m68fwt78gv770nshywd0f4ga","suite":"full","environment":"ci","git_sha":"40d8e83","source":"junit","totals":{"total":17,"assertions":297,"pass":17,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":17},"duration_ms":31493,"report_sha256":"f08c42af2f4674976f3ed569c8f360b801ee6fe8ea757503ce2a033b2fc7b533","created_at":"2026-10-31T08:05:54+00:00"}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin or QA tester, or 2FA not confirmed (`mfa_required`). Audited."
@@ -8292,10 +8310,15 @@ paths:
             application/json:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
         '409':
-          description: "Report already imported."
+          description: "Report already imported, or attached schedule mismatches suite/environment."
           content:
             application/json:
-              example: {"error":{"status":409,"code":"run_duplicate","message":"This report was already imported.","request_id":"01a188d8-ccee-7209-aee4-ca481a7d7baf","details":{"run":"01m64dhk68zrrb9fkghmzzeax9"}}}
+              examples:
+                historical:
+                  value: {"error":{"status":409,"code":"run_duplicate","message":"This report was already imported.","request_id":"01a188d8-ccee-7209-aee4-ca481a7d7baf","details":{"run":"01m64dhk68zrrb9fkghmzzeax9"}}}
+                ci_capture:
+                  summary: Actual local HTTP capture 2026-10-31 (B35)
+                  value: {"error":{"status":409,"code":"qa_schedule_mismatch","message":"The schedule does not match the tested suite/environment.","request_id":"01a190fe-6889-7279-a9e6-8936c91421d5"}}
         '422':
           description: "Not XML, no test cases or DOCTYPE."
           content:

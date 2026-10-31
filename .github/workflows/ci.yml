@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -43,6 +45,8 @@ jobs:
         options: --health-cmd="redis-cli ping" --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -57,4 +61,37 @@ jobs:
           DB_HOST: 127.0.0.1
           DB_USERNAME: root
           DB_PASSWORD: root
-        run: php artisan test
+        run: |
+          mkdir -p build/qa
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > build/qa/executed-at.txt
+          git rev-parse HEAD > build/qa/tested-sha.txt
+          php artisan test --log-junit=build/qa/source.junit.xml
+      - name: Record isolated CI Quality Center evidence
+        if: ${{ always() && !cancelled() && hashFiles('build/qa/source.junit.xml') != '' }}
+        env:
+          APP_ENV: testing
+          APP_RELEASE_SHA: ${{ github.sha }}
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ${{ github.workspace }}/build/qa/qa.sqlite
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          MAIL_MAILER: array
+        run: |
+          touch "$DB_DATABASE"
+          php artisan migrate --force
+          php artisan shopbonus:qa-discover --sha="$(cat build/qa/tested-sha.txt)"
+          php artisan route:list --json > build/qa/routes.json
+          php artisan shopbonus:qa-import build/qa/source.junit.xml --suite=full --environment=ci --sha="$(cat build/qa/tested-sha.txt)" --executed-at="$(cat build/qa/executed-at.txt)" --mocked --output=build/qa/results.json
+      - name: Retain sanitized QA evidence
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-qa-${{ matrix.php }}-${{ matrix.db }}-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            build/qa/results.json
+            build/qa/results.junit.xml
+            build/qa/routes.json
+            build/qa/executed-at.txt
+            build/qa/tested-sha.txt

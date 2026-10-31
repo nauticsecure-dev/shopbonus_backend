@@ -196,7 +196,7 @@ class QaController extends Controller
 
     public function runs(Request $request): JsonResponse
     {
-        $data = $request->validate(['environment' => ['sometimes', Rule::in(QaSchedule::ENVIRONMENTS)], 'source' => ['sometimes', Rule::in(['junit', 'probe'])], ...$this->paging()]);
+        $data = $request->validate(['environment' => ['sometimes', Rule::in(QaTestRun::ENVIRONMENTS)], 'source' => ['sometimes', Rule::in(['junit', 'probe'])], ...$this->paging()]);
         $q = QaTestRun::query()->when($data['environment'] ?? null, fn ($q, $v) => $q->where('environment', $v))
             ->when($data['source'] ?? null, fn ($q, $v) => $q->where('source', $v))->latest('id');
 
@@ -221,13 +221,17 @@ class QaController extends Controller
     public function storeRun(Request $request, QaRuns $runs): JsonResponse
     {
         $data = $request->validate(['report' => ['required', 'file', 'max:'.(int) config('qa.max_report_kb'), 'mimetypes:application/xml,text/xml,text/plain'],
-            'suite' => ['required', Rule::in(QaSchedule::SUITES)], 'environment' => ['required', Rule::in(QaSchedule::ENVIRONMENTS)],
+            'suite' => ['required', Rule::in(QaSchedule::SUITES)], 'environment' => ['required', Rule::in(QaTestRun::ENVIRONMENTS)],
             'git_sha' => ['required', 'string', 'regex:/^[0-9a-f]{7,64}$/'], 'mocked' => ['sometimes', 'boolean'],
             'source' => ['sometimes', Rule::in(['phpunit', 'postman', 'browser'])], 'schedule_id' => ['sometimes', 'string'],
             'executed_at' => ['sometimes', 'date', 'before_or_equal:now', 'after:-90 days']]);
         $schedule = isset($data['schedule_id']) ? QaSchedule::where('public_id', $data['schedule_id'])->firstOrFail() : null;
+        if ($schedule !== null && ($schedule->environment !== $data['environment'] || $schedule->suite !== $data['suite'])) {
+            throw ApiException::conflict('The schedule does not match the tested suite/environment.', 'qa_schedule_mismatch');
+        }
+
         $run = $runs->importJunit((string) $data['report']->get(), ['suite' => $data['suite'], 'environment' => $data['environment'], 'git_sha' => $data['git_sha'],
-            'mocked' => (bool) ($data['mocked'] ?? false), 'source' => $data['source'] ?? 'phpunit', 'schedule_id' => $schedule?->id, 'executed_at' => $data['executed_at'] ?? null], $request->user()->id);
+            'mocked' => $data['environment'] === 'ci' || (bool) ($data['mocked'] ?? false), 'source' => $data['source'] ?? 'phpunit', 'schedule_id' => $schedule?->id, 'executed_at' => $data['executed_at'] ?? null], $request->user()->id);
         $schedule?->forceFill(['last_run_at' => now()])->save();
 
         return response()->json(['data' => QaRuns::runArray($run)], 201);

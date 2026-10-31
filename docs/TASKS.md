@@ -1,3 +1,13 @@
+# Continuation checkpoint — B35 Quality Center CI/inventory verified locally (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, B33 `fe699ad`, B34 `40d8e83`. CI now emits actual execution start/checked-out SHA/JUnit, preserves failed-test exit codes, discovers/imports into a separate ephemeral QA database and retains only sanitized JSON/normalized JUnit/current routes/provenance artifacts. No raw report, DB or credentials uploaded. Run environment `ci` is explicitly distinct and always mocked; schedules remain staging/production and must match imported suite/environment. CLI --output refuses overwrites and records real times/hash/inventory. General backend services/models/controllers/requests/resources/rules/enums/providers/support/logging/integrations are inventoried. Conservative backend source digest invalidates route evidence even for transitive dependencies. No new routes/migrations/packages.
+
+Executed SQLite QA 17/297 PASS (31.496s); MySQL same 17/297 PASS (48.581s). API coverage 3/7505 PASS. PHPStan L6 and Pint --test PASS. Workflow YAML parses. Actual CLI replay of the executed MySQL report produced private sanitized JSON/JUnit with 17 mocked results and current inventory. Eight actual HTTP captures include cookie/CSRF login + recent password, CI import/list, service/model inventory, 401/403 and schedule mismatch409; docs/qa/B35_CI_HTTP_CAPTURE.json and API docs. Capture base is40d8e83+WIP, not exact released-build proof. See docs/qa/CI_AND_STAGING.md. Remote workflow execution pending PR, not claimed passed.
+
+Remaining QA review: scan chronology alone still does not prove Git ancestry on different branches; unlinked/manual finding PASS needs stricter attached-evidence enforcement. Address next coherent B36 boundary. Missing native credentials/staging, inaccessible175-check PDF and all UI/provider acceptance stay explicit. Main DB not migrated for B32/B33. Current uncommitted B35 only; no push/PR yet.
+
+---
+
 # Continuation checkpoint — B34 affiliate review fixes verified (2026-10-31, Codex)
 
 Branch `frank/review-fixes`; B32 `1a3eee0`, points checkout B33 `fe699ad`. B34 repairs #19's remaining verified duplicate/selection/consent defects. Credible distinct order references can share a click; repeated order references and ambiguous legacy click-only reports remain deduped. ProgramSelector recomputes eligible candidates and stores a new decision only when inputs/outcome/rule version change, including recovery from an empty candidate set. No-policy tracking now fails closed in every environment, as do missing/unknown/withdrawn marketing consent. Regression journeys now explicitly publish synthetic policy and grant consent.

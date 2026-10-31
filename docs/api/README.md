@@ -19219,3 +19219,228 @@ Location: https://merchant.example.test
     </body>
 </html>
 ```
+
+
+## Quality Center CI provenance and complete backend source inventory — 2026-10-31
+
+QA run imports and filters accept `environment=ci`; schedules remain staging/production. All CI results are labelled mocked automatically. A linked schedule must match suite/environment or returns 409 `qa_schedule_mismatch`. Components now include general services/models/controllers/requests/resources/rules/enums/providers/support/logging/integrations. Their presence never grants approved test coverage. Every backend PHP source/config/route/migration change conservatively invalidates endpoint fingerprints, including transitive dependencies.
+
+[Actual HTTP captures](../qa/B35_CI_HTTP_CAPTURE.json): isolated SQLite, genuine cookie/CSRF login and password confirmation, synthetic admin/consumer, real executed PHPUnit report. Base 40d8e83 plus B35 WIP, not released-build acceptance. MFA was disabled only for this local capture.
+
+### service_inventory — `GET /api/v1/admin/qa/components?kind=service&per_page=1`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m68fwsw2fhxkghagfq614k67",
+      "kind": "service",
+      "name": "app/Services/Admin/ApiRouteRegistry",
+      "tested": false,
+      "first_seen_sha": "40d8e83",
+      "changed_sha": "40d8e83",
+      "changed_at": "2026-10-31T08:05:53+00:00",
+      "removed_at": null
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 142,
+    "per_page": 1,
+    "last_page": 142
+  }
+}
+```
+
+### model_inventory — `GET /api/v1/admin/qa/components?kind=model&per_page=1`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m68fwst8qf2wqaaa7mkevhmx",
+      "kind": "model",
+      "name": "app/Models/AdminApprovalRequest",
+      "tested": false,
+      "first_seen_sha": "40d8e83",
+      "changed_sha": "40d8e83",
+      "changed_at": "2026-10-31T08:05:53+00:00",
+      "removed_at": null
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 124,
+    "per_page": 1,
+    "last_page": 124
+  }
+}
+```
+
+### ci_runs_unauthenticated — `GET /api/v1/admin/qa/runs?environment=ci`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a190fe-682b-7114-a260-e3081889e52c"
+  }
+}
+```
+
+### ci_runs_forbidden — `GET /api/v1/admin/qa/runs?environment=ci`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 403:
+
+```json
+{
+  "error": {
+    "status": 403,
+    "code": "platform_role_required",
+    "message": "This action requires a platform administrator.",
+    "request_id": "01a190fe-6860-73de-8ca7-6d7801f85263"
+  }
+}
+```
+
+### schedule_environment_mismatch — `POST /api/v1/admin/qa/runs`
+
+Request fields (multipart report: actual executed QA JUnit XML):
+
+```json
+{
+  "suite": "full",
+  "environment": "ci",
+  "git_sha": "40d8e83",
+  "mocked": "0",
+  "schedule_id": "01m68fvnasdwgfmq109q7dvs37"
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "qa_schedule_mismatch",
+    "message": "The schedule does not match the tested suite/environment.",
+    "request_id": "01a190fe-6889-7279-a9e6-8936c91421d5"
+  }
+}
+```
+
+### import_ci_execution — `POST /api/v1/admin/qa/runs`
+
+Request fields (multipart report: actual executed QA JUnit XML):
+
+```json
+{
+  "suite": "full",
+  "environment": "ci",
+  "git_sha": "40d8e83",
+  "mocked": "0"
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68fwt78gv770nshywd0f4ga",
+    "suite": "full",
+    "environment": "ci",
+    "git_sha": "40d8e83",
+    "source": "junit",
+    "totals": {
+      "total": 17,
+      "assertions": 297,
+      "pass": 17,
+      "fail": 0,
+      "blocked": 0,
+      "not_implemented": 0,
+      "skipped": 0,
+      "mocked": 17
+    },
+    "duration_ms": 31493,
+    "report_sha256": "f08c42af2f4674976f3ed569c8f360b801ee6fe8ea757503ce2a033b2fc7b533",
+    "created_at": "2026-10-31T08:05:54+00:00"
+  }
+}
+```
+
+### ci_execution_results — `GET /api/v1/admin/qa/runs?environment=ci`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m68fwt78gv770nshywd0f4ga",
+      "suite": "full",
+      "environment": "ci",
+      "git_sha": "40d8e83",
+      "source": "junit",
+      "totals": {
+        "total": 17,
+        "assertions": 297,
+        "pass": 17,
+        "fail": 0,
+        "blocked": 0,
+        "not_implemented": 0,
+        "skipped": 0,
+        "mocked": 17
+      },
+      "duration_ms": 31493,
+      "report_sha256": "f08c42af2f4674976f3ed569c8f360b801ee6fe8ea757503ce2a033b2fc7b533",
+      "created_at": "2026-10-31T08:05:54+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 1,
+    "per_page": 25,
+    "last_page": 1
+  }
+}
+```

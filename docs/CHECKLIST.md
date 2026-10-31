@@ -891,3 +891,16 @@ B33 evidence: implementing commit `feat: support separately priced points vouche
 - [x] Record exact evidence and remaining points earning/business/live acceptance boundaries.
 
 B34 implementing commit `fix: refresh affiliate selection and require tracking consent`; evidence above; B33 SHA `fe699ad`. B34 SHA recorded in following checkpoint.
+
+### B35 — Quality Center CI execution provenance, #37/#36/#22
+
+- [x] Discover general backend services/models/requests and remaining application components; conservatively invalidate endpoint evidence for transitive backend source changes.
+
+- [x] Emit JUnit and actual execution timestamp for both existing CI database jobs, preserving test failure exit codes.
+- [x] Import/discover into a separate ephemeral QA database with exact tested SHA and explicit `ci` environment; label synthetic regression runs mocked.
+- [x] Retain reports, current route inventory and sanitized QA summary artifacts on success/failure without exposing credentials or DB exports.
+- [x] Keep deployment/scheduled staging execution and 175 inaccessible PDF checks explicitly unverified.
+- [x] Test CLI CI-environment validation/import/provenance and existing API behavior; capture any API contract changes.
+- [x] Document senior-owned deployment hooks and evidence replay; record exact checks and commit.
+
+B35 evidence: SQLite/MySQL QA17/297 each; API3/7505; Pint/PHPStan PASS; real CLI artifact replay and eight HTTP captures. Implementing commit `feat: retain honest CI Quality Center evidence`; remote workflow execution remains pending. B34 SHA `40d8e83`.

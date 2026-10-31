@@ -117,6 +117,7 @@ class QaInventory
         $spec = Yaml::parseFile(base_path('docs/api/openapi.yaml'));
         $registry = collect($this->registry->entries())->keyBy(fn ($e) => $e['method'].' '.$e['route']);
         $found = [];
+        $backendFingerprint = $this->backendFingerprint();
         foreach (Routes::getRoutes()->getRoutes() as $route) {
             if (! str_starts_with($route->uri(), 'api/v1/')) {
                 continue;
@@ -131,13 +132,29 @@ class QaInventory
                     'summary' => isset($operation['summary']) ? mb_substr((string) $operation['summary'], 0, 255) : null,
                     'access' => $entry['access'] ?? 'public', 'permission' => $entry['permission'] ?? null, 'scope' => $entry['scope'] ?? 'public',
                     'documented' => $operation !== null,
-                    'fingerprint' => hash('sha256', json_encode([$method, $path, $middleware, $this->actionName($route), $this->actionSource($route), $this->dependencies($route)])),
+                    'fingerprint' => hash('sha256', json_encode([$method, $path, $middleware, $this->actionName($route), $this->actionSource($route), $this->dependencies($route), $backendFingerprint])),
                 ];
             }
         }
         ksort($found);
 
         return $found;
+    }
+
+    /** Conservative fallback: any transitive backend source change invalidates route evidence. */
+    private function backendFingerprint(): string
+    {
+        $sources = [];
+        foreach ([app_path(), config_path(), base_path('routes'), base_path('bootstrap'), database_path('migrations')] as $directory) {
+            foreach (File::allFiles($directory) as $file) {
+                if ($file->getExtension() === 'php' && ! str_starts_with($file->getPathname(), base_path('bootstrap/cache').'/')) {
+                    $sources[str_replace(base_path().'/', '', $file->getPathname())] = hash_file('sha256', $file->getPathname());
+                }
+            }
+        }
+        ksort($sources);
+
+        return hash('sha256', json_encode($sources, JSON_THROW_ON_ERROR));
     }
 
     private function actionName(Route $route): string
@@ -213,6 +230,10 @@ class QaInventory
         $files = [
             'job' => app_path('Jobs'), 'event' => app_path('Events'), 'listener' => app_path('Listeners'),
             'command' => app_path('Console/Commands'), 'migration' => database_path('migrations'),
+            'service' => app_path('Services'), 'model' => app_path('Models'), 'controller' => app_path('Http/Controllers'),
+            'request' => app_path('Http/Requests'), 'resource' => app_path('Http/Resources'), 'rule' => app_path('Rules'),
+            'enum' => app_path('Enums'), 'provider' => app_path('Providers'), 'support' => app_path('Support'),
+            'logging' => app_path('Logging'), 'integration' => app_path('Integrations'),
             'connector' => app_path('Integrations/Connectors'), 'middleware' => app_path('Http/Middleware'), 'policy' => app_path('Policies'),
         ];
         // Affiliate network adapters are provider connectors too (Daisycon, TradeTracker).
