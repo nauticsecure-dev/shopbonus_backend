@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
+use Tests\Concerns\TracksWithMarketingConsent;
 use Tests\TestCase;
 
 /**
@@ -38,6 +39,7 @@ use Tests\TestCase;
 class MyBenefitsE2ETest extends TestCase
 {
     use CreatesActiveWebshops, RefreshDatabase;
+    use TracksWithMarketingConsent;
 
     private User $admin;
 
@@ -278,7 +280,7 @@ class MyBenefitsE2ETest extends TestCase
     {
         Sanctum::actingAs($this->anna);
         $slug = $this->shop->publicProfile()->value('slug');
-        $this->get('/api/v1/public/webshops/'.$slug.'/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/'.$slug.'/visit'.$this->marketingConsentQuery())->assertRedirect();
         $this->app['auth']->forgetGuards();
 
         return AffiliateClick::latest('id')->firstOrFail()->reference;

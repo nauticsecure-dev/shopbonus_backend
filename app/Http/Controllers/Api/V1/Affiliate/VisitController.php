@@ -43,14 +43,13 @@ class VisitController extends Controller
             return redirect()->away($fallbackUrl);
         }
 
-        // When a cookie policy is published, marketing consent is required for
-        // affiliate tracking. Without a policy (local/tests) tracking may proceed.
+        // No published policy means no valid marketing consent, in every environment.
         $policy = CookiePolicy::current();
         $consent = $policy === null ? null : $this->resolveMarketingConsent($request, $policy->version);
-        if ($policy !== null && $consent === null) {
+        if ($policy === null || $consent === null) {
             $audit->recordSafely('affiliate.visit_untracked', metadata: [
                 'webshop_id' => $webshopId,
-                'reason' => 'marketing_consent_missing',
+                'reason' => $policy === null ? 'cookie_policy_missing' : 'marketing_consent_missing',
             ]);
 
             return redirect()->away($fallbackUrl);
@@ -67,8 +66,8 @@ class VisitController extends Controller
             'webshop_id' => $webshopId,
             'program_id' => $program->id,
             'ip_hash' => $audit->hashIp($request->ip()),
-            'consent_id_hash' => $consent === null ? null : hash_hmac('sha256', 'cookie-consent|'.$consent->consent_id, (string) config('app.key')),
-            'marketing_consent' => $consent !== null,
+            'consent_id_hash' => hash_hmac('sha256', 'cookie-consent|'.$consent->consent_id, (string) config('app.key')),
+            'marketing_consent' => true,
             'expires_at' => CarbonImmutable::now()->addDays($ttlDays),
         ]);
 

@@ -1,3 +1,13 @@
+# Continuation checkpoint — B34 affiliate review fixes verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, points checkout B33 `fe699ad`. B34 repairs #19's remaining verified duplicate/selection/consent defects. Credible distinct order references can share a click; repeated order references and ambiguous legacy click-only reports remain deduped. ProgramSelector recomputes eligible candidates and stores a new decision only when inputs/outcome/rule version change, including recovery from an empty candidate set. No-policy tracking now fails closed in every environment, as do missing/unknown/withdrawn marketing consent. Regression journeys now explicitly publish synthetic policy and grant consent.
+
+Executed: focused SQLite + API coverage 62 total /61 passed +1 skipped /8060 assertions /10.285s. Same business selection MySQL 59 total /58 passed +1 skipped /555 assertions /39.368s. PHPStan L6 and Pint --test PASS. MySQL first exposed an overlong synthetic consent ID in the new test helper; shortened to fit the existing UUID-width column, then rerun passed. No migration or public response shape change; four actual HTTP redirect captures in docs/qa/B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json. API coverage now checks examples for every declared media type, allowing actual HTML redirects instead of fake JSON redirect bodies. Server stopped and isolated capture DB removed. No native network calls.
+
+Next: commit B34; #37 CI JUnit/discovery/import artifacts with honest CI provenance, then complete further verifiable main-code gaps from current Frank inventory. Whole cards retain UI, independent staging/provider acceptance and policy boundaries. Points earning-rate/multiplier/rounding policy remains separate from approved D-103 voucher prices. Main DB NOT migrated for B32/B33. Current uncommitted work: B34 only. No push/PR yet.
+
+---
+
 # Continuation checkpoint — B33 separate points checkout verified (2026-10-31, Codex)
 
 Branch `frank/review-fixes`; B32 commit `1a3eee0` preserves and completes Claude's pending CI fixes. B33 follows owner D-103: optional versioned `price_points`, explicit consumer `wallet_unit=points`, separate checkout points fields. Points purchases never convert units or call Mollie; insufficient/pending/reserved points cannot fund them. Existing EUR-credit behavior remains D-053. Checkout revalidates offer/version under locks, freezes price/unit/identity, and captures through WalletService + VoucherInventory atomically. Financial reconciliation verifies the actual unit and immutable voucher price. Same key with another offer/unit returns 409. No new routes/packages.

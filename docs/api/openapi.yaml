@@ -4365,8 +4365,12 @@ paths:
       description: |
         Records a click and answers 302 to the selected network's own tracking link, with an opaque 20-character click reference as the network sub ID (Trello #19 "Tracked consumer journey"). A click never earns anything.
         A signed-in, verified consumer (session or bearer) is attributed; an anonymous visit is tracked but not attributed. Without a usable affiliate program it redirects to the webshop's website and records nothing. Unlisted webshop: 404. Throttled (30/min per IP).
+        A published cookie policy and explicit current marketing consent are required in every environment. Missing policy, absent/unknown/stale or withdrawn consent redirects directly without creating a click. Network selection is recomputed from current eligible programs/rates and records a new snapshot only when inputs/outcome change. Distinct order references may share a click; repeated purchase references remain disputed.
+        Actual local HTTP capture: docs/qa/B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json (2026-10-31).
       x-access: public
       security: []
+      parameters:
+        - { name: consent_id, in: query, required: false, schema: { type: string, maxLength: 64 }, description: Opaque browser consent ID with a current persisted marketing opt-in. }
       x-codeSamples:
         - lang: curl
           source: |
@@ -4375,10 +4379,18 @@ paths:
         '302':
           description: "Redirect (captured: through TradeTracker; `Location: https://tc.tradetracker.net/?c=1&m=2&a=3&r=<click reference>`)."
           headers:
-            Location: { schema: { type: string, format: uri } }
+            Location: { schema: { type: string, format: uri }, example: "https://tc.tradetracker.net/?c=1&m=2&a=3&r=l4iziw5vUbs1bdXhdo7C" }
           content:
-            application/json:
-              example: {}
+            text/html:
+              examples:
+                no_cookie_policy:
+                  value: "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://merchant.example.test'\" />\n\n        <title>Redirecting to https://merchant.example.test</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://merchant.example.test\">https://merchant.example.test</a>.\n    </body>\n</html>"
+                no_marketing_consent:
+                  value: "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://merchant.example.test'\" />\n\n        <title>Redirecting to https://merchant.example.test</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://merchant.example.test\">https://merchant.example.test</a>.\n    </body>\n</html>"
+                current_marketing_consent:
+                  value: "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C'\" />\n\n        <title>Redirecting to https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C\">https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</a>.\n    </body>\n</html>"
+                withdrawn_marketing_consent:
+                  value: "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://merchant.example.test'\" />\n\n        <title>Redirecting to https://merchant.example.test</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://merchant.example.test\">https://merchant.example.test</a>.\n    </body>\n</html>"
         '404':
           description: "Webshop not listed."
           content:

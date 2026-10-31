@@ -880,3 +880,14 @@ Evidence: implementing commit `fix: finish Frank review CI repair on SQLite and 
 - [x] Record executed checks and exact commit; whole Trello cards retain independent/frontend/live acceptance.
 
 B33 evidence: implementing commit `feat: support separately priced points voucher checkout`; focused SQLite 55 total/52 passed/3 skipped, MySQL 55 passed including four-process replay; API capture 18 exchanges; PHPStan L6 PASS. SHA recorded in subsequent handoff. B32 SHA: `1a3eee0`.
+
+### B34 — Affiliate purchase identity, fresh selection and consent, #19
+
+- [x] Distinct trustworthy order references on one click remain separate purchases; repeated same purchase stays disputed.
+- [x] Reselect when candidates, eligibility, rates or selection configuration change, including a previous empty decision.
+- [x] Missing published cookie policy fails closed for affiliate tracking in every environment; explicit current marketing consent required.
+- [x] Update regression fixtures to grant explicit consent; test missing/stale/withdrawn consent and no-click/no-reward behavior.
+- [x] Capture changed visit behavior from a real server and update API docs; run focused SQLite/MySQL checks.
+- [x] Record exact evidence and remaining points earning/business/live acceptance boundaries.
+
+B34 implementing commit `fix: refresh affiliate selection and require tracking consent`; evidence above; B33 SHA `fe699ad`. B34 SHA recorded in following checkpoint.

@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
+use Tests\Concerns\TracksWithMarketingConsent;
 use Tests\TestCase;
 
 /**
@@ -41,6 +42,7 @@ use Tests\TestCase;
 class AffiliateTest extends TestCase
 {
     use CreatesActiveWebshops, RefreshDatabase;
+    use TracksWithMarketingConsent;
 
     private User $admin;
 
@@ -103,7 +105,7 @@ class AffiliateTest extends TestCase
     private function annaClicks(): string
     {
         Sanctum::actingAs($this->anna);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
         $this->app['auth']->forgetGuards();
 
         return AffiliateClick::latest('id')->firstOrFail()->reference;
@@ -173,7 +175,7 @@ class AffiliateTest extends TestCase
         $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
 
         Sanctum::actingAs($this->anna);
-        $response = $this->get('/api/v1/public/webshops/fietsen-utrecht/visit');
+        $response = $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery());
         $click = AffiliateClick::sole();
         $response->assertRedirect('https://tc.tradetracker.net/?c=1&m=2&a=3&r='.$click->reference);
         $this->assertSame($this->anna->id, $click->user_id);
@@ -181,12 +183,12 @@ class AffiliateTest extends TestCase
         $this->assertSame(0, $this->wallet()->fresh()->available + $this->wallet()->fresh()->pending);
 
         $this->app['auth']->forgetGuards();
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
         $this->assertNull(AffiliateClick::latest('id')->first()->user_id); // anonymous: tracked, not attributed
-        $this->getJson('/api/v1/public/webshops/bestaat-niet/visit')->assertNotFound();
+        $this->getJson('/api/v1/public/webshops/bestaat-niet/visit'.$this->marketingConsentQuery())->assertNotFound();
 
         AffiliateProgram::query()->update(['active' => false]);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect('https://fietsen-utrecht.nl');
         $this->assertSame(2, AffiliateClick::count());
     }
 
@@ -612,6 +614,45 @@ class AffiliateTest extends TestCase
         $this->assertSame(0, $this->wallet()->fresh()->available); // eur_credit untouched
     }
 
+    public function test_two_distinct_orders_on_one_click_are_credited_but_same_order_is_disputed(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('DISTINCT-1', $ref, 'approved', order: 'ORDER-A')]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('DISTINCT-2', $ref, 'approved', order: 'ORDER-B')]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('DUPLICATE-1', $ref, 'approved', order: 'ORDER-A')]);
+        $this->assertSame(2, AffiliateTransaction::where('reward_status', 'credited')->count());
+        $this->assertSame('disputed', AffiliateTransaction::where('external_id', 'DUPLICATE-1')->sole()->status);
+        $this->assertSame(478, $this->wallet()->fresh()->available);
+    }
+
+    public function test_current_selection_changes_with_rates_and_recovers_from_empty_candidates(): void
+    {
+        $selector = app(ProgramSelector::class);
+        $this->assertNull($selector->current($this->shop));
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->assertSame('daisycon', $selector->current($this->shop)->connection->network);
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->assertSame('tradetracker', $selector->current($this->shop)->connection->network);
+        $this->import($this->daisycon, [$this->daisyconProgram(['type' => 'percentage', 'value' => '10', 'restricted' => false])]);
+        $this->assertSame('daisycon', $selector->current($this->shop)->connection->network);
+        $count = DB::table('affiliate_program_selections')->count();
+        $selector->current($this->shop);
+        $this->assertSame($count, DB::table('affiliate_program_selections')->count());
+        $this->daisycon->forceFill(['status' => 'disabled'])->save();
+        $this->assertSame('tradetracker', $selector->current($this->shop)->connection->network);
+    }
+
+    public function test_missing_cookie_policy_never_creates_an_affiliate_click_even_in_tests(): void
+    {
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        Sanctum::actingAs($this->anna);
+        $this->assertNull(CookiePolicy::current());
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(0, AffiliateClick::count());
+        $this->assertSame(0, $this->wallet()->fresh()->available);
+    }
+
     public function test_visit_without_marketing_consent_is_untracked_when_policy_published(): void
     {
         CookiePolicy::create([
@@ -645,5 +686,14 @@ class AffiliateTest extends TestCase
         $this->assertTrue($click->marketing_consent);
         $this->assertNotNull($click->expires_at);
         $this->assertTrue($click->expires_at->greaterThan(now()->addDays(20)));
+
+        CookieConsent::create([
+            'consent_id' => 'consent-ok-1', 'policy_version' => '2026-10-30',
+            'choices' => ['necessary' => true, 'marketing' => false], 'action' => 'reject_optional',
+        ]);
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit?consent_id=consent-ok-1')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(1, AffiliateClick::count());
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit?consent_id=unknown-consent')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(1, AffiliateClick::count());
     }
 }

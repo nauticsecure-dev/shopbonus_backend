@@ -19128,3 +19128,94 @@ Response 404:
   }
 }
 ```
+
+
+## Affiliate consent and purchase identity — 2026-10-31
+
+`GET /api/v1/public/webshops/{slug}/visit` accepts optional `consent_id`. A published policy and current explicit marketing opt-in are required even locally. Missing/unknown/stale/withdrawn consent yields a direct merchant redirect and creates no click. Valid consent permits the network redirect; signed-in verified active consumers may be attributed. Network selection reflects current eligibility/rates, including newly available programs after an empty decision. Repeated unchanged reads do not append identical decisions. Different credible purchase references on one click are separate purchases; repeated purchase references and ambiguous legacy click-only reports remain protected against duplicate reward. D-089 is unchanged.
+
+Captured from a real local HTTP server using isolated SQLite, synthetic policy/consent and no followed redirects: [B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json](../qa/B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json).
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://merchant.example.test
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://merchant.example.test'" />
+
+        <title>Redirecting to https://merchant.example.test</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://merchant.example.test">https://merchant.example.test</a>.
+    </body>
+</html>
+```
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://merchant.example.test
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://merchant.example.test'" />
+
+        <title>Redirecting to https://merchant.example.test</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://merchant.example.test">https://merchant.example.test</a>.
+    </body>
+</html>
+```
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit?consent_id=synthetic-capture-consent
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://tc.tradetracker.net/?c=1&m=2&a=3&r=l4iziw5vUbs1bdXhdo7C
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C'" />
+
+        <title>Redirecting to https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C">https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</a>.
+    </body>
+</html>
+```
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit?consent_id=synthetic-capture-consent
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://merchant.example.test
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://merchant.example.test'" />
+
+        <title>Redirecting to https://merchant.example.test</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://merchant.example.test">https://merchant.example.test</a>.
+    </body>
+</html>
+```
