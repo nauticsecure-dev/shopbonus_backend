@@ -1,3 +1,15 @@
+# Continuation checkpoint — B39 merchant dispute history paginated (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `52c8046` (B38). Source: `MS0DLCAX - shopbonus (4).json`, Oluwasola's review of #17 (Webshop Dashboard, Offers & Voucher Management), finding 7: `GET /workspaces/{workspace}/disputes` returned at most 200 rows with no way to reach older ones. Now server-paginated newest first (`page`, `per_page` 1–100, default 25) with the same `meta` shape as the voucher list; `data` stays an array, so existing callers keep working. OpenAPI parameters/example/description updated. No migrations, routes, packages or provider calls.
+
+Triage of the (4) export's easiest findings against the code: OTP logging (e171ca5), PHP 8.5 SOAP signature (e171ca5), `/public/webshops/{slug}/cover` OpenAPI (5546489), backup evidence dirs, multi-queue monitoring, provider-redemption expiry and checkout-history snapshot title are already fixed on this branch; reviewers ran against an older checkout.
+
+Executed: SQLite VoucherDisputeTest 9/9 (new `test_merchant_dispute_history_is_paginated_newest_first`), API + dispute + dashboard-offers 52 tests/10337 assertions PASS; Pint PASS. MySQL not run for this change; no real HTTP capture (example `meta` matches the one-row example). Frontend dispute screen (Hassan) should read `meta` to page.
+
+Next exact: push, check CI; then continue with B38's next item (durable checkout creation/uncertain-payment recovery, #20).
+
+---
+
 # Continuation checkpoint — B38 explicit points earning verified (2026-10-31, Codex)
 
 Branch `frank/review-fixes`, parent `130fd24056bf1166052feaee26e79ff03136be84`, draft PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3. Parent exact CI41184941391 SUCCESS across quality, SQLite and MySQL. B38 implementation commit follows this checkpoint; no claim that parent CI covers these changes.

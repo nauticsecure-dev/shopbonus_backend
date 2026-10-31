@@ -184,6 +184,24 @@ class VoucherDisputeTest extends TestCase
         $this->getJson("/api/v1/consumer/disputes/{$id}")->assertNotFound();
     }
 
+    public function test_merchant_dispute_history_is_paginated_newest_first(): void
+    {
+        Sanctum::actingAs($this->anna);
+        $ids = [];
+        foreach (range(1, 3) as $i) {
+            $ids[] = $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $this->issued()->public_id, 'reason' => 'code_invalid', 'description' => "Report number {$i} about this code."])
+                ->assertCreated()->json('data.id');
+        }
+
+        Sanctum::actingAs($this->owner);
+        $first = $this->getJson($this->ws('/disputes?per_page=2'))->assertOk()
+            ->assertJsonPath('meta', ['current_page' => 1, 'last_page' => 2, 'per_page' => 2, 'total' => 3]);
+        $this->assertSame([$ids[2], $ids[1]], array_column($first->json('data'), 'id'));
+        $this->assertSame([$ids[0]], array_column($this->getJson($this->ws('/disputes?per_page=2&page=2'))->assertOk()->json('data'), 'id'));
+        $this->getJson($this->ws('/disputes?status=resolved'))->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson($this->ws('/disputes?per_page=101'))->assertStatus(422);
+    }
+
     public function test_card23_code_does_not_work_report_keeps_screenshot_private_and_encrypted(): void
     {
         Storage::fake('local');

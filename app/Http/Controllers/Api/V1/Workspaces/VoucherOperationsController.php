@@ -104,10 +104,18 @@ class VoucherOperationsController extends Controller
 
     public function disputes(Request $request, CurrentWorkspace $current): JsonResponse
     {
-        $data = $request->validate(['status' => ['sometimes', Rule::in(['open', 'under_review', 'waiting_for_merchant', 'resolved', 'rejected'])]]);
+        $data = $request->validate([
+            'status' => ['sometimes', Rule::in(['open', 'under_review', 'waiting_for_merchant', 'resolved', 'rejected'])],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+        $page = VoucherDispute::where('webshop_id', $current->webshop()->id)->when(isset($data['status']), fn ($q) => $q->where('status', $data['status']))
+            ->orderByDesc('id')->paginate((int) ($data['per_page'] ?? 25));
 
-        return response()->json(['data' => VoucherDispute::where('webshop_id', $current->webshop()->id)->when(isset($data['status']), fn ($q) => $q->where('status', $data['status']))
-            ->orderByDesc('id')->limit(200)->get()->map(fn (VoucherDispute $d) => self::merchantView($d))->all()]);
+        return response()->json([
+            'data' => collect($page->items())->map(fn (VoucherDispute $d) => self::merchantView($d))->all(),
+            'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
     }
 
     public function respond(Request $request, CurrentWorkspace $current, string $dispute, DisputeService $disputes): JsonResponse
