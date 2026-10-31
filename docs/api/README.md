@@ -19774,3 +19774,705 @@ Request: `POST /api/v1/public/cookie-consents`, body `{}`, no Accept-Language he
   }
 }
 ```
+
+
+## Explicit program points earning — D-104, 2026-10-31
+
+Super Admin reward-rule POST accepts `program_id` (public ULID), `points_per_eur_share` (integer 1–1000000), `points_multiplier_bps` (1–1000000; default10000), and `points_rounding` (`floor`, `half_up`, `ceil`; defaultfloor), only for points. A mapped program, EUR commission and positive explicit rate are required. Incomplete rules are stored inactive with activation_blockers, even if active=true was requested. Create a new configured version to activate; terms cannot be patched. The default effective start for new points rules is creation time. Program/source/webshop mismatches and foreign-currency programs are refused. Current global EUR rules keep their behavior. `current` in the rules list denotes the global rule, not every program override.
+
+Exact final calculation:
+
+```text
+points = round(commission_minor × share_bps × points_per_eur_share × points_multiplier_bps / 10000000000)
+```
+
+For €10 commission, 70% consumer share, 10 points per EUR of that share and a 2× multiplier, the result is140points. This is commission-based earning, not points per euro of an order and not points-to-cash redemption. `max_reward_minor` remains the legacy cap field; for a points rule its quantity is points. Integer arithmetic uses the existing Brick Math dependency, including overflow-safe caps and final rounding.
+
+Program rules take precedence over applicable webshop/global rules. Old unconfigured points curves cannot create new rewards; existing immutable pending/credited snapshots retain their original calculation, including legacy floor terms. D-089 approval timing is unchanged. Financial reconciliation checks the frozen program/rate/quantity; monetary allocation of points still remains UNKNOWN (`points_money_allocation_undefined`) because no points cash value was approved. D-105 keeps commission remainder allocation reporting, not formal accounting revenue.
+
+Public discovery exposes reward_unit=points, the commission-share rate basis and NL/EN labels; consumer_cashback_rate is null, so points cannot masquerade as an EUR cashback percentage.
+
+[Sixteen actual HTTP captures](../qa/B38_POINTS_EARNING_HTTP_CAPTURE.json), real server/cookie/CSRF/recent-password flow with isolated SQLite/storage and synthetic network/program metadata. No upstream calls. MFA was disabled only for the local capture. Based on130fd24 plus B38 WIP, not provider acceptance.
+
+### points_rule_csrf — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000
+}
+```
+
+Captured response 419:
+
+```json
+{
+  "error": {
+    "status": 419,
+    "code": "csrf_token_mismatch",
+    "message": "The session or CSRF token has expired. Refresh and try again.",
+    "request_id": "01a19123-90cd-725c-a859-0981de6d06e0"
+  }
+}
+```
+
+### points_rule_unauthenticated — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000
+}
+```
+
+Captured response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a19123-90fa-7234-a764-15ff387d80e8"
+  }
+}
+```
+
+### points_rule_forbidden — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000
+}
+```
+
+Captured response 403:
+
+```json
+{
+  "error": {
+    "status": 403,
+    "code": "platform_role_required",
+    "message": "This action requires a platform administrator.",
+    "request_id": "01a19123-9126-72d3-918f-9863219a47dd"
+  }
+}
+```
+
+### existing_eur_rule — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "eur_credit",
+  "share_bps": 7000
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 1,
+    "unit": "eur_credit",
+    "program_id": null,
+    "calculation_version": "legacy_v1",
+    "points_per_eur_share": null,
+    "points_multiplier_bps": 10000,
+    "points_rounding": "floor",
+    "activation_blockers": [],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": null,
+    "commission_source": null,
+    "cashback_approved": true,
+    "starts_at": null,
+    "ends_at": null,
+    "active": true
+  }
+}
+```
+
+### unconfigured_points_rule_disabled — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "active": true
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 2,
+    "unit": "points",
+    "program_id": null,
+    "calculation_version": "points_v2",
+    "points_per_eur_share": null,
+    "points_multiplier_bps": 10000,
+    "points_rounding": "floor",
+    "activation_blockers": [
+      "points_program_required",
+      "points_program_webshop_required",
+      "points_rate_required"
+    ],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": null,
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": false
+  }
+}
+```
+
+### unmapped_program_rule_disabled — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc7zfhezx7xjhehr583",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 3,
+    "unit": "points",
+    "program_id": "01m68j1tc7zfhezx7xjhehr583",
+    "calculation_version": "points_v2",
+    "points_per_eur_share": 10,
+    "points_multiplier_bps": 10000,
+    "points_rounding": "floor",
+    "activation_blockers": [
+      "points_program_webshop_required"
+    ],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": null,
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": false
+  }
+}
+```
+
+### invalid_rate — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "points_per_eur_share": 0
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-91d2-71ce-9c97-2e4f380ac9ab",
+    "fields": {
+      "points_per_eur_share": [
+        "The points per eur share field must be at least 1."
+      ]
+    }
+  }
+}
+```
+
+### program_webshop_mismatch — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "webshop_id": "01m68j1tbjyp2kq7cdh5fsd1p0",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-91f1-711f-a659-c1f4ec068b51",
+    "fields": {
+      "webshop_id": [
+        "Choose the webshop that owns this program."
+      ]
+    }
+  }
+}
+```
+
+### foreign_currency_program — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc5jd3kcst67gdndbv9",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-9213-71fd-b304-f8f457000a54",
+    "fields": {
+      "program_id": [
+        "Points earning requires an EUR commission program."
+      ]
+    }
+  }
+}
+```
+
+### wrong_commission_source — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "points_per_eur_share": 10,
+  "commission_source": "direct_merchant"
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-922e-72b2-9478-3014bb7fbdfa",
+    "fields": {
+      "commission_source": [
+        "Points earning rules require an affiliate network program."
+      ]
+    }
+  }
+}
+```
+
+### configured_program_points_rule — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "points_per_eur_share": 10,
+  "points_multiplier_bps": 20000,
+  "points_rounding": "half_up"
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 4,
+    "unit": "points",
+    "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+    "calculation_version": "points_v2",
+    "points_per_eur_share": 10,
+    "points_multiplier_bps": 20000,
+    "points_rounding": "half_up",
+    "activation_blockers": [],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": "01m68j1tax01dn90btz3gnjjry",
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": true
+  }
+}
+```
+
+### versioned_rules_list — `GET /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "version": 4,
+      "unit": "points",
+      "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+      "calculation_version": "points_v2",
+      "points_per_eur_share": 10,
+      "points_multiplier_bps": 20000,
+      "points_rounding": "half_up",
+      "activation_blockers": [],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": "01m68j1tax01dn90btz3gnjjry",
+      "commission_source": "affiliate_network",
+      "cashback_approved": true,
+      "starts_at": "2026-10-31T08:46:29+00:00",
+      "ends_at": null,
+      "active": true
+    },
+    {
+      "version": 3,
+      "unit": "points",
+      "program_id": "01m68j1tc7zfhezx7xjhehr583",
+      "calculation_version": "points_v2",
+      "points_per_eur_share": 10,
+      "points_multiplier_bps": 10000,
+      "points_rounding": "floor",
+      "activation_blockers": [
+        "points_program_webshop_required"
+      ],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": null,
+      "commission_source": "affiliate_network",
+      "cashback_approved": true,
+      "starts_at": "2026-10-31T08:46:29+00:00",
+      "ends_at": null,
+      "active": false
+    },
+    {
+      "version": 2,
+      "unit": "points",
+      "program_id": null,
+      "calculation_version": "points_v2",
+      "points_per_eur_share": null,
+      "points_multiplier_bps": 10000,
+      "points_rounding": "floor",
+      "activation_blockers": [
+        "points_program_required",
+        "points_program_webshop_required",
+        "points_rate_required"
+      ],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": null,
+      "commission_source": "affiliate_network",
+      "cashback_approved": true,
+      "starts_at": "2026-10-31T08:46:29+00:00",
+      "ends_at": null,
+      "active": false
+    },
+    {
+      "version": 1,
+      "unit": "eur_credit",
+      "program_id": null,
+      "calculation_version": "legacy_v1",
+      "points_per_eur_share": null,
+      "points_multiplier_bps": 10000,
+      "points_rounding": "floor",
+      "activation_blockers": [],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": null,
+      "commission_source": null,
+      "cashback_approved": true,
+      "starts_at": null,
+      "ends_at": null,
+      "active": true
+    }
+  ],
+  "current": 1
+}
+```
+
+### public_points_earning — `GET /api/v1/public/webshops/rate-demo`
+
+Request:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "slug": "rate-demo",
+    "name": "Rate Demo",
+    "short_description": null,
+    "logo_url": null,
+    "cover_url": null,
+    "categories": [],
+    "badge_label": "Punten verdienen",
+    "cashback_label": "Punten verdienen",
+    "description": null,
+    "website_url": "https://rate.example.test",
+    "benefits": [
+      {
+        "offer_kind": "cashback",
+        "reward_unit": "points",
+        "label": "Punten verdienen",
+        "labels": {
+          "nl": "Punten verdienen na netwerkgoedkeuring",
+          "en": "Earn points after network approval"
+        },
+        "consumer_cashback_rate": null,
+        "points_per_eur_share": 10,
+        "points_rate_basis": "eur_consumer_commission_share",
+        "points_multiplier_bps": 20000,
+        "points_rounding": "half_up",
+        "category_restricted": false,
+        "cta_hint": "shop_and_earn",
+        "source": "affiliate"
+      }
+    ],
+    "offers": [
+      {
+        "slug": null,
+        "title": "Punten verdienen",
+        "summary": "Shop bij Rate Demo en verdien tegoed na een geldige aankoop.",
+        "offer_kind": "cashback",
+        "cta_hint": "shop_and_earn",
+        "how_to_obtain": "earn_cashback",
+        "discount_type": null,
+        "discount_value": null,
+        "currency": "EUR",
+        "min_order_minor": null,
+        "price_minor": null,
+        "price_points": null,
+        "ends_at": null,
+        "availability": "available",
+        "cashback_label": "Punten verdienen",
+        "benefit_label": "Punten verdienen",
+        "combinable": false,
+        "source": "affiliate",
+        "consumer_cashback_rate": null,
+        "webshop": {
+          "slug": "rate-demo",
+          "name": "Rate Demo"
+        }
+      }
+    ]
+  }
+}
+```
+
+### deactivate_points_rule — `POST /api/v1/admin/affiliate/reward-rules/4/deactivate`
+
+Request:
+
+```json
+{}
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "version": 4,
+    "unit": "points",
+    "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+    "calculation_version": "points_v2",
+    "points_per_eur_share": 10,
+    "points_multiplier_bps": 20000,
+    "points_rounding": "half_up",
+    "activation_blockers": [],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": "01m68j1tax01dn90btz3gnjjry",
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": false
+  }
+}
+```
+
+### existing_eur_behavior_after_deactivation — `GET /api/v1/public/webshops/rate-demo`
+
+Request:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "slug": "rate-demo",
+    "name": "Rate Demo",
+    "short_description": null,
+    "logo_url": null,
+    "cover_url": null,
+    "categories": [],
+    "badge_label": "7% cashback",
+    "cashback_label": "7% cashback",
+    "description": null,
+    "website_url": "https://rate.example.test",
+    "benefits": [
+      {
+        "offer_kind": "cashback",
+        "label": "7% cashback",
+        "consumer_cashback_rate": 0.07,
+        "category_restricted": false,
+        "cta_hint": "shop_and_earn",
+        "source": "affiliate"
+      }
+    ],
+    "offers": [
+      {
+        "slug": null,
+        "title": "7% cashback",
+        "summary": "Shop bij Rate Demo en verdien tegoed na een geldige aankoop.",
+        "offer_kind": "cashback",
+        "cta_hint": "shop_and_earn",
+        "how_to_obtain": "earn_cashback",
+        "discount_type": null,
+        "discount_value": null,
+        "currency": "EUR",
+        "min_order_minor": null,
+        "price_minor": null,
+        "price_points": null,
+        "ends_at": null,
+        "availability": "available",
+        "cashback_label": "7% cashback",
+        "benefit_label": "7% cashback",
+        "combinable": false,
+        "source": "affiliate",
+        "consumer_cashback_rate": 0.07,
+        "webshop": {
+          "slug": "rate-demo",
+          "name": "Rate Demo"
+        }
+      }
+    ]
+  }
+}
+```
+
+### unknown_program — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01H00000000000000000000000",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Affiliate program not found.",
+    "request_id": "01a19126-b754-71f2-a814-ed6f1d1b1141"
+  }
+}
+```

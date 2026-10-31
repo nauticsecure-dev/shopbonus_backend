@@ -232,7 +232,7 @@ Owner approved: merchants may set a separate positive integer points price per v
 
 ### D-104 — Explicit per-program points earning (owner, 2026-10-31)
 
-Owner chose “Require an explicit configured rate” for new points earning rules. New points rules must identify the affiliate program and an explicit earning rate before activation; no assumed points/euro conversion. Existing reward snapshots must retain their historical terms. D-103 points voucher pricing remains independent of earning rates. Implementation follows the locale CI repair checkpoint.
+Owner chose “Require an explicit configured rate” for new points earning rules. New points rules must identify the affiliate program and an explicit earning rate before activation; no assumed points/euro conversion. Existing reward snapshots must retain their historical terms. D-103 points voucher pricing remains independent of earning rates. B38 implements an explicit points-per-EUR-consumer-commission-share rate, integer basis-point multiplier and selected floor/half-up/ceil rounding using exact arithmetic. This earning basis does not establish cash redemption value. Incomplete rules stay inactive; legacy snapshots retain legacy calculation.
 
 ### D-105 — Commission remainder stays allocation reporting (owner, 2026-10-31)
 

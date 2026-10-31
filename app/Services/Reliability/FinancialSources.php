@@ -108,6 +108,10 @@ class FinancialSources
             if ($proof['commission_minor'] !== $tx->commission_minor && $tx->reward_status === 'credited') {
                 $issues[] = 'affiliate_commission_changed_after_credit';
             }
+            if ($terms['unit'] === 'points' && ($terms['calculation_version'] ?? 'legacy_v1') === 'points_v2'
+                && (($terms['program_id'] ?? null) !== $tx->program_id || (int) ($terms['points_per_eur_share'] ?? 0) <= 0)) {
+                $issues[] = 'affiliate_points_program_rate';
+            }
             if ($terms['unit'] === 'eur_credit') {
                 $allocation = $proof['allocation'] ?? null;
                 if (is_array($allocation) && (($allocation['consumer_minor'] ?? null) !== $expected

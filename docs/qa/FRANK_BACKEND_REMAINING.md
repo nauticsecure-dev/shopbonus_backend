@@ -4,7 +4,7 @@ Source: Downloads `MS0DLCAX - shopbonus (3).json`, active Frank list; reviewer c
 
 | Card | Backend work / acceptance still open | Separate Hassan / senior work |
 | --- | --- | --- |
-| [#19](https://trello.com/c/QBffQWek) | D-103 points checkout implemented and focused SQLite/MySQL verified; purchase identity, selection freshness and missing-policy tracking repaired and focused SQLite/MySQL verified; D-104 explicit per-program earning configuration now approved; implementation next | Consumer UI; native network acceptance |
+| [#19](https://trello.com/c/QBffQWek) | D-103 points checkout implemented and focused SQLite/MySQL verified; purchase identity, selection freshness and missing-policy tracking repaired and focused SQLite/MySQL verified; D-104 explicit per-program earning configuration implemented, focused SQLite/MySQL verified; independent native-network acceptance remains | Consumer UI; native network acceptance |
 | [#20](https://trello.com/c/KPfe6qGp) | D-103 points checkout implemented and verified; existing payment/refund focused MySQL tests pass; review longer-lived uncertain payment recovery | Checkout/My Vouchers UI; real Mollie TEST acceptance |
 | [#21](https://trello.com/c/IsmQwCbL) | Validate committed review fixes and complete remaining security/operations evidence | Cockpit UI and deployed monitoring |
 | [#22](https://trello.com/c/SxfIv4Ir) | Release inventory and independently executed backend evidence; deployment remains unverified | Frontend sample APIs/charts; ten native-provider acceptance runs; release approval |

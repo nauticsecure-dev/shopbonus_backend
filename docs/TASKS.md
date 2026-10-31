@@ -1,3 +1,15 @@
+# Continuation checkpoint — B38 explicit points earning verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, parent `130fd24056bf1166052feaee26e79ff03136be84`, draft PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3. Parent exact CI41184941391 SUCCESS across quality, SQLite and MySQL. B38 implementation commit follows this checkpoint; no claim that parent CI covers these changes.
+
+D-104 implemented: immutable per-program points rate, multiplier and rounding on existing reward rules. Incomplete/unmapped rules stay inactive; scope/source/currency mismatches rejected. New awards select only configured points rules and freeze complete terms; legacy pending snapshots retain their original calculation. Exact integer arithmetic avoids float/overflow errors. Public discovery labels points without a EUR cashback percentage. D-105 remains allocation reporting; points monetary valuation remains explicitly unknown, not invented. No dependencies/new endpoints.
+
+Executed: focused SQLite66 total/65passed+1skipped/7959assertions; MySQL63 total/62passed+1skipped/446assertions. Includes arithmetic boundaries, immutable/legacy terms, program isolation, approval timing, source/currency negatives and non-destructive migration replay. PHPStan L6, Pint and diff checks PASS. Sixteen real HTTP exchanges in docs/qa/B38_POINTS_EARNING_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped and isolated DB/storage/credentials removed. Migration120000 adds earning terms; migration110000 now guards reapplication; both preserve contractual data on rollback. Main shopbonus DB NOT migrated.
+
+Next exact: commit/push B38, inspect its CI; then audit existing funding intents and implement durable checkout creation/uncertain-payment recovery (#20). Current uncommitted changes are B38 only. No deploy/merge/Trello changes. Whole Frank cards remain PARTIAL pending remaining code and independent/staging/provider/UI acceptance; see docs/qa/FRANK_BACKEND_REMAINING.md.
+
+---
+
 # Continuation checkpoint — B37 locale CI repair verified (2026-10-31, Codex)
 
 Branch `frank/review-fixes`, PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3 (draft). B36 `05104b0` is pushed. First exact PR merge-build CI41184307319: quality PASS; both test jobs failed on the same locale regression. SQLite1142total/1116pass+25skip+1fail/19699assertions. Failure: English validation used Dutch “beleidsversie” under shipped APP_FALLBACK_LOCALE=nl. New QA pipeline correctly retained the failure and uploaded sanitized artifacts; tested merge SHA74f638a99d88b38af5e80120c69cd363f9b958d2. Never call that run green.

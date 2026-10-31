@@ -595,16 +595,18 @@ class AffiliateTest extends TestCase
 
     public function test_card19_points_unit_reward_credits_the_points_wallet_once(): void
     {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create([
             'version' => 2,
             'unit' => WalletUnit::Points->value,
+            'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'calculation_version' => 'points_v2', 'points_per_eur_share' => 100,
             'share_bps' => 10000,
             'min_commission_minor' => 0,
             'active' => true,
             'created_by' => $this->admin->id,
         ]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
         $this->import($this->daisycon, [], [$this->daisyconTx('PTS-1', $this->annaClicks(), 'approved', commission: 5.00)]);
 
         $tx = AffiliateTransaction::sole();
@@ -612,6 +614,96 @@ class AffiliateTest extends TestCase
         $points = app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points);
         $this->assertSame([500, 0], [$points->fresh()->available, $points->fresh()->pending]);
         $this->assertSame(0, $this->wallet()->fresh()->available); // eur_credit untouched
+    }
+
+    public function test_points_rules_remain_inactive_without_explicit_program_and_rate(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        $this->asAdminWithStepUp();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000])->assertCreated()
+            ->assertJsonPath('data.active', false)->assertJsonPath('data.activation_blockers.0', 'points_program_required');
+        $response = $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 10, 'points_multiplier_bps' => 20000, 'points_rounding' => 'half_up'])
+            ->assertCreated()->assertJsonPath('data.active', true)->assertJsonPath('data.calculation_version', 'points_v2');
+        $version = $response->json('data.version');
+        $this->assertSame($version, AffiliateRewardRule::current(webshopId: $this->shop->id, commissionSource: 'affiliate_network', programId: $program->id)->version);
+        $this->assertSame(70, AffiliateRewardRule::where('version', $version)->sole()->rewardFor(500));
+        $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()
+            ->assertJsonPath('data.cashback_label', 'Punten verdienen')
+            ->assertJsonPath('data.benefits.0.reward_unit', 'points')
+            ->assertJsonPath('data.benefits.0.consumer_cashback_rate', null);
+        $wrongShop = $this->activeWebshop(User::factory()->create());
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'webshop_id' => $wrongShop->public_id, 'points_per_eur_share' => 10])->assertUnprocessable();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 10, 'commission_source' => 'direct_merchant'])->assertUnprocessable();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 0])->assertUnprocessable();
+        $program->forceFill(['currency' => 'USD'])->save();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 10])->assertUnprocessable();
+        Sanctum::actingAs($this->anna);
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000])->assertForbidden();
+    }
+
+    public function test_program_rate_is_frozen_for_pending_approval_and_does_not_leak_to_another_program(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        $rule = AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 7000, 'active' => true, 'min_commission_minor' => 0,
+            'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'commission_source' => 'affiliate_network', 'calculation_version' => 'points_v2',
+            'points_per_eur_share' => 10, 'created_by' => $this->admin->id]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'pending', commission: 10.00)]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame(['pending', 70, 'points'], [$tx->reward_status, $tx->reward_amount, $tx->reward_unit]);
+        $this->assertSame(0, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
+        AffiliateRewardRule::create([...$rule->only(['unit', 'share_bps', 'min_commission_minor', 'program_id', 'webshop_id', 'commission_source', 'calculation_version', 'created_by']),
+            'version' => 3, 'points_per_eur_share' => 100, 'active' => true]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'approved', commission: 10.00)]);
+        $this->assertSame(70, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
+        $this->assertSame(10, $tx->fresh()->reward_terms_snapshot['points_per_eur_share']);
+        $check = app(FinancialSources::class)->inspect($tx->fresh());
+        $this->assertSame([], $check['evidence']['issues']);
+        $this->assertSame(['points_money_allocation_undefined'], $check['evidence']['unknown']);
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $other = AffiliateProgram::where('connection_id', $this->tradetracker->id)->sole();
+        $this->assertSame(WalletUnit::EurCredit, AffiliateRewardRule::current(webshopId: $this->shop->id, commissionSource: 'affiliate_network', programId: $other->id)->unit);
+    }
+
+    public function test_legacy_pending_points_snapshot_is_honoured_without_reintroducing_implicit_new_rates(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 10000, 'min_commission_minor' => 0,
+            'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'calculation_version' => 'points_v2', 'points_per_eur_share' => 100,
+            'active' => true, 'created_by' => $this->admin->id]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'pending', commission: 5.00)]);
+        $tx = AffiliateTransaction::sole();
+        // Reproduce a pre-D104 pending record: the immutable historical snapshot had no rate fields.
+        $legacy = array_diff_key($tx->reward_terms_snapshot, array_flip(['program_id', 'calculation_version', 'points_per_eur_share', 'points_multiplier_bps', 'points_rounding']));
+        DB::table('affiliate_transactions')->where('id', $tx->id)->update(['reward_terms_snapshot' => json_encode($legacy, JSON_THROW_ON_ERROR)]);
+        AffiliateRewardRule::query()->update(['active' => false]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'approved', commission: 5.00)]);
+        $this->assertSame(500, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
+        $actual = $tx->fresh()->reward_terms_snapshot;
+        ksort($legacy);
+        ksort($actual); // MySQL JSON normalizes object key order.
+        $this->assertSame($legacy, $actual);
+        $this->assertSame('credited', $tx->fresh()->reward_status);
+    }
+
+    public function test_legacy_unconfigured_points_rules_are_not_used_for_new_rewards(): void
+    {
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 10000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('NO-IMPLICIT-RATE', $this->annaClicks(), 'approved')]);
+        $this->assertSame('none', AffiliateTransaction::sole()->reward_status);
+        $this->assertSame(0, WalletLedgerEntry::where('source_type', 'affiliate')->count());
     }
 
     public function test_two_distinct_orders_on_one_click_are_credited_but_same_order_is_disputed(): void

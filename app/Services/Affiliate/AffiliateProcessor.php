@@ -191,7 +191,7 @@ class AffiliateProcessor
             return;
         }
 
-        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network')
+        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network', $tx->program_id)
             : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
         $instant = ($tx->reward_timing ?? config('shopbonus.affiliate.credit_timing')) === 'on_validated_attribution';
 

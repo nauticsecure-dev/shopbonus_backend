@@ -924,3 +924,17 @@ B36 evidence: SQLite26/7835 and MySQL23/330 PASS; API3/7505; Pint/PHPStan PASS; 
 - [x] Capture actual HTTP validation responses; update API docs and record focused SQLite/MySQL/static/format evidence.
 
 B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual HTTP captures. Implementing commit `fix: isolate validation labels and request locale defaults`; B36 SHA `05104b0`.
+
+### B38 — Explicit per-program points earning, #19 (D-104)
+
+- [x] Ensure non-destructive points migrations can reapply without dropping contractual data; verify isolated migration replay.
+
+- [x] Add immutable program/rate/calculation/points multiplier/rounding terms on existing reward rules; no new wallet or implicit conversion.
+- [x] New points rules remain inactive until a mapped program and explicit positive points-per-EUR-consumer-share rate are configured; reject mismatched source/workshop inputs.
+- [x] Select applicable program rules and freeze complete earning terms on new transactions; preserve legacy reward snapshots and EUR behavior.
+- [x] Use exact integer arithmetic for configurable points rounding/multipliers/caps, including large amounts.
+- [x] Public discovery distinguishes points earning from EUR cashback; financial reconciliation checks the frozen program/rate.
+- [x] Test inactive/missing rates, scope isolation, approval/replay, changed rules, legacy snapshots and arithmetic boundaries on SQLite/MySQL.
+- [x] Capture real admin/public HTTP examples; update OpenAPI, README and handoff with exact evidence.
+
+B38 checked against executed evidence in this implementation commit (parent130fd24); resulting SHA recorded in the next checkpoint. SQLite65pass+1skip/7959assertions, MySQL62pass+1skip/446assertions; static/style PASS;16 real HTTP captures.

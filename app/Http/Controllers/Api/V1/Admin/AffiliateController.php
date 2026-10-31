@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Super Admin affiliate controls (Trello #19 "Super Admin controls"):
@@ -239,13 +240,37 @@ class AffiliateController extends Controller
             'webshop_id' => ['sometimes', 'nullable', 'ulid'],
             'commission_source' => ['sometimes', 'nullable', Rule::in(['affiliate_network', 'direct_merchant'])],
             'cashback_approved' => ['sometimes', 'boolean'],
+            'active' => ['sometimes', 'boolean'],
+            'program_id' => ['sometimes', 'nullable', 'ulid', Rule::prohibitedIf($request->input('unit') !== 'points')],
+            'points_per_eur_share' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000000', Rule::prohibitedIf($request->input('unit') !== 'points')],
+            'points_multiplier_bps' => ['sometimes', 'integer', 'min:1', 'max:1000000', Rule::prohibitedIf($request->input('unit') !== 'points')],
+            'points_rounding' => ['sometimes', Rule::in(['floor', 'half_up', 'ceil']), Rule::prohibitedIf($request->input('unit') !== 'points')],
         ]);
         $webshopId = null;
         if (! empty($data['webshop_id'])) {
             $webshopId = Webshop::where('public_id', $data['webshop_id'])->value('id')
                 ?? throw new ApiException('Webshop not found.', 404, 'not_found');
         }
-        $rule = DB::transaction(function () use ($data, $request, $webshopId) {
+        $points = $data['unit'] === WalletUnit::Points->value;
+        $program = empty($data['program_id']) ? null : AffiliateProgram::where('public_id', $data['program_id'])->first();
+        if (! empty($data['program_id']) && $program === null) {
+            throw new ApiException('Affiliate program not found.', 404, 'not_found');
+        }
+        if ($program !== null) {
+            if ($webshopId !== null && $program->webshop_id !== $webshopId) {
+                throw ValidationException::withMessages(['webshop_id' => __('Choose the webshop that owns this program.')]);
+            }
+            $webshopId = $program->webshop_id;
+        }
+        if ($points && $program !== null && strtoupper($program->currency) !== 'EUR') {
+            throw ValidationException::withMessages(['program_id' => __('Points earning requires an EUR commission program.')]);
+        }
+        $source = $data['commission_source'] ?? ($points ? 'affiliate_network' : null);
+        if ($points && $source !== 'affiliate_network') {
+            throw ValidationException::withMessages(['commission_source' => __('Points earning rules require an affiliate network program.')]);
+        }
+        $ready = ! $points || ($program !== null && $webshopId !== null && ($data['points_per_eur_share'] ?? 0) > 0);
+        $rule = DB::transaction(function () use ($data, $request, $webshopId, $program, $points, $source, $ready) {
             $version = (int) AffiliateRewardRule::lockForUpdate()->max('version') + 1;
 
             return AffiliateRewardRule::create([
@@ -254,13 +279,18 @@ class AffiliateController extends Controller
                 'min_commission_minor' => $data['min_commission_minor'] ?? 0,
                 'max_reward_minor' => $data['max_reward_minor'] ?? null,
                 'review_above_minor' => $data['review_above_minor'] ?? null,
-                'starts_at' => $data['starts_at'] ?? null,
+                'starts_at' => $data['starts_at'] ?? ($points ? now() : null),
                 'ends_at' => $data['ends_at'] ?? null,
                 'webshop_id' => $webshopId,
-                'commission_source' => $data['commission_source'] ?? null,
+                'commission_source' => $source,
+                'program_id' => $program?->id,
+                'calculation_version' => $points ? 'points_v2' : 'legacy_v1',
+                'points_per_eur_share' => $data['points_per_eur_share'] ?? null,
+                'points_multiplier_bps' => $data['points_multiplier_bps'] ?? 10000,
+                'points_rounding' => $data['points_rounding'] ?? 'floor',
                 'cashback_approved' => $data['cashback_approved'] ?? true,
                 'version' => $version,
-                'active' => true,
+                'active' => ($data['active'] ?? true) && $ready && ($data['cashback_approved'] ?? true),
                 'created_by' => $request->user()->id,
             ]);
         });
@@ -330,6 +360,12 @@ class AffiliateController extends Controller
         return [
             'version' => $r->version,
             'unit' => $r->unit->value,
+            'program_id' => $r->program_id === null ? null : AffiliateProgram::whereKey($r->program_id)->value('public_id'),
+            'calculation_version' => $r->calculation_version,
+            'points_per_eur_share' => $r->points_per_eur_share,
+            'points_multiplier_bps' => $r->points_multiplier_bps,
+            'points_rounding' => $r->points_rounding,
+            'activation_blockers' => $r->activationBlockers(),
             'share_bps' => $r->share_bps,
             'consumer_share' => $r->share_bps / 10_000,
             'shopbonus_share' => (10_000 - $r->share_bps) / 10_000,

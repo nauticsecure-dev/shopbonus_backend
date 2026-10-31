@@ -3578,7 +3578,12 @@ paths:
           description: "Profile and offers."
           content:
             application/json:
-              example: {"data":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","logo_url":"http:\/\/127.0.0.1:8788\/api\/v1\/public\/webshops\/fietsen-utrecht\/logo?v=1792785345","categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}],"description":"Familiebedrijf sinds 1988.","website_url":"https:\/\/fietsen-utrecht.nl","offers":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}}]}}
+              examples:
+                historical:
+                  value: {"data":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht","short_description":"Fietsen, onderdelen en reparatie in Utrecht","logo_url":"http:\/\/127.0.0.1:8788\/api\/v1\/public\/webshops\/fietsen-utrecht\/logo?v=1792785345","categories":[{"key":"sports_outdoor","label":{"nl":"Sport & outdoor","en":"Sports & outdoor"}}],"description":"Familiebedrijf sinds 1988.","website_url":"https:\/\/fietsen-utrecht.nl","offers":[{"slug":"eur10-korting-op-je-volgende-fiets-9taast","title":"\u20ac10 korting op je volgende fiets","summary":"\u20ac10.00 from \u20ac50.00","how_to_obtain":"earn_with_purchase","discount_type":"fixed","discount_value":1000,"currency":"EUR","min_order_minor":5000,"price_minor":null,"ends_at":null,"availability":"available","webshop":{"slug":"fietsen-utrecht","name":"Fietsen Utrecht"}}]}}
+                public_points_earning:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"data":{"slug":"rate-demo","name":"Rate Demo","short_description":null,"logo_url":null,"cover_url":null,"categories":[],"badge_label":"Punten verdienen","cashback_label":"Punten verdienen","description":null,"website_url":"https://rate.example.test","benefits":[{"offer_kind":"cashback","reward_unit":"points","label":"Punten verdienen","labels":{"nl":"Punten verdienen na netwerkgoedkeuring","en":"Earn points after network approval"},"consumer_cashback_rate":null,"points_per_eur_share":10,"points_rate_basis":"eur_consumer_commission_share","points_multiplier_bps":20000,"points_rounding":"half_up","category_restricted":false,"cta_hint":"shop_and_earn","source":"affiliate"}],"offers":[{"slug":null,"title":"Punten verdienen","summary":"Shop bij Rate Demo en verdien tegoed na een geldige aankoop.","offer_kind":"cashback","cta_hint":"shop_and_earn","how_to_obtain":"earn_cashback","discount_type":null,"discount_value":null,"currency":"EUR","min_order_minor":null,"price_minor":null,"price_points":null,"ends_at":null,"availability":"available","cashback_label":"Punten verdienen","benefit_label":"Punten verdienen","combinable":false,"source":"affiliate","consumer_cashback_rate":null,"webshop":{"slug":"rate-demo","name":"Rate Demo"}}]}}
         '404':
           description: "Not listed."
           content:
@@ -4928,6 +4933,7 @@ paths:
       operationId: affiliateRewardRules
       summary: "Reward rules"
       description: |
+        D-104: new points rules require an explicit mapped program and points_per_eur_share; incomplete rules are saved inactive with activation_blockers, even when active=true is requested. Configured rules target that program only, require EUR commission, default effective start to creation time, and freeze terms on transactions. Existing snapshots retain legacy calculations. current denotes the global rule; program rules are selected per program. Points have no cash redemption conversion. Actual HTTP examples: docs/qa/B38_POINTS_EARNING_HTTP_CAPTURE.json.
         All versions and the version currently in force (`current`, null = no rewards).
       x-access: admin
       x-codeSamples:
@@ -4940,7 +4946,12 @@ paths:
           description: "Rules."
           content:
             application/json:
-              example: {"data":[{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}],"current":1}
+              examples:
+                historical:
+                  value: {"data":[{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}],"current":1}
+                versioned_rules_list:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"data":[{"version":4,"unit":"points","program_id":"01m68j1tc3d701kjxy7kpaa3ft","calculation_version":"points_v2","points_per_eur_share":10,"points_multiplier_bps":20000,"points_rounding":"half_up","activation_blockers":[],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":"01m68j1tax01dn90btz3gnjjry","commission_source":"affiliate_network","cashback_approved":true,"starts_at":"2026-10-31T08:46:29+00:00","ends_at":null,"active":true},{"version":3,"unit":"points","program_id":"01m68j1tc7zfhezx7xjhehr583","calculation_version":"points_v2","points_per_eur_share":10,"points_multiplier_bps":10000,"points_rounding":"floor","activation_blockers":["points_program_webshop_required"],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":null,"commission_source":"affiliate_network","cashback_approved":true,"starts_at":"2026-10-31T08:46:29+00:00","ends_at":null,"active":false},{"version":2,"unit":"points","program_id":null,"calculation_version":"points_v2","points_per_eur_share":null,"points_multiplier_bps":10000,"points_rounding":"floor","activation_blockers":["points_program_required","points_program_webshop_required","points_rate_required"],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":null,"commission_source":"affiliate_network","cashback_approved":true,"starts_at":"2026-10-31T08:46:29+00:00","ends_at":null,"active":false},{"version":1,"unit":"eur_credit","program_id":null,"calculation_version":"legacy_v1","points_per_eur_share":null,"points_multiplier_bps":10000,"points_rounding":"floor","activation_blockers":[],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":null,"commission_source":null,"cashback_approved":true,"starts_at":null,"ends_at":null,"active":true}],"current":1}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
@@ -4952,6 +4963,7 @@ paths:
       operationId: createAffiliateRewardRule
       summary: "Create a reward rule version"
       description: |
+        D-104: new points rules require an explicit mapped program and points_per_eur_share; incomplete rules are saved inactive with activation_blockers, even when active=true is requested. Configured rules target that program only, require EUR commission, default effective start to creation time, and freeze terms on transactions. Existing snapshots retain legacy calculations. current denotes the global rule; program rules are selected per program. Points have no cash redemption conversion. Actual HTTP examples: docs/qa/B38_POINTS_EARNING_HTTP_CAPTURE.json.
         Step-up required. Reward = commission × `share_bps` / 10 000, rounded down, at least `min_commission_minor` commission, at most `max_reward_minor`; rewards above `review_above_minor` wait for an admin. The newest active version in its validity window applies. With no rule nothing is rewarded. Audited.
       x-access: admin
       requestBody:
@@ -4964,6 +4976,14 @@ paths:
               properties:
                 unit: { type: string, enum: [eur_credit, points] }
                 share_bps: { type: integer, minimum: 1, maximum: 10000 }
+                program_id: { type: [string, 'null'], description: Public affiliate-program ULID; only for points. A mapped webshop and EUR commission are required for activation. }
+                points_per_eur_share: { type: [integer, 'null'], minimum: 1, maximum: 1000000, description: Integer points per EUR of consumer commission share before the campaign multiplier; not per order euro or a cash redemption value. }
+                points_multiplier_bps: { type: integer, minimum: 1, maximum: 1000000, default: 10000, description: Points-only campaign multiplier in basis points. }
+                points_rounding: { type: string, enum: [floor, half_up, ceil], default: floor, description: Points-only exact final rounding; EUR and historical snapshots retain floor. }
+                webshop_id: { type: [string, 'null'], description: Public webshop ULID; must match the supplied program when both are present. }
+                commission_source: { type: [string, 'null'], enum: [affiliate_network, direct_merchant, null], description: Points requires affiliate_network. }
+                cashback_approved: { type: boolean, default: true }
+                active: { type: boolean, default: true, description: Incomplete/unapproved points rules are forced inactive. }
                 min_commission_minor: { type: integer, minimum: 0 }
                 max_reward_minor: { type: integer, nullable: true }
                 review_above_minor: { type: integer, nullable: true }
@@ -4981,15 +5001,54 @@ paths:
           description: "Created."
           content:
             application/json:
-              example: {"data":{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}}
+              examples:
+                historical:
+                  value: {"data":{"version":1,"unit":"eur_credit","share_bps":5000,"min_commission_minor":50,"max_reward_minor":2500,"review_above_minor":5000,"starts_at":null,"ends_at":null,"active":true}}
+                existing_eur_rule:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"data":{"version":1,"unit":"eur_credit","program_id":null,"calculation_version":"legacy_v1","points_per_eur_share":null,"points_multiplier_bps":10000,"points_rounding":"floor","activation_blockers":[],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":null,"commission_source":null,"cashback_approved":true,"starts_at":null,"ends_at":null,"active":true}}
+                unconfigured_points_rule_disabled:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"data":{"version":2,"unit":"points","program_id":null,"calculation_version":"points_v2","points_per_eur_share":null,"points_multiplier_bps":10000,"points_rounding":"floor","activation_blockers":["points_program_required","points_program_webshop_required","points_rate_required"],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":null,"commission_source":"affiliate_network","cashback_approved":true,"starts_at":"2026-10-31T08:46:29+00:00","ends_at":null,"active":false}}
+                unmapped_program_rule_disabled:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"data":{"version":3,"unit":"points","program_id":"01m68j1tc7zfhezx7xjhehr583","calculation_version":"points_v2","points_per_eur_share":10,"points_multiplier_bps":10000,"points_rounding":"floor","activation_blockers":["points_program_webshop_required"],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":null,"commission_source":"affiliate_network","cashback_approved":true,"starts_at":"2026-10-31T08:46:29+00:00","ends_at":null,"active":false}}
+                configured_program_points_rule:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"data":{"version":4,"unit":"points","program_id":"01m68j1tc3d701kjxy7kpaa3ft","calculation_version":"points_v2","points_per_eur_share":10,"points_multiplier_bps":20000,"points_rounding":"half_up","activation_blockers":[],"share_bps":7000,"consumer_share":0.7,"shopbonus_share":0.3,"min_commission_minor":0,"max_reward_minor":null,"review_above_minor":null,"webshop_id":"01m68j1tax01dn90btz3gnjjry","commission_source":"affiliate_network","cashback_approved":true,"starts_at":"2026-10-31T08:46:29+00:00","ends_at":null,"active":true}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403':
           description: "Not a Super Admin. Audited."
           content:
             application/json:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16cc9-6a37-7048-a6fc-67761beca117"}}
-        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '422':
+          description: Actual local HTTP captures for explicit program points rules (B38).
+          content:
+            application/json:
+              examples:
+                invalid_rate:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19123-91d2-71ce-9c97-2e4f380ac9ab","fields":{"points_per_eur_share":["The points per eur share field must be at least 1."]}}}
+                program_webshop_mismatch:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19123-91f1-711f-a659-c1f4ec068b51","fields":{"webshop_id":["Choose the webshop that owns this program."]}}}
+                foreign_currency_program:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19123-9213-71fd-b304-f8f457000a54","fields":{"program_id":["Points earning requires an EUR commission program."]}}}
+                wrong_commission_source:
+                  summary: Actual local HTTP capture 2026-10-31 (B38)
+                  value: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19123-922e-72b2-9478-3014bb7fbdfa","fields":{"commission_source":["Points earning rules require an affiliate network program."]}}}
+
         '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+        '404':
+          description: Unknown affiliate program (actual local HTTP capture).
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"Affiliate program not found.","request_id":"01a19126-b754-71f2-a814-ed6f1d1b1141"}}
+        '419': { $ref: '#/components/responses/CsrfMismatch' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
 
   /api/v1/admin/affiliate/reward-rules/{version}/deactivate:
     parameters:

@@ -6,6 +6,7 @@ use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherStatus;
+use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
 use App\Models\AffiliateRewardRule;
 use App\Models\MerchantCommissionAgreement;
@@ -471,12 +472,27 @@ class PublicCatalog
         }
 
         $program = $this->programSelector->current($shop);
-        if ($program === null || ! $program->active || ! $program->cashback_allowed || $program->commission_type !== 'percentage') {
+        if ($program === null || ! $program->active || ! $program->cashback_allowed) {
             return null;
         }
 
-        $rule = AffiliateRewardRule::current(webshopId: $webshopId, commissionSource: 'affiliate')
-            ?? AffiliateRewardRule::current(webshopId: $webshopId);
+        $rule = AffiliateRewardRule::current(webshopId: $webshopId, commissionSource: 'affiliate_network', programId: $program->id);
+        if ($rule?->unit === WalletUnit::Points) {
+            if ($program->currency !== 'EUR') {
+                return null;
+            }
+
+            return [
+                'offer_kind' => 'cashback', 'reward_unit' => 'points', 'label' => 'Punten verdienen',
+                'labels' => ['nl' => 'Punten verdienen na netwerkgoedkeuring', 'en' => 'Earn points after network approval'],
+                'consumer_cashback_rate' => null, 'points_per_eur_share' => $rule->points_per_eur_share,
+                'points_rate_basis' => 'eur_consumer_commission_share', 'points_multiplier_bps' => $rule->points_multiplier_bps,
+                'points_rounding' => $rule->points_rounding, 'category_restricted' => $program->category_restricted, 'cta_hint' => 'shop_and_earn',
+            ];
+        }
+        if ($program->commission_type !== 'percentage') {
+            return null;
+        }
         $shareBps = $rule->share_bps ?? (int) config('shopbonus.affiliate.default_consumer_share_bps', 7000);
         $rate = ($program->commission_value * $shareBps) / 100_000_000;
         if ($rate <= 0) {

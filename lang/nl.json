@@ -126,5 +126,9 @@
     "The schedule does not match the tested suite/environment.": "Het schema komt niet overeen met de geteste suite of omgeving.",
     "A passing manual retest needs an executed unmocked assertion with valid result evidence.": "Een geslaagde handmatige hertest vereist een uitgevoerde, niet-gesimuleerde controle met geldig bewijs bij het resultaat.",
     "A passing browser/manual retest needs valid result evidence.": "Een geslaagde browser- of handmatige hertest vereist geldig bewijs bij het resultaat.",
-    "Use a run executed and imported after the fix was recorded.": "Gebruik een testrun die is uitgevoerd en geïmporteerd nadat de correctie is vastgelegd."
+    "Use a run executed and imported after the fix was recorded.": "Gebruik een testrun die is uitgevoerd en geïmporteerd nadat de correctie is vastgelegd.",
+    "Affiliate program not found.": "Affiliateprogramma niet gevonden.",
+    "Choose the webshop that owns this program.": "Kies de webshop die bij dit programma hoort.",
+    "Points earning rules require an affiliate network program.": "Regels voor het verdienen van punten vereisen een affiliateprogramma.",
+    "Points earning requires an EUR commission program.": "Voor het verdienen van punten is een programma met commissie in euro vereist."
 }

@@ -9,12 +9,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('offer_versions', function (Blueprint $table) {
-            $table->unsignedBigInteger('price_points')->nullable();
+            if (! Schema::hasColumn('offer_versions', 'price_points')) {
+                $table->unsignedBigInteger('price_points')->nullable();
+            }
         });
         Schema::table('voucher_checkouts', function (Blueprint $table) {
-            $table->string('wallet_unit', 16)->default('eur_credit');
-            $table->unsignedBigInteger('price_points')->nullable();
-            $table->unsignedBigInteger('wallet_part_points')->default(0);
+            if (! Schema::hasColumn('voucher_checkouts', 'wallet_unit')) {
+                $table->string('wallet_unit', 16)->default('eur_credit');
+            }
+            if (! Schema::hasColumn('voucher_checkouts', 'price_points')) {
+                $table->unsignedBigInteger('price_points')->nullable();
+            }
+            if (! Schema::hasColumn('voucher_checkouts', 'wallet_part_points')) {
+                $table->unsignedBigInteger('wallet_part_points')->default(0);
+            }
         });
     }
 
