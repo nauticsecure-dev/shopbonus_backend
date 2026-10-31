@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  * Shopware app webhooks (one manifest URL for every shop). The body is signed with the shop secret from
  * the registration handshake. Entity-written payloads carry only IDs, so `order.written` becomes one
  * ID-only native lookup per order on the bound connection; payload fields are never order evidence.
+ * Payment/refund state events (`state_enter.order_transaction.state.*`) carry the order; only its ID is
+ * used, for the same native lookup, so recovery does not wait for an `order.written`.
  * `app.deleted` revokes the binding; other events are acknowledged and ignored.
  */
 class ShopwareAppWebhookController extends Controller
@@ -31,6 +33,9 @@ class ShopwareAppWebhookController extends Controller
     private const MAX_ORDERS = 25;
 
     private const WINDOW = 600;
+
+    /** Transaction states whose entry changes what Shopbonus records (payment, refund, reversal). */
+    private const TRANSACTION_STATES = ['paid', 'paid_partially', 'refunded', 'refunded_partially', 'cancelled', 'failed', 'chargeback'];
 
     public function __construct(private readonly ShopwareAppRegistration $registration, private readonly AuditLogger $audit) {}
 
@@ -62,7 +67,10 @@ class ShopwareAppWebhookController extends Controller
             'app.deleted' => $this->deleted($shop, ($p['data']['payload']['keepUserData'] ?? false) === true),
             'app.activated', 'app.deactivated' => $this->lifecycle($shop, $event),
             'order.written' => $this->orders($shop, $p['data']['payload'] ?? null, $eventId),
-            default => $this->ack(['ignored' => true]),
+            default => str_starts_with($event, 'state_enter.order_transaction.state.')
+                && in_array(substr($event, strlen('state_enter.order_transaction.state.')), self::TRANSACTION_STATES, true)
+                ? $this->transactionState($shop, $p['data']['payload'] ?? null, $eventId, $event)
+                : $this->ack(['ignored' => true]),
         };
     }
 
@@ -101,23 +109,40 @@ class ShopwareAppWebhookController extends Controller
         if (count($ids) > self::MAX_ORDERS) {
             throw $this->rejected('event_invalid');
         }
+
+        return $this->queueLookups($shop, array_keys($ids), $eventId, 'order.written');
+    }
+
+    private function transactionState(ShopwareAppShop $shop, mixed $payload, string $eventId, string $event): JsonResponse
+    {
+        $id = is_array($payload) && is_array($payload['order'] ?? null) ? ($payload['order']['id'] ?? null) : null;
+        if (! is_string($id) || ! preg_match('/\A[a-f0-9]{32}\z/D', $id)) {
+            throw $this->rejected('event_invalid');
+        }
+
+        return $this->queueLookups($shop, [$id], $eventId, $event);
+    }
+
+    /** @param list<string> $ids */
+    private function queueLookups(ShopwareAppShop $shop, array $ids, string $eventId, string $topic): JsonResponse
+    {
         if ($shop->connection_id === null || $ids === []) {
             return $this->ack(['ignored' => true]);
         }
 
-        $queued = DB::transaction(function () use ($shop, $ids, $eventId) {
+        $queued = DB::transaction(function () use ($shop, $ids, $eventId, $topic) {
             $c = WebshopConnection::whereKey($shop->connection_id)->lockForUpdate()->first();
             if ($c === null || ! $c->status->receivesEvents() || $c->credential('app_shop_id') !== $shop->shop_id) {
                 return 0;
             }
             $count = 0;
-            foreach (array_keys($ids) as $id) {
-                $derived = json_encode(['source' => 'shopware_app', 'event' => 'order.written', 'event_id' => $eventId, 'order_id' => $id], JSON_THROW_ON_ERROR);
+            foreach ($ids as $id) {
+                $derived = json_encode(['source' => 'shopware_app', 'event' => $topic, 'event_id' => $eventId, 'order_id' => $id], JSON_THROW_ON_ERROR);
                 try {
                     $stored = WebhookEvent::create([
                         'source_method' => 'webhook', 'credential_generation' => $c->credential_generation,
                         'connection_id' => $c->id, 'webshop_id' => $c->webshop_id,
-                        'dedupe_key' => 'shopware-app:'.$eventId.':'.$id, 'topic' => 'order.written',
+                        'dedupe_key' => 'shopware-app:'.$eventId.':'.$id, 'topic' => $topic,
                         'status' => WebhookEventStatus::Verified, 'payload' => $derived, 'payload_hash' => hash('sha256', $derived),
                         'result' => ['kind' => VerifiedEvent::KIND_ORDER_LOOKUP], 'received_at' => now(),
                     ]);

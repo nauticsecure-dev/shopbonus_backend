@@ -71,6 +71,27 @@ class CapabilityAndCatalogTest extends TestCase
         $this->assertSame('webshop', $platforms['woocommerce']['category']);
     }
 
+    public function test_refund_payment_and_backfill_claims_follow_the_actual_mapping(): void
+    {
+        $caps = collect($this->getJson('/api/v1/integrations/platforms')->assertOk()->json('data'))->keyBy('platform')
+            ->map(fn (array $p) => array_map(fn (array $c) => $c['state'], $p['capabilities']));
+
+        // Refund amounts mapped vs. a refund API that is only documented ("unsupported", status-only, slips).
+        foreach (['woocommerce', 'shopify', 'wix', 'bigcommerce', 'magento'] as $platform) {
+            $this->assertSame('AVAILABLE', $caps[$platform]['refunds'], $platform);
+        }
+        foreach (['ecwid', 'lightspeed_c', 'prestashop', 'shopware6'] as $platform) {
+            $this->assertSame('LIMITED', $caps[$platform]['refunds'], $platform);
+        }
+        $this->assertStringContainsString('UNSUPPORTED', (string) collect($this->getJson('/api/v1/integrations/platforms')->json('data'))
+            ->firstWhere('platform', 'lightspeed_c')['capabilities']['refunds']['reason']);
+
+        // Native reads without a settled payment time are not payment evidence.
+        $this->assertSame(['LIMITED', 'LIMITED', 'AVAILABLE'], [$caps['ecwid']['payments'], $caps['lightspeed_c']['payments'], $caps['shopware6']['payments']]);
+        // Backfill only where a native paged reader exists; OpenCart is module-only.
+        $this->assertSame(['AVAILABLE', 'UNSUPPORTED'], [$caps['wix']['backfill'], $caps['opencart']['backfill']]);
+    }
+
     public function test_connection_capability_report_is_honest_before_verification(): void
     {
         $created = $this->postJson($this->url('/connections'), ['platform' => 'woocommerce'])->assertCreated();
