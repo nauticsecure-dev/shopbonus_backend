@@ -48,6 +48,10 @@ final class SupportTools
         'get_approved_knowledge' => ['document_id'],
     ];
 
+    /** Frequent Dutch/English words that say nothing about the topic. */
+    private const STOPWORDS = ['hoe', 'wat', 'waar', 'wanneer', 'waarom', 'kan', 'mijn', 'voor', 'with', 'what', 'where', 'when', 'does', 'have', 'this', 'that', 'from',
+        'your', 'about', 'heb', 'hebben', 'niet', 'deze', 'dit', 'een', 'het', 'van', 'naar', 'over', 'zijn', 'wordt', 'worden', 'kunnen', 'mag', 'moet', 'graag', 'please'];
+
     public function __construct(private readonly AuditLogger $audit, private readonly FeeCalculator $fees) {}
 
     /**
@@ -170,6 +174,40 @@ final class SupportTools
     }
 
     /** @return array{string, array<string, mixed>} */
+    /**
+     * Deterministic FAQ lookup for a free-text question (no model involved): the
+     * published article for this audience sharing the most significant words
+     * with the question. A tie or no overlap returns null, so the chat asks.
+     */
+    public function matchKnowledge(bool $workspace, string $question, string $locale): ?string
+    {
+        $words = fn (string $text) => array_values(array_unique(array_filter(
+            preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($text)) ?: [],
+            fn (string $w) => mb_strlen($w) >= 4 && ! in_array($w, self::STOPWORDS, true),
+        )));
+        $asked = $words($question);
+        if ($asked === []) {
+            return null;
+        }
+        $scores = FaqItem::where('published', true)->whereIn('audience', ['public', $workspace ? 'merchants' : 'consumers'])->get(['public_id', 'translations'])
+            ->mapWithKeys(function (FaqItem $item) use ($words, $asked, $locale) {
+                $t = $item->translations[$locale] ?? $item->translations['nl'] ?? null;
+                if ($t === null) {
+                    return [$item->public_id => 0];
+                }
+                // Question words count double: they name the topic.
+                $q = $words((string) $t['question']);
+                $a = $words(is_array($t['answer']) ? RichText::plainText($t['answer']) : (string) $t['answer']);
+
+                return [$item->public_id => 2 * count(array_intersect($asked, $q)) + count(array_intersect($asked, $a))];
+            })->filter()->sortDesc();
+        if ($scores->isEmpty() || ($scores->count() > 1 && $scores->values()[0] === $scores->values()[1])) {
+            return null;
+        }
+
+        return (string) $scores->keys()->first();
+    }
+
     private function knowledge(User $actor, ?Webshop $shop, string $id, string $locale): array
     {
         $audiences = ['public', $shop === null ? 'consumers' : 'merchants'];

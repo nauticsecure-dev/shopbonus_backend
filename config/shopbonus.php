@@ -64,6 +64,21 @@ return [
         // Where the SPA lives; password-reset links point here.
         'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/'),
 
+        // SPA paths used in notification emails, the inbox and support-chat actions (Trello #26, #29).
+        // Relative to frontend_url; {workspace} and {conversation} are filled in. Align with the frontend router.
+        'frontend_paths' => [
+            'consumer_benefits' => env('FRONTEND_PATH_CONSUMER_BENEFITS', '/app/benefits'),
+            'consumer_wallet' => env('FRONTEND_PATH_CONSUMER_WALLET', '/app/wallet'),
+            'consumer_vouchers' => env('FRONTEND_PATH_CONSUMER_VOUCHERS', '/app/vouchers'),
+            'support_conversation' => env('FRONTEND_PATH_SUPPORT_CONVERSATION', '/app/support?conversation={conversation}'),
+            'workspace_home' => env('FRONTEND_PATH_WORKSPACE_HOME', '/app/workspaces?workspace={workspace}'),
+            'workspace_wallet' => env('FRONTEND_PATH_WORKSPACE_WALLET', '/app/workspaces/{workspace}/wallet'),
+            'workspace_offers' => env('FRONTEND_PATH_WORKSPACE_OFFERS', '/app/workspaces/{workspace}/offers'),
+            'workspace_banners' => env('FRONTEND_PATH_WORKSPACE_BANNERS', '/app/workspaces/{workspace}/banners'),
+            'workspace_integrations' => env('FRONTEND_PATH_WORKSPACE_INTEGRATIONS', '/app/workspaces/{workspace}/integrations'),
+            'admin_home' => env('FRONTEND_PATH_ADMIN_HOME', '/app/platform'),
+        ],
+
         'verification' => [
             'code_ttl_minutes' => (int) env('VERIFICATION_CODE_TTL_MINUTES', 10),
             'max_attempts' => (int) env('VERIFICATION_CODE_MAX_ATTEMPTS', 5),

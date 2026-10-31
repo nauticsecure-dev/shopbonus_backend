@@ -87,6 +87,21 @@ class NotificationTemplateTest extends TestCase
         $this->postJson($this->base.'/templates', ['event_type' => 'cashback_credited', 'locale' => 'en', 'value' => $this->value(), 'reason' => 'Missing verified amount'])->assertUnprocessable();
     }
 
+    public function test_name_placeholders_are_allowed_and_substituted_as_plain_text(): void
+    {
+        $a = $this->admin();
+        $b = $this->admin();
+        $this->acting($a);
+        $value = ['title' => 'Nieuws van {{webshop_name}}', 'body' => 'Hoi {{first_name}}, bekijk de details in je account.', 'action_label' => 'Bekijk details'];
+        $v = $this->postJson($this->base.'/templates', ['event_type' => 'support_reply', 'locale' => 'nl', 'value' => $value, 'reason' => 'Personalised support copy'])->assertCreated()->json('data');
+        $this->acting($b);
+        $this->postJson($this->base.'/templates/'.$v['id'].'/test')->assertOk()->assertJsonPath('data.preview.title', 'Nieuws van Woon & Co');
+        $this->postJson($this->base.'/templates/'.$v['id'].'/publish', ['note' => 'Independent review complete'])->assertOk();
+
+        $resolved = app(NotificationTemplates::class)->resolve('support_reply', 'nl', null, ['webshop_name' => '<b>Shop{{x}}</b>', 'first_name' => null]);
+        $this->assertSame(['bShopx/b', 'Hoi , bekijk de details in je account.'], [str_replace('Nieuws van ', '', $resolved['title']), $resolved['body']]);
+    }
+
     public function test_ai_is_budgeted_idempotent_private_and_receives_only_event_schema(): void
     {
         $this->fixture();

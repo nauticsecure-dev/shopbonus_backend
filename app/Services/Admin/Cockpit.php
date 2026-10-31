@@ -123,8 +123,7 @@ class Cockpit
                 'href' => '/admin/webshops/'.$w->public_id,
             ])->all();
 
-        $consumers = User::query()
-            ->where('onboarding_intent', 'consumer')
+        $consumers = User::query()->consumers()
             ->where('status', '!=', UserStatus::Deleted)
             ->where(fn ($u) => $u->whereRaw('LOWER(email) like ?', [$like])
                 ->orWhereRaw('LOWER(first_name) like ?', [$like])
@@ -238,7 +237,7 @@ class Cockpit
         $in = fn ($query, string $column) => $query->whereBetween($column, [$from, $to]);
         $webshops = Webshop::query()->selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
 
-        $consumers = User::where('onboarding_intent', 'consumer')->where('status', UserStatus::Active);
+        $consumers = User::query()->consumers()->where('status', UserStatus::Active);
 
         $affiliate = $in(AffiliateTransaction::query(), 'transaction_at')
             ->whereIn('status', ['pending', 'approved', 'rejected', 'reversed'])
@@ -337,7 +336,7 @@ class Cockpit
         $prevWallet = (int) (($prev['wallets']['eur_credit']['outstanding'] ?? 0));
 
         $openTotal = (int) ($attention['open_actions']['total'] ?? 0);
-        $prevOpen = (int) ($prev['open_actions_total'] ?? $openTotal);
+        $prevOpen = $prev['open_actions_total'] ?? null;
 
         $issuedDay = $from->toDateString();
         $issuedTo = $to->toDateString();
@@ -436,7 +435,7 @@ class Cockpit
         $bucket = fn (Collection $rows) => $rows->countBy(fn ($ts) => CarbonImmutable::parse($ts, 'UTC')->setTimezone($tz)->format('Y-m-d'));
         $series = [
             'new_webshops' => $bucket(Webshop::whereBetween('created_at', [$from, $to])->pluck('created_at')),
-            'new_consumers' => $bucket(User::where('onboarding_intent', 'consumer')->whereBetween('created_at', [$from, $to])->pluck('created_at')),
+            'new_consumers' => $bucket(User::query()->consumers()->whereBetween('created_at', [$from, $to])->pluck('created_at')),
             'paid_orders' => $bucket(WebshopOrder::whereBetween('paid_at', [$from, $to])->pluck('paid_at')),
             'vouchers_issued' => $bucket(Voucher::whereBetween('issued_at', [$from, $to])->pluck('issued_at')),
             'vouchers_redeemed' => $bucket(Voucher::whereBetween('redeemed_at', [$from, $to])->pluck('redeemed_at')),
@@ -602,8 +601,19 @@ class Cockpit
     {
         try {
             $kpis = $this->kpis($from, $to);
-            $attention = $this->attention();
-            $kpis['open_actions_total'] = (int) ($attention['open_actions']['total'] ?? 0);
+
+            // kpis() counts point-in-time totals as of now; the comparison needs them as of $to.
+            $kpis['webshops']['active'] = Webshop::where('approved_at', '<=', $to)->whereIn('status', [WebshopStatus::Approved, WebshopStatus::Suspended])
+                ->where(fn ($q) => $q->whereNull('suspended_at')->orWhere('suspended_at', '>', $to))->count();
+            $kpis['consumers']['registered'] = User::query()->consumers()->where('status', UserStatus::Active)->where('created_at', '<=', $to)->count();
+            $kpis['vouchers']['outstanding'] = Voucher::where('issued_at', '<=', $to)->whereIn('status', [VoucherStatus::Issued, VoucherStatus::Redeemed, VoucherStatus::Expired])
+                ->where(fn ($q) => $q->whereNull('redeemed_at')->orWhere('redeemed_at', '>', $to))
+                ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', $to))->count();
+            // Ledger amounts are the signed effect on available + reserved, so their running sum is the balance.
+            $kpis['wallets']['eur_credit']['outstanding'] = (int) WalletLedgerEntry::join('wallets', 'wallets.id', '=', 'wallet_ledger_entries.wallet_id')
+                ->where('wallets.kind', 'consumer_credit')->where('wallets.unit', 'eur_credit')->where('wallet_ledger_entries.created_at', '<=', $to)->sum('wallet_ledger_entries.amount');
+            // Open actions have no history: no comparison rather than a made-up one.
+            $kpis['open_actions_total'] = null;
 
             return $kpis;
         } catch (Throwable $e) {
@@ -611,7 +621,7 @@ class Cockpit
             $warnings[] = ['code' => 'comparison_degraded', 'message' => 'Period comparison partially unavailable.', 'request_id' => (string) Str::uuid()];
             $sources['webshops'] = 'degraded';
 
-            return $this->emptyKpis() + ['open_actions_total' => 0];
+            return $this->emptyKpis() + ['open_actions_total' => null];
         }
     }
 
@@ -689,8 +699,11 @@ class Cockpit
         }
     }
 
-    private function changePercent(int $current, int $previous): ?float
+    private function changePercent(int $current, ?int $previous): ?float
     {
+        if ($previous === null) {
+            return null;
+        }
         if ($previous === 0) {
             return $current === 0 ? 0.0 : null;
         }

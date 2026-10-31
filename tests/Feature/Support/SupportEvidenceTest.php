@@ -89,6 +89,10 @@ class SupportEvidenceTest extends TestCase
         $this->assertStringContainsString("EUR {$available}; reserved: EUR {$reserved}; pending: EUR {$pending}; spent: EUR {$spent}", $result['answer']);
         $this->assertSame(1000, $e->facts['available_minor']);
         $this->assertSame(500, $e->facts['reserved_minor']);
+        // Pending (awaiting approval) and reserved (purchase in progress) are separate statements.
+        $this->assertSame(700, $e->facts['pending_minor']);
+        $this->assertStringContainsString('A reward of EUR 7.00 is pending and cannot be spent yet.', $result['answer']);
+        $this->assertStringContainsString('EUR 5.00 of your credit is reserved for a purchase in progress.', $result['answer']);
         $this->assertSame(2500, $e->facts['spent_minor']);
         $this->assertSame('EUR_REDEMPTION_CREDIT', $e->facts['unit']);
         $this->assertStringNotContainsString('999', $result['answer']);
@@ -232,6 +236,22 @@ class SupportEvidenceTest extends TestCase
 
         return FaqItem::create(['category_id' => $category->id, 'audience' => $audience, 'published' => $published,
             'translations' => ['nl' => ['question' => 'Hoe?', 'answer' => $doc]]]);
+    }
+
+    public function test_free_text_questions_find_the_matching_published_faq(): void
+    {
+        $category = FaqCategory::create(['key' => 'match-'.strtolower((string) Str::ulid()), 'names' => ['en' => 'Help', 'nl' => 'Hulp']]);
+        $make = fn (string $audience, string $question, string $answer, bool $published = true) => FaqItem::create(['category_id' => $category->id, 'audience' => $audience, 'published' => $published,
+            'translations' => ['nl' => ['question' => $question, 'answer' => ['type' => 'doc', 'content' => [['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => $answer]]]]]]]]);
+        $password = $make('public', 'Hoe wijzig ik mijn wachtwoord?', 'Ga naar instellingen en kies wachtwoord wijzigen.');
+        $make('consumers', 'Hoe lang is een voucher geldig?', 'Elke voucher toont zijn vervaldatum.');
+        $merchantOnly = $make('merchants', 'Hoe koppel ik WooCommerce?', 'Maak een koppeling met je winkel.');
+        $make('public', 'Wachtwoord vergeten concept', 'Niet gepubliceerd.', false);
+
+        $this->assertSame($password->public_id, $this->tools()->matchKnowledge(false, 'Ik wil mijn wachtwoord wijzigen', 'nl'));
+        $this->assertNull($this->tools()->matchKnowledge(false, 'Hoe koppel ik WooCommerce?', 'nl')); // merchant article, consumer chat
+        $this->assertSame($merchantOnly->public_id, $this->tools()->matchKnowledge(true, 'Hoe koppel ik WooCommerce?', 'nl'));
+        $this->assertNull($this->tools()->matchKnowledge(false, 'Hoe gaat het?', 'nl'));
     }
 
     public function test_faq_is_published_audience_scoped_versioned_and_revalidated_with_locale_fallback(): void
