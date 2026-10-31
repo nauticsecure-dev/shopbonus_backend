@@ -44,6 +44,18 @@ class OperationsAndReconciliationApiTest extends TestCase
         $this->postJson('/api/v1/admin/reconciliation', ['request_key' => (string) Str::uuid()])->assertStatus(423);
     }
 
+    public function test_a_stalled_affiliate_queue_is_reported_even_when_default_is_empty(): void
+    {
+        config(['queue.default' => 'database']);
+        DB::table('jobs')->insert(['queue' => 'affiliate', 'payload' => '{}', 'attempts' => 0, 'reserved_at' => null,
+            'available_at' => now()->subMinutes(10)->getTimestamp(), 'created_at' => now()->subMinutes(10)->getTimestamp()]);
+
+        $queue = app(Operations::class)->report()['components']['queue'];
+        $this->assertSame('CRITICAL', $queue['status']);
+        $this->assertSame([0, null], [$queue['size'], $queue['ready_wait_seconds']]); // default itself is idle
+        $this->assertSame(['CRITICAL', 1], [$queue['queues']['affiliate']['status'], $queue['queues']['affiliate']['size']]);
+    }
+
     public function test_operations_detects_ready_queue_stall_and_absence_never_means_healthy(): void
     {
         config(['queue.default' => 'database']);

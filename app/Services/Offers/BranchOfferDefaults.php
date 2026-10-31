@@ -9,6 +9,7 @@ namespace App\Services\Offers;
 class BranchOfferDefaults
 {
     /**
+     * @param  list<string>  $categoryKeys
      * @return array{
      *   category: string|null,
      *   suggestion: array{

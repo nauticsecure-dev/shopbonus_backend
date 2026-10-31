@@ -17,7 +17,6 @@ use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletPendingCredit;
 use App\Services\Audit\AuditLogger;
-use App\Services\Cashback\RewardSourceGuard;
 use App\Services\Wallet\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -30,11 +29,10 @@ use Illuminate\Support\Facades\DB;
  * - A network update older than the last applied one is ignored.
  * - Attribution needs credible evidence: our click reference, for the same
  *   webshop, inside the attribution window. Otherwise: unmatched (review).
- * - A second report of the same click or order reference: disputed, no reward.
+ * - Repeated purchase references are disputed; distinct orders may share a click.
  * - Postbacks are untrusted: they only record "tracked"; rewards need sync/import.
- * - Rewards follow `affiliate.credit_timing` (default on_validated_attribution:
- *   credit immediately after attribution; network rejection does not auto-reverse).
- * - on_network_approval remains available as a legacy/admin override.
+ * - D-089: rewards remain pending until network approval by default.
+ * - Historical explicit timing rules remain frozen on existing rewards.
  */
 class AffiliateProcessor
 {
@@ -43,7 +41,6 @@ class AffiliateProcessor
     public function __construct(
         private readonly WalletService $wallets,
         private readonly AuditLogger $audit,
-        private readonly RewardSourceGuard $sources,
     ) {}
 
     public function ingest(AffiliateConnection $connection, AffiliateTransactionData $data, string $source, ?int $actorUserId = null): AffiliateTransaction
@@ -153,10 +150,16 @@ class AffiliateProcessor
 
     private function duplicateOf(?AffiliateClick $click, ?int $webshopId, ?string $orderHash): ?AffiliateTransaction
     {
-        return AffiliateTransaction::where(function ($q) use ($click, $webshopId, $orderHash) {
-            $q->when($click !== null, fn ($q) => $q->orWhere('click_id', $click?->id))
-                ->when($orderHash !== null, fn ($q) => $q->orWhere(fn ($q) => $q->where('webshop_id', $webshopId)->where('order_reference_hash', $orderHash)));
-        })->when($click === null && $orderHash === null, fn ($q) => $q->whereRaw('1 = 0'))->orderBy('id')->first();
+        // A click can lead to several genuine orders. Prefer the purchase identity
+        // when supplied; retain conservative click-only dedupe for legacy rows
+        // whose provider supplied no order reference.
+        if ($orderHash !== null && $webshopId !== null) {
+            return AffiliateTransaction::where(fn ($q) => $q->where('webshop_id', $webshopId)->where('order_reference_hash', $orderHash))
+                ->when($click !== null, fn ($q) => $q->orWhere(fn ($q) => $q->where('click_id', $click->id)->whereNull('order_reference_hash')))
+                ->orderBy('id')->first();
+        }
+
+        return $click === null ? null : AffiliateTransaction::where('click_id', $click->id)->orderBy('id')->first();
     }
 
     private function reward(AffiliateTransaction $tx, string $source, ?int $actorUserId, bool $skipReview = false): void
@@ -166,19 +169,16 @@ class AffiliateProcessor
         }
 
         if ($tx->webshop_id !== null && $tx->order_reference_hash !== null && $tx->reward_status === 'none') {
-            $directs = MerchantCommissionConversion::where('webshop_id', $tx->webshop_id)
+            $direct = MerchantCommissionConversion::where('webshop_id', $tx->webshop_id)
+                ->where('order_reference_hash', $tx->order_reference_hash)
                 ->where('status', 'credited')
-                ->orderBy('id')
-                ->limit(500)
-                ->pluck('external_id');
-            foreach ($directs as $externalId) {
-                if ($this->sources->orderReferenceHash($tx->webshop_id, (string) $externalId) === $tx->order_reference_hash) {
-                    $from = $tx->status;
-                    $tx->forceFill(['status' => 'disputed', 'review_reason' => 'direct_merchant_reward_already_credited'])->save();
-                    $this->event($tx, $source, $from, 'disputed', $tx->network_status, 'direct_merchant_reward_already_credited', $actorUserId);
+                ->exists();
+            if ($direct) {
+                $from = $tx->status;
+                $tx->forceFill(['status' => 'disputed', 'review_reason' => 'direct_merchant_reward_already_credited'])->save();
+                $this->event($tx, $source, $from, 'disputed', $tx->network_status, 'direct_merchant_reward_already_credited', $actorUserId);
 
-                    return;
-                }
+                return;
             }
         }
 
@@ -191,7 +191,7 @@ class AffiliateProcessor
             return;
         }
 
-        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network')
+        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network', $tx->program_id)
             : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
         $instant = ($tx->reward_timing ?? config('shopbonus.affiliate.credit_timing')) === 'on_validated_attribution';
 

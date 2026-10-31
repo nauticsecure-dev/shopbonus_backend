@@ -40,7 +40,8 @@ class OfferPresentation
             'journey' => $this->journey($offer->acquisition, $v, $reward),
             'discount_type' => $v?->discount_type,
             'discount_value' => $v?->discount_value,
-            'currency' => $v?->currency ?? 'EUR',
+            'currency' => $v->currency ?? 'EUR',
+            'price_points' => $offer->acquisition === OfferAcquisition::WalletPurchase ? $v?->price_points : null,
             'min_order_minor' => $v?->min_order_minor,
             'max_discount_minor' => $v?->max_discount_minor,
             'claim_validity_days' => $v?->claim_validity_days,
@@ -51,12 +52,12 @@ class OfferPresentation
             'combinable' => (bool) ($v?->combinable),
             'categories' => $this->categories($v, $profile),
             'webshop' => [
-                'name' => $profile?->display_name ?? $webshop->name,
+                'name' => $profile->display_name ?? $webshop->name,
                 'short_description' => $profile?->short_description,
                 'description' => $profile?->description,
                 'logo_url' => $this->merchantLogoUrl($webshop, $profile),
                 'cover_url' => $profile?->cover_url,
-                'website_url' => $profile?->website_url ?? $webshop->businessProfile?->website_url,
+                'website_url' => $profile->website_url ?? $webshop->businessProfile?->website_url,
                 'verified_domain' => $webshop->verified_domain,
                 'ownership_verified' => $webshop->isOwnershipVerified(),
             ],
@@ -178,17 +179,17 @@ class OfferPresentation
      */
     private function categories(?OfferVersion $v, ?WebshopPublicProfile $profile): array
     {
-        $keys = $profile?->categories() ?: ($v?->categories ?? []);
+        $keys = $profile?->categories() ?: ($v->categories ?? []);
 
-        return array_values(array_map(
+        return array_map(
             fn (string $key) => ['key' => $key, 'label' => PublicCatalog::categoryLabels($key)],
             $keys
-        ));
+        );
     }
 
     private function merchantLogoUrl(Webshop $webshop, ?WebshopPublicProfile $profile): ?string
     {
-        if ($profile?->logo_path === null || $profile->slug === null) {
+        if ($profile === null || $profile->logo_path === null) {
             return null;
         }
 

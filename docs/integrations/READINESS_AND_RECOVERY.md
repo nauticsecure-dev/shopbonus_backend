@@ -10,7 +10,7 @@
 | `mandatory_fields_mapped` | That native event's own required mapping is complete; historical retained customer values do not hide a denied/missing field. |
 | `payment_verified` | Its native normalized state is paid/refunded/partially refunded with actual payment-time evidence. Authorization/order creation alone fails. |
 | `duplicate_processing_prevented` | An identical native snapshot was observed again and reused the original event, without another canonical history/contact effect. |
-| `changes_refunds_recoverable` | A native read for the same order recovered an actual financial/order-state change with a strictly newer provider timestamp into the existing canonical order. |
+| `changes_refunds_recoverable` | A native read for the same order recovered a refund (refunded amount increased, or payment status entered partially refunded/refunded) with a strictly newer provider timestamp into the existing canonical order (`native_refund_recovered`). Any other financial or order-state change (`native_change_recovered`), such as a payment, does not pass it. A platform that cannot report refunds (capability `refunds` LIMITED, e.g. Lightspeed C-Series) therefore stays Limited. |
 
 Evidence is generation/domain/store-bound and uses the latest requested native observation. An unfinished or failed latest request cannot borrow a prior success to qualify. A native refund/change snapshot must itself be replayed to demonstrate dedupe before all gates pass. Gate booleans describe available bound proof, not a diagnosis that a missing proof necessarily means invalid credentials. `missing_gates` lists the checks still needed. Complete webhook mapping does not manufacture any native gate.
 

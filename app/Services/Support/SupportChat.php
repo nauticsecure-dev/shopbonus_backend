@@ -14,6 +14,7 @@ use App\Models\Webshop;
 use App\Services\Admin\Diagnostics\ProviderFailure;
 use App\Services\Audit\AuditLogger;
 use App\Services\Errors\ErrorRecorder;
+use App\Support\FrontendPath;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,10 @@ class SupportChat
                     throw ApiException::conflict('Wait for the current support answer.', 'support_conversation_busy');
                 }
                 $plan = $this->planner->plan($data['message'], $workspace !== null, $data['reference'] ?? null);
+                if ($plan['intent'] === 'knowledge' && $plan['reference'] === null
+                    && ($faq = $this->tools->matchKnowledge($workspace !== null, $data['message'], $data['locale'] ?? 'en')) !== null) {
+                    $plan = $this->planner->plan($data['message'], $workspace !== null, $faq);
+                }
                 $m = SupportMessage::create(['conversation_id' => $c->id, 'user_id' => $actor->id, 'request_key' => $key, 'request_hash' => $hash,
                     'question' => $data['message'], 'research' => $plan, 'status' => 'PENDING']);
                 $this->audit->record('support.message_requested', category: AuditCategory::Security, actorUserId: $actor->id, resource: $m, webshopId: $c->webshop_id);
@@ -199,7 +204,7 @@ class SupportChat
                 $diagnostic = SupportAnswerChecks::diagnostic(
                     $m->question,
                     'MISSING_REWARD_STATUS',
-                    is_array($known) ? array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])) : [],
+                    array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])),
                     ['order_reward_status'],
                     ['get_my_order_reward_status'],
                     1,
@@ -232,7 +237,7 @@ class SupportChat
                 throw new ProviderFailure('policy_changed');
             }
             $this->conversation($actor, $c->public_id);
-            $answer['action'] = $this->action($plan, $workspace);
+            $answer['action'] = $this->action($plan, $workspace, $c->locale === 'nl');
             if ($primaryFailed && $answer['answer'] !== null) {
                 $answer['status'] = 'PARTIALLY_VERIFIED';
                 $answer['answer'] .= $c->locale === 'nl' ? ' Het walletsaldo kon niet worden gecontroleerd.' : ' The wallet balance could not be verified.';
@@ -355,28 +360,27 @@ class SupportChat
     /** @param array<string, mixed> $plan
      * @return array<string, string>|null
      */
-    private function action(array $plan, ?string $workspace): ?array
+    private function action(array $plan, ?string $workspace, bool $nl): ?array
     {
         $route = match ($plan['intent']) {
-            'wallet', 'reward' => '/app/wallet',
-            'vouchers', 'quote' => '/app/vouchers',
-            'funding' => '/app/workspaces/'.($workspace ?? 'current').'/wallet',
-            'offer_cost' => '/app/workspaces/'.($workspace ?? 'current').'/offers',
-            'campaign' => '/app/workspaces/'.($workspace ?? 'current').'/banners',
-            'integration' => '/app/workspaces/'.($workspace ?? 'current').'/integrations',
+            'wallet', 'reward' => FrontendPath::to('consumer_wallet'),
+            'vouchers', 'quote' => FrontendPath::to('consumer_vouchers'),
+            'funding' => FrontendPath::to('workspace_wallet', ['workspace' => $workspace ?? 'current']),
+            'offer_cost' => FrontendPath::to('workspace_offers', ['workspace' => $workspace ?? 'current']),
+            'campaign' => FrontendPath::to('workspace_banners', ['workspace' => $workspace ?? 'current']),
+            'integration' => FrontendPath::to('workspace_integrations', ['workspace' => $workspace ?? 'current']),
             default => null,
         };
         if ($route === null) {
             return null;
         }
         $label = match ($plan['intent']) {
-            'wallet', 'reward' => 'Bekijk mijn tegoed',
-            'vouchers', 'quote' => 'Bekijk mijn vouchers',
-            'funding' => 'Bekijk webshopfinanciering',
-            'offer_cost' => 'Bekijk aanbiedingen',
-            'campaign' => 'Bekijk campagneoverzicht',
-            'integration' => 'Bekijk integraties',
-            default => 'Bekijk details',
+            'wallet', 'reward' => $nl ? 'Bekijk mijn tegoed' : 'View my credit',
+            'vouchers', 'quote' => $nl ? 'Bekijk mijn vouchers' : 'View my vouchers',
+            'funding' => $nl ? 'Bekijk webshopfinanciering' : 'View merchant funding',
+            'offer_cost' => $nl ? 'Bekijk aanbiedingen' : 'View offers',
+            'campaign' => $nl ? 'Bekijk campagneoverzicht' : 'View campaign overview',
+            default => $nl ? 'Bekijk integraties' : 'View integrations', // only 'integration' remains: $route is null otherwise
         };
 
         return ['label' => $label, 'route' => $route];

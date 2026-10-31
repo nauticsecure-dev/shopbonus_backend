@@ -4,8 +4,6 @@ namespace Tests\Feature\Offers;
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
-use App\Enums\OfferAcquisition;
-use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
@@ -17,7 +15,6 @@ use App\Models\SponsorshipObligation;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCode;
-use App\Models\VoucherEvent;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;

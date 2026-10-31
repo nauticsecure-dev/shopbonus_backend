@@ -64,6 +64,41 @@ final class LineItems
         return $out;
     }
 
+    /**
+     * Wix eCom Order `lineItems[]`: `totalPriceBeforeTax` is the line total after discounts, before tax.
+     *
+     * @return list<array<string,mixed>>|null
+     */
+    public static function wix(mixed $rows, ?string $currency): ?array
+    {
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100 || ! Money::isCurrency($currency)) {
+            return null;
+        }
+        $out = [];
+        $seen = [];
+        foreach ($rows as $r) {
+            $id = is_array($r) ? ($r['id'] ?? null) : null;
+            $quantity = $r['quantity'] ?? null;
+            if (! is_string($id) || ! preg_match('/\A[A-Za-z0-9-]{1,64}\z/D', $id) || isset($seen[$id]) || ! is_int($quantity) || $quantity < 0 || ! is_string($r['totalPriceBeforeTax']['amount'] ?? null)) {
+                return null;
+            }
+            try {
+                $minor = Money::toMinor($r['totalPriceBeforeTax']['amount'], $currency);
+            } catch (\InvalidArgumentException) {
+                return null;
+            }
+            if ($minor < 0) {
+                return null;
+            }
+            $seen[$id] = true;
+            $product = $r['catalogReference']['catalogItemId'] ?? null;
+            $out[] = ['id' => $id, 'product_id' => is_string($product) && preg_match('/\A[A-Za-z0-9-]{1,64}\z/D', $product) ? $product : null, 'sku' => self::sku($r['physicalProperties']['sku'] ?? null),
+                'quantity' => $quantity, 'amount_minor' => $minor, 'amount_basis' => 'discounted_ex_tax', 'currency' => $currency, 'eligible_amount_minor' => null];
+        }
+
+        return $out;
+    }
+
     private static function id(mixed $v): bool
     {
         return (is_int($v) || is_string($v)) && preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $v) === 1;

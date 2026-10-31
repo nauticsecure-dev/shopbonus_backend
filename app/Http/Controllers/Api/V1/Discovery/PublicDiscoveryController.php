@@ -74,10 +74,7 @@ class PublicDiscoveryController extends Controller
 
     public function cover(string $slug): Response
     {
-        $profile = $this->catalog->logo($slug) ?? throw new ApiException('Cover not found.', 404, 'not_found');
-        if ($profile->cover_path === null) {
-            throw new ApiException('Cover not found.', 404, 'not_found');
-        }
+        $profile = $this->catalog->cover($slug) ?? throw new ApiException('Cover not found.', 404, 'not_found');
 
         return Storage::disk(PublicProfileService::DISK)->response($profile->cover_path, 'cover', [
             'Content-Type' => (string) ($profile->cover_mime ?? 'image/webp'),

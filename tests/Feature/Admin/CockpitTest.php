@@ -11,7 +11,6 @@ use App\Enums\UserStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
 use App\Enums\WebshopStatus;
-use App\Models\AuditEvent;
 use App\Models\Offer;
 use App\Models\SupportConversation;
 use App\Models\SupportMessage;
@@ -21,6 +20,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
+use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
 use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
@@ -144,7 +144,21 @@ class CockpitTest extends TestCase
         $this->assertSame('/admin/webshops?status=approved', $cards['active_webshops']['href']);
         $this->assertStringContainsString('consumer', $cards['consumers']['href']);
         $this->getJson('/api/v1/admin/webshops?status=approved')->assertOk()->assertJsonPath('meta.total', 2);
-        $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk();
+        // The card and the list it links to use the same consumer definition.
+        $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk()->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_change_percent_compares_with_totals_at_the_end_of_the_previous_period(): void
+    {
+        foreach (range(1, 2) as $i) {
+            User::factory()->create(['status' => UserStatus::Active, 'created_at' => now()->subDays(20)]);
+        }
+        User::factory()->create(['status' => UserStatus::Active, 'created_at' => now()->subDay()]);
+
+        Sanctum::actingAs($this->admin);
+        $cards = collect($this->getJson('/api/v1/admin/cockpit?period=7d')->assertOk()->json('data.cards'))->keyBy('key');
+        $this->assertEquals([3, 50], [$cards['consumers']['value'], $cards['consumers']['change_percent']]); // 2 → 3
+        $this->assertNull($cards['open_actions']['change_percent']); // no history to compare with
     }
 
     /** E2E 3 — Voucher lifecycle */
@@ -362,7 +376,7 @@ class CockpitTest extends TestCase
         Sanctum::actingAs($this->owner);
         $this->postJson("/api/v1/workspaces/{$this->shop->public_id}/connections", ['platform' => 'prestashop'])->assertCreated();
         $connection = WebshopConnection::where('webshop_id', $this->shop->id)->sole();
-        $order = \App\Models\WebshopOrder::create([
+        $order = WebshopOrder::create([
             'webshop_id' => $this->shop->id, 'connection_id' => $connection->id, 'platform' => 'prestashop',
             'ingestion_status' => 'complete', 'currency' => 'EUR', 'placed_at' => now(),
             'external_order_id' => 'ORD-SEARCH-99', 'amount_minor' => 5000, 'payment_status' => 'paid', 'paid_at' => now(),

@@ -1,3 +1,79 @@
+# Continuation checkpoint — B38 explicit points earning verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, parent `130fd24056bf1166052feaee26e79ff03136be84`, draft PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3. Parent exact CI41184941391 SUCCESS across quality, SQLite and MySQL. B38 implementation commit follows this checkpoint; no claim that parent CI covers these changes.
+
+D-104 implemented: immutable per-program points rate, multiplier and rounding on existing reward rules. Incomplete/unmapped rules stay inactive; scope/source/currency mismatches rejected. New awards select only configured points rules and freeze complete terms; legacy pending snapshots retain their original calculation. Exact integer arithmetic avoids float/overflow errors. Public discovery labels points without a EUR cashback percentage. D-105 remains allocation reporting; points monetary valuation remains explicitly unknown, not invented. No dependencies/new endpoints.
+
+Executed: focused SQLite66 total/65passed+1skipped/7959assertions; MySQL63 total/62passed+1skipped/446assertions. Includes arithmetic boundaries, immutable/legacy terms, program isolation, approval timing, source/currency negatives and non-destructive migration replay. PHPStan L6, Pint and diff checks PASS. Sixteen real HTTP exchanges in docs/qa/B38_POINTS_EARNING_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped and isolated DB/storage/credentials removed. Migration120000 adds earning terms; migration110000 now guards reapplication; both preserve contractual data on rollback. Main shopbonus DB NOT migrated.
+
+Next exact: commit/push B38, inspect its CI; then audit existing funding intents and implement durable checkout creation/uncertain-payment recovery (#20). Current uncommitted changes are B38 only. No deploy/merge/Trello changes. Whole Frank cards remain PARTIAL pending remaining code and independent/staging/provider/UI acceptance; see docs/qa/FRANK_BACKEND_REMAINING.md.
+
+---
+
+# Continuation checkpoint — B37 locale CI repair verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3 (draft). B36 `05104b0` is pushed. First exact PR merge-build CI41184307319: quality PASS; both test jobs failed on the same locale regression. SQLite1142total/1116pass+25skip+1fail/19699assertions. Failure: English validation used Dutch “beleidsversie” under shipped APP_FALLBACK_LOCALE=nl. New QA pipeline correctly retained the failure and uploaded sanitized artifacts; tested merge SHA74f638a99d88b38af5e80120c69cd363f9b958d2. Never call that run green.
+
+B37 adds explicit English attribute labels (Laravel messages retained) and restores the configured default after each request, including worker reuse. Regression tests force NL fallback and alternate NL/EN/unsupported/no-preference plus configurable EN default. Symfony test requests inject English unless explicitly blank; the absence fixture now accounts for that.
+
+Executed: SQLite CookieConsentTest3/58 PASS with NL config; MySQL same3/58 PASS (14.048s). API3/7505 PASS, PHPStan L6 and Pint checks PASS. Four real HTTP422 captures with NL defaults in docs/qa/B37_LOCALE_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped; isolated DB/storage removed. No migrations/provider calls/packages.
+
+Owner also resolved D-104: require explicit per-program points earning rate before new points rules activate, preserving existing reward snapshots. D-105: keep commission remainder allocation reporting, no formal revenue posting. Next: commit/push B37 and implement D-104 as the next backend boundary. Other remaining work stays in docs/qa/FRANK_BACKEND_REMAINING.md. Native APIs were researched only: E-Series uses Ecwid officially, but source-namespace/duplicate-effect guards must be audited before enabling that alias. Mijnwebwinkel needs partner API access/contract, CCV current webshop docs and Squarespace schemas need further review. No connector was activated from a name alone. Main DB migrations still not applied.
+
+---
+
+# Continuation checkpoint — B36 independent retest proof verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, points B33 `fe699ad`, affiliate B34 `40d8e83`, CI B35 `1284bc1`. B36 corrects remaining #37/#36 false-positive proof paths: read-only bounded Git ancestry distinguishes descendants/unrelated builds; later scan chronology is never positive build proof. Unknown endpoint ancestry remains time_only/STALE even when freshly imported. Unknown finding builds require explicit independent attestation, separately audited. Both execution and import must follow the recorded fix. Unlinked/manual PASS requires executed unmocked assertions plus unexpired, decryptable, checksum-verified evidence attached to a passing result. Linked browser/manual results and endpoint PASS use the same valid-evidence requirement; expired/corrupt files cannot certify success. Existing independent-role restrictions retained. Added Dutch error translations, including earlier points/schedule errors. No routes, migrations, provider calls or packages.
+
+Executed: final focused SQLite QA/build-proof/API 26 tests/7835 assertions PASS (32.057s), latest standalone API 3/7505 PASS after documentation changes. MySQL QA/build-proof 23 tests/330 assertions PASS (55.280s). Real temporary Git repository test covers descendants and unrelated branches. Negative cases cover old execution, missing/expired/corrupt proof, mocked/unlinked manual results, and unknown-build freshness. PHPStan L6 and Pint --test PASS. Seven actual HTTP captures in docs/qa/B36_RETEST_PROOF_HTTP_CAPTURE.json use real cookie/CSRF/password flow with explicitly synthetic report/finding/evidence fixtures; these are API guard demonstrations, not staging/provider acceptance. Capture server stopped and isolated DB/storage/credentials removed. Full remote workflow still pending PR. No local main DB migrations applied.
+
+Next: commit B36, push review branch and create PR to main; inspect exact-code CI. Remaining Frank work is tracked in docs/qa/FRANK_BACKEND_REMAINING.md: policy-dependent points earning configuration/formal revenue, native connector gaps, real staging/provider/browser/offsite/restore acceptance and inaccessible175-check PDF. Do not call all cards Done or automatically transfer them based on this checkpoint. Current uncommitted B36 only; no external messages/deployment/Trello edits.
+
+---
+
+# Continuation checkpoint — B35 Quality Center CI/inventory verified locally (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, B33 `fe699ad`, B34 `40d8e83`. CI now emits actual execution start/checked-out SHA/JUnit, preserves failed-test exit codes, discovers/imports into a separate ephemeral QA database and retains only sanitized JSON/normalized JUnit/current routes/provenance artifacts. No raw report, DB or credentials uploaded. Run environment `ci` is explicitly distinct and always mocked; schedules remain staging/production and must match imported suite/environment. CLI --output refuses overwrites and records real times/hash/inventory. General backend services/models/controllers/requests/resources/rules/enums/providers/support/logging/integrations are inventoried. Conservative backend source digest invalidates route evidence even for transitive dependencies. No new routes/migrations/packages.
+
+Executed SQLite QA 17/297 PASS (31.496s); MySQL same 17/297 PASS (48.581s). API coverage 3/7505 PASS. PHPStan L6 and Pint --test PASS. Workflow YAML parses. Actual CLI replay of the executed MySQL report produced private sanitized JSON/JUnit with 17 mocked results and current inventory. Eight actual HTTP captures include cookie/CSRF login + recent password, CI import/list, service/model inventory, 401/403 and schedule mismatch409; docs/qa/B35_CI_HTTP_CAPTURE.json and API docs. Capture base is40d8e83+WIP, not exact released-build proof. See docs/qa/CI_AND_STAGING.md. Remote workflow execution pending PR, not claimed passed.
+
+Remaining QA review: scan chronology alone still does not prove Git ancestry on different branches; unlinked/manual finding PASS needs stricter attached-evidence enforcement. Address next coherent B36 boundary. Missing native credentials/staging, inaccessible175-check PDF and all UI/provider acceptance stay explicit. Main DB not migrated for B32/B33. Current uncommitted B35 only; no push/PR yet.
+
+---
+
+# Continuation checkpoint — B34 affiliate review fixes verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, points checkout B33 `fe699ad`. B34 repairs #19's remaining verified duplicate/selection/consent defects. Credible distinct order references can share a click; repeated order references and ambiguous legacy click-only reports remain deduped. ProgramSelector recomputes eligible candidates and stores a new decision only when inputs/outcome/rule version change, including recovery from an empty candidate set. No-policy tracking now fails closed in every environment, as do missing/unknown/withdrawn marketing consent. Regression journeys now explicitly publish synthetic policy and grant consent.
+
+Executed: focused SQLite + API coverage 62 total /61 passed +1 skipped /8060 assertions /10.285s. Same business selection MySQL 59 total /58 passed +1 skipped /555 assertions /39.368s. PHPStan L6 and Pint --test PASS. MySQL first exposed an overlong synthetic consent ID in the new test helper; shortened to fit the existing UUID-width column, then rerun passed. No migration or public response shape change; four actual HTTP redirect captures in docs/qa/B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json. API coverage now checks examples for every declared media type, allowing actual HTML redirects instead of fake JSON redirect bodies. Server stopped and isolated capture DB removed. No native network calls.
+
+Next: commit B34; #37 CI JUnit/discovery/import artifacts with honest CI provenance, then complete further verifiable main-code gaps from current Frank inventory. Whole cards retain UI, independent staging/provider acceptance and policy boundaries. Points earning-rate/multiplier/rounding policy remains separate from approved D-103 voucher prices. Main DB NOT migrated for B32/B33. Current uncommitted work: B34 only. No push/PR yet.
+
+---
+
+# Continuation checkpoint — B33 separate points checkout verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 commit `1a3eee0` preserves and completes Claude's pending CI fixes. B33 follows owner D-103: optional versioned `price_points`, explicit consumer `wallet_unit=points`, separate checkout points fields. Points purchases never convert units or call Mollie; insufficient/pending/reserved points cannot fund them. Existing EUR-credit behavior remains D-053. Checkout revalidates offer/version under locks, freezes price/unit/identity, and captures through WalletService + VoucherInventory atomically. Financial reconciliation verifies the actual unit and immutable voucher price. Same key with another offer/unit returns 409. No new routes/packages.
+
+Migration `2026_10_31_110000_add_separate_points_checkout_prices` adds nullable offer price_points and checkout wallet_unit (legacy default eur_credit), price_points and wallet_part_points. Deliberately non-destructive down() retains contractual prices/units. Applied only in isolated test/capture DBs; main local shopbonus NOT migrated.
+
+Executed focused SQLite: 55 total /52 passed +3 skipped /5605 assertions /5.969s. Same selection MySQL: 55 passed /5617 assertions /35.248s, including real four-process points replay and existing checkout races. Includes API coverage, offers and financial reconciliation. PHPStan L6 PASS. Pint --test PASS. No repeated full suite for this boundary; full B32 SQLite/MySQL evidence is recorded below and does not cover B33. 18 actual HTTP exchanges in docs/qa/B33_POINTS_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped and task-owned DB/credentials removed; no real provider call. Protected PDF download returned401; 175 individual checks remain unverified.
+
+Next: commit B33; repair remaining verified #19 selection/deduplication/missing-cookie-policy defects, then #37 CI report/discovery wiring. Current uncommitted files are B33 only. Whole Frank cards are not Done; docs/qa/FRANK_BACKEND_REMAINING.md tracks boundaries. Senior configures credentials/deployment; Hassan owns UI and independent provider/staging acceptance. No push/PR yet.
+
+---
+
+# Continuation checkpoint — B32 CI repair verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, starting HEAD `b607592`. Preserved Claude's uncommitted code/migration/formatter cleanup and staged deletion of three stray tools scripts. Current export has ten active Frank cards (#19/#20/#21/#22/#23/#26/#29/#30/#36/#37). See `docs/qa/FRANK_BACKEND_REMAINING.md`; reviewers' policy requests do not override D-089/D-053.
+
+Finished remaining 45 PHPStan findings without baselines/suppression/config relaxation, correcting relation and collection types and redundant branches. Retained Claude's MySQL column-width and canonical JSON evidence-hash fixes; added hash ordering/type/list/tampering regression coverage. No route or intended response contract change at this checkpoint. D-103 owner approved separate points pricing; checklist expanded, implementation follows B32.
+
+Executed: full SQLite 1117 total /1093 passed +24 skipped /17205 assertions /139.406s (before three added hash/tampering tests); focused enrichment +hash 8 passed /31 assertions. PHPStan L6 0 errors. Pint --test PASS; Composer audit PASS. Full MySQL: 1120 total /1117 passed +3 skipped /17295 assertions /473.678s against isolated `shopbonus_testing`, including all three added tests. Main DB migrations not applied. No credentials/provider-live/deployment acceptance. API coverage 3 tests/5140 assertions PASS; final PHPStan L6 PASS. B32 is committed in `fix: finish Frank review CI repair on SQLite and MySQL`; no push/PR yet. Next: implement D-103 through existing offer/checkout/wallet architecture. Whole cards remain partial.
+
+---
+
 # Active handoff — #31 B23o Wix webhook envelope fix + AppRemoved, whole card IN_PROGRESS (2026-10-29, Claude)
 
 Branch `main`. Base `daecc72` (B23n, [CI 40842608297](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40842608297) SUCCESS on all 3 jobs). Session commits: `f23f3a9` B23i/j, `c478831` B23k, `0274a77` B23l, `9f0d7fa` B23m, `daecc72` B23n; all CI green. D-089 unchanged. Credentials senior-owned.
@@ -179,6 +255,7 @@ Statuses allowed: `UNVERIFIED`, `READY`, `IN_PROGRESS`, `BLOCKED`, `PARTIAL`, `V
 | B27 | Remaining native catalog/coupon readers | #32 (#1) | B26 | BigCommerce, Ecwid, Magento 2.4, PrestaShop, Shopware 6 and Wix (V1+V3) readers, each field verified against the official reference or core source; 204-empty list support in the pinned reader | **DONE (backend slice)** 2026-10-29: PlatformCatalogTest (6 platforms), real-server capture (synthetic upstream), OpenAPI/README. 8 of 13 platforms now read catalog/coupons; Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel have no native read connector (UNSUPPORTED). Whole #32 needs live installed stores and storefront publication (merchant-side). |
 | B29 | CMS scheduled publishing + "Improve with AI" | #33 #34 #35 (#24) | B15 | Scheduled publish/archive pinned to the reviewed draft revision (stale instead of publishing unreviewed edits; scheduler re-checks Super Admin at run time); AI improve/translate suggestions via Responses API (store:false, strict schema, segment-preserving, no invented numbers/links/emails, daily quota, idempotent) that a human must apply to the draft and publish | **DONE (backend slice)** 2026-10-29: CmsScheduleAndSuggestionTest, real-server captures, OpenAPI/README, 8 routes. AI is off until the senior sets CMS_AI_*. Frontend (Hassan) and live model verification remain. |
 | B30 | Quality Center backend | #37 | B16 B22 B28 | qa_tester/developer roles; automatic inventory per Git SHA (routes, OpenAPI, jobs, events, listeners, commands, schedules, migrations, connectors) with new/changed/removed/undocumented/unreferenced; approved test cases and coverage; JUnit import with strict PASS/FAIL/BLOCKED/NOT_IMPLEMENTED/STALE/UNTESTED rules; encrypted evidence; findings with developer fix and independent evidence-based retest; advisory GPT analysis; schedules; read-only production probe; protected OpenAPI JSON | **DONE (backend slice)** 2026-10-29: QualityCenterTest, real-server captures, OpenAPI/README, 28 routes. UI/portal hosting (Hassan/infra), executing the 25 PDF scenarios and provider subruns on staging, CI wiring and live model remain; card not Done. |
+| B31 | Trello review fixes (Frank list) | #19 #20 #21 #22 #23 #26 #29 #30 #36 #37 | B30 | Fix the verified reviewer findings and the HassanDev merge regressions | **DONE (backend slice)** 2026-10-31 on `frank/review-fixes`: see HANDOFF. Decision items (D-089 timing, D-053 shortfall, reward units, admin direct credit), frontend paths, backup RPO/offsite, 4 connectors, CI/Postman and frontend work remain. |
 
 
 ## Work ticket procedure

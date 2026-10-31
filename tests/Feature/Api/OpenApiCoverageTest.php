@@ -118,11 +118,14 @@ class OpenApiCoverageTest extends TestCase
                         continue;
                     }
 
-                    $content = $response['content']['application/json'] ?? [];
-                    $this->assertTrue(
-                        isset($content['example']) || ! empty($content['examples']),
-                        "{$label} response {$status} has no example",
-                    );
+                    $contents = $response['content'] ?? [];
+                    $this->assertNotEmpty($contents, "{$label} response {$status} has no documented content");
+                    foreach ($contents as $mediaType => $content) {
+                        $this->assertTrue(
+                            isset($content['example']) || ! empty($content['examples']),
+                            "{$label} response {$status} ({$mediaType}) has no example",
+                        );
+                    }
                 }
             }
         }

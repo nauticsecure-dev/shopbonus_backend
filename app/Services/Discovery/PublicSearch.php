@@ -83,7 +83,7 @@ class PublicSearch
 
                 return [
                     'type' => 'offer',
-                    'label' => $o->currentVersion?->name ?? $o->slug,
+                    'label' => $o->currentVersion->name ?? $o->slug,
                     'description' => $o->currentVersion?->summary(),
                     'href' => '/webshops/'.$profile->slug.'/offers/'.$o->slug,
                     'slug' => $o->slug,
@@ -111,7 +111,7 @@ class PublicSearch
 
                 return [
                     'type' => 'discount_code',
-                    'label' => $o->currentVersion?->name ?? $o->slug,
+                    'label' => $o->currentVersion->name ?? $o->slug,
                     'href' => '/webshops/'.$profile->slug.'?offer='.$o->slug,
                     'slug' => $o->slug,
                     'webshop_slug' => $profile->slug,

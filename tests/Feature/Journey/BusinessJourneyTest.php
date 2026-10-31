@@ -33,6 +33,7 @@ use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\InteractsWithIdentity;
 use Tests\Concerns\SignsWebhooks;
+use Tests\Concerns\TracksWithMarketingConsent;
 use Tests\Fakes\FakeHostResolver;
 use Tests\Fakes\FakeWebsiteFileFetcher;
 use Tests\TestCase;
@@ -46,6 +47,7 @@ use Tests\TestCase;
 class BusinessJourneyTest extends TestCase
 {
     use InteractsWithIdentity, RefreshDatabase, SignsWebhooks;
+    use TracksWithMarketingConsent;
 
     private const A24_KEY = 'a24-journey-key';
 
@@ -246,7 +248,7 @@ class BusinessJourneyTest extends TestCase
         $sync->import($network, [['id' => 'P1', 'name' => 'Fietsen Utrecht', 'url' => 'https://fietsen-utrecht.nl', 'status' => 'active', 'currency_code' => 'EUR',
             'commission' => ['type' => 'percentage', 'value' => '6', 'restricted' => false], 'cashback_allowed' => true, 'tracking_url' => 'https://lt45.net/c/?si=1&li=2&wi=3']], [], $admin->id);
         $this->as($anna);
-        $this->get('/api/v1/public/webshops/'.$publicSlug.'/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/'.$publicSlug.'/visit'.$this->marketingConsentQuery())->assertRedirect();
         $click = DB::table('affiliate_clicks')->where('user_id', $anna->id)->value('reference');
         $tx = fn (string $status, string $at) => ['affiliatemarketing_id' => 'D-1', 'program_id' => 'P1', 'date' => now()->toIso8601String(), 'last_modified' => $at,
             'parts' => [['subid' => $click, 'referencenumber' => 'ORD-AFF-1', 'revenue' => 79.95, 'commission' => 4.797, 'status' => $status, 'currency_code' => 'EUR']]];

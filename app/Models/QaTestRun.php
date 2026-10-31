@@ -29,6 +29,8 @@ class QaTestRun extends Model
 {
     use HasUlids;
 
+    public const ENVIRONMENTS = ['production', 'staging', 'ci'];
+
     protected $guarded = ['id'];
 
     protected function casts(): array

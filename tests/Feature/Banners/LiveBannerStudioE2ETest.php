@@ -2,17 +2,21 @@
 
 namespace Tests\Feature\Banners;
 
+use App\Enums\EcommercePlatform;
 use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
 use App\Integrations\CapabilityMatrix;
 use App\Integrations\Data\CapabilityState;
+use App\Jobs\GenerateBannerProposals;
 use App\Models\BannerInstallation;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Services\Funding\MerchantFunding;
 use App\Services\Offers\BranchOfferDefaults;
 use App\Services\Offers\OfferService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -232,7 +236,7 @@ class LiveBannerStudioE2ETest extends TestCase
     public function test_e2e09_ai_optimize_creates_reviewable_proposals_not_publish(): void
     {
         config(['banner_ai.enabled' => true, 'banner_ai.api_key' => 'fixture', 'banner_ai.model' => 'fixture-model']);
-        \Illuminate\Support\Facades\Bus::fake([\App\Jobs\GenerateBannerProposals::class]);
+        Bus::fake([GenerateBannerProposals::class]);
         Sanctum::actingAs($this->owner);
         $id = $this->postJson($this->url(), ['name' => 'AI', 'config' => BannerFixture::config()])->assertCreated()->json('data.id');
         // Designs queue immediately; insights additionally require ≥10 verified paid EUR orders.
@@ -241,7 +245,7 @@ class LiveBannerStudioE2ETest extends TestCase
             'request_key' => (string) Str::uuid(),
         ])->assertStatus(202)->assertJsonPath('data.human_review_required', true)->json('data');
         $this->assertSame('designs', $run['kind']);
-        \Illuminate\Support\Facades\Bus::assertDispatched(\App\Jobs\GenerateBannerProposals::class);
+        Bus::assertDispatched(GenerateBannerProposals::class);
         $this->postJson($this->url("/{$id}/ai-requests"), [
             'kind' => 'insights',
             'request_key' => (string) Str::uuid(),
@@ -259,7 +263,7 @@ class LiveBannerStudioE2ETest extends TestCase
         $this->assertContains($install['status'], ['not_seen', 'installed', 'stale']);
 
         $matrix = app(CapabilityMatrix::class);
-        foreach ([\App\Enums\EcommercePlatform::WooCommerce, \App\Enums\EcommercePlatform::Wix, \App\Enums\EcommercePlatform::BigCommerce, \App\Enums\EcommercePlatform::Shopify] as $platform) {
+        foreach ([EcommercePlatform::WooCommerce, EcommercePlatform::Wix, EcommercePlatform::BigCommerce, EcommercePlatform::Shopify] as $platform) {
             $caps = $matrix->forPlatform($platform);
             $this->assertArrayHasKey('banner_embed', $caps);
             $this->assertContains($caps['banner_embed']['state'], [
@@ -297,7 +301,7 @@ class LiveBannerStudioE2ETest extends TestCase
         $funding = app(MerchantFunding::class);
         $wallet = $funding->wallet($this->shop);
         if ($wallet->available < 50000) {
-            app(\App\Services\Wallet\WalletService::class)->adjust($wallet, 50000, 'test-topup', 'E2E', $this->owner->id);
+            app(WalletService::class)->adjust($wallet, 50000, 'test-topup', 'E2E', $this->owner->id);
         }
 
         return $offer->fresh(['currentVersion']);

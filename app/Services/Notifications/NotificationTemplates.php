@@ -8,12 +8,16 @@ use App\Models\PlatformSettingVersion;
 use App\Models\User;
 use App\Services\Admin\PlatformSettings;
 use App\Services\Audit\AuditLogger;
+use App\Support\FrontendPath;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 final class NotificationTemplates
 {
+    /** Placeholders every template may use; the verified amount only where an amount exists. */
+    public const VARIABLES = ['webshop_name', 'first_name'];
+
     public static function key(string $event, string $locale): string
     {
         return 'notifications.template.'.$event.'.'.$locale;
@@ -33,7 +37,7 @@ final class NotificationTemplates
         $event = explode('.', $key)[2] ?? '';
         foreach ($value as $text) {
             preg_match_all('/\{\{([a-z_]+)\}\}/', $text, $matches);
-            $allowed = $event === 'cashback_credited' ? ['amount_formatted'] : [];
+            $allowed = [...self::VARIABLES, ...($event === 'cashback_credited' ? ['amount_formatted'] : [])];
             if (array_diff($matches[1], $allowed) !== [] || preg_match('/[{}<>\x00-\x1f\x7f\d€$@]|https?:|www\.|openai|chatgpt/iu', preg_replace('/\{\{[a-z_]+\}\}/', '', $text))) {
                 throw ValidationException::withMessages(['value' => 'Use approved placeholders and plain text without literal amounts, deadlines, links or provider references.']);
             }
@@ -76,9 +80,9 @@ final class NotificationTemplates
         $key = DB::table('platform_settings')->where('id', $v->setting_id)->value('key');
         self::validate($key, $v->value);
         $locale = str_ends_with($key, '.nl') ? 'nl' : 'en';
-        $preview = $this->substitute($v->value, $locale === 'nl' ? '€7,00' : '€7.00');
+        $preview = $this->substitute($v->value, $locale === 'nl' ? '€7,00' : '€7.00', ['webshop_name' => 'Woon & Co', 'first_name' => 'Anna']);
         $n = new CentralNotification;
-        $n->data = [...$preview, 'locale' => $locale, 'action_route' => '/app/benefits'];
+        $n->data = [...$preview, 'locale' => $locale, 'action_route' => FrontendPath::to('consumer_benefits')];
         $render = app(NotificationMail::class)->render($n);
         $report = ['failed' => 0, 'checks' => ['schema', 'variables', 'lengths', 'plain_text', 'html_render', 'text_render'], 'preview' => $preview, 'synthetic' => true,
             'render_sha256' => hash('sha256', $render['html'].'|'.$render['text'])];
@@ -89,15 +93,25 @@ final class NotificationTemplates
     }
 
     /** @param array<string, string> $value
+     * @param  array<string, string|null>  $variables
      * @return array<string, string>
      */
-    private function substitute(array $value, string $amount): array
+    private function substitute(array $value, string $amount, array $variables = []): array
     {
-        return array_map(fn ($text) => str_replace('{{amount_formatted}}', $amount, $text), $value);
+        $map = ['{{amount_formatted}}' => $amount];
+        foreach (self::VARIABLES as $name) {
+            // Names are user-entered: plain text only, bounded, no markup or placeholder syntax.
+            $map['{{'.$name.'}}'] = mb_substr(trim((string) preg_replace('/[<>{}\x00-\x1f\x7f]/u', '', (string) ($variables[$name] ?? ''))), 0, 60);
+        }
+
+        return array_map(fn ($text) => trim((string) preg_replace('/ {2,}/', ' ', strtr($text, $map))), $value);
     }
 
-    /** @return array<string, mixed> */
-    public function resolve(string $event, string $locale, ?string $amount = null): array
+    /**
+     * @param  array<string, string|null>  $variables
+     * @return array<string, mixed>
+     */
+    public function resolve(string $event, string $locale, ?string $amount = null, array $variables = []): array
     {
         foreach (array_unique([$locale, 'nl']) as $candidate) {
             $s = DB::table('platform_settings')->where('key', self::key($event, $candidate))->first();
@@ -116,7 +130,7 @@ final class NotificationTemplates
                     throw new \LogicException('Published template integrity failure.');
                 }
 
-                return [...$this->substitute($v->value, $amount), 'template_version' => $v->public_id, 'locale' => $candidate, 'locale_fallback' => $candidate !== $locale];
+                return [...$this->substitute($v->value, $amount, $variables), 'template_version' => $v->public_id, 'locale' => $candidate, 'locale_fallback' => $candidate !== $locale];
             }
         }
 

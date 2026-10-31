@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $shopbonus_share_bps
  * @property bool $cashback_approved
  * @property bool $active
+ * @property CarbonImmutable|null $starts_at
+ * @property CarbonImmutable|null $ends_at
  */
 class MerchantCommissionAgreement extends Model
 {

@@ -220,3 +220,24 @@ Trello #33–#35 (B29). A scheduled publication stores the draft revision the Su
 ### D-101 — Quality Center statuses come only from executed, approved evidence (2026-10-29)
 
 Trello #37 (B30). Executable tests stay in Git and run in CI/staging; the backend records inventory and imported results only and never executes tests itself (except the read-only production probe). Only approved test cases count. Precedence FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS; a test without assertions is never PASS; mocked passes stay labelled and are not provider proof. A finding's retest must be done by someone other than its owner/fixer with a run imported after the fix, and its outcome is derived from that run. GPT analysis is advisory, limited to references in its input and never changes status or severity. New roles `qa_tester` and `developer` are console-provisioned; every QA route also admits Super Admin. Production schedules can only use the safe suite.
+
+### D-102 — Review fixes keep the owner decisions; QA freshness follows the tested build (2026-10-31)
+
+Trello review of the Frank list (B31). Reviewer requests that conflict with recorded owner decisions are not implemented: affiliate credit stays pending until network approval (D-089, the restored default), and a wallet shortfall is paid through Mollie (D-053). Quality Center evidence is fresh only for a build known to contain the endpoint's last change (run SHA = change SHA or a later inventory scan); an earlier scanned build is STALE, and an unknown SHA falls back to execution time and is labelled `time_only`. A retest must test a build containing the fix commit or carry the retester's explicit, audited confirmation. A shared (reusable) voucher code redeems only the buyer's own voucher, and a voucher is compensated at most once across all reports.
+
+
+### D-103 — Separate voucher points prices (owner, 2026-10-31)
+
+Owner approved: merchants may set a separate positive integer points price per voucher offer. Points purchases use only the consumer points wallet; no conversion to EUR and no Mollie shortfall. Existing EUR-credit checkout retains D-053. Prices must be versioned, captured immutably at checkout, and revalidated under locks. Missing points pricing or insufficient available points blocks purchase; pending/reserved points cannot fund it. This resolves OPEN-REWARD-UNITS only for explicit points-priced voucher checkout, not the separate points earning/conversion-rate policy.
+
+### D-104 — Explicit per-program points earning (owner, 2026-10-31)
+
+Owner chose “Require an explicit configured rate” for new points earning rules. New points rules must identify the affiliate program and an explicit earning rate before activation; no assumed points/euro conversion. Existing reward snapshots must retain their historical terms. D-103 points voucher pricing remains independent of earning rates. B38 implements an explicit points-per-EUR-consumer-commission-share rate, integer basis-point multiplier and selected floor/half-up/ceil rounding using exact arithmetic. This earning basis does not establish cash redemption value. Incomplete rules stay inactive; legacy snapshots retain legacy calculation.
+
+### D-105 — Commission remainder stays allocation reporting (owner, 2026-10-31)
+
+Owner chose “Keep allocation reporting” for #30. The commission remainder remains management allocation/unrecognized revenue evidence, not posted formal accounting revenue. Existing financial reconciliation and its labels are intentional; no revenue ledger or accounting activation is authorized by the card wording. Formal recognition remains a separate approved accounting task.
+
+### D-106 — No per-consumer voucher issuance limit (owner, 2026-10-31)
+
+Owner chose no per-consumer limit for #17 (Oluwasola finding 4). Offers keep only the overall `allocation_limit`; do not add a per-consumer cap unless the owner asks again. With this, #17 has no open backend finding; remaining work is the merchant dashboard frontend (Hassan).

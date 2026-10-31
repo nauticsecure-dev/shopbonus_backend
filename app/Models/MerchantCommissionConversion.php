@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Cashback\RewardSourceGuard;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property int $agreement_id
  * @property string $external_id
+ * @property array<string, mixed>|null $agreement_snapshot
  * @property string $status
  * @property int $commission_minor
  * @property int $consumer_credit_minor
@@ -38,6 +40,14 @@ class MerchantCommissionConversion extends Model
             'agreement_snapshot' => 'array',
             'converted_at' => 'immutable_datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Same keyed hash as AffiliateTransaction.order_reference_hash, for the indexed cross-path duplicate check.
+        static::saving(function (self $c) {
+            $c->order_reference_hash = app(RewardSourceGuard::class)->orderReferenceHash((int) $c->webshop_id, (string) $c->external_id);
+        });
     }
 
     /** @return list<string> */

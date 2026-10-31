@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property PaymentStatus $payment_status
  * @property string|null $provider_status
  * @property list<array<string,mixed>>|null $line_items
+ * @property array<string,mixed>|null $amount_breakdown
  * @property string $ingestion_status
  * @property list<string>|null $missing_fields
  * @property string $eligibility_status
@@ -64,6 +65,7 @@ class WebshopOrder extends Model
     {
         return [
             'line_items' => 'encrypted:array',
+            'amount_breakdown' => 'array',
             'customer_first_name' => 'encrypted',
             'customer_email' => 'encrypted',
             'customer_phone' => 'encrypted',

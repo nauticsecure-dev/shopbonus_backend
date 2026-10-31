@@ -11,6 +11,9 @@ Artisan::command('inspire', function () {
 // Trello #1: raw webhook payloads are not kept indefinitely.
 Schedule::command('shopbonus:prune-webhook-payloads')->dailyAt('03:15')->withoutOverlapping();
 
+// Trello #17: queued voucher export files only live for their download window.
+Schedule::command('shopbonus:prune-voucher-exports')->hourly()->withoutOverlapping();
+
 // Voucher claim windows (90-day Answer24 rule) and redemption validity.
 Schedule::command('shopbonus:expire-vouchers')->hourly()->withoutOverlapping();
 

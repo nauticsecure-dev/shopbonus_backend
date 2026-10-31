@@ -11,6 +11,7 @@ use App\Models\Offer;
 use App\Models\User;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
+use App\Models\WebshopPublicProfile;
 use App\Services\Offers\OfferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -246,5 +247,17 @@ class PublicDiscoveryTest extends TestCase
         $this->assertCount(0, Storage::disk('local')->allFiles('public-profiles'));
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/public/webshops/fietsen-utrecht/logo')->assertNotFound();
+    }
+
+    public function test_cover_is_served_without_a_logo_and_hidden_for_unlisted_profiles(): void
+    {
+        Storage::disk('local')->put('covers/fietsen.png', UploadedFile::fake()->image('cover.png', 64, 32)->getContent());
+        WebshopPublicProfile::where('webshop_id', $this->fietsen->id)->update(['cover_path' => 'covers/fietsen.png', 'cover_mime' => 'image/png', 'logo_path' => null]);
+
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/cover')->assertOk()
+            ->assertHeader('Content-Type', 'image/png')->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        WebshopPublicProfile::where('webshop_id', $this->fietsen->id)->update(['published' => false]);
+        $this->getJson('/api/v1/public/webshops/fietsen-utrecht/cover')->assertNotFound();
     }
 }

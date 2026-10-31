@@ -1,0 +1,106 @@
+{
+  "captured_at": "2026-10-31",
+  "environment": "Actual local HTTP server, isolated SQLite/storage, APP_LOCALE=nl and APP_FALLBACK_LOCALE=nl; empty public validation requests. No credentials or providers. Base05104b0 plus locale fix.",
+  "captures": [
+    {
+      "method": "POST",
+      "path": "/api/v1/public/cookie-consents",
+      "label": "dutch",
+      "accept_language": "nl-NL",
+      "request": {},
+      "status": 422,
+      "content_language": "nl",
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "De ingevulde gegevens zijn ongeldig.",
+          "request_id": "01a19114-adda-70fc-b791-84757d086c10",
+          "fields": {
+            "policy_version": [
+              "Beleidsversie is verplicht."
+            ],
+            "action": [
+              "Actie is verplicht."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public/cookie-consents",
+      "label": "english",
+      "accept_language": "en",
+      "request": {},
+      "status": 422,
+      "content_language": "en",
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a19114-ae42-72a2-bed2-0950cba40a0c",
+          "fields": {
+            "policy_version": [
+              "The policy version field is required."
+            ],
+            "action": [
+              "The action field is required."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public/cookie-consents",
+      "label": "unsupported_default",
+      "accept_language": "fr-FR",
+      "request": {},
+      "status": 422,
+      "content_language": "nl",
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "De ingevulde gegevens zijn ongeldig.",
+          "request_id": "01a19114-ae5b-702d-b3b3-0bfa4535766b",
+          "fields": {
+            "policy_version": [
+              "Beleidsversie is verplicht."
+            ],
+            "action": [
+              "Actie is verplicht."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/public/cookie-consents",
+      "label": "missing_default",
+      "accept_language": null,
+      "request": {},
+      "status": 422,
+      "content_language": "nl",
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "De ingevulde gegevens zijn ongeldig.",
+          "request_id": "01a19114-ae74-727f-b360-14ac8eefc8d9",
+          "fields": {
+            "policy_version": [
+              "Beleidsversie is verplicht."
+            ],
+            "action": [
+              "Actie is verplicht."
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

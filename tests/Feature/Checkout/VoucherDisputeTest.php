@@ -15,8 +15,10 @@ use App\Models\Voucher;
 use App\Models\VoucherCheckout;
 use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherCode;
+use App\Models\VoucherExport;
 use App\Models\WalletLedgerEntry;
 use App\Models\Webshop;
+use App\Services\Checkout\CheckoutService;
 use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
@@ -52,7 +54,9 @@ class VoucherDisputeTest extends TestCase
     {
         parent::setUp();
         config(['shopbonus.payments.mollie.key' => 'test_dHar4XY7LxsDOtmnkVtjNVWXLSlXsM']);
-        Http::fake(['api.mollie.com/v2/*' => fn (HttpRequest $r) => Http::response(['id' => 're_'.substr(md5($r->header('Idempotency-Key')[0] ?? 'x'), 0, 8), 'status' => 'pending'], 201)]);
+        Http::fake(['api.mollie.com/v2/*' => fn (HttpRequest $r) => $r->method() === 'GET'
+            ? Http::response(['id' => basename($r->url()), 'status' => $this->mollieRefundStatus, 'amount' => ['currency' => 'EUR', 'value' => '20.00']])
+            : Http::response(['id' => 're_'.substr(md5($r->header('Idempotency-Key')[0] ?? 'x'), 0, 8), 'status' => 'pending'], 201)]);
         $this->anna = User::factory()->create();
         $this->admin = User::factory()->create();
         $this->admin->platformRoles()->create(['role' => PlatformRole::SuperAdmin, 'granted_via' => 'console', 'granted_at' => now()]);
@@ -66,6 +70,8 @@ class VoucherDisputeTest extends TestCase
             VoucherCode::create(['webshop_id' => $this->shop->id, 'offer_id' => $this->offer->id, 'code' => $code, 'code_hash' => VoucherCode::hashFor($this->shop->id, $code), 'code_last4' => substr($code, -4)]);
         }
     }
+
+    private string $mollieRefundStatus = 'pending';
 
     private function issued(?User $to = null): Voucher
     {
@@ -179,6 +185,79 @@ class VoucherDisputeTest extends TestCase
         $this->getJson("/api/v1/consumer/disputes/{$id}")->assertNotFound();
     }
 
+    public function test_large_voucher_exports_are_queued_and_downloadable_only_by_the_requester_until_expiry(): void
+    {
+        Storage::fake('local');
+        foreach (range(1, 3) as $i) {
+            $this->issued();
+        }
+        Sanctum::actingAs($this->owner);
+        $streamed = $this->get($this->ws('/vouchers/export'))->assertOk()->streamedContent();
+
+        config(['shopbonus.offers.voucher_export_sync_max_rows' => 2]);
+        $id = $this->getJson($this->ws('/vouchers/export?status=issued&page=3'))->assertStatus(202)->assertJsonPath('data.status', 'queued')->json('data.id');
+        // The queue is synchronous in tests: the job has already run.
+        $this->getJson($this->ws("/vouchers/exports/{$id}"))->assertOk()->assertJsonPath('data.status', 'ready')->assertJsonPath('data.rows', 3);
+        $download = $this->get($this->ws("/vouchers/exports/{$id}/download"))->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('no-store', (string) $download->headers->get('Cache-Control'));
+        $this->assertSame($streamed, $download->streamedContent());
+        $this->assertSame(['status' => 'issued'], VoucherExport::sole()->filters);
+        $this->assertSame(1, AuditEvent::where('action', 'vouchers.export_queued')->count());
+        $this->assertSame(1, AuditEvent::where('action', 'vouchers.export_downloaded')->count());
+
+        // Another member who may export cannot see or fetch someone else's file.
+        $colleague = User::factory()->create();
+        $this->shop->memberships()->create(['user_id' => $colleague->id, 'role' => MembershipRole::Manager, 'status' => 'active', 'joined_at' => now()]);
+        Sanctum::actingAs($colleague);
+        $this->getJson($this->ws("/vouchers/exports/{$id}"))->assertNotFound();
+        $this->getJson($this->ws("/vouchers/exports/{$id}/download"))->assertNotFound();
+
+        // After the window: 410, and the scheduled prune deletes the file.
+        Sanctum::actingAs($this->owner);
+        $this->travel(25)->hours();
+        $this->getJson($this->ws("/vouchers/exports/{$id}/download"))->assertStatus(410)->assertJsonPath('error.code', 'export_expired');
+        $this->artisan('shopbonus:prune-voucher-exports')->assertSuccessful();
+        $this->assertSame([], Storage::disk('local')->allFiles('voucher-exports'));
+        $this->getJson($this->ws("/vouchers/exports/{$id}"))->assertOk()->assertJsonPath('data.status', 'expired');
+    }
+
+    public function test_an_unfinished_voucher_export_is_not_downloadable(): void
+    {
+        $export = VoucherExport::create(['webshop_id' => $this->shop->id, 'requested_by' => $this->owner->id, 'filters' => [], 'status' => 'queued']);
+        Sanctum::actingAs($this->owner);
+        $this->getJson($this->ws("/vouchers/exports/{$export->public_id}/download"))->assertStatus(409)->assertJsonPath('error.code', 'export_not_ready');
+    }
+
+    public function test_merchant_voucher_list_keeps_the_name_the_voucher_was_issued_under(): void
+    {
+        $v = $this->issued();
+        app(OfferService::class)->update($this->shop->memberships()->sole(), $this->offer, ['name' => '€30 korting']);
+        $later = $this->issued();
+
+        Sanctum::actingAs($this->owner);
+        $rows = collect($this->getJson($this->ws('/vouchers'))->assertOk()->json('data'))->pluck('offer_name', 'id');
+        $this->assertSame(['€25 korting', '€30 korting'], [$rows[$v->public_id], $rows[$later->public_id]]);
+        $this->getJson($this->ws("/vouchers/{$v->public_id}"))->assertOk()->assertJsonPath('data.offer_name', '€25 korting');
+    }
+
+    public function test_merchant_dispute_history_is_paginated_newest_first(): void
+    {
+        Sanctum::actingAs($this->anna);
+        $ids = [];
+        foreach (range(1, 3) as $i) {
+            $ids[] = $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $this->issued()->public_id, 'reason' => 'code_invalid', 'description' => "Report number {$i} about this code."])
+                ->assertCreated()->json('data.id');
+        }
+
+        Sanctum::actingAs($this->owner);
+        $first = $this->getJson($this->ws('/disputes?per_page=2'))->assertOk()
+            ->assertJsonPath('meta', ['current_page' => 1, 'last_page' => 2, 'per_page' => 2, 'total' => 3]);
+        $this->assertSame([$ids[2], $ids[1]], array_column($first->json('data'), 'id'));
+        $this->assertSame([$ids[0]], array_column($this->getJson($this->ws('/disputes?per_page=2&page=2'))->assertOk()->json('data'), 'id'));
+        $this->getJson($this->ws('/disputes?status=resolved'))->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson($this->ws('/disputes?per_page=101'))->assertStatus(422);
+    }
+
     public function test_card23_code_does_not_work_report_keeps_screenshot_private_and_encrypted(): void
     {
         Storage::fake('local');
@@ -230,9 +309,10 @@ class VoucherDisputeTest extends TestCase
         $replacement = $this->postJson("/api/v1/admin/disputes/{$first}/resolve", ['outcome' => 'resolved', 'compensation' => 'replacement', 'note' => 'New code issued'])->assertOk();
         $this->assertSame(2, Voucher::where('consumer_user_id', $this->anna->id)->where('status', VoucherStatus::Issued)->count());
 
-        // Refund of the Mollie part of a paid checkout.
+        // Refund of the Mollie part of a paid checkout (a different purchase).
+        $bought = $this->issued();
         $checkout = VoucherCheckout::create(['user_id' => $this->anna->id, 'offer_id' => $this->offer->id, 'webshop_id' => $this->shop->id, 'idempotency_key' => 'k-1', 'state' => 'completed',
-            'price_minor' => 2000, 'wallet_part_minor' => 1000, 'payment_part_minor' => 1000, 'currency' => 'EUR', 'voucher_id' => $v->id, 'expires_at' => now()]);
+            'price_minor' => 2000, 'wallet_part_minor' => 1000, 'payment_part_minor' => 1000, 'currency' => 'EUR', 'voucher_id' => $bought->id, 'expires_at' => now()]);
         VoucherCheckoutPayment::create(['checkout_id' => $checkout->id, 'provider' => 'mollie', 'provider_ref' => 'tr_refundme1', 'amount_minor' => 1000, 'currency' => 'EUR', 'status' => 'paid', 'test_mode' => true]);
         Sanctum::actingAs($this->anna);
         $second = $this->postJson('/api/v1/consumer/disputes', ['checkout_id' => $checkout->public_id, 'reason' => 'terms_differ', 'description' => 'Discount was lower than advertised.'])->json('data.id');
@@ -243,6 +323,29 @@ class VoucherDisputeTest extends TestCase
         $this->assertSame(1000, VoucherCheckoutPayment::where('provider_ref', 'tr_refundme1')->value('refunded_minor'));
     }
 
+    public function test_a_voucher_is_compensated_once_across_reports(): void
+    {
+        $this->issued(); // a second voucher keeps the offer from running out
+        $v = $this->issued();
+        Sanctum::actingAs($this->anna);
+        $first = $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'code_invalid', 'description' => 'The webshop says the code does not exist.'])->json('data.id');
+        $this->asAdmin();
+        $this->postJson("/api/v1/admin/disputes/{$first}/resolve", ['outcome' => 'resolved', 'compensation' => 'wallet_credit', 'amount_minor' => 1000, 'note' => 'Invalid code confirmed'])->assertOk();
+
+        // A later report about the same voucher (through its checkout) cannot be compensated again; closing it without compensation still works.
+        $checkout = VoucherCheckout::create(['user_id' => $this->anna->id, 'offer_id' => $this->offer->id, 'webshop_id' => $this->shop->id, 'idempotency_key' => 'k-2', 'state' => 'completed',
+            'price_minor' => 2000, 'wallet_part_minor' => 2000, 'payment_part_minor' => 0, 'currency' => 'EUR', 'voucher_id' => $v->id, 'expires_at' => now()]);
+        Sanctum::actingAs($this->anna);
+        $second = $this->postJson('/api/v1/consumer/disputes', ['checkout_id' => $checkout->public_id, 'reason' => 'terms_differ', 'description' => 'Still could not use this voucher.'])->assertCreated()->json('data.id');
+        $this->asAdmin();
+        $this->postJson("/api/v1/admin/disputes/{$second}/resolve", ['outcome' => 'resolved', 'compensation' => 'replacement', 'note' => 'Second compensation'])
+            ->assertStatus(409)->assertJsonPath('error.code', 'voucher_already_compensated')->assertJsonPath('error.details.dispute_id', $first);
+        $this->postJson("/api/v1/admin/disputes/{$second}/resolve", ['outcome' => 'resolved', 'compensation' => 'none', 'note' => 'Already compensated'])->assertOk();
+
+        $this->assertSame(1000, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
+        $this->assertFalse(Voucher::where('idempotency_key', 'like', 'dispute-replacement:%')->exists());
+    }
+
     public function test_paid_unfulfilled_checkout_is_refunded_once(): void
     {
         $checkout = VoucherCheckout::create(['user_id' => $this->anna->id, 'offer_id' => $this->offer->id, 'webshop_id' => $this->shop->id, 'idempotency_key' => 'k-2', 'state' => 'paid_unfulfilled',
@@ -251,11 +354,36 @@ class VoucherDisputeTest extends TestCase
 
         $this->asAdmin();
         $this->getJson('/api/v1/admin/checkouts?state=paid_unfulfilled')->assertOk()->assertJsonPath('data.0.id', $checkout->public_id);
-        $this->postJson("/api/v1/admin/checkouts/{$checkout->public_id}/refund", ['note' => 'Inventory ran out after payment'])->assertOk()->assertJsonPath('data.state', 'refunded');
+        // Mollie accepts the refund as pending: not reported as refunded yet, and not refundable twice.
+        $this->postJson("/api/v1/admin/checkouts/{$checkout->public_id}/refund", ['note' => 'Inventory ran out after payment'])->assertOk()->assertJsonPath('data.state', 'refund_pending');
         $this->postJson("/api/v1/admin/checkouts/{$checkout->public_id}/refund", ['note' => 'Again please'])->assertStatus(409);
         Http::assertSentCount(1);
 
+        $this->mollieRefundStatus = 'refunded';
+        $this->assertSame(1, app(CheckoutService::class)->syncRefunds());
+        $this->assertSame('refunded', $checkout->fresh()->state);
+        $this->assertSame(0, app(CheckoutService::class)->syncRefunds());
+
         Sanctum::actingAs($this->owner);
         $this->postJson("/api/v1/admin/checkouts/{$checkout->public_id}/refund", ['note' => 'Merchant tries'])->assertForbidden();
+    }
+
+    public function test_a_failed_refund_returns_the_checkout_to_refundable_with_a_new_idempotency_key(): void
+    {
+        $checkout = VoucherCheckout::create(['user_id' => $this->anna->id, 'offer_id' => $this->offer->id, 'webshop_id' => $this->shop->id, 'idempotency_key' => 'k-3', 'state' => 'paid_unfulfilled',
+            'price_minor' => 2000, 'wallet_part_minor' => 0, 'payment_part_minor' => 2000, 'currency' => 'EUR', 'expires_at' => now(), 'failure_reason' => 'reservation_lost']);
+        VoucherCheckoutPayment::create(['checkout_id' => $checkout->id, 'provider' => 'mollie', 'provider_ref' => 'tr_lost00002', 'amount_minor' => 2000, 'currency' => 'EUR', 'status' => 'paid', 'test_mode' => true]);
+        $this->asAdmin();
+        $this->postJson("/api/v1/admin/checkouts/{$checkout->public_id}/refund", ['note' => 'Inventory ran out after payment'])->assertOk()->assertJsonPath('data.state', 'refund_pending');
+
+        $this->mollieRefundStatus = 'failed';
+        app(CheckoutService::class)->syncRefunds();
+        $payment = VoucherCheckoutPayment::where('provider_ref', 'tr_lost00002')->sole();
+        $this->assertSame(['paid_unfulfilled', 'failed', 0], [$checkout->fresh()->state, $payment->refund_status, $payment->refunded_minor]);
+
+        $this->postJson("/api/v1/admin/checkouts/{$checkout->public_id}/refund", ['note' => 'Second attempt after failure'])->assertOk()->assertJsonPath('data.state', 'refund_pending');
+        $keys = collect(Http::recorded())->map(fn ($pair) => $pair[0])->filter(fn (HttpRequest $r) => $r->method() === 'POST')->map(fn (HttpRequest $r) => $r->header('Idempotency-Key')[0])->values();
+        $this->assertCount(2, $keys);
+        $this->assertNotSame($keys[0], $keys[1]);
     }
 }

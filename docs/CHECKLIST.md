@@ -855,3 +855,86 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] `PinnedJsonReader` opt-in `allowEmpty` for 204 list pages (BigCommerce v2).
 - [x] PlatformCatalogTest: one products + coupons pass per platform, unsupported shape skipped, codes encrypted, no write methods; real-server capture B27_PLATFORM_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
 - [ ] Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel: no native read connector (UNSUPPORTED). Live installed-store runs for all platforms NOT RUN. Storefront banner publication NOT BUILT (merchant-side plugin/app scope).
+
+### B32 — Resume Frank review branch / CI repair (2026-10-31)
+
+- [x] Audit and preserve Claude's uncommitted fixes and current ten Frank card requirements.
+- [x] Finish PHPStan cleanup without baselines or disabling checks; retain API contracts.
+- [x] Verify canonical enrichment evidence hashing across JSON key ordering and tampering.
+- [x] Validate MySQL column-width migration and affected regression tests on isolated test databases.
+- [x] Run API coverage, formatting, static analysis and full SQLite/MySQL suites sequentially.
+- [x] Record exact results, outstanding backend/frontend/live acceptance and branch/commit in handoff.
+
+Evidence: implementing commit `fix: finish Frank review CI repair on SQLite and MySQL` (SHA recorded in following handoff checkpoint); SQLite 1117 total/1093 passed/24 skipped, MySQL 1120 total/1117 passed/3 skipped; focused hash/enrichment 8/31; API coverage 3/5140; Pint, PHPStan L6, dependency audit PASS.
+
+### B33 — Separate points-priced voucher checkout, #19/#20 (D-103)
+
+- [x] Add optional positive integer points price to immutable offer terms; at least one explicit price before activation.
+- [x] Validate merchant pricing and consumer payment unit; preserve existing EUR-credit behavior.
+- [x] Persist points price/unit separately from monetary amounts; reserve/capture points atomically through WalletService.
+- [x] Block missing points price, insufficient points, monetary fallback and altered idempotent requests.
+- [x] Revalidate the current locked offer version and stock; preserve frozen issuance terms and existing tenant/user guards.
+- [x] Extend financial reconciliation to prove exact unit, owner, debit and immutable price.
+- [x] Test success/replay, insufficient/pending/reserved points, rollback, unit isolation, version changes and security negatives.
+- [x] Capture changed public/merchant/consumer API examples from a real isolated HTTP server; update OpenAPI and README.
+- [x] Record executed checks and exact commit; whole Trello cards retain independent/frontend/live acceptance.
+
+B33 evidence: implementing commit `feat: support separately priced points voucher checkout`; focused SQLite 55 total/52 passed/3 skipped, MySQL 55 passed including four-process replay; API capture 18 exchanges; PHPStan L6 PASS. SHA recorded in subsequent handoff. B32 SHA: `1a3eee0`.
+
+### B34 — Affiliate purchase identity, fresh selection and consent, #19
+
+- [x] Distinct trustworthy order references on one click remain separate purchases; repeated same purchase stays disputed.
+- [x] Reselect when candidates, eligibility, rates or selection configuration change, including a previous empty decision.
+- [x] Missing published cookie policy fails closed for affiliate tracking in every environment; explicit current marketing consent required.
+- [x] Update regression fixtures to grant explicit consent; test missing/stale/withdrawn consent and no-click/no-reward behavior.
+- [x] Capture changed visit behavior from a real server and update API docs; run focused SQLite/MySQL checks.
+- [x] Record exact evidence and remaining points earning/business/live acceptance boundaries.
+
+B34 implementing commit `fix: refresh affiliate selection and require tracking consent`; evidence above; B33 SHA `fe699ad`. B34 SHA recorded in following checkpoint.
+
+### B35 — Quality Center CI execution provenance, #37/#36/#22
+
+- [x] Discover general backend services/models/requests and remaining application components; conservatively invalidate endpoint evidence for transitive backend source changes.
+
+- [x] Emit JUnit and actual execution timestamp for both existing CI database jobs, preserving test failure exit codes.
+- [x] Import/discover into a separate ephemeral QA database with exact tested SHA and explicit `ci` environment; label synthetic regression runs mocked.
+- [x] Retain reports, current route inventory and sanitized QA summary artifacts on success/failure without exposing credentials or DB exports.
+- [x] Keep deployment/scheduled staging execution and 175 inaccessible PDF checks explicitly unverified.
+- [x] Test CLI CI-environment validation/import/provenance and existing API behavior; capture any API contract changes.
+- [x] Document senior-owned deployment hooks and evidence replay; record exact checks and commit.
+
+B35 evidence: SQLite/MySQL QA17/297 each; API3/7505; Pint/PHPStan PASS; real CLI artifact replay and eight HTTP captures. Implementing commit `feat: retain honest CI Quality Center evidence`; remote workflow execution remains pending. B34 SHA `40d8e83`.
+
+### B36 — Git build proof and evidence-backed independent retests, #37/#36
+
+- [x] Verify actual Git ancestry when history is available; a later scan alone cannot prove a fix is present.
+- [x] Keep unknown-build endpoint evidence stale and distinguish explicit independent build attestations.
+- [x] Reject old executed reports imported after a fix; preserve independent-role restrictions.
+- [x] Manual/unlinked PASS needs an executed unmocked assertion and valid, unexpired, checksum-verified result evidence; browser/manual linked tests need the same evidence.
+- [x] Test unrelated branches, missing history, stale execution, missing/expired/corrupt evidence and valid independent retests.
+- [x] Capture changed QA API results and document conservative limitations; run focused SQLite/MySQL checks.
+
+B36 evidence: SQLite26/7835 and MySQL23/330 PASS; API3/7505; Pint/PHPStan PASS; actual Git branch proof and seven HTTP guard captures. Implementing commit `fix: require build and evidence proof for QA retests`; B35 SHA `1284bc1`.
+
+### B37 — CI locale/fallback regression repair
+
+- [x] Reproduce English validation labels falling back to Dutch under the shipped NL fallback configuration.
+- [x] Provide English attribute labels without replacing Laravel's validation messages; preserve configured default locale.
+- [x] Test alternating languages and unsupported/missing preferences under explicit NL/EN defaults.
+- [x] Capture actual HTTP validation responses; update API docs and record focused SQLite/MySQL/static/format evidence.
+
+B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual HTTP captures. Implementing commit `fix: isolate validation labels and request locale defaults`; B36 SHA `05104b0`.
+
+### B38 — Explicit per-program points earning, #19 (D-104)
+
+- [x] Ensure non-destructive points migrations can reapply without dropping contractual data; verify isolated migration replay.
+
+- [x] Add immutable program/rate/calculation/points multiplier/rounding terms on existing reward rules; no new wallet or implicit conversion.
+- [x] New points rules remain inactive until a mapped program and explicit positive points-per-EUR-consumer-share rate are configured; reject mismatched source/workshop inputs.
+- [x] Select applicable program rules and freeze complete earning terms on new transactions; preserve legacy reward snapshots and EUR behavior.
+- [x] Use exact integer arithmetic for configurable points rounding/multipliers/caps, including large amounts.
+- [x] Public discovery distinguishes points earning from EUR cashback; financial reconciliation checks the frozen program/rate.
+- [x] Test inactive/missing rates, scope isolation, approval/replay, changed rules, legacy snapshots and arithmetic boundaries on SQLite/MySQL.
+- [x] Capture real admin/public HTTP examples; update OpenAPI, README and handoff with exact evidence.
+
+B38 checked against executed evidence in this implementation commit (parent130fd24); resulting SHA recorded in the next checkpoint. SQLite65pass+1skip/7959assertions, MySQL62pass+1skip/446assertions; static/style PASS;16 real HTTP captures.

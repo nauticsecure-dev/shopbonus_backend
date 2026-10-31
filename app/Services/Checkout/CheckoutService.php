@@ -12,6 +12,7 @@ use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
 use App\Exceptions\ApiException;
 use App\Models\Offer;
+use App\Models\OfferVersion;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCheckout;
@@ -52,6 +53,11 @@ class CheckoutService
      * Server-side price and split. Never mutates anything.
      *
      * @return array{
+     *   wallet_unit: string,
+     *   price_points: int|null,
+     *   wallet_available_points: int,
+     *   wallet_part_points: int,
+     *   shortfall_points: int,
      *   price_minor: int,
      *   currency: string,
      *   wallet_available: int,
@@ -62,30 +68,40 @@ class CheckoutService
      *   blockers: list<string>
      * }
      */
-    public function quote(User $user, Offer $offer, bool $useWallet = true): array
+    public function quote(User $user, Offer $offer, bool $useWallet = true, WalletUnit $unit = WalletUnit::EurCredit): array
     {
         $version = $offer->currentVersion;
-        $price = (int) ($version->price_minor ?? 0);
-        $available = Wallet::where('owner_type', 'user')->where('owner_id', $user->id)->where('kind', WalletKind::ConsumerCredit)->where('unit', WalletUnit::EurCredit)->value('available') ?? 0;
-        $walletPart = $useWallet ? min($available, $price) : 0;
+        $points = $unit === WalletUnit::Points;
+        $price = $points ? 0 : (int) ($version->price_minor ?? 0);
+        $pointsPrice = $points ? $version?->price_points : null;
+        $available = Wallet::where('owner_type', 'user')->where('owner_id', $user->id)->where('kind', WalletKind::ConsumerCredit)->where('unit', $unit)->value('available') ?? 0;
+        $walletPart = $useWallet && ! $points ? min($available, $price) : 0;
+        $pointsPart = $points && $useWallet ? min($available, (int) $pointsPrice) : 0;
         $paymentPart = $price - $walletPart;
         $shortfall = max(0, $price - $available);
 
         $blockers = array_keys(array_filter([
-            'not_for_sale' => $offer->acquisition !== OfferAcquisition::WalletPurchase || $price <= 0,
+            'not_for_sale' => $offer->acquisition !== OfferAcquisition::WalletPurchase || ($points ? (int) $pointsPrice <= 0 : $price <= 0),
             'offer_not_active' => ! $offer->status->isPurchasableStorage(),
             'webshop_not_active' => $offer->webshop()->firstOrFail()->status !== WebshopStatus::Approved,
             'outside_validity' => ($version?->starts_at?->isFuture() ?? false) || ($version?->ends_at?->isPast() ?? false),
             'sold_out' => ! VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->exists(),
             // Shortfall requiring money: blocked when Mollie is unavailable (covers insufficient wallet).
             'payments_unavailable' => $paymentPart > 0 && ! $this->mollie->available(),
+            'insufficient_points' => $points && (int) $pointsPrice > $available,
+            'points_wallet_required' => $points && ! $useWallet,
             'email_not_verified' => $user->email_verified_at === null,
         ]));
 
         return [
+            'wallet_unit' => $unit->value,
+            'price_points' => $pointsPrice,
+            'wallet_available_points' => $points ? $available : 0,
+            'wallet_part_points' => $pointsPart,
+            'shortfall_points' => $points ? max(0, (int) $pointsPrice - $available) : 0,
             'price_minor' => $price,
             'currency' => (string) ($version->currency ?? 'EUR'),
-            'wallet_available' => $available,
+            'wallet_available' => $points ? 0 : $available,
             'wallet_part_minor' => $walletPart,
             'payment_part_minor' => $paymentPart,
             'shortfall_minor' => $shortfall,
@@ -94,22 +110,31 @@ class CheckoutService
         ];
     }
 
-    public function start(User $user, Offer $offer, string $key, bool $useWallet = true): VoucherCheckout
+    public function start(User $user, Offer $offer, string $key, bool $useWallet = true, WalletUnit $unit = WalletUnit::EurCredit): VoucherCheckout
     {
         if (($existing = $this->byKey($user, $key)) !== null) {
-            return $existing;
+            $this->assertSamePurchase($existing, $offer, $unit);
+            // A retry after an unanswered payment request asks Mollie again with the same key.
+            if ($existing->state === 'pending_payment' && $existing->payment_part_minor > 0 && $existing->payment()->doesntExist()) {
+                $this->createPayment($existing, $offer);
+            }
+
+            return $existing->refresh();
         }
 
-        $quote = $this->quote($user, $offer, $useWallet);
+        $quote = $this->quote($user, $offer, $useWallet, $unit);
         if ($quote['blockers'] !== []) {
             throw ApiException::conflict('This voucher cannot be bought right now.', 'checkout_blocked', ['blockers' => $quote['blockers']]);
         }
 
         try {
             // Deadlocks are retried; the lock order in open() makes them rare.
-            $checkout = DB::transaction(fn () => $this->open($user, $offer, $key, $quote), 3);
+            $checkout = DB::transaction(fn () => $this->open($user, $offer, $key, $useWallet, $unit), 3);
         } catch (UniqueConstraintViolationException) {
-            return $this->byKey($user, $key) ?? throw ApiException::conflict('Checkout conflict, retry.', 'checkout_conflict');
+            $existing = $this->byKey($user, $key) ?? throw ApiException::conflict('Checkout conflict, retry.', 'checkout_conflict');
+            $this->assertSamePurchase($existing, $offer, $unit);
+
+            return $existing;
         }
 
         if ($checkout->state === 'pending_payment') {
@@ -122,12 +147,49 @@ class CheckoutService
     /** Mollie webhook: never trusts the request; asks Mollie. */
     public function handleWebhook(string $paymentId): void
     {
-        $payment = VoucherCheckoutPayment::where('provider_ref', $paymentId)->first();
+        $payment = VoucherCheckoutPayment::where('provider_ref', $paymentId)->first() ?? $this->recoverPayment($paymentId);
         if ($payment === null) {
             return; // unknown or forged ID: nothing to do, and nothing revealed
         }
 
         $this->sync(VoucherCheckout::findOrFail($payment->checkout_id));
+    }
+
+    /**
+     * A payment Mollie created whose answer never reached us (timeout, crash
+     * before the insert): Mollie's own record names the checkout. Linked only
+     * to an unlinked checkout of exactly that amount and currency.
+     */
+    private function recoverPayment(string $paymentId): ?VoucherCheckoutPayment
+    {
+        try {
+            $remote = $this->mollie->getPayment($paymentId);
+        } catch (ApiException $e) {
+            $status = (int) ($e->details['provider_status'] ?? 0);
+            if ($status >= 400 && $status < 500) {
+                return null; // Mollie does not know it either
+            }
+            throw $e; // unreachable: a non-200 makes Mollie retry the webhook
+        }
+
+        $checkout = VoucherCheckout::where('public_id', (string) ($remote['metadata']['checkout_id'] ?? ''))->first();
+        if ($checkout === null || $checkout->payment_part_minor <= 0 || $remote['amount_minor'] !== $checkout->payment_part_minor || $remote['currency'] !== $checkout->currency) {
+            return null;
+        }
+        if ($checkout->payment()->exists()) {
+            report(new \RuntimeException("Mollie payment {$paymentId} names checkout {$checkout->public_id}, which already has another payment."));
+
+            return null;
+        }
+
+        $payment = VoucherCheckoutPayment::firstOrCreate(['checkout_id' => $checkout->id], ['provider' => 'mollie', 'provider_ref' => $remote['id'], 'amount_minor' => $checkout->payment_part_minor,
+            'currency' => $checkout->currency, 'status' => $remote['status'], 'checkout_url' => null, 'test_mode' => $this->mollie->testMode()]);
+        if ($payment->wasRecentlyCreated) {
+            $this->audit->record('checkout.payment_recovered', category: AuditCategory::Financial, resource: $checkout, webshopId: $checkout->webshop_id,
+                metadata: ['provider_ref' => $remote['id']]);
+        }
+
+        return $payment->provider_ref === $paymentId ? $payment : null;
     }
 
     /** Applies Mollie's actual status to the checkout. */
@@ -176,50 +238,110 @@ class CheckoutService
         return $changed;
     }
 
+    /**
+     * Scheduled: asks Mollie for refunds still in flight. A refunded one settles
+     * a refund_pending checkout; a failed or canceled one returns the amount to
+     * the refundable balance and the checkout to paid_unfulfilled. Returns the count changed.
+     */
+    public function syncRefunds(): int
+    {
+        $changed = 0;
+        VoucherCheckoutPayment::whereNotNull('refund_ref')->whereIn('refund_status', ['queued', 'pending', 'processing'])->orderBy('id')
+            ->each(function (VoucherCheckoutPayment $p) use (&$changed) {
+                try {
+                    $remote = $this->mollie->getRefund($p->provider_ref, (string) $p->refund_ref);
+                } catch (ApiException $e) {
+                    report($e); // provider unreachable: try again next run
+
+                    return;
+                }
+                if ($remote['status'] === $p->refund_status) {
+                    return;
+                }
+                DB::transaction(function () use ($p, $remote) {
+                    $payment = VoucherCheckoutPayment::whereKey($p->id)->lockForUpdate()->firstOrFail();
+                    $c = VoucherCheckout::whereKey($payment->checkout_id)->lockForUpdate()->firstOrFail();
+                    $failed = in_array($remote['status'], ['failed', 'canceled'], true);
+                    $payment->forceFill(['refund_status' => $remote['status']] + ($failed ? ['refunded_minor' => max(0, $payment->refunded_minor - (int) $payment->refund_amount_minor)] : []))->save();
+                    if ($c->state === 'refund_pending' && ($remote['status'] === 'refunded' || $failed)) {
+                        $c->forceFill(['state' => $failed ? 'paid_unfulfilled' : 'refunded'])->save();
+                    }
+                    $this->audit->record('checkout.refund_'.($failed ? 'failed' : 'status_changed'), category: AuditCategory::Financial, resource: $c, webshopId: $c->webshop_id,
+                        metadata: ['refund_status' => $remote['status'], 'amount' => $payment->refund_amount_minor]);
+                    if ($failed) {
+                        report(new \RuntimeException("Refund {$payment->refund_ref} for checkout {$c->public_id} {$remote['status']}; refund again."));
+                    }
+                });
+                $changed++;
+            });
+
+        return $changed;
+    }
+
     // ------------------------------------------------------------------ internals
 
-    /**
-     * @param  array{price_minor: int, currency: string, wallet_part_minor: int, payment_part_minor: int}  $quote
-     */
-    private function open(User $user, Offer $offer, string $key, array $quote): VoucherCheckout
+    private function open(User $user, Offer $offer, string $key, bool $useWallet, WalletUnit $unit): VoucherCheckout
     {
         // Lock order: offer → checkout row → code → wallet. Taking the offer lock before
         // inserting (whose foreign key takes a shared lock on it) avoids an S→X upgrade deadlock.
-        Offer::whereKey($offer->id)->lockForUpdate()->firstOrFail();
+        $offer = Offer::whereKey($offer->id)->lockForUpdate()->firstOrFail();
         if (($existing = $this->byKey($user, $key)) !== null) {
+            $this->assertSamePurchase($existing, $offer, $unit);
+
             return $existing; // a concurrent identical request finished while we waited
+        }
+
+        $version = OfferVersion::whereKey($offer->current_version_id)->lockForUpdate()->firstOrFail();
+        $offer->setRelation('currentVersion', $version);
+        // Re-read terms under the offer and version locks; never charge a stale pre-lock quote.
+        $quote = $this->quote($user, $offer, $useWallet, $unit);
+        // Inventory owns the stock-race error and the final atomic stock check.
+        $blockers = array_values(array_diff($quote['blockers'], ['sold_out']));
+        if ($blockers !== []) {
+            throw ApiException::conflict('This voucher cannot be bought right now.', 'checkout_blocked', ['blockers' => $blockers]);
         }
 
         $checkout = VoucherCheckout::create([
             'user_id' => $user->id, 'offer_id' => $offer->id, 'webshop_id' => $offer->webshop_id, 'idempotency_key' => $key, 'state' => 'pending_payment',
+            'wallet_unit' => $unit, 'price_points' => $quote['price_points'], 'wallet_part_points' => $quote['wallet_part_points'],
             'price_minor' => $quote['price_minor'], 'wallet_part_minor' => $quote['wallet_part_minor'], 'payment_part_minor' => $quote['payment_part_minor'],
             'currency' => $quote['currency'], 'expires_at' => now()->addMinutes((int) config('shopbonus.payments.checkout_ttl_minutes', 30)),
         ]);
 
         // Reserve the code (fails with offer_out_of_stock if the last one just went) and the wallet part.
         $voucher = $this->inventory->reserve($offer, VoucherOrigin::WalletPurchase, 'checkout:'.$checkout->public_id, actorUserId: $user->id);
-        $reservation = $quote['wallet_part_minor'] === 0 ? null : $this->wallets->reserve(
-            $this->wallets->consumerWallet($user, WalletUnit::EurCredit), $quote['wallet_part_minor'], 'checkout:'.$checkout->public_id,
+        $walletAmount = $unit === WalletUnit::Points ? $quote['wallet_part_points'] : $quote['wallet_part_minor'];
+        $reservation = $walletAmount === 0 ? null : $this->wallets->reserve(
+            $this->wallets->consumerWallet($user, $unit), $walletAmount, 'checkout:'.$checkout->public_id,
             (int) config('shopbonus.payments.checkout_hard_limit_minutes', 180) + 30, ['source_type' => 'voucher_checkout', 'source_ref' => $checkout->public_id]);
         $checkout->forceFill(['voucher_id' => $voucher->id, 'wallet_reservation_id' => $reservation?->id])->save();
 
         $this->audit->record('checkout.started', category: AuditCategory::Financial, resource: $checkout, webshopId: $checkout->webshop_id, actorUserId: $user->id,
-            metadata: ['price' => $quote['price_minor'], 'wallet' => $quote['wallet_part_minor'], 'payment' => $quote['payment_part_minor']]);
+            metadata: ['wallet_unit' => $unit->value, 'price_points' => $quote['price_points'], 'points' => $quote['wallet_part_points'], 'price' => $quote['price_minor'], 'wallet' => $quote['wallet_part_minor'], 'payment' => $quote['payment_part_minor']]);
 
         return $quote['payment_part_minor'] === 0 ? $this->complete($checkout) : $checkout;
     }
 
+    /**
+     * Mollie's Idempotency-Key makes a repeated request return the same payment.
+     * When the outcome is unknown (timeout, provider 5xx) the checkout stays
+     * pending so a retry can recover that payment; a clear refusal fails it.
+     */
     private function createPayment(VoucherCheckout $checkout, Offer $offer): void
     {
         try {
             $payment = $this->mollie->createPayment($checkout->payment_part_minor, $checkout->currency, 'ShopBonus voucher: '.$offer->currentVersion?->name,
-                config('shopbonus.identity.frontend_url').'/checkout/'.$checkout->public_id, route('api.v1.payments.mollie.webhook'), ['checkout_id' => $checkout->public_id]);
+                config('shopbonus.identity.frontend_url').'/checkout/'.$checkout->public_id, route('api.v1.payments.mollie.webhook'), ['checkout_id' => $checkout->public_id],
+                idempotencyKey: 'checkout:'.$checkout->public_id);
         } catch (Throwable $e) {
-            $this->fail($checkout, 'payment_creation_failed');
+            $unknown = $e instanceof ApiException && ($e->errorCode === 'payment_provider_unavailable' || (int) ($e->details['provider_status'] ?? 0) >= 500);
+            if (! $unknown) {
+                $this->fail($checkout, 'payment_creation_failed');
+            }
             throw $e instanceof ApiException ? $e : new ApiException('The payment could not be started.', 502, 'payment_provider_error');
         }
 
-        VoucherCheckoutPayment::create(['checkout_id' => $checkout->id, 'provider' => 'mollie', 'provider_ref' => $payment['id'], 'amount_minor' => $checkout->payment_part_minor,
+        VoucherCheckoutPayment::firstOrCreate(['checkout_id' => $checkout->id], ['provider' => 'mollie', 'provider_ref' => $payment['id'], 'amount_minor' => $checkout->payment_part_minor,
             'currency' => $checkout->currency, 'status' => $payment['status'], 'checkout_url' => $payment['checkout_url'], 'test_mode' => $this->mollie->testMode()]);
     }
 
@@ -283,6 +405,13 @@ class CheckoutService
 
             return $c;
         });
+    }
+
+    private function assertSamePurchase(VoucherCheckout $checkout, Offer $offer, WalletUnit $unit): void
+    {
+        if ($checkout->offer_id !== $offer->id || $checkout->wallet_unit !== $unit) {
+            throw ApiException::conflict('This checkout key belongs to a different purchase.', 'checkout_request_conflict');
+        }
     }
 
     /** @phpstan-impure */

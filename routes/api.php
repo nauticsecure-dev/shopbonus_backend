@@ -1,22 +1,22 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AboutUsCmsController as AdminAboutUsCmsController;
 use App\Http\Controllers\Api\V1\Admin\AffiliateController as AdminAffiliateController;
-use App\Http\Controllers\Api\V1\Admin\MerchantCommissionController as AdminMerchantCommissionController;
 use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreementTemplateController;
 use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
 use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
-use App\Http\Controllers\Api\V1\Admin\AboutUsCmsController as AdminAboutUsCmsController;
-use App\Http\Controllers\Api\V1\Admin\HomepageCmsController as AdminHomepageCmsController;
-use App\Http\Controllers\Api\V1\Admin\MerchantLandingCmsController as AdminMerchantLandingCmsController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
 use App\Http\Controllers\Api\V1\Admin\FinancialOversightController as AdminFinancialOversightController;
+use App\Http\Controllers\Api\V1\Admin\HomepageCmsController as AdminHomepageCmsController;
 use App\Http\Controllers\Api\V1\Admin\IncidentController as AdminIncidentController;
 use App\Http\Controllers\Api\V1\Admin\IncidentDiagnosticController as AdminIncidentDiagnosticController;
+use App\Http\Controllers\Api\V1\Admin\MerchantCommissionController as AdminMerchantCommissionController;
 use App\Http\Controllers\Api\V1\Admin\MerchantEnrichmentController as AdminMerchantEnrichmentController;
+use App\Http\Controllers\Api\V1\Admin\MerchantLandingCmsController as AdminMerchantLandingCmsController;
 use App\Http\Controllers\Api\V1\Admin\MonitoringController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsController;
@@ -48,9 +48,8 @@ use App\Http\Controllers\Api\V1\Consumer\PrivacyController;
 use App\Http\Controllers\Api\V1\Consumer\ProfileController;
 use App\Http\Controllers\Api\V1\Consumer\PromotionalClaimController;
 use App\Http\Controllers\Api\V1\Consumer\WalletController;
-use App\Http\Controllers\Api\V1\Me\WalletController as MeWalletController;
-use App\Http\Controllers\Api\V1\Content\CookieConsentController;
 use App\Http\Controllers\Api\V1\Content\AboutUsController;
+use App\Http\Controllers\Api\V1\Content\CookieConsentController;
 use App\Http\Controllers\Api\V1\Content\HomepageController;
 use App\Http\Controllers\Api\V1\Content\MerchantLandingController;
 use App\Http\Controllers\Api\V1\Content\PublicContentController;
@@ -67,6 +66,7 @@ use App\Http\Controllers\Api\V1\Integrations\ShopifyOAuthController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppController;
 use App\Http\Controllers\Api\V1\Integrations\ShopwareAppWebhookController;
 use App\Http\Controllers\Api\V1\Integrations\WebhookController;
+use App\Http\Controllers\Api\V1\Me\WalletController as MeWalletController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\Notifications\InboxController;
 use App\Http\Controllers\Api\V1\Offers\OfferController;
@@ -689,6 +689,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('vouchers', [VoucherOperationsController::class, 'index'])->middleware('workspace.can:vouchers.view')->name('vouchers.index');
                 Route::get('vouchers/export', [VoucherOperationsController::class, 'export'])
                     ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('vouchers.export');
+                Route::get('vouchers/exports/{export}', [VoucherOperationsController::class, 'showExport'])->middleware('workspace.can:vouchers.export')->name('vouchers.exports.show');
+                Route::get('vouchers/exports/{export}/download', [VoucherOperationsController::class, 'downloadExport'])
+                    ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('vouchers.exports.download');
                 Route::get('vouchers/{voucher}', [VoucherOperationsController::class, 'show'])->middleware('workspace.can:vouchers.view')->name('vouchers.show');
                 Route::middleware('workspace.can:vouchers.manage')->group(function () {
                     Route::post('offers/{offer}/code-imports', [VoucherCodeController::class, 'import'])->middleware('throttle:code-import')->name('code-imports.store');

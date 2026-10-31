@@ -63,7 +63,7 @@ class WooCommerceApi
     {
         $result = $this->get($connection, 'coupons', page: 1, query: ['code' => $code, 'per_page' => 10], maxPages: 1);
         $rows = $result['data'];
-        if (! is_array($rows) || ! array_is_list($rows)) {
+        if (! array_is_list($rows)) {
             throw new ApiException('The provider coupon response is invalid.', 502, 'provider_coupon_invalid');
         }
         $needle = mb_strtoupper(self::couponCode($code));

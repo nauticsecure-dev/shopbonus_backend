@@ -1,0 +1,831 @@
+{
+  "captured_at": "2026-10-31",
+  "environment": "Real local php artisan serve, isolated SQLite, synthetic users/points/codes, bearer auth; no upstream/provider calls. Tokens excluded.",
+  "base_commit": "1a3eee0",
+  "captures": [
+    {
+      "method": "POST",
+      "path": "/api/v1/workspaces/01m68f0ch2h0gxmdw5yn82s4fw/offers",
+      "route": "/api/v1/workspaces/{workspace}/offers",
+      "label": "negative_points_price",
+      "auth": "owner",
+      "request": {
+        "acquisition": "wallet_purchase",
+        "name": "Points voucher",
+        "discount_type": "fixed",
+        "discount_value": 1000,
+        "price_points": -1,
+        "redemption_validity_days": 30
+      },
+      "status": 422,
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a190f0-a9ae-72d8-8327-31d1adb5c23e",
+          "fields": {
+            "price_points": [
+              "The price points field must be at least 1."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/workspaces/01m68f0ch2h0gxmdw5yn82s4fw/offers",
+      "route": "/api/v1/workspaces/{workspace}/offers",
+      "label": "create_points_offer",
+      "auth": "owner",
+      "request": {
+        "acquisition": "wallet_purchase",
+        "name": "Points voucher",
+        "discount_type": "fixed",
+        "discount_value": 1000,
+        "price_points": 250,
+        "redemption_validity_days": 30
+      },
+      "status": 201,
+      "response": {
+        "data": {
+          "id": "01m68f1ahvwnra9zgs7rn35fwj",
+          "acquisition": "wallet_purchase",
+          "status": "draft",
+          "lifecycle_status": "draft",
+          "inventory": {
+            "total": 0,
+            "available": 0,
+            "reserved": 0,
+            "issued": 0,
+            "redeemed": 0
+          },
+          "allowed_actions": [
+            "edit",
+            "import_codes",
+            "publish",
+            "activate",
+            "end",
+            "archive",
+            "duplicate"
+          ],
+          "terms": {
+            "version": 1,
+            "locked": false,
+            "summary": "\u20ac10.00",
+            "name": "Points voucher",
+            "public_description": null,
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": null,
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "price_minor": null,
+            "price_points": 250,
+            "starts_at": null,
+            "ends_at": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "categories": [],
+            "products": [],
+            "combinable": null,
+            "code_mode": null,
+            "allocation_limit": null
+          },
+          "missing_for_activation": [],
+          "cost_preview": {
+            "applies": false,
+            "reason": "consumer_funded"
+          },
+          "preview": {
+            "published": false,
+            "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+            "status": "draft",
+            "how_to_obtain": "buy_with_wallet",
+            "title": "Points voucher",
+            "summary": "\u20ac10.00",
+            "badge_label": "\u20ac10 voucher",
+            "offer_line": "\u20ac10 voucher",
+            "journey": {
+              "headline": "\u20ac10.00",
+              "steps": [],
+              "claim_window": null,
+              "redemption_window": "Redeem within 30 days after claim.",
+              "campaign": null
+            },
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "price_points": 250,
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "starts_at": null,
+            "ends_at": null,
+            "conditions": null,
+            "combinable": false,
+            "categories": [],
+            "webshop": {
+              "name": "Points Demo",
+              "short_description": null,
+              "description": null,
+              "logo_url": null,
+              "cover_url": null,
+              "website_url": "https://points.example.test",
+              "verified_domain": "points.example.test",
+              "ownership_verified": true
+            }
+          },
+          "activated_at": null,
+          "paused_at": null,
+          "ended_at": null,
+          "archived_at": null,
+          "created_at": "2026-10-31T07:50:53+00:00"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/workspaces/01m68f0ch2h0gxmdw5yn82s4fw/offers/01m68f1ahvwnra9zgs7rn35fwj/activate",
+      "route": "/api/v1/workspaces/{workspace}/offers/{offer}/activate",
+      "label": "activate_points_offer",
+      "auth": "owner",
+      "request": {},
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68f1ahvwnra9zgs7rn35fwj",
+          "acquisition": "wallet_purchase",
+          "status": "active",
+          "lifecycle_status": "active",
+          "inventory": {
+            "total": 2,
+            "available": 2,
+            "reserved": 0,
+            "issued": 0,
+            "redeemed": 0
+          },
+          "allowed_actions": [
+            "edit",
+            "import_codes",
+            "pause",
+            "end",
+            "archive",
+            "duplicate"
+          ],
+          "terms": {
+            "version": 1,
+            "locked": true,
+            "summary": "\u20ac10.00",
+            "name": "Points voucher",
+            "public_description": null,
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "price_minor": null,
+            "price_points": 250,
+            "starts_at": null,
+            "ends_at": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "categories": [],
+            "products": [],
+            "combinable": false,
+            "code_mode": "unique",
+            "allocation_limit": null
+          },
+          "missing_for_activation": [],
+          "cost_preview": {
+            "applies": false,
+            "reason": "consumer_funded"
+          },
+          "preview": {
+            "published": false,
+            "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+            "status": "active",
+            "how_to_obtain": "buy_with_wallet",
+            "title": "Points voucher",
+            "summary": "\u20ac10.00",
+            "badge_label": "\u20ac10 voucher",
+            "offer_line": "\u20ac10 voucher",
+            "journey": {
+              "headline": "\u20ac10.00",
+              "steps": [],
+              "claim_window": null,
+              "redemption_window": "Redeem within 30 days after claim.",
+              "campaign": null
+            },
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "price_points": 250,
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "starts_at": null,
+            "ends_at": null,
+            "conditions": null,
+            "combinable": false,
+            "categories": [],
+            "webshop": {
+              "name": "Points Demo",
+              "short_description": null,
+              "description": null,
+              "logo_url": null,
+              "cover_url": null,
+              "website_url": "https://points.example.test",
+              "verified_domain": "points.example.test",
+              "ownership_verified": true
+            }
+          },
+          "activated_at": "2026-10-31T07:50:54+00:00",
+          "paused_at": null,
+          "ended_at": null,
+          "archived_at": null,
+          "created_at": "2026-10-31T07:50:53+00:00"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/workspaces/01m68f0ch2h0gxmdw5yn82s4fw/offers/01m68f1ahvwnra9zgs7rn35fwj",
+      "route": "/api/v1/workspaces/{workspace}/offers/{offer}",
+      "label": "merchant_offer",
+      "auth": "owner",
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68f1ahvwnra9zgs7rn35fwj",
+          "acquisition": "wallet_purchase",
+          "status": "active",
+          "lifecycle_status": "active",
+          "inventory": {
+            "total": 2,
+            "available": 2,
+            "reserved": 0,
+            "issued": 0,
+            "redeemed": 0
+          },
+          "allowed_actions": [
+            "edit",
+            "import_codes",
+            "pause",
+            "end",
+            "archive",
+            "duplicate"
+          ],
+          "terms": {
+            "version": 1,
+            "locked": true,
+            "summary": "\u20ac10.00",
+            "name": "Points voucher",
+            "public_description": null,
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "price_minor": null,
+            "price_points": 250,
+            "starts_at": null,
+            "ends_at": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "categories": [],
+            "products": [],
+            "combinable": false,
+            "code_mode": "unique",
+            "allocation_limit": null
+          },
+          "missing_for_activation": [],
+          "cost_preview": {
+            "applies": false,
+            "reason": "consumer_funded"
+          },
+          "preview": {
+            "published": false,
+            "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+            "status": "active",
+            "how_to_obtain": "buy_with_wallet",
+            "title": "Points voucher",
+            "summary": "\u20ac10.00",
+            "badge_label": "\u20ac10 voucher",
+            "offer_line": "\u20ac10 voucher",
+            "journey": {
+              "headline": "\u20ac10.00",
+              "steps": [],
+              "claim_window": null,
+              "redemption_window": "Redeem within 30 days after claim.",
+              "campaign": null
+            },
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "price_points": 250,
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "starts_at": null,
+            "ends_at": null,
+            "conditions": null,
+            "combinable": false,
+            "categories": [],
+            "webshop": {
+              "name": "Points Demo",
+              "short_description": null,
+              "description": null,
+              "logo_url": null,
+              "cover_url": null,
+              "website_url": "https://points.example.test",
+              "verified_domain": "points.example.test",
+              "ownership_verified": true
+            }
+          },
+          "activated_at": "2026-10-31T07:50:54+00:00",
+          "paused_at": null,
+          "ended_at": null,
+          "archived_at": null,
+          "created_at": "2026-10-31T07:50:53+00:00"
+        },
+        "versions": [
+          {
+            "version": 1,
+            "locked": true,
+            "created_at": "2026-10-31T07:50:53+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/offers",
+      "route": "/api/v1/public/offers",
+      "label": "public_points_offer",
+      "auth": null,
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": [
+          {
+            "slug": "points-voucher-nu6aoc",
+            "title": "Points voucher",
+            "summary": "\u20ac10.00",
+            "offer_kind": "voucher_purchase",
+            "cta_hint": "view_code_and_shop",
+            "how_to_obtain": "buy_with_wallet",
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "min_order_minor": null,
+            "price_minor": null,
+            "price_points": 250,
+            "ends_at": null,
+            "availability": "available",
+            "cashback_label": null,
+            "benefit_label": "\u20ac10 korting",
+            "combinable": false,
+            "webshop": {
+              "slug": "points-demo",
+              "name": "Points Demo"
+            }
+          }
+        ],
+        "meta": {
+          "current_page": 1,
+          "last_page": 1,
+          "per_page": 20,
+          "total": 1
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts/quote",
+      "route": "/api/v1/consumer/checkouts/quote",
+      "label": "quote_unauthenticated",
+      "auth": null,
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "points"
+      },
+      "status": 401,
+      "response": {
+        "error": {
+          "status": 401,
+          "code": "unauthenticated",
+          "message": "Authentication is required.",
+          "request_id": "01a190f0-abc0-71e7-934a-09e6c875ce81"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts/quote",
+      "route": "/api/v1/consumer/checkouts/quote",
+      "label": "invalid_wallet_unit",
+      "auth": "buyer",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "cash"
+      },
+      "status": 422,
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a190f0-abdc-730a-a15a-c3dd2ce4ee24",
+          "fields": {
+            "wallet_unit": [
+              "The selected wallet unit is invalid."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts/quote",
+      "route": "/api/v1/consumer/checkouts/quote",
+      "label": "points_quote",
+      "auth": "buyer",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "points"
+      },
+      "status": 200,
+      "response": {
+        "data": {
+          "wallet_unit": "points",
+          "price_points": 250,
+          "wallet_available_points": 1000,
+          "wallet_part_points": 250,
+          "shortfall_points": 0,
+          "price_minor": 0,
+          "currency": "EUR",
+          "wallet_available": 0,
+          "wallet_part_minor": 0,
+          "payment_part_minor": 0,
+          "shortfall_minor": 0,
+          "validity_days": 30,
+          "blockers": []
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts",
+      "route": "/api/v1/consumer/checkouts",
+      "label": "points_shortfall",
+      "auth": "poor",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "points"
+      },
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "checkout_blocked",
+          "message": "This voucher cannot be bought right now.",
+          "request_id": "01a190f0-ac16-725f-9967-ee985cc47875",
+          "details": {
+            "blockers": [
+              "insufficient_points"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts",
+      "route": "/api/v1/consumer/checkouts",
+      "label": "points_wallet_required",
+      "auth": "buyer",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "points",
+        "use_wallet": false
+      },
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "checkout_blocked",
+          "message": "This voucher cannot be bought right now.",
+          "request_id": "01a190f0-ac31-706f-baa1-ffa5ae1ed8f1",
+          "details": {
+            "blockers": [
+              "points_wallet_required"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts",
+      "route": "/api/v1/consumer/checkouts",
+      "label": "points_purchase",
+      "auth": "buyer",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "points"
+      },
+      "status": 201,
+      "response": {
+        "data": {
+          "id": "01m68f1b2ran2sz7q3wgrne9wy",
+          "state": "completed",
+          "offer": {
+            "slug": "points-voucher-nu6aoc",
+            "title": "Points voucher"
+          },
+          "wallet_unit": "points",
+          "price_points": 250,
+          "wallet_part_points": 250,
+          "price_minor": 0,
+          "wallet_part_minor": 0,
+          "payment_part_minor": 0,
+          "currency": "EUR",
+          "payment": null,
+          "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+          "failure_reason": null,
+          "expires_at": "2026-10-31T08:20:54+00:00",
+          "completed_at": "2026-10-31T07:50:54+00:00"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts",
+      "route": "/api/v1/consumer/checkouts",
+      "label": "points_replay",
+      "auth": "buyer",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "points"
+      },
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68f1b2ran2sz7q3wgrne9wy",
+          "state": "completed",
+          "offer": {
+            "slug": "points-voucher-nu6aoc",
+            "title": "Points voucher"
+          },
+          "wallet_unit": "points",
+          "price_points": 250,
+          "wallet_part_points": 250,
+          "price_minor": 0,
+          "wallet_part_minor": 0,
+          "payment_part_minor": 0,
+          "currency": "EUR",
+          "payment": null,
+          "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+          "failure_reason": null,
+          "expires_at": "2026-10-31T08:20:54+00:00",
+          "completed_at": "2026-10-31T07:50:54+00:00"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/consumer/checkouts",
+      "route": "/api/v1/consumer/checkouts",
+      "label": "changed_unit_replay",
+      "auth": "buyer",
+      "request": {
+        "offer": "points-voucher-nu6aoc",
+        "wallet_unit": "eur_credit"
+      },
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "checkout_request_conflict",
+          "message": "This checkout key belongs to a different purchase.",
+          "request_id": "01a190f0-aca9-7384-a2e3-9e92545c8bb2"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/consumer/checkouts/01m68f1b2ran2sz7q3wgrne9wy",
+      "route": "/api/v1/consumer/checkouts/{id}",
+      "label": "owned_checkout",
+      "auth": "buyer",
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68f1b2ran2sz7q3wgrne9wy",
+          "state": "completed",
+          "offer": {
+            "slug": "points-voucher-nu6aoc",
+            "title": "Points voucher"
+          },
+          "wallet_unit": "points",
+          "price_points": 250,
+          "wallet_part_points": 250,
+          "price_minor": 0,
+          "wallet_part_minor": 0,
+          "payment_part_minor": 0,
+          "currency": "EUR",
+          "payment": null,
+          "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+          "failure_reason": null,
+          "expires_at": "2026-10-31T08:20:54+00:00",
+          "completed_at": "2026-10-31T07:50:54+00:00"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/consumer/checkouts/01m68f1b2ran2sz7q3wgrne9wy",
+      "route": "/api/v1/consumer/checkouts/{id}",
+      "label": "other_user_checkout",
+      "auth": "poor",
+      "request": null,
+      "status": 404,
+      "response": {
+        "error": {
+          "status": 404,
+          "code": "not_found",
+          "message": "Checkout not found.",
+          "request_id": "01a190f0-acd9-72ba-b614-2395bb88dfac"
+        }
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/workspaces/01m68f0ch2h0gxmdw5yn82s4fw/offers/01m68f1ahvwnra9zgs7rn35fwj",
+      "route": "/api/v1/workspaces/{workspace}/offers/{offer}",
+      "label": "versioned_points_price",
+      "auth": "owner",
+      "request": {
+        "price_points": 500
+      },
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68f1ahvwnra9zgs7rn35fwj",
+          "acquisition": "wallet_purchase",
+          "status": "active",
+          "lifecycle_status": "active",
+          "inventory": {
+            "total": 2,
+            "available": 1,
+            "reserved": 0,
+            "issued": 1,
+            "redeemed": 0
+          },
+          "allowed_actions": [
+            "edit",
+            "import_codes",
+            "pause",
+            "end",
+            "archive",
+            "duplicate"
+          ],
+          "terms": {
+            "version": 2,
+            "locked": true,
+            "summary": "\u20ac10.00",
+            "name": "Points voucher",
+            "public_description": null,
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "price_minor": null,
+            "price_points": 500,
+            "starts_at": null,
+            "ends_at": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "categories": [],
+            "products": [],
+            "combinable": false,
+            "code_mode": "unique",
+            "allocation_limit": null
+          },
+          "missing_for_activation": [],
+          "cost_preview": {
+            "applies": false,
+            "reason": "consumer_funded"
+          },
+          "preview": {
+            "published": false,
+            "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+            "status": "active",
+            "how_to_obtain": "buy_with_wallet",
+            "title": "Points voucher",
+            "summary": "\u20ac10.00",
+            "badge_label": "\u20ac10 voucher",
+            "offer_line": "\u20ac10 voucher",
+            "journey": {
+              "headline": "\u20ac10.00",
+              "steps": [],
+              "claim_window": null,
+              "redemption_window": "Redeem within 30 days after claim.",
+              "campaign": null
+            },
+            "discount_type": "fixed",
+            "discount_value": 1000,
+            "currency": "EUR",
+            "price_points": 500,
+            "min_order_minor": null,
+            "max_discount_minor": null,
+            "claim_validity_days": null,
+            "redemption_validity_days": 30,
+            "starts_at": null,
+            "ends_at": null,
+            "conditions": null,
+            "combinable": false,
+            "categories": [],
+            "webshop": {
+              "name": "Points Demo",
+              "short_description": null,
+              "description": null,
+              "logo_url": null,
+              "cover_url": null,
+              "website_url": "https://points.example.test",
+              "verified_domain": "points.example.test",
+              "ownership_verified": true
+            }
+          },
+          "activated_at": "2026-10-31T07:50:54+00:00",
+          "paused_at": null,
+          "ended_at": null,
+          "archived_at": null,
+          "created_at": "2026-10-31T07:50:53+00:00"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/consumer/checkouts/01m68f1b2ran2sz7q3wgrne9wy",
+      "route": "/api/v1/consumer/checkouts/{id}",
+      "label": "frozen_points_checkout",
+      "auth": "buyer",
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68f1b2ran2sz7q3wgrne9wy",
+          "state": "completed",
+          "offer": {
+            "slug": "points-voucher-nu6aoc",
+            "title": "Points voucher"
+          },
+          "wallet_unit": "points",
+          "price_points": 250,
+          "wallet_part_points": 250,
+          "price_minor": 0,
+          "wallet_part_minor": 0,
+          "payment_part_minor": 0,
+          "currency": "EUR",
+          "payment": null,
+          "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+          "failure_reason": null,
+          "expires_at": "2026-10-31T08:20:54+00:00",
+          "completed_at": "2026-10-31T07:50:54+00:00"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/workspaces/01m68f0ch2h0gxmdw5yn82s4fw/offers",
+      "route": "/api/v1/workspaces/{workspace}/offers",
+      "label": "other_workspace_offer",
+      "auth": "poor",
+      "request": {
+        "acquisition": "wallet_purchase",
+        "name": "Points voucher",
+        "discount_type": "fixed",
+        "discount_value": 1000,
+        "price_points": 250,
+        "redemption_validity_days": 30
+      },
+      "status": 404,
+      "response": {
+        "error": {
+          "status": 404,
+          "code": "not_found",
+          "message": "The requested resource was not found.",
+          "request_id": "01a190f0-ad26-7113-b147-603adff77215"
+        }
+      }
+    }
+  ]
+}

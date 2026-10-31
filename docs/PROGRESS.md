@@ -1,3 +1,264 @@
+# Continuation checkpoint — B47 order monetary breakdown; Wix product lines (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `5fbbb8c` (D-106 recorded: no per-consumer voucher limit; B46 CI run 41202587978 PASS). Card #32 (Commerce Platform API Integrations), Oluwasola findings 3 and 5 (partial):
+- New nullable `webshop_orders.amount_breakdown` JSON (migration 2026_10_31_140000) via `App\Integrations\AmountBreakdown`: `original_total_minor`, `current_total_minor`, `tax_minor`, `shipping_minor`, `discount_minor`, `tax_included`, `source`, `currency`. Each part null unless the provider reports it; never derived. It sits beside `amount_minor` (gross) and `refunded_minor`, which are unchanged, so refunds are not subtracted twice (the reviewer's concern). Exposed in OrderResource (sheet + detail).
+- Shopify: pinned query adds `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded`; breakdown original=`totalPriceSet`, current=`currentTotalPriceSet`, tax, discount; same shop currency only; shipping null (docs describe `totalShippingPriceSet` as shipping returned to the customer).
+- Wix: breakdown from `priceSummary.{total,tax,shipping,discount}`; product lines via `LineItems::wix` (`totalPriceBeforeTax` = after discounts, before tax; basis `discounted_ex_tax`; any bad row → whole list null).
+- Field names verified 2026-10-31 against the official Shopify Admin GraphQL Order and Wix eCom Order object pages. NOT verified, so NOT mapped: WooCommerce order-level totals (docs page section unreachable), BigCommerce (reference pages unreachable), Shopware (Admin API reference 404; lineItems association unconfirmed), Magento (names confirmed but discount sign and configurable/bundle parent/child rows undocumented, so line items could double count). Docs: PLATFORM_API_SPECS.md (also fixed stale Wix backfill line), OpenAPI order detail.
+
+Executed: new ShopifyApiTest breakdown test (through the pinned query), WixConnectorTest price summary/lines test, OrderRecoveryTest asserts stored original/current totals end to end. Full SQLite 1166 / 1141 pass + 25 skipped; MySQL Integrations+Orders 174/174; PHPStan, Pint PASS. Main DB not migrated.
+
+#32 still open: Woo/BigCommerce/Shopware/Magento breakdown and lines once schemas are verified (official reference pages or a real store sample), Ecwid amount/currency, Lightspeed refunds, install packages, provider acceptance runs.
+
+---
+
+# Continuation checkpoint — B46 large voucher exports are queued (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `a959e3e` (B45, CI run 41200758806 PASS). Card #17 (Webshop Dashboard, Offers & Voucher Management), Oluwasola finding 8: `GET /workspaces/{workspace}/vouchers/export` streamed every export inside the HTTP request. Now:
+- Up to `shopbonus.offers.voucher_export_sync_max_rows` (env VOUCHER_EXPORT_SYNC_MAX_ROWS, default 5000) it streams exactly as before (same CSV, same audit).
+- Above it: 202 with a `voucher_exports` row (migration 2026_10_31_130000; `VoucherExport` model); `BuildVoucherExport` job writes the same CSV to the private local disk `voucher-exports/{id}.csv`.
+- `GET .../vouchers/exports/{export}` (status) and `.../download` (requester only, same webshop, `vouchers.export`, throttled, audited `vouchers.export_downloaded`, no-store/nosniff). 409 `export_not_ready`, 410 `export_expired` after `voucher_export_ttl_hours` (default 24); 404 for anyone else.
+- `shopbonus:prune-voucher-exports` (hourly) deletes expired files. Export files are transient and deliberately not in backups (masked codes only, no consumer identity).
+- Query/CSV moved into `App\Services\Vouchers\VoucherExports` so both paths write the same file. OpenAPI: 202 on export plus two new operations; examples from the test suite (marked as such), not a live capture.
+
+Frontend (Hassan): on 202, poll the export status, then download; show queued/failed/expired.
+
+Executed: new VoucherDisputeTest export tests (queued vs streamed content identical, requester-only, expiry/prune, not-ready). Full SQLite 1164 / 1139 pass + 25 skipped; MySQL VoucherDisputeTest + WebshopDashboardOffersE2ETest 22/22; full PHPStan and Pint PASS. Main DB not migrated.
+
+#17 backend still open: only the per-consumer issuance limit (product decision). Next exact: check CI; then #31/#32 line items once provider order schemas are verified, or #16 ownership transfer once designed.
+
+---
+
+# Continuation checkpoint — B45 realtime revocation terminates open sockets (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `0c75e1b` (B44, CI run 41199933613 PASS: lint, MySQL, SQLite). Card #16 (Webshop Onboarding & Workspace Management), Oluwasola finding 2: channel auth (routes/channels.php) is rechecked on subscribe, but a removed member's already-open subscription to `webshops.{id}.orders` kept receiving events. Now:
+- `POST /api/broadcasting/user-auth` (Laravel `Broadcast::userRoutes`, same middleware as channel auth) signs a Pusher/Reverb connection in as the user's **public** ID (`RealtimeAccess::signInIdentity`); support sessions 403.
+- `TeamService` calls `RealtimeAccess::terminate()` after commit when a membership is suspended/removed/admin-revoked (`changeStatus`) or an edit drops `orders.view`; it calls Reverb `terminate_connections` for that user. The client reconnects and channel auth refuses the lost channel. A broadcaster failure is reported and never blocks the revocation. log/null drivers: no-op.
+- Docs: docs/api/README.md section (described from tests, not a live capture).
+
+Frontend (Hassan): enable Echo/pusher-js user authentication against `/api/broadcasting/user-auth` (call `signin()` after connect). Without it the server cannot find the user's sockets and an open subscription lasts until the client reconnects. Not covered: webshop suspension and account deactivation do not terminate sockets yet (same mechanism would apply).
+
+Executed: new tests/Feature/Workspaces/RealtimeRevocationTest.php (4 tests; 3 fail without the TeamService wiring); full SQLite suite 1162 / 1137 pass + 25 skipped; MySQL tests/Feature/Workspaces 42/42. Pint, PHPStan PASS. Not verified against a running Reverb server.
+
+#16 backend still open: ownership-transfer workflow (needs approved design). Next exact: push, check CI; then #17 queued large exports, or #31/#32 line items once provider order schemas are verified.
+
+---
+
+# Continuation checkpoint — B44 honest integration capabilities, refund gate, Shopware state events (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `e0f9f23` (B43). Card #31 (Platform API & Webhook Engineering), Oluwasola findings 1, 2 (from #32), 5 and 6:
+- **Capabilities (finding 1):** `CapabilityMatrix` marked refunds AVAILABLE whenever a `refund_api` note existed (even "unsupported"), and payments/backfill from the native-read flag alone. Each platform profile in `config/integrations.php` now states what its order mapping really fills: `refund_amounts_mapped`, `payment_time_mapped` (set from the connector code: refunds mapped by WooCommerce, Shopify, Wix, BigCommerce, Magento, OpenCart payload; not Ecwid, Lightspeed C, PrestaShop, Shopware; payment time missing for Ecwid, Lightspeed C). Refunds/payments are AVAILABLE only from those flags (the LIMITED reason quotes the API note); backfill only when the connector implements `PagedOrderReader`.
+- **Refund gate (finding 5):** `changes_refunds_recoverable` passed on any recovered financial change. `ProcessWebhookEvent` now also records `native_refund_recovered` (refunded amount increased, or payment status entered partially refunded/refunded); `ConnectionReadiness` uses it. Consequence: a platform that cannot report refunds at all (Lightspeed C) cannot reach Connected; documented in docs/integrations/READINESS_AND_RECOVERY.md.
+- **Shopware (finding 2):** `state_enter.order_transaction.state.{paid,paid_partially,refunded,refunded_partially,cancelled,failed,chargeback}` app webhooks now queue the same ID-only native order lookup as `order.written` (only `payload.order.id` used; topic stored). The Shopware app manifest (separate package, not in this repo) must subscribe to these events.
+- **Stale docs (finding 6):** Wix config limitation and VERIFICATION.md row corrected (orders/search backfill exists; paid_at is latest approved transaction createdDate).
+
+Executed: new tests `CapabilityAndCatalogTest::test_refund_payment_and_backfill_claims_follow_the_actual_mapping`, `OrderRecoveryTest::test_a_recovered_non_refund_change_does_not_prove_refund_recovery`, `ShopwareAppWebhookTest::test_payment_and_refund_state_events_queue_a_lookup_of_their_order`; each fails on the old code. Full SQLite suite 1158 tests / 1133 pass + 25 skipped / 19862 assertions; MySQL tests/Feature/Integrations 157/157. Pint, PHPStan PASS. Captured HTTP examples in docs/integrations/B23_* and docs/api/README.md predate this (Ecwid/Lightspeed refunds were shown AVAILABLE there); not re-captured.
+
+#31 still open, not code here: line items for Wix/Shopware/Magento (shared with #32; needs verified provider order schemas, e.g. Shopware lineItems association), Ecwid amount/currency and Lightspeed refunds (provider contracts), PrestaShop/OpenCart packages, Shopify theme extension, Adobe async delivery, and the ten real provider acceptance runs.
+
+---
+
+# Continuation checkpoint — B43 lost Mollie payments are recovered by their webhook (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `4271f04` (B42). Card #20 (Voucher Checkout, Mollie & My Vouchers), Oluwasola finding 4. Already in place before this: the checkout row (intent) is committed before Mollie is called, Mollie gets the stable `Idempotency-Key: checkout:<public_id>`, an unknown outcome (timeout/5xx) keeps the checkout pending and a client retry recovers the same payment. Gap closed now: if the client never retried, Mollie's later webhook for that payment found no `provider_ref` and was ignored. `CheckoutService::recoverPayment` now asks Mollie for an unknown ID and links it only when its `metadata.checkout_id` names a checkout with no payment yet and exactly the same amount/currency; then the normal `sync` runs (paid → finalise, or `paid_unfulfilled` if reservations were already released by expiry). A second payment naming an already-linked checkout is reported, never linked. Mollie 4xx for a forged ID → still 200 with nothing revealed; Mollie unreachable → exception (non-200) so Mollie retries. Audit `checkout.payment_recovered`. OpenAPI webhook description updated. No migrations/routes.
+
+Executed: new CheckoutTest `test_a_payment_whose_creation_answer_was_lost_is_linked_by_its_webhook` (fails on old code) and `test_a_lost_payment_of_another_amount_is_not_linked`. SQLite Checkout+Funding+Journey+SalesAttribution+Api 89 tests / 86 pass + 3 pre-existing MySQL-only skips; MySQL CheckoutTest+FundingTest 24/24. Pint, PHPStan PASS. All webhook-posting tests use faked Mollie (checked: no real HTTP).
+
+#20 backend now has no open reviewer finding; remaining is Hassan (Checkout/My Vouchers UI) and real Mollie TEST acceptance. Not covered: a payment that never gets any status change after creation (stays `open` at Mollie until it expires, which does send a webhook). Next exact: push, check CI; then #16 realtime revocation or #31 capability claims.
+
+---
+
+# Continuation checkpoint — B42 merchant voucher rows keep the issued offer name (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `f2d8d5a` (B41). Card #17, Oluwasola finding 9: merchant voucher list/detail/export rows took `offer_name` from the offer's current version, so editing an offer relabelled vouchers already issued. `presentVoucher` now uses `terms_snapshot.name` (frozen at reservation), falling back to the current name only if a snapshot lacks one. Search still matches the current offer name (documented). OpenAPI description updated. No migrations/routes.
+
+Executed: new `VoucherDisputeTest::test_merchant_voucher_list_keeps_the_name_the_voucher_was_issued_under` fails on the old code (old voucher shown as the new name) and passes now. SQLite Checkout+Api+Offers 96 tests / 93 pass + 3 pre-existing MySQL-only skips; MySQL VoucherDisputeTest 10/10. Pint PASS.
+
+#17 backend still open: per-consumer issuance limit (product decision: is it wanted, and per offer?), queued large exports. Next exact: push, check CI; then #20 durable Mollie payment intent, or #16 realtime revocation.
+
+---
+
+# Continuation checkpoint — B41 merchant redemption of reusable codes names the voucher (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `f16b9c1` (B40). Card #17 (Webshop Dashboard, Offers & Voucher Management), Oluwasola finding 2: `POST /workspaces/{workspace}/vouchers/redeem` redeemed the oldest issued voucher behind a code, so with a reusable code it could mark another consumer's voucher used. Unique codes are unchanged (one voucher per code). A reusable code now needs `voucher_id` (the public ID the customer shows): without it 422 `voucher_id_required`; an ID not issued on that code (or another webshop's) is the existing 404 `voucher_not_found`. Expiry/once-only rules are unchanged (`VoucherInventory::redeemByMerchant`). OpenAPI request field, description and 422 example (from the test run) updated. Provider-confirmed redemption already attributes reusable codes by buyer email (`RedemptionMatcher::buyersVoucher`). No migrations/routes/packages.
+
+Frontend impact (Hassan): the merchant redeem form must send `voucher_id` for reusable-code offers; consumers already see the voucher ID on My Vouchers.
+
+Executed: new `CheckoutTest::test_merchant_redeems_a_reusable_code_only_for_the_named_voucher` fails on the old code (200 for code alone) and passes now. SQLite Checkout+Offers+Api+Vouchers 119 tests / 113 pass + 6 skipped (pre-existing MySQL-only concurrency skips) / 10892 assertions; MySQL `shopbonus_testing` Checkout 33/33 (310 assertions). Pint, PHPStan PASS.
+
+#17 backend still open: per-consumer issuance limit (needs product decision), queued large exports, voucher list rows showing current offer name instead of `terms_snapshot` name. Next exact: push, check CI; then the #17 list-row snapshot name (small), or #20 durable Mollie payment intent.
+
+---
+
+# Continuation checkpoint — B40 invitation acceptance revalidates every grant (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `0b7f6fc` (B39). Card #16 (Webshop Onboarding & Workspace Management), Oluwasola finding 1: acceptance checked the inviter's `team.manage` and role rank but applied the invitation's stored permissions without checking that the inviter still holds each one. `TeamService::acceptInvitation` now reruns the same `assertCanGrant` rule used when inviting (role rank, owner-only, every permission held) against the inviter's current membership, locked for update in the acceptance transaction; any failure is the existing 410 `invitation_invalid` and the invitation stays pending. OpenAPI description updated. No migrations, routes or packages.
+
+Executed: new `TeamTest::test_invitation_dies_when_inviter_loses_a_granted_permission_or_rank` fails without the fix (200 instead of 410) and passes with it. tests/Feature/Workspaces 38/38 (255 assertions) PASS on SQLite and on MySQL `shopbonus_testing`; Pint and PHPStan (TeamService) PASS. Main DB untouched.
+
+#16 backend still open: realtime subscription revocation for removed members (finding 2) and a dedicated ownership-transfer workflow (finding 5, needs approved design). Frontend items (permission editor, invite review, access history) are Hassan's. Next exact: push, check CI; then #17 merchant manual redemption of reusable codes (VoucherOperationsController picks the oldest issued voucher) or #20 durable Mollie payment intent.
+
+---
+
+# Continuation checkpoint — B39 merchant dispute history paginated (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `52c8046` (B38). Source: `MS0DLCAX - shopbonus (4).json`, Oluwasola's review of #17 (Webshop Dashboard, Offers & Voucher Management), finding 7: `GET /workspaces/{workspace}/disputes` returned at most 200 rows with no way to reach older ones. Now server-paginated newest first (`page`, `per_page` 1–100, default 25) with the same `meta` shape as the voucher list; `data` stays an array, so existing callers keep working. OpenAPI parameters/example/description updated. No migrations, routes, packages or provider calls.
+
+Triage of the (4) export's easiest findings against the code: OTP logging (e171ca5), PHP 8.5 SOAP signature (e171ca5), `/public/webshops/{slug}/cover` OpenAPI (5546489), backup evidence dirs, multi-queue monitoring, provider-redemption expiry and checkout-history snapshot title are already fixed on this branch; reviewers ran against an older checkout.
+
+Executed: SQLite VoucherDisputeTest 9/9 (new `test_merchant_dispute_history_is_paginated_newest_first`), API + dispute + dashboard-offers 52 tests/10337 assertions PASS; Pint PASS. MySQL not run for this change; no real HTTP capture (example `meta` matches the one-row example). Frontend dispute screen (Hassan) should read `meta` to page.
+
+Next exact: push, check CI; then continue with B38's next item (durable checkout creation/uncertain-payment recovery, #20).
+
+---
+
+# Continuation checkpoint — B38 explicit points earning verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, parent `130fd24056bf1166052feaee26e79ff03136be84`, draft PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3. Parent exact CI41184941391 SUCCESS across quality, SQLite and MySQL. B38 implementation commit follows this checkpoint; no claim that parent CI covers these changes.
+
+D-104 implemented: immutable per-program points rate, multiplier and rounding on existing reward rules. Incomplete/unmapped rules stay inactive; scope/source/currency mismatches rejected. New awards select only configured points rules and freeze complete terms; legacy pending snapshots retain their original calculation. Exact integer arithmetic avoids float/overflow errors. Public discovery labels points without a EUR cashback percentage. D-105 remains allocation reporting; points monetary valuation remains explicitly unknown, not invented. No dependencies/new endpoints.
+
+Executed: focused SQLite66 total/65passed+1skipped/7959assertions; MySQL63 total/62passed+1skipped/446assertions. Includes arithmetic boundaries, immutable/legacy terms, program isolation, approval timing, source/currency negatives and non-destructive migration replay. PHPStan L6, Pint and diff checks PASS. Sixteen real HTTP exchanges in docs/qa/B38_POINTS_EARNING_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped and isolated DB/storage/credentials removed. Migration120000 adds earning terms; migration110000 now guards reapplication; both preserve contractual data on rollback. Main shopbonus DB NOT migrated.
+
+Next exact: commit/push B38, inspect its CI; then audit existing funding intents and implement durable checkout creation/uncertain-payment recovery (#20). Current uncommitted changes are B38 only. No deploy/merge/Trello changes. Whole Frank cards remain PARTIAL pending remaining code and independent/staging/provider/UI acceptance; see docs/qa/FRANK_BACKEND_REMAINING.md.
+
+---
+
+# Continuation checkpoint — B37 locale CI repair verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, PR https://github.com/nauticsecure-dev/shopbonus_backend/pull/3 (draft). B36 `05104b0` is pushed. First exact PR merge-build CI41184307319: quality PASS; both test jobs failed on the same locale regression. SQLite1142total/1116pass+25skip+1fail/19699assertions. Failure: English validation used Dutch “beleidsversie” under shipped APP_FALLBACK_LOCALE=nl. New QA pipeline correctly retained the failure and uploaded sanitized artifacts; tested merge SHA74f638a99d88b38af5e80120c69cd363f9b958d2. Never call that run green.
+
+B37 adds explicit English attribute labels (Laravel messages retained) and restores the configured default after each request, including worker reuse. Regression tests force NL fallback and alternate NL/EN/unsupported/no-preference plus configurable EN default. Symfony test requests inject English unless explicitly blank; the absence fixture now accounts for that.
+
+Executed: SQLite CookieConsentTest3/58 PASS with NL config; MySQL same3/58 PASS (14.048s). API3/7505 PASS, PHPStan L6 and Pint checks PASS. Four real HTTP422 captures with NL defaults in docs/qa/B37_LOCALE_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped; isolated DB/storage removed. No migrations/provider calls/packages.
+
+Owner also resolved D-104: require explicit per-program points earning rate before new points rules activate, preserving existing reward snapshots. D-105: keep commission remainder allocation reporting, no formal revenue posting. Next: commit/push B37 and implement D-104 as the next backend boundary. Other remaining work stays in docs/qa/FRANK_BACKEND_REMAINING.md. Native APIs were researched only: E-Series uses Ecwid officially, but source-namespace/duplicate-effect guards must be audited before enabling that alias. Mijnwebwinkel needs partner API access/contract, CCV current webshop docs and Squarespace schemas need further review. No connector was activated from a name alone. Main DB migrations still not applied.
+
+---
+
+# Continuation checkpoint — B36 independent retest proof verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, points B33 `fe699ad`, affiliate B34 `40d8e83`, CI B35 `1284bc1`. B36 corrects remaining #37/#36 false-positive proof paths: read-only bounded Git ancestry distinguishes descendants/unrelated builds; later scan chronology is never positive build proof. Unknown endpoint ancestry remains time_only/STALE even when freshly imported. Unknown finding builds require explicit independent attestation, separately audited. Both execution and import must follow the recorded fix. Unlinked/manual PASS requires executed unmocked assertions plus unexpired, decryptable, checksum-verified evidence attached to a passing result. Linked browser/manual results and endpoint PASS use the same valid-evidence requirement; expired/corrupt files cannot certify success. Existing independent-role restrictions retained. Added Dutch error translations, including earlier points/schedule errors. No routes, migrations, provider calls or packages.
+
+Executed: final focused SQLite QA/build-proof/API 26 tests/7835 assertions PASS (32.057s), latest standalone API 3/7505 PASS after documentation changes. MySQL QA/build-proof 23 tests/330 assertions PASS (55.280s). Real temporary Git repository test covers descendants and unrelated branches. Negative cases cover old execution, missing/expired/corrupt proof, mocked/unlinked manual results, and unknown-build freshness. PHPStan L6 and Pint --test PASS. Seven actual HTTP captures in docs/qa/B36_RETEST_PROOF_HTTP_CAPTURE.json use real cookie/CSRF/password flow with explicitly synthetic report/finding/evidence fixtures; these are API guard demonstrations, not staging/provider acceptance. Capture server stopped and isolated DB/storage/credentials removed. Full remote workflow still pending PR. No local main DB migrations applied.
+
+Next: commit B36, push review branch and create PR to main; inspect exact-code CI. Remaining Frank work is tracked in docs/qa/FRANK_BACKEND_REMAINING.md: policy-dependent points earning configuration/formal revenue, native connector gaps, real staging/provider/browser/offsite/restore acceptance and inaccessible175-check PDF. Do not call all cards Done or automatically transfer them based on this checkpoint. Current uncommitted B36 only; no external messages/deployment/Trello edits.
+
+---
+
+# Continuation checkpoint — B35 Quality Center CI/inventory verified locally (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, B33 `fe699ad`, B34 `40d8e83`. CI now emits actual execution start/checked-out SHA/JUnit, preserves failed-test exit codes, discovers/imports into a separate ephemeral QA database and retains only sanitized JSON/normalized JUnit/current routes/provenance artifacts. No raw report, DB or credentials uploaded. Run environment `ci` is explicitly distinct and always mocked; schedules remain staging/production and must match imported suite/environment. CLI --output refuses overwrites and records real times/hash/inventory. General backend services/models/controllers/requests/resources/rules/enums/providers/support/logging/integrations are inventoried. Conservative backend source digest invalidates route evidence even for transitive dependencies. No new routes/migrations/packages.
+
+Executed SQLite QA 17/297 PASS (31.496s); MySQL same 17/297 PASS (48.581s). API coverage 3/7505 PASS. PHPStan L6 and Pint --test PASS. Workflow YAML parses. Actual CLI replay of the executed MySQL report produced private sanitized JSON/JUnit with 17 mocked results and current inventory. Eight actual HTTP captures include cookie/CSRF login + recent password, CI import/list, service/model inventory, 401/403 and schedule mismatch409; docs/qa/B35_CI_HTTP_CAPTURE.json and API docs. Capture base is40d8e83+WIP, not exact released-build proof. See docs/qa/CI_AND_STAGING.md. Remote workflow execution pending PR, not claimed passed.
+
+Remaining QA review: scan chronology alone still does not prove Git ancestry on different branches; unlinked/manual finding PASS needs stricter attached-evidence enforcement. Address next coherent B36 boundary. Missing native credentials/staging, inaccessible175-check PDF and all UI/provider acceptance stay explicit. Main DB not migrated for B32/B33. Current uncommitted B35 only; no push/PR yet.
+
+---
+
+# Continuation checkpoint — B34 affiliate review fixes verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 `1a3eee0`, points checkout B33 `fe699ad`. B34 repairs #19's remaining verified duplicate/selection/consent defects. Credible distinct order references can share a click; repeated order references and ambiguous legacy click-only reports remain deduped. ProgramSelector recomputes eligible candidates and stores a new decision only when inputs/outcome/rule version change, including recovery from an empty candidate set. No-policy tracking now fails closed in every environment, as do missing/unknown/withdrawn marketing consent. Regression journeys now explicitly publish synthetic policy and grant consent.
+
+Executed: focused SQLite + API coverage 62 total /61 passed +1 skipped /8060 assertions /10.285s. Same business selection MySQL 59 total /58 passed +1 skipped /555 assertions /39.368s. PHPStan L6 and Pint --test PASS. MySQL first exposed an overlong synthetic consent ID in the new test helper; shortened to fit the existing UUID-width column, then rerun passed. No migration or public response shape change; four actual HTTP redirect captures in docs/qa/B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json. API coverage now checks examples for every declared media type, allowing actual HTML redirects instead of fake JSON redirect bodies. Server stopped and isolated capture DB removed. No native network calls.
+
+Next: commit B34; #37 CI JUnit/discovery/import artifacts with honest CI provenance, then complete further verifiable main-code gaps from current Frank inventory. Whole cards retain UI, independent staging/provider acceptance and policy boundaries. Points earning-rate/multiplier/rounding policy remains separate from approved D-103 voucher prices. Main DB NOT migrated for B32/B33. Current uncommitted work: B34 only. No push/PR yet.
+
+---
+
+# Continuation checkpoint — B33 separate points checkout verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`; B32 commit `1a3eee0` preserves and completes Claude's pending CI fixes. B33 follows owner D-103: optional versioned `price_points`, explicit consumer `wallet_unit=points`, separate checkout points fields. Points purchases never convert units or call Mollie; insufficient/pending/reserved points cannot fund them. Existing EUR-credit behavior remains D-053. Checkout revalidates offer/version under locks, freezes price/unit/identity, and captures through WalletService + VoucherInventory atomically. Financial reconciliation verifies the actual unit and immutable voucher price. Same key with another offer/unit returns 409. No new routes/packages.
+
+Migration `2026_10_31_110000_add_separate_points_checkout_prices` adds nullable offer price_points and checkout wallet_unit (legacy default eur_credit), price_points and wallet_part_points. Deliberately non-destructive down() retains contractual prices/units. Applied only in isolated test/capture DBs; main local shopbonus NOT migrated.
+
+Executed focused SQLite: 55 total /52 passed +3 skipped /5605 assertions /5.969s. Same selection MySQL: 55 passed /5617 assertions /35.248s, including real four-process points replay and existing checkout races. Includes API coverage, offers and financial reconciliation. PHPStan L6 PASS. Pint --test PASS. No repeated full suite for this boundary; full B32 SQLite/MySQL evidence is recorded below and does not cover B33. 18 actual HTTP exchanges in docs/qa/B33_POINTS_HTTP_CAPTURE.json; OpenAPI/README updated. Capture server stopped and task-owned DB/credentials removed; no real provider call. Protected PDF download returned401; 175 individual checks remain unverified.
+
+Next: commit B33; repair remaining verified #19 selection/deduplication/missing-cookie-policy defects, then #37 CI report/discovery wiring. Current uncommitted files are B33 only. Whole Frank cards are not Done; docs/qa/FRANK_BACKEND_REMAINING.md tracks boundaries. Senior configures credentials/deployment; Hassan owns UI and independent provider/staging acceptance. No push/PR yet.
+
+---
+
+# Continuation checkpoint — B32 CI repair verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, starting HEAD `b607592`. Preserved Claude's uncommitted code/migration/formatter cleanup and staged deletion of three stray tools scripts. Current export has ten active Frank cards (#19/#20/#21/#22/#23/#26/#29/#30/#36/#37). See `docs/qa/FRANK_BACKEND_REMAINING.md`; reviewers' policy requests do not override D-089/D-053.
+
+Finished remaining 45 PHPStan findings without baselines/suppression/config relaxation, correcting relation and collection types and redundant branches. Retained Claude's MySQL column-width and canonical JSON evidence-hash fixes; added hash ordering/type/list/tampering regression coverage. No route or intended response contract change at this checkpoint. D-103 owner approved separate points pricing; checklist expanded, implementation follows B32.
+
+Executed: full SQLite 1117 total /1093 passed +24 skipped /17205 assertions /139.406s (before three added hash/tampering tests); focused enrichment +hash 8 passed /31 assertions. PHPStan L6 0 errors. Pint --test PASS; Composer audit PASS. Full MySQL: 1120 total /1117 passed +3 skipped /17295 assertions /473.678s against isolated `shopbonus_testing`, including all three added tests. Main DB migrations not applied. No credentials/provider-live/deployment acceptance. API coverage 3 tests/5140 assertions PASS; final PHPStan L6 PASS. B32 is committed in `fix: finish Frank review CI repair on SQLite and MySQL`; no push/PR yet. Next: implement D-103 through existing offer/checkout/wallet architecture. Whole cards remain partial.
+
+---
+
+# Active handoff — B31 Trello review fixes for the 10 cards in the Frank list (2026-10-31, Claude)
+
+Branch `frank/review-fixes` (not merged, not pushed), base `main` `59916e9`. Commits: `e171ca5` regressions, `5546489` OpenAPI recovery, `1175fe1` money/vouchers, `322d538` cockpit/support/notifications, `52adf2a` Quality Center, plus a docs commit. Source: the reviewer (Oluwasola Peter) comments on #19 #20 #21 #22 #23 #26 #29 #30 #36 #37. Each item was checked against the code before it was changed. D-089 unchanged and re-applied. Credentials senior-owned.
+
+Fixed (each with a regression test):
+- Regressions from the HassanDev merge (`9f927ef`/`4aa26c2`/`2b0db78`/`04ecbfd`/`05a47b8`):
+  - Plaintext OTP log removed.
+  - `AFFILIATE_CREDIT_TIMING` default restored to `on_network_approval` (D-089). Config, `.env.example` and docs had been switched to instant credit.
+  - `TradeTrackerSoapClient::__doRequest` accepts PHP 8.5's optional `$uriParserClass`.
+  - OnboardingTest now expects `kvk_number` (country defaults to NL).
+  - CapabilityAndCatalogTest targets the canonical `catalog-syncs` API. HassanDev's parallel catalog code (`CatalogSync` service, `CatalogProduct`, `CatalogCoupon`, `CapabilityMatrix`) has no routes left; it is still used by LiveBannerStudioE2ETest. Remove or merge it in a later task.
+- OpenAPI: merge `9f927ef` dropped the 92 operations HassanDev had documented. They are restored with paths, parameters and schemas, and every example was re-captured on a real local server (168 exchanges, `docs/qa/B31_MERGE_RECOVERY_HTTP_CAPTURE.json`, README section).
+  - Not captured, labelled illustrative: AI suggest 200 (live OpenAI key) and enrichment retry 202 (503 captured).
+- Cover endpoint 404'd for shops without a logo (looked up via `logo()`). Fixed.
+- #19:
+  - The direct/affiliate duplicate check uses an indexed `merchant_commission_conversions.order_reference_hash` (migration `2026_10_30_200000`, backfilled). It previously checked only the first 500 rows.
+- #20/#23 vouchers:
+  - A reusable code redeems only the buyer's own voucher (order email hash).
+  - An order placed after expiry never redeems (`voucher_expired`).
+  - One compensation per voucher across consumer, merchant and checkout reports (409 `voucher_already_compensated`, voucher row lock).
+  - Mollie refunds are tracked by provider status (migration `2026_10_30_210000`): checkout `refund_pending` → `refunded`, or back to `paid_unfulfilled` on failed/canceled. Retries use a new idempotency key. Synced by `shopbonus:expire-checkouts`.
+  - Payment creation sends `Idempotency-Key: checkout:<id>`. Timeouts and 5xx keep the checkout for a retry; 4xx fails it.
+  - Checkout history shows the purchased title.
+- #21:
+  - Suspending an admin ends the support sessions they started.
+  - Cockpit `change_percent` compares with totals as of the end of the previous period; open actions → null.
+  - One consumer definition (`User::consumers()` scope) for the cards, the user list and search.
+- #26:
+  - Order references like `FS-20482`, `#1042` and `bestelling 77812` are recognised.
+  - Pending and reserved credit are worded separately.
+  - Action labels follow the locale.
+  - Deterministic FAQ matching for free-text questions.
+  - `provider_cost_estimate` comes from `SUPPORT_AI_PRICE_EUR_PER_MILLION_*` (null when unset; billed cost still null).
+- #29:
+  - Templates may use `{{webshop_name}}` and `{{first_name}}` (plain text, bounded).
+  - SPA paths come from `shopbonus.identity.frontend_paths` (`FRONTEND_PATH_*`; defaults unchanged `/app/...`).
+- #30:
+  - Backups include dispute, ownership-verification and QA evidence.
+  - The operations overview watches every `RELIABILITY_MONITORED_QUEUES` queue (default `default,affiliate`).
+- #36/#37 Quality Center:
+  - Freshness follows the tested build: `provenance` is sha_verified, sha_outdated or time_only.
+  - Runs accept `executed_at` / `--executed-at`.
+  - Fingerprints include the controller class, type-hinted App classes and route middleware.
+  - Discovery adds middleware, policies and the affiliate adapters.
+  - Retests need a build containing the fix (`retest_build_outdated` / `retest_build_unverified` unless `build_includes_fix`).
+  - Browser/manual PASS needs attached evidence (`QA_EVIDENCE_REQUIRED_SOURCES`).
+
+Not changed (owner or other input needed):
+- Reviewers asked for instant credit (#23, #36) and pending credit (#19, #22). D-089 stands.
+- Insufficient wallet → Mollie remainder is D-053, not a bug.
+- Points funding checkout is still OPEN-REWARD-UNITS.
+- Admin direct-merchant commission credit (`commission-credits`) credits immediately. Check it against D-089 with the owner.
+- The frontend paths for emails and support actions must be confirmed by the frontend; the defaults remain unverified.
+- Hourly backups vs RPO ≤ 15 min, offsite verification, connectors for 4 platforms, CI/Postman wiring, the 175 PDF v2 checks, E2E evidence packages, and all frontend items: not in this batch.
+- PHPStan: 97 errors repository-wide, all in HassanDev code from `4aa26c2` (none in lines changed here). They need a separate cleanup task.
+- PHP 8.5 is not installed locally; the SOAP signature is verified on 8.4 only.
+
+Evidence:
+- Full SQLite suite 1117 tests (1093 passed + 24 skipped) after the last code commit. Full MySQL run: see PROGRESS.
+- OpenApiCoverageTest PASS.
+- Pint PASS.
+- Capture environment (isolated SQLite, local server) and capture uploads/sessions removed afterwards.
+
+Main local `shopbonus` DB: migrations `2026_10_30_200000` and `210000` NOT applied there.
+
+Exact next:
+- Push the branch and open a PR after the owner/senior review.
+- Answer the reviewers on the D-089/D-053 items.
+- Separate tasks: HassanDev PHPStan cleanup, and the duplicate catalog code.
+
+---
 # Active handoff — `shopbonus:create-admin` command (2026-10-30, Claude)
 
 Owner request: a command to create an admin with name, email and password. `php artisan shopbonus:create-admin [--name=] [--email=] [--password=]` prompts for missing values (password hidden, asked twice), validates with the signup rules (`Password::defaults()`: min 10, letters + numbers, breached-password check in production; unique normalized email), then creates a verified active user, grants Super Admin (`granted_via: console`) and audits `admin.super_admin_granted` (`created: true`) in one transaction. Existing email → fails and points to `shopbonus:grant-super-admin`. 2FA is still required before the admin API opens. Test: `tests/Feature/Admin/CreateSuperAdminCommandTest.php` (3 PASS on SQLite and MySQL); PHPStan 0. No migration or route. Previous: B30 `a412e89`, [CI 40929686025](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40929686025) SUCCESS on all 3 jobs.

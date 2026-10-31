@@ -3,6 +3,8 @@
 namespace Tests\Feature\Reliability;
 
 use App\Models\User;
+use App\Services\Disputes\DisputeService;
+use App\Services\Qa\QaRuns;
 use App\Services\Reliability\Recovery\Backups;
 use App\Services\Reliability\Recovery\EncryptedArchive;
 use App\Services\Wallet\WalletService;
@@ -44,6 +46,14 @@ class RecoveryTest extends TestCase
         unlink($this->database);
         File::deleteDirectory($this->media);
         parent::tearDown();
+    }
+
+    public function test_every_private_upload_directory_is_a_backup_root(): void
+    {
+        $roots = array_values((require config_path('recovery.php'))['media_roots']);
+        foreach (['cms', 'banners', 'avatars', 'public-profiles', DisputeService::EVIDENCE_DIR, QaRuns::EVIDENCE_DIR, 'verification-evidence'] as $dir) {
+            $this->assertContains(storage_path('app/private/'.$dir), $roots, "{$dir} uploads are not backed up");
+        }
     }
 
     public function test_encrypted_database_and_media_restore_preserves_native_financial_records_in_isolation(): void
