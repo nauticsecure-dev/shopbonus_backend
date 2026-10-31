@@ -689,6 +689,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('vouchers', [VoucherOperationsController::class, 'index'])->middleware('workspace.can:vouchers.view')->name('vouchers.index');
                 Route::get('vouchers/export', [VoucherOperationsController::class, 'export'])
                     ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('vouchers.export');
+                Route::get('vouchers/exports/{export}', [VoucherOperationsController::class, 'showExport'])->middleware('workspace.can:vouchers.export')->name('vouchers.exports.show');
+                Route::get('vouchers/exports/{export}/download', [VoucherOperationsController::class, 'downloadExport'])
+                    ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('vouchers.exports.download');
                 Route::get('vouchers/{voucher}', [VoucherOperationsController::class, 'show'])->middleware('workspace.can:vouchers.view')->name('vouchers.show');
                 Route::middleware('workspace.can:vouchers.manage')->group(function () {
                     Route::post('offers/{offer}/code-imports', [VoucherCodeController::class, 'import'])->middleware('throttle:code-import')->name('code-imports.store');

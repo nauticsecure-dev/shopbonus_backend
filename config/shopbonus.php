@@ -162,6 +162,11 @@ return [
         'currencies' => ['EUR'],
         // Answer24 / reward claim window default (Trello: 90 days).
         'default_claim_validity_days' => 90,
+
+        // Voucher CSV exports above this many rows are built by a queued job (Trello #17);
+        // the private file can be downloaded by the requester for voucher_export_ttl_hours.
+        'voucher_export_sync_max_rows' => (int) env('VOUCHER_EXPORT_SYNC_MAX_ROWS', 5000),
+        'voucher_export_ttl_hours' => (int) env('VOUCHER_EXPORT_TTL_HOURS', 24),
         // Suggested starting values per discovery category (Trello #9). Suggestions only.
         'branch_defaults' => [
             'fashion' => [

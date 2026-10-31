@@ -1,3 +1,20 @@
+# Continuation checkpoint — B46 large voucher exports are queued (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `a959e3e` (B45, CI run 41200758806 PASS). Card #17 (Webshop Dashboard, Offers & Voucher Management), Oluwasola finding 8: `GET /workspaces/{workspace}/vouchers/export` streamed every export inside the HTTP request. Now:
+- Up to `shopbonus.offers.voucher_export_sync_max_rows` (env VOUCHER_EXPORT_SYNC_MAX_ROWS, default 5000) it streams exactly as before (same CSV, same audit).
+- Above it: 202 with a `voucher_exports` row (migration 2026_10_31_130000; `VoucherExport` model); `BuildVoucherExport` job writes the same CSV to the private local disk `voucher-exports/{id}.csv`.
+- `GET .../vouchers/exports/{export}` (status) and `.../download` (requester only, same webshop, `vouchers.export`, throttled, audited `vouchers.export_downloaded`, no-store/nosniff). 409 `export_not_ready`, 410 `export_expired` after `voucher_export_ttl_hours` (default 24); 404 for anyone else.
+- `shopbonus:prune-voucher-exports` (hourly) deletes expired files. Export files are transient and deliberately not in backups (masked codes only, no consumer identity).
+- Query/CSV moved into `App\Services\Vouchers\VoucherExports` so both paths write the same file. OpenAPI: 202 on export plus two new operations; examples from the test suite (marked as such), not a live capture.
+
+Frontend (Hassan): on 202, poll the export status, then download; show queued/failed/expired.
+
+Executed: new VoucherDisputeTest export tests (queued vs streamed content identical, requester-only, expiry/prune, not-ready). Full SQLite 1164 / 1139 pass + 25 skipped; MySQL VoucherDisputeTest + WebshopDashboardOffersE2ETest 22/22; full PHPStan and Pint PASS. Main DB not migrated.
+
+#17 backend still open: only the per-consumer issuance limit (product decision). Next exact: check CI; then #31/#32 line items once provider order schemas are verified, or #16 ownership transfer once designed.
+
+---
+
 # Continuation checkpoint — B45 realtime revocation terminates open sockets (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `0c75e1b` (B44, CI run 41199933613 PASS: lint, MySQL, SQLite). Card #16 (Webshop Onboarding & Workspace Management), Oluwasola finding 2: channel auth (routes/channels.php) is rechecked on subscribe, but a removed member's already-open subscription to `webshops.{id}.orders` kept receiving events. Now:

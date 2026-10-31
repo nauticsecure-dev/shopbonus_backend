@@ -15,6 +15,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCheckout;
 use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherCode;
+use App\Models\VoucherExport;
 use App\Models\WalletLedgerEntry;
 use App\Models\Webshop;
 use App\Services\Checkout\CheckoutService;
@@ -182,6 +183,49 @@ class VoucherDisputeTest extends TestCase
         $this->assertSame(['opened', 'status_changed', 'merchant_response', 'status_changed', 'resolved', 'compensated'], array_column($timeline, 'type'));
         Sanctum::actingAs(User::factory()->create());
         $this->getJson("/api/v1/consumer/disputes/{$id}")->assertNotFound();
+    }
+
+    public function test_large_voucher_exports_are_queued_and_downloadable_only_by_the_requester_until_expiry(): void
+    {
+        Storage::fake('local');
+        foreach (range(1, 3) as $i) {
+            $this->issued();
+        }
+        Sanctum::actingAs($this->owner);
+        $streamed = $this->get($this->ws('/vouchers/export'))->assertOk()->streamedContent();
+
+        config(['shopbonus.offers.voucher_export_sync_max_rows' => 2]);
+        $id = $this->getJson($this->ws('/vouchers/export?status=issued&page=3'))->assertStatus(202)->assertJsonPath('data.status', 'queued')->json('data.id');
+        // The queue is synchronous in tests: the job has already run.
+        $this->getJson($this->ws("/vouchers/exports/{$id}"))->assertOk()->assertJsonPath('data.status', 'ready')->assertJsonPath('data.rows', 3);
+        $download = $this->get($this->ws("/vouchers/exports/{$id}/download"))->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->assertStringContainsString('no-store', (string) $download->headers->get('Cache-Control'));
+        $this->assertSame($streamed, $download->streamedContent());
+        $this->assertSame(['status' => 'issued'], VoucherExport::sole()->filters);
+        $this->assertSame(1, AuditEvent::where('action', 'vouchers.export_queued')->count());
+        $this->assertSame(1, AuditEvent::where('action', 'vouchers.export_downloaded')->count());
+
+        // Another member who may export cannot see or fetch someone else's file.
+        $colleague = User::factory()->create();
+        $this->shop->memberships()->create(['user_id' => $colleague->id, 'role' => MembershipRole::Manager, 'status' => 'active', 'joined_at' => now()]);
+        Sanctum::actingAs($colleague);
+        $this->getJson($this->ws("/vouchers/exports/{$id}"))->assertNotFound();
+        $this->getJson($this->ws("/vouchers/exports/{$id}/download"))->assertNotFound();
+
+        // After the window: 410, and the scheduled prune deletes the file.
+        Sanctum::actingAs($this->owner);
+        $this->travel(25)->hours();
+        $this->getJson($this->ws("/vouchers/exports/{$id}/download"))->assertStatus(410)->assertJsonPath('error.code', 'export_expired');
+        $this->artisan('shopbonus:prune-voucher-exports')->assertSuccessful();
+        $this->assertSame([], Storage::disk('local')->allFiles('voucher-exports'));
+        $this->getJson($this->ws("/vouchers/exports/{$id}"))->assertOk()->assertJsonPath('data.status', 'expired');
+    }
+
+    public function test_an_unfinished_voucher_export_is_not_downloadable(): void
+    {
+        $export = VoucherExport::create(['webshop_id' => $this->shop->id, 'requested_by' => $this->owner->id, 'filters' => [], 'status' => 'queued']);
+        Sanctum::actingAs($this->owner);
+        $this->getJson($this->ws("/vouchers/exports/{$export->public_id}/download"))->assertStatus(409)->assertJsonPath('error.code', 'export_not_ready');
     }
 
     public function test_merchant_voucher_list_keeps_the_name_the_voucher_was_issued_under(): void
