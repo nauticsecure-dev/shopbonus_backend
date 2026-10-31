@@ -1,3 +1,17 @@
+# Continuation checkpoint — B47 order monetary breakdown; Wix product lines (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `5fbbb8c` (D-106 recorded: no per-consumer voucher limit; B46 CI run 41202587978 PASS). Card #32 (Commerce Platform API Integrations), Oluwasola findings 3 and 5 (partial):
+- New nullable `webshop_orders.amount_breakdown` JSON (migration 2026_10_31_140000) via `App\Integrations\AmountBreakdown`: `original_total_minor`, `current_total_minor`, `tax_minor`, `shipping_minor`, `discount_minor`, `tax_included`, `source`, `currency`. Each part null unless the provider reports it; never derived. It sits beside `amount_minor` (gross) and `refunded_minor`, which are unchanged, so refunds are not subtracted twice (the reviewer's concern). Exposed in OrderResource (sheet + detail).
+- Shopify: pinned query adds `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded`; breakdown original=`totalPriceSet`, current=`currentTotalPriceSet`, tax, discount; same shop currency only; shipping null (docs describe `totalShippingPriceSet` as shipping returned to the customer).
+- Wix: breakdown from `priceSummary.{total,tax,shipping,discount}`; product lines via `LineItems::wix` (`totalPriceBeforeTax` = after discounts, before tax; basis `discounted_ex_tax`; any bad row → whole list null).
+- Field names verified 2026-10-31 against the official Shopify Admin GraphQL Order and Wix eCom Order object pages. NOT verified, so NOT mapped: WooCommerce order-level totals (docs page section unreachable), BigCommerce (reference pages unreachable), Shopware (Admin API reference 404; lineItems association unconfirmed), Magento (names confirmed but discount sign and configurable/bundle parent/child rows undocumented, so line items could double count). Docs: PLATFORM_API_SPECS.md (also fixed stale Wix backfill line), OpenAPI order detail.
+
+Executed: new ShopifyApiTest breakdown test (through the pinned query), WixConnectorTest price summary/lines test, OrderRecoveryTest asserts stored original/current totals end to end. Full SQLite 1166 / 1141 pass + 25 skipped; MySQL Integrations+Orders 174/174; PHPStan, Pint PASS. Main DB not migrated.
+
+#32 still open: Woo/BigCommerce/Shopware/Magento breakdown and lines once schemas are verified (official reference pages or a real store sample), Ecwid amount/currency, Lightspeed refunds, install packages, provider acceptance runs.
+
+---
+
 # Continuation checkpoint — B46 large voucher exports are queued (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `a959e3e` (B45, CI run 41200758806 PASS). Card #17 (Webshop Dashboard, Offers & Voucher Management), Oluwasola finding 8: `GET /workspaces/{workspace}/vouchers/export` streamed every export inside the HTTP request. Now:

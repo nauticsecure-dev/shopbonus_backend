@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AmountBreakdown;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -177,6 +178,22 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
         );
     }
 
+    /**
+     * Before returns (`total*Set`) and after returns (`currentTotalPriceSet`), per the Admin GraphQL Order object.
+     * Shipping is left out: `totalShippingPriceSet` is documented as shipping returned to the customer.
+     *
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>|null
+     */
+    private function breakdown(array $payload, ?string $currency): ?array
+    {
+        $money = fn (string $field) => ($payload[$field]['shopMoney']['currencyCode'] ?? null) === $currency && is_string($payload[$field]['shopMoney']['amount'] ?? null)
+            ? $payload[$field]['shopMoney']['amount'] : null;
+
+        return AmountBreakdown::make($currency, 'shopify_order', ['original_total' => $money('totalPriceSet'), 'current_total' => $money('currentTotalPriceSet'),
+            'tax' => $money('totalTaxSet'), 'discount' => $money('totalDiscountsSet')], is_bool($payload['taxesIncluded'] ?? null) ? $payload['taxesIncluded'] : null);
+    }
+
     /** @param array<string,mixed> $payload */
     private function normalizeGraphql(array $payload): NormalizedOrder
     {
@@ -228,6 +245,7 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
             couponCodes: array_values(array_filter(is_array($payload['discountCodes'] ?? null) ? $payload['discountCodes'] : [], fn ($value) => is_string($value) && strlen($value) <= 100)),
             attributionClickId: GenericSignedWebhookConnector::clickId(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
             lineItems: LineItems::shopify($payload['lineItems'] ?? null, Money::isCurrency($currency) ? $currency : null),
+            amountBreakdown: $this->breakdown($payload, Money::isCurrency($currency) ? $currency : null),
             bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
         );
     }

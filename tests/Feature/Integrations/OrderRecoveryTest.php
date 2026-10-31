@@ -274,6 +274,8 @@ class OrderRecoveryTest extends TestCase
         $this->assertSame(5995, $order->amount_minor);
         $this->assertSame(1000, $order->refunded_minor);
         $this->assertSame(2, OrderEvent::count());
+        // Original and current totals are stored beside the canonical amount, which is not reduced twice.
+        $this->assertSame([5995, 4995], [$order->amount_breakdown['original_total_minor'], $order->amount_breakdown['current_total_minor']]);
     }
 
     public function test_processing_failure_closes_staged_request_instead_of_endless_requeue(): void

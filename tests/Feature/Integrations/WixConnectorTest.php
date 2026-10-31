@@ -51,6 +51,28 @@ class WixConnectorTest extends TestCase
         $a->verifyIncomingEvent($c, $bad);
     }
 
+    public function test_price_summary_and_line_items_are_mapped_from_the_order(): void
+    {
+        $line = fn (string $id, string $before) => ['id' => $id, 'quantity' => 2, 'catalogReference' => ['catalogItemId' => 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa'],
+            'physicalProperties' => ['sku' => 'FIETS-BEL'], 'totalPriceBeforeTax' => ['amount' => $before, 'formattedAmount' => "€{$before}"]];
+        $p = ['order' => ['id' => '33333333-3333-4333-8333-333333333333', 'currency' => 'EUR', 'number' => '1043', 'paymentStatus' => 'PAID',
+            'priceSummary' => ['subtotal' => ['amount' => '20.00'], 'shipping' => ['amount' => '4.95'], 'tax' => ['amount' => '4.20'], 'discount' => ['amount' => '2.00'], 'total' => ['amount' => '27.15']],
+            'lineItems' => [$line('b1b1b1b1-0000-4000-8000-000000000001', '18.00')]], 'orderTransactions' => ['payments' => [], 'refunds' => []]];
+        $o = (new WixConnector)->normalizeOrder($p);
+
+        $this->assertSame(2715, $o->amountMinor);
+        $this->assertSame(['source' => 'wix_price_summary', 'currency' => 'EUR', 'tax_included' => null, 'original_total_minor' => 2715, 'current_total_minor' => null,
+            'tax_minor' => 420, 'shipping_minor' => 495, 'discount_minor' => 200], $o->amountBreakdown);
+        $this->assertSame([['id' => 'b1b1b1b1-0000-4000-8000-000000000001', 'product_id' => 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', 'sku' => 'FIETS-BEL', 'quantity' => 2,
+            'amount_minor' => 1800, 'amount_basis' => 'discounted_ex_tax', 'currency' => 'EUR', 'eligible_amount_minor' => null]], $o->lineItems);
+
+        // One unusable row makes the whole list unavailable rather than partial.
+        $p['order']['lineItems'][] = $line('b1b1b1b1-0000-4000-8000-000000000001', '1.00');
+        $this->assertNull((new WixConnector)->normalizeOrder($p)->lineItems);
+        $p['order']['lineItems'] = [$line('b1b1b1b1-0000-4000-8000-000000000002', '-1.00')];
+        $this->assertNull((new WixConnector)->normalizeOrder($p)->lineItems);
+    }
+
     public function test_order_paid_without_recorded_payment_is_pending_and_actual_approved_record_has_exact_minor_amount(): void
     {
         $id = '33333333-3333-4333-8333-333333333333';

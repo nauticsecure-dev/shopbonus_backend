@@ -40,6 +40,8 @@ final readonly class NormalizedOrder
         public ?string $bannerAssignmentToken = null,
         /** @var list<array<string,mixed>>|null null means unavailable or incomplete, [] means observed empty. */
         public ?array $lineItems = null,
+        /** @var array<string,mixed>|null provider tax/shipping/discount/original/current totals (AmountBreakdown); null when not reported */
+        public ?array $amountBreakdown = null,
     ) {}
 
     /** @return list<string> */

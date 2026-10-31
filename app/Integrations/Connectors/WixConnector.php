@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AmountBreakdown;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
@@ -13,6 +14,7 @@ use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\PinnedJsonReader;
+use App\Integrations\LineItems;
 use App\Integrations\ProviderOrderId;
 use App\Integrations\WixAppTokens;
 use App\Models\WebshopConnection;
@@ -325,7 +327,10 @@ final class WixConnector extends WebhookConnector implements CatalogReader, Orde
         // Keep the authoritative current status/amount, but never promote this to timed payment proof.
         $paidAt = $refundAt = null;
 
-        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['number'] ?? null), firstName: $this->str($p['billingInfo']['contactDetails']['firstName'] ?? null), email: $this->str($p['buyerInfo']['email'] ?? null), phone: $this->str($p['billingInfo']['contactDetails']['phone'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['createdDate'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['updatedDate'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['number'] ?? null), firstName: $this->str($p['billingInfo']['contactDetails']['firstName'] ?? null), email: $this->str($p['buyerInfo']['email'] ?? null), phone: $this->str($p['billingInfo']['contactDetails']['phone'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['createdDate'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['updatedDate'] ?? null),
+            lineItems: LineItems::wix($p['lineItems'] ?? null, $currency),
+            amountBreakdown: AmountBreakdown::make($currency, 'wix_price_summary', ['original_total' => $p['priceSummary']['total']['amount'] ?? null,
+                'tax' => $p['priceSummary']['tax']['amount'] ?? null, 'shipping' => $p['priceSummary']['shipping']['amount'] ?? null, 'discount' => $p['priceSummary']['discount']['amount'] ?? null]));
     }
 
     public function catalogCurrency(WebshopConnection $c): string
