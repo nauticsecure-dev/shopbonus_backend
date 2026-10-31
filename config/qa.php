@@ -17,6 +17,8 @@ return [
 
     // Evidence older than this, or older than the endpoint's last change, is STALE.
     'stale_after_days' => (int) env('QA_STALE_AFTER_DAYS', 7),
+    // Test sources whose PASS needs evidence attached to that result (no automated assertion trail).
+    'evidence_required_sources' => array_values(array_filter(explode(',', (string) env('QA_EVIDENCE_REQUIRED_SOURCES', 'browser,manual')))),
 
     // Read-only production probe (every 5 minutes); alerts after this many ms.
     'probe_enabled' => env('QA_PROBE_ENABLED', false),

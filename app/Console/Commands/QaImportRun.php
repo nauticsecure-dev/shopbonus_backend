@@ -11,7 +11,8 @@ use Illuminate\Console\Command;
 class QaImportRun extends Command
 {
     protected $signature = 'shopbonus:qa-import {report : JUnit XML file} {--suite=full} {--environment=staging} {--sha= : Tested Git SHA}
-        {--schedule= : Schedule id} {--coverage= : JSON map {test_key: ["GET /api/v1/..."]}} {--mocked : Label every result MOCKED}';
+        {--schedule= : Schedule id} {--coverage= : JSON map {test_key: ["GET /api/v1/..."]}} {--mocked : Label every result MOCKED}
+        {--executed-at= : When CI ran the suite (ISO 8601); defaults to the import time}';
 
     protected $description = 'Import executed test results into the Quality Center';
 
@@ -31,10 +32,16 @@ class QaImportRun extends Command
 
             return self::FAILURE;
         }
+        $executedAt = $this->option('executed-at');
+        if ($executedAt !== null && (strtotime((string) $executedAt) === false || strtotime((string) $executedAt) > time() || strtotime((string) $executedAt) < strtotime('-90 days'))) {
+            $this->error('Invalid --executed-at (ISO 8601, not in the future, at most 90 days old).');
+
+            return self::FAILURE;
+        }
         $schedule = $this->option('schedule') ? QaSchedule::where('public_id', $this->option('schedule'))->first() : null;
         try {
             $run = $runs->importJunit((string) file_get_contents($path), ['suite' => $suite, 'environment' => $environment, 'git_sha' => $sha,
-                'mocked' => (bool) $this->option('mocked'), 'schedule_id' => $schedule?->id], null);
+                'mocked' => (bool) $this->option('mocked'), 'schedule_id' => $schedule?->id, 'executed_at' => $executedAt], null);
             $schedule?->forceFill(['last_run_at' => now()])->save();
             $this->info('Run '.$run->public_id.': '.json_encode($run->totals));
             if ($coverage = $this->option('coverage')) {

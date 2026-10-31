@@ -7800,7 +7800,7 @@ paths:
       operationId: qaEndpoints
       summary: "API inventory with coverage status"
       description: |
-        Trello #37. Access: Super Admin or QA tester. Every discovered /api/v1 route: method, path, handler, OpenAPI summary (purpose), access, permission, scope, tests, last run and status. `status`: pass | fail | blocked | not_implemented | stale | untested | removed (FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS across the endpoint's approved tests; evidence older than the endpoint's last change or than QA_STALE_AFTER_DAYS is stale). `review: "UNREFERENCED — REVIEW"` = a frontend usage report exists, does not list the route, and it serves no webhook/integration/external client; nothing is ever deleted. Filters: `filter` (new, changed, removed, undocumented, untested, failed, blocked, stale, unreferenced, passed), `q` (path/handler), `access`, `page`, `per_page` ≤ 100.
+        Trello #37. Access: Super Admin or QA tester. Every discovered /api/v1 route: method, path, handler, OpenAPI summary (purpose), access, permission, scope, tests, last run and status. `status`: pass | fail | blocked | not_implemented | stale | untested | removed (FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS across the endpoint's approved tests; evidence older than the endpoint's last change or than QA_STALE_AFTER_DAYS is stale). `review: "UNREFERENCED — REVIEW"` = a frontend usage report exists, does not list the route, and it serves no webhook/integration/external client; nothing is ever deleted. Filters: `filter` (new, changed, removed, undocumented, untested, failed, blocked, stale, unreferenced, passed), `q` (path/handler), `access`, `page`, `per_page` ≤ 100. B31: STALE follows the tested build: `provenance` is `sha_verified` (run SHA = the change SHA or a later inventory scan), `sha_outdated` (a scan before the change: STALE) or `time_only` (unknown SHA: execution time vs change time); null when untested. `evidence_missing`: a browser/manual PASS (QA_EVIDENCE_REQUIRED_SOURCES) without evidence attached to that result counts as UNTESTED. Fingerprints include the whole controller, App classes type-hinted on the handler and App middleware on the route.
       x-access: admin
       x-codeSamples:
         - lang: curl
@@ -7836,7 +7836,7 @@ paths:
       operationId: qaEndpoint
       summary: "One endpoint with its tests and latest results"
       description: |
-        Trello #37. Access: Super Admin or QA tester. Coverage matrix row: requirement/test → route → permission → scope → latest result → run → Git SHA. Only approved cases count for `status`; drafts are listed with their status.
+        Trello #37. Access: Super Admin or QA tester. Coverage matrix row: requirement/test → route → permission → scope → latest result → run → Git SHA. Only approved cases count for `status`; drafts are listed with their status. B31: adds `provenance` and `evidence_missing` (see GET /api/v1/admin/qa/endpoints).
       x-access: admin
       x-codeSamples:
         - lang: curl
@@ -8199,7 +8199,7 @@ paths:
       operationId: qaImportRun
       summary: "Import a JUnit report"
       description: |
-        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Multipart: `report` (JUnit XML, ≤ QA_MAX_REPORT_KB, no DOCTYPE), `suite` (safe, changed, full, weekly), `environment` (production, staging), `git_sha`, optional `mocked`, `source` (phpunit, postman, browser), `schedule_id`. Mapping: failure/error → fail; skipped with message `BLOCKED:` → blocked, `NOT_IMPLEMENTED:` → not_implemented, other skipped → skipped; a test without assertions is never PASS. Names containing "MOCKED" (or `mocked=true`) are labelled mocked. Messages are redacted. The same report is never imported twice (409 `run_duplicate`). CI uses `php artisan shopbonus:qa-import`.
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. Multipart: `report` (JUnit XML, ≤ QA_MAX_REPORT_KB, no DOCTYPE), `suite` (safe, changed, full, weekly), `environment` (production, staging), `git_sha`, optional `mocked`, `source` (phpunit, postman, browser), `schedule_id`. Mapping: failure/error → fail; skipped with message `BLOCKED:` → blocked, `NOT_IMPLEMENTED:` → not_implemented, other skipped → skipped; a test without assertions is never PASS. Names containing "MOCKED" (or `mocked=true`) are labelled mocked. Messages are redacted. The same report is never imported twice (409 `run_duplicate`). CI uses `php artisan shopbonus:qa-import`. B31: optional `executed_at` (ISO 8601, not in the future, at most 90 days old; CLI `--executed-at`) records when CI ran the suite; freshness uses it instead of the import time. Without it the import time stands in.
       x-access: admin
       x-codeSamples:
         - lang: curl
@@ -8541,7 +8541,7 @@ paths:
       operationId: qaRetestFinding
       summary: "Independent retest"
       description: |
-        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. QA tester or Super Admin who is neither the owner nor the fixer (403 `retest_not_independent`), with a run imported after the fix (409 `retest_run_outdated`). The outcome is derived: every linked test must PASS unmocked in that run → `retest_passed`, else `retest_failed`. Only findings without linked tests take an explicit `passed`. Audited.
+        Trello #37. Access: Super Admin or QA tester. Step-up: recent password confirmation (POST /user/confirm-password) from a browser session. QA tester or Super Admin who is neither the owner nor the fixer (403 `retest_not_independent`), with a run imported after the fix (409 `retest_run_outdated`). The outcome is derived: every linked test must PASS unmocked in that run → `retest_passed`, else `retest_failed`. Only findings without linked tests take an explicit `passed`. Audited. B31: the run must be of a build containing the fix: run SHA = fix commit, or an inventory scan recorded after the fix commit's scan. A build scanned before the fix → 409 `retest_build_outdated`; an unknown relation → 409 `retest_build_unverified` unless `build_includes_fix: true` (the retester's confirmation, audited as `confirmed_by_retester`).
       x-access: admin
       x-codeSamples:
         - lang: curl

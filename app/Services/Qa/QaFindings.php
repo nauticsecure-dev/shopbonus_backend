@@ -89,12 +89,13 @@ class QaFindings
 
     /**
      * Independent retest: a different user than the one who fixed it, with a run
-     * imported after the fix. Every linked test must PASS in that run (executed,
-     * not mocked); a finding without linked tests needs an explicit verdict.
+     * imported after the fix, of a build that contains the fix (see buildProvenance).
+     * Every linked test must PASS in that run (executed, not mocked); a finding
+     * without linked tests needs an explicit verdict.
      */
-    public function retest(QaFinding $finding, QaTestRun $run, ?bool $verdict, User $actor): QaFinding
+    public function retest(QaFinding $finding, QaTestRun $run, ?bool $verdict, User $actor, bool $confirmedBuild = false): QaFinding
     {
-        return DB::transaction(function () use ($finding, $run, $verdict, $actor) {
+        return DB::transaction(function () use ($finding, $run, $verdict, $actor, $confirmedBuild) {
             $f = QaFinding::whereKey($finding->id)->lockForUpdate()->firstOrFail();
             if ($f->status !== 'fixed') {
                 throw ApiException::conflict('Only fixed findings can be retested.', 'finding_not_fixed', ['status' => $f->status]);
@@ -104,6 +105,14 @@ class QaFindings
             }
             if ($run->created_at->lessThanOrEqualTo($f->fixed_at)) { // second precision: a same-second run may predate the fix
                 throw ApiException::conflict('Use a run imported after the fix was recorded.', 'retest_run_outdated');
+            }
+            $provenance = self::buildProvenance((string) $f->fix_commit, $run->git_sha);
+            if ($provenance === 'outdated') {
+                throw ApiException::conflict('The run tested a build recorded before the fix commit.', 'retest_build_outdated', ['run_sha' => $run->git_sha, 'fix_commit' => $f->fix_commit]);
+            }
+            if ($provenance === 'unknown' && ! $confirmedBuild) {
+                throw ApiException::conflict('Cannot tell whether the tested build contains the fix commit. Confirm with build_includes_fix after checking the build.', 'retest_build_unverified',
+                    ['run_sha' => $run->git_sha, 'fix_commit' => $f->fix_commit]);
             }
             $results = QaTestResult::where('run_id', $run->id)->whereIn('key', $f->test_keys === [] ? [''] : $f->test_keys)->get()->keyBy('key');
             if ($f->test_keys === []) {
@@ -116,10 +125,31 @@ class QaFindings
             }
             $f->forceFill(['status' => $passed ? 'retest_passed' : 'retest_failed', 'retest_run_id' => $run->id, 'retested_by' => $actor->id])->save();
             $this->audit->record('qa.finding_retested', category: AuditCategory::Admin, actorUserId: $actor->id,
-                metadata: ['finding' => $f->public_id, 'run' => $run->public_id, 'passed' => $passed]);
+                metadata: ['finding' => $f->public_id, 'run' => $run->public_id, 'passed' => $passed, 'build_provenance' => $provenance === 'unknown' ? 'confirmed_by_retester' : $provenance]);
 
             return $f;
         });
+    }
+
+    /**
+     * Whether the run's build contains the fix, from the recorded inventory scans
+     * (servers have no Git history): `same` commit, `later` scan, `outdated`
+     * (the run's build was scanned before the fix commit's), or `unknown`.
+     */
+    public static function buildProvenance(string $fixCommit, string $runSha): string
+    {
+        $same = fn (string $a, string $b) => strlen($a) >= 7 && strlen($b) >= 7 && (str_starts_with($a, $b) || str_starts_with($b, $a));
+        if ($same($fixCommit, $runSha)) {
+            return 'same';
+        }
+        $scans = DB::table('qa_inventory_snapshots')->orderBy('id')->get(['id', 'git_sha']);
+        $fix = $scans->first(fn ($s) => $same((string) $s->git_sha, $fixCommit));
+        $tested = $scans->last(fn ($s) => $same((string) $s->git_sha, $runSha));
+        if ($fix === null || $tested === null) {
+            return 'unknown';
+        }
+
+        return $tested->id > $fix->id ? 'later' : 'outdated';
     }
 
     /**

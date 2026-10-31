@@ -29,9 +29,12 @@ use Throwable;
  * records new/changed/removed functions. Nothing is ever deleted: removed
  * entries keep their history with `removed_at`.
  *
- * An endpoint fingerprint covers method, path, middleware and the source of
- * its controller method, so a changed handler or access rule makes earlier
- * test evidence STALE.
+ * An endpoint fingerprint covers method, path, middleware names, the source
+ * of its controller method and the files it directly depends on: the whole
+ * controller class, App classes type-hinted on the method (form requests,
+ * services, models) and the App middleware classes on the route. A change
+ * in any of them makes earlier test evidence STALE. Deeper transitive
+ * dependencies are not followed.
  */
 class QaInventory
 {
@@ -128,7 +131,7 @@ class QaInventory
                     'summary' => isset($operation['summary']) ? mb_substr((string) $operation['summary'], 0, 255) : null,
                     'access' => $entry['access'] ?? 'public', 'permission' => $entry['permission'] ?? null, 'scope' => $entry['scope'] ?? 'public',
                     'documented' => $operation !== null,
-                    'fingerprint' => hash('sha256', json_encode([$method, $path, $middleware, $this->actionName($route), $this->actionSource($route)])),
+                    'fingerprint' => hash('sha256', json_encode([$method, $path, $middleware, $this->actionName($route), $this->actionSource($route), $this->dependencies($route)])),
                 ];
             }
         }
@@ -158,6 +161,51 @@ class QaInventory
         }
     }
 
+    /**
+     * Content hashes of the route's direct App dependencies (see class doc).
+     *
+     * @return array<string, string>
+     */
+    private function dependencies(Route $route): array
+    {
+        $classes = [];
+        try {
+            $uses = $route->getAction('uses');
+            $ref = $uses instanceof Closure ? new ReflectionFunction($uses) : new ReflectionMethod(...explode('@', (string) $uses, 2));
+            if ($ref instanceof ReflectionMethod) {
+                $classes[] = $ref->getDeclaringClass()->getName();
+            }
+            foreach ($ref->getParameters() as $param) {
+                $type = $param->getType();
+                if ($type instanceof \ReflectionNamedType && ! $type->isBuiltin()) {
+                    $classes[] = $type->getName();
+                }
+            }
+        } catch (Throwable) {
+            // unresolved handlers are already fingerprinted as 'unresolved'
+        }
+        $aliases = Routes::getMiddleware();
+        foreach ($route->gatherMiddleware() as $m) {
+            if (is_string($m)) {
+                $name = explode(':', $m, 2)[0];
+                $classes[] = $aliases[$name] ?? $name;
+            }
+        }
+        $hashes = [];
+        foreach (array_unique($classes) as $class) {
+            if (! is_string($class) || ! str_starts_with($class, 'App\\') || ! class_exists($class)) {
+                continue;
+            }
+            $file = (new \ReflectionClass($class))->getFileName();
+            if (is_string($file) && is_file($file)) {
+                $hashes[$class] = (string) hash_file('sha256', $file);
+            }
+        }
+        ksort($hashes);
+
+        return $hashes;
+    }
+
     /** @return array<string, array<string, mixed>> */
     private function discoverComponents(): array
     {
@@ -165,8 +213,15 @@ class QaInventory
         $files = [
             'job' => app_path('Jobs'), 'event' => app_path('Events'), 'listener' => app_path('Listeners'),
             'command' => app_path('Console/Commands'), 'migration' => database_path('migrations'),
-            'connector' => app_path('Integrations/Connectors'),
+            'connector' => app_path('Integrations/Connectors'), 'middleware' => app_path('Http/Middleware'), 'policy' => app_path('Policies'),
         ];
+        // Affiliate network adapters are provider connectors too (Daisycon, TradeTracker).
+        foreach (File::isDirectory(app_path('Affiliate/Adapters')) ? File::allFiles(app_path('Affiliate/Adapters')) : [] as $file) {
+            if ($file->getExtension() === 'php') {
+                $name = str_replace([base_path().'/', '.php'], '', $file->getPathname());
+                $found['connector:'.$name] = ['kind' => 'connector', 'name' => $name, 'fingerprint' => hash_file('sha256', $file->getPathname())];
+            }
+        }
         foreach ($files as $kind => $dir) {
             foreach (File::isDirectory($dir) ? File::allFiles($dir) : [] as $file) {
                 if ($file->getExtension() !== 'php') {

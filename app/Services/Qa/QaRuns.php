@@ -15,6 +15,7 @@ use App\Services\Audit\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -42,7 +43,9 @@ class QaRuns
     public function __construct(private readonly AuditLogger $audit, private readonly SensitiveDataProcessor $redactor) {}
 
     /**
-     * @param  array{suite: string, environment: string, git_sha: string, source?: string, mocked?: bool, schedule_id?: int|null}  $meta
+     * `executed_at` is when CI ran the suite; without it the import time stands in (and freshness says so).
+     *
+     * @param  array{suite: string, environment: string, git_sha: string, source?: string, mocked?: bool, schedule_id?: int|null, executed_at?: string|null}  $meta
      */
     public function importJunit(string $xml, array $meta, ?int $actorId): QaTestRun
     {
@@ -76,7 +79,9 @@ class QaRuns
                 }
                 $run = QaTestRun::create(['schedule_id' => $meta['schedule_id'] ?? null, 'suite' => $meta['suite'], 'environment' => $meta['environment'],
                     'git_sha' => $meta['git_sha'], 'source' => 'junit', 'report_hash' => $hash, 'totals' => $totals,
-                    'duration_ms' => array_sum(array_column($cases, 'duration_ms')), 'started_at' => now(), 'finished_at' => now(), 'created_by' => $actorId]);
+                    'duration_ms' => array_sum(array_column($cases, 'duration_ms')), 'created_by' => $actorId,
+                    'started_at' => $started = isset($meta['executed_at']) ? Carbon::parse($meta['executed_at']) : now(),
+                    'finished_at' => isset($meta['executed_at']) ? $started->copy()->addMilliseconds(array_sum(array_column($cases, 'duration_ms'))) : now()]);
                 $now = now();
                 foreach (array_chunk($cases, 500) as $chunk) {
                     QaTestResult::insert(array_map(fn ($c) => ['public_id' => strtolower((string) Str::ulid()), 'run_id' => $run->id, 'test_case_id' => $known[$c['key']],
