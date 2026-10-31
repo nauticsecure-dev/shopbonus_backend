@@ -237,3 +237,7 @@ Owner chose “Require an explicit configured rate” for new points earning rul
 ### D-105 — Commission remainder stays allocation reporting (owner, 2026-10-31)
 
 Owner chose “Keep allocation reporting” for #30. The commission remainder remains management allocation/unrecognized revenue evidence, not posted formal accounting revenue. Existing financial reconciliation and its labels are intentional; no revenue ledger or accounting activation is authorized by the card wording. Formal recognition remains a separate approved accounting task.
+
+### D-106 — No per-consumer voucher issuance limit (owner, 2026-10-31)
+
+Owner chose no per-consumer limit for #17 (Oluwasola finding 4). Offers keep only the overall `allocation_limit`; do not add a per-consumer cap unless the owner asks again. With this, #17 has no open backend finding; remaining work is the merchant dashboard frontend (Hassan).
