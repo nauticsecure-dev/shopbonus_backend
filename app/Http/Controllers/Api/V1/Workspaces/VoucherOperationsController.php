@@ -146,7 +146,7 @@ class VoucherOperationsController extends Controller
             'id' => $voucher->public_id,
             'status' => $voucher->status->value,
             'origin' => $voucher->origin->value,
-            'code' => $voucher->code === null ? null : '****'.$voucher->code->code_last4,
+            'code' => '****'.$voucher->code->code_last4,
             'offer_id' => $voucher->offer?->public_id,
             'offer_name' => $voucher->offer?->currentVersion?->name,
             'issued_at' => $voucher->issued_at?->toIso8601String(),

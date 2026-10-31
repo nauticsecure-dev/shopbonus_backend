@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $user_id
  * @property int $agreement_id
  * @property string $external_id
+ * @property array<string, mixed>|null $agreement_snapshot
  * @property string $status
  * @property int $commission_minor
  * @property int $consumer_credit_minor

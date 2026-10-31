@@ -100,7 +100,7 @@ final class VerifiedSupportAnswer
             ? json_encode($f['capabilities'], JSON_THROW_ON_ERROR)
             : (string) ($f['capabilities'] ?? '');
         $errors = $f['last_error_codes'] ?? (($f['last_error_code'] ?? null) === null ? [] : [$f['last_error_code']]);
-        $errorText = $errors === [] || $errors === null
+        $errorText = $errors === []
             ? ($nl ? 'geen geregistreerd' : 'none recorded')
             : (is_array($errors) ? implode(',', $errors) : (string) $errors);
 

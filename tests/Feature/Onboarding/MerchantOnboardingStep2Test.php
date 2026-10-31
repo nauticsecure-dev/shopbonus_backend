@@ -15,6 +15,7 @@ use App\Models\VoucherCodeBatch;
 use App\Models\Webshop;
 use App\Models\WebshopPublicProfile;
 use App\Services\Funding\MerchantFunding;
+use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -335,7 +336,7 @@ class MerchantOnboardingStep2Test extends TestCase
 
         $wallet = app(MerchantFunding::class)->wallet($this->shop);
         if ($wallet->available > 0) {
-            app(\App\Services\Wallet\WalletService::class)->debit($wallet, $wallet->available, 'test-drain:'.$this->shop->id);
+            app(WalletService::class)->debit($wallet, $wallet->available, 'test-drain:'.$this->shop->id);
         }
 
         $reg = $this->getJson($this->url('/onboarding'))->assertOk()->json('data.registration');
@@ -345,7 +346,7 @@ class MerchantOnboardingStep2Test extends TestCase
         $this->assertSame(OfferStatus::Draft, $offer->status);
         $this->assertNull($offer->activated_at);
 
-        app(\App\Services\Wallet\WalletService::class)->credit($wallet, 1_000_000, 'test-refill:'.$this->shop->id, neverExpires: true);
+        app(WalletService::class)->credit($wallet, 1_000_000, 'test-refill:'.$this->shop->id, neverExpires: true);
         $this->assertSame('draft', $this->getJson($this->url("/offers/{$id}"))->json('data.status'));
         $this->assertTrue(collect($this->getJson($this->url('/onboarding'))->json('data.registration.activation_blockers'))
             ->pluck('code')->contains('connection_unverified'));

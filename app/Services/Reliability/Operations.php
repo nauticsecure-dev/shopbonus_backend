@@ -92,7 +92,11 @@ class Operations
             'limits' => 'Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof.'];
     }
 
-    /** Compact acceptance counters for Super Admin ops; never invent HEALTHY from missing samples. */
+    /**
+     * Compact acceptance counters for Super Admin ops; never invent HEALTHY from missing samples.
+     *
+     * @return array<string, mixed>
+     */
     private function acceptanceMetrics(): array
     {
         $run = FinancialReconciliationRun::latest('id')->first();

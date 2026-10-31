@@ -47,11 +47,13 @@ class AttributionLink extends Model
         return ['public_id'];
     }
 
+    /** @return BelongsTo<WebshopOrder, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(WebshopOrder::class, 'order_id');
     }
 
+    /** @return BelongsTo<Webshop, $this> */
     public function webshop(): BelongsTo
     {
         return $this->belongsTo(Webshop::class);

@@ -855,3 +855,26 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] `PinnedJsonReader` opt-in `allowEmpty` for 204 list pages (BigCommerce v2).
 - [x] PlatformCatalogTest: one products + coupons pass per platform, unsupported shape skipped, codes encrypted, no write methods; real-server capture B27_PLATFORM_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
 - [ ] Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel: no native read connector (UNSUPPORTED). Live installed-store runs for all platforms NOT RUN. Storefront banner publication NOT BUILT (merchant-side plugin/app scope).
+
+### B32 — Resume Frank review branch / CI repair (2026-10-31)
+
+- [x] Audit and preserve Claude's uncommitted fixes and current ten Frank card requirements.
+- [x] Finish PHPStan cleanup without baselines or disabling checks; retain API contracts.
+- [x] Verify canonical enrichment evidence hashing across JSON key ordering and tampering.
+- [x] Validate MySQL column-width migration and affected regression tests on isolated test databases.
+- [x] Run API coverage, formatting, static analysis and full SQLite/MySQL suites sequentially.
+- [x] Record exact results, outstanding backend/frontend/live acceptance and branch/commit in handoff.
+
+Evidence: implementing commit `fix: finish Frank review CI repair on SQLite and MySQL` (SHA recorded in following handoff checkpoint); SQLite 1117 total/1093 passed/24 skipped, MySQL 1120 total/1117 passed/3 skipped; focused hash/enrichment 8/31; API coverage 3/5140; Pint, PHPStan L6, dependency audit PASS.
+
+### B33 — Separate points-priced voucher checkout, #19/#20 (D-103)
+
+- [ ] Add optional positive integer points price to immutable offer terms; at least one explicit price before activation.
+- [ ] Validate merchant pricing and consumer payment unit; preserve existing EUR-credit behavior.
+- [ ] Persist points price/unit separately from monetary amounts; reserve/capture points atomically through WalletService.
+- [ ] Block missing points price, insufficient points, monetary fallback and altered idempotent requests.
+- [ ] Revalidate the current locked offer version and stock; preserve frozen issuance terms and existing tenant/user guards.
+- [ ] Extend financial reconciliation to prove exact unit, owner, debit and immutable price.
+- [ ] Test success/replay, insufficient/pending/reserved points, rollback, unit isolation, version changes and security negatives.
+- [ ] Capture changed public/merchant/consumer API examples from a real isolated HTTP server; update OpenAPI and README.
+- [ ] Record executed checks and exact commit; whole Trello cards retain independent/frontend/live acceptance.

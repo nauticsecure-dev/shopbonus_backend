@@ -164,7 +164,7 @@ final class LightspeedCConnector extends WebhookConnector implements OrderNotifi
             $query,
         )['data'];
 
-        return is_array($data) ? $data : throw new ApiException('The provider response could not be read.', 502, 'provider_response_invalid');
+        return $data;
     }
 
     /** @return array{shop:array<string,mixed>,currency:string} */

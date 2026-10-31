@@ -30,23 +30,23 @@ class NetworkAnalytics
             ->where('referring_webshop_id', $shop->id)
             ->whereBetween('attributed_at', [$from, $to])
             ->selectRaw('COUNT(*) journeys, COALESCE(SUM(order_amount_minor),0) gmv')
-            ->first();
+            ->toBase()->first();
 
         $asReceiver = NetworkJourney::query()
             ->where('receiving_webshop_id', $shop->id)
             ->whereBetween('attributed_at', [$from, $to])
             ->selectRaw('COUNT(*) journeys, COALESCE(SUM(order_amount_minor),0) gmv')
-            ->first();
+            ->toBase()->first();
 
         return [
             'status' => 'available',
             'as_referrer' => [
-                'journeys' => (int) ($asReferrer?->journeys ?? 0),
-                'network_gmv_minor' => (int) ($asReferrer?->gmv ?? 0),
+                'journeys' => (int) ($asReferrer->journeys ?? 0),
+                'network_gmv_minor' => (int) ($asReferrer->gmv ?? 0),
             ],
             'as_receiver' => [
-                'journeys' => (int) ($asReceiver?->journeys ?? 0),
-                'network_gmv_minor' => (int) ($asReceiver?->gmv ?? 0),
+                'journeys' => (int) ($asReceiver->journeys ?? 0),
+                'network_gmv_minor' => (int) ($asReceiver->gmv ?? 0),
             ],
             'settlement_note' => 'Cross-shop journeys are recorded for agreed settlement only; ShopBonus never silently deducts the receiving shop Wallet.',
             'definitions' => [
@@ -74,7 +74,7 @@ class NetworkAnalytics
             ->whereNotNull('paid_at')
             ->whereBetween('paid_at', [$from, $to])
             ->selectRaw('COALESCE(SUM(amount_minor - refunded_minor),0) net, COUNT(*) n')
-            ->first();
+            ->toBase()->first();
 
         $earned = Voucher::query()->whereNotNull('issued_at')->whereBetween('issued_at', [$from, $to])->count();
         $spent = Voucher::query()->whereNotNull('redeemed_at')->whereBetween('redeemed_at', [$from, $to])->count();
@@ -90,14 +90,14 @@ class NetworkAnalytics
             ->where('status', 'settled')
             ->whereBetween('settled_at', [$from, $to])
             ->selectRaw('COALESCE(SUM(fee_minor),0) fees, COALESCE(SUM(reward_minor),0) rewards')
-            ->first();
+            ->toBase()->first();
 
         $walletLiabilities = (int) DB::table('wallets')->sum('reserved');
 
         $journeys = NetworkJourney::query()
             ->whereBetween('attributed_at', [$from, $to])
             ->selectRaw('COUNT(*) n, COALESCE(SUM(order_amount_minor),0) gmv')
-            ->first();
+            ->toBase()->first();
 
         $topReferring = NetworkJourney::query()
             ->whereBetween('attributed_at', [$from, $to])
@@ -148,8 +148,8 @@ class NetworkAnalytics
             'viewable_exposure' => $viewable,
             'unique_verified_members' => $members,
             'verified_gmv' => [
-                'paid_orders' => (int) ($gmv?->n ?? 0),
-                'net_minor' => (int) ($gmv?->net ?? 0),
+                'paid_orders' => (int) ($gmv->n ?? 0),
+                'net_minor' => (int) ($gmv->net ?? 0),
             ],
             'vouchers' => ['earned' => $earned, 'spent' => $spent],
             'external_affiliate' => [
@@ -161,13 +161,13 @@ class NetworkAnalytics
             ],
             'direct_fees' => [
                 'fee_rate_bps' => $this->fees->feeRateBps(),
-                'settled_fee_minor' => (int) ($fees?->fees ?? 0),
-                'settled_reward_minor' => (int) ($fees?->rewards ?? 0),
+                'settled_fee_minor' => (int) ($fees->fees ?? 0),
+                'settled_reward_minor' => (int) ($fees->rewards ?? 0),
             ],
             'wallet_liabilities_reserved_minor' => $walletLiabilities,
             'network_journeys' => [
-                'count' => (int) ($journeys?->n ?? 0),
-                'gmv_minor' => (int) ($journeys?->gmv ?? 0),
+                'count' => (int) ($journeys->n ?? 0),
+                'gmv_minor' => (int) ($journeys->gmv ?? 0),
                 'top_referring' => $mapShop($topReferring, 'referring_webshop_id'),
                 'top_receiving' => $mapShop($topReceiving, 'receiving_webshop_id'),
             ],

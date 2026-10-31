@@ -225,3 +225,7 @@ Trello #37 (B30). Executable tests stay in Git and run in CI/staging; the backen
 
 Trello review of the Frank list (B31). Reviewer requests that conflict with recorded owner decisions are not implemented: affiliate credit stays pending until network approval (D-089, the restored default), and a wallet shortfall is paid through Mollie (D-053). Quality Center evidence is fresh only for a build known to contain the endpoint's last change (run SHA = change SHA or a later inventory scan); an earlier scanned build is STALE, and an unknown SHA falls back to execution time and is labelled `time_only`. A retest must test a build containing the fix commit or carry the retester's explicit, audited confirmation. A shared (reusable) voucher code redeems only the buyer's own voucher, and a voucher is compensated at most once across all reports.
 
+
+### D-103 — Separate voucher points prices (owner, 2026-10-31)
+
+Owner approved: merchants may set a separate positive integer points price per voucher offer. Points purchases use only the consumer points wallet; no conversion to EUR and no Mollie shortfall. Existing EUR-credit checkout retains D-053. Prices must be versioned, captured immutably at checkout, and revalidated under locks. Missing points pricing or insufficient available points blocks purchase; pending/reserved points cannot fund it. This resolves OPEN-REWARD-UNITS only for explicit points-priced voucher checkout, not the separate points earning/conversion-rate policy.

@@ -50,7 +50,7 @@ class AffiliateRewardRule extends Model
     {
         // Only persist columns that can rehydrate via new AffiliateRewardRule($snapshot).
         return $this->only(['version', 'share_bps', 'min_commission_minor', 'max_reward_minor', 'review_above_minor', 'webshop_id', 'commission_source', 'cashback_approved'])
-            + ['unit' => $this->unit instanceof WalletUnit ? $this->unit->value : $this->unit];
+            + ['unit' => $this->unit->value];
     }
 
     /**
@@ -98,7 +98,11 @@ class AffiliateRewardRule extends Model
         return $this->max_reward_minor === null ? $reward : min($reward, $this->max_reward_minor);
     }
 
-    /** Rehydrate an immutable terms snapshot without mass-assignment of computed keys. */
+    /**
+     * Rehydrate an immutable terms snapshot without mass-assignment of computed keys.
+     *
+     * @param  array<string, mixed>  $snapshot
+     */
     public static function fromEvidence(array $snapshot): self
     {
         return new self(array_intersect_key($snapshot, array_flip([

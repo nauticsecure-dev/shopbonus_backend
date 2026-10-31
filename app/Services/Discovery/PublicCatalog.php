@@ -41,7 +41,7 @@ class PublicCatalog
             $search = trim((string) ($filters['search'] ?? ''));
             $slugs = array_values(array_unique(array_filter(
                 $filters['slugs'] ?? [],
-                fn ($s) => is_string($s) && $s !== ''
+                fn ($s) => $s !== ''
             )));
 
             if ($slugs !== []) {
@@ -349,9 +349,9 @@ class PublicCatalog
 
     /**
      * @param  list<int>  $webshopIds
-     * @return Collection<int, Collection<int, Offer>>
+     * @return Collection<int|string, \Illuminate\Database\Eloquent\Collection<int, Offer>>
      */
-    private function offersGroupedByWebshop(array $webshopIds)
+    private function offersGroupedByWebshop(array $webshopIds): Collection
     {
         if ($webshopIds === []) {
             return collect();
@@ -476,7 +476,7 @@ class PublicCatalog
 
         $rule = AffiliateRewardRule::current(webshopId: $webshopId, commissionSource: 'affiliate')
             ?? AffiliateRewardRule::current(webshopId: $webshopId);
-        $shareBps = $rule?->share_bps ?? (int) config('shopbonus.affiliate.default_consumer_share_bps', 7000);
+        $shareBps = $rule->share_bps ?? (int) config('shopbonus.affiliate.default_consumer_share_bps', 7000);
         $rate = ($program->commission_value * $shareBps) / 100_000_000;
         if ($rate <= 0) {
             return null;
@@ -492,7 +492,10 @@ class PublicCatalog
     }
 
     /**
-     * @param  Collection<int, array<string, mixed>>  $offers
+     * @template TBenefit of array<string, mixed>
+     *
+     * @param  array<string, mixed>|null  $cashback
+     * @param  Collection<int, TBenefit>  $offers
      * @return list<array<string, mixed>>
      */
     private function webshopBenefits(?array $cashback, Collection $offers): array
@@ -519,14 +522,21 @@ class PublicCatalog
         return $benefits;
     }
 
-    /** @param  Collection<int, array<string, mixed>>  $offers */
+    /**
+     * @template TOffer of array<string, mixed>
+     *
+     * @param  Collection<int, TOffer>  $offers
+     * @return Collection<int, TOffer>
+     */
     private function sortBenefitOffers(Collection $offers): Collection
     {
         return $offers->sortBy(fn (array $o) => [$this->offerKindPriority($o['offer_kind'] ?? ''), $o['title'] ?? ''])->values();
     }
 
     /**
-     * @param  Collection<int, array<string, mixed>>  $active
+     * @template TActive of array<string, mixed>
+     *
+     * @param  Collection<int, TActive>  $active
      * @param  array<string, mixed>|null  $cashback
      * @return array<string, mixed>|null
      */

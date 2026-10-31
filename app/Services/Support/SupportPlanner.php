@@ -93,7 +93,7 @@ final class SupportPlanner
         // Reward overview uses wallet evidence; order-level retry only when a reference is present.
         $missing = in_array(null, $arg, true);
 
-        $category = self::CATEGORIES[$intent] ?? 'OTHER_SHOPBONUS_SUPPORT';
+        $category = self::CATEGORIES[$intent];
         if ($intent === 'vouchers' && preg_match('/vervald|expir|verlopen/u', $q) === 1) {
             $category = 'VOUCHER_EXPIRY';
         }

@@ -204,7 +204,7 @@ class SupportChat
                 $diagnostic = SupportAnswerChecks::diagnostic(
                     $m->question,
                     'MISSING_REWARD_STATUS',
-                    is_array($known) ? array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])) : [],
+                    array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])),
                     ['order_reward_status'],
                     ['get_my_order_reward_status'],
                     1,

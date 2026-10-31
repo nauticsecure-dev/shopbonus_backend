@@ -64,15 +64,10 @@ class CapabilityMatrix
         $connector = $this->registry->for($connection->platform);
         if ($connector instanceof CatalogCapable) {
             foreach ($connector->getCapabilities($connection) as $key => $cap) {
-                if (! in_array($key, self::KEYS, true) || ! is_array($cap)) {
+                if (! in_array($key, self::KEYS, true)) {
                     continue;
                 }
-                $state = $cap['state'] instanceof CapabilityState ? $cap['state']->value : (string) ($cap['state'] ?? CapabilityState::Unsupported->value);
-                $base[$key] = [
-                    'state' => $state,
-                    'reason' => isset($cap['reason']) ? (is_string($cap['reason']) ? $cap['reason'] : null) : null,
-                    'last_verified_at' => isset($cap['last_verified_at']) && is_string($cap['last_verified_at']) ? $cap['last_verified_at'] : null,
-                ];
+                $base[$key] = ['state' => $cap['state']->value, 'reason' => $cap['reason'], 'last_verified_at' => $cap['last_verified_at']];
             }
         }
 

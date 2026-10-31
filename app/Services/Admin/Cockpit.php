@@ -150,7 +150,7 @@ class Cockpit
                     'id' => $o->public_id,
                     'title' => $o->external_order_id ?: ($o->reference ?: $o->public_id),
                     'subtitle' => $shop?->name,
-                    'href' => '/admin/webshops/'.($shop?->public_id ?? '').'?order='.$o->public_id,
+                    'href' => '/admin/webshops/'.($shop->public_id ?? '').'?order='.$o->public_id,
                 ];
             })->all();
 
@@ -164,7 +164,7 @@ class Cockpit
                 'type' => 'voucher',
                 'id' => $v->public_id,
                 'title' => $v->public_id,
-                'subtitle' => ($v->webshop?->name ?? 'Voucher').' · '.$v->status->value.($v->code ? ' · ****'.$v->code->code_last4 : ''),
+                'subtitle' => ($v->webshop->name ?? 'Voucher').' · '.$v->status->value.(' · ****'.$v->code->code_last4),
                 'href' => '/admin/vouchers?id='.$v->public_id,
             ])->all();
 
@@ -217,7 +217,7 @@ class Cockpit
                 'status' => $v->status->value,
                 'origin' => $v->origin->value,
                 'webshop' => $v->webshop ? ['id' => $v->webshop->public_id, 'name' => $v->webshop->name] : null,
-                'code_last4' => $v->code?->code_last4,
+                'code_last4' => $v->code->code_last4,
                 'issued_at' => $v->issued_at?->toIso8601String(),
                 'redeemed_at' => $v->redeemed_at?->toIso8601String(),
                 'expires_at' => $v->expires_at?->toIso8601String(),
@@ -464,7 +464,7 @@ class Cockpit
             ->selectRaw('LOWER(network) as network, COUNT(*) as n')
             ->groupBy('network')
             ->orderByDesc('n')
-            ->get();
+            ->toBase()->get();
 
         $total = (int) $rows->sum('n');
         $known = ['daisycon' => 'Daisycon', 'tradetracker' => 'TradeTracker'];

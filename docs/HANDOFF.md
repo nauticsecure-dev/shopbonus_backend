@@ -1,3 +1,13 @@
+# Continuation checkpoint — B32 CI repair verified (2026-10-31, Codex)
+
+Branch `frank/review-fixes`, starting HEAD `b607592`. Preserved Claude's uncommitted code/migration/formatter cleanup and staged deletion of three stray tools scripts. Current export has ten active Frank cards (#19/#20/#21/#22/#23/#26/#29/#30/#36/#37). See `docs/qa/FRANK_BACKEND_REMAINING.md`; reviewers' policy requests do not override D-089/D-053.
+
+Finished remaining 45 PHPStan findings without baselines/suppression/config relaxation, correcting relation and collection types and redundant branches. Retained Claude's MySQL column-width and canonical JSON evidence-hash fixes; added hash ordering/type/list/tampering regression coverage. No route or intended response contract change at this checkpoint. D-103 owner approved separate points pricing; checklist expanded, implementation follows B32.
+
+Executed: full SQLite 1117 total /1093 passed +24 skipped /17205 assertions /139.406s (before three added hash/tampering tests); focused enrichment +hash 8 passed /31 assertions. PHPStan L6 0 errors. Pint --test PASS; Composer audit PASS. Full MySQL: 1120 total /1117 passed +3 skipped /17295 assertions /473.678s against isolated `shopbonus_testing`, including all three added tests. Main DB migrations not applied. No credentials/provider-live/deployment acceptance. API coverage 3 tests/5140 assertions PASS; final PHPStan L6 PASS. B32 is committed in `fix: finish Frank review CI repair on SQLite and MySQL`; no push/PR yet. Next: implement D-103 through existing offer/checkout/wallet architecture. Whole cards remain partial.
+
+---
+
 # Active handoff — B31 Trello review fixes for the 10 cards in the Frank list (2026-10-31, Claude)
 
 Branch `frank/review-fixes` (not merged, not pushed), base `main` `59916e9`. Commits: `e171ca5` regressions, `5546489` OpenAPI recovery, `1175fe1` money/vouchers, `322d538` cockpit/support/notifications, `52adf2a` Quality Center, plus a docs commit. Source: the reviewer (Oluwasola Peter) comments on #19 #20 #21 #22 #23 #26 #29 #30 #36 #37. Each item was checked against the code before it was changed. D-089 unchanged and re-applied. Credentials senior-owned.

@@ -112,7 +112,8 @@ class EnrichmentPipeline
         }
 
         $run = MerchantEnrichmentRun::with('webshop')->findOrFail($runId);
-        if (! hash_equals($run->research_hash, $this->researcher->hash($run->research))) {
+        if (! hash_equals($run->research_hash, $this->researcher->hash($run->research))
+            && ! hash_equals($run->research_hash, $this->researcher->legacyHash($run->research))) {
             $this->fail($runId, 'research_integrity_failed');
 
             return;
@@ -192,9 +193,6 @@ class EnrichmentPipeline
             $run = MerchantEnrichmentRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
             if (! in_array($run->status, ['awaiting_review', 'completed'], true) || $run->proposal === null) {
                 throw ApiException::conflict('Only completed enrichment proposals can be approved.', 'enrichment_not_reviewable');
-            }
-            if ($run->status === 'published') {
-                throw ApiException::conflict('This enrichment has already been published.', 'enrichment_already_published');
             }
             $this->assertReviewer($run, $actor);
             $review = MerchantEnrichmentReview::create(['run_id' => $run->id, 'reviewed_by' => $actor->id, 'decision' => 'approved', 'note' => $note, 'created_at' => now()]);
