@@ -5243,6 +5243,7 @@ paths:
       summary: "Mollie payment webhook"
       description: |
         Mollie posts only `id` (form-encoded). The body is never trusted: Shopbonus fetches the payment from Mollie and acts on that. The amount, currency and checkout ID must match, or nothing happens and an error is reported.
+        A payment Mollie created whose creation answer never reached Shopbonus (timeout) is linked here from Mollie's own record, only to a checkout without a payment and of exactly that amount and currency (audited `checkout.payment_recovered`). If Mollie cannot be reached for an unknown ID the answer is non-200, so Mollie retries.
                 - `paid` → finalise exactly once;
                 - `failed`, `canceled` or `expired` → release the wallet part and the code;
                 - open → nothing.

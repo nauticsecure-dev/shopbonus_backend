@@ -1,3 +1,13 @@
+# Continuation checkpoint — B43 lost Mollie payments are recovered by their webhook (2026-10-31, Claude)
+
+Branch `frank/review-fixes`, parent `4271f04` (B42). Card #20 (Voucher Checkout, Mollie & My Vouchers), Oluwasola finding 4. Already in place before this: the checkout row (intent) is committed before Mollie is called, Mollie gets the stable `Idempotency-Key: checkout:<public_id>`, an unknown outcome (timeout/5xx) keeps the checkout pending and a client retry recovers the same payment. Gap closed now: if the client never retried, Mollie's later webhook for that payment found no `provider_ref` and was ignored. `CheckoutService::recoverPayment` now asks Mollie for an unknown ID and links it only when its `metadata.checkout_id` names a checkout with no payment yet and exactly the same amount/currency; then the normal `sync` runs (paid → finalise, or `paid_unfulfilled` if reservations were already released by expiry). A second payment naming an already-linked checkout is reported, never linked. Mollie 4xx for a forged ID → still 200 with nothing revealed; Mollie unreachable → exception (non-200) so Mollie retries. Audit `checkout.payment_recovered`. OpenAPI webhook description updated. No migrations/routes.
+
+Executed: new CheckoutTest `test_a_payment_whose_creation_answer_was_lost_is_linked_by_its_webhook` (fails on old code) and `test_a_lost_payment_of_another_amount_is_not_linked`. SQLite Checkout+Funding+Journey+SalesAttribution+Api 89 tests / 86 pass + 3 pre-existing MySQL-only skips; MySQL CheckoutTest+FundingTest 24/24. Pint, PHPStan PASS. All webhook-posting tests use faked Mollie (checked: no real HTTP).
+
+#20 backend now has no open reviewer finding; remaining is Hassan (Checkout/My Vouchers UI) and real Mollie TEST acceptance. Not covered: a payment that never gets any status change after creation (stays `open` at Mollie until it expires, which does send a webhook). Next exact: push, check CI; then #16 realtime revocation or #31 capability claims.
+
+---
+
 # Continuation checkpoint — B42 merchant voucher rows keep the issued offer name (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `f2d8d5a` (B41). Card #17, Oluwasola finding 9: merchant voucher list/detail/export rows took `offer_name` from the offer's current version, so editing an offer relabelled vouchers already issued. `presentVoucher` now uses `terms_snapshot.name` (frozen at reservation), falling back to the current name only if a snapshot lacks one. Search still matches the current offer name (documented). OpenAPI description updated. No migrations/routes.

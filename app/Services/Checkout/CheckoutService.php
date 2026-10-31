@@ -147,12 +147,49 @@ class CheckoutService
     /** Mollie webhook: never trusts the request; asks Mollie. */
     public function handleWebhook(string $paymentId): void
     {
-        $payment = VoucherCheckoutPayment::where('provider_ref', $paymentId)->first();
+        $payment = VoucherCheckoutPayment::where('provider_ref', $paymentId)->first() ?? $this->recoverPayment($paymentId);
         if ($payment === null) {
             return; // unknown or forged ID: nothing to do, and nothing revealed
         }
 
         $this->sync(VoucherCheckout::findOrFail($payment->checkout_id));
+    }
+
+    /**
+     * A payment Mollie created whose answer never reached us (timeout, crash
+     * before the insert): Mollie's own record names the checkout. Linked only
+     * to an unlinked checkout of exactly that amount and currency.
+     */
+    private function recoverPayment(string $paymentId): ?VoucherCheckoutPayment
+    {
+        try {
+            $remote = $this->mollie->getPayment($paymentId);
+        } catch (ApiException $e) {
+            $status = (int) ($e->details['provider_status'] ?? 0);
+            if ($status >= 400 && $status < 500) {
+                return null; // Mollie does not know it either
+            }
+            throw $e; // unreachable: a non-200 makes Mollie retry the webhook
+        }
+
+        $checkout = VoucherCheckout::where('public_id', (string) ($remote['metadata']['checkout_id'] ?? ''))->first();
+        if ($checkout === null || $checkout->payment_part_minor <= 0 || $remote['amount_minor'] !== $checkout->payment_part_minor || $remote['currency'] !== $checkout->currency) {
+            return null;
+        }
+        if ($checkout->payment()->exists()) {
+            report(new \RuntimeException("Mollie payment {$paymentId} names checkout {$checkout->public_id}, which already has another payment."));
+
+            return null;
+        }
+
+        $payment = VoucherCheckoutPayment::firstOrCreate(['checkout_id' => $checkout->id], ['provider' => 'mollie', 'provider_ref' => $remote['id'], 'amount_minor' => $checkout->payment_part_minor,
+            'currency' => $checkout->currency, 'status' => $remote['status'], 'checkout_url' => null, 'test_mode' => $this->mollie->testMode()]);
+        if ($payment->wasRecentlyCreated) {
+            $this->audit->record('checkout.payment_recovered', category: AuditCategory::Financial, resource: $checkout, webshopId: $checkout->webshop_id,
+                metadata: ['provider_ref' => $remote['id']]);
+        }
+
+        return $payment->provider_ref === $paymentId ? $payment : null;
     }
 
     /** Applies Mollie's actual status to the checkout. */

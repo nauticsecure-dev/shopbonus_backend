@@ -6,6 +6,7 @@ use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherStatus;
+use App\Models\AuditEvent;
 use App\Models\Offer;
 use App\Models\User;
 use App\Models\Voucher;
@@ -47,6 +48,9 @@ class CheckoutTest extends TestCase
     /** HTTP status Mollie answers the next payment creation requests with (null = 201). */
     private array $mollieCreateFailures = [];
 
+    /** Payments Mollie holds that we never stored: provider ref => checkout public ID. */
+    private array $mollieUnlinked = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -64,10 +68,14 @@ class CheckoutTest extends TestCase
                 return Http::response(['id' => $id, 'status' => 'open', 'amount' => $request['amount'], 'metadata' => $request['metadata'],
                     '_links' => ['checkout' => ['href' => 'https://www.mollie.com/checkout/select-method/'.substr($id, 3)]]], 201);
             }
-            $payment = VoucherCheckoutPayment::where('provider_ref', basename(parse_url($request->url(), PHP_URL_PATH)))->firstOrFail();
-            $checkout = VoucherCheckout::findOrFail($payment->checkout_id);
+            $ref = basename(parse_url($request->url(), PHP_URL_PATH));
+            $checkout = VoucherCheckout::find(VoucherCheckoutPayment::where('provider_ref', $ref)->value('checkout_id'))
+                ?? VoucherCheckout::where('public_id', $this->mollieUnlinked[$ref] ?? null)->first();
+            if ($checkout === null) {
+                return Http::response(['status' => 404, 'title' => 'Not Found'], 404);
+            }
 
-            return Http::response(['id' => $payment->provider_ref, 'status' => $this->mollieStatus,
+            return Http::response(['id' => $ref, 'status' => $this->mollieStatus,
                 'amount' => ['currency' => 'EUR', 'value' => $this->mollieAmount ?? sprintf('%d.%02d', intdiv($checkout->payment_part_minor, 100), $checkout->payment_part_minor % 100)],
                 'metadata' => ['checkout_id' => $checkout->public_id]]);
         }]);
@@ -217,6 +225,50 @@ class CheckoutTest extends TestCase
         $this->mollieCreateFailures = [422];
         $this->buy('refused-checkout-0001')->assertStatus(502);
         $this->assertSame('failed', VoucherCheckout::where('idempotency_key', 'refused-checkout-0001')->value('state'));
+    }
+
+    public function test_a_payment_whose_creation_answer_was_lost_is_linked_by_its_webhook(): void
+    {
+        $this->fund(500);
+        $this->mollieCreateFailures = [503];
+        $this->buy('lost-answer-0001')->assertStatus(502);
+        $checkout = VoucherCheckout::sole();
+        $this->assertNull($checkout->payment);
+
+        // Mollie did create it; the consumer paid; only its webhook reaches us.
+        $lost = 'tr_lostpay0001';
+        $this->mollieUnlinked = [$lost => $checkout->public_id];
+        $this->mollieStatus = 'paid';
+        $this->app['auth']->forgetGuards();
+        $this->post('/api/v1/payments/mollie/webhook', ['id' => $lost], ['Accept' => 'application/json'])->assertOk();
+
+        $checkout->refresh();
+        $this->assertSame(['completed', $lost], [$checkout->state, $checkout->payment?->provider_ref]);
+        $this->assertSame(1, Voucher::where('consumer_user_id', $this->anna->id)->where('status', VoucherStatus::Issued)->count());
+        $this->assertSame(1, AuditEvent::where('action', 'checkout.payment_recovered')->count());
+
+        // Repeats are idempotent; another payment naming the same checkout is never linked.
+        $this->post('/api/v1/payments/mollie/webhook', ['id' => $lost], ['Accept' => 'application/json'])->assertOk();
+        $this->mollieUnlinked['tr_otherpay0001'] = $checkout->public_id;
+        $this->post('/api/v1/payments/mollie/webhook', ['id' => 'tr_otherpay0001'], ['Accept' => 'application/json'])->assertOk();
+        $this->assertSame(1, VoucherCheckoutPayment::count());
+        $this->assertSame(1, AuditEvent::where('action', 'checkout.payment_recovered')->count());
+    }
+
+    public function test_a_lost_payment_of_another_amount_is_not_linked(): void
+    {
+        $this->fund(500);
+        $this->mollieCreateFailures = [503];
+        $this->buy('lost-answer-0002')->assertStatus(502);
+        $checkout = VoucherCheckout::sole();
+
+        $this->mollieUnlinked = ['tr_lostpay0002' => $checkout->public_id];
+        [$this->mollieStatus, $this->mollieAmount] = ['paid', '0.01'];
+        $this->app['auth']->forgetGuards();
+        $this->post('/api/v1/payments/mollie/webhook', ['id' => 'tr_lostpay0002'], ['Accept' => 'application/json'])->assertOk();
+
+        $this->assertSame('pending_payment', $checkout->fresh()->state);
+        $this->assertSame(0, VoucherCheckoutPayment::count());
     }
 
     public function test_card20_e2e6_failed_canceled_or_expired_payment_releases_everything(): void
