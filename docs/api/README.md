@@ -19444,3 +19444,244 @@ Captured response 200:
   }
 }
 ```
+
+
+## Independent retest proof — 2026-10-31
+
+Different builds are compared through read-only local Git ancestry when available. A later inventory scan alone cannot prove inclusion of a fix. Unknown ancestry remains `time_only` and STALE even for a freshly imported/executed report. Exact declared matching SHAs remain supported when Git history is absent; report provenance still depends on the authorized runner. Unknown finding builds require an explicit independent `build_includes_fix` attestation, recorded separately; known older/unrelated builds are refused.
+
+Both actual execution and import must follow the recorded fix. Manual/unlinked PASS requires an executed unmocked assertion and a valid unexpired checksum-verified attachment tied to its result. Linked browser/manual cases require per-result proof too. Missing/expired/corrupt proof cannot close the finding or make a browser endpoint PASS. Existing role separation remains enforced.
+
+[Actual HTTP captures](../qa/B36_RETEST_PROOF_HTTP_CAPTURE.json): real local server/cookie/CSRF/password flow, isolated SQLite/storage and explicitly synthetic findings/reports/evidence. These demonstrate the guards, not independently executed staging or provider acceptance.
+
+### manual_evidence_required — `POST /api/v1/admin/qa/findings/01m68gjq5fcppnn7t7mszrrdcj/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq4p2yek3vm1ar1382qv",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_evidence_required",
+    "message": "A passing manual retest needs an executed unmocked assertion with valid result evidence.",
+    "request_id": "01a1910a-3d7c-7121-bc89-a9ff07631200"
+  }
+}
+```
+
+### execution_before_fix — `POST /api/v1/admin/qa/findings/01m68gjq5hf6eeb12whhbamz4y/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq4zm0fj0mj47skfq3rg",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_run_outdated",
+    "message": "Use a run executed and imported after the fix was recorded.",
+    "request_id": "01a1910a-3dbc-7033-830b-67424a87a3a1"
+  }
+}
+```
+
+### unverified_build — `POST /api/v1/admin/qa/findings/01m68gjq5jfnxavt09bth049a2/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq542eymgzwb4h57z23a",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_build_unverified",
+    "message": "Cannot tell whether the tested build contains the fix commit. Confirm with build_includes_fix after checking the build.",
+    "request_id": "01a1910a-3dd2-7243-9741-721fb4d34da2",
+    "details": {
+      "run_sha": "f11e22d",
+      "fix_commit": "1284bc1"
+    }
+  }
+}
+```
+
+### build_without_fix — `POST /api/v1/admin/qa/findings/01m68gjq5mm7g5vmj5s3pvvdz1/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq5ac6av7nfmcjjtphcx",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_build_outdated",
+    "message": "The run tested a build recorded before the fix commit.",
+    "request_id": "01a1910a-3e2e-703b-b435-2b3644b28f07",
+    "details": {
+      "run_sha": "40d8e83",
+      "fix_commit": "1284bc1"
+    }
+  }
+}
+```
+
+### fresh_report_unknown_build_stays_stale — `GET /api/v1/admin/qa/endpoints/01m68gjq5s3j9exccetc9h1y7p`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68gjq5s3j9exccetc9h1y7p",
+    "method": "GET",
+    "path": "/api/v1/consumer/wallet",
+    "name": null,
+    "handler": null,
+    "summary": null,
+    "access": "verified",
+    "permission": null,
+    "scope": "consumer",
+    "documented": true,
+    "status": "stale",
+    "mocked": false,
+    "tests": 1,
+    "last_run_at": "2026-10-31T08:17:52+00:00",
+    "provenance": "time_only",
+    "evidence_missing": false,
+    "frontend_referenced": null,
+    "external_client": false,
+    "review": null,
+    "first_seen_sha": "1284bc1",
+    "changed_sha": "1284bc1",
+    "changed_at": "2026-10-31T08:07:52+00:00",
+    "removed_at": null,
+    "test_cases": [
+      {
+        "id": "01m68gjq53cecy0yvs1a3hxtph",
+        "key": "Proof::unknown_build",
+        "title": "unknown_build",
+        "scenario": null,
+        "source": "phpunit",
+        "status": "approved",
+        "version": 1,
+        "approved_at": "2026-10-31T08:17:52+00:00",
+        "latest_result": {
+          "id": "01m68gjq542eymgzwb4h57z23b",
+          "key": "Proof::unknown_build",
+          "status": "pass",
+          "assertions": 1,
+          "mocked": false,
+          "duration_ms": 0,
+          "message": null,
+          "run_id": "01m68gjq542eymgzwb4h57z23a",
+          "created_at": "2026-10-31T08:17:52+00:00"
+        }
+      }
+    ]
+  }
+}
+```
+
+### attach_result_evidence — `POST /api/v1/admin/qa/runs/01m68gjq4p2yek3vm1ar1382qv/evidence`
+
+Request fields (multipart file: synthetic plain-text evidence):
+
+```json
+{
+  "result_id": "01m68gjq4p2yek3vm1ar1382qw"
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68gmfqbz2z0aarjasncbqss",
+    "name": "synthetic-proof.txt",
+    "mime": "text/plain",
+    "size": 70,
+    "sha256": "5b8c4b23b4d997d60c77688517513d9ab54d142544ebc799b29717ad215a72d7",
+    "request_id": null,
+    "retain_until": "2027-10-31T08:18:50+00:00",
+    "created_at": "2026-10-31T08:18:50+00:00"
+  }
+}
+```
+
+### manual_retest_with_valid_fixture_evidence — `POST /api/v1/admin/qa/findings/01m68gjq5fcppnn7t7mszrrdcj/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq4p2yek3vm1ar1382qv",
+  "passed": true
+}
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68gjq5fcppnn7t7mszrrdcj",
+    "title": "Synthetic manual",
+    "severity": "p2",
+    "status": "retest_passed",
+    "affected_routes": [],
+    "test_keys": [],
+    "run_id": null,
+    "owner_id": "01m68gjq4ey2r1fm845nxydz3b",
+    "fix_commit": "1284bc1",
+    "fixed_by": "01m68gjq4ey2r1fm845nxydz3b",
+    "fixed_at": "2026-10-31T08:07:52+00:00",
+    "retest_run_id": "01m68gjq4p2yek3vm1ar1382qv",
+    "retested_by": "01m68gjq40ypcb7mxxd211grh0",
+    "ai_status": null,
+    "created_at": "2026-10-31T08:17:52+00:00",
+    "updated_at": "2026-10-31T08:18:50+00:00",
+    "reproduction": null,
+    "ai_analysis": null
+  }
+}
+```

@@ -5,8 +5,10 @@ namespace Tests\Feature\Qa;
 use App\Enums\PlatformRole;
 use App\Models\AuditEvent;
 use App\Models\QaEndpoint;
+use App\Models\QaEvidence;
 use App\Models\QaFinding;
 use App\Models\QaTestCase;
+use App\Models\QaTestResult;
 use App\Models\QaTestRun;
 use App\Models\User;
 use App\Services\Qa\QaInventory;
@@ -149,7 +151,7 @@ class QualityCenterTest extends TestCase
 
     public function test_status_comes_only_from_approved_executed_evidence(): void
     {
-        $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaaaaa'])->assertSuccessful();
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'abc1234'])->assertSuccessful();
         $wallet = $this->endpointId('GET', '/api/v1/consumer/wallet');
         $profile = $this->endpointId('GET', '/api/v1/consumer/profile');
         $run = $this->import([
@@ -199,7 +201,7 @@ class QualityCenterTest extends TestCase
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$vouchers}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.mocked', true);
 
         // A code change after the evidence makes it STALE, never PASS.
-        QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->addMinute()]);
+        QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->addMinute(), 'changed_sha' => 'ddddddd']);
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale');
         $this->travel(8)->days();
         QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->subDays(30)]);
@@ -230,8 +232,10 @@ class QualityCenterTest extends TestCase
         $this->import([['Tests\\WalletTest', 'test_balance', 6, '']], 'aaaaaaa');
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'sha_outdated');
 
-        // An unknown build counts by execution time, and says so.
+        // An unknown build remains stale; import/execution time alone is not build proof.
         $this->import([['Tests\\WalletTest', 'test_balance', 7, '']], 'ccccccc', ['executed_at' => now()->subHour()->toIso8601String()]);
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'time_only');
+        $this->import([['Tests\\WalletTest', 'test_balance', 9, '']], 'ddddddd', ['executed_at' => now()->toIso8601String()]);
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'time_only');
         $this->import([['Tests\\WalletTest', 'test_balance', 8, '']], 'bbbbbbb1234');
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.provenance', 'sha_verified');
@@ -267,6 +271,12 @@ class QualityCenterTest extends TestCase
         $png = UploadedFile::fake()->image('screen.png', 20, 20);
         $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$run}/evidence", ['file' => $png, 'result_id' => $result])->assertCreated();
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.evidence_missing', false);
+        $evidence = QaEvidence::sole();
+        $evidence->forceFill(['retain_until' => now()->subMinute()])->save();
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);
+        $evidence->forceFill(['retain_until' => now()->addDay()])->save();
+        Storage::disk('local')->put($evidence->path, 'corrupt attachment');
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);
     }
 
     public function test_exports_are_escaped_private_downloads(): void
@@ -384,6 +394,10 @@ class QualityCenterTest extends TestCase
         $this->as($this->admin)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any, 'passed' => true])
             ->assertForbidden()->assertJsonPath('error.code', 'retest_not_independent');
         $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any])->assertUnprocessable();
+        $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any, 'passed' => true])
+            ->assertConflict()->assertJsonPath('error.code', 'retest_evidence_required');
+        $result = QaTestResult::where('run_id', QaTestRun::where('public_id', $any)->value('id'))->firstOrFail();
+        $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$any}/evidence", ['file' => UploadedFile::fake()->createWithContent('retest.txt', 'Executed regression proof'), 'result_id' => $result->public_id])->assertCreated();
         $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any, 'passed' => true])->assertJsonPath('data.status', 'retest_passed');
 
         $confirmed = QaFinding::create(['fingerprint' => 'g', 'title' => 'u', 'severity' => 'p2', 'status' => 'open', 'affected_routes' => [], 'test_keys' => [],
@@ -391,6 +405,8 @@ class QualityCenterTest extends TestCase
         $this->as($this->dev)->postJson("/api/v1/admin/qa/findings/{$confirmed->public_id}/fix", ['fix_commit' => 'fff0001'])->assertOk();
         $this->travel(1)->minutes();
         $release = $this->import([['Tests\\Z', 'test_z', 1, '']], 'eeee998');
+        $result = QaTestResult::where('run_id', QaTestRun::where('public_id', $release)->value('id'))->firstOrFail();
+        $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$release}/evidence", ['file' => UploadedFile::fake()->createWithContent('retest.txt', 'Executed release regression proof'), 'result_id' => $result->public_id])->assertCreated();
         $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$confirmed->public_id}/retest", ['run_id' => $release, 'passed' => true, 'build_includes_fix' => true])
             ->assertOk()->assertJsonPath('data.status', 'retest_passed');
         $this->assertSame('confirmed_by_retester', AuditEvent::where('action', 'qa.finding_retested')->latest('id')->first()->metadata['build_provenance']);

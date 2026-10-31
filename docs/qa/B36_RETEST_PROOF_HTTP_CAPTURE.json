@@ -1,0 +1,203 @@
+{
+  "captured_at": "2026-10-31",
+  "environment": "Actual local HTTP server, isolated SQLite and storage root, genuine cookie/CSRF login/recent password. Synthetic admin/fixer/findings and report/assertion/evidence fixtures demonstrate API guards, not staging/native-provider acceptance. MFA disabled only for this local capture. Base 1284bc1 plus B36 changes. Secrets/cookies excluded.",
+  "captures": [
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/qa/findings/01m68gjq5fcppnn7t7mszrrdcj/retest",
+      "label": "manual_evidence_required",
+      "request": {
+        "run_id": "01m68gjq4p2yek3vm1ar1382qv",
+        "passed": true
+      },
+      "file": null,
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "retest_evidence_required",
+          "message": "A passing manual retest needs an executed unmocked assertion with valid result evidence.",
+          "request_id": "01a1910a-3d7c-7121-bc89-a9ff07631200"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/qa/findings/01m68gjq5hf6eeb12whhbamz4y/retest",
+      "label": "execution_before_fix",
+      "request": {
+        "run_id": "01m68gjq4zm0fj0mj47skfq3rg",
+        "passed": true
+      },
+      "file": null,
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "retest_run_outdated",
+          "message": "Use a run executed and imported after the fix was recorded.",
+          "request_id": "01a1910a-3dbc-7033-830b-67424a87a3a1"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/qa/findings/01m68gjq5jfnxavt09bth049a2/retest",
+      "label": "unverified_build",
+      "request": {
+        "run_id": "01m68gjq542eymgzwb4h57z23a",
+        "passed": true
+      },
+      "file": null,
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "retest_build_unverified",
+          "message": "Cannot tell whether the tested build contains the fix commit. Confirm with build_includes_fix after checking the build.",
+          "request_id": "01a1910a-3dd2-7243-9741-721fb4d34da2",
+          "details": {
+            "run_sha": "f11e22d",
+            "fix_commit": "1284bc1"
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/qa/findings/01m68gjq5mm7g5vmj5s3pvvdz1/retest",
+      "label": "build_without_fix",
+      "request": {
+        "run_id": "01m68gjq5ac6av7nfmcjjtphcx",
+        "passed": true
+      },
+      "file": null,
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "retest_build_outdated",
+          "message": "The run tested a build recorded before the fix commit.",
+          "request_id": "01a1910a-3e2e-703b-b435-2b3644b28f07",
+          "details": {
+            "run_sha": "40d8e83",
+            "fix_commit": "1284bc1"
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/qa/endpoints/01m68gjq5s3j9exccetc9h1y7p",
+      "label": "fresh_report_unknown_build_stays_stale",
+      "request": null,
+      "file": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68gjq5s3j9exccetc9h1y7p",
+          "method": "GET",
+          "path": "/api/v1/consumer/wallet",
+          "name": null,
+          "handler": null,
+          "summary": null,
+          "access": "verified",
+          "permission": null,
+          "scope": "consumer",
+          "documented": true,
+          "status": "stale",
+          "mocked": false,
+          "tests": 1,
+          "last_run_at": "2026-10-31T08:17:52+00:00",
+          "provenance": "time_only",
+          "evidence_missing": false,
+          "frontend_referenced": null,
+          "external_client": false,
+          "review": null,
+          "first_seen_sha": "1284bc1",
+          "changed_sha": "1284bc1",
+          "changed_at": "2026-10-31T08:07:52+00:00",
+          "removed_at": null,
+          "test_cases": [
+            {
+              "id": "01m68gjq53cecy0yvs1a3hxtph",
+              "key": "Proof::unknown_build",
+              "title": "unknown_build",
+              "scenario": null,
+              "source": "phpunit",
+              "status": "approved",
+              "version": 1,
+              "approved_at": "2026-10-31T08:17:52+00:00",
+              "latest_result": {
+                "id": "01m68gjq542eymgzwb4h57z23b",
+                "key": "Proof::unknown_build",
+                "status": "pass",
+                "assertions": 1,
+                "mocked": false,
+                "duration_ms": 0,
+                "message": null,
+                "run_id": "01m68gjq542eymgzwb4h57z23a",
+                "created_at": "2026-10-31T08:17:52+00:00"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/qa/runs/01m68gjq4p2yek3vm1ar1382qv/evidence",
+      "label": "attach_result_evidence",
+      "request": {
+        "result_id": "01m68gjq4p2yek3vm1ar1382qw"
+      },
+      "file": "Synthetic plain-text proof fixture",
+      "status": 201,
+      "response": {
+        "data": {
+          "id": "01m68gmfqbz2z0aarjasncbqss",
+          "name": "synthetic-proof.txt",
+          "mime": "text/plain",
+          "size": 70,
+          "sha256": "5b8c4b23b4d997d60c77688517513d9ab54d142544ebc799b29717ad215a72d7",
+          "request_id": null,
+          "retain_until": "2027-10-31T08:18:50+00:00",
+          "created_at": "2026-10-31T08:18:50+00:00"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/qa/findings/01m68gjq5fcppnn7t7mszrrdcj/retest",
+      "label": "manual_retest_with_valid_fixture_evidence",
+      "request": {
+        "run_id": "01m68gjq4p2yek3vm1ar1382qv",
+        "passed": true
+      },
+      "file": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m68gjq5fcppnn7t7mszrrdcj",
+          "title": "Synthetic manual",
+          "severity": "p2",
+          "status": "retest_passed",
+          "affected_routes": [],
+          "test_keys": [],
+          "run_id": null,
+          "owner_id": "01m68gjq4ey2r1fm845nxydz3b",
+          "fix_commit": "1284bc1",
+          "fixed_by": "01m68gjq4ey2r1fm845nxydz3b",
+          "fixed_at": "2026-10-31T08:07:52+00:00",
+          "retest_run_id": "01m68gjq4p2yek3vm1ar1382qv",
+          "retested_by": "01m68gjq40ypcb7mxxd211grh0",
+          "ai_status": null,
+          "created_at": "2026-10-31T08:17:52+00:00",
+          "updated_at": "2026-10-31T08:18:50+00:00",
+          "reproduction": null,
+          "ai_analysis": null
+        }
+      }
+    }
+  ]
+}

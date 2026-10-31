@@ -103,8 +103,8 @@ class QaFindings
             if ($actor->id === $f->fixed_by || $actor->id === $f->owner_id) {
                 throw new ApiException('The retest must be done by someone other than the developer who fixed it.', 403, 'retest_not_independent');
             }
-            if ($run->created_at->lessThanOrEqualTo($f->fixed_at)) { // second precision: a same-second run may predate the fix
-                throw ApiException::conflict('Use a run imported after the fix was recorded.', 'retest_run_outdated');
+            if ($run->created_at->lessThanOrEqualTo($f->fixed_at) || $run->started_at?->lessThanOrEqualTo($f->fixed_at)) { // second precision: a same-second run may predate the fix
+                throw ApiException::conflict('Use a run executed and imported after the fix was recorded.', 'retest_run_outdated');
             }
             $provenance = self::buildProvenance((string) $f->fix_commit, $run->git_sha);
             if ($provenance === 'outdated') {
@@ -119,9 +119,28 @@ class QaFindings
                 if ($verdict === null) {
                     throw new ApiException('This finding has no linked tests; give an explicit verdict.', 422, 'validation_failed', ['errors' => ['passed' => ['Required when the finding has no linked tests.']]]);
                 }
+                if ($verdict) {
+                    $evidence = QaEvidence::query()->where('run_id', $run->id)->where('retain_until', '>', now())
+                        ->whereIn('result_id', QaTestResult::where('run_id', $run->id)->where('status', 'pass')->where('assertions', '>', 0)->where('mocked', false)->select('id'))
+                        ->latest('id')->first();
+                    if ($evidence === null || ! app(QaRuns::class)->evidenceAvailable($evidence)) {
+                        throw ApiException::conflict('A passing manual retest needs an executed unmocked assertion with valid result evidence.', 'retest_evidence_required');
+                    }
+                }
                 $passed = $verdict;
             } else {
-                $passed = collect($f->test_keys)->every(fn ($k) => ($r = $results->get($k)) !== null && $r->status === 'pass' && ! $r->mocked);
+                $passed = collect($f->test_keys)->every(fn ($k) => ($r = $results->get($k)) !== null && $r->status === 'pass' && $r->assertions > 0 && ! $r->mocked);
+                if ($passed) {
+                    foreach ($results as $result) {
+                        $case = QaTestCase::where('key', $result->key)->first();
+                        if ($case !== null && in_array($case->source, (array) config('qa.evidence_required_sources'), true)) {
+                            $evidence = QaEvidence::where('run_id', $run->id)->where('result_id', $result->id)->where('retain_until', '>', now())->latest('id')->first();
+                            if ($evidence === null || ! app(QaRuns::class)->evidenceAvailable($evidence)) {
+                                throw ApiException::conflict('A passing browser/manual retest needs valid result evidence.', 'retest_evidence_required');
+                            }
+                        }
+                    }
+                }
             }
             $f->forceFill(['status' => $passed ? 'retest_passed' : 'retest_failed', 'retest_run_id' => $run->id, 'retested_by' => $actor->id])->save();
             $this->audit->record('qa.finding_retested', category: AuditCategory::Admin, actorUserId: $actor->id,
@@ -131,25 +150,22 @@ class QaFindings
         });
     }
 
-    /**
-     * Whether the run's build contains the fix, from the recorded inventory scans
-     * (servers have no Git history): `same` commit, `later` scan, `outdated`
-     * (the run's build was scanned before the fix commit's), or `unknown`.
-     */
+    /** Git ancestry where available; otherwise only a known older scan can conservatively reject. */
     public static function buildProvenance(string $fixCommit, string $runSha): string
     {
-        $same = fn (string $a, string $b) => strlen($a) >= 7 && strlen($b) >= 7 && (str_starts_with($a, $b) || str_starts_with($b, $a));
-        if ($same($fixCommit, $runSha)) {
-            return 'same';
+        $proof = app(QaBuildProvenance::class)->compare($fixCommit, $runSha);
+        if ($proof !== 'unknown') {
+            return match ($proof) {
+                'same' => 'same',
+                'descendant' => 'ancestor_verified',
+                default => 'outdated',
+            };
         }
         $scans = DB::table('qa_inventory_snapshots')->orderBy('id')->get(['id', 'git_sha']);
-        $fix = $scans->first(fn ($s) => $same((string) $s->git_sha, $fixCommit));
-        $tested = $scans->last(fn ($s) => $same((string) $s->git_sha, $runSha));
-        if ($fix === null || $tested === null) {
-            return 'unknown';
-        }
+        $fix = $scans->first(fn ($s) => $s->git_sha === $fixCommit);
+        $tested = $scans->last(fn ($s) => $s->git_sha === $runSha);
 
-        return $tested->id > $fix->id ? 'later' : 'outdated';
+        return $fix !== null && $tested !== null && $tested->id < $fix->id ? 'outdated' : 'unknown';
     }
 
     /**

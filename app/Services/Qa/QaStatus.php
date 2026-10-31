@@ -3,6 +3,7 @@
 namespace App\Services\Qa;
 
 use App\Models\QaEndpoint;
+use App\Models\QaEvidence;
 use App\Models\QaFinding;
 use App\Models\QaInventorySnapshot;
 use App\Models\QaSchedule;
@@ -18,10 +19,10 @@ use Illuminate\Support\Facades\DB;
  * mocked passes stay labelled.
  *
  * Freshness follows the tested build (Trello #36/#37 review): a result is
- * fresh when its run's Git SHA is the endpoint's change SHA or a later
- * inventory scan's SHA (`sha_verified`); STALE when that SHA is an earlier
- * scan (`sha_outdated`). For SHAs no scan knows, execution time is compared
- * with the change time (`time_only`). Results older than
+ * fresh when its run's Git SHA matches the endpoint's change SHA or Git
+ * proves it is a descendant (`sha_verified`); old or unrelated builds are
+ * STALE (`sha_outdated`). Unknown ancestry is `time_only` and remains stale;
+ * import/scan timestamps alone cannot prove the build. Results older than
  * `qa.stale_after_days` (by execution time) are always STALE.
  */
 class QaStatus
@@ -43,11 +44,20 @@ class QaStatus
         $latest = DB::table('qa_test_results as r')->join('qa_test_runs as run', 'run.id', '=', 'r.run_id')
             ->whereIn('r.id', DB::table('qa_test_results')->selectRaw('max(id)')->whereIn('test_case_id', $caseIds === [] ? [0] : $caseIds)->groupBy('test_case_id'))
             ->get(['r.id', 'r.test_case_id', 'r.status', 'r.mocked', 'r.created_at', 'run.git_sha', 'run.started_at'])->keyBy('test_case_id');
-        $withEvidence = DB::table('qa_evidence')->whereIn('result_id', $latest->pluck('id')->all() ?: [0])->distinct()->pluck('result_id')->flip();
+        $humanCases = $links->flatten(1)->filter(fn ($link) => in_array($link->source, $needsEvidence, true))->pluck('test_case_id')->all();
+        $humanResults = $latest->only($humanCases)->pluck('id')->all();
+        $withEvidence = collect();
+        $proofs = app(QaRuns::class);
+        foreach (QaEvidence::whereIn('result_id', $humanResults ?: [0])->where('retain_until', '>', now())->latest('id')->get() as $evidence) {
+            if (! $withEvidence->has($evidence->result_id) && $proofs->evidenceAvailable($evidence)) {
+                $withEvidence->put($evidence->result_id, true);
+            }
+        }
         $staleBefore = CarbonImmutable::now()->subDays((int) config('qa.stale_after_days'));
         $scans = DB::table('qa_inventory_snapshots')->orderBy('id')->get(['git_sha', 'created_at']);
 
         $out = [];
+        $builds = app(QaBuildProvenance::class);
         foreach ($endpoints as $endpoint) {
             $caseLinks = collect($links->get($endpoint->id, []));
             $cases = $caseLinks->pluck('test_case_id');
@@ -66,14 +76,14 @@ class QaStatus
                 $at = CarbonImmutable::parse($r->started_at ?? $r->created_at);
                 $last = $last === null || $at->greaterThan($last) ? $at : $last;
                 $mocked = $mocked || (bool) $r->mocked;
-                $source = self::provenance((string) $r->git_sha, $at, $endpoint, $scans);
+                $source = self::provenance((string) $r->git_sha, $at, $endpoint, $scans, $builds);
                 $provenance[] = $source;
                 // A manual/browser PASS without attached evidence proves nothing yet.
                 $unproven = $r->status === 'pass' && in_array($caseLinks->firstWhere('test_case_id', $caseId)?->source, $needsEvidence, true) && ! $withEvidence->has($r->id);
                 $evidenceMissing = $evidenceMissing || $unproven;
                 $statuses[] = match (true) {
                     $r->status === 'skipped', $unproven => 'untested',
-                    $source === 'sha_outdated' || ($source === 'time_only' && $at->lessThan($endpoint->changed_at)) || $at->lessThan($staleBefore) => 'stale',
+                    $source === 'sha_outdated' || $source === 'time_only' || $at->lessThan($staleBefore) => 'stale',
                     default => $r->status,
                 };
             }
@@ -91,18 +101,25 @@ class QaStatus
      *
      * @param  Collection<int, \stdClass>  $scans  inventory snapshots, oldest first
      */
-    private static function provenance(string $runSha, CarbonImmutable $executedAt, QaEndpoint $endpoint, Collection $scans): string
+    private static function provenance(string $runSha, CarbonImmutable $executedAt, QaEndpoint $endpoint, Collection $scans, QaBuildProvenance $builds): string
     {
         $same = fn (?string $a) => $a !== null && strlen($runSha) >= 7 && strlen($a) >= 7 && (str_starts_with($a, $runSha) || str_starts_with($runSha, $a));
         if ($same($endpoint->changed_sha)) {
             return 'sha_verified';
+        }
+        $proof = $builds->compare((string) $endpoint->changed_sha, $runSha);
+        if ($proof === 'descendant') {
+            return 'sha_verified';
+        }
+        if ($proof === 'not_contains') {
+            return 'sha_outdated';
         }
         $match = $scans->last(fn ($s) => $same($s->git_sha));
         if ($match === null) {
             return 'time_only';
         }
 
-        return CarbonImmutable::parse($match->created_at)->greaterThanOrEqualTo($endpoint->changed_at) ? 'sha_verified' : 'sha_outdated';
+        return CarbonImmutable::parse($match->created_at)->lessThan($endpoint->changed_at) ? 'sha_outdated' : 'time_only';
     }
 
     /**

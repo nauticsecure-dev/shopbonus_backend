@@ -121,5 +121,10 @@
     "The provider API version differs from the reviewed version.": "De API-versie van de aanbieder verschilt van de gecontroleerde versie.",
     "The provider GraphQL read failed or required protected data is unavailable.": "Het GraphQL-leesverzoek is mislukt of de vereiste beschermde gegevens zijn niet beschikbaar.",
     "The connection changed while accepting the event. Retry with its current configuration.": "De verbinding is gewijzigd tijdens het ontvangen van de gebeurtenis. Probeer het opnieuw met de huidige configuratie.",
-    "Changing the provider store after orders exist requires a reviewed migration.": "Het wijzigen van de platformwinkel nadat bestellingen bestaan vereist een gecontroleerde migratie."
+    "Changing the provider store after orders exist requires a reviewed migration.": "Het wijzigen van de platformwinkel nadat bestellingen bestaan vereist een gecontroleerde migratie.",
+    "This checkout key belongs to a different purchase.": "Deze afrekenreferentie hoort bij een andere aankoop.",
+    "The schedule does not match the tested suite/environment.": "Het schema komt niet overeen met de geteste suite of omgeving.",
+    "A passing manual retest needs an executed unmocked assertion with valid result evidence.": "Een geslaagde handmatige hertest vereist een uitgevoerde, niet-gesimuleerde controle met geldig bewijs bij het resultaat.",
+    "A passing browser/manual retest needs valid result evidence.": "Een geslaagde browser- of handmatige hertest vereist geldig bewijs bij het resultaat.",
+    "Use a run executed and imported after the fix was recorded.": "Gebruik een testrun die is uitgevoerd en geïmporteerd nadat de correctie is vastgelegd."
 }

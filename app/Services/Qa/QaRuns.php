@@ -244,6 +244,21 @@ class QaRuns
         return $evidence;
     }
 
+    /** Current proof must still exist, decrypt and match its checksum. */
+    public function evidenceAvailable(QaEvidence $evidence): bool
+    {
+        if ($evidence->retain_until->lessThanOrEqualTo(now())) {
+            return false;
+        }
+        try {
+            $this->evidenceBytes($evidence);
+
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     /** Decrypted bytes, verified against the stored checksum. */
     public function evidenceBytes(QaEvidence $evidence): string
     {

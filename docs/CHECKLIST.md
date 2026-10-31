@@ -904,3 +904,14 @@ B34 implementing commit `fix: refresh affiliate selection and require tracking c
 - [x] Document senior-owned deployment hooks and evidence replay; record exact checks and commit.
 
 B35 evidence: SQLite/MySQL QA17/297 each; API3/7505; Pint/PHPStan PASS; real CLI artifact replay and eight HTTP captures. Implementing commit `feat: retain honest CI Quality Center evidence`; remote workflow execution remains pending. B34 SHA `40d8e83`.
+
+### B36 — Git build proof and evidence-backed independent retests, #37/#36
+
+- [x] Verify actual Git ancestry when history is available; a later scan alone cannot prove a fix is present.
+- [x] Keep unknown-build endpoint evidence stale and distinguish explicit independent build attestations.
+- [x] Reject old executed reports imported after a fix; preserve independent-role restrictions.
+- [x] Manual/unlinked PASS needs an executed unmocked assertion and valid, unexpired, checksum-verified result evidence; browser/manual linked tests need the same evidence.
+- [x] Test unrelated branches, missing history, stale execution, missing/expired/corrupt evidence and valid independent retests.
+- [x] Capture changed QA API results and document conservative limitations; run focused SQLite/MySQL checks.
+
+B36 evidence: SQLite26/7835 and MySQL23/330 PASS; API3/7505; Pint/PHPStan PASS; actual Git branch proof and seven HTTP guard captures. Implementing commit `fix: require build and evidence proof for QA retests`; B35 SHA `1284bc1`.
