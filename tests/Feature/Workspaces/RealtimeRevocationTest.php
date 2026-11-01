@@ -7,6 +7,8 @@ use App\Enums\MembershipStatus;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Services\Admin\SupportSessions;
+use App\Services\Admin\UserAdministration;
+use App\Services\Workspaces\WebshopLifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Broadcast;
 use Laravel\Sanctum\Sanctum;
@@ -93,6 +95,20 @@ class RealtimeRevocationTest extends TestCase
         Sanctum::actingAs($this->owner);
         $this->deleteJson($this->url("/members/{$removed->public_id}"))->assertNoContent();
         $this->assertSame(MembershipStatus::Removed, $this->shop->memberships()->where('user_id', $removed->id)->sole()->status);
+    }
+
+    public function test_suspending_the_webshop_or_the_account_terminates_open_sockets(): void
+    {
+        $member = $this->member(['orders.view']);
+        $suspendedUser = User::factory()->create();
+        $admin = User::factory()->create();
+        $pusher = $this->sockets();
+        $pusher->shouldReceive('terminateUserConnections')->once()->with($this->owner->public_id)->andReturn((object) []);
+        $pusher->shouldReceive('terminateUserConnections')->once()->with($member->public_id)->andReturn((object) []);
+        $pusher->shouldReceive('terminateUserConnections')->once()->with($suspendedUser->public_id)->andReturn((object) []);
+
+        app(WebshopLifecycle::class)->suspend($admin, $this->shop, 'Fraud review');
+        app(UserAdministration::class)->suspend($admin, $suspendedUser, 'Abuse report');
     }
 
     public function test_user_sign_in_identifies_by_public_id_and_refuses_support_sessions(): void

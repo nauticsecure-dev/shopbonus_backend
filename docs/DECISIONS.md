@@ -241,3 +241,11 @@ Owner chose “Keep allocation reporting” for #30. The commission remainder re
 ### D-106 — No per-consumer voucher issuance limit (owner, 2026-10-31)
 
 Owner chose no per-consumer limit for #17 (Oluwasola finding 4). Offers keep only the overall `allocation_limit`; do not add a per-consumer cap unless the owner asks again. With this, #17 has no open backend finding; remaining work is the merchant dashboard frontend (Hassan).
+
+### D-107 — Affiliate cashback stays pending until network approval (owner accepted recommendation, 2026-11-01)
+
+Owner accepted the recommendation to keep D-089: affiliate cashback becomes spendable only after the network approves the commission, so a pending balance remains real and is shown. Reason: spending credit that a network later rejects or reverses creates an unrecoverable platform loss. This conflicts with the brief's wording ("immediately available credit without a displayed pending balance", Oluwasola review of the Mijn voordelen page); the client may overrule it, which would need a backend change (spendability timing and reversal handling), not only a frontend change.
+
+### D-108 — Workspace ownership transfer (owner accepted recommendation, 2026-11-01)
+
+Only the current active owner starts a transfer, from a browser session with a recent password confirmation (`password.recent`), to an active, verified, non-owner member of the same workspace. One pending transfer per workspace. The target accepts (also `password.recent`) or declines; the owner can cancel; it expires after `shopbonus.workspaces.ownership_transfer_ttl_hours` (default 72). Acceptance rechecks both memberships and the webshop under row locks and swaps atomically: the new owner becomes owner, the previous owner becomes manager. Every step is audited. Ordinary team actions still cannot grant or edit the owner role.

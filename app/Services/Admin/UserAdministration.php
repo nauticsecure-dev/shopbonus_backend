@@ -10,6 +10,7 @@ use App\Models\ImpersonationSession;
 use App\Models\PlatformRoleAssignment;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
+use App\Services\Workspaces\RealtimeAccess;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -25,6 +26,7 @@ class UserAdministration
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly SupportSessions $supportSessions,
+        private readonly RealtimeAccess $realtime,
     ) {}
 
     public function suspend(User $admin, User $user, string $reason): User
@@ -124,6 +126,7 @@ class UserAdministration
     private function endAccess(User $user): void
     {
         $user->tokens()->delete();
+        $this->realtime->terminate($user->id); // open sockets too, not only new subscriptions
 
         if (config('session.driver') === 'database') {
             DB::connection(config('session.connection'))->table((string) config('session.table', 'sessions'))->where('user_id', $user->id)->delete();

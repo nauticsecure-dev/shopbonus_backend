@@ -1087,6 +1087,133 @@ paths:
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
 
+  /api/v1/workspaces/{workspace}/ownership-transfer:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    get:
+      tags: [Workspaces]
+      operationId: showOwnershipTransfer
+      summary: "Pending ownership transfer you are part of"
+      description: |
+        D-108 (Trello #16). The pending transfer if you are its owner or its target; `data: null` otherwise (other members never see it).
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/<workspace>/ownership-transfer' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <xsrf>'
+      responses:
+        '200':
+          description: "Pending transfer, or null. Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              examples:
+                pending: { value: {"data":{"id":"01m6b8f949fha104pk5a22yvsf","status":"pending","from":{"id":"01m6b8f8y3zsebj5tjtvvfsy47","first_name":"Jan"},"to":{"id":"01m6b8f8yjdn7s5p7jd0ty74xm","first_name":"Anna"},"expires_at":"2026-11-04T09:53:54+00:00","decided_at":null,"created_at":"2026-11-01T09:53:54+00:00"}} }
+                none: { value: {"data":null} }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
+    post:
+      tags: [Workspaces]
+      operationId: startOwnershipTransfer
+      summary: "Propose an ownership transfer"
+      description: |
+        Owner only (`ownership.manage`), from a browser session with a recent password confirmation. Target: an active, email-verified, non-owner member. One pending transfer per workspace; it lapses after `OWNERSHIP_TRANSFER_TTL_HOURS` (default 72). Audited `ownership.transfer_started`.
+      x-access: verified
+      x-permission: ownership.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [member]
+              properties:
+                member: { type: string, minLength: 26, maxLength: 26, description: The member's user public ID. }
+            example: {"member": "01m6b8f8yjdn7s5p7jd0ty74xm"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/<workspace>/ownership-transfer' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <xsrf>' -H 'Content-Type: application/json' -d '{"member":"<user public id>"}'
+      responses:
+        '201':
+          description: "Proposed. Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6b8f949fha104pk5a22yvsf","status":"pending","from":{"id":"01m6b8f8y3zsebj5tjtvvfsy47","first_name":"Jan"},"to":{"id":"01m6b8f8yjdn7s5p7jd0ty74xm","first_name":"Anna"},"expires_at":"2026-11-04T09:53:54+00:00","decided_at":null,"created_at":"2026-11-01T09:53:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
+        '404':
+          description: "No active member with that ID, or no such workspace."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"member_not_found","message":"That person is not an active member of this workspace.","request_id":"<request id>"}}
+        '409':
+          description: "Already pending (`transfer_pending`), target already owner (`already_owner`) or unverified email (`member_email_unverified`). Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"transfer_pending","message":"An ownership transfer is already pending; cancel it first.","request_id":"01a19687-a491-71ea-a78d-13bdf0abe91d"}}
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+    delete:
+      tags: [Workspaces]
+      operationId: withdrawOwnershipTransfer
+      summary: "Cancel (owner) or decline (target) the pending transfer"
+      description: |
+        No password step-up: backing out must always be easy. Audited `ownership.transfer_cancelled` / `ownership.transfer_declined`.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X DELETE 'http://localhost:8000/api/v1/workspaces/<workspace>/ownership-transfer' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <xsrf>'
+      responses:
+        '200':
+          description: "Cancelled or declined. Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6b8f95nkxce37t3nvmzx9h6","status":"cancelled","from":{"id":"01m6b8f8yjdn7s5p7jd0ty74xm","first_name":"Anna"},"to":{"id":"01m6b8f8y3zsebj5tjtvvfsy47","first_name":"Jan"},"expires_at":"2026-11-04T09:53:54+00:00","decided_at":"2026-11-01T09:53:54+00:00","created_at":"2026-11-01T09:53:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404':
+          description: "No pending transfer you are part of."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"transfer_not_found","message":"There is no pending ownership transfer.","request_id":"<request id>"}}
+
+  /api/v1/workspaces/{workspace}/ownership-transfer/accept:
+    parameters:
+      - $ref: '#/components/parameters/Workspace'
+    post:
+      tags: [Workspaces]
+      operationId: acceptOwnershipTransfer
+      summary: "Accept ownership"
+      description: |
+        Target only, recent password confirmation. Rechecks under row locks that the proposer is still the active owner, the target still an active non-owner member and the webshop allows member access; otherwise the transfer is voided (409 `transfer_invalid`). Swaps atomically: target becomes owner, previous owner becomes manager. Audited `ownership.transfer_accepted`.
+      x-access: verified
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -i -X POST 'http://localhost:8000/api/v1/workspaces/<workspace>/ownership-transfer/accept' -b cookies.txt \
+              -H 'Accept: application/json' -H 'Origin: http://localhost:3000' -H 'X-XSRF-TOKEN: <xsrf>'
+      responses:
+        '200':
+          description: "Accepted. Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6b8f949fha104pk5a22yvsf","status":"accepted","from":{"id":"01m6b8f8y3zsebj5tjtvvfsy47","first_name":"Jan"},"to":{"id":"01m6b8f8yjdn7s5p7jd0ty74xm","first_name":"Anna"},"expires_at":"2026-11-04T09:53:54+00:00","decided_at":"2026-11-01T09:53:54+00:00","created_at":"2026-11-01T09:53:54+00:00"}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '404':
+          description: "No pending transfer for you (or it expired). Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"transfer_not_found","message":"There is no ownership transfer for you to accept.","request_id":"01a19687-a4ab-7322-ad56-36c352e234db"}}
+        '409':
+          description: "Something changed since the proposal; voided. Test-suite response (tests/Feature/Workspaces/OwnershipTransferTest.php flow), not a live server capture."
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"transfer_invalid","message":"This ownership transfer is no longer valid.","request_id":"01a19687-a4c4-7050-8e55-aabf80a08d81"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
   /api/v1/workspaces/{workspace}/membership:
     parameters:
       - $ref: '#/components/parameters/Workspace'

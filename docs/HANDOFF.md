@@ -1,3 +1,17 @@
+# Continuation checkpoint — B48 ownership transfer (D-108), cashback timing kept (D-107), suspension cuts sockets (2026-11-01, Claude)
+
+Branch `frank/review-fixes`, parent `8d7e71e` (B47, CI run 41203696904 PASS). Owner said "use the recommended decisions":
+- **D-107:** keep D-089 (affiliate cashback spendable only after network approval; pending balance stays shown). Conflicts with the brief's "no displayed pending balance" (Oluwasola, Mijn voordelen); the client may overrule, which needs a backend change, not only frontend.
+- **D-108 ownership transfer (#16 finding 5):** `ownership_transfers` table (migration 2026_11_01_100000), `OwnershipTransfer` model, `OwnershipTransfers` service, `OwnershipTransferController`. Routes under `workspaces/{workspace}/ownership-transfer`: GET (owner/target see the pending one, others `null`), POST (owner only: `ownership.manage` + `password.recent`), POST `/accept` (target, `password.recent`), DELETE (owner cancels / target declines, no step-up). One pending per workspace (webshop row lock), TTL `shopbonus.workspaces.ownership_transfer_ttl_hours` (72). Accept rechecks under locks and voids on any change (409 `transfer_invalid`); atomic swap target→owner, previous owner→manager; all steps audited. Expiry/void are written outside the refusing transaction so a rollback cannot undo them. No email notification yet (frontend shows GET); add one if wanted.
+- **Realtime (#16 follow-up):** `WebshopLifecycle::suspend` terminates every active member's sockets; `UserAdministration::endAccess` (account suspend/revoke) terminates the user's sockets.
+- OpenAPI: four operations; examples from a test run (marked), two hand-written error examples use `<request id>`.
+
+Executed: new tests/Feature/Workspaces/OwnershipTransferTest.php (4) and a RealtimeRevocationTest suspension case. Full SQLite 1171 / 1146 pass + 25 skipped; MySQL Workspaces+Admin 113/113; full PHPStan, Pint PASS. Main DB not migrated.
+
+#16 backend now has no open reviewer finding; remaining is Hassan (team permission editor, invite review, access history, ownership transfer UI, Echo user sign-in). Next exact: check CI.
+
+---
+
 # Continuation checkpoint — B47 order monetary breakdown; Wix product lines (2026-10-31, Claude)
 
 Branch `frank/review-fixes`, parent `5fbbb8c` (D-106 recorded: no per-consumer voucher limit; B46 CI run 41202587978 PASS). Card #32 (Commerce Platform API Integrations), Oluwasola findings 3 and 5 (partial):

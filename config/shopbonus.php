@@ -127,6 +127,8 @@ return [
     'workspaces' => [
         // Anti-abuse cap on webshops a user may have in onboarding/review at once.
         'max_unapproved_per_user' => (int) env('WORKSPACES_MAX_UNAPPROVED_PER_USER', 10),
+        // D-108: a pending ownership transfer lapses after this many hours.
+        'ownership_transfer_ttl_hours' => (int) env('OWNERSHIP_TRANSFER_TTL_HOURS', 72),
     ],
 
     /*
