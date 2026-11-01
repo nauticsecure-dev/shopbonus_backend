@@ -47,6 +47,7 @@ class SaveOfferRequest extends FormRequest
             'min_order_minor' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000000'],
             'max_discount_minor' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000000'],
             'price_minor' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000000'],
+            'price_points' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:100000000'],
             'starts_at' => ['sometimes', 'nullable', 'date'],
             'ends_at' => ['sometimes', 'nullable', 'date', ...($this->filled('starts_at') ? ['after:starts_at'] : [])],
             'claim_validity_days' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:3650'],

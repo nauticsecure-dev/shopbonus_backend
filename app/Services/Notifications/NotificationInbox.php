@@ -12,6 +12,7 @@ use App\Models\SupportConversation;
 use App\Models\SupportReply;
 use App\Models\User;
 use App\Models\Webshop;
+use App\Support\FrontendPath;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -65,7 +66,7 @@ final class NotificationInbox
             'recipient_type' => $conversation->webshop_id === null ? 'consumer' : 'workspace', 'webshop_id' => $conversation->webshop_id,
             'data' => [...app(NotificationTemplates::class)->resolve($event, $locale),
                 'workspace_id' => $conversation->webshop_id === null ? null : Webshop::whereKey($conversation->webshop_id)->value('public_id'),
-                'action_route' => '/app/support?conversation='.$conversation->public_id,
+                'action_route' => FrontendPath::to('support_conversation', ['conversation' => $conversation->public_id]),
                 'delivery_channels' => ['database' => 'delivered', 'email' => 'pending']],
         ]);
         $this->signal($user, 'NotificationCreated', $n->id);

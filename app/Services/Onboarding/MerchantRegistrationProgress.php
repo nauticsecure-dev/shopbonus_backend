@@ -45,7 +45,7 @@ class MerchantRegistrationProgress
             ->first();
 
         $detailsComplete = $profile?->confirmed_at !== null
-            && trim((string) ($public?->display_name ?? $webshop->name)) !== '';
+            && trim((string) ($public->display_name ?? $webshop->name)) !== '';
 
         $offerReady = $offer !== null && $this->offers->missingForActivation($offer, $offer->currentVersion) === [];
         $codeCount = $offer === null ? 0

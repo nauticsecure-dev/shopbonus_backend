@@ -78,7 +78,7 @@ class PlatformCouponVerification
             }
 
             $comparison = $this->compareTerms($coupon, $terms);
-            $status = ($comparison['matches'] ?? false) === true ? self::VERIFIED : self::MISMATCH;
+            $status = $comparison['matches'] ? self::VERIFIED : self::MISMATCH;
 
             return $this->persist($code, $status, [
                 'reason' => $status === self::VERIFIED ? 'provider_match' : 'provider_mismatch',

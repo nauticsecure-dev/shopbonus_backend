@@ -13,6 +13,7 @@ use App\Models\AffiliateTransaction;
 use App\Models\CookieConsent;
 use App\Models\CookiePolicy;
 use App\Models\FinancialReconciliationCheck;
+use App\Models\MerchantCommissionConversion;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
@@ -29,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
+use Tests\Concerns\TracksWithMarketingConsent;
 use Tests\TestCase;
 
 /**
@@ -40,6 +42,7 @@ use Tests\TestCase;
 class AffiliateTest extends TestCase
 {
     use CreatesActiveWebshops, RefreshDatabase;
+    use TracksWithMarketingConsent;
 
     private User $admin;
 
@@ -102,7 +105,7 @@ class AffiliateTest extends TestCase
     private function annaClicks(): string
     {
         Sanctum::actingAs($this->anna);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
         $this->app['auth']->forgetGuards();
 
         return AffiliateClick::latest('id')->firstOrFail()->reference;
@@ -172,7 +175,7 @@ class AffiliateTest extends TestCase
         $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
 
         Sanctum::actingAs($this->anna);
-        $response = $this->get('/api/v1/public/webshops/fietsen-utrecht/visit');
+        $response = $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery());
         $click = AffiliateClick::sole();
         $response->assertRedirect('https://tc.tradetracker.net/?c=1&m=2&a=3&r='.$click->reference);
         $this->assertSame($this->anna->id, $click->user_id);
@@ -180,12 +183,12 @@ class AffiliateTest extends TestCase
         $this->assertSame(0, $this->wallet()->fresh()->available + $this->wallet()->fresh()->pending);
 
         $this->app['auth']->forgetGuards();
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
         $this->assertNull(AffiliateClick::latest('id')->first()->user_id); // anonymous: tracked, not attributed
-        $this->getJson('/api/v1/public/webshops/bestaat-niet/visit')->assertNotFound();
+        $this->getJson('/api/v1/public/webshops/bestaat-niet/visit'.$this->marketingConsentQuery())->assertNotFound();
 
         AffiliateProgram::query()->update(['active' => false]);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect('https://fietsen-utrecht.nl');
         $this->assertSame(2, AffiliateClick::count());
     }
 
@@ -225,6 +228,23 @@ class AffiliateTest extends TestCase
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame([700, 0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
+    }
+
+    public function test_order_already_credited_as_direct_merchant_conversion_is_never_credited_again(): void
+    {
+        // More than the old 500-row window, with the matching order credited last.
+        foreach ([...array_map(fn ($i) => 'DIRECT-'.$i, range(1, 500)), 'ORD-1'] as $externalId) {
+            MerchantCommissionConversion::create(['webshop_id' => $this->shop->id, 'user_id' => $this->anna->id, 'external_id' => $externalId,
+                'idempotency_key' => 'fixture:'.$externalId, 'order_amount_minor' => 5000, 'commission_minor' => 500, 'consumer_credit_minor' => 350,
+                'shopbonus_revenue_minor' => 150, 'status' => 'credited', 'agreement_snapshot' => [], 'converted_at' => now()]);
+        }
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+
+        $this->import($this->daisycon, [], [$this->daisyconTx('D-DUP', $ref, 'approved', order: 'ORD-1')]);
+        $tx = AffiliateTransaction::where('external_id', 'D-DUP')->sole();
+        $this->assertSame(['disputed', 'direct_merchant_reward_already_credited', 'none'], [$tx->status, $tx->review_reason, $tx->reward_status]);
+        $this->assertSame(0, $this->wallet()->fresh()->total_earned);
     }
 
     public function test_card19_e2e4_unknown_or_inconsistent_conversions_enter_review(): void
@@ -575,16 +595,18 @@ class AffiliateTest extends TestCase
 
     public function test_card19_points_unit_reward_credits_the_points_wallet_once(): void
     {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create([
             'version' => 2,
             'unit' => WalletUnit::Points->value,
+            'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'calculation_version' => 'points_v2', 'points_per_eur_share' => 100,
             'share_bps' => 10000,
             'min_commission_minor' => 0,
             'active' => true,
             'created_by' => $this->admin->id,
         ]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
         $this->import($this->daisycon, [], [$this->daisyconTx('PTS-1', $this->annaClicks(), 'approved', commission: 5.00)]);
 
         $tx = AffiliateTransaction::sole();
@@ -592,6 +614,135 @@ class AffiliateTest extends TestCase
         $points = app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points);
         $this->assertSame([500, 0], [$points->fresh()->available, $points->fresh()->pending]);
         $this->assertSame(0, $this->wallet()->fresh()->available); // eur_credit untouched
+    }
+
+    public function test_points_rules_remain_inactive_without_explicit_program_and_rate(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        $this->asAdminWithStepUp();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000])->assertCreated()
+            ->assertJsonPath('data.active', false)->assertJsonPath('data.activation_blockers.0', 'points_program_required');
+        $response = $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 10, 'points_multiplier_bps' => 20000, 'points_rounding' => 'half_up'])
+            ->assertCreated()->assertJsonPath('data.active', true)->assertJsonPath('data.calculation_version', 'points_v2');
+        $version = $response->json('data.version');
+        $this->assertSame($version, AffiliateRewardRule::current(webshopId: $this->shop->id, commissionSource: 'affiliate_network', programId: $program->id)->version);
+        $this->assertSame(70, AffiliateRewardRule::where('version', $version)->sole()->rewardFor(500));
+        $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()
+            ->assertJsonPath('data.cashback_label', 'Punten verdienen')
+            ->assertJsonPath('data.benefits.0.reward_unit', 'points')
+            ->assertJsonPath('data.benefits.0.consumer_cashback_rate', null);
+        $wrongShop = $this->activeWebshop(User::factory()->create());
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'webshop_id' => $wrongShop->public_id, 'points_per_eur_share' => 10])->assertUnprocessable();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 10, 'commission_source' => 'direct_merchant'])->assertUnprocessable();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 0])->assertUnprocessable();
+        $program->forceFill(['currency' => 'USD'])->save();
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000,
+            'program_id' => $program->public_id, 'points_per_eur_share' => 10])->assertUnprocessable();
+        Sanctum::actingAs($this->anna);
+        $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000])->assertForbidden();
+    }
+
+    public function test_program_rate_is_frozen_for_pending_approval_and_does_not_leak_to_another_program(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        $rule = AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 7000, 'active' => true, 'min_commission_minor' => 0,
+            'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'commission_source' => 'affiliate_network', 'calculation_version' => 'points_v2',
+            'points_per_eur_share' => 10, 'created_by' => $this->admin->id]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'pending', commission: 10.00)]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame(['pending', 70, 'points'], [$tx->reward_status, $tx->reward_amount, $tx->reward_unit]);
+        $this->assertSame(0, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
+        AffiliateRewardRule::create([...$rule->only(['unit', 'share_bps', 'min_commission_minor', 'program_id', 'webshop_id', 'commission_source', 'calculation_version', 'created_by']),
+            'version' => 3, 'points_per_eur_share' => 100, 'active' => true]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'approved', commission: 10.00)]);
+        $this->assertSame(70, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
+        $this->assertSame(10, $tx->fresh()->reward_terms_snapshot['points_per_eur_share']);
+        $check = app(FinancialSources::class)->inspect($tx->fresh());
+        $this->assertSame([], $check['evidence']['issues']);
+        $this->assertSame(['points_money_allocation_undefined'], $check['evidence']['unknown']);
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $other = AffiliateProgram::where('connection_id', $this->tradetracker->id)->sole();
+        $this->assertSame(WalletUnit::EurCredit, AffiliateRewardRule::current(webshopId: $this->shop->id, commissionSource: 'affiliate_network', programId: $other->id)->unit);
+    }
+
+    public function test_legacy_pending_points_snapshot_is_honoured_without_reintroducing_implicit_new_rates(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 10000, 'min_commission_minor' => 0,
+            'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'calculation_version' => 'points_v2', 'points_per_eur_share' => 100,
+            'active' => true, 'created_by' => $this->admin->id]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'pending', commission: 5.00)]);
+        $tx = AffiliateTransaction::sole();
+        // Reproduce a pre-D104 pending record: the immutable historical snapshot had no rate fields.
+        $legacy = array_diff_key($tx->reward_terms_snapshot, array_flip(['program_id', 'calculation_version', 'points_per_eur_share', 'points_multiplier_bps', 'points_rounding']));
+        DB::table('affiliate_transactions')->where('id', $tx->id)->update(['reward_terms_snapshot' => json_encode($legacy, JSON_THROW_ON_ERROR)]);
+        AffiliateRewardRule::query()->update(['active' => false]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'approved', commission: 5.00)]);
+        $this->assertSame(500, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
+        $actual = $tx->fresh()->reward_terms_snapshot;
+        ksort($legacy);
+        ksort($actual); // MySQL JSON normalizes object key order.
+        $this->assertSame($legacy, $actual);
+        $this->assertSame('credited', $tx->fresh()->reward_status);
+    }
+
+    public function test_legacy_unconfigured_points_rules_are_not_used_for_new_rewards(): void
+    {
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 10000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('NO-IMPLICIT-RATE', $this->annaClicks(), 'approved')]);
+        $this->assertSame('none', AffiliateTransaction::sole()->reward_status);
+        $this->assertSame(0, WalletLedgerEntry::where('source_type', 'affiliate')->count());
+    }
+
+    public function test_two_distinct_orders_on_one_click_are_credited_but_same_order_is_disputed(): void
+    {
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('DISTINCT-1', $ref, 'approved', order: 'ORDER-A')]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('DISTINCT-2', $ref, 'approved', order: 'ORDER-B')]);
+        $this->import($this->daisycon, [], [$this->daisyconTx('DUPLICATE-1', $ref, 'approved', order: 'ORDER-A')]);
+        $this->assertSame(2, AffiliateTransaction::where('reward_status', 'credited')->count());
+        $this->assertSame('disputed', AffiliateTransaction::where('external_id', 'DUPLICATE-1')->sole()->status);
+        $this->assertSame(478, $this->wallet()->fresh()->available);
+    }
+
+    public function test_current_selection_changes_with_rates_and_recovers_from_empty_candidates(): void
+    {
+        $selector = app(ProgramSelector::class);
+        $this->assertNull($selector->current($this->shop));
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->assertSame('daisycon', $selector->current($this->shop)->connection->network);
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->assertSame('tradetracker', $selector->current($this->shop)->connection->network);
+        $this->import($this->daisycon, [$this->daisyconProgram(['type' => 'percentage', 'value' => '10', 'restricted' => false])]);
+        $this->assertSame('daisycon', $selector->current($this->shop)->connection->network);
+        $count = DB::table('affiliate_program_selections')->count();
+        $selector->current($this->shop);
+        $this->assertSame($count, DB::table('affiliate_program_selections')->count());
+        $this->daisycon->forceFill(['status' => 'disabled'])->save();
+        $this->assertSame('tradetracker', $selector->current($this->shop)->connection->network);
+    }
+
+    public function test_missing_cookie_policy_never_creates_an_affiliate_click_even_in_tests(): void
+    {
+        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        Sanctum::actingAs($this->anna);
+        $this->assertNull(CookiePolicy::current());
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(0, AffiliateClick::count());
+        $this->assertSame(0, $this->wallet()->fresh()->available);
     }
 
     public function test_visit_without_marketing_consent_is_untracked_when_policy_published(): void
@@ -627,5 +778,14 @@ class AffiliateTest extends TestCase
         $this->assertTrue($click->marketing_consent);
         $this->assertNotNull($click->expires_at);
         $this->assertTrue($click->expires_at->greaterThan(now()->addDays(20)));
+
+        CookieConsent::create([
+            'consent_id' => 'consent-ok-1', 'policy_version' => '2026-10-30',
+            'choices' => ['necessary' => true, 'marketing' => false], 'action' => 'reject_optional',
+        ]);
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit?consent_id=consent-ok-1')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(1, AffiliateClick::count());
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit?consent_id=unknown-consent')->assertRedirect('https://fietsen-utrecht.nl');
+        $this->assertSame(1, AffiliateClick::count());
     }
 }

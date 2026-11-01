@@ -14,6 +14,8 @@ use App\Models\Voucher;
 use App\Models\VoucherClaim;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
+use App\Services\Analytics\MerchantAnalytics;
+use App\Services\Analytics\MerchantNotifications;
 use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
 use Carbon\CarbonImmutable;
@@ -323,7 +325,7 @@ class MerchantOverviewE2ETest extends TestCase
                 'code_last4' => substr($code, -4),
             ]);
         }
-        $this->assertSame(0, app(\App\Services\Analytics\MerchantNotifications::class)->forWebshop($this->woon, CarbonImmutable::now()));
+        $this->assertSame(0, app(MerchantNotifications::class)->forWebshop($this->woon, CarbonImmutable::now()));
         $this->assertSame($before, MerchantNotification::where('webshop_id', $this->woon->id)->where('type', 'low_inventory')->count());
         $this->assertGreaterThanOrEqual(15, VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->count());
     }
@@ -449,5 +451,5 @@ class MerchantOverviewE2ETest extends TestCase
 /** @return array<string, string> */
 function MerchantAnalyticsDefinitions(): array
 {
-    return \App\Services\Analytics\MerchantAnalytics::DEFINITIONS;
+    return MerchantAnalytics::DEFINITIONS;
 }

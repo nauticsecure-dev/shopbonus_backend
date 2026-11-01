@@ -63,7 +63,7 @@ class OfferResource extends JsonResource
             'currency' => $v->currency,
             'min_order_minor' => $v->min_order_minor,
             'max_discount_minor' => $v->max_discount_minor,
-            'price_minor' => $v->price_minor,
+            'price_minor' => $v->price_minor, 'price_points' => $v->price_points,
             'starts_at' => $v->starts_at?->toIso8601String(),
             'ends_at' => $v->ends_at?->toIso8601String(),
             'claim_validity_days' => $v->claim_validity_days,

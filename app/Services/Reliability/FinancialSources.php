@@ -3,6 +3,7 @@
 namespace App\Services\Reliability;
 
 use App\Enums\LedgerEntryType;
+use App\Enums\WalletUnit;
 use App\Models\AffiliateClick;
 use App\Models\AffiliateProgram;
 use App\Models\AffiliateRewardRule;
@@ -107,6 +108,10 @@ class FinancialSources
             if ($proof['commission_minor'] !== $tx->commission_minor && $tx->reward_status === 'credited') {
                 $issues[] = 'affiliate_commission_changed_after_credit';
             }
+            if ($terms['unit'] === 'points' && ($terms['calculation_version'] ?? 'legacy_v1') === 'points_v2'
+                && (($terms['program_id'] ?? null) !== $tx->program_id || (int) ($terms['points_per_eur_share'] ?? 0) <= 0)) {
+                $issues[] = 'affiliate_points_program_rate';
+            }
             if ($terms['unit'] === 'eur_credit') {
                 $allocation = $proof['allocation'] ?? null;
                 if (is_array($allocation) && (($allocation['consumer_minor'] ?? null) !== $expected
@@ -136,16 +141,28 @@ class FinancialSources
     private function checkout(VoucherCheckout $c): array
     {
         $issues = [];
-        $snapshot = ['state' => $c->state, 'price_minor' => $c->price_minor, 'wallet_part_minor' => $c->wallet_part_minor, 'payment_part_minor' => $c->payment_part_minor];
+        $snapshot = ['wallet_unit' => $c->wallet_unit->value, 'price_points' => $c->price_points, 'wallet_part_points' => $c->wallet_part_points, 'state' => $c->state, 'price_minor' => $c->price_minor, 'wallet_part_minor' => $c->wallet_part_minor, 'payment_part_minor' => $c->payment_part_minor];
         if ($c->price_minor !== $c->wallet_part_minor + $c->payment_part_minor || min($c->wallet_part_minor, $c->payment_part_minor) < 0 || $c->currency !== 'EUR') {
             $issues[] = 'checkout_allocation';
+        }
+        if ($c->wallet_unit === WalletUnit::Points) {
+            if ($c->price_points === null || $c->price_points <= 0 || $c->price_points !== $c->wallet_part_points
+                || $c->price_minor !== 0 || $c->wallet_part_minor !== 0 || $c->payment_part_minor !== 0 || $c->payment !== null) {
+                $issues[] = 'checkout_points_allocation';
+            }
+        } elseif ($c->price_points !== null || $c->wallet_part_points !== 0) {
+            $issues[] = 'checkout_points_unit_mismatch';
         }
         if ($c->state === 'completed') {
             $v = Voucher::find($c->voucher_id);
             if ($v === null || $v->consumer_user_id !== $c->user_id || $v->webshop_id !== $c->webshop_id || $v->offer_id !== $c->offer_id || $v->origin->value !== 'wallet_purchase') {
                 $issues[] = 'checkout_voucher_identity';
             }
-            if ($c->wallet_part_minor > 0 && ! $this->reservation($c->wallet_reservation_id, $c->wallet_part_minor, 'captured', 'voucher_checkout', $c->public_id, 'user', $c->user_id)) {
+            if ($c->wallet_unit === WalletUnit::Points && ($v?->terms_snapshot['price_points'] ?? null) !== $c->price_points) {
+                $issues[] = 'checkout_points_price_snapshot';
+            }
+            $walletAmount = $c->wallet_unit === WalletUnit::Points ? $c->wallet_part_points : $c->wallet_part_minor;
+            if ($walletAmount > 0 && ! $this->reservation($c->wallet_reservation_id, $walletAmount, 'captured', 'voucher_checkout', $c->public_id, 'user', $c->user_id, $c->wallet_unit->value)) {
                 $issues[] = 'checkout_wallet_capture';
             }
             $payment = $c->payment;
@@ -215,12 +232,12 @@ class FinancialSources
         return [$issues, $unknown, ['status' => $o->status, 'reward_minor' => $o->reward_minor, 'fee_minor' => $o->fee_minor, 'fee_rate_bps' => $o->fee_rate_bps, 'total_minor' => $o->total_minor]];
     }
 
-    private function reservation(?int $id, int $amount, string $status, string $source, string $ref, string $ownerType, int $ownerId): bool
+    private function reservation(?int $id, int $amount, string $status, string $source, string $ref, string $ownerType, int $ownerId, string $unit = 'eur_credit'): bool
     {
         $r = WalletReservation::find($id);
         $w = $r === null ? null : Wallet::find($r->wallet_id);
         if ($r === null || $r->amount !== $amount || $r->status !== $status || $r->source_type !== $source || $r->source_ref !== $ref
-            || $w?->owner_type !== $ownerType || $w->owner_id !== $ownerId || $w->unit->value !== 'eur_credit') {
+            || $w?->owner_type !== $ownerType || $w->owner_id !== $ownerId || $w->unit->value !== $unit) {
             return false;
         }
         if ($status === 'captured') {

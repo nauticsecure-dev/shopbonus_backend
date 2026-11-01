@@ -12,6 +12,8 @@ use App\Services\Enrichment\EnrichmentPipeline;
 use App\Services\Enrichment\SafeUrlFetcher;
 use App\Services\Onboarding\Network\HostResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
@@ -152,6 +154,26 @@ class MerchantEnrichmentE2ETest extends TestCase
         $this->assertSame('published', $run->status);
         $this->assertNotNull($run->published_at);
         $this->assertNotNull(WebshopPublicProfile::where('webshop_id', $shop->id)->value('short_description'));
+    }
+
+    public function test_altered_research_is_rejected_before_any_ai_request(): void
+    {
+        $this->dns->addresses['woonenco.nl'] = ['93.184.216.34'];
+        $this->fakeAi();
+        Bus::fake();
+        $pipeline = app(EnrichmentPipeline::class);
+        $run = $pipeline->enqueue($this->eligibleShop());
+        $research = $run->research;
+        $research['title'] = 'Tampered evidence';
+        DB::table('merchant_enrichment_runs')->where('id', $run->id)
+            ->update(['research' => json_encode($research, JSON_THROW_ON_ERROR)]);
+
+        $pipeline->execute($run->id);
+
+        $this->assertSame('failed', $run->fresh()->status);
+        $this->assertSame('research_integrity_failed', $run->fresh()->failure_code);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.openai.com'));
+        $this->assertNull($run->fresh()->proposal);
     }
 
     public function test_retry_after_failure(): void

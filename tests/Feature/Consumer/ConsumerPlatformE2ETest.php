@@ -25,6 +25,7 @@ use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
@@ -446,7 +447,7 @@ class ConsumerPlatformE2ETest extends TestCase
 
         // OpenAPI coverage is enforced separately; ensure activation routes are registered.
         $this->assertTrue(
-            collect(\Illuminate\Support\Facades\Route::getRoutes())->contains(
+            collect(Route::getRoutes())->contains(
                 fn ($r) => str_contains($r->uri(), 'consumer/activation/verify')
             )
         );

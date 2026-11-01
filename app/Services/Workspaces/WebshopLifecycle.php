@@ -3,12 +3,14 @@
 namespace App\Services\Workspaces;
 
 use App\Enums\AuditCategory;
+use App\Enums\MembershipStatus;
 use App\Enums\VerificationMethod;
 use App\Enums\VerificationStatus;
 use App\Enums\WebshopStatus;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Models\Webshop;
+use App\Models\WebshopMembership;
 use App\Services\Agreements\AgreementService;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  */
 class WebshopLifecycle
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly RealtimeAccess $realtime) {}
 
     private function agreements(): AgreementService
     {
@@ -116,6 +118,9 @@ class WebshopLifecycle
         }
 
         $webshop->forceFill(['status' => WebshopStatus::Suspended, 'suspended_at' => now(), 'status_reason' => $reason])->save();
+        // Channel auth refuses suspended webshops on subscribe; this closes the sockets already open.
+        WebshopMembership::where('webshop_id', $webshop->id)->where('status', MembershipStatus::Active)->pluck('user_id')
+            ->each(fn (int $userId) => $this->realtime->terminate($userId));
         $this->audit->record('workspace.suspended', category: AuditCategory::Admin, resource: $webshop,
             webshopId: $webshop->id, metadata: ['reason' => $reason, 'by' => $admin->public_id]);
 

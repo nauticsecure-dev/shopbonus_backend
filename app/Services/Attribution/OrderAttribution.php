@@ -159,6 +159,7 @@ class OrderAttribution
         ];
     }
 
+    /** @param list<string> $couponCodes */
     private function resolveVoucher(WebshopOrder $order, array $couponCodes): ?Voucher
     {
         $codes = array_values(array_filter(array_map(fn ($c) => mb_strtoupper(trim((string) $c)), $couponCodes)));

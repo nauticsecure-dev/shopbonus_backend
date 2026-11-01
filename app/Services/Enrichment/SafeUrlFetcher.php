@@ -45,7 +45,7 @@ class SafeUrlFetcher
         $pinned = $addresses[0];
         $target = str_contains($pinned, ':') ? "[{$pinned}]" : $pinned;
         $path = $parts['path'] ?? '/';
-        if ($path === '' || ! str_starts_with($path, '/')) {
+        if (! str_starts_with($path, '/')) {
             $path = '/'.$path;
         }
 

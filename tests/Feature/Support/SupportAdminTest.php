@@ -98,7 +98,12 @@ class SupportAdminTest extends TestCase
         $this->postJson('/api/v1/admin/ai/reviews/'.$review->public_id.'/resolve', ['outcome' => 'CONFIRMED_ERROR', 'note' => 'Regression approved', 'expected_intent' => 'escalate'])->assertOk()->assertJsonPath('data.regression_added', true);
         $this->postJson('/api/v1/admin/ai/reviews/'.$review->public_id.'/resolve', ['outcome' => 'ANSWER_CORRECT', 'note' => 'Cannot rewrite history'])->assertConflict();
         $this->postJson('/api/v1/admin/ai/conversations/'.$c->public_id.'/reply', ['body' => 'Your complaint has been reviewed by a human.'])->assertCreated()->assertJsonPath('data.sender', 'human_support');
-        $this->getJson('/api/v1/admin/ai/operations')->assertOk()->assertJsonPath('data.approved_regressions', 1)->assertJsonPath('data.provider_cost', null);
+        $this->getJson('/api/v1/admin/ai/operations')->assertOk()->assertJsonPath('data.approved_regressions', 1)->assertJsonPath('data.provider_cost', null)
+            ->assertJsonPath('data.provider_cost_estimate', null); // no prices configured: nothing assumed
+        config(['support_ai.price_eur_per_million_input' => '2.50', 'support_ai.price_eur_per_million_output' => '10']);
+        $ops = $this->getJson('/api/v1/admin/ai/operations')->assertOk()->json('data');
+        $this->assertSame((int) round(($ops['input_tokens'] * 2.5 + $ops['output_tokens'] * 10) / 1_000_000 * 100), $ops['provider_cost_estimate']['amount_minor']);
+        $this->assertSame('configured_token_prices', $ops['provider_cost_estimate']['basis']);
         $this->assertDatabaseHas('audit_events', ['action' => 'support.human_replied']);
     }
 

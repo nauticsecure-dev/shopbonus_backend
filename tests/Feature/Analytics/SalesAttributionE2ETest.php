@@ -51,6 +51,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
+use Tests\Concerns\TracksWithMarketingConsent;
 use Tests\Support\BannerFixture;
 use Tests\TestCase;
 
@@ -62,6 +63,7 @@ use Tests\TestCase;
 class SalesAttributionE2ETest extends TestCase
 {
     use CreatesActiveWebshops, RefreshDatabase;
+    use TracksWithMarketingConsent;
 
     private const ORIGIN_A = 'https://www.shop-a.nl';
 
@@ -563,7 +565,7 @@ class SalesAttributionE2ETest extends TestCase
         $anna = User::factory()->create(['email_verified_at' => now()]);
         Sanctum::actingAs($anna);
         $slug = DB::table('webshop_public_profiles')->where('webshop_id', $this->shopA->id)->value('slug');
-        $this->get('/api/v1/public/webshops/'.$slug.'/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/'.$slug.'/visit'.$this->marketingConsentQuery())->assertRedirect();
         $ref = DB::table('affiliate_clicks')->orderByDesc('id')->value('reference');
         $this->app['auth']->forgetGuards();
 

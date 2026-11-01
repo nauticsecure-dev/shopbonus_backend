@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
+use Tests\Concerns\TracksWithMarketingConsent;
 use Tests\Fakes\FakeHostResolver;
 use Tests\TestCase;
 
@@ -37,6 +38,7 @@ use Tests\TestCase;
 class AffiliateCashbackOffersE2ETest extends TestCase
 {
     use CreatesActiveWebshops, RefreshDatabase;
+    use TracksWithMarketingConsent;
 
     private User $admin;
 
@@ -210,7 +212,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $this->importPrograms(['type' => 'percentage', 'value' => '10', 'restricted' => false]);
 
         Sanctum::actingAs($this->anna);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit');
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery());
         $click = AffiliateClick::sole();
         $this->app['auth']->forgetGuards();
 
@@ -242,7 +244,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->importPrograms();
         Sanctum::actingAs($this->anna);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit');
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery());
         $ref = AffiliateClick::sole()->reference;
         $this->app['auth']->forgetGuards();
 
@@ -303,12 +305,12 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $this->importPrograms();
         app(ProgramSelector::class)->select($this->shop->fresh());
         $this->app['auth']->forgetGuards();
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
         $anonRef = AffiliateClick::latest('id')->firstOrFail()->reference;
         $this->assertNull(AffiliateClick::latest('id')->first()->user_id);
 
         Sanctum::actingAs($this->anna);
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect();
+        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
         $annaRef = AffiliateClick::where('user_id', $this->anna->id)->latest('id')->firstOrFail()->reference;
         $this->app['auth']->forgetGuards();
 

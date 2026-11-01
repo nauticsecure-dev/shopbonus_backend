@@ -4,6 +4,7 @@ namespace App\Integrations;
 
 use App\Enums\EcommercePlatform;
 use App\Integrations\Contracts\CatalogCapable;
+use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\CapabilityState;
 use App\Models\WebshopConnection;
 
@@ -34,18 +35,24 @@ class CapabilityMatrix
         $verifiedAt = isset($profile['last_live_verified_at']) && is_string($profile['last_live_verified_at'])
             ? $profile['last_live_verified_at'] : null;
         $native = (bool) ($profile['native_read_api_implemented'] ?? false);
+        // Each capability from what the mapping fills, never from an API merely being documented.
+        $payments = $native && ($profile['payment_time_mapped'] ?? false) === true;
+        $refunds = ($profile['refund_amounts_mapped'] ?? false) === true;
+        $backfill = $native && is_subclass_of((string) $entry['connector'], PagedOrderReader::class);
+        $refundNote = is_string($profile['refund_api'] ?? null) ? (string) $profile['refund_api'] : null;
 
         $map = [
             'orders' => $this->cap($native ? CapabilityState::Available : CapabilityState::Limited, $native ? null : 'Webhook/module orders only; native read incomplete.', $verifiedAt),
-            'payments' => $this->cap($native ? CapabilityState::Available : CapabilityState::Limited, $native ? null : 'Payment evidence depends on provider mapping.', $verifiedAt),
-            'refunds' => $this->cap(isset($profile['refund_api']) || $native ? CapabilityState::Available : CapabilityState::Limited, null, $verifiedAt),
+            'payments' => $this->cap($payments ? CapabilityState::Available : CapabilityState::Limited, $payments ? null : 'No settled payment time is mapped; payment status only.', $verifiedAt),
+            'refunds' => $this->cap($refunds ? CapabilityState::Available : CapabilityState::Limited,
+                $refunds ? null : 'Refund amounts are not mapped'.($refundNote === null ? '.' : ": {$refundNote}"), $verifiedAt),
             'products' => $this->cap($this->productState($profile), $this->productReason($profile), $verifiedAt),
             'categories' => $this->cap($this->productState($profile) === CapabilityState::Available ? CapabilityState::Limited : CapabilityState::Unsupported, 'Category sync is best-effort where products are available.', $verifiedAt),
             'coupons_read' => $this->cap($this->couponReadState($profile), $this->couponReason($profile), $verifiedAt),
             'coupons_write' => $this->cap(CapabilityState::Unsupported, 'Coupon writes are out of scope for this boundary.', $verifiedAt),
             'banner_embed' => $this->cap(CapabilityState::Limited, is_string($profile['banner_method'] ?? null) ? (string) $profile['banner_method'] : 'Manual embed / platform extension required.', $verifiedAt),
             'webhooks' => $this->cap(CapabilityState::Available, null, $verifiedAt),
-            'backfill' => $this->cap($native ? CapabilityState::Available : CapabilityState::Unsupported, $native ? null : 'Durable discovery requires a native paged reader.', $verifiedAt),
+            'backfill' => $this->cap($backfill ? CapabilityState::Available : CapabilityState::Unsupported, $backfill ? null : 'Durable discovery requires a native paged reader.', $verifiedAt),
         ];
 
         return $map;
@@ -64,15 +71,10 @@ class CapabilityMatrix
         $connector = $this->registry->for($connection->platform);
         if ($connector instanceof CatalogCapable) {
             foreach ($connector->getCapabilities($connection) as $key => $cap) {
-                if (! in_array($key, self::KEYS, true) || ! is_array($cap)) {
+                if (! in_array($key, self::KEYS, true)) {
                     continue;
                 }
-                $state = $cap['state'] instanceof CapabilityState ? $cap['state']->value : (string) ($cap['state'] ?? CapabilityState::Unsupported->value);
-                $base[$key] = [
-                    'state' => $state,
-                    'reason' => isset($cap['reason']) ? (is_string($cap['reason']) ? $cap['reason'] : null) : null,
-                    'last_verified_at' => isset($cap['last_verified_at']) && is_string($cap['last_verified_at']) ? $cap['last_verified_at'] : null,
-                ];
+                $base[$key] = ['state' => $cap['state']->value, 'reason' => $cap['reason'], 'last_verified_at' => $cap['last_verified_at']];
             }
         }
 

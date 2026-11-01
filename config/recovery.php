@@ -10,5 +10,7 @@ return [
     'max_files' => (int) env('BACKUP_MAX_FILES', 20000),
     'overdue_minutes' => (int) env('BACKUP_OVERDUE_MINUTES', 120),
     'restore_connection' => env('BACKUP_RESTORE_CONNECTION'), // explicitly configured isolated MySQL server connection
-    'media_roots' => ['public' => storage_path('app/public'), 'cms' => storage_path('app/private/cms'), 'banners' => storage_path('app/private/banners'), 'avatars' => storage_path('app/private/avatars'), 'profiles' => storage_path('app/private/public-profiles')],
+    'media_roots' => ['public' => storage_path('app/public'), 'cms' => storage_path('app/private/cms'), 'banners' => storage_path('app/private/banners'), 'avatars' => storage_path('app/private/avatars'), 'profiles' => storage_path('app/private/public-profiles'),
+        // Encrypted evidence uploads (disputes, ownership verification, Quality Center runs).
+        'disputes' => storage_path('app/private/dispute-evidence'), 'ownership' => storage_path('app/private/verification-evidence'), 'qa' => storage_path('app/private/qa-evidence')],
 ];

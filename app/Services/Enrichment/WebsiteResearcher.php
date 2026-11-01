@@ -50,10 +50,36 @@ class WebsiteResearcher
         return $payload;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @param  array<string, mixed>  $research
+     *                                          Key-sorted before hashing: MySQL JSON columns do not keep object key
+     *                                          order, so the stored evidence must hash the same after a round trip.
+     */
     public function hash(array $research): string
     {
+        return hash('sha256', json_encode(self::canonical($research), JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Hash as computed before canonical ordering (runs created by the first release).
+     *
+     * @param  array<string, mixed>  $research
+     */
+    public function legacyHash(array $research): string
+    {
         return hash('sha256', json_encode($research, JSON_THROW_ON_ERROR));
+    }
+
+    private static function canonical(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return array_map(fn ($v) => self::canonical($v), $value);
     }
 
     private function match(string $html, string $pattern): ?string

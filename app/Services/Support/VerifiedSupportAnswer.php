@@ -100,7 +100,7 @@ final class VerifiedSupportAnswer
             ? json_encode($f['capabilities'], JSON_THROW_ON_ERROR)
             : (string) ($f['capabilities'] ?? '');
         $errors = $f['last_error_codes'] ?? (($f['last_error_code'] ?? null) === null ? [] : [$f['last_error_code']]);
-        $errorText = $errors === [] || $errors === null
+        $errorText = $errors === []
             ? ($nl ? 'geen geregistreerd' : 'none recorded')
             : (is_array($errors) ? implode(',', $errors) : (string) $errors);
 
@@ -144,17 +144,21 @@ final class VerifiedSupportAnswer
         $pending = (int) ($f['pending_minor'] ?? $f['pending'] ?? 0);
         $available = (int) ($f['available_minor'] ?? $f['available'] ?? 0);
         $spent = (int) ($f['spent_minor'] ?? $f['spent'] ?? 0);
-        // Keep exact unit ledger wording for evidence tests; add a reserved-reward line when NL locale holds funds.
         $ledger = $nl
             ? 'Beschikbaar ShopBonus-tegoed: '.$amount($available).'; gereserveerd: '.$amount($reserved).'; in behandeling: '.$amount($pending).'; besteed: '.$amount($spent).'. Geen geldopname of overdracht.'
             : 'Available ShopBonus credit: '.$amount($available).'; reserved: '.$amount($reserved).'; pending: '.$amount($pending).'; spent: '.$amount($spent).'. Cannot be withdrawn or transferred.';
-        if ($nl && ($reserved > 0 || $pending > 0)) {
-            $held = $reserved > 0 ? $reserved : $pending;
-
-            return 'Je beloning van '.$amount($held).' is gereserveerd. Zodra deze beschikbaar is, verschijnt het bedrag in je ShopBonus-tegoed. '.$ledger;
+        // Pending = a reward awaiting approval (not spendable yet); reserved = own credit held for a purchase in progress.
+        $lines = [];
+        if ($pending > 0) {
+            $lines[] = $nl ? 'Een beloning van '.$amount($pending).' is in behandeling en nog niet te besteden. Na goedkeuring verschijnt het bedrag in je beschikbare tegoed; een datum is niet bevestigd.'
+                : 'A reward of '.$amount($pending).' is pending and cannot be spent yet. Once approved it moves to your available credit; no date has been confirmed.';
+        }
+        if ($reserved > 0) {
+            $lines[] = $nl ? $amount($reserved).' van je tegoed is gereserveerd voor een aankoop die nog loopt.'
+                : $amount($reserved).' of your credit is reserved for a purchase in progress.';
         }
 
-        return $ledger;
+        return trim(implode(' ', $lines).' '.$ledger);
     }
 
     private function invalid(User $actor): never

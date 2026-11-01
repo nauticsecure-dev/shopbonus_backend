@@ -222,7 +222,7 @@ class OfferService
         if ($v->discount_type === 'percentage' && $offer->acquisition === OfferAcquisition::MerchantReward && $v->max_discount_minor === null) {
             $missing[] = 'max_discount_minor';
         }
-        if ($offer->acquisition === OfferAcquisition::WalletPurchase && $v->price_minor === null) {
+        if ($offer->acquisition === OfferAcquisition::WalletPurchase && $v->price_minor === null && $v->price_points === null) {
             $missing[] = 'price_minor';
         }
         if ($offer->acquisition === OfferAcquisition::MerchantReward && $v->claim_validity_days === null) {

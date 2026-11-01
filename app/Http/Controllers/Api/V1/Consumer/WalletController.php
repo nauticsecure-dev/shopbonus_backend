@@ -128,11 +128,11 @@ class WalletController extends Controller
 
         return [
             'balances' => $balances,
-            'available_minor' => (int) ($balances[WalletUnit::EurCredit->value]['available'] ?? 0),
-            'reserved_minor' => (int) ($balances[WalletUnit::EurCredit->value]['reserved'] ?? 0),
-            'pending_cashback_minor' => (int) ($balances[WalletUnit::EurCredit->value]['pending'] ?? 0),
-            'total_earned_minor' => (int) ($balances[WalletUnit::EurCredit->value]['total_earned'] ?? 0),
-            'total_spent_minor' => (int) ($balances[WalletUnit::EurCredit->value]['total_spent'] ?? 0),
+            'available_minor' => (int) $balances[WalletUnit::EurCredit->value]['available'],
+            'reserved_minor' => (int) $balances[WalletUnit::EurCredit->value]['reserved'],
+            'pending_cashback_minor' => (int) $balances[WalletUnit::EurCredit->value]['pending'],
+            'total_earned_minor' => (int) $balances[WalletUnit::EurCredit->value]['total_earned'],
+            'total_spent_minor' => (int) $balances[WalletUnit::EurCredit->value]['total_spent'],
             'currency' => 'EUR',
             'unit' => 'EUR_REDEMPTION_CREDIT',
             'updated_at' => now()->toIso8601String(),

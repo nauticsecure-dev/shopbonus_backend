@@ -226,6 +226,39 @@ class TeamTest extends TestCase
         $this->postJson('/api/v1/invitations/accept', ['token' => $token])->assertStatus(410);
     }
 
+    public function test_invitation_dies_when_inviter_loses_a_granted_permission_or_rank(): void
+    {
+        $lead = $this->member(MembershipRole::Employee, ['team.manage', 'orders.view', 'orders.export']);
+        Sanctum::actingAs($lead);
+        $this->invite('piet@example.nl', permissions: ['orders.export'])->assertCreated();
+        $this->invite('kees@example.nl', permissions: ['orders.view'])->assertCreated();
+        $exportToken = $this->tokenFor('piet@example.nl');
+        $viewToken = $this->tokenFor('kees@example.nl');
+
+        // Still a team manager, but no longer holds orders.export.
+        WebshopMembership::where('user_id', $lead->id)->update(['permissions' => json_encode(['team.manage', 'orders.view'])]);
+
+        $piet = User::factory()->create(['email' => 'piet@example.nl']);
+        Sanctum::actingAs($piet);
+        $this->postJson('/api/v1/invitations/accept', ['token' => $exportToken])->assertStatus(410)->assertJsonPath('error.code', 'invitation_invalid');
+        $this->assertFalse(WebshopMembership::where('user_id', $piet->id)->exists());
+        $this->assertSame(InvitationStatus::Pending, WebshopInvitation::where('email', 'piet@example.nl')->sole()->status);
+
+        Sanctum::actingAs(User::factory()->create(['email' => 'kees@example.nl']));
+        $this->postJson('/api/v1/invitations/accept', ['token' => $viewToken])->assertOk()
+            ->assertJsonPath('data.membership.permissions', ['dashboard.view', 'orders.view']);
+
+        // A manager who invited a manager and is then demoted keeps team.manage but not the rank.
+        $manager = $this->member(MembershipRole::Manager);
+        Sanctum::actingAs($manager);
+        $this->invite('anna@example.nl', 'manager')->assertCreated();
+        $managerToken = $this->tokenFor('anna@example.nl');
+        WebshopMembership::where('user_id', $manager->id)->update(['role' => MembershipRole::Employee, 'permissions' => json_encode(['team.manage'])]);
+
+        Sanctum::actingAs(User::factory()->create(['email' => 'anna@example.nl']));
+        $this->postJson('/api/v1/invitations/accept', ['token' => $managerToken])->assertStatus(410);
+    }
+
     public function test_invitations_list_shows_pending_only(): void
     {
         Sanctum::actingAs($this->owner);

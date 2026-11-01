@@ -18,6 +18,7 @@ use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
 use App\Services\Offers\OfferService;
+use App\Services\Vouchers\RedemptionMatcher;
 use App\Services\Vouchers\VoucherInventory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -255,5 +256,48 @@ class VoucherInventoryTest extends TestCase
         $this->assertSame($a->voucher_code_id, $b->voucher_code_id);
         $this->assertSame(2, VoucherCode::sole()->uses_count);
         $this->assertSame(VoucherCodeStatus::Available, VoucherCode::sole()->status);
+    }
+
+    private function paidOrder(string $email, string $reference, ?\DateTimeInterface $placedAt = null): WebshopOrder
+    {
+        $connection = WebshopConnection::firstOrCreate(['webshop_id' => $this->shop->id, 'platform' => 'other'],
+            ['method' => 'webhook', 'status' => 'connected', 'webhook_token' => str_repeat('m', 40), 'created_by' => $this->owner->id]);
+
+        return WebshopOrder::create(['webshop_id' => $this->shop->id, 'connection_id' => $connection->id, 'platform' => 'other',
+            'external_order_id' => $reference, 'reference' => $reference, 'customer_email' => $email, 'customer_email_hash' => WebshopOrder::emailHash($email),
+            'payment_status' => PaymentStatus::Paid, 'ingestion_status' => 'complete', 'placed_at' => $placedAt ?? now(), 'paid_at' => $placedAt ?? now()]);
+    }
+
+    public function test_a_reusable_code_redeems_only_the_buyers_own_voucher(): void
+    {
+        $reusable = $this->activeOffer(['code_mode' => 'reusable', 'name' => 'ZOMER10']);
+        VoucherCode::create(['webshop_id' => $reusable->webshop_id, 'offer_id' => $reusable->id, 'code' => 'ZOMER10', 'reusable' => true,
+            'code_hash' => VoucherCode::hashFor($reusable->webshop_id, 'ZOMER10'), 'code_last4' => 'ER10']);
+        $anna = User::factory()->create(['email' => 'anna@example.nl']);
+        $bram = User::factory()->create(['email' => 'bram@example.nl']);
+        $annas = $this->inventory->issue($this->inventory->reserve($reusable, VoucherOrigin::Promotional, 'r-anna'), $anna);
+        $brams = $this->inventory->issue($this->inventory->reserve($reusable, VoucherOrigin::Promotional, 'r-bram'), $bram);
+        $matcher = app(RedemptionMatcher::class);
+
+        // A stranger using the public code redeems nobody's voucher.
+        $this->assertSame(0, $matcher->match($this->paidOrder('stranger@example.nl', 'ORD-1'), ['zomer10']));
+        $this->assertSame(1, $matcher->match($this->paidOrder('Bram@Example.nl', 'ORD-2'), ['ZOMER10']));
+
+        $this->assertSame(VoucherStatus::Issued, $annas->fresh()->status);
+        $this->assertSame(VoucherStatus::Redeemed, $brams->fresh()->status);
+        $this->assertSame(VoucherCodeStatus::Available, VoucherCode::sole()->status);
+    }
+
+    public function test_an_order_placed_after_expiry_does_not_redeem_the_voucher(): void
+    {
+        $this->codes($this->offer, ['WOON-CCCC-0001']);
+        $consumer = User::factory()->create(['email' => 'late@example.nl']);
+        $voucher = $this->inventory->issue($this->inventory->reserve($this->offer, VoucherOrigin::MerchantReward, 'late'), $consumer);
+
+        $this->assertSame(0, app(RedemptionMatcher::class)->match($this->paidOrder('late@example.nl', 'ORD-LATE', $voucher->expires_at->addDay()), ['WOON-CCCC-0001']));
+        $this->assertSame(VoucherStatus::Issued, $voucher->fresh()->status);
+
+        $this->assertSame(1, app(RedemptionMatcher::class)->match($this->paidOrder('late@example.nl', 'ORD-ON-TIME', $voucher->expires_at->subDay()), ['WOON-CCCC-0001']));
+        $this->assertSame(VoucherStatus::Redeemed, $voucher->fresh()->status);
     }
 }

@@ -120,8 +120,9 @@ class Offer extends Model
             $this->status === OfferStatus::Scheduled => 'scheduled',
             $this->status === OfferStatus::Draft => 'draft',
             $this->status === OfferStatus::Paused => 'paused',
-            $this->status === OfferStatus::Active && $version?->starts_at !== null && $version->starts_at->isFuture() => 'scheduled',
-            $this->status === OfferStatus::Active && $this->isSoldOut() => 'sold_out',
+            // Only Active remains here.
+            $version?->starts_at !== null && $version->starts_at->isFuture() => 'scheduled',
+            $this->isSoldOut() => 'sold_out',
             default => $this->status->publicValue(),
         };
     }

@@ -43,7 +43,7 @@ final class SupportAnswerChecks
             'original_question' => $question,
             'failure_reason' => $failureReason,
             'known_facts' => $knownFacts,
-            'missing_facts' => array_values($missingFacts),
+            'missing_facts' => $missingFacts,
             'allowed_next_tools' => array_values(array_intersect($allowedNextTools, array_keys(SupportTools::ARGUMENTS))),
             'max_additional_tool_rounds' => max(0, min(1, $maxAdditionalToolRounds)),
         ];

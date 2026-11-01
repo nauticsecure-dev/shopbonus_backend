@@ -6,6 +6,7 @@ use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\MerchantCommissionAgreement;
+use App\Models\User;
 use App\Models\Webshop;
 use App\Services\Audit\AuditLogger;
 use App\Services\Cashback\DirectMerchantCashback;
@@ -83,7 +84,7 @@ class MerchantCommissionController extends Controller
             'currency' => ['sometimes', 'string', 'size:3'],
         ]);
         $key = validator(['key' => $request->header('Idempotency-Key')], ['key' => ['required', 'uuid']])->validate()['key'];
-        $user = \App\Models\User::where('public_id', $data['user_id'])->first()
+        $user = User::where('public_id', $data['user_id'])->first()
             ?? throw new ApiException('User not found.', 404, 'not_found');
 
         $row = $cashback->creditVerifiedConversion($shop, $user, $key, $data);

@@ -52,6 +52,8 @@ return [
         'woocommerce' => [
             'profile' => [
                 'api_version' => 'wc/v3', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'HTTPS HTTP Basic consumer key/secret; read-only merchant key',
                 'scopes' => ['read'], 'webhook_topics' => ['order.created', 'order.updated'],
                 'order_api' => 'GET /wp-json/wc/v3/orders/{id}', 'refund_api' => 'GET /wp-json/wc/v3/orders/{id}/refunds',
@@ -74,6 +76,8 @@ return [
         'shopify' => [
             'profile' => [
                 'api_version' => '2026-10', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. optional disabled-by-default browser OAuth and expiring offline token renewal implemented',
                 'scopes' => ['read_orders', 'read_products (catalog only)'],
                 'order_api' => 'POST /admin/api/2026-10/graphql.json: order/orders queries',
@@ -94,6 +98,8 @@ return [
         'wix' => [
             'profile' => [
                 'api_version' => 'eCommerce Orders v1 / App Instance v1', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'App RSA-signed JWT webhook + merchant-authorized API token',
                 'scopes' => ['Read Orders', 'Read Order Transactions', 'Manage Your App'],
                 'webhook_topics' => ['wix.ecom.v1.order_created', 'wix.ecom.v1.order_updated', 'wix.ecom.v1.order_paid', 'wix.ecom.v1.order_canceled'],
@@ -105,12 +111,14 @@ return [
             ],
             'name' => 'Wix', 'priority' => 'production', 'connector' => WixConnector::class,
             'method' => 'webhook', 'auth' => 'App RSA-signed JWT + merchant-authorized API token lookup',
-            'reliability' => 'unknown', 'limitations' => ['No OAuth install/refresh or search backfill; payment createdDate is not settled-at; paid_at stays null.'], 'verification' => 'unverified',
+            'reliability' => 'unknown', 'limitations' => ['No OAuth install/refresh. Backfill uses POST /ecom/v1/orders/search. paid_at is the latest approved transaction createdDate (a creation time, not a settlement time); delayed capture and chargebacks are not mapped.'], 'verification' => 'unverified',
             'blocked_reason' => null,
         ],
         'bigcommerce' => [
             'profile' => [
                 'api_version' => 'Orders v2 / Transactions and Refunds v3', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Standard Webhooks app-secret HMAC + X-Auth-Token',
                 'scopes' => ['store_v2_orders_read_only', 'store_v2_transactions_read_only', 'store_v2_information_read_only'],
                 'webhook_topics' => ['store/order/created', 'store/order/updated', 'store/order/statusUpdated', 'store/order/refund/created', 'store/order/transaction/created'],
@@ -128,6 +136,8 @@ return [
         'ecwid' => [
             'profile' => [
                 'api_version' => 'v3', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => false, 'payment_time_mapped' => false,
                 'native_read_api_implemented' => true, 'auth_method' => 'X-Ecwid-Webhook-Signature (app client_secret) + Bearer store token',
                 'scopes' => ['read_orders', 'read_store_profile'],
                 'webhook_topics' => ['order.created', 'order.updated'],
@@ -144,6 +154,8 @@ return [
         'lightspeed_c' => [
             'profile' => [
                 'api_version' => 'Lightspeed eCom C-Series REST', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => false, 'payment_time_mapped' => false,
                 'native_read_api_implemented' => true, 'auth_method' => 'HTTP Basic api_key:api_secret; app webhook x-signature=md5(body+api_secret)',
                 'scopes' => ['store API key on Advanced/Professional plan'],
                 'webhook_topics' => ['orders/created', 'orders/updated', 'orders/paid', 'orders/deleted', 'invoices/created', 'invoices/updated', 'returns/created', 'returns/updated'],
@@ -174,6 +186,8 @@ return [
             'connector' => PrestaShopConnector::class,
             'profile' => [
                 'api_version' => 'PrestaShop9 Webservice JSON', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => false, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Shopbonus HMAC module bridge + optional HTTPS Basic webservice key',
                 'scopes' => ['GET shop_urls,orders,customers,addresses,currencies,order_payments,order_slip'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
@@ -192,6 +206,8 @@ return [
             'connector' => GenericSignedWebhookConnector::class,
             'profile' => [
                 'api_version' => 'Shopbonus webhook v1 bridge (OpenCart 3/4 extension required)', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => false, 'auth_method' => 'Shopbonus HMAC-SHA256 signed webhook v1',
                 'scopes' => ['merchant extension pairing secret'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
@@ -210,6 +226,8 @@ return [
             'connector' => ShopwareConnector::class,
             'profile' => [
                 'api_version' => 'Shopware6 Admin API', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => false, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Shopbonus HMAC bridge + optional Admin API client_credentials',
                 'scopes' => ['read order, sales-channel-domain, state-machine-history'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
@@ -228,6 +246,8 @@ return [
             'connector' => MagentoConnector::class,
             'profile' => [
                 'api_version' => 'Magento/Adobe Commerce2.4 self-hosted/PaaS REST', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Shopbonus HMAC bridge + optional REST integration bearer token',
                 'scopes' => ['orders, invoices, transactions, creditmemos read'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],

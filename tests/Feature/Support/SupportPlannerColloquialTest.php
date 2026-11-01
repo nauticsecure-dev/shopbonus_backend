@@ -37,4 +37,15 @@ class SupportPlannerColloquialTest extends TestCase
         $this->assertSame('INTEGRATION_PROBLEM', $shopify['category']);
         $this->assertFalse($shopify['wrong_scope']);
     }
+
+    public function test_webshop_order_references_are_recognised_not_only_ulids(): void
+    {
+        $planner = app(SupportPlanner::class);
+
+        $this->assertSame('FS-20482', $planner->plan('Waar blijft mijn beloning voor FS-20482?', false)['reference']);
+        $this->assertSame('1042', $planner->plan('Mijn tientje voor order #1042 is er nog niet', false)['reference']);
+        $this->assertSame('77812', $planner->plan('Beloning voor bestelling 77812?', false)['reference']);
+        $this->assertSame('01m673qmnj823zd5jyx2bd1ts3', $planner->plan('Voucher 01M673QMNJ823ZD5JYX2BD1TS3 werkt niet', false)['reference']);
+        $this->assertNull($planner->plan('Ik heb 3 vouchers, welke verlopen?', false)['reference']);
+    }
 }

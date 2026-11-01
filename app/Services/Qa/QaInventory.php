@@ -29,9 +29,12 @@ use Throwable;
  * records new/changed/removed functions. Nothing is ever deleted: removed
  * entries keep their history with `removed_at`.
  *
- * An endpoint fingerprint covers method, path, middleware and the source of
- * its controller method, so a changed handler or access rule makes earlier
- * test evidence STALE.
+ * An endpoint fingerprint covers method, path, middleware names, the source
+ * of its controller method and the files it directly depends on: the whole
+ * controller class, App classes type-hinted on the method (form requests,
+ * services, models) and the App middleware classes on the route. A change
+ * in any of them makes earlier test evidence STALE. Deeper transitive
+ * dependencies are not followed.
  */
 class QaInventory
 {
@@ -114,6 +117,7 @@ class QaInventory
         $spec = Yaml::parseFile(base_path('docs/api/openapi.yaml'));
         $registry = collect($this->registry->entries())->keyBy(fn ($e) => $e['method'].' '.$e['route']);
         $found = [];
+        $backendFingerprint = $this->backendFingerprint();
         foreach (Routes::getRoutes()->getRoutes() as $route) {
             if (! str_starts_with($route->uri(), 'api/v1/')) {
                 continue;
@@ -128,13 +132,29 @@ class QaInventory
                     'summary' => isset($operation['summary']) ? mb_substr((string) $operation['summary'], 0, 255) : null,
                     'access' => $entry['access'] ?? 'public', 'permission' => $entry['permission'] ?? null, 'scope' => $entry['scope'] ?? 'public',
                     'documented' => $operation !== null,
-                    'fingerprint' => hash('sha256', json_encode([$method, $path, $middleware, $this->actionName($route), $this->actionSource($route)])),
+                    'fingerprint' => hash('sha256', json_encode([$method, $path, $middleware, $this->actionName($route), $this->actionSource($route), $this->dependencies($route), $backendFingerprint])),
                 ];
             }
         }
         ksort($found);
 
         return $found;
+    }
+
+    /** Conservative fallback: any transitive backend source change invalidates route evidence. */
+    private function backendFingerprint(): string
+    {
+        $sources = [];
+        foreach ([app_path(), config_path(), base_path('routes'), base_path('bootstrap'), database_path('migrations')] as $directory) {
+            foreach (File::allFiles($directory) as $file) {
+                if ($file->getExtension() === 'php' && ! str_starts_with($file->getPathname(), base_path('bootstrap/cache').'/')) {
+                    $sources[str_replace(base_path().'/', '', $file->getPathname())] = hash_file('sha256', $file->getPathname());
+                }
+            }
+        }
+        ksort($sources);
+
+        return hash('sha256', json_encode($sources, JSON_THROW_ON_ERROR));
     }
 
     private function actionName(Route $route): string
@@ -158,6 +178,51 @@ class QaInventory
         }
     }
 
+    /**
+     * Content hashes of the route's direct App dependencies (see class doc).
+     *
+     * @return array<string, string>
+     */
+    private function dependencies(Route $route): array
+    {
+        $classes = [];
+        try {
+            $uses = $route->getAction('uses');
+            $ref = $uses instanceof Closure ? new ReflectionFunction($uses) : new ReflectionMethod(...explode('@', (string) $uses, 2));
+            if ($ref instanceof ReflectionMethod) {
+                $classes[] = $ref->getDeclaringClass()->getName();
+            }
+            foreach ($ref->getParameters() as $param) {
+                $type = $param->getType();
+                if ($type instanceof \ReflectionNamedType && ! $type->isBuiltin()) {
+                    $classes[] = $type->getName();
+                }
+            }
+        } catch (Throwable) {
+            // unresolved handlers are already fingerprinted as 'unresolved'
+        }
+        $aliases = Routes::getMiddleware();
+        foreach ($route->gatherMiddleware() as $m) {
+            if (is_string($m)) {
+                $name = explode(':', $m, 2)[0];
+                $classes[] = $aliases[$name] ?? $name;
+            }
+        }
+        $hashes = [];
+        foreach (array_unique($classes) as $class) {
+            if (! is_string($class) || ! str_starts_with($class, 'App\\') || ! class_exists($class)) {
+                continue;
+            }
+            $file = (new \ReflectionClass($class))->getFileName();
+            if (is_string($file) && is_file($file)) {
+                $hashes[$class] = (string) hash_file('sha256', $file);
+            }
+        }
+        ksort($hashes);
+
+        return $hashes;
+    }
+
     /** @return array<string, array<string, mixed>> */
     private function discoverComponents(): array
     {
@@ -165,8 +230,19 @@ class QaInventory
         $files = [
             'job' => app_path('Jobs'), 'event' => app_path('Events'), 'listener' => app_path('Listeners'),
             'command' => app_path('Console/Commands'), 'migration' => database_path('migrations'),
-            'connector' => app_path('Integrations/Connectors'),
+            'service' => app_path('Services'), 'model' => app_path('Models'), 'controller' => app_path('Http/Controllers'),
+            'request' => app_path('Http/Requests'), 'resource' => app_path('Http/Resources'), 'rule' => app_path('Rules'),
+            'enum' => app_path('Enums'), 'provider' => app_path('Providers'), 'support' => app_path('Support'),
+            'logging' => app_path('Logging'), 'integration' => app_path('Integrations'),
+            'connector' => app_path('Integrations/Connectors'), 'middleware' => app_path('Http/Middleware'), 'policy' => app_path('Policies'),
         ];
+        // Affiliate network adapters are provider connectors too (Daisycon, TradeTracker).
+        foreach (File::isDirectory(app_path('Affiliate/Adapters')) ? File::allFiles(app_path('Affiliate/Adapters')) : [] as $file) {
+            if ($file->getExtension() === 'php') {
+                $name = str_replace([base_path().'/', '.php'], '', $file->getPathname());
+                $found['connector:'.$name] = ['kind' => 'connector', 'name' => $name, 'fingerprint' => hash_file('sha256', $file->getPathname())];
+            }
+        }
         foreach ($files as $kind => $dir) {
             foreach (File::isDirectory($dir) ? File::allFiles($dir) : [] as $file) {
                 if ($file->getExtension() !== 'php') {

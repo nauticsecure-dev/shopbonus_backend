@@ -63,7 +63,7 @@ class CatalogSync
                 $n++;
             }
 
-            return ['imported' => $n, 'cursor' => $page['cursor'] ?? null, 'exhausted' => (bool) ($page['exhausted'] ?? true)];
+            return ['imported' => $n, 'cursor' => $page['cursor'] ?? null, 'exhausted' => (bool) ($page['exhausted'])];
         });
     }
 
@@ -111,7 +111,7 @@ class CatalogSync
                 $n++;
             }
 
-            return ['imported' => $n, 'cursor' => $page['cursor'] ?? null, 'exhausted' => (bool) ($page['exhausted'] ?? true)];
+            return ['imported' => $n, 'cursor' => $page['cursor'] ?? null, 'exhausted' => (bool) ($page['exhausted'])];
         });
     }
 

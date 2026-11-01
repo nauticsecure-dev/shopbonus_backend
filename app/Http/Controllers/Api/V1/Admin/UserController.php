@@ -48,7 +48,7 @@ class UserController extends Controller
             ->when($search, fn ($q) => $q->where(fn ($q) => $q->where('email', 'like', $search)->orWhere('first_name', 'like', $search)))
             ->when($data['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when(($data['role'] ?? null) === 'super_admin', fn ($q) => $q->whereHas('platformRoles', fn ($r) => $r->where('role', PlatformRole::SuperAdmin)->whereNull('revoked_at')))
-            ->when(($data['role'] ?? null) === 'consumer', fn ($q) => $q->whereDoesntHave('memberships', $activeMembership)->whereDoesntHave('platformRoles', fn ($r) => $r->whereNull('revoked_at')))
+            ->when(($data['role'] ?? null) === 'consumer', fn ($q) => $q->consumers())
             ->when(($data['role'] ?? null) === 'merchant', fn ($q) => $q->whereHas('memberships', $activeMembership))
             ->when(in_array($data['role'] ?? null, ['owner', 'manager', 'employee'], true), fn ($q) => $q->whereHas('memberships', fn ($m) => $m->where('status', MembershipStatus::Active)->where('role', $data['role'])))
             ->when($data['webshop_id'] ?? null, fn ($q, $w) => $q->whereHas('memberships', fn ($m) => $m->where('webshop_id', Webshop::where('public_id', Str::lower($w))->value('id') ?? 0)))

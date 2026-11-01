@@ -23,7 +23,7 @@ Full API/webhook/mapping contracts: [PLATFORM_API_SPECS.md](PLATFORM_API_SPECS.m
 | --- | --- | --- | --- | --- | --- | --- |
 | Shopify | — | — | NOT RUN | Protected customer data / theme extension pending | — | — |
 | WooCommerce | — | — | NOT RUN | Native WP banner publish pending | — | — |
-| Wix | — | — | NOT RUN | No search backfill; paid_at null | — | — |
+| Wix | — | — | NOT RUN | Backfill via orders/search; paid_at = latest approved transaction createdDate (not settlement time) | — | — |
 | BigCommerce | — | — | NOT RUN | Widgets/catalog not implemented | — | — |
 | Ecwid | — | — | NOT RUN | Currency/settlement time unavailable | — | — |
 | Lightspeed C-Series | — | — | NOT RUN | Plan-gated API; refund cash unmapped; paid_at null | — | — |

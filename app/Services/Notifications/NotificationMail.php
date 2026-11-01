@@ -9,6 +9,7 @@ use App\Models\Offer;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Services\Consumer\CommunicationPreferences;
+use App\Support\FrontendPath;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\HtmlString;
@@ -121,7 +122,7 @@ final class NotificationMail
     {
         $data = $n->data;
         $path = $data['action_route'];
-        if (! is_string($path) || ! str_starts_with($path, '/app/') || str_starts_with($path, '//') || preg_match('/[\\\\\r\n]/', $path)) {
+        if (! FrontendPath::isSafe($path)) {
             throw new \LogicException('Unsafe notification action.');
         }
         $url = rtrim((string) config('shopbonus.identity.frontend_url'), '/').$path;

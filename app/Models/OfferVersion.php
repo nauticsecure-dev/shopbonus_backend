@@ -21,6 +21,7 @@ use LogicException;
  * @property string $currency
  * @property int|null $min_order_minor
  * @property int|null $max_discount_minor
+ * @property int|null $price_points
  * @property int|null $price_minor
  * @property CarbonImmutable|null $starts_at
  * @property CarbonImmutable|null $ends_at
@@ -38,7 +39,7 @@ class OfferVersion extends Model
 {
     public const TERM_FIELDS = [
         'name', 'public_description', 'discount_type', 'discount_value', 'currency', 'min_order_minor', 'max_discount_minor',
-        'price_minor', 'starts_at', 'ends_at', 'claim_validity_days', 'redemption_validity_days', 'categories', 'products',
+        'price_minor', 'price_points', 'starts_at', 'ends_at', 'claim_validity_days', 'redemption_validity_days', 'categories', 'products',
         'combinable', 'code_mode', 'allocation_limit',
     ];
 
@@ -52,7 +53,7 @@ class OfferVersion extends Model
             'discount_value' => 'integer',
             'min_order_minor' => 'integer',
             'max_discount_minor' => 'integer',
-            'price_minor' => 'integer',
+            'price_minor' => 'integer', 'price_points' => 'integer',
             'starts_at' => 'immutable_datetime',
             'ends_at' => 'immutable_datetime',
             'claim_validity_days' => 'integer',

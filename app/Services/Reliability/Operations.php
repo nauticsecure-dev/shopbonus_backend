@@ -18,13 +18,14 @@ class Operations
 {
     public function jobStarted(JobProcessing $event): void
     {
-        if ($event->connectionName !== config('queue.default') || $event->job->getQueue() !== 'default'
+        if ($event->connectionName !== config('queue.default') || ! in_array($event->job->getQueue(), self::queues(), true)
             || config('queue.connections.'.$event->connectionName.'.driver') === 'sync') {
             return;
         }
         try {
             $created = $event->job->payload()['createdAt'] ?? null;
             DB::table('operational_observations')->insert(['component' => 'queue_started', 'observed_at' => now(), 'metrics' => json_encode([
+                'queue' => $event->job->getQueue(),
                 'enqueue_age_ms' => is_numeric($created) ? min(604800000, max(0, (int) ((microtime(true) - (float) $created) * 1000))) : null,
             ], JSON_THROW_ON_ERROR)]);
         } catch (Throwable $e) {
@@ -91,7 +92,11 @@ class Operations
             'limits' => 'Local observations only. Missing data is UNKNOWN; a successful probe is not uptime, offsite durability or provider settlement proof.'];
     }
 
-    /** Compact acceptance counters for Super Admin ops; never invent HEALTHY from missing samples. */
+    /**
+     * Compact acceptance counters for Super Admin ops; never invent HEALTHY from missing samples.
+     *
+     * @return array<string, mixed>
+     */
     private function acceptanceMetrics(): array
     {
         $run = FinancialReconciliationRun::latest('id')->first();
@@ -132,7 +137,20 @@ class Operations
         DB::table('operational_observations')->whereIn('id', $ids)->delete();
     }
 
-    /** @return array<string,mixed> */
+    /** @return list<string> */
+    private static function queues(): array
+    {
+        $queues = array_values(array_unique(array_map('trim', (array) config('reliability.monitored_queues', ['default']))));
+
+        return in_array('default', $queues, true) ? $queues : ['default', ...$queues];
+    }
+
+    /**
+     * Worst status across the monitored queues. Top-level fields describe
+     * `default` (unchanged contract); `queues` has one entry per queue.
+     *
+     * @return array<string,mixed>
+     */
     private function queue(): array
     {
         $connection = config('queue.default');
@@ -140,21 +158,31 @@ class Operations
         if (! in_array($driver, ['database', 'redis'], true)) {
             return ['status' => 'UNKNOWN', 'reason' => 'No observable database/redis background queue configured.'];
         }
-        $size = Queue::connection()->size('default');
-        $last = DB::table('operational_observations')->where('component', 'queue_started')->latest('id')->first();
-        $readyAge = null;
-        if ($driver === 'database') {
-            $table = config('queue.connections.'.$connection.'.table', 'jobs');
-            $oldest = DB::connection(config('queue.connections.'.$connection.'.connection'))->table($table)->where('queue', 'default')
-                ->whereNull('reserved_at')->where('available_at', '<=', now()->getTimestamp())->min('available_at');
-            $readyAge = $oldest === null ? null : max(0, now()->getTimestamp() - (int) $oldest);
-        }
         $threshold = max(60, min(3600, (int) config('reliability.queue_stall_seconds', 300)));
-        $recent = $last !== null && strtotime($last->observed_at) >= now()->subSeconds($threshold)->getTimestamp();
+        $observations = DB::table('operational_observations')->where('component', 'queue_started')->latest('id')->limit(500)->get();
+        $queues = [];
+        foreach (self::queues() as $name) {
+            $size = Queue::connection()->size($name);
+            // Observations recorded before B31 carry no queue name; they came from `default`.
+            $last = $observations->first(fn ($o) => (json_decode($o->metrics, true)['queue'] ?? 'default') === $name);
+            $readyAge = null;
+            if ($driver === 'database') {
+                $table = config('queue.connections.'.$connection.'.table', 'jobs');
+                $oldest = DB::connection(config('queue.connections.'.$connection.'.connection'))->table($table)->where('queue', $name)
+                    ->whereNull('reserved_at')->where('available_at', '<=', now()->getTimestamp())->min('available_at');
+                $readyAge = $oldest === null ? null : max(0, now()->getTimestamp() - (int) $oldest);
+            }
+            $recent = $last !== null && strtotime($last->observed_at) >= now()->subSeconds($threshold)->getTimestamp();
+            $queues[$name] = ['status' => $readyAge !== null && $readyAge > $threshold ? 'CRITICAL' : ($size > 0 && ! $recent ? 'WARNING' : 'UNKNOWN'),
+                'size' => $size, 'ready_wait_seconds' => $readyAge, 'last_started_at' => $last?->observed_at,
+                'last_enqueue_age_ms' => $last === null ? null : (json_decode($last->metrics, true)['enqueue_age_ms'] ?? null)];
+        }
+        $statuses = array_column($queues, 'status');
+        $default = $queues['default'];
 
-        return ['status' => $readyAge !== null && $readyAge > $threshold ? 'CRITICAL' : ($size > 0 && ! $recent ? 'WARNING' : 'UNKNOWN'),
-            'queue' => 'default', 'size' => $size, 'ready_wait_seconds' => $readyAge, 'last_started_at' => $last?->observed_at,
-            'last_enqueue_age_ms' => $last === null ? null : (json_decode($last->metrics, true)['enqueue_age_ms'] ?? null),
+        return ['status' => in_array('CRITICAL', $statuses, true) ? 'CRITICAL' : (in_array('WARNING', $statuses, true) ? 'WARNING' : 'UNKNOWN'),
+            'queue' => 'default', 'size' => $default['size'], 'ready_wait_seconds' => $default['ready_wait_seconds'], 'last_started_at' => $default['last_started_at'],
+            'last_enqueue_age_ms' => $default['last_enqueue_age_ms'], 'queues' => $queues,
             'failed_jobs' => DB::table('failed_jobs')->count(),
             'definition' => 'Database ready wait excludes delayed jobs. Enqueue age includes delays; Redis ready wait/worker availability stay unknown.'];
     }

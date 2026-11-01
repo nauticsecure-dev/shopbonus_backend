@@ -12,6 +12,7 @@ use App\Models\Voucher;
 use App\Models\WalletLedgerEntry;
 use App\Models\Webshop;
 use App\Services\Consumer\CommunicationPreferences;
+use App\Support\FrontendPath;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -103,10 +104,11 @@ final class NotificationDispatcher
                     $minor = abs((int) $facts['amount_minor']);
                     $amount = $facts['unit'] === 'eur_credit' ? '€'.intdiv($minor, 100).($locale === 'nl' ? ',' : '.').str_pad((string) ($minor % 100), 2, '0', STR_PAD_LEFT) : $minor.($locale === 'nl' ? ' punten' : ' points');
                 }
-                $content = app(NotificationTemplates::class)->resolve($event->event_type, $locale, $amount);
-                $workspaceRef = $event->webshop_id === null ? null : Webshop::whereKey($event->webshop_id)->value('public_id');
+                $shop = $event->webshop_id === null ? null : Webshop::whereKey($event->webshop_id)->first(['public_id', 'name']);
+                $content = app(NotificationTemplates::class)->resolve($event->event_type, $locale, $amount, ['webshop_name' => $shop?->name, 'first_name' => $user->first_name]);
+                $workspaceRef = $shop?->public_id;
                 $path = match ($event->recipient_type) {
-                    'admin' => '/app/platform', 'workspace' => '/app/workspaces?workspace='.$workspaceRef, default => '/app/benefits'
+                    'admin' => FrontendPath::to('admin_home'), 'workspace' => FrontendPath::to('workspace_home', ['workspace' => $workspaceRef]), default => FrontendPath::to('consumer_benefits')
                 };
                 $legacy = isset($facts['legacy_id']) ? MerchantNotification::find($facts['legacy_id']) : null;
                 $legacyRead = $legacy === null ? null : DB::table('notification_legacy_reads')->where('legacy_notification_id', $legacy->id)->where('user_id', $user->id)->value('read_at');
