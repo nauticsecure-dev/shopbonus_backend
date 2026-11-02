@@ -8,6 +8,7 @@ use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherStatus;
 use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
+use App\Models\AffiliateProgram;
 use App\Models\AffiliateRewardRule;
 use App\Models\MerchantCommissionAgreement;
 use App\Models\Offer;
@@ -16,6 +17,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
 use App\Models\WebshopPublicProfile;
+use App\Services\Affiliate\AffiliateRewardPolicy;
 use App\Services\Affiliate\ProgramSelector;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -68,27 +70,39 @@ class PublicCatalog
                 $query->whereIn('webshop_id', $this->whereObtainable($this->listedOffers())->select('webshop_id'));
             }
 
-            $activeOfferCountSql = '(SELECT COUNT(*) FROM offers'
-                .' INNER JOIN offer_versions ON offer_versions.id = offers.current_version_id'
-                .' WHERE offers.webshop_id = webshop_public_profiles.webshop_id'
-                .' AND offers.status = \'active\' AND offers.slug IS NOT NULL'
-                .' AND (offer_versions.ends_at IS NULL OR offer_versions.ends_at > ?))';
+            // Same obtainability definition as has_offers filter and card counters.
+            $obtainableCount = $this->whereObtainable($this->listedOffers())
+                ->whereColumn('offers.webshop_id', 'webshop_public_profiles.webshop_id')->selectRaw('COUNT(*)');
+            $query->select('webshop_public_profiles.*')->selectSub($obtainableCount, 'obtainable_count');
 
             match ($filters['sort'] ?? 'relevance') {
                 'name' => $query->orderBy('display_name'),
                 'newest' => $query->orderByDesc('first_published_at'),
-                'most_offers' => $query->orderByRaw($activeOfferCountSql.' DESC', [now()])->orderBy('display_name'),
+                'most_offers' => $query->orderByDesc('obtainable_count')->orderBy('display_name'),
                 default => $search !== ''
                     ? $query->orderByRaw('CASE WHEN display_name LIKE ? THEN 0 ELSE 1 END', [addcslashes($search, '%_\\').'%'])->orderBy('display_name')
-                    : $query->orderByRaw($activeOfferCountSql.' DESC', [now()])->orderBy('display_name'),
+                    : $query->orderByDesc('obtainable_count')->orderBy('display_name'),
             };
 
             $page = $query->orderBy('id')->paginate($filters['per_page'] ?? 20, ['*'], 'page', $filters['page'] ?? 1);
             $items = $page->items();
-            $offersByShop = $this->offersGroupedByWebshop(array_map(fn (WebshopPublicProfile $p) => $p->webshop_id, $items));
+            $webshopIds = array_map(fn (WebshopPublicProfile $p) => $p->webshop_id, $items);
+            $offersByShop = $this->offersGroupedByWebshop($webshopIds);
+            $categoriesByShop = $this->categoriesGroupedByWebshop($webshopIds);
+            $cashbackByShop = $this->affiliateCashbackGrouped($webshopIds);
+            $agreementsByShop = $this->agreementsGroupedByWebshop($webshopIds);
+            $availabilityContext = $this->availabilityContextForOffers($offersByShop->flatten(1));
 
             $cards = array_values(array_map(
-                fn (WebshopPublicProfile $p) => $this->webshopCard($p, withOffers: true, preloadedOffers: $offersByShop[$p->webshop_id] ?? collect()),
+                fn (WebshopPublicProfile $p) => $this->webshopCard(
+                    $p,
+                    withOffers: true,
+                    preloadedOffers: $offersByShop[$p->webshop_id] ?? collect(),
+                    cashback: $cashbackByShop[$p->webshop_id] ?? null,
+                    preloadedCategories: $categoriesByShop[$p->webshop_id] ?? [],
+                    preloadedAgreement: $agreementsByShop[$p->webshop_id] ?? null,
+                    availabilityContext: $availabilityContext,
+                ),
                 $items
             ));
 
@@ -127,7 +141,11 @@ class PublicCatalog
 
             $offers = $this->listedOffers()->where('webshop_id', $profile->webshop_id)->with('currentVersion')->orderByDesc('activated_at')->get();
             $cashback = $this->affiliateCashback($profile->webshop_id);
-            $offerRows = $offers->map(fn (Offer $o) => $this->offerSummary($o, $profile, cashback: $cashback))->filter()->values();
+            $availabilityContext = $this->availabilityContextForOffers($offers);
+            $offerRows = $offers
+                ->map(fn (Offer $o) => $this->offerSummary($o, $profile, cashback: $cashback, availabilityContext: $availabilityContext))
+                ->filter()
+                ->values();
             if ($cashback !== null) {
                 $offerRows = $offerRows->prepend($this->syntheticCashbackOffer($cashback, $profile));
             }
@@ -227,6 +245,7 @@ class PublicCatalog
         return $this->listedProfiles()->where('slug', $slug)->whereNotNull('logo_path')->first();
     }
 
+    /** Listed profile with an uploaded cover — independent of logo presence. */
     public function cover(string $slug): ?WebshopPublicProfile
     {
         return $this->listedProfiles()->where('slug', $slug)->whereNotNull('cover_path')->first();
@@ -271,31 +290,55 @@ class PublicCatalog
     /**
      * @param  Collection<int, Offer>|null  $preloadedOffers
      * @param  array<string, mixed>|null  $cashback
+     * @param  list<string>|null  $preloadedCategories
+     * @param  MerchantCommissionAgreement|false|null  $preloadedAgreement  false = not preloaded
+     * @param  array{stock: array<int, bool>, issued: array<int, int>}|null  $availabilityContext
      * @return array<string, mixed>
      */
-    private function webshopCard(WebshopPublicProfile $p, bool $withOffers = true, $preloadedOffers = null, ?array $cashback = null): array
-    {
-        $cashback ??= $this->affiliateCashback($p->webshop_id);
+    private function webshopCard(
+        WebshopPublicProfile $p,
+        bool $withOffers = true,
+        $preloadedOffers = null,
+        ?array $cashback = null,
+        ?array $preloadedCategories = null,
+        MerchantCommissionAgreement|false|null $preloadedAgreement = false,
+        ?array $availabilityContext = null,
+    ): array {
+        if ($preloadedCategories === null) {
+            $cashback ??= $this->affiliateCashback($p->webshop_id);
+        }
+        $categoryKeys = $preloadedCategories ?? $p->categories();
         $card = [
             'slug' => $p->slug,
             'name' => $p->display_name,
             'short_description' => $p->short_description,
             'logo_url' => $p->logo_path === null ? null : route('api.v1.public.webshops.logo', ['slug' => $p->slug, 'v' => $p->updated_at->getTimestamp()]),
             'cover_url' => $p->cover_path === null ? $p->cover_url : route('api.v1.public.webshops.cover', ['slug' => $p->slug, 'v' => $p->updated_at->getTimestamp()]),
-            'categories' => array_map(fn (string $key) => ['key' => $key, 'label' => self::categoryLabels($key)], $p->categories()),
+            'categories' => array_map(fn (string $key) => ['key' => $key, 'label' => self::categoryLabels($key)], $categoryKeys),
         ];
 
         if ($withOffers) {
             $offerModels = $preloadedOffers ?? $this->listedOffers()->where('webshop_id', $p->webshop_id)->with('currentVersion')->orderByDesc('activated_at')->get();
-            $offers = $this->sortBenefitOffers($offerModels->map(fn (Offer $o) => $this->offerSummary($o, $p, cashback: $cashback))->filter()->values());
-            // Counter excludes expired (and null) summaries; matches live eligibility, not a stored counter.
-            $active = $offers->filter(fn (array $o) => ($o['availability'] ?? '') !== 'expired');
-            $card['offer_count'] = $active->count();
+            $availabilityContext ??= $this->availabilityContextForOffers($offerModels);
+            $offers = $this->sortBenefitOffers($offerModels
+                ->map(fn (Offer $o) => $this->offerSummary($o, $p, cashback: $cashback, availabilityContext: $availabilityContext, cashbackPreloaded: true))
+                ->filter()
+                ->values());
+            // Currently eligible / obtainable only (same as has_offers + most_offers).
+            $obtainable = $offers->filter(fn (array $o) => ($o['availability'] ?? '') === 'available');
+            $card['offer_count'] = $obtainable->count();
             $card['active_offer_count'] = $card['offer_count'];
-            $card['featured_offer'] = $this->pickFeaturedOffer($active, $cashback);
+            $card['featured_offer'] = $this->pickFeaturedOffer($obtainable, $cashback);
         }
 
-        [$badge, $cashbackLabel] = $this->webshopBenefitLabels($p->webshop_id, $card['featured_offer'] ?? null, $cashback);
+        [$badge, $cashbackLabel] = $this->webshopBenefitLabels(
+            $p->webshop_id,
+            $card['featured_offer'] ?? null,
+            $cashback,
+            $preloadedAgreement === false ? null : $preloadedAgreement,
+            $preloadedAgreement !== false,
+            $preloadedCategories !== null,
+        );
         $card['badge_label'] = $badge;
         $card['cashback_label'] = $cashbackLabel;
 
@@ -310,9 +353,15 @@ class PublicCatalog
      * @param  array<string, mixed>|null  $affiliateCashback
      * @return array{0: string|null, 1: string|null}
      */
-    private function webshopBenefitLabels(int $webshopId, ?array $featured, ?array $affiliateCashback = null): array
-    {
-        $agreement = MerchantCommissionAgreement::current($webshopId);
+    private function webshopBenefitLabels(
+        int $webshopId,
+        ?array $featured,
+        ?array $affiliateCashback = null,
+        ?MerchantCommissionAgreement $agreement = null,
+        bool $agreementPreloaded = false,
+        bool $cashbackPreloaded = false,
+    ): array {
+        $agreement = $agreementPreloaded ? $agreement : MerchantCommissionAgreement::current($webshopId);
         $rate = $agreement?->consumerCashbackRate();
         if ($rate !== null && $rate > 0) {
             $label = $this->formatCashbackLabel($rate, categoryRestricted: true);
@@ -320,7 +369,9 @@ class PublicCatalog
             return [$label, $label];
         }
 
-        $affiliateCashback ??= $this->affiliateCashback($webshopId);
+        if (! $cashbackPreloaded) {
+            $affiliateCashback ??= $this->affiliateCashback($webshopId);
+        }
         if (($affiliateCashback['label'] ?? null) !== null) {
             $label = $affiliateCashback['label'];
 
@@ -346,6 +397,102 @@ class PublicCatalog
         }
 
         return [null, null];
+    }
+
+    /**
+     * @param  list<int>  $webshopIds
+     * @return array<int, list<string>>
+     */
+    private function categoriesGroupedByWebshop(array $webshopIds): array
+    {
+        if ($webshopIds === []) {
+            return [];
+        }
+
+        $grouped = [];
+        foreach (DB::table('webshop_public_categories')->whereIn('webshop_id', $webshopIds)->orderBy('category')->get() as $row) {
+            $grouped[(int) $row->webshop_id][] = (string) $row->category;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * @param  list<int>  $webshopIds
+     * @return array<int, MerchantCommissionAgreement|null>
+     */
+    private function agreementsGroupedByWebshop(array $webshopIds): array
+    {
+        $map = array_fill_keys($webshopIds, null);
+        $at = now();
+        $agreements = MerchantCommissionAgreement::whereIn('webshop_id', $webshopIds)->where('active', true)->where('cashback_approved', true)
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', $at))
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', $at))
+            ->orderByDesc('version')->get();
+        foreach ($agreements as $agreement) {
+            $map[$agreement->webshop_id] ??= $agreement;
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  list<int>  $webshopIds
+     * @return array<int, array<string, mixed>|null>
+     */
+    private function affiliateCashbackGrouped(array $webshopIds): array
+    {
+        $map = [];
+        $programs = $this->programSelector->currentMany($webshopIds);
+        $at = now();
+        $rules = AffiliateRewardRule::where('active', true)
+            ->where(fn ($q) => $q->whereIn('webshop_id', $webshopIds)->orWhereNull('webshop_id'))
+            ->where(fn ($q) => $q->whereNull('cashback_approved')->orWhere('cashback_approved', true))
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', $at))
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', $at))
+            ->orderByDesc('version')->get();
+        foreach ($webshopIds as $id) {
+            $program = $programs[$id] ?? null;
+            $rule = app(AffiliateRewardPolicy::class)->fromRules($rules, $id, $program?->id);
+            $map[$id] = $this->cashbackForProgram($programs[$id] ?? null, $rule);
+        }
+
+        return $map;
+    }
+
+    /**
+     * @param  Collection<int, Offer>|iterable<int, Offer>  $offers
+     * @return array{stock: array<int, bool>, issued: array<int, int>}
+     */
+    private function availabilityContextForOffers(iterable $offers): array
+    {
+        $ids = [];
+        foreach ($offers as $offer) {
+            $ids[] = (int) $offer->id;
+        }
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return ['stock' => [], 'issued' => []];
+        }
+
+        $stock = VoucherCode::query()
+            ->whereIn('offer_id', $ids)
+            ->where('status', VoucherCodeStatus::Available)
+            ->distinct()
+            ->pluck('offer_id')
+            ->mapWithKeys(fn ($id) => [(int) $id => true])
+            ->all();
+
+        $issued = Voucher::query()
+            ->whereIn('offer_id', $ids)
+            ->where('status', '!=', VoucherStatus::Cancelled)
+            ->selectRaw('offer_id, COUNT(*) as c')
+            ->groupBy('offer_id')
+            ->pluck('c', 'offer_id')
+            ->mapWithKeys(fn ($c, $id) => [(int) $id => (int) $c])
+            ->all();
+
+        return ['stock' => $stock, 'issued' => $issued];
     }
 
     /**
@@ -382,16 +529,25 @@ class PublicCatalog
 
     /**
      * @param  array<string, mixed>|null  $cashback
+     * @param  array{stock: array<int, bool>, issued: array<int, int>}|null  $availabilityContext
      * @return array<string, mixed>|null
      */
-    private function offerSummary(Offer $offer, WebshopPublicProfile $profile, bool $detailed = false, ?array $cashback = null): ?array
-    {
+    private function offerSummary(
+        Offer $offer,
+        WebshopPublicProfile $profile,
+        bool $detailed = false,
+        ?array $cashback = null,
+        ?array $availabilityContext = null,
+        bool $cashbackPreloaded = false,
+    ): ?array {
         $v = $offer->currentVersion;
         if ($v === null) {
             return null;
         }
 
-        $cashback ??= $this->affiliateCashback($profile->webshop_id);
+        if (! $cashbackPreloaded) {
+            $cashback ??= $this->affiliateCashback($profile->webshop_id);
+        }
         $offerKind = $this->offerKind($offer, $v, $cashback);
         $summary = [
             'slug' => $offer->slug,
@@ -411,7 +567,7 @@ class PublicCatalog
             'price_minor' => $offerKind === 'voucher_purchase' ? $v->price_minor : null,
             'price_points' => $offerKind === 'voucher_purchase' ? $v->price_points : null,
             'ends_at' => $v->ends_at?->toIso8601String(),
-            'availability' => $this->availability($offer, $v),
+            'availability' => $this->availability($offer, $v, $availabilityContext),
             'cashback_label' => in_array($offerKind, ['combined', 'cashback'], true) ? ($cashback['label'] ?? null) : null,
             'benefit_label' => $this->offerBenefitLabel([
                 'discount_type' => $v->discount_type,
@@ -437,20 +593,27 @@ class PublicCatalog
         return $summary;
     }
 
-    private function availability(Offer $offer, OfferVersion $v): string
+    /**
+     * @param  array{stock: array<int, bool>, issued: array<int, int>}|null  $context
+     */
+    private function availability(Offer $offer, OfferVersion $v, ?array $context = null): string
     {
         if ($v->starts_at !== null && $v->starts_at->isFuture()) {
             return 'upcoming';
         }
-        if ($v->ends_at !== null && $v->ends_at->isPast()) {
+        if ($v->ends_at !== null && $v->ends_at->lessThanOrEqualTo(now())) {
             return 'expired';
         }
-        if ($v->allocation_limit !== null
-            && Voucher::where('offer_id', $offer->id)->where('status', '!=', VoucherStatus::Cancelled)->count() >= $v->allocation_limit) {
+
+        $issued = $context !== null ? ($context['issued'][$offer->id] ?? 0)
+            : Voucher::where('offer_id', $offer->id)->where('status', '!=', VoucherStatus::Cancelled)->count();
+        if ($v->allocation_limit !== null && $issued >= $v->allocation_limit) {
             return 'sold_out';
         }
 
-        $stock = VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->exists();
+        $stock = $context !== null
+            ? ($context['stock'][$offer->id] ?? false)
+            : VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->exists();
 
         return $stock ? 'available' : 'sold_out';
     }
@@ -476,9 +639,19 @@ class PublicCatalog
             return null;
         }
 
-        $rule = AffiliateRewardRule::current(webshopId: $webshopId, commissionSource: 'affiliate_network', programId: $program->id);
+        $rule = app(AffiliateRewardPolicy::class)->rule(webshopId: $webshopId, programId: $program->id);
+
+        return $this->cashbackForProgram($program, $rule);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function cashbackForProgram(?AffiliateProgram $program, ?AffiliateRewardRule $rule): ?array
+    {
+        if ($program === null || ! $program->active || ! $program->cashback_allowed) {
+            return null;
+        }
         if ($rule?->unit === WalletUnit::Points) {
-            if ($program->currency !== 'EUR') {
+            if ($program->currency !== 'EUR' || $rule->activationBlockers() !== []) {
                 return null;
             }
 
@@ -490,12 +663,8 @@ class PublicCatalog
                 'points_rounding' => $rule->points_rounding, 'category_restricted' => $program->category_restricted, 'cta_hint' => 'shop_and_earn',
             ];
         }
-        if ($program->commission_type !== 'percentage') {
-            return null;
-        }
-        $shareBps = $rule->share_bps ?? (int) config('shopbonus.affiliate.default_consumer_share_bps', 7000);
-        $rate = ($program->commission_value * $shareBps) / 100_000_000;
-        if ($rate <= 0) {
+        $rate = app(AffiliateRewardPolicy::class)->publicRate($program, $rule);
+        if ($rate === null || $rate <= 0) {
             return null;
         }
 
@@ -582,7 +751,7 @@ class PublicCatalog
     {
         return match ($offer->acquisition) {
             OfferAcquisition::WalletPurchase => 'voucher_purchase',
-            OfferAcquisition::PromotionalCode => ($cashback !== null && $v->combinable) ? 'combined' : 'discount_code',
+            OfferAcquisition::PromotionalCode => ($cashback !== null && $v->cashbackCombinationPermitted($this->programSelector->current(Webshop::findOrFail($offer->webshop_id)))) ? 'combined' : 'discount_code',
             OfferAcquisition::MerchantReward => 'discount_code',
         };
     }

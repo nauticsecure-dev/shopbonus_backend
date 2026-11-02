@@ -42,8 +42,9 @@ class ApiRouteRegistry
                     },
                     'monitoring_category' => $operation['tags'] ?? ['api'], 'monitoring_owner' => 'backend',
                     'error_statuses' => array_values(array_filter(array_map('strval', array_keys($operation['responses'] ?? [])), fn ($code) => (int) $code >= 400)),
-                    'authentication_types' => $has('password.recent') ? ['session_cookie'] : ($has('auth') ? ['session_cookie', 'bearer_token'] : ($has('integration.signed') ? ['hmac_signature'] : ['none'])),
-                    'password_recent' => $has('password.recent'), 'email_otp' => $has('step_up.otp')];
+                    'authentication_types' => ($has('password.recent') || $has('workspace.sensitive')) ? ['session_cookie'] : ($has('auth') ? ['session_cookie', 'bearer_token'] : ($has('integration.signed') ? ['hmac_signature'] : ['none'])),
+                    'password_recent' => $has('password.recent') || $has('workspace.sensitive'),
+                    'email_otp' => $has('step_up.otp') || $has('workspace.sensitive')];
             }
         }
 

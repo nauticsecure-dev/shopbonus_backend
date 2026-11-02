@@ -6,7 +6,7 @@ namespace App\Services\Support;
 final class SupportPlanner
 {
     /** Internal tool intents (immutable for regressions / reviews). */
-    public const INTENTS = ['wallet', 'reward', 'release_date', 'vouchers', 'quote', 'funding', 'offer_cost', 'campaign', 'integration', 'knowledge', 'escalate', 'unknown'];
+    public const INTENTS = ['wallet', 'reward', 'release_date', 'vouchers', 'quote', 'funding', 'offer_cost', 'campaign', 'integration', 'knowledge', 'order_status', 'payment_question', 'escalate', 'unknown'];
 
     /**
      * Product-facing categories mapped from internal intents.
@@ -14,6 +14,8 @@ final class SupportPlanner
      * @var array<string, string>
      */
     public const CATEGORIES = [
+        'order_status' => 'ORDER_STATUS',
+        'payment_question' => 'PAYMENT_QUESTION',
         'wallet' => 'WALLET_BALANCE',
         'reward' => 'MISSING_REWARD',
         'release_date' => 'REWARD_STATUS',
@@ -52,10 +54,23 @@ final class SupportPlanner
         return null;
     }
 
-    /** @return array<string, mixed> */
-    public function plan(string $question, bool $workspace, ?string $reference = null): array
+    /**
+     * @param  array<string, mixed>  $previous  Authorized previous message plan in the same conversation.
+     * @return array<string, mixed>
+     */
+    public function plan(string $question, bool $workspace, ?string $reference = null, array $previous = []): array
     {
         $q = mb_strtolower($question);
+        // Conservative, bounded spelling normalization. Ambiguous near matches stay unchanged.
+        $vocabulary = ['wallet', 'balance', 'reward', 'beloning', 'voucher', 'payment', 'betaling', 'order', 'bestelling', 'campaign', 'campagne', 'integration', 'integratie', 'saldo'];
+        $q = preg_replace_callback('/\b[\p{L}]{5,}\b/u', static function ($m) use ($vocabulary) {
+            if (in_array($m[0], $vocabulary, true)) {
+                return $m[0];
+            }
+            $matches = array_values(array_filter($vocabulary, fn ($word) => levenshtein($m[0], $word) === 1));
+
+            return count($matches) === 1 ? $matches[0] : $m[0];
+        }, $q);
         $reference ??= self::reference($question);
         $wantsHuman = preg_match('/\b(human|medewerker|menselijk|iemand\s+spreken|contact\s+support|support\s+ticket|praat\s+met)\b/u', $q) === 1;
         $complaint = preg_match('/complaint|klacht|belachelijk|schandalig|niet\s+klopt|geld\s+is\s+weg/u', $q) === 1;
@@ -70,13 +85,30 @@ final class SupportPlanner
             preg_match('/fee|cost|kosten|30%|offer cost|aanbieding.*kost|kost.*aanbieding/u', $q) === 1 => 'offer_cost',
             preg_match('/merchant funding|funding|financier|webshop.*(?:wallet|saldo)/u', $q) === 1 => 'funding',
             preg_match('/voucher|coupon|kortingscode|vervald/u', $q) === 1 => 'vouchers',
+            preg_match('/payment|betaling|paid|betaald|afgeschreven/u', $q) === 1 => 'payment_question',
+            preg_match('/order|bestelling|bestelstatus/u', $q) === 1 => 'order_status',
             preg_match('/wallet|balance|saldo|points|punten|tegoed|credit|hoeveel\s+(?:heb|hebben)|geld\s+is\s+weg|niet\s+klopt/u', $q) === 1 => $workspace ? 'funding' : 'wallet',
             preg_match('/faq|knowledge|help article|helptekst|kennis|\bhow\b|\bhoe\b|account/u', $q) === 1 => 'knowledge',
             $complaint => 'escalate',
             default => 'unknown',
         };
-        $unit = preg_match('/points|punten/u', $q) === 1 ? 'points' : 'eur_credit';
+        // Only inherit a subject for a short explicit follow-up, never for an unrelated request.
+        $followup = preg_match('/^(?:and|en|what about|hoe zit|wanneer|when|is (?:it|die)|hoe lang|how long|status|[a-z]{1,10}-[0-9]{2,20}\b)/u', trim($q)) === 1 && mb_strlen($q) <= 160;
+        if ($intent === 'unknown' && $followup && in_array($previous['intent'] ?? null, self::INTENTS, true)) {
+            $intent = $previous['intent'];
+            if ($intent === 'reward' && preg_match('/when|wanneer|hoe lang|how long/u', $q) === 1) {
+                $intent = 'release_date';
+            }
+        }
+        if ($followup && ($intent === ($previous['intent'] ?? null) || ($intent === 'release_date' && ($previous['intent'] ?? null) === 'reward'))) {
+            $reference ??= $previous['reference'] ?? null;
+        }
+        if ($intent === 'unknown' && $reference !== null) {
+            $intent = 'order_status';
+        }
+        $unit = preg_match('/points|punten/u', $q) === 1 ? 'points' : (($followup && $intent === ($previous['intent'] ?? null)) ? ($previous['unit'] ?? 'eur_credit') : 'eur_credit');
         [$tool, $arg] = match ($intent) {
+            'release_date', 'order_status', 'payment_question' => ['get_my_order_reward_status', ['order_reference' => $reference]],
             'wallet' => ['get_my_wallet', ['unit' => $unit]],
             'reward' => ['get_my_wallet', ['unit' => $unit]],
             'vouchers' => $reference === null ? ['get_my_vouchers', []] : ['get_my_voucher', ['voucher_id' => $reference]],
@@ -88,7 +120,7 @@ final class SupportPlanner
             'knowledge' => ['get_approved_knowledge', ['document_id' => $reference]],
             default => [null, []],
         };
-        $wrongScope = ($workspace && in_array($intent, ['wallet', 'reward', 'vouchers', 'quote'], true))
+        $wrongScope = ($workspace && in_array($intent, ['wallet', 'reward', 'release_date', 'order_status', 'payment_question', 'vouchers', 'quote'], true))
             || (! $workspace && in_array($intent, ['funding', 'offer_cost', 'campaign', 'integration'], true));
         // Reward overview uses wallet evidence; order-level retry only when a reference is present.
         $missing = in_array(null, $arg, true);

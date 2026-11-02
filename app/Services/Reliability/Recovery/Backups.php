@@ -46,7 +46,7 @@ class Backups
                     if ($entry->isLink() || ! $entry->isFile()) {
                         throw new RuntimeException('Media links and special files cannot be backed up.');
                     }
-                    $relative = substr($entry->getPathname(), strlen(rtrim($root, '/')) + 1);
+                    $relative = str_replace('\\', '/', substr($entry->getPathname(), strlen(rtrim($root, '/\\')) + 1));
                     $name = 'media/'.$label.'/'.$relative;
                     $this->path($name);
                     if (count($files) >= $maxFiles) {
@@ -214,6 +214,8 @@ class Backups
             'backup_success_percent_30d' => $attempts > 0 ? round(100 * $successes / $attempts, 2) : null,
             'enabled' => (bool) config('recovery.enabled'), 'last_backup_at' => $last?->observed_at, 'last_backup_result' => $last?->status,
             'last_verified_restore_at' => $restore?->observed_at, 'offsite_verified' => false,
+            'key_recovery_verified' => false, 'infrastructure_drill_verified' => false,
+            'recovery_targets' => ['status' => 'UNAPPROVED', 'financial_rpo_minutes' => 15, 'service_rto_minutes' => 240],
             'definition' => 'Successful configured-disk write is not independent offsite durability or RPO/RTO proof.'];
     }
 

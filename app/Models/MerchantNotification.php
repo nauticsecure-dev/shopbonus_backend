@@ -32,9 +32,14 @@ class MerchantNotification extends Model
 
     protected $hidden = ['id', 'webshop_id', 'read_by', 'dedupe_key'];
 
+    protected static function booted(): void
+    {
+        static::addGlobalScope('unresolved', fn ($query) => $query->whereNull('merchant_notifications.resolved_at'));
+    }
+
     protected function casts(): array
     {
-        return ['read_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];
+        return ['read_at' => 'immutable_datetime', 'resolved_at' => 'immutable_datetime', 'created_at' => 'immutable_datetime'];
     }
 
     /** @return list<string> */

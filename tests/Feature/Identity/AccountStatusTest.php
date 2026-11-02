@@ -64,6 +64,7 @@ class AccountStatusTest extends TestCase
         $this->spa('PUT', '/user/password', [
             'current_password' => 'Sterk-wachtwoord-2026',
             'password' => 'Nieuw-wachtwoord-2027',
+            'password_confirmation' => 'Nieuw-wachtwoord-2027',
         ])->assertForbidden()->assertJsonPath('error.code', 'account_inactive');
 
         $this->assertTrue(Hash::check('Sterk-wachtwoord-2026', $user->fresh()->password));

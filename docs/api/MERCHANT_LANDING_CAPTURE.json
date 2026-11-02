@@ -1,0 +1,419 @@
+{
+  "context": "Local PHP 8.4 HTTP server; isolated in-memory SQLite; synthetic Super Admin and recent-password session set by temporary capture router; not proof of browser authentication",
+  "records": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/content/voor-webshops/assets",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01m692p33xbazq5w6pks37mpas",
+            "width": 800,
+            "height": 600,
+            "url": "http://127.0.0.1:8013/api/v1/public/content-assets/01m692p33xbazq5w6pks37mpas"
+          }
+        ],
+        "meta": {
+          "current_page": 1,
+          "last_page": 1
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/content/pages/voor-webshops/assets",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01m692phv8g3f9pvhfeft4ssm7",
+            "width": 800,
+            "height": 600,
+            "url": "http://127.0.0.1:8013/api/v1/public/content-assets/01m692phv8g3f9pvhfeft4ssm7"
+          }
+        ],
+        "meta": {
+          "current_page": 1,
+          "last_page": 1
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/content/voor-webshops/assets?page=0",
+      "status": 422,
+      "body": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a1922b-8bf5-7275-b1e7-a545129d4700",
+          "fields": {
+            "page": [
+              "The page field must be at least 1."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/content/voor-webshops?locale=nl",
+      "status": 200,
+      "body": {
+        "data": {
+          "key": "voor-webshops",
+          "type": "landing",
+          "locale": "nl",
+          "slug": "voor-webshops",
+          "content": {
+            "media": {
+              "hero": {
+                "desktop_asset_id": "01m692qj4vhf3kh2ygfvywjt2f",
+                "mobile_asset_id": "01m692qj4vhf3kh2ygfvywjt2f",
+                "alt": "Approved merchant screenshot",
+                "desktop_url": "http://127.0.0.1:8013/api/v1/public/content-assets/01m692qj4vhf3kh2ygfvywjt2f",
+                "mobile_url": "http://127.0.0.1:8013/api/v1/public/content-assets/01m692qj4vhf3kh2ygfvywjt2f"
+              }
+            },
+            "title": "ShopBonus voor webshops",
+            "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat",
+            "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+            "seo_image_asset_id": null,
+            "body": {
+              "type": "doc",
+              "content": []
+            },
+            "section_visibility": {
+              "hero": true,
+              "platforms": true,
+              "benefits": true,
+              "offer_preview": true,
+              "onboarding": true,
+              "bottom_cta": true,
+              "faq": true
+            },
+            "nav": {
+              "logo_alt": "ShopBonus",
+              "login_label": "Inloggen",
+              "login_href": "/account?mode=login&role=merchant",
+              "cta_label": "Webshop aanmelden",
+              "cta_href": "/voor-webshops/aanmelden",
+              "links": [
+                {
+                  "label": "Voordelen",
+                  "href": "#voordelen"
+                },
+                {
+                  "label": "Zo werkt het",
+                  "href": "#zo-werkt-het"
+                },
+                {
+                  "label": "Integraties",
+                  "href": "#integraties"
+                },
+                {
+                  "label": "Veelgestelde vragen",
+                  "href": "#faq"
+                }
+              ]
+            },
+            "hero": {
+              "eyebrow": "VOOR WEBSHOPS",
+              "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.",
+              "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+              "primary_cta": {
+                "label": "Sluit je webshop aan",
+                "href": "/voor-webshops/aanmelden"
+              },
+              "secondary_cta": {
+                "label": "Bekijk hoe het werkt",
+                "href": "#zo-werkt-het"
+              },
+              "artwork_note": "Promotionele illustratie — geen live resultaten",
+              "background_asset_id": null,
+              "illustration_asset_id": null,
+              "trust": [
+                "Zelf commissie bepalen",
+                "Snel aansluiten",
+                "Meer zichtbaarheid"
+              ]
+            },
+            "platforms": {
+              "heading": "Werkt met de populairste platforms",
+              "subtitle": "Verbind je webshop met een ondersteunde integratie.",
+              "cta_label": "Bekijk alle integraties",
+              "cta_href": "/voor-webshops/aanmelden#platforms",
+              "tiles": [
+                {
+                  "platform": "shopify",
+                  "description": "Connect your store",
+                  "name": "Shopify",
+                  "status": "AVAILABLE",
+                  "href": "/voor-webshops/aanmelden?platform=shopify",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "woocommerce",
+                  "name": "WooCommerce",
+                  "status": "AVAILABLE",
+                  "href": "/voor-webshops/aanmelden?platform=woocommerce",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "wix",
+                  "name": "Wix",
+                  "status": "AVAILABLE",
+                  "href": "/voor-webshops/aanmelden?platform=wix",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "bigcommerce",
+                  "name": "BigCommerce",
+                  "status": "AVAILABLE",
+                  "href": "/voor-webshops/aanmelden?platform=bigcommerce",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "ecwid",
+                  "name": "Ecwid",
+                  "status": "AVAILABLE",
+                  "href": "/voor-webshops/aanmelden?platform=ecwid",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "lightspeed_c",
+                  "name": "Lightspeed C-Series",
+                  "status": "AVAILABLE",
+                  "href": "/voor-webshops/aanmelden?platform=lightspeed_c",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "prestashop",
+                  "name": "PrestaShop",
+                  "status": "MANUAL_SETUP",
+                  "href": "/voor-webshops/aanmelden?platform=prestashop",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "opencart",
+                  "name": "OpenCart",
+                  "status": "MANUAL_SETUP",
+                  "href": "/voor-webshops/aanmelden?platform=opencart",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "shopware6",
+                  "name": "Shopware",
+                  "status": "MANUAL_SETUP",
+                  "href": "/voor-webshops/aanmelden?platform=shopware6",
+                  "connectable": true,
+                  "blocked_reason": null
+                },
+                {
+                  "platform": "magento",
+                  "name": "Adobe Commerce / Magento",
+                  "status": "MANUAL_SETUP",
+                  "href": "/voor-webshops/aanmelden?platform=magento",
+                  "connectable": true,
+                  "blocked_reason": null
+                }
+              ]
+            },
+            "benefits": {
+              "eyebrow": "GROEI MET SHOPBONUS",
+              "heading": "Maak je webshop\nonweerstaanbaar.",
+              "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.",
+              "image_asset_id": null,
+              "items": [
+                {
+                  "icon": "people",
+                  "title": "Bereik nieuwe klanten",
+                  "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."
+                },
+                {
+                  "icon": "tag",
+                  "title": "Kortingen én cashback",
+                  "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."
+                },
+                {
+                  "icon": "cog",
+                  "title": "Jij bepaalt de commissie",
+                  "description": "Stel je commerciële afspraken in en houd controle over je marges."
+                }
+              ]
+            },
+            "offer_preview": {
+              "eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT",
+              "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.",
+              "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.",
+              "cta_label": "Bekijk een voorbeeld",
+              "cta_href": "/webshops",
+              "preview_asset_id": null,
+              "illustrative": true
+            },
+            "onboarding": {
+              "eyebrow": "IN 3 EENVOUDIGE STAPPEN",
+              "heading": "Binnen enkele stappen live.",
+              "steps": [
+                {
+                  "number": "01",
+                  "title": "Aanmelden",
+                  "description": "Maak een account aan en registreer jouw webshop.",
+                  "icon": "document"
+                },
+                {
+                  "number": "02",
+                  "title": "Koppelen",
+                  "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.",
+                  "icon": "link"
+                },
+                {
+                  "number": "03",
+                  "title": "Start met aanbiedingen",
+                  "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.",
+                  "icon": "megaphone"
+                }
+              ]
+            },
+            "bottom_cta": {
+              "eyebrow": "START MET SHOPBONUS",
+              "heading": "Klaar om nieuwe klanten te bereiken?",
+              "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.",
+              "cta_label": "Webshop aanmelden →",
+              "cta_href": "/voor-webshops/aanmelden"
+            },
+            "faq": {
+              "heading": "Veelgestelde vragen",
+              "items": [
+                {
+                  "question": "Wat kost aansluiten bij ShopBonus?",
+                  "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."
+                },
+                {
+                  "question": "Hoe werkt de commissie?",
+                  "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."
+                },
+                {
+                  "question": "Kan ik mijn eigen cashbackacties instellen?",
+                  "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."
+                },
+                {
+                  "question": "Welke webshopplatformen ondersteunen jullie?",
+                  "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."
+                },
+                {
+                  "question": "Kan ik kortingscodes toevoegen?",
+                  "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."
+                },
+                {
+                  "question": "Wanneer verschijnt mijn webshop op ShopBonus?",
+                  "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."
+                },
+                {
+                  "question": "Hoe worden bestellingen geregistreerd?",
+                  "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."
+                },
+                {
+                  "question": "Kan ik mijn aanbiedingen aanpassen?",
+                  "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."
+                }
+              ]
+            },
+            "footer": {
+              "blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld.",
+              "links": [
+                {
+                  "label": "Help",
+                  "href": "/help"
+                }
+              ]
+            },
+            "section_order": [
+              "hero",
+              "platforms",
+              "benefits",
+              "offer_preview",
+              "onboarding",
+              "bottom_cta",
+              "faq"
+            ]
+          },
+          "revision": 1,
+          "published_at": "2026-10-31T13:35:06+00:00"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/content/voor-webshops/assets?capture_actor=guest",
+      "status": 401,
+      "body": {
+        "error": {
+          "status": 401,
+          "code": "unauthenticated",
+          "message": "Authentication is required.",
+          "request_id": "01a1922d-5987-7045-9ff3-809ff69486b7"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/content/voor-webshops/assets?capture_actor=ordinary",
+      "status": 403,
+      "body": {
+        "error": {
+          "status": 403,
+          "code": "platform_role_required",
+          "message": "This action requires a platform administrator.",
+          "request_id": "01a1922d-7f02-7166-aa47-745fb078edb0"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/content/voor-webshops/publish",
+      "request": {
+        "locale": "nl",
+        "revision": 1
+      },
+      "status": 409,
+      "body": {
+        "error": {
+          "status": 409,
+          "code": "draft_changed",
+          "message": "The draft changed after it was scheduled.",
+          "request_id": "01a19234-59d2-7041-8254-5508730d7f81"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/admin/content/voor-webshops/publish",
+      "request": {
+        "locale": "nl",
+        "revision": 2
+      },
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "01m6939aq6zjk450ay6qkjnta5",
+          "locale": "nl",
+          "number": 2,
+          "restored_from": null,
+          "published_by": "Capture Admin",
+          "published_at": "2026-10-31T13:44:47+00:00"
+        }
+      }
+    }
+  ]
+}

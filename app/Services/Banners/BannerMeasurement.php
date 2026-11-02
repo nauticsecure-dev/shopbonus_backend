@@ -6,11 +6,12 @@ use App\Enums\WebshopStatus;
 use App\Models\BannerCampaign;
 use App\Models\BannerInstallation;
 use App\Models\BannerVersion;
+use App\Models\Offer;
 use App\Models\WebshopOrder;
+use App\Services\Consent\CookieConsents;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Banner events and results (Trello #24 §1–2, #25 §4 "Live stats").
@@ -44,8 +45,18 @@ class BannerMeasurement
             ->map(function (BannerCampaign $c) use ($assignments) {
                 $v = app(BannerExperiments::class)->selected($c, $assignments[$c->public_id] ?? null);
 
-                return $v === null ? null : ['campaign' => $c->public_id, 'version' => $v['version'], 'config' => $this->publicConfig($v['config'])];
+                return $v === null ? null : ['campaign' => $c->public_id, 'version' => $v['version'], 'config' => $this->publicConfig($v['config']),
+                    'reward' => $this->rewardFor($c)];
             })->filter()->values()->all();
+    }
+
+    /** @return array{threshold_minor: int|null, currency: string}|null */
+    public function rewardFor(BannerCampaign $campaign): ?array
+    {
+        $offer = $campaign->offer_id === null ? null : Offer::with('currentVersion')->where('webshop_id', $campaign->webshop_id)->find($campaign->offer_id);
+        $terms = $offer?->currentVersion;
+
+        return $terms === null ? null : ['threshold_minor' => $terms->min_order_minor, 'currency' => $terms->currency];
     }
 
     /**
@@ -58,8 +69,21 @@ class BannerMeasurement
         $campaigns = BannerCampaign::where('webshop_id', $installation->webshop_id)->whereIn('public_id', array_column($events, 'campaign'))->pluck('id', 'public_id');
         $out = ['accepted' => 0, 'duplicates' => 0, 'rejected' => 0, 'bots' => 0, 'click_ids' => []];
         $isBot = $this->isBot($userAgent);
+        $consents = [];
+        $activeExperiments = [];
+        $validVersions = [];
+        $assignments = [];
+        $versionNumbers = [];
+        $statsInitialized = [];
+        $experiments = app(BannerExperiments::class);
 
         foreach ($events as $e) {
+            $consentId = $e['consent_id'] ?? '';
+            if (! empty($e['consent']) && ! ($consents[$consentId] ??= app(CookieConsents::class)->trackingAllowed($consentId ?: null))) {
+                $out['rejected']++;
+
+                continue;
+            }
             if ($isBot) {
                 $out['bots']++;
                 $out['rejected']++;
@@ -74,51 +98,73 @@ class BannerMeasurement
                 continue;
             }
 
-            $experiments = app(BannerExperiments::class);
-            $assignment = empty($e['assignment_token']) ? null : $experiments->assignment($campaignId, $e['assignment_token']);
             $hasToken = ! empty($e['assignment_token']);
+            $assignmentKey = $campaignId.'|'.($e['assignment_token'] ?? '');
+            if ($hasToken && ! array_key_exists($assignmentKey, $assignments)) {
+                $assignments[$assignmentKey] = $experiments->assignment($campaignId, $e['assignment_token']);
+            }
+            $assignment = $assignments[$assignmentKey] ?? null;
             $valid = true;
             if ($hasToken) {
                 $versionId = $assignment === null ? null : ($assignment->arm === 'variant' ? $assignment->variant_version_id : $assignment->control_version_id);
-                $expected = $versionId === null ? 0 : BannerVersion::findOrFail($versionId)->version;
+                $expected = $versionId === null ? 0 : ($versionNumbers[$versionId] ??= BannerVersion::findOrFail($versionId)->version);
                 $valid = $assignment !== null && ! empty($e['consent']) && (int) $e['version'] === $expected
                     && ($versionId !== null || $e['type'] === 'eligible')
                     && $at->greaterThanOrEqualTo(CarbonImmutable::parse($assignment->created_at))
                     && ($assignment->stopped_at === null || $at->lessThanOrEqualTo(CarbonImmutable::parse($assignment->stopped_at)));
-            } elseif ($experiments->active($campaignId) !== null || ! BannerVersion::where('campaign_id', $campaignId)->where('version', $e['version'])->exists()) {
-                $valid = false;
+            } else {
+                if (! array_key_exists($campaignId, $activeExperiments)) {
+                    $activeExperiments[$campaignId] = $experiments->active($campaignId);
+                }
+                $versionKey = $campaignId.'|'.$e['version'];
+                $valid = $activeExperiments[$campaignId] === null
+                    && ($validVersions[$versionKey] ??= BannerVersion::where('campaign_id', $campaignId)->where('version', $e['version'])->exists());
             }
             if (! $valid) {
                 $out['rejected']++;
 
                 continue;
             }
+            $day = $at->setTimezone($tz)->format('Y-m-d');
+            $device = $e['device'] ?? 'unknown';
+            $statKey = $campaignId.'|'.$day.'|'.$device;
+            $needsStatRow = ! isset($statsInitialized[$statKey]);
             try {
-                DB::transaction(function () use ($e, $installation, $campaignId, $at, $tz, $assignment, &$out) {
+                DB::transaction(function () use ($e, $installation, $campaignId, $at, $day, $device, $needsStatRow, $assignment, &$out) {
                     DB::table('banner_events')->insert([
                         'event_id' => $e['id'], 'webshop_id' => $installation->webshop_id, 'campaign_id' => $campaignId, 'version' => (int) $e['version'],
                         'banner_assignment_id' => $assignment?->id, 'type' => $e['type'], 'device' => $e['device'] ?? null, 'path' => isset($e['path']) ? mb_substr((string) strtok((string) $e['path'], '?#'), 0, 255) : null,
                         'category' => $e['category'] ?? null, 'consent' => (bool) ($e['consent'] ?? false), 'occurred_at' => $at, 'created_at' => now(),
                     ]);
-                    $day = $at->setTimezone($tz)->format('Y-m-d');
-                    $device = $e['device'] ?? 'unknown';
-                    DB::table('banner_daily_stats')->insertOrIgnore(['campaign_id' => $campaignId, 'day' => $day, 'device' => $device]);
+                    if ($needsStatRow) {
+                        DB::table('banner_daily_stats')->insertOrIgnore(['campaign_id' => $campaignId, 'day' => $day, 'device' => $device]);
+                    }
                     DB::table('banner_daily_stats')->where('campaign_id', $campaignId)->where('day', $day)->where('device', $device)->increment(self::STAT_COLUMN[$e['type']]);
 
                     if ($e['type'] === 'cta_click' && ! empty($e['consent'])) {
-                        $clickId = 'bc_'.Str::random(24);
+                        $clickId = $this->clickId($installation->webshop_id, $e['id']);
                         DB::table('banner_clicks')->insert(['click_id' => $clickId, 'webshop_id' => $installation->webshop_id, 'campaign_id' => $campaignId,
                             'banner_assignment_id' => $assignment?->id, 'expires_at' => now()->addDays((int) config('shopbonus.banners.attribution_days', 30)), 'created_at' => now()]);
                         $out['click_ids'][$e['id']] = $clickId;
                     }
                     $out['accepted']++;
                 });
+                $statsInitialized[$statKey] = true;
             } catch (UniqueConstraintViolationException) {
                 $out['duplicates']++;
+                $clickId = $this->clickId($installation->webshop_id, $e['id']);
+                if ($e['type'] === 'cta_click' && ! empty($e['consent']) && DB::table('banner_clicks')->where('click_id', $clickId)->exists()) {
+                    $out['click_ids'][$e['id']] = $clickId;
+                }
             }
         }
 
         return $out;
+    }
+
+    private function clickId(int $webshopId, string $eventId): string
+    {
+        return 'bc_'.substr(hash_hmac('sha256', 'banner-click|'.$webshopId.'|'.$eventId, (string) config('app.key')), 0, 24);
     }
 
     /**

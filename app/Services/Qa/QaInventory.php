@@ -223,6 +223,12 @@ class QaInventory
         return $hashes;
     }
 
+    /** Repository-relative PHP component names use forward slashes on every host. */
+    private function sourceName(string $path): string
+    {
+        return substr(str_replace('\\', '/', substr($path, strlen(base_path()) + 1)), 0, -4);
+    }
+
     /** @return array<string, array<string, mixed>> */
     private function discoverComponents(): array
     {
@@ -239,7 +245,7 @@ class QaInventory
         // Affiliate network adapters are provider connectors too (Daisycon, TradeTracker).
         foreach (File::isDirectory(app_path('Affiliate/Adapters')) ? File::allFiles(app_path('Affiliate/Adapters')) : [] as $file) {
             if ($file->getExtension() === 'php') {
-                $name = str_replace([base_path().'/', '.php'], '', $file->getPathname());
+                $name = $this->sourceName($file->getPathname());
                 $found['connector:'.$name] = ['kind' => 'connector', 'name' => $name, 'fingerprint' => hash_file('sha256', $file->getPathname())];
             }
         }
@@ -248,14 +254,14 @@ class QaInventory
                 if ($file->getExtension() !== 'php') {
                     continue;
                 }
-                $name = $kind === 'migration' ? $file->getFilenameWithoutExtension() : str_replace([base_path().'/', '.php'], '', $file->getPathname());
+                $name = $kind === 'migration' ? $file->getFilenameWithoutExtension() : $this->sourceName($file->getPathname());
                 $found[$kind.':'.$name] = ['kind' => $kind, 'name' => $name, 'fingerprint' => hash_file('sha256', $file->getPathname())];
             }
         }
         // Payment and affiliate provider clients are connectors too (Mollie, Moneybird, Answer24, Daisycon, TradeTracker).
         foreach (File::allFiles(app_path('Services')) as $file) {
             if (preg_match('/(Mollie|Moneybird|Answer24|Daisycon|TradeTracker)[A-Za-z]*\.php$/', $file->getFilename()) === 1) {
-                $name = str_replace([base_path().'/', '.php'], '', $file->getPathname());
+                $name = $this->sourceName($file->getPathname());
                 $found['connector:'.$name] = ['kind' => 'connector', 'name' => $name, 'fingerprint' => hash_file('sha256', $file->getPathname())];
             }
         }

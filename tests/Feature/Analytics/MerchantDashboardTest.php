@@ -12,15 +12,23 @@ use App\Models\Offer;
 use App\Models\User;
 use App\Models\VoucherClaim;
 use App\Models\VoucherCode;
+use App\Models\VoucherCodeBatch;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
+use App\Services\Analytics\MerchantAnalytics;
+use App\Services\Analytics\MerchantNotifications;
 use App\Services\Funding\MerchantFunding;
+use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Notifications\NotificationInbox;
 use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
@@ -186,5 +194,124 @@ class MerchantDashboardTest extends TestCase
         $outsider = User::factory()->create();
         Sanctum::actingAs($outsider);
         $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/dashboard")->assertNotFound();
+    }
+
+    public function test_effective_lifecycle_filters_and_pagination_reconcile(): void
+    {
+        $active = $this->offer($this->woon, 2);
+        $expired = $this->offer($this->woon, 2, terms: ['ends_at' => now()->addDay()]);
+        $this->travelTo(CarbonImmutable::now()->addDays(2));
+        $future = $this->offer($this->woon, 2, terms: ['starts_at' => now()->addDay()]);
+        $this->offer($this->woon, 0);
+        Sanctum::actingAs($this->owner);
+        $base = '/api/v1/workspaces/'.$this->woon->public_id.'/dashboard';
+        $this->getJson($base.'?status=active')->assertOk()->assertJsonPath('data.kpis.active_offers', 1)
+            ->assertJsonPath('data.offers_meta.total', 1)->assertJsonPath('data.offers.0.id', $active->public_id);
+        $this->getJson($base.'?status=expired')->assertOk()->assertJsonPath('data.offers.0.id', $expired->public_id);
+        $this->getJson($base.'?status=scheduled')->assertOk()->assertJsonPath('data.offers.0.id', $future->public_id);
+        $this->getJson($base.'?status=sold_out')->assertOk()->assertJsonCount(1, 'data.offers');
+        $one = $this->getJson($base.'?per_page=2&page=1')->assertOk()->assertJsonPath('data.offers_meta.last_page', 2);
+        $two = $this->getJson($base.'?per_page=2&page=2')->assertOk()->assertJsonCount(2, 'data.offers');
+        $this->assertEmpty(array_intersect(array_column($one->json('data.offers'), 'id'), array_column($two->json('data.offers'), 'id')));
+    }
+
+    public function test_claim_drilldown_uses_local_claim_day_even_when_issued_on_another_day(): void
+    {
+        $offer = $this->offer($this->woon, 4);
+        $inventory = app(VoucherInventory::class);
+        foreach (['2026-10-24 22:00:00', '2026-10-25 22:59:59', '2026-10-25 23:00:00'] as $i => $stamp) {
+            $v = $inventory->issue($inventory->reserve($offer, VoucherOrigin::Answer24Claim, 'dst-'.$i), User::factory()->create());
+            VoucherClaim::create(['webshop_id' => $this->woon->id, 'voucher_id' => $v->id, 'token_hash' => hash('sha256', 'dst-'.$i), 'token' => 'test',
+                'status' => 'claimed', 'expires_at' => now()->addDays(90), 'claimed_at' => CarbonImmutable::parse($stamp, 'UTC')]);
+        }
+        Sanctum::actingAs($this->owner);
+        $this->getJson('/api/v1/workspaces/'.$this->woon->public_id.'/vouchers?claimed=1&from=2026-10-25&to=2026-10-25')
+            ->assertOk()->assertJsonPath('meta.total', 2)->assertJsonCount(2, 'data');
+        $this->getJson('/api/v1/workspaces/'.$this->woon->public_id.'/analytics/claims?from=2026-10-25&to=2026-10-25')
+            ->assertOk()->assertJsonPath('data.totals.claims', 2);
+        $this->getJson('/api/v1/workspaces/'.$this->fiets->public_id.'/vouchers?claimed=1')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/workspaces/'.$this->woon->public_id.'/vouchers?claimed=maybe')->assertUnprocessable();
+    }
+
+    public function test_resolved_stock_alert_disappears_from_central_inbox_too(): void
+    {
+        $offer = $this->offer($this->woon, 1);
+        $generator = app(MerchantNotifications::class);
+        $generator->forWebshop($this->woon, CarbonImmutable::now());
+        app(NotificationDispatcher::class)->drain();
+        $inbox = app(NotificationInbox::class);
+        $this->assertSame(1, $inbox->visible($this->owner)->whereNotNull('legacy_notification_id')->count());
+        config(['shopbonus.notifications.low_inventory_threshold' => 1]);
+        $generator->forWebshop($this->woon, CarbonImmutable::now());
+        $this->assertSame(0, $inbox->visible($this->owner)->whereNotNull('legacy_notification_id')->count());
+        $this->assertSame(0, MerchantNotification::where('webshop_id', $this->woon->id)->count());
+        $this->assertSame(1, MerchantNotification::withoutGlobalScope('unresolved')->where('webshop_id', $this->woon->id)->count());
+    }
+
+    public function test_daily_aggregates_return_bounded_rows_for_ten_thousand_claims(): void
+    {
+        $offer = $this->offer($this->woon, 1);
+        $v = app(VoucherInventory::class)->reserve($offer, VoucherOrigin::Answer24Claim, 'volume');
+        // Representative inventory as well as claim volume; use bulk inserts so
+        // fixture creation does not benchmark encryption/model events.
+        $codeTemplate = VoucherCode::where('offer_id', $offer->id)->firstOrFail()->getAttributes();
+        unset($codeTemplate['id']);
+        for ($batch = 0; $batch < 100; $batch++) {
+            $codes = [];
+            for ($i = 0; $i < 100; $i++) {
+                $raw = 'VOLUME-CODE-'.($batch * 100 + $i);
+                $codes[] = [...$codeTemplate, 'public_id' => (string) Str::ulid(), 'code' => Crypt::encryptString($raw),
+                    'code_hash' => VoucherCode::hashFor($this->woon->id, $raw), 'code_last4' => substr($raw, -4), 'status' => 'available'];
+            }
+            DB::table('voucher_codes')->insert($codes);
+        }
+        $template = $v->getAttributes();
+        unset($template['id']);
+        $db = DB::class;
+        for ($batch = 0; $batch < 100; $batch++) {
+            $vouchers = [];
+            for ($i = 0; $i < 100; $i++) {
+                $vouchers[] = [...$template, 'public_id' => (string) Str::ulid(), 'idempotency_key' => 'volume-'.($batch * 100 + $i), 'issued_at' => now()->toDateTimeString(), 'status' => 'issued'];
+            }
+            $db::table('vouchers')->insert($vouchers);
+            $ids = $db::table('vouchers')->whereIn('public_id', array_column($vouchers, 'public_id'))->pluck('id');
+            $claims = [];
+            foreach ($ids as $id) {
+                $claims[] = ['public_id' => (string) Str::ulid(), 'webshop_id' => $this->woon->id, 'voucher_id' => $id,
+                    'token_hash' => hash('sha256', 'volume-'.$id), 'token' => 'fixture', 'status' => 'claimed', 'expires_at' => now()->addDays(90), 'claimed_at' => now()];
+            }
+            $db::table('voucher_claims')->insert($claims);
+        }
+        $db::enableQueryLog();
+        $started = microtime(true);
+        $series = app(MerchantAnalytics::class)->lifecycleSeries($this->woon->id, CarbonImmutable::now()->subDays(29), CarbonImmutable::now());
+        $ms = (microtime(true) - $started) * 1000;
+        $queries = $db::getQueryLog();
+        $db::disableQueryLog();
+        $this->assertSame(10000, $series['totals']['claims']);
+        $this->assertSame(10000, $series['totals']['issued']);
+        $this->assertCount(30, $series['days']);
+        $this->assertCount(3, $queries);
+        foreach ($queries as $query) {
+            $this->assertStringContainsString('COUNT(*)', $query['query']);
+        }
+        file_put_contents(storage_path('logs/merchant-overview-benchmark.json'), json_encode(['available_codes' => 10000, 'claims' => 10000, 'issued' => 10000, 'days' => 30, 'aggregate_queries' => 3, 'elapsed_ms' => round($ms, 2), 'database' => $db::connection()->getDriverName()], JSON_PRETTY_PRINT));
+    }
+
+    public function test_invalid_batches_and_provider_verification_failures_are_deduplicated(): void
+    {
+        $offer = $this->offer($this->woon, 25);
+        $code = VoucherCode::where('offer_id', $offer->id)->firstOrFail();
+        $code->forceFill(['platform_validation' => 'mismatch'])->save();
+        VoucherCodeBatch::create(['webshop_id' => $this->woon->id, 'offer_id' => $offer->id, 'source' => 'csv', 'status' => 'preview',
+            'totals' => ['submitted' => 2, 'valid' => 1, 'invalid' => 1], 'expires_at' => now()->addHour(), 'created_by' => $this->owner->id]);
+        $generator = app(MerchantNotifications::class);
+        $this->assertSame(2, $generator->forWebshop($this->woon, CarbonImmutable::now()));
+        $this->assertSame(0, $generator->forWebshop($this->woon, CarbonImmutable::now()));
+        $this->assertSame(['invalid_batch', 'offer_verification'], MerchantNotification::where('webshop_id', $this->woon->id)->orderBy('type')->pluck('type')->all());
+        $this->assertSame(0, MerchantNotification::where('webshop_id', $this->fiets->id)->count());
+        $code->forceFill(['platform_validation' => 'verified'])->save();
+        $generator->forWebshop($this->woon, CarbonImmutable::now());
+        $this->assertSame(0, MerchantNotification::where('webshop_id', $this->woon->id)->where('type', 'offer_verification')->count());
     }
 }

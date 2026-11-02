@@ -3,15 +3,18 @@
 namespace App\Services\Cms;
 
 use App\Enums\AuditCategory;
+use App\Enums\AuditOutcome;
 use App\Exceptions\ApiException;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\CmsRevision;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Page drafts, publication and history (Trello #5 "Live inline content
@@ -20,7 +23,7 @@ use Illuminate\Validation\ValidationException;
  */
 class CmsService
 {
-    public const LOCALES = ['nl', 'en'];
+    public const LOCALES = ['nl', 'en', 'de'];
 
     public function __construct(
         private readonly RichText $richText,
@@ -101,7 +104,7 @@ class CmsService
             }
             $actor = $actorId ?? (int) (DB::table('users')->orderBy('id')->value('id') ?? 0);
             $page = CmsPage::create(['key' => 'homepage', 'type' => 'landing', 'audience' => 'public', 'created_by' => max(1, $actor)]);
-            foreach (self::LOCALES as $locale) {
+            foreach (['nl', 'en'] as $locale) {
                 CmsPageLocale::create([
                     'page_id' => $page->id,
                     'locale' => $locale,
@@ -134,7 +137,7 @@ class CmsService
             }
             $actor = $actorId ?? (int) (DB::table('users')->orderBy('id')->value('id') ?? 0);
             $page = CmsPage::create(['key' => 'voor-webshops', 'type' => 'landing', 'audience' => 'public', 'created_by' => max(1, $actor)]);
-            foreach (self::LOCALES as $locale) {
+            foreach (['nl', 'en'] as $locale) {
                 CmsPageLocale::create([
                     'page_id' => $page->id,
                     'locale' => $locale,
@@ -167,7 +170,7 @@ class CmsService
             }
             $actor = $actorId ?? (int) (DB::table('users')->orderBy('id')->value('id') ?? 0);
             $page = CmsPage::create(['key' => 'over-ons', 'type' => 'landing', 'audience' => 'public', 'created_by' => max(1, $actor)]);
-            foreach (self::LOCALES as $locale) {
+            foreach (['nl', 'en'] as $locale) {
                 CmsPageLocale::create([
                     'page_id' => $page->id,
                     'locale' => $locale,
@@ -209,7 +212,7 @@ class CmsService
     {
         $content = $this->validateContent($content, $page->type, $page->key);
 
-        return DB::transaction(function () use ($page, $locale, $content, $revision, $slug, $actorId) {
+        $saved = DB::transaction(function () use ($page, $locale, $content, $revision, $slug, $actorId) {
             $l = CmsPageLocale::where('page_id', $page->id)->where('locale', $locale)->lockForUpdate()->first();
             if ($l === null) {
                 if ($slug === null) {
@@ -226,6 +229,20 @@ class CmsService
 
             return $l;
         });
+
+        if ($locale === 'nl' && config('cms.ai_enabled') && config('cms.auto_translate') && ! in_array($page->type, CmsPage::LEGAL, true)) {
+            foreach (['en', 'de'] as $target) {
+                try {
+                    app(CmsSuggestions::class)->request($page, 'translate', 'nl', $target, 'auto-'.$page->public_id.'-'.$saved->draft_revision.'-'.$target, User::findOrFail($actorId));
+                } catch (Throwable) {
+                    // Translation outages/limits must never turn a committed human save into a lost-save error.
+                    $this->audit->recordSafely('cms.translation_deferred', outcome: AuditOutcome::Failure, category: AuditCategory::Admin, actorUserId: $actorId, resource: $page,
+                        metadata: ['source_revision' => $saved->draft_revision, 'target_locale' => $target]);
+                }
+            }
+        }
+
+        return $saved;
     }
 
     /**
@@ -246,9 +263,9 @@ class CmsService
             if ($l->draft_content === null) {
                 throw ApiException::conflict('There is no draft to publish.', 'nothing_to_publish');
             }
-            // A scheduled publication only publishes the exact draft that was reviewed.
+            // Manual and scheduled publication use the exact reviewed draft.
             if ($expectedDraftRevision !== null && $l->draft_revision !== $expectedDraftRevision) {
-                throw ApiException::conflict('The draft changed after it was scheduled.', 'draft_changed');
+                throw ApiException::conflict('The draft changed after review. Preview it again before publishing.', 'draft_changed');
             }
             if ($isLegal && CmsRevision::where('page_id', $page->id)->where('locale', $locale)->where('legal_version', $legal['legal_version'])->exists()) {
                 throw ApiException::conflict('This legal version was already published; use a new version number.', 'legal_version_exists');
@@ -313,7 +330,11 @@ class CmsService
     private function newRevision(CmsPage $page, CmsPageLocale $l, array $content, int $actorId, array $legal, ?int $restoredFrom): CmsRevision
     {
         $number = (int) CmsRevision::where('page_id', $page->id)->where('locale', $l->locale)->max('number') + 1;
+        $masterRevision = $restoredFrom === null
+            ? CmsPageLocale::where('page_id', $page->id)->where('locale', 'nl')->value('draft_revision')
+            : CmsRevision::whereKey($restoredFrom)->value('source_master_revision');
         $revision = CmsRevision::create(['page_id' => $page->id, 'locale' => $l->locale, 'number' => $number, 'content' => $content,
+            'source_master_revision' => $masterRevision,
             'legal_version' => $legal['legal_version'] ?? null, 'effective_date' => isset($legal['effective_date']) ? CarbonImmutable::parse($legal['effective_date'])->format('Y-m-d') : null,
             'approved_by' => isset($legal['legal_version']) ? $actorId : null, 'published_by' => $actorId, 'restored_from_id' => $restoredFrom]);
         $l->forceFill(['published_revision_id' => $revision->id])->save();

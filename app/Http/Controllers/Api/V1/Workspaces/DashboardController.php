@@ -6,6 +6,7 @@ use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\MerchantNotification;
 use App\Services\Analytics\MerchantAnalytics;
+use App\Services\Analytics\MerchantNotifications;
 use App\Services\Funding\MerchantFunding;
 use App\Services\Notifications\NotificationInbox;
 use App\Services\Workspaces\CurrentWorkspace;
@@ -26,11 +27,12 @@ class DashboardController extends Controller
     {
         $webshop = $current->webshop();
         $filters = $request->validate([
-            'status' => ['sometimes', 'string', Rule::in(['all', 'active', 'paused', 'draft', 'ended', 'expired', 'scheduled', 'archived'])],
+            'status' => ['sometimes', 'string', Rule::in(['all', 'active', 'paused', 'draft', 'ended', 'expired', 'scheduled', 'archived', 'sold_out'])],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
         $status = ($filters['status'] ?? 'all') === 'all' ? null : $filters['status'];
+        app(MerchantNotifications::class)->resolveRecoveredInventoryAlerts($webshop, CarbonImmutable::now());
         $offers = $this->analytics->offers(
             $webshop->id,
             (int) ($filters['per_page'] ?? 10),
@@ -78,12 +80,16 @@ class DashboardController extends Controller
 
     public function overview(Request $request, CurrentWorkspace $current): JsonResponse
     {
-        $data = $request->validate(['from' => ['sometimes', 'date_format:Y-m-d'], 'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from']]);
+        $data = $request->validate(['days' => ['sometimes', Rule::in([7, 30, 90])], 'from' => ['sometimes', 'date_format:Y-m-d'], 'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from']]);
         $tz = (string) config('shopbonus.business_timezone');
-        $from = CarbonImmutable::parse($data['from'] ?? CarbonImmutable::now($tz)->subDays(29)->format('Y-m-d'), $tz)->startOfDay();
+        $from = CarbonImmutable::parse($data['from'] ?? CarbonImmutable::now($tz)->subDays((int) ($data['days'] ?? 30) - 1)->format('Y-m-d'), $tz)->startOfDay();
         $to = CarbonImmutable::parse($data['to'] ?? CarbonImmutable::now($tz)->format('Y-m-d'), $tz)->endOfDay();
 
-        return response()->json(['data' => $this->analytics->overview($current->webshop(), $from->utc(), $to->utc()) + ['timezone' => $tz]]);
+        if ($from->greaterThan($to) || $from->diffInDays($to) > 366) {
+            throw new ApiException('Choose an ordered range of at most one year.', 422, 'range_too_long');
+        }
+
+        return response()->json(['data' => $this->analytics->overview($current->webshop(), $from->utc(), $to->utc()) + ['timezone' => $tz, 'generated_at' => now()->toIso8601String()]]);
     }
 
     /** Chart drill-down: attributed paid orders for this workspace only (Trello #24 §6). */
@@ -113,6 +119,7 @@ class DashboardController extends Controller
     public function notifications(Request $request, CurrentWorkspace $current): JsonResponse
     {
         $data = $request->validate(['unread' => ['sometimes', 'boolean']]);
+        app(MerchantNotifications::class)->resolveRecoveredInventoryAlerts($current->webshop(), CarbonImmutable::now());
         $query = MerchantNotification::where('webshop_id', $current->webshop()->id)->when(filter_var($data['unread'] ?? false, FILTER_VALIDATE_BOOLEAN), fn ($q) => $q->whereNull('read_at'));
         $page = $query->orderByDesc('id')->paginate(25);
 

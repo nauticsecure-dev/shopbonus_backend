@@ -17,6 +17,7 @@ use App\Services\Disputes\DisputeService;
 use App\Services\Vouchers\VoucherExports;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Workspaces\CurrentWorkspace;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -199,6 +200,7 @@ class VoucherOperationsController extends Controller
             'expires_at' => $voucher->expires_at?->toIso8601String(),
             'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
             'reserved_at' => $voucher->reserved_at?->toIso8601String(),
+            'claimed_at' => $voucher->getAttribute('claimed_at') === null ? null : CarbonImmutable::parse($voucher->getAttribute('claimed_at'), 'UTC')->toIso8601String(),
         ];
         if ($detailed) {
             $row['terms'] = $voucher->terms_snapshot;
@@ -214,6 +216,7 @@ class VoucherOperationsController extends Controller
         return $request->validate([
             'status' => ['sometimes', Rule::enum(VoucherStatus::class)],
             'origin' => ['sometimes', Rule::enum(VoucherOrigin::class)],
+            'claimed' => ['sometimes', 'boolean'],
             'offer' => ['sometimes', 'string', 'size:26'],
             'search' => ['sometimes', 'string', 'max:100'],
             'from' => ['sometimes', 'date'],
@@ -234,7 +237,7 @@ class VoucherOperationsController extends Controller
     private function findVoucher(CurrentWorkspace $current, string $publicId): Voucher
     {
         return (Str::isUlid($publicId)
-            ? Voucher::with(['code', 'offer.currentVersion'])->where('webshop_id', $current->webshop()->id)->where('public_id', Str::lower($publicId))->first()
+            ? $this->voucherQuery($current, [])->with(['code', 'offer.currentVersion'])->where('public_id', Str::lower($publicId))->first()
             : null) ?? throw new ApiException('Voucher not found.', 404, 'voucher_not_found');
     }
 }

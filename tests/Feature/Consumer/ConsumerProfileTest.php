@@ -33,6 +33,9 @@ use Tests\TestCase;
 /**
  * B08b: consumer profile, email change, preferences, favourites, My
  * Vouchers, dashboard, privacy (Trello #10 E2E 1–6, 9, 10; #18 E2E 9).
+ *
+ * Email verification and email-change use 6-digit codes delivered by mail
+ * (D-050), not magic links. E2E 4 asserts code issue/confirm/expiry/reuse.
  */
 class ConsumerProfileTest extends TestCase
 {
@@ -148,6 +151,7 @@ class ConsumerProfileTest extends TestCase
         $this->assertNull($this->anna->fresh()->avatar_path);
     }
 
+    /** E2E 4 — email change via verification *code* (not a magic link). */
     public function test_card10_e2e4_email_change_needs_the_code_sent_to_the_new_address(): void
     {
         Sanctum::actingAs($this->anna);
@@ -168,7 +172,7 @@ class ConsumerProfileTest extends TestCase
         });
         Notification::assertSentTo($this->anna, EmailChangeRequested::class);
 
-        // Still the old, verified address until confirmed; the account keeps working.
+        // Still the old, verified address until the code is confirmed; the account keeps working.
         $this->getJson('/api/v1/consumer/profile')->assertJsonPath('data.email', 'anna@example.nl')
             ->assertJsonPath('data.email_verification', 'verified')->assertJsonPath('data.pending_email', 'anna.nieuw@example.nl');
 
@@ -178,7 +182,7 @@ class ConsumerProfileTest extends TestCase
         $this->assertSame('anna.nieuw@example.nl', $this->anna->fresh()->email);
         $this->assertNotNull($this->anna->fresh()->email_verified_at);
 
-        // Reused code.
+        // Reused code is rejected.
         $this->postJson('/api/v1/consumer/email-change/confirm', ['code' => $code])->assertStatus(409)->assertJsonPath('error.code', 'email_change_not_pending');
         Notification::assertSentTo(new AnonymousNotifiable, EmailChangeRequested::class, fn ($n, $c, AnonymousNotifiable $to) => $to->routes['mail'] === 'anna@example.nl' && $n->completed);
         $this->assertSame(1, AuditEvent::where('action', 'identity.email_changed')->count());
@@ -218,15 +222,42 @@ class ConsumerProfileTest extends TestCase
     public function test_card10_e2e5_password_change_and_throttling(): void
     {
         $this->spa('POST', '/login', ['email' => 'anna@example.nl', 'password' => 'Sterk-wachtwoord-2026'])->assertOk();
-        $this->spa('PUT', '/user/password', ['current_password' => 'Sterk-wachtwoord-2026', 'password' => 'Nieuw-wachtwoord-2027'])->assertOk();
+
+        // Both absent and mismatched confirmation must fail before password/token changes.
+        $this->spa('PUT', '/user/password', [
+            'current_password' => 'Sterk-wachtwoord-2026',
+            'password' => 'Nieuw-wachtwoord-2027',
+        ])->assertStatus(422)->assertJsonValidationErrors('password', 'error.fields');
+        $this->assertTrue(Hash::check('Sterk-wachtwoord-2026', $this->anna->fresh()->password));
+
+        $this->spa('PUT', '/user/password', [
+            'current_password' => 'Sterk-wachtwoord-2026',
+            'password' => 'Nieuw-wachtwoord-2027',
+            'password_confirmation' => 'anders',
+        ])->assertStatus(422)->assertJsonValidationErrors('password', 'error.fields');
+        $this->assertTrue(Hash::check('Sterk-wachtwoord-2026', $this->anna->fresh()->password));
+
+        $this->spa('PUT', '/user/password', [
+            'current_password' => 'Sterk-wachtwoord-2026',
+            'password' => 'Nieuw-wachtwoord-2027',
+            'password_confirmation' => 'Nieuw-wachtwoord-2027',
+        ])->assertOk();
         $this->assertTrue(Hash::check('Nieuw-wachtwoord-2027', $this->anna->fresh()->password));
         $this->assertFalse(Hash::check('Sterk-wachtwoord-2026', $this->anna->fresh()->password));
 
-        for ($i = 0; $i < 4; $i++) {
-            $this->spa('PUT', '/user/password', ['current_password' => 'wrong-'.$i, 'password' => 'Ander-wachtwoord-2028'])->assertStatus(422);
+        // Limiter includes both confirmation failures and the successful change.
+        for ($i = 0; $i < 2; $i++) {
+            $this->spa('PUT', '/user/password', [
+                'current_password' => 'wrong-'.$i,
+                'password' => 'Ander-wachtwoord-2028',
+                'password_confirmation' => 'Ander-wachtwoord-2028',
+            ])->assertStatus(422);
         }
-        $this->spa('PUT', '/user/password', ['current_password' => 'wrong', 'password' => 'Ander-wachtwoord-2028'])
-            ->assertStatus(429)->assertJsonPath('error.code', 'too_many_requests');
+        $this->spa('PUT', '/user/password', [
+            'current_password' => 'wrong',
+            'password' => 'Ander-wachtwoord-2028',
+            'password_confirmation' => 'Ander-wachtwoord-2028',
+        ])->assertStatus(429)->assertJsonPath('error.code', 'too_many_requests');
         $this->assertTrue(Hash::check('Nieuw-wachtwoord-2027', $this->anna->fresh()->password));
     }
 

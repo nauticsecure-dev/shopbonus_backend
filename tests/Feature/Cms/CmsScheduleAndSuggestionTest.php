@@ -34,7 +34,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
         $this->configureLegalVersions();
         Storage::fake('local');
         $this->admin = $this->superAdmin();
-        config(['cms.ai_enabled' => true, 'cms.api_key' => 'sk-test-cms', 'cms.model' => 'gpt-test', 'cms.daily_limit' => 5]);
+        config(['cms.ai_enabled' => true, 'cms.api_key' => 'sk-test-cms', 'cms.model' => 'gpt-test', 'cms.daily_limit' => 5, 'cms.queue_connection' => 'sync', 'cms.auto_translate' => false]);
     }
 
     private function superAdmin(): User
@@ -75,9 +75,16 @@ class CmsScheduleAndSuggestionTest extends TestCase
     private function fakeProvider(array $segments): void
     {
         Http::swap(new Factory);
-        Http::fake(['api.openai.com/*' => Http::response(['status' => 'completed', 'output' => [
-            ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => json_encode(['segments' => $segments])]]],
-        ]])]);
+        Http::fake(['api.openai.com/*' => function ($request) use ($segments) {
+            $input = json_decode($request['input'], true);
+
+            return Http::response(['status' => 'completed', 'usage' => ['input_tokens' => 100, 'output_tokens' => 80], 'output' => [
+                ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => json_encode([
+                    'key' => $input['key'], 'source_hash' => $input['source_hash'], 'locale' => $input['locale'],
+                    'segments' => $segments, 'review' => true, 'warnings' => [],
+                ])]]],
+            ]]);
+        }]);
     }
 
     // ------------------------------------------------------------ scheduling
@@ -160,7 +167,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
     public function test_scheduled_archive_hides_the_page(): void
     {
         $id = $this->page();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertOk();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertOk();
         $this->postJson("/api/v1/admin/cms/pages/{$id}/schedules", ['action' => 'archive', 'due_at' => now()->addHour()->toIso8601String()])->assertCreated();
         $this->travel(61)->minutes();
         $this->artisan('shopbonus:publish-scheduled-content')->assertSuccessful();
@@ -174,7 +181,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
     public function test_improve_suggestion_keeps_structure_needs_human_approval_and_never_publishes(): void
     {
         $id = $this->page();
-        $this->fakeProvider(['Over ShopBonus: samen voordeliger', 'Samen voordeliger shoppen', 'Spaar 10% bij webshops.', 'Ons verhaal', 'Wij brengen consumenten en webshops samen.', ' Lees verder', 'Voor webshops']);
+        $this->fakeProvider(['Over ShopBonus: samen voordeliger', 'ShopBonus: samen voordeliger', 'Spaar 10% bij webshops.', 'Ons verhaal', 'Wij brengen consumenten en webshops samen.', ' Lees verder', 'Voor webshops']);
         $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'improve-1'])
             ->assertCreated()->assertJsonPath('data.status', 'proposed')->assertJsonPath('data.requires_human_approval', true)
             ->assertJsonPath('data.proposed.title', 'Over ShopBonus: samen voordeliger')
@@ -210,13 +217,14 @@ class CmsScheduleAndSuggestionTest extends TestCase
         $this->fakeProvider(['<b>Over</b>', 'x', 'Spaar 10% bij webshops.', 'Ons verhaal', 'tekst', ' meer', 'Voor webshops']);
         $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'bad-3'])->assertStatus(503);
         $this->assertSame(3, CmsAiSuggestion::where('status', 'failed')->count());
+        $this->assertSame(300, (int) CmsAiSuggestion::where('status', 'failed')->sum('input_tokens'));
         $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.draft_revision', 1);
 
         // A suggestion made on revision 1 cannot overwrite a newer human edit.
         $this->fakeProvider(['Over ShopBonus', 'Over ShopBonus', 'Spaar 10% bij webshops.', 'Ons verhaal', 'Tekst.', ' Lees meer', 'Voor webshops']);
         $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'ok-1'])->assertCreated()->json('data.id');
         $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('Handmatig', 'Handmatige tekst.')])->assertOk();
-        $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply")->assertStatus(409)->assertJsonPath('error.code', 'draft_revision_conflict');
+        $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply")->assertStatus(409)->assertJsonPath('error.code', 'source_revision_conflict');
         $this->postJson("/api/v1/admin/cms/suggestions/{$s}/reject")->assertOk()->assertJsonPath('data.status', 'rejected');
         $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.draft.title', 'Handmatig');
     }
@@ -243,7 +251,9 @@ class CmsScheduleAndSuggestionTest extends TestCase
         config(['cms.ai_enabled' => true, 'cms.daily_limit' => 1]);
         $this->fakeProvider(['Over ShopBonus', 'Over ShopBonus', 'Spaar 10% bij webshops.', 'Ons verhaal', 'Tekst.', ' Lees meer', 'Voor webshops']);
         $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'q-1'])->assertCreated();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'q-2'])->assertStatus(429)->assertJsonPath('error.code', 'cms_ai_daily_limit');
+        // Identical pending work reuses the existing proposal even with a different key.
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'q-2'])->assertOk();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'en', 'idempotency_key' => 'q-3'])->assertStatus(429)->assertJsonPath('error.code', 'cms_ai_daily_limit');
 
         $consumer = User::factory()->create();
         $this->asAdmin($consumer);
@@ -258,5 +268,134 @@ class CmsScheduleAndSuggestionTest extends TestCase
         $this->assertSame(['title', 'seo_title', 'seo_description', 'text', 'text', 'text', 'label', 'alt'], array_column($seg, 0));
         $this->assertSame($c, CmsSuggestions::replace($c, array_column($seg, 1)));
         $this->assertSame(['70', '%', 'https://x.nl', 'a@b.nl', '€', '12,50'], CmsSuggestions::facts('70% op https://x.nl mail a@b.nl voor €12,50'));
+    }
+
+    public function test_german_translation_is_private_and_nl_changes_invalidate_its_proposal(): void
+    {
+        $id = $this->page();
+        $this->fakeProvider(['Über ShopBonus', 'Über ShopBonus', 'Spare 10% bei Webshops.', 'Unsere Geschichte', 'Wir verbinden Kunden und Webshops.', ' Mehr lesen', 'Für Webshops']);
+        $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'de', 'idempotency_key' => 'de-1'])
+            ->assertCreated()->assertJsonPath('data.status', 'proposed')->json('data.id');
+        $row = CmsAiSuggestion::where('public_id', $s)->firstOrFail();
+        $this->assertSame(100, $row->input_tokens);
+        $this->assertSame(80, $row->output_tokens);
+        $this->assertSame('gpt-test', $row->model);
+        $this->assertSame(64, strlen($row->source_hash));
+        $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('Nieuwe bron', 'Nieuwe tekst.')])->assertOk();
+        $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply", ['slug' => 'uber-uns'])->assertStatus(409)->assertJsonPath('error.code', 'source_revision_conflict');
+        $this->assertDatabaseMissing('cms_page_locales', ['page_id' => $row->page_id, 'locale' => 'de']);
+        $this->assertSame(0, CmsRevision::count());
+    }
+
+    public function test_queued_work_deduplicates_and_rechecks_the_source_before_any_provider_call(): void
+    {
+        $id = $this->page();
+        config(['cms.queue_connection' => 'database']);
+        Http::preventStrayRequests();
+        $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'de', 'idempotency_key' => 'queued-1'])
+            ->assertCreated()->assertJsonPath('data.status', 'queued')->json('data.id');
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'de', 'idempotency_key' => 'queued-2'])
+            ->assertOk()->assertJsonPath('data.id', $s);
+        $this->assertDatabaseCount('jobs', 1);
+        $this->assertDatabaseHas('cms_ai_quotas', ['requests' => 1]);
+        $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('Wijziging', 'Nieuw.')])->assertOk();
+        $row = CmsAiSuggestion::where('public_id', $s)->firstOrFail();
+        app(CmsSuggestions::class)->process($row->id);
+        app(CmsSuggestions::class)->process($row->id);
+        $this->assertSame('failed', $row->fresh()->status);
+        Http::assertNothingSent();
+        $this->assertTrue(AuditEvent::where('action', 'cms.suggestion_failed')->exists());
+    }
+
+    public function test_successful_german_application_and_other_locales_remain_isolated(): void
+    {
+        $id = $this->page();
+        $this->fakeProvider(['Über ShopBonus', 'Über ShopBonus', 'Spare 10% bei Webshops.', 'Unsere Geschichte', 'Wir verbinden Kunden und Webshops.', ' Mehr lesen', 'Für Webshops']);
+        $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'de', 'idempotency_key' => 'de-ok'])->assertCreated()->json('data.id');
+        $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply", ['slug' => 'uber-uns'])->assertOk()->assertJsonPath('data.locale', 'de');
+        $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.de.draft.title', 'Über ShopBonus')
+            ->assertJsonPath('data.locales_detail.de.published', null)->assertJsonPath('data.locales_detail.nl.draft.title', 'Over ShopBonus');
+        $this->assertSame(0, CmsRevision::count());
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'fr', 'idempotency_key' => 'fr-no'])->assertUnprocessable();
+    }
+
+    public function test_legal_content_and_revoked_admin_jobs_never_reach_the_provider(): void
+    {
+        $terms = $this->page('voorwaarden', 'terms');
+        Http::preventStrayRequests();
+        $this->postJson("/api/v1/admin/cms/pages/{$terms}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'legal-no'])
+            ->assertUnprocessable()->assertJsonPath('error.code', 'cms_ai_legal_excluded');
+        $id = $this->page();
+        config(['cms.queue_connection' => 'database']);
+        $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'de', 'idempotency_key' => 'revoked'])->assertCreated()->json('data.id');
+        $this->admin->platformRoles()->delete();
+        app(CmsSuggestions::class)->process(CmsAiSuggestion::where('public_id', $s)->value('id'));
+        $this->assertDatabaseHas('cms_ai_suggestions', ['public_id' => $s, 'status' => 'failed']);
+        Http::assertNothingSent();
+    }
+
+    public function test_invalid_identity_contract_or_provider_outage_retains_the_published_revision(): void
+    {
+        $id = $this->page();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertOk();
+        Http::swap(new Factory);
+        Http::fake(['api.openai.com/*' => Http::response(['status' => 'completed', 'output' => [
+            ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => json_encode(['segments' => []])]]],
+        ]])]);
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'contract-no'])->assertStatus(503);
+        Http::swap(new Factory);
+        Http::fake(['api.openai.com/*' => Http::response([], 503)]);
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'outage'])->assertStatus(503);
+        $this->assertSame(1, CmsRevision::count());
+        $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.published.title', 'Over ShopBonus')->assertJsonPath('data.locales_detail.nl.draft_revision', 1);
+    }
+
+    public function test_master_revision_invalidates_translations_even_in_the_same_second_and_restore_retains_provenance(): void
+    {
+        $this->freezeTime();
+        $id = $this->page();
+        $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/en", ['revision' => 1, 'slug' => 'about', 'content' => $this->content('ShopBonus', 'English content.')])->assertOk();
+        $r = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/en/publish", ['revision' => 1])->assertOk()->json('data.id');
+        $rows = $this->getJson('/api/v1/admin/cms/translations')->assertOk()->json('data');
+        $this->assertSame('published', collect($rows)->firstWhere('locale', 'en')['status']);
+        $this->assertSame('missing', collect($rows)->firstWhere('locale', 'de')['status']);
+        $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('Nieuwe bron', 'Nieuwe tekst.')])->assertOk();
+        $rows = $this->getJson('/api/v1/admin/cms/translations')->assertOk()->json('data');
+        $this->assertSame('stale', collect($rows)->firstWhere('locale', 'en')['status']);
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/revisions/{$r}/restore")->assertOk();
+        $rows = $this->getJson('/api/v1/admin/cms/translations')->assertOk()->json('data');
+        $this->assertSame('stale', collect($rows)->firstWhere('locale', 'en')['status']);
+        $this->assertSame([1, 1], CmsRevision::where('locale', 'en')->orderBy('id')->pluck('source_master_revision')->all());
+    }
+
+    public function test_nl_save_automatically_queues_en_and_de_and_budget_failure_preserves_the_save(): void
+    {
+        $id = $this->page();
+        config(['cms.auto_translate' => true, 'cms.queue_connection' => 'database']);
+        Http::preventStrayRequests();
+        $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('ShopBonus', 'Nieuwe tekst.')])
+            ->assertOk()->assertJsonPath('data.draft_revision', 2);
+        $this->assertDatabaseCount('jobs', 2);
+        $this->assertSame(['de', 'en'], CmsAiSuggestion::orderBy('target_locale')->pluck('target_locale')->all());
+        $this->assertSame([2, 2], CmsAiSuggestion::pluck('source_revision')->all());
+        Http::assertNothingSent();
+        config(['cms.daily_limit' => 0]);
+        $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 2, 'content' => $this->content('ShopBonus', 'Nog een wijziging.')])
+            ->assertOk()->assertJsonPath('data.draft_revision', 3);
+        $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.draft.body.content.1.content.0.text', 'Nog een wijziging.');
+        $this->assertSame(2, AuditEvent::where('action', 'cms.translation_deferred')->count());
+        $this->assertDatabaseCount('jobs', 2);
+        $this->assertSame(0, CmsRevision::count());
+    }
+
+    public function test_legacy_unverified_proposal_cannot_be_applied(): void
+    {
+        $id = $this->page();
+        $this->fakeProvider(['Over ShopBonus', 'Over ShopBonus', 'Spaar 10% bij webshops.', 'Ons verhaal', 'Tekst.', ' Lees meer', 'Voor webshops']);
+        $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'legacy'])->assertCreated()->json('data.id');
+        CmsAiSuggestion::where('public_id', $s)->update(['source_hash' => null, 'model' => null, 'input_tokens' => null, 'output_tokens' => null]);
+        $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply")->assertStatus(409)->assertJsonPath('error.code', 'suggestion_unverified');
+        $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.draft_revision', 1);
+        $this->assertSame(0, CmsRevision::count());
     }
 }

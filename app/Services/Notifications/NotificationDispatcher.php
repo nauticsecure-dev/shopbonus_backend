@@ -111,6 +111,9 @@ final class NotificationDispatcher
                     'admin' => FrontendPath::to('admin_home'), 'workspace' => FrontendPath::to('workspace_home', ['workspace' => $workspaceRef]), default => FrontendPath::to('consumer_benefits')
                 };
                 $legacy = isset($facts['legacy_id']) ? MerchantNotification::find($facts['legacy_id']) : null;
+                if (isset($facts['legacy_id']) && $legacy === null) {
+                    continue;
+                }
                 $legacyRead = $legacy === null ? null : DB::table('notification_legacy_reads')->where('legacy_notification_id', $legacy->id)->where('user_id', $user->id)->value('read_at');
                 $n = $user->notifications()->create(['id' => (string) Str::uuid(), 'type' => NotificationEvent::class, 'event_type' => $event->event_type,
                     'event_key' => $key, 'in_app_enabled' => $inApp, 'recipient_type' => $event->recipient_type, 'webshop_id' => $event->webshop_id, 'legacy_notification_id' => $legacy?->id,

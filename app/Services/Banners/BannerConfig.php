@@ -37,11 +37,20 @@ class BannerConfig
         $noHtml = 'not_regex:/[<>]/';
         $color = 'regex:/^#[0-9a-fA-F]{6}$/';
         $data = Validator::make($config, [
+            'layers' => ['sometimes', 'array', 'list', 'size:3'],
+            'layers.*' => ['required', 'array:type,visible,align,font_size,width_pct'],
+            'layers.*.type' => ['required', 'distinct', Rule::in(['text', 'image', 'cta'])],
+            'layers.*.visible' => ['required', 'boolean'],
+            'layers.*.align' => ['required', Rule::in(['left', 'center', 'right'])],
+            'layers.*.font_size' => ['required', 'integer', 'between:10,40'],
+            'layers.*.width_pct' => ['required', 'integer', 'between:20,100'],
             'template' => ['required', Rule::in(self::TEMPLATES)],
-            'placement' => ['required', 'array:anchor,offset_x,offset_y,selector_hint'],
+            'placement' => ['required', 'array:anchor,offset_x,offset_y,selector_hint,width,height'],
             'placement.anchor' => ['required', Rule::in(self::ANCHORS)],
             'placement.offset_x' => ['sometimes', 'integer', 'between:-500,500'],
             'placement.offset_y' => ['sometimes', 'integer', 'between:-500,500'],
+            'placement.width' => ['sometimes', 'integer', 'between:160,720'],
+            'placement.height' => ['sometimes', 'integer', 'between:80,800'],
             'placement.selector_hint' => ['sometimes', 'nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9 ._#\-\[\]=\"\']+$/'],
             'content' => ['required', 'array:heading,subtitle,cta_label,cta_url,terms,image_asset_id'],
             'content.heading' => ['required', 'string', 'max:80', $noHtml],

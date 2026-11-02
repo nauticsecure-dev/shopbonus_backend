@@ -1,0 +1,62 @@
+{
+    "verified_at": "2026-10-31T13:45:08+00:00",
+    "environment": "Existing local MySQL shopbonus at 127.0.0.1; read-only aggregates after selective task migration",
+    "expected": {
+        "active_webshops": 8,
+        "consumers": 3,
+        "active_vouchers": 0,
+        "wallet_liability": 0
+    },
+    "actual": {
+        "active_webshops": 8,
+        "consumers": 3,
+        "active_vouchers": 0,
+        "affiliate_commission": 0,
+        "wallet_liability": 0,
+        "open_actions": 1
+    },
+    "warnings": [],
+    "sources": {
+        "webshops": "ok",
+        "consumers": "ok",
+        "vouchers": "ok",
+        "affiliate": "ok",
+        "wallets": "ok",
+        "support": "ok",
+        "integrations": "ok"
+    },
+    "affiliate_channels": {
+        "metric": "vouchers",
+        "metric_label": "Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.",
+        "total": 0,
+        "period": {
+            "from": "2026-10-01T22:00:00+00:00",
+            "to": "2026-10-31T22:59:59+00:00"
+        },
+        "channels": []
+    },
+    "open_actions": {
+        "pending_approvals": {
+            "count": 1,
+            "severity": "high",
+            "href": "/admin/webshops?status=pending_review",
+            "title": "webshops wachten op goedkeuring",
+            "detail": "Bekijk en keur nieuwe webshops goed."
+        },
+        "failed_syncs": {
+            "count": 0,
+            "severity": "none",
+            "href": "/admin/integrations?attention=1",
+            "title": "mislukte syncs",
+            "detail": "Controleer mislukte imports of connectorfouten."
+        },
+        "open_support": {
+            "count": 0,
+            "severity": "none",
+            "href": "/admin/support?outcome=open",
+            "title": "supportcases",
+            "detail": "Nieuwe of openstaande supportcases."
+        },
+        "total": 1
+    }
+}

@@ -87,8 +87,9 @@ class MerchantLandingCmsController extends Controller
     public function publish(Request $request): JsonResponse
     {
         $locale = $this->locale($request);
+        $data = $request->validate(['revision' => ['sometimes', 'integer', 'min:1']]);
         $page = $this->landing->page();
-        $revision = $this->cms->publish($page, $locale, $request->user()->id);
+        $revision = $this->cms->publish($page, $locale, $request->user()->id, expectedDraftRevision: $data['revision'] ?? null);
 
         return response()->json(['data' => $this->revision($revision)]);
     }
@@ -150,6 +151,19 @@ class MerchantLandingCmsController extends Controller
                 'applied' => false,
             ],
         ]);
+    }
+
+    public function assets(Request $request): JsonResponse
+    {
+        $data = $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
+        $assets = CmsAsset::query()->orderByDesc('id')->paginate(24, ['*'], 'page', $data['page'] ?? 1);
+
+        return response()->json(['data' => $assets->map(fn (CmsAsset $asset) => [
+            'id' => $asset->public_id,
+            'width' => $asset->width,
+            'height' => $asset->height,
+            'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id]),
+        ])->all(), 'meta' => ['current_page' => $assets->currentPage(), 'last_page' => $assets->lastPage()]]);
     }
 
     public function uploadAsset(Request $request): JsonResponse

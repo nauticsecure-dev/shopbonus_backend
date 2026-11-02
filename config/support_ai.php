@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Deployment-owned rates in EUR per million tokens, keyed by exact model ID.
+    // Leave empty until prices/exchange conversion are verified; no invented default prices.
+    'verified_eur_rates' => [],
     'enabled' => env('SUPPORT_AI_ENABLED', false),
     'api_key' => env('OPENAI_API_KEY'),
     'model' => env('SUPPORT_AI_MODEL', ''),

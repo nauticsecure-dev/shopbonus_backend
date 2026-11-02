@@ -16,15 +16,15 @@ class AffiliateActivityController extends Controller
 {
     private const EXPLAIN = [
         'nl' => [
-            'pending' => 'De webshop heeft deze aankoop nog niet bevestigd. Je beloning staat in behandeling en is nog niet besteedbaar.',
-            'approved' => 'De aankoop is bevestigd.',
+            'pending' => 'Deze aankoop is in behandeling. Cashback wacht op goedkeuring en ontvangen netwerkbetaling.',
+            'approved' => 'De aankoop is goedgekeurd. Cashback wordt beschikbaar na ontvangen netwerkbetaling en eventuele controle.',
             'rejected' => 'De webshop heeft deze aankoop niet bevestigd (bijvoorbeeld een retour of annulering).',
             'reversed' => 'De aankoop is later geannuleerd.',
             'tracked' => 'We hebben een signaal van deze aankoop ontvangen en wachten op de netwerkdetails.',
         ],
         'en' => [
-            'pending' => 'The webshop has not confirmed this purchase yet. Your reward is pending and cannot be spent yet.',
-            'approved' => 'The purchase was confirmed.',
+            'pending' => 'This purchase is pending. Cashback awaits approval and receipt of the network payment.',
+            'approved' => 'The purchase was approved. Cashback becomes available after receipt of the network payment and any required review.',
             'rejected' => 'The webshop did not confirm this purchase (for example a return or cancellation).',
             'reversed' => 'The purchase was later cancelled.',
             'tracked' => 'We received a signal of this purchase and are waiting for the network\'s details.',
@@ -56,8 +56,8 @@ class AffiliateActivityController extends Controller
             ])->all(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
             'notice' => $locale === 'nl'
-                ? 'Beloningen hangen af van goedgekeurde, bevestigde aankopen. Pending tegoed is niet besteedbaar.'
-                : 'Rewards depend on eligible, confirmed purchases. Pending credit is not spendable.',
+                ? 'Cashback wordt beschikbaar na goedkeuring en ontvangen netwerkbetaling. Checkout-reserveringen zijn apart.'
+                : 'Cashback becomes available after approval and receipt of the network payment. Checkout reservations are separate.',
         ]);
     }
 }

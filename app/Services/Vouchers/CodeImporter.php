@@ -12,6 +12,7 @@ use App\Models\VoucherCodeBatch;
 use App\Models\VoucherEvent;
 use App\Models\WebshopMembership;
 use App\Services\Audit\AuditLogger;
+use App\Services\Discovery\DiscoveryCache;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -228,6 +229,7 @@ class CodeImporter
             }
 
             $totals = [...$batch->totals, 'imported' => count($byHash), 'duplicate_at_commit' => $late];
+            DiscoveryCache::flush();
             $batch->forceFill(['status' => 'committed', 'committed_at' => $now, 'totals' => $totals, 'payload' => null])->save();
 
             VoucherEvent::create(['webshop_id' => $batch->webshop_id, 'type' => 'codes_imported', 'actor_user_id' => $batch->committed_by,

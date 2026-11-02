@@ -47,7 +47,7 @@ final class EcwidConnector extends WebhookConnector implements CatalogReader, Or
 
     public function setupInstructions(WebshopConnection $c, string $url): array
     {
-        return ['format' => 'ecwid-notification', 'webhook_url' => $url, 'store_id' => $c->external_shop_ref, 'steps' => ['Register order.created/order.updated for an app with read_orders and store-profile read access. Configure the app client secret separately from its store access token.', 'The webhook triggers a native lookup only. API plan eligibility and exact verified store domain are checked before reads.', 'Ecwid does not provide an immutable order currency or settlement time in the reviewed order response. Monetary mapping stays incomplete; do not activate paid-order automation from these notifications.'], 'live_verified' => false];
+        return ['format' => 'ecwid-notification', 'webhook_url' => $url, 'store_id' => $c->external_shop_ref, 'steps' => ['Register order.created/order.updated for an app with read_orders and store-profile read access. Configure the app client secret separately from its store access token.', 'The webhook triggers a native lookup only. API plan eligibility and exact verified store domain are checked before reads.', 'Order totals use the verified store profile currency (orders have no per-order currency). paid_at stays unavailable — payment status is read from the native order, not from the notification claim.'], 'live_verified' => false];
     }
 
     public function verifyIncomingEvent(WebshopConnection $c, Request $r): VerifiedEvent
@@ -128,8 +128,10 @@ final class EcwidConnector extends WebhookConnector implements CatalogReader, Or
             throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
         }
 
-        // Canonical numeric internalId is shared by legacy notifications and discovery.
-        return ['native_order' => $p, 'requested_order_id' => $id];
+        // Order resource has no per-order currency; amounts use verified shop currency at read time (same pattern as Lightspeed C).
+        $code = $this->read($c, '/profile')['formatsAndUnits']['currency'] ?? null;
+
+        return ['native_order' => $p, 'requested_order_id' => $id, 'shop_currency' => Money::isCurrency($code) ? $code : null];
     }
 
     public function discoverOrders(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
@@ -156,12 +158,46 @@ final class EcwidConnector extends WebhookConnector implements CatalogReader, Or
 
     public function normalizeOrder(array $payload): NormalizedOrder
     {
-        $p = $payload['native_order'] ?? [];
+        $p = is_array($payload['native_order'] ?? null) ? $payload['native_order'] : [];
         $status = match ($p['paymentStatus'] ?? null) {
-            'PAID' => PaymentStatus::Paid,'REFUNDED' => PaymentStatus::Refunded,'PARTIALLY_REFUNDED' => PaymentStatus::PartiallyRefunded,'CANCELLED' => PaymentStatus::Cancelled,'AWAITING_PAYMENT','INCOMPLETE' => PaymentStatus::Pending,default => PaymentStatus::Unknown
+            'PAID' => PaymentStatus::Paid, 'REFUNDED' => PaymentStatus::Refunded, 'PARTIALLY_REFUNDED' => PaymentStatus::PartiallyRefunded, 'CANCELLED' => PaymentStatus::Cancelled, 'AWAITING_PAYMENT', 'INCOMPLETE' => PaymentStatus::Pending, default => PaymentStatus::Unknown,
         };
+        $currency = Money::isCurrency($payload['shop_currency'] ?? null) ? $payload['shop_currency'] : null;
+        $amount = null;
+        try {
+            if ($currency === null) {
+                throw new \InvalidArgumentException;
+            }
+            $total = $p['total'] ?? null;
+            if (! is_string($total) && ! is_int($total)) {
+                throw new \InvalidArgumentException;
+            }
+            $amount = Money::toMinor($total, $currency);
+            if ($amount < 0) {
+                $amount = null;
+            }
+        } catch (\InvalidArgumentException) {
+            $amount = null;
+            $currency = null;
+        }
 
-        return new NormalizedOrder(externalId: $this->str($p['internalId'] ?? null), reference: $this->str($p['vendorOrderNumber'] ?? $p['orderNumber'] ?? null), firstName: $this->str($p['billingPerson']['firstName'] ?? null), email: $this->str($p['email'] ?? null), phone: $this->str($p['billingPerson']['phone'] ?? null), amountMinor: null, currency: null, paymentStatus: $status, orderStatus: $this->str($p['fulfillmentStatus'] ?? null), placedAt: $this->date($p['createDate'] ?? null), paidAt: null, cancelledAt: null, refundedAt: null, providerUpdatedAt: $this->date($p['updateDate'] ?? null));
+        // paid_at stays null: reviewed Ecwid order API has no immutable settlement timestamp.
+        return new NormalizedOrder(
+            externalId: $this->str($p['internalId'] ?? null),
+            reference: $this->str($p['vendorOrderNumber'] ?? $p['orderNumber'] ?? null),
+            firstName: $this->str($p['billingPerson']['firstName'] ?? null),
+            email: $this->str($p['email'] ?? null),
+            phone: $this->str($p['billingPerson']['phone'] ?? null),
+            amountMinor: $amount,
+            currency: $currency,
+            paymentStatus: $status,
+            orderStatus: $this->str($p['fulfillmentStatus'] ?? null),
+            placedAt: $this->date($p['createDate'] ?? null),
+            paidAt: null,
+            cancelledAt: null,
+            refundedAt: null,
+            providerUpdatedAt: $this->date($p['updateDate'] ?? null),
+        );
     }
 
     public function catalogCurrency(WebshopConnection $c): string

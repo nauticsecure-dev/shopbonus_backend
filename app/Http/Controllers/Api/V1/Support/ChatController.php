@@ -13,6 +13,7 @@ use App\Models\Webshop;
 use App\Services\Audit\AuditLogger;
 use App\Services\Cms\RichText;
 use App\Services\Support\SupportChat;
+use App\Services\Support\SupportPolicy;
 use App\Services\Support\SupportReviews;
 use App\Services\Support\SupportTools;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +33,7 @@ class ChatController extends Controller
         $key = validator(['key' => $r->header('Idempotency-Key')], ['key' => ['required', 'uuid']])->validate()['key'];
         $m = $chat->submit($r->user(), $data, $key)->fresh();
 
-        return response()->json(['data' => ['id' => $m->public_id, 'conversation_id' => SupportConversation::findOrFail($m->conversation_id)->public_id, 'status' => $m->status]], 202, ['Cache-Control' => 'private, no-store']);
+        return response()->json(['data' => ['id' => $m->public_id, 'conversation_id' => SupportConversation::findOrFail($m->conversation_id)->public_id, 'status' => $m->status, 'display' => array_intersect_key(app(SupportPolicy::class)->current(), array_flip(['show_progress_updates', 'show_verified_badge']))]], 202, ['Cache-Control' => 'private, no-store']);
     }
 
     public function index(Request $r, SupportTools $tools): JsonResponse

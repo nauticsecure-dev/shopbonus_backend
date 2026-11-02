@@ -46,7 +46,7 @@ class MerchantLandingCmsService
             return null;
         }
 
-        return CmsCache::remember("voor-webshops:{$locale}", function () use ($locale) {
+        $published = CmsCache::remember("voor-webshops:{$locale}", function () use ($locale) {
             $page = CmsPage::where('key', 'voor-webshops')->whereNull('archived_at')->where('audience', 'public')->first();
             if ($page === null) {
                 return null;
@@ -60,9 +60,6 @@ class MerchantLandingCmsService
                 return null;
             }
             $content = $r->content;
-            if (! $this->scheduleAllows($content['schedule'] ?? null)) {
-                return null;
-            }
 
             return [
                 'key' => $page->key,
@@ -74,6 +71,8 @@ class MerchantLandingCmsService
                 'published_at' => $r->created_at->toIso8601String(),
             ];
         });
+
+        return $published !== null && $this->scheduleAllows($published['content']['schedule'] ?? null) ? $published : null;
     }
 
     /**
@@ -255,6 +254,10 @@ class MerchantLandingCmsService
     public function resolveAssets(array $content): array
     {
         $url = fn (?string $id) => $id === null || $id === '' ? null : route('api.v1.public.content-assets.show', ['id' => $id]);
+        foreach ($content['media'] ?? [] as $slot => $media) {
+            $content['media'][$slot]['desktop_url'] = $url($media['desktop_asset_id'] ?? null);
+            $content['media'][$slot]['mobile_url'] = $url($media['mobile_asset_id'] ?? null);
+        }
         if (isset($content['seo_image_asset_id'])) {
             $content['seo_image_url'] = $url($content['seo_image_asset_id']);
         }

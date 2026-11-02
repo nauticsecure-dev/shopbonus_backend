@@ -89,6 +89,12 @@ class SupportEvidenceTest extends TestCase
         $this->assertStringContainsString("EUR {$available}; reserved: EUR {$reserved}; pending: EUR {$pending}; spent: EUR {$spent}", $result['answer']);
         $this->assertSame(1000, $e->facts['available_minor']);
         $this->assertSame(500, $e->facts['reserved_minor']);
+        $nl = $this->tools()->retrieve($user, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'nl');
+        $nlAnswer = $this->answer($user, [$nl])['answer'];
+        $this->assertStringContainsString('gereserveerd: EUR 5.00', $nlAnswer);
+        $this->assertStringNotContainsString('Je beloning', $nlAnswer);
+        $this->assertStringNotContainsString('Zodra', $nlAnswer);
+
         // Pending (awaiting approval) and reserved (purchase in progress) are separate statements.
         $this->assertSame(700, $e->facts['pending_minor']);
         $this->assertStringContainsString('A reward of EUR 7.00 is pending and cannot be spent yet.', $result['answer']);

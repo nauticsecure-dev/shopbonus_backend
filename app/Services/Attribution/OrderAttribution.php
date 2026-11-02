@@ -6,6 +6,7 @@ use App\Integrations\Data\PaymentStatus;
 use App\Models\AttributionLink;
 use App\Models\NetworkJourney;
 use App\Models\Voucher;
+use App\Models\VoucherCode;
 use App\Models\WebshopOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -38,6 +39,16 @@ class OrderAttribution
      */
     public function resolve(WebshopOrder $order, array $couponCodes = []): void
     {
+        DB::transaction(function () use ($order, $couponCodes) {
+            $locked = WebshopOrder::query()->lockForUpdate()->findOrFail($order->id);
+            $this->resolveLocked($locked, $couponCodes);
+            $order->setRawAttributes($locked->getAttributes(), true);
+        });
+    }
+
+    /** @param list<string> $couponCodes */
+    private function resolveLocked(WebshopOrder $order, array $couponCodes): void
+    {
         if (! in_array($order->payment_status, [PaymentStatus::Paid, PaymentStatus::PartiallyRefunded, PaymentStatus::Refunded], true)) {
             return;
         }
@@ -56,10 +67,21 @@ class OrderAttribution
             default => [self::TYPE_UNATTRIBUTED, null, null, null, null, null],
         };
 
+        // First linked evidence is immutable. Unattributed orders may acquire their
+        // first evidence later; replays cannot relabel an already linked order.
+        $link = AttributionLink::query()->where('order_id', $order->id)->first();
+        if ($link !== null) {
+            [$type, $method, $clickId, $voucherId, $assignmentId, $referringShopId] = [
+                $link->method, $link->method, $link->click_id, $link->voucher_id,
+                $link->banner_assignment_id, $link->referring_webshop_id,
+            ];
+        }
+
         $isRepeat = $this->isRepeat($order);
 
         $order->forceFill([
             'attribution_type' => $type,
+            'attribution_click_id' => $method !== null ? $clickId : $order->attribution_click_id,
             'referring_webshop_id' => $referringShopId,
             'is_repeat_order' => $isRepeat,
         ])->save();
@@ -175,7 +197,8 @@ class OrderAttribution
         return Voucher::query()
             ->where('webshop_id', $order->webshop_id)
             ->whereNotNull('issued_at')
-            ->whereHas('code', fn ($q) => $q->whereIn('code', $codes))
+            ->whereHas('code', fn ($q) => $q->where('webshop_id', $order->webshop_id)
+                ->whereIn('code_hash', array_map(fn ($code) => VoucherCode::hashFor($order->webshop_id, $code), $codes)))
             ->orderBy('id')
             ->first();
     }
@@ -189,6 +212,9 @@ class OrderAttribution
 
         $seen = DB::table('banner_events')
             ->where('banner_assignment_id', $assignmentId)
+            ->where('webshop_id', $order->webshop_id)
+            ->where('consent', true)
+            ->where('occurred_at', '<=', $order->paid_at ?? now())
             ->where('type', 'viewable_impression')
             ->exists();
 

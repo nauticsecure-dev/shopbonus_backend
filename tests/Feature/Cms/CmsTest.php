@@ -67,7 +67,7 @@ class CmsTest extends TestCase
         $this->getJson('/api/v1/public/pages/nl/over-ons')->assertNotFound(); // nothing published yet
 
         $this->asAdmin();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertOk()->assertJsonPath('data.number', 1);
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertOk()->assertJsonPath('data.number', 1);
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/public/pages/nl/over-ons')->assertOk()->assertJsonPath('data.content.title', 'Over ons')->assertJsonPath('data.alternates', ['nl' => 'over-ons']);
 
@@ -77,7 +77,7 @@ class CmsTest extends TestCase
         $this->getJson('/api/v1/public/pages/nl/over-ons')->assertJsonPath('data.content.title', 'Over ons'); // draft invisible
 
         $this->asAdmin();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertOk()->assertJsonPath('data.number', 2);
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 2])->assertOk()->assertJsonPath('data.number', 2);
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/public/pages/nl/over-ons')->assertJsonPath('data.content.title', 'Nieuwe kop (concept)'); // cache invalidated
         $this->getJson('/api/v1/public/pages/en/over-ons-en')->assertNotFound(); // EN untouched
@@ -102,11 +102,11 @@ class CmsTest extends TestCase
     public function test_card5_e2e5_concurrent_edits_conflict_and_restore_makes_a_new_revision(): void
     {
         $id = $this->page();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertOk();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertOk();
         $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('Versie twee')])->assertOk(); // admin A
         $this->putJson("/api/v1/admin/cms/pages/{$id}/locales/nl", ['revision' => 1, 'content' => $this->content('Versie van B')])->assertStatus(409) // admin B, stale
             ->assertJsonPath('error.code', 'draft_revision_conflict')->assertJsonPath('error.details.current_revision', 2);
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertOk();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 2])->assertOk();
 
         $first = collect($this->getJson("/api/v1/admin/cms/pages/{$id}/revisions")->json('data'))->firstWhere('number', 1)['id'];
         $this->postJson("/api/v1/admin/cms/pages/{$id}/revisions/{$first}/restore")->assertOk()->assertJsonPath('data.number', 3)->assertJsonPath('data.restored_from', 1);
@@ -115,14 +115,34 @@ class CmsTest extends TestCase
         $this->getJson('/api/v1/public/pages/nl/over-ons')->assertJsonPath('data.content.title', 'Over ons');
     }
 
+    public function test_manual_publish_rejects_a_draft_changed_since_preview_including_legal_pages(): void
+    {
+        foreach (['info', 'terms'] as $type) {
+            $id = $this->page('review-'.$type, $type);
+            $url = "/api/v1/admin/cms/pages/{$id}/locales/nl";
+            $reviewed = $this->getJson($url.'/preview')->assertOk()->json('data.draft_revision');
+            $legal = $type === 'terms' ? ['legal_version' => 'review-1', 'effective_date' => '2026-11-02', 'approve' => true] : [];
+            $this->postJson($url.'/publish', $legal)->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['revision']]]);
+            $this->putJson($url, ['revision' => $reviewed, 'content' => $this->content('Changed after review')])->assertOk();
+            $before = AuditEvent::where('action', 'cms.published')->count();
+            $this->postJson($url.'/publish', $legal + ['revision' => $reviewed])->assertConflict()->assertJsonPath('error.code', 'draft_changed');
+            $this->assertSame($before, AuditEvent::where('action', 'cms.published')->count());
+            $this->getJson('/api/v1/public/pages/nl/review-'.$type)->assertNotFound();
+            $latest = $this->getJson($url.'/preview')->assertOk()->json('data.draft_revision');
+            $this->postJson($url.'/publish', $legal + ['revision' => $latest])->assertOk();
+            $this->getJson('/api/v1/public/pages/nl/review-'.$type)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+                ->assertJsonPath('data.content.title', 'Changed after review');
+        }
+    }
+
     public function test_legal_pages_need_version_date_and_approval_and_drive_registration(): void
     {
         $id = $this->page('voorwaarden', 'terms');
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertUnprocessable()->assertJsonPath('error.code', 'legal_approval_required');
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['legal_version' => '2026.2', 'effective_date' => '2026-11-01'])->assertUnprocessable();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['legal_version' => '2026.2', 'effective_date' => '2026-11-01', 'approve' => true])->assertOk()
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertUnprocessable()->assertJsonPath('error.code', 'legal_approval_required');
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1, 'legal_version' => '2026.2', 'effective_date' => '2026-11-01'])->assertUnprocessable();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1, 'legal_version' => '2026.2', 'effective_date' => '2026-11-01', 'approve' => true])->assertOk()
             ->assertJsonPath('data.legal_version', '2026.2')->assertJsonPath('data.approved_by', $this->admin->first_name);
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['legal_version' => '2026.2', 'effective_date' => '2026-11-01', 'approve' => true])->assertStatus(409);
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1, 'legal_version' => '2026.2', 'effective_date' => '2026-11-01', 'approve' => true])->assertStatus(409);
         $first = $this->getJson("/api/v1/admin/cms/pages/{$id}/revisions")->json('data.0.id');
         $this->postJson("/api/v1/admin/cms/pages/{$id}/revisions/{$first}/restore")->assertStatus(409)->assertJsonPath('error.code', 'legal_restore_not_allowed');
         $this->postJson("/api/v1/admin/cms/pages/{$id}/archive")->assertStatus(409);
@@ -178,7 +198,7 @@ class CmsTest extends TestCase
         $id = $this->page();
         Sanctum::actingAs($this->admin);
         $this->flushSession();
-        $this->withSession([])->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertStatus(423);
+        $this->withSession([])->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertStatus(423);
     }
 
     public function test_card5_e2e8_unsafe_content_and_fake_images_are_refused(): void
@@ -205,7 +225,7 @@ class CmsTest extends TestCase
         $this->postJson('/api/v1/admin/cms/pages', ['key' => 'beeld', 'type' => 'landing', 'locales' => ['nl' => ['slug' => 'beeld', 'content' => ['title' => 'Beeld',
             'body' => $this->doc('x', [['type' => 'image', 'attrs' => ['asset_id' => $asset, 'alt' => 'Hero']]])]]]])->assertCreated();
         $page = CmsPage::where('key', 'beeld')->sole();
-        $this->postJson("/api/v1/admin/cms/pages/{$page->public_id}/locales/nl/publish")->assertOk();
+        $this->postJson("/api/v1/admin/cms/pages/{$page->public_id}/locales/nl/publish", ['revision' => 1])->assertOk();
         $this->app['auth']->forgetGuards();
         $img = collect($this->getJson('/api/v1/public/pages/nl/beeld')->json('data.content.body.content'))->firstWhere('type', 'image');
         $this->assertStringContainsString('/api/v1/public/content-assets/'.$asset, $img['attrs']['src']);

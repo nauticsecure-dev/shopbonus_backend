@@ -10,6 +10,7 @@ use App\Enums\VoucherStatus;
 use App\Exceptions\ApiException;
 use App\Http\Resources\OfferResource;
 use App\Integrations\Data\PaymentStatus;
+use App\Models\AffiliateTransaction;
 use App\Models\Offer;
 use App\Models\OfferVersion;
 use App\Models\User;
@@ -18,6 +19,7 @@ use App\Models\VoucherCode;
 use App\Models\VoucherEvent;
 use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
+use App\Services\Discovery\DiscoveryCache;
 use App\Services\Funding\MerchantFunding;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -59,6 +61,27 @@ class VoucherInventory
             // A concurrent call with the same key won the race.
             return $this->byKey($offer->webshop_id, $idempotencyKey) ?? throw ApiException::conflict('Reservation conflict, retry.', 'reservation_conflict');
         }
+    }
+
+    /** Attach explicit acquisition evidence; wallet spending alone is not attribution. */
+    public function recordAcquisition(Voucher $voucher, AffiliateTransaction $transaction): void
+    {
+        DB::transaction(function () use ($voucher, $transaction) {
+            $v = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
+            $t = AffiliateTransaction::whereKey($transaction->id)->lockForUpdate()->firstOrFail();
+            if ($t->status !== 'approved' || $t->duplicate_of_id !== null || $t->user_id === null
+                || $t->user_id !== $v->consumer_user_id || $t->webshop_id !== $v->webshop_id
+                || $v->issued_at === null || $t->transaction_at->greaterThan($v->issued_at)) {
+                throw ApiException::conflict('Acquisition requires an approved matching source transaction.', 'invalid_acquisition_evidence');
+            }
+            if ($v->acquisition_transaction_id !== null && $v->acquisition_transaction_id !== $t->id) {
+                throw ApiException::conflict('Acquisition evidence is immutable.', 'acquisition_already_recorded');
+            }
+            if ($v->acquisition_transaction_id === null) {
+                $v->forceFill(['acquisition_transaction_id' => $t->id])->save();
+                $this->event($v, 'acquisition_verified', $v->status, $v->status, null, ['transaction_id' => $t->public_id]);
+            }
+        });
     }
 
     public function issue(Voucher $voucher, User $consumer): Voucher
@@ -297,6 +320,8 @@ class VoucherInventory
                 ->update(['status' => VoucherCodeStatus::Reserved->value, 'reserved_at' => now(), 'updated_at' => now()]);
 
             if ($taken === 1) {
+                DiscoveryCache::flush();
+
                 return $code->refresh();
             }
         }

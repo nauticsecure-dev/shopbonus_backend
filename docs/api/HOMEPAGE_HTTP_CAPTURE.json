@@ -1,0 +1,379 @@
+{
+    "captured_at": "2026-10-31T14:04:54+00:00",
+    "base_url": "http://127.0.0.1:55182",
+    "environment": "Local PHP HTTP server, isolated SQLite fixtures; no external providers",
+    "captures": [
+        {
+            "request": "GET /api/v1/content/homepage?locale=en",
+            "authorization": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "key": "homepage",
+                    "type": "landing",
+                    "locale": "en",
+                    "slug": "homepage-en",
+                    "content": {
+                        "title": "ShopBonus",
+                        "seo_title": "ShopBonus \u2014 save cashback for vouchers",
+                        "seo_description": "Discover discounts, cashback and vouchers at your favourite webshops.",
+                        "seo_image_asset_id": null,
+                        "body": {
+                            "type": "doc",
+                            "content": []
+                        },
+                        "section_visibility": {
+                            "hero": true,
+                            "search": true,
+                            "popular_webshops": true,
+                            "how_it_works": true,
+                            "discount_codes": true,
+                            "wallet_preview": true,
+                            "benefits": true,
+                            "cta_band": true,
+                            "faq_teaser": true
+                        },
+                        "nav": {
+                            "logo_alt": "ShopBonus",
+                            "links": [
+                                {
+                                    "label": "Webshops",
+                                    "href": "/webshops"
+                                },
+                                {
+                                    "label": "Cashback",
+                                    "href": "/webshops?has_offers=1"
+                                },
+                                {
+                                    "label": "Discount codes",
+                                    "href": "/kortingscodes"
+                                },
+                                {
+                                    "label": "How it works",
+                                    "href": "/hoe-werkt-het"
+                                }
+                            ]
+                        },
+                        "hero": {
+                            "heading": "Shop like you always do.\nSave for what you really want.",
+                            "subtitle": "Discover discounts, cashback and vouchers at your favourite webshops.",
+                            "primary_cta": {
+                                "label": "Discover offers",
+                                "href": "/webshops"
+                            },
+                            "secondary_cta": {
+                                "label": "How it works",
+                                "href": "/hoe-werkt-het"
+                            },
+                            "artwork_note": "Save for gift cards from your favourite stores",
+                            "promo_balance_example": "\u20ac 42,50",
+                            "promo_voucher_example": "\u20ac 25",
+                            "background_asset_id": null,
+                            "trust": [
+                                "Free to join",
+                                "Discount codes and cashback",
+                                "Save for vouchers"
+                            ]
+                        },
+                        "search": {
+                            "placeholder": "Search a webshop or offer..."
+                        },
+                        "popular_webshops": {
+                            "heading": "Popular webshops",
+                            "cta_label": "View all webshops \u2192",
+                            "cta_href": "/webshops",
+                            "mode": "auto",
+                            "featured_slugs": [],
+                            "limit": 4
+                        },
+                        "how_it_works": {
+                            "heading": "How ShopBonus works",
+                            "subtitle": "Three simple steps to more benefits.",
+                            "steps": [
+                                {
+                                    "title": "Discover benefits",
+                                    "description": "Find your favourite webshop and browse current discount codes and cashback offers."
+                                },
+                                {
+                                    "title": "Shop via ShopBonus",
+                                    "description": "Click through to the webshop and order as usual. Use a valid discount code when available."
+                                },
+                                {
+                                    "title": "Save for vouchers",
+                                    "description": "Earn cashback in your ShopBonus wallet on eligible purchases. Redeem your balance for a voucher."
+                                }
+                            ]
+                        },
+                        "discount_codes": {
+                            "heading": "Current discount codes",
+                            "cta_label": "View all discount codes \u2192",
+                            "cta_href": "/kortingscodes",
+                            "limit": 2
+                        },
+                        "wallet_preview": {
+                            "heading": "Your ShopBonus wallet",
+                            "guest_text": "Create a free account and save cashback for vouchers at favourite webshops.",
+                            "guest_cta": {
+                                "label": "Create account",
+                                "href": "/account"
+                            },
+                            "voucher_cta": {
+                                "label": "Choose a voucher",
+                                "href": "/mijn-voordelen"
+                            },
+                            "transactions_cta": {
+                                "label": "View transactions",
+                                "href": "/mijn-voordelen"
+                            }
+                        },
+                        "footer": {
+                            "blurb": "ShopBonus helps you save for vouchers at participating webshops."
+                        },
+                        "benefits": {
+                            "heading": "Benefits",
+                            "consumer_title": "Consumers",
+                            "merchant_title": "Merchants",
+                            "consumer_items": [
+                                "Save credit"
+                            ],
+                            "merchant_items": [
+                                "Reach shoppers"
+                            ]
+                        },
+                        "cta_band": {
+                            "heading": "Start",
+                            "subtitle": "Join us",
+                            "consumer_cta": {
+                                "label": "Join",
+                                "href": "/account"
+                            },
+                            "merchant_cta": {
+                                "label": "Register",
+                                "href": "/voor-webshops"
+                            }
+                        },
+                        "faq_teaser": {
+                            "heading": "FAQ",
+                            "subtitle": "Answers",
+                            "cta_label": "Read more",
+                            "cta_href": "/faq"
+                        },
+                        "section_order": [
+                            "search",
+                            "hero",
+                            "benefits",
+                            "cta_band",
+                            "faq_teaser"
+                        ]
+                    },
+                    "revision": 1,
+                    "published_at": "2026-10-31T14:04:08+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/public/discount-codes",
+            "authorization": null,
+            "status": 200,
+            "response": {
+                "data": []
+            }
+        },
+        {
+            "request": "GET /api/v1/admin/content/homepage/versions?locale=en",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": [
+                    {
+                        "id": "01m694cr8smbnt7v839zsdcb9h",
+                        "locale": "en",
+                        "number": 1,
+                        "restored_from": null,
+                        "published_by": "Adriana",
+                        "published_at": "2026-10-31T14:04:08+00:00",
+                        "content": {
+                            "title": "ShopBonus",
+                            "seo_title": "ShopBonus \u2014 save cashback for vouchers",
+                            "seo_description": "Discover discounts, cashback and vouchers at your favourite webshops.",
+                            "seo_image_asset_id": null,
+                            "body": {
+                                "type": "doc",
+                                "content": []
+                            },
+                            "section_visibility": {
+                                "hero": true,
+                                "search": true,
+                                "popular_webshops": true,
+                                "how_it_works": true,
+                                "discount_codes": true,
+                                "wallet_preview": true,
+                                "benefits": true,
+                                "cta_band": true,
+                                "faq_teaser": true
+                            },
+                            "nav": {
+                                "logo_alt": "ShopBonus",
+                                "links": [
+                                    {
+                                        "label": "Webshops",
+                                        "href": "/webshops"
+                                    },
+                                    {
+                                        "label": "Cashback",
+                                        "href": "/webshops?has_offers=1"
+                                    },
+                                    {
+                                        "label": "Discount codes",
+                                        "href": "/kortingscodes"
+                                    },
+                                    {
+                                        "label": "How it works",
+                                        "href": "/hoe-werkt-het"
+                                    }
+                                ]
+                            },
+                            "hero": {
+                                "heading": "Shop like you always do.\nSave for what you really want.",
+                                "subtitle": "Discover discounts, cashback and vouchers at your favourite webshops.",
+                                "primary_cta": {
+                                    "label": "Discover offers",
+                                    "href": "/webshops"
+                                },
+                                "secondary_cta": {
+                                    "label": "How it works",
+                                    "href": "/hoe-werkt-het"
+                                },
+                                "artwork_note": "Save for gift cards from your favourite stores",
+                                "promo_balance_example": "\u20ac 42,50",
+                                "promo_voucher_example": "\u20ac 25",
+                                "background_asset_id": null,
+                                "trust": [
+                                    "Free to join",
+                                    "Discount codes and cashback",
+                                    "Save for vouchers"
+                                ]
+                            },
+                            "search": {
+                                "placeholder": "Search a webshop or offer..."
+                            },
+                            "popular_webshops": {
+                                "heading": "Popular webshops",
+                                "cta_label": "View all webshops \u2192",
+                                "cta_href": "/webshops",
+                                "mode": "auto",
+                                "featured_slugs": [],
+                                "limit": 4
+                            },
+                            "how_it_works": {
+                                "heading": "How ShopBonus works",
+                                "subtitle": "Three simple steps to more benefits.",
+                                "steps": [
+                                    {
+                                        "title": "Discover benefits",
+                                        "description": "Find your favourite webshop and browse current discount codes and cashback offers."
+                                    },
+                                    {
+                                        "title": "Shop via ShopBonus",
+                                        "description": "Click through to the webshop and order as usual. Use a valid discount code when available."
+                                    },
+                                    {
+                                        "title": "Save for vouchers",
+                                        "description": "Earn cashback in your ShopBonus wallet on eligible purchases. Redeem your balance for a voucher."
+                                    }
+                                ]
+                            },
+                            "discount_codes": {
+                                "heading": "Current discount codes",
+                                "cta_label": "View all discount codes \u2192",
+                                "cta_href": "/kortingscodes",
+                                "limit": 2
+                            },
+                            "wallet_preview": {
+                                "heading": "Your ShopBonus wallet",
+                                "guest_text": "Create a free account and save cashback for vouchers at favourite webshops.",
+                                "guest_cta": {
+                                    "label": "Create account",
+                                    "href": "/account"
+                                },
+                                "voucher_cta": {
+                                    "label": "Choose a voucher",
+                                    "href": "/mijn-voordelen"
+                                },
+                                "transactions_cta": {
+                                    "label": "View transactions",
+                                    "href": "/mijn-voordelen"
+                                }
+                            },
+                            "footer": {
+                                "blurb": "ShopBonus helps you save for vouchers at participating webshops."
+                            },
+                            "benefits": {
+                                "heading": "Benefits",
+                                "consumer_title": "Consumers",
+                                "merchant_title": "Merchants",
+                                "consumer_items": [
+                                    "Save credit"
+                                ],
+                                "merchant_items": [
+                                    "Reach shoppers"
+                                ]
+                            },
+                            "cta_band": {
+                                "heading": "Start",
+                                "subtitle": "Join us",
+                                "consumer_cta": {
+                                    "label": "Join",
+                                    "href": "/account"
+                                },
+                                "merchant_cta": {
+                                    "label": "Register",
+                                    "href": "/voor-webshops"
+                                }
+                            },
+                            "faq_teaser": {
+                                "heading": "FAQ",
+                                "subtitle": "Answers",
+                                "cta_label": "Read more",
+                                "cta_href": "/faq"
+                            },
+                            "section_order": [
+                                "search",
+                                "hero",
+                                "benefits",
+                                "cta_band",
+                                "faq_teaser"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "request": "GET /api/v1/admin/content/homepage/versions?locale=en",
+            "authorization": null,
+            "status": 401,
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Authentication is required.",
+                    "request_id": "01a19247-027d-7112-a3a0-d55104374bf2"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/admin/content/homepage/versions?locale=en",
+            "authorization": "Bearer <redacted>",
+            "status": 403,
+            "response": {
+                "error": {
+                    "status": 403,
+                    "code": "platform_role_required",
+                    "message": "This action requires a platform administrator.",
+                    "request_id": "01a19247-0f51-7082-b608-49da5c99965d"
+                }
+            }
+        }
+    ]
+}

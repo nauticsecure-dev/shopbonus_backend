@@ -1,0 +1,686 @@
+{
+    "captured_at": "2026-11-01T16:11:20+00:00",
+    "environment": "Real local PHP HTTP server, isolated SQLite fixture; AI provider synthetic via Http::fake; no production data or model acceptance",
+    "captures": [
+        {
+            "request": "GET /api/v1/banners/config?key=pk_mszh1ylgmkocxqx3rdnnb4cw",
+            "authorization": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "editor_origin": "http://localhost:3000",
+                    "campaigns": [
+                        {
+                            "campaign": "01m6by27yyr6tcfp454xztxk8a",
+                            "version": 1,
+                            "config": {
+                                "template": "ribbon",
+                                "placement": {
+                                    "anchor": "top",
+                                    "width": 360,
+                                    "height": 180
+                                },
+                                "content": {
+                                    "heading": "Next-purchase reward",
+                                    "subtitle": "Approved offer terms apply",
+                                    "cta_label": "View offer",
+                                    "cta_url": "https://example.nl/rewards",
+                                    "terms": "Original terms"
+                                },
+                                "style": {
+                                    "background": "#123456",
+                                    "text": "#FFFFFF",
+                                    "font": "inter",
+                                    "animation": "none"
+                                },
+                                "frequency": {
+                                    "per_session": 1,
+                                    "hide_after_dismiss": true
+                                },
+                                "triggers": {
+                                    "all": [
+                                        {
+                                            "type": "url_match",
+                                            "value": "/collections/*"
+                                        }
+                                    ]
+                                },
+                                "layers": [
+                                    {
+                                        "type": "text",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "image",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "cta",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    }
+                                ],
+                                "devices": [
+                                    "desktop",
+                                    "mobile"
+                                ]
+                            },
+                            "reward": {
+                                "threshold_minor": 10000,
+                                "currency": "EUR"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/banners/editor/campaigns/01m6by27yyr6tcfp454xztxk8a",
+            "authorization": "X-Banner-Editor-Token: <isolated-fixture>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6by27yyr6tcfp454xztxk8a",
+                    "name": "Isolated studio fixture",
+                    "draft_revision": 1,
+                    "draft_config": {
+                        "template": "ribbon",
+                        "placement": {
+                            "anchor": "top",
+                            "width": 360,
+                            "height": 180
+                        },
+                        "content": {
+                            "heading": "Next-purchase reward",
+                            "subtitle": "Approved offer terms apply",
+                            "cta_label": "View offer",
+                            "cta_url": "https://example.nl/rewards",
+                            "terms": "Original terms"
+                        },
+                        "style": {
+                            "background": "#123456",
+                            "text": "#FFFFFF",
+                            "font": "inter",
+                            "animation": "none"
+                        },
+                        "frequency": {
+                            "per_session": 1,
+                            "hide_after_dismiss": true
+                        },
+                        "triggers": {
+                            "all": [
+                                {
+                                    "type": "url_match",
+                                    "value": "/collections/*"
+                                }
+                            ]
+                        },
+                        "layers": [
+                            {
+                                "type": "text",
+                                "visible": true,
+                                "align": "left",
+                                "font_size": 16,
+                                "width_pct": 100
+                            },
+                            {
+                                "type": "image",
+                                "visible": true,
+                                "align": "left",
+                                "font_size": 16,
+                                "width_pct": 100
+                            },
+                            {
+                                "type": "cta",
+                                "visible": true,
+                                "align": "left",
+                                "font_size": 16,
+                                "width_pct": 100
+                            }
+                        ],
+                        "devices": [
+                            "desktop",
+                            "mobile"
+                        ]
+                    },
+                    "reward": {
+                        "threshold_minor": 10000,
+                        "currency": "EUR"
+                    }
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/banners/editor/campaigns/01m6by27yyr6tcfp454xztxk8a",
+            "authorization": null,
+            "status": 401,
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "editor_token_invalid",
+                    "message": "Editor session expired or not valid for this site.",
+                    "request_id": "01a197e1-2c0f-720f-84b1-085c48e5e33b"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests/01m6by282tesf9vb3wcm5mdypf",
+            "authorization": "Bearer <isolated-fixture>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6by282tesf9vb3wcm5mdypf",
+                    "kind": "designs",
+                    "status": "completed",
+                    "failure_code": null,
+                    "source_revision": 1,
+                    "evidence": {
+                        "E1": {
+                            "template": "ribbon",
+                            "anchor": "top",
+                            "style": {
+                                "background": "#123456",
+                                "text": "#FFFFFF",
+                                "font": "inter"
+                            }
+                        },
+                        "E2": {
+                            "reward_minor": 1000,
+                            "fee_minor": 300,
+                            "total_minor": 1300,
+                            "basis": "fixed",
+                            "min_order_minor": 10000,
+                            "currency": "EUR"
+                        }
+                    },
+                    "proposals": [
+                        {
+                            "index": 0,
+                            "hypothesis": "Test placement bottom and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+                            "evidence_refs": [
+                                "E1"
+                            ],
+                            "editable_config": {
+                                "template": "ribbon",
+                                "placement": {
+                                    "anchor": "bottom",
+                                    "width": 360,
+                                    "height": 180
+                                },
+                                "content": {
+                                    "heading": "Next-purchase reward",
+                                    "subtitle": "Approved offer terms apply",
+                                    "cta_label": "View offer",
+                                    "cta_url": "https://example.nl/rewards",
+                                    "terms": "Original terms"
+                                },
+                                "style": {
+                                    "background": "#123456",
+                                    "text": "#FFFFFF",
+                                    "font": "inter",
+                                    "animation": "none"
+                                },
+                                "frequency": {
+                                    "per_session": 1,
+                                    "hide_after_dismiss": true
+                                },
+                                "triggers": {
+                                    "all": [
+                                        {
+                                            "type": "url_match",
+                                            "value": "/collections/*"
+                                        }
+                                    ]
+                                },
+                                "layers": [
+                                    {
+                                        "type": "text",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "image",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "cta",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    }
+                                ],
+                                "devices": [
+                                    "desktop",
+                                    "mobile"
+                                ]
+                            }
+                        },
+                        {
+                            "index": 1,
+                            "hypothesis": "Test placement top and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+                            "evidence_refs": [
+                                "E1"
+                            ],
+                            "editable_config": {
+                                "template": "ribbon",
+                                "placement": {
+                                    "anchor": "top",
+                                    "width": 360,
+                                    "height": 180
+                                },
+                                "content": {
+                                    "heading": "Next-purchase reward",
+                                    "subtitle": "Approved offer terms apply",
+                                    "cta_label": "View offer",
+                                    "cta_url": "https://example.nl/rewards",
+                                    "terms": "Original terms"
+                                },
+                                "style": {
+                                    "background": "#123456",
+                                    "text": "#FFFFFF",
+                                    "font": "inter",
+                                    "animation": "none"
+                                },
+                                "frequency": {
+                                    "per_session": 1,
+                                    "hide_after_dismiss": true
+                                },
+                                "triggers": {
+                                    "all": [
+                                        {
+                                            "type": "url_match",
+                                            "value": "/collections/*"
+                                        }
+                                    ]
+                                },
+                                "layers": [
+                                    {
+                                        "type": "text",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "image",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "cta",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    }
+                                ],
+                                "devices": [
+                                    "desktop",
+                                    "mobile"
+                                ]
+                            }
+                        },
+                        {
+                            "index": 2,
+                            "hypothesis": "Test placement bottom_right and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+                            "evidence_refs": [
+                                "E1"
+                            ],
+                            "editable_config": {
+                                "template": "ribbon",
+                                "placement": {
+                                    "anchor": "bottom_right",
+                                    "width": 360,
+                                    "height": 180
+                                },
+                                "content": {
+                                    "heading": "Next-purchase reward",
+                                    "subtitle": "Approved offer terms apply",
+                                    "cta_label": "View offer",
+                                    "cta_url": "https://example.nl/rewards",
+                                    "terms": "Original terms"
+                                },
+                                "style": {
+                                    "background": "#123456",
+                                    "text": "#FFFFFF",
+                                    "font": "inter",
+                                    "animation": "none"
+                                },
+                                "frequency": {
+                                    "per_session": 1,
+                                    "hide_after_dismiss": true
+                                },
+                                "triggers": {
+                                    "all": [
+                                        {
+                                            "type": "url_match",
+                                            "value": "/collections/*"
+                                        }
+                                    ]
+                                },
+                                "layers": [
+                                    {
+                                        "type": "text",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "image",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    },
+                                    {
+                                        "type": "cta",
+                                        "visible": true,
+                                        "align": "left",
+                                        "font_size": 16,
+                                        "width_pct": 100
+                                    }
+                                ],
+                                "devices": [
+                                    "desktop",
+                                    "mobile"
+                                ]
+                            }
+                        }
+                    ],
+                    "review": null,
+                    "human_review_required": true,
+                    "measured_uplift": null
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests",
+            "authorization": "Bearer <isolated-fixture>",
+            "status": 200,
+            "response": {
+                "current_page": 1,
+                "data": [
+                    {
+                        "id": "01m6by282tesf9vb3wcm5mdypf",
+                        "kind": "designs",
+                        "status": "completed",
+                        "failure_code": null,
+                        "source_revision": 1,
+                        "evidence": {
+                            "E1": {
+                                "template": "ribbon",
+                                "anchor": "top",
+                                "style": {
+                                    "background": "#123456",
+                                    "text": "#FFFFFF",
+                                    "font": "inter"
+                                }
+                            },
+                            "E2": {
+                                "reward_minor": 1000,
+                                "fee_minor": 300,
+                                "total_minor": 1300,
+                                "basis": "fixed",
+                                "min_order_minor": 10000,
+                                "currency": "EUR"
+                            }
+                        },
+                        "proposals": [
+                            {
+                                "index": 0,
+                                "hypothesis": "Test placement bottom and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+                                "evidence_refs": [
+                                    "E1"
+                                ],
+                                "editable_config": {
+                                    "template": "ribbon",
+                                    "placement": {
+                                        "anchor": "bottom",
+                                        "width": 360,
+                                        "height": 180
+                                    },
+                                    "content": {
+                                        "heading": "Next-purchase reward",
+                                        "subtitle": "Approved offer terms apply",
+                                        "cta_label": "View offer",
+                                        "cta_url": "https://example.nl/rewards",
+                                        "terms": "Original terms"
+                                    },
+                                    "style": {
+                                        "background": "#123456",
+                                        "text": "#FFFFFF",
+                                        "font": "inter",
+                                        "animation": "none"
+                                    },
+                                    "frequency": {
+                                        "per_session": 1,
+                                        "hide_after_dismiss": true
+                                    },
+                                    "triggers": {
+                                        "all": [
+                                            {
+                                                "type": "url_match",
+                                                "value": "/collections/*"
+                                            }
+                                        ]
+                                    },
+                                    "layers": [
+                                        {
+                                            "type": "text",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        },
+                                        {
+                                            "type": "image",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        },
+                                        {
+                                            "type": "cta",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        }
+                                    ],
+                                    "devices": [
+                                        "desktop",
+                                        "mobile"
+                                    ]
+                                }
+                            },
+                            {
+                                "index": 1,
+                                "hypothesis": "Test placement top and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+                                "evidence_refs": [
+                                    "E1"
+                                ],
+                                "editable_config": {
+                                    "template": "ribbon",
+                                    "placement": {
+                                        "anchor": "top",
+                                        "width": 360,
+                                        "height": 180
+                                    },
+                                    "content": {
+                                        "heading": "Next-purchase reward",
+                                        "subtitle": "Approved offer terms apply",
+                                        "cta_label": "View offer",
+                                        "cta_url": "https://example.nl/rewards",
+                                        "terms": "Original terms"
+                                    },
+                                    "style": {
+                                        "background": "#123456",
+                                        "text": "#FFFFFF",
+                                        "font": "inter",
+                                        "animation": "none"
+                                    },
+                                    "frequency": {
+                                        "per_session": 1,
+                                        "hide_after_dismiss": true
+                                    },
+                                    "triggers": {
+                                        "all": [
+                                            {
+                                                "type": "url_match",
+                                                "value": "/collections/*"
+                                            }
+                                        ]
+                                    },
+                                    "layers": [
+                                        {
+                                            "type": "text",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        },
+                                        {
+                                            "type": "image",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        },
+                                        {
+                                            "type": "cta",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        }
+                                    ],
+                                    "devices": [
+                                        "desktop",
+                                        "mobile"
+                                    ]
+                                }
+                            },
+                            {
+                                "index": 2,
+                                "hypothesis": "Test placement bottom_right and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+                                "evidence_refs": [
+                                    "E1"
+                                ],
+                                "editable_config": {
+                                    "template": "ribbon",
+                                    "placement": {
+                                        "anchor": "bottom_right",
+                                        "width": 360,
+                                        "height": 180
+                                    },
+                                    "content": {
+                                        "heading": "Next-purchase reward",
+                                        "subtitle": "Approved offer terms apply",
+                                        "cta_label": "View offer",
+                                        "cta_url": "https://example.nl/rewards",
+                                        "terms": "Original terms"
+                                    },
+                                    "style": {
+                                        "background": "#123456",
+                                        "text": "#FFFFFF",
+                                        "font": "inter",
+                                        "animation": "none"
+                                    },
+                                    "frequency": {
+                                        "per_session": 1,
+                                        "hide_after_dismiss": true
+                                    },
+                                    "triggers": {
+                                        "all": [
+                                            {
+                                                "type": "url_match",
+                                                "value": "/collections/*"
+                                            }
+                                        ]
+                                    },
+                                    "layers": [
+                                        {
+                                            "type": "text",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        },
+                                        {
+                                            "type": "image",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        },
+                                        {
+                                            "type": "cta",
+                                            "visible": true,
+                                            "align": "left",
+                                            "font_size": 16,
+                                            "width_pct": 100
+                                        }
+                                    ],
+                                    "devices": [
+                                        "desktop",
+                                        "mobile"
+                                    ]
+                                }
+                            }
+                        ],
+                        "review": null,
+                        "human_review_required": true,
+                        "measured_uplift": null
+                    }
+                ],
+                "first_page_url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+                "from": 1,
+                "last_page": 1,
+                "last_page_url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+                "links": [
+                    {
+                        "url": null,
+                        "label": "&laquo; Previous",
+                        "page": null,
+                        "active": false
+                    },
+                    {
+                        "url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+                        "label": "1",
+                        "page": 1,
+                        "active": true
+                    },
+                    {
+                        "url": null,
+                        "label": "Next &raquo;",
+                        "page": null,
+                        "active": false
+                    }
+                ],
+                "next_page_url": null,
+                "path": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests",
+                "per_page": 20,
+                "prev_page_url": null,
+                "to": 1,
+                "total": 1
+            }
+        }
+    ]
+}

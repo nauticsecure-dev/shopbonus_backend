@@ -19,6 +19,7 @@ use App\Models\AffiliateRewardRule;
 use App\Models\AffiliateTransaction;
 use App\Models\BannerCampaign;
 use App\Models\BannerInstallation;
+use App\Models\CookiePolicy;
 use App\Models\FundingInvoice;
 use App\Models\NetworkJourney;
 use App\Models\Offer;
@@ -30,6 +31,7 @@ use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherClaim;
 use App\Models\VoucherClaimReminder;
 use App\Models\VoucherCode;
+use App\Models\Wallet;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
@@ -37,6 +39,7 @@ use App\Services\Affiliate\AffiliateSync;
 use App\Services\Attribution\OrderAttribution;
 use App\Services\Banners\BannerExperiments;
 use App\Services\Banners\BannerService;
+use App\Services\Consent\CookieConsents;
 use App\Services\Funding\MerchantFunding;
 use App\Services\Offers\OfferService;
 use App\Services\Onboarding\Network\HostResolver;
@@ -149,7 +152,7 @@ class SalesAttributionE2ETest extends TestCase
             'device' => $device,
             'path' => '/collections/sale',
             'category' => $category,
-            'consent' => $consent,
+            'consent_id' => BannerFixture::consentId(), 'consent' => $consent,
         ];
     }
 
@@ -206,6 +209,96 @@ class SalesAttributionE2ETest extends TestCase
         app(OrderAttribution::class)->resolve($order, $attrs['coupon_codes'] ?? []);
 
         return $order->fresh();
+    }
+
+    public function test_review_voucher_hash_first_evidence_and_refunded_network(): void
+    {
+        $inventory = app(VoucherInventory::class);
+        $voucher = $inventory->reserve($this->rewardOffer, VoucherOrigin::Answer24Claim, 'review-hash');
+        $inventory->issue($voucher, User::factory()->create(['email_verified_at' => now()]));
+        $order = $this->paidOrder($this->shopA, $this->ownerA, []);
+        $code = $voucher->fresh()->code->code;
+        $this->assertNotSame($code, DB::table('voucher_codes')->where('id', $voucher->voucher_code_id)->value('code'));
+        app(OrderAttribution::class)->resolve($order, ['  '.strtolower($code).'  ']);
+        $this->assertSame('voucher', $order->fresh()->attribution_type);
+        $click = array_values($this->postEvents([$this->event('cta_click')])['click_ids'])[0];
+        $order->forceFill(['attribution_click_id' => $click])->save();
+        app(OrderAttribution::class)->resolve($order);
+        $this->assertSame('voucher', $order->fresh()->attribution_type);
+        $this->assertDatabaseHas('attribution_links', ['order_id' => $order->id, 'method' => 'voucher', 'voucher_id' => $voucher->id]);
+        $this->assertDatabaseMissing('network_journeys', ['order_id' => $order->id]);
+
+        $networkOrder = $this->paidOrder($this->shopB, $this->ownerB, ['amount_minor' => 15000, 'attribution_click_id' => $click]);
+        $networkOrder->forceFill(['refunded_minor' => 5000, 'payment_status' => PaymentStatus::PartiallyRefunded])->save();
+        // Reporting must reflect the authoritative order even before attribution replay.
+        Sanctum::actingAs($this->ownerB);
+        $this->getJson("/api/v1/workspaces/{$this->shopB->public_id}/analytics/overview")
+            ->assertOk()->assertJsonPath('data.network.as_receiver.by_currency.EUR.network_gmv_minor', 10000);
+        $networkOrder->forceFill(['refunded_minor' => 15000, 'payment_status' => PaymentStatus::Refunded])->save();
+        app(OrderAttribution::class)->resolve($networkOrder);
+        $this->getJson("/api/v1/workspaces/{$this->shopB->public_id}/analytics/overview")
+            ->assertOk()->assertJsonPath('data.network.as_receiver.network_gmv_minor', 0);
+        $this->assertSame(1, NetworkJourney::where('order_id', $networkOrder->id)->count());
+    }
+
+    public function test_review_mixed_currency_and_wallet_units_are_separate(): void
+    {
+        $connection = AffiliateConnection::create(['network' => 'daisycon', 'name' => 'Test', 'status' => 'connected', 'credentials' => [], 'postback_token_hash' => AffiliateConnection::hashToken('review')]);
+        foreach (['EUR' => 150, 'USD' => 400] as $currency => $amount) {
+            AffiliateTransaction::create(['network' => 'daisycon', 'connection_id' => $connection->id, 'external_id' => 'review-'.$currency,
+                'order_amount_minor' => 1000, 'currency' => $currency, 'commission_minor' => $amount,
+                'network_status' => 'approved', 'status' => 'approved', 'transaction_at' => now()]);
+            $this->paidOrder($this->shopA, $this->ownerA, ['currency' => $currency, 'amount_minor' => $amount]);
+        }
+        foreach (['eur_credit' => 1200, 'points' => 9000] as $unit => $available) {
+            Wallet::create(['owner_type' => 'user', 'owner_id' => $this->ownerA->id, 'kind' => 'consumer_credit', 'unit' => $unit, 'available' => $available, 'reserved' => 50]);
+        }
+        Sanctum::actingAs($this->admin);
+        $report = $this->getJson('/api/v1/admin/network')->assertOk()
+            ->assertJsonPath('data.external_affiliate.confirmed_commission_minor', null)
+            ->assertJsonPath('data.external_affiliate.by_currency.EUR.confirmed_commission_minor', 150)
+            ->assertJsonPath('data.external_affiliate.by_currency.USD.confirmed_commission_minor', 400)
+            ->assertJsonPath('data.verified_gmv.net_minor', null)->json('data');
+        $wallets = collect($report['wallet_liabilities'])->where('kind', 'consumer_credit')->keyBy('unit');
+        $this->assertSame(1250, $wallets['eur_credit']['outstanding']);
+        $this->assertSame(9050, $wallets['points']['outstanding']);
+    }
+
+    public function test_review_consent_withdrawal_policy_renewal_and_click_retry(): void
+    {
+        $event = $this->event('cta_click');
+        $first = $this->postEvents([$event]);
+        $retry = $this->postEvents([$event]);
+        $this->assertSame($first['click_ids'], $retry['click_ids']);
+        $this->assertSame(1, $retry['duplicates']);
+        $missing = $event;
+        $missing['id'] = (string) Str::uuid();
+        unset($missing['consent_id']);
+        $this->assertSame(1, $this->postEvents([$missing])['rejected']);
+        $policy = CookiePolicy::current();
+        app(CookieConsents::class)->record($event['consent_id'], $policy->version, 'withdraw', [], null, null);
+        $event['id'] = (string) Str::uuid();
+        $this->assertSame(1, $this->postEvents([$event])['rejected']);
+        $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => (string) Str::uuid(), 'consent' => true, 'consent_id' => $event['consent_id']], ['Origin' => self::ORIGIN_A])
+            ->assertForbidden()->assertJsonPath('error.code', 'tracking_consent_required');
+        app(CookieConsents::class)->record($event['consent_id'], $policy->version, 'accept_all', [], null, null);
+        $policy->forceFill(['version' => 'renewed', 'requires_reconsent' => true])->save();
+        $this->assertSame(1, $this->postEvents([$event])['rejected']);
+    }
+
+    public function test_review_storefront_preflight_is_scoped_and_reports_reject_unbounded_ranges(): void
+    {
+        $this->options('/api/v1/banners/events', [], ['Origin' => self::ORIGIN_A, 'Access-Control-Request-Method' => 'POST', 'Access-Control-Request-Headers' => 'content-type'])
+            ->assertNoContent()->assertHeader('Access-Control-Allow-Origin', self::ORIGIN_A)->assertHeaderMissing('Access-Control-Allow-Credentials');
+        $this->getJson('/api/v1/banners/config?key='.$this->installation->public_key, ['Origin' => self::ORIGIN_A])
+            ->assertOk()->assertHeader('Access-Control-Allow-Origin', self::ORIGIN_A);
+        $this->getJson('/api/v1/banners/config?key='.$this->installation->public_key, ['Origin' => 'https://foreign.test'])
+            ->assertForbidden()->assertHeaderMissing('Access-Control-Allow-Origin');
+        Sanctum::actingAs($this->ownerA);
+        $url = "/api/v1/workspaces/{$this->shopA->public_id}/analytics/overview";
+        $this->getJson($url.'?days=7')->assertOk()->assertJsonCount(7, 'data.sales_series');
+        $this->getJson($url.'?days=8')->assertUnprocessable();
+        $this->getJson($url.'?from=2024-01-01&to=2026-10-31')->assertUnprocessable();
     }
 
     /** E2E 1 — True impressions: 100/70/7/20 → 70 impressions, 10% CTR, 20 dismissals. */
@@ -654,7 +747,7 @@ class SalesAttributionE2ETest extends TestCase
         $this->postJson('/api/v1/banners/assignments', [
             'key' => $this->installation->public_key,
             'visitor_key' => (string) Str::uuid(),
-            'consent' => true,
+            'consent_id' => BannerFixture::consentId(), 'consent' => true,
         ], ['Origin' => self::ORIGIN_A])->assertOk();
 
         $exp = app(BannerExperiments::class)->report($this->campaign->fresh());

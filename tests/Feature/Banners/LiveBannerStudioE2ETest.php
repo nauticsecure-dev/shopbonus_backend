@@ -318,7 +318,7 @@ class LiveBannerStudioE2ETest extends TestCase
             'device' => 'desktop',
             'path' => '/collections/sale',
             'category' => 'fashion',
-            'consent' => true,
+            'consent_id' => BannerFixture::consentId(), 'consent' => true,
         ];
     }
 }

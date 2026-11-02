@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $published_by
  * @property int|null $restored_from_id
  * @property CarbonImmutable $created_at
+ * @property int|null $source_master_revision
  */
 class CmsRevision extends Model
 {
@@ -34,7 +35,7 @@ class CmsRevision extends Model
 
     protected function casts(): array
     {
-        return ['content' => 'array', 'number' => 'integer', 'effective_date' => 'immutable_date', 'created_at' => 'immutable_datetime'];
+        return ['content' => 'array', 'number' => 'integer', 'effective_date' => 'immutable_date', 'created_at' => 'immutable_datetime', 'source_master_revision' => 'integer'];
     }
 
     /** @return list<string> */

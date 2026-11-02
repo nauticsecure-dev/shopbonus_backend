@@ -1,0 +1,180 @@
+{
+  "temporary_fixture_removed": true,
+  "diff_check": "PASS backend/frontend",
+  "provider": "HTTP stubs in tests; no live OpenAI execution",
+  "backend_base": "926ab34",
+  "tests": {
+    "assertions": 8378,
+    "command": "php artisan test --compact tests/Feature/Cms tests/Feature/Api/OpenApiCoverageTest.php tests/Unit/Cms --log-junit docs/cms/translation-regression.junit.xml",
+    "passed": 81
+  },
+  "uncommitted": true,
+  "pint": "PASS targeted files",
+  "database": "isolated SQLite; feature tests use in-memory database",
+  "http": {
+    "exchanges": 11,
+    "authentication": "synthetic fixture Sanctum actor and recent-password session",
+    "browser_csrf_proven": false
+  },
+  "application_database_migrated": false,
+  "phpstan": "PASS targeted files, zero errors",
+  "source_and_evidence_hashes": [
+    {
+      "sha256": "0a047fff809d6b0b19de98cd4b41cbd1fd71e38ba0a68bd33b02758caef4de4b",
+      "path": "app/Jobs/GenerateCmsSuggestion.php"
+    },
+    {
+      "sha256": "3815b1fcfc159464bdd1ebda9897610ff59a1ea62255d90ee4b6544362f38a51",
+      "path": "app/Services/Cms/TranslationGuard.php"
+    },
+    {
+      "sha256": "80f07d3d1547a9c01394763974b31dd4f6b6bf2a2950dd8d3a0f29b0808d5232",
+      "path": "app/Services/Cms/CmsSuggestions.php"
+    },
+    {
+      "sha256": "e950fa6bee95295b6313b7bcbac017b448949bc1d8a66da6d877b525b786242a",
+      "path": "app/Services/Cms/CmsService.php"
+    },
+    {
+      "sha256": "7e7280de6a452946501e8d81afde12e5c07d7b0ca6678406eaf68ca7f0c1e7a8",
+      "path": "app/Models/CmsAiSuggestion.php"
+    },
+    {
+      "sha256": "8a7cab25bbf85876016e5ddaea892cdbd39e9380156565a1c097fda1ec12d55f",
+      "path": "app/Models/CmsRevision.php"
+    },
+    {
+      "sha256": "14a32f2d44e92ef41117f865ebfe22de1d9bea3d9f1978ef07d403f6cab89b8d",
+      "path": "app/Http/Controllers/Api/V1/Admin/CmsController.php"
+    },
+    {
+      "sha256": "152002cf6cd76511c277877cb37f51deee03e0d5c01cf4dd82f11ffd06ccac64",
+      "path": "config/cms.php"
+    },
+    {
+      "sha256": "1ef07d30ec2aa8b4538421297fe5b282bb0f84534a8738966c14d29ba3d7aa41",
+      "path": "database/migrations/2026_11_02_120000_add_cms_suggestion_provenance.php"
+    },
+    {
+      "sha256": "2ba484797cfaf1191dc579f4f0a48499afb9f80c935a55b8ec72b9e6a72d9939",
+      "path": "tests/Feature/Cms/CmsScheduleAndSuggestionTest.php"
+    },
+    {
+      "sha256": "fe1a06df56c00683fcd827aa4c3280e17860091438900bee736d5e723c8c9a66",
+      "path": "tests/Unit/Cms/TranslationGuardTest.php"
+    },
+    {
+      "sha256": "3a7a741385854d909da103877706a38c49030d03ae1afb55b2f71d370529e840",
+      "path": "docs/api/openapi.yaml"
+    },
+    {
+      "sha256": "847adf3f4eef7e4cb5a5146226a564c3df7173577674354a330fad5c292f26ab",
+      "path": "docs/cms/TRANSLATION_HTTP_CAPTURE.json"
+    },
+    {
+      "sha256": "e594e99e63ccfe2dccae7e0b2ab5cfefe6b6770c6ec6b32836fa7f26d5da142b",
+      "path": "docs/cms/translation-regression.junit.xml"
+    }
+  ],
+  "date": "2026-11-02",
+  "branch": "HassanDev",
+  "staging_acceptance": [
+    {
+      "status": "UNTESTED",
+      "id": "T01"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T02"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T03"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T04"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T05"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T06"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T07"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T08"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T09"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T10"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T11"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T12"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T13"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T14"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T15"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T16"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T17"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T18"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T19"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T20"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T21"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T22"
+    },
+    {
+      "status": "UNTESTED",
+      "id": "T23"
+    }
+  ],
+  "frontend_typecheck": "PASS npm run typecheck",
+  "deployed": false,
+  "frontend_contract_sha256": "9f0f4944fc1e677d035ef5f1bb6cd422fc74b9624753874830669add4259a8ec",
+  "status": "PARTIAL_NO_GO",
+  "frontend_base": "5abab50"
+}

@@ -1,0 +1,2 @@
+Failed loading c:/wamp64/bin/php/php8.5.0/zend_ext/php_xdebug-3.4.7-8.4-ts-vs17-x86_64.dll
+{"tool":"phpunit","result":"passed","tests":3,"passed":3,"assertions":7780,"duration_ms":3532}

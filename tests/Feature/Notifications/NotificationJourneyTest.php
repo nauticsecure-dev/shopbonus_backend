@@ -4,6 +4,7 @@ namespace Tests\Feature\Notifications;
 
 use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
+use App\Enums\PlatformRole;
 use App\Enums\VoucherOrigin;
 use App\Models\AffiliateConnection;
 use App\Models\AffiliateRewardRule;
@@ -14,6 +15,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Services\Admin\PlatformSettings;
 use App\Services\Affiliate\AffiliateProcessor;
+use App\Services\Affiliate\SettlementRecorder;
 use App\Services\Consumer\CommunicationPreferences;
 use App\Services\Discovery\PublicProfileService;
 use App\Services\Notifications\NotificationDispatcher;
@@ -55,6 +57,9 @@ class NotificationJourneyTest extends TestCase
             'order_amount_minor' => 10000, 'currency' => 'EUR', 'commission_minor' => 1000, 'network_status' => 'approved', 'status' => 'approved', 'transaction_at' => now()]);
         app(AffiliateProcessor::class)->settle($tx, 'admin', $user->id);
         app(AffiliateProcessor::class)->settle($tx->fresh(), 'admin', $user->id);
+        $admin = User::factory()->create();
+        $admin->platformRoles()->create(['role' => PlatformRole::SuperAdmin, 'granted_via' => 'console', 'granted_at' => now()]);
+        app(SettlementRecorder::class)->record($tx->fresh(), $admin, 'fixture-notification-remittance', now()->toImmutable()->subMinute());
         $this->assertSame(0, $user->notifications()->count());
         app(NotificationDispatcher::class)->drain();
         app(NotificationDispatcher::class)->drain();

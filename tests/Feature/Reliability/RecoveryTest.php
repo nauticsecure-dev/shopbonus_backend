@@ -2,14 +2,20 @@
 
 namespace Tests\Feature\Reliability;
 
+use App\Models\Offer;
+use App\Models\QaTestRun;
 use App\Models\User;
+use App\Models\VoucherCheckout;
+use App\Models\Webshop;
 use App\Services\Disputes\DisputeService;
 use App\Services\Qa\QaRuns;
 use App\Services\Reliability\Recovery\Backups;
 use App\Services\Reliability\Recovery\EncryptedArchive;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -53,6 +59,49 @@ class RecoveryTest extends TestCase
         $roots = array_values((require config_path('recovery.php'))['media_roots']);
         foreach (['cms', 'banners', 'avatars', 'public-profiles', DisputeService::EVIDENCE_DIR, QaRuns::EVIDENCE_DIR, 'verification-evidence'] as $dir) {
             $this->assertContains(storage_path('app/private/'.$dir), $roots, "{$dir} uploads are not backed up");
+        }
+    }
+
+    public function test_restored_dispute_and_qa_references_resolve_to_identical_decryptable_attachments(): void
+    {
+        config(['filesystems.disks.evidence-fixture' => ['driver' => 'local', 'root' => $this->media.'/private']]);
+        // Real local adapter under a temporary root, never the active private uploads.
+        Storage::set('local', Storage::build(config('filesystems.disks.evidence-fixture')));
+        config(['recovery.media_roots' => [
+            'disputes' => $this->media.'/private/'.DisputeService::EVIDENCE_DIR,
+            'qa' => $this->media.'/private/'.QaRuns::EVIDENCE_DIR,
+        ]]);
+        $user = User::factory()->create();
+        $shop = Webshop::factory()->create();
+        $offer = Offer::create(['webshop_id' => $shop->id, 'acquisition' => 'wallet_purchase', 'created_by' => $user->id]);
+        $checkout = VoucherCheckout::create(['user_id' => $user->id, 'webshop_id' => $shop->id, 'offer_id' => $offer->id,
+            'idempotency_key' => 'recovery-fixture', 'state' => 'paid_unfulfilled', 'price_minor' => 1000,
+            'wallet_part_minor' => 0, 'payment_part_minor' => 1000, 'currency' => 'EUR', 'expires_at' => now()->addHour()]);
+        $disputeBytes = 'SYNTHETIC dispute attachment';
+        $dispute = app(DisputeService::class)->open($user, null, $checkout, 'missing_after_payment', 'Recovery fixture',
+            [UploadedFile::fake()->createWithContent('evidence.txt', $disputeBytes)]);
+        $run = QaTestRun::create(['suite' => 'feature', 'environment' => 'ci', 'git_sha' => str_repeat('a', 40),
+            'source' => 'junit', 'report_hash' => hash('sha256', 'recovery-fixture'), 'totals' => []]);
+        $qaBytes = 'SYNTHETIC quality evidence';
+        $qa = app(QaRuns::class)->storeEvidence($run, UploadedFile::fake()->createWithContent('qa.txt', $qaBytes), null, null, $user->id);
+        $backup = app(Backups::class)->create();
+        $result = app(Backups::class)->restore($backup['archive']);
+        try {
+            $pdo = new PDO('sqlite:'.$result['isolated_directory'].'/database.sqlite');
+            $restoredDispute = $pdo->query('SELECT public_id, evidence FROM voucher_disputes')->fetch(PDO::FETCH_ASSOC);
+            $meta = json_decode($restoredDispute['evidence'], true, flags: JSON_THROW_ON_ERROR)[0];
+            $disputeFile = $result['isolated_directory'].'/media/disputes/'.$restoredDispute['public_id'].'/'.$meta['id'].'.enc';
+            $this->assertSame($disputeBytes, base64_decode(Crypt::decryptString(file_get_contents($disputeFile)), true));
+            $restoredQa = $pdo->query('SELECT path, sha256 FROM qa_evidence')->fetch(PDO::FETCH_ASSOC);
+            $qaFile = $result['isolated_directory'].'/media/qa/'.substr($restoredQa['path'], strlen(QaRuns::EVIDENCE_DIR) + 1);
+            $bytes = base64_decode(Crypt::decryptString(file_get_contents($qaFile)), true);
+            $this->assertSame($qaBytes, $bytes);
+            $this->assertSame($restoredQa['sha256'], hash('sha256', $bytes));
+            $this->assertSame(hash_file('sha256', Storage::disk('local')->path($qa->path)), hash_file('sha256', $qaFile));
+            $this->assertSame($dispute->public_id, $restoredDispute['public_id']);
+        } finally {
+            unset($pdo);
+            File::deleteDirectory($result['isolated_directory']);
         }
     }
 

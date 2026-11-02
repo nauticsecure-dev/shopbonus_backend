@@ -75,30 +75,30 @@ final class SupportPolicy
             'value.restrictions.*.action' => ['required', Rule::in(self::ACTIONS)],
             'value.restrictions.*.enabled' => ['required', 'boolean:strict'],
             'value.restrictions.*.scope' => ['sometimes', Rule::in(['ALL', 'CONSUMER', 'WORKSPACE'])],
-            'value.default_language' => ['sometimes', Rule::in(['en', 'nl'])],
-            'value.tone' => ['sometimes', Rule::in(['friendly_professional', 'warm', 'formal'])],
-            'value.empathy' => ['sometimes', Rule::in(['low', 'balanced', 'high'])],
-            'value.answer_detail' => ['sometimes', Rule::in(['brief', 'concise', 'detailed'])],
-            'value.target_answer_words' => ['sometimes', 'integer:strict', 'between:10,200'],
-            'value.max_answer_words' => ['sometimes', 'integer:strict', 'between:20,400'],
-            'value.max_clarification_questions' => ['sometimes', 'integer:strict', 'between:0,3'],
+            'value.default_language' => ['sometimes', Rule::in(['nl'])],
+            'value.tone' => ['sometimes', Rule::in(['friendly_professional'])],
+            'value.empathy' => ['sometimes', Rule::in(['balanced'])],
+            'value.answer_detail' => ['sometimes', Rule::in(['concise'])],
+            'value.target_answer_words' => ['sometimes', Rule::in([45])],
+            'value.max_answer_words' => ['sometimes', Rule::in([120])],
+            'value.max_clarification_questions' => ['sometimes', Rule::in([1])],
             'value.show_progress_updates' => ['sometimes', 'boolean:strict'],
             'value.show_verified_badge' => ['sometimes', 'boolean:strict'],
             'value.suggest_relevant_actions' => ['sometimes', 'boolean:strict'],
-            'value.human_escalation' => ['sometimes', Rule::in(['enabled', 'disabled'])],
-            'value.reasoning_effort' => ['sometimes', Rule::in(['low', 'medium', 'high'])],
-            'value.text_verbosity' => ['sometimes', Rule::in(['low', 'medium', 'high'])],
+            'value.human_escalation' => ['sometimes', Rule::in(['enabled'])],
+            'value.reasoning_effort' => ['sometimes', Rule::in(['medium'])],
+            'value.text_verbosity' => ['sometimes', Rule::in(['low'])],
             'value.max_output_tokens' => ['sometimes', 'integer:strict', 'between:256,4000'],
-            'value.tool_choice' => ['sometimes', Rule::in(['required', 'auto', 'none'])],
-            'value.parallel_tool_calls' => ['sometimes', 'boolean:strict'],
-            'value.store' => ['sometimes', 'boolean:strict'],
-            'value.stream' => ['sometimes', 'boolean:strict'],
-            'value.response_deadline_ms' => ['sometimes', 'integer:strict', 'between:3000,30000'],
-            'value.progress_message_delay_ms' => ['sometimes', 'integer:strict', 'between:0,5000'],
+            'value.tool_choice' => ['sometimes', Rule::in(['required'])],
+            'value.parallel_tool_calls' => ['sometimes', 'boolean:strict', Rule::in([false])],
+            'value.store' => ['sometimes', 'boolean:strict', Rule::in([false])],
+            'value.stream' => ['sometimes', 'boolean:strict', Rule::in([false])],
+            'value.response_deadline_ms' => ['sometimes', Rule::in([12000])],
+            'value.progress_message_delay_ms' => ['sometimes', Rule::in([500])],
             'value.max_research_retries' => ['sometimes', 'integer:strict', 'in:0,1'],
-            'value.max_function_rounds' => ['sometimes', 'integer:strict', 'between:1,5'],
-            'value.daily_cost_limit_eur' => ['sometimes', 'numeric', 'between:0,1000'],
-            'value.fallback_model' => ['sometimes', 'nullable', 'string', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
+            'value.max_function_rounds' => ['sometimes', Rule::in([3])],
+            'value.daily_cost_limit_eur' => ['sometimes', Rule::in([20])],
+            'value.fallback_model' => ['sometimes', 'prohibited'],
         ];
     }
 
@@ -112,7 +112,7 @@ final class SupportPolicy
         $p['model'] ??= (string) config('support_ai.model');
         $p['daily_request_limit'] = max(0, min((int) config('support_ai.daily_request_limit'), $p['daily_request_limit'], 1000));
         $p['timeout_seconds'] = max(5, min((int) config('support_ai.timeout_seconds'), $p['timeout_seconds'], 20));
-        $p['max_retry'] = max(0, min(1, (int) ($p['max_research_retries'] ?? $p['max_retry'])));
+        $p['max_retry'] = max(0, min(1, (int) $p['max_retry'], (int) ($p['max_research_retries'] ?? 1)));
         $p['version'] = $published['versions']['support.ai'] ?? 'default-disabled';
         $p['fingerprint'] = hash('sha256', json_encode($p, JSON_THROW_ON_ERROR));
 
@@ -120,7 +120,7 @@ final class SupportPolicy
     }
 
     /** @param array<string, mixed> $p */
-    public function action(array $p, string $intent): ?string
+    public function action(array $p, string $intent, bool $workspace = false): ?string
     {
         $code = match ($intent) {
             'escalate' => 'NO_UNVERIFIED_REFUND_PROMISE',
@@ -130,6 +130,9 @@ final class SupportPolicy
         };
         foreach ($p['restrictions'] as $r) {
             if (! ($r['enabled'] ?? false)) {
+                continue;
+            }
+            if (($r['scope'] ?? 'ALL') !== 'ALL' && $r['scope'] !== ($workspace ? 'WORKSPACE' : 'CONSUMER')) {
                 continue;
             }
             $rule = $r['rule_code'] ?? '';

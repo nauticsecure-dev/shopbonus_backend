@@ -46,7 +46,7 @@ class HomepageCmsService
             return null;
         }
 
-        return CmsCache::remember("homepage:{$locale}", function () use ($locale) {
+        return (function () use ($locale) {
             $page = CmsPage::where('key', 'homepage')->whereNull('archived_at')->where('audience', 'public')->first();
             if ($page === null) {
                 return null;
@@ -73,7 +73,7 @@ class HomepageCmsService
                 'revision' => $r->number,
                 'published_at' => $r->created_at->toIso8601String(),
             ];
-        });
+        })();
     }
 
     /**
@@ -212,6 +212,9 @@ class HomepageCmsService
         }
         if (isset($content['hero']['background_asset_id'])) {
             $content['hero']['background_url'] = $url($content['hero']['background_asset_id']);
+        }
+        if (isset($content['hero']['background_mobile_asset_id'])) {
+            $content['hero']['background_mobile_url'] = $url($content['hero']['background_mobile_asset_id']);
         }
         if (isset($content['body']) && is_array($content['body'])) {
             $walk = function (array $node) use (&$walk): array {

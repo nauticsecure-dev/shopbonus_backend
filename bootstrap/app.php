@@ -4,6 +4,7 @@ use App\Exceptions\ApiException;
 use App\Exceptions\ApiExceptionRenderer;
 use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\AuditAccessDenials;
+use App\Http\Middleware\EmbedCors;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsurePlatformRole;
@@ -14,6 +15,7 @@ use App\Http\Middleware\ObserveApiRequest;
 use App\Http\Middleware\RecordSecurityIncidents;
 use App\Http\Middleware\RejectAuthenticatedJsonRequests;
 use App\Http\Middleware\RequireRecentPassword;
+use App\Http\Middleware\RequireSensitiveWorkspaceStepUp;
 use App\Http\Middleware\RequireStepUpCode;
 use App\Http\Middleware\RequireWorkspacePermission;
 use App\Http\Middleware\ResolveWorkspace;
@@ -41,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withBroadcasting(__DIR__.'/../routes/channels.php', ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum', 'account.active']])
     ->withMiddleware(function (Middleware $middleware): void {
         // First in the stack so even routing/auth failures carry a request ID.
-        $middleware->prepend([AssignRequestId::class, ObserveApiRequest::class, RecordSecurityIncidents::class]);
+        $middleware->prepend([AssignRequestId::class, ObserveApiRequest::class, RecordSecurityIncidents::class, EmbedCors::class]);
         $middleware->append(SecurityHeaders::class);
 
         $middleware->prependToGroup('api', [ForceJsonResponse::class, AuditAccessDenials::class, SetRequestLocale::class]);
@@ -60,6 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace' => ResolveWorkspace::class,
             'workspace.can' => RequireWorkspacePermission::class,
             'workspace.commercial' => EnsureWorkspaceCommerciallyActive::class,
+            'workspace.sensitive' => RequireSensitiveWorkspaceStepUp::class,
             'platform' => EnsurePlatformRole::class,
             'password.recent' => RequireRecentPassword::class,
             'integration.signed' => VerifyIntegrationSignature::class,

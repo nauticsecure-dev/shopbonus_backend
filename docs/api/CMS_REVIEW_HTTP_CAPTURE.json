@@ -1,0 +1,233 @@
+{
+    "environment": "Real local PHP HTTP server with isolated SQLite and synthetic signed-in session; no production data",
+    "captures": [
+        {
+            "request": "GET /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/preview",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "locale": "nl",
+                    "slug": "review-http",
+                    "content": {
+                        "title": "Reviewed legal text",
+                        "seo_title": "Legal",
+                        "seo_description": "Fixture",
+                        "body": {
+                            "type": "doc",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Reviewed content"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "draft_revision": 1,
+                    "preview": true
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish",
+            "body": {
+                "legal_version": "review-2026.11",
+                "effective_date": "2026-11-02",
+                "approve": true
+            },
+            "status": 422,
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "The given data was invalid.",
+                    "request_id": "01a19aa9-a880-73d3-a604-eeb2dcccc188",
+                    "fields": {
+                        "revision": [
+                            "The revision field is required."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "request": "PUT /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl",
+            "body": {
+                "revision": 1,
+                "content": {
+                    "title": "New unreviewed draft",
+                    "seo_title": "Legal",
+                    "seo_description": "Fixture",
+                    "body": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": "Reviewed content"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            },
+            "status": 200,
+            "response": {
+                "data": {
+                    "locale": "nl",
+                    "slug": "review-http",
+                    "draft_revision": 2
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish",
+            "body": {
+                "legal_version": "review-2026.11",
+                "effective_date": "2026-11-02",
+                "approve": true,
+                "revision": 1
+            },
+            "status": 409,
+            "response": {
+                "error": {
+                    "status": 409,
+                    "code": "draft_changed",
+                    "message": "The draft changed after review. Preview it again before publishing.",
+                    "request_id": "01a19aa9-ad5a-7171-8ffd-492186505283"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/preview",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "locale": "nl",
+                    "slug": "review-http",
+                    "content": {
+                        "title": "New unreviewed draft",
+                        "seo_title": "Legal",
+                        "seo_description": "Fixture",
+                        "body": {
+                            "type": "doc",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Reviewed content"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "draft_revision": 2,
+                    "preview": true
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish",
+            "body": {
+                "legal_version": "review-2026.11",
+                "effective_date": "2026-11-02",
+                "approve": true,
+                "revision": 2
+            },
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6dakckbmy9asbrdhaayp2jf",
+                    "locale": "nl",
+                    "number": 1,
+                    "legal_version": "review-2026.11",
+                    "effective_date": "2026-11-02",
+                    "approved_by": "Olaf",
+                    "published_by": "Olaf",
+                    "restored_from": null,
+                    "published_at": "2026-11-02T05:09:34+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/public/pages/nl/review-http",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "key": "review-http",
+                    "type": "terms",
+                    "locale": "nl",
+                    "slug": "review-http",
+                    "content": {
+                        "title": "New unreviewed draft",
+                        "seo_title": "Legal",
+                        "seo_description": "Fixture",
+                        "body": {
+                            "type": "doc",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Reviewed content"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "legal": {
+                        "version": "review-2026.11",
+                        "effective_date": "2026-11-02"
+                    },
+                    "revision": 1,
+                    "published_at": "2026-11-02T05:09:34+00:00",
+                    "alternates": {
+                        "nl": "review-http"
+                    }
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/public/faq?locale=en",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": []
+            }
+        },
+        {
+            "request": "GET /api/v1/public/cookie-policy?locale=en",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "version": null,
+                    "categories": [
+                        {
+                            "key": "necessary",
+                            "required": true,
+                            "trackers": []
+                        }
+                    ],
+                    "texts": null,
+                    "requires_reconsent": false
+                }
+            }
+        }
+    ]
+}

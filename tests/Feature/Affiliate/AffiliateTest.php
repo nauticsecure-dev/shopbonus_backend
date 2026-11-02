@@ -4,6 +4,7 @@ namespace Tests\Feature\Affiliate;
 
 use App\Enums\PlatformRole;
 use App\Enums\WalletUnit;
+use App\Exceptions\ApiException;
 use App\Jobs\SyncAffiliateConnection;
 use App\Models\AffiliateClick;
 use App\Models\AffiliateConnection;
@@ -21,9 +22,11 @@ use App\Models\WalletReconciliationFlag;
 use App\Models\Webshop;
 use App\Services\Affiliate\AffiliateSync;
 use App\Services\Affiliate\ProgramSelector;
+use App\Services\Affiliate\SettlementRecorder;
 use App\Services\Reliability\FinancialReconciliation;
 use App\Services\Reliability\FinancialSources;
 use App\Services\Wallet\WalletService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
@@ -96,9 +99,16 @@ class AffiliateTest extends TestCase
             'parts' => [['subid' => $subid, 'referencenumber' => $order, 'revenue' => 79.95, 'commission' => $commission, 'status' => $status, 'currency_code' => 'EUR']]];
     }
 
-    private function import(AffiliateConnection $c, array $programs = [], array $transactions = []): array
+    private function importAndReconcileApprovedFunds(AffiliateConnection $c, array $programs = [], array $transactions = []): array
     {
-        return app(AffiliateSync::class)->import($c, $programs, $transactions, $this->admin->id);
+        $result = app(AffiliateSync::class)->import($c, $programs, $transactions, $this->admin->id);
+        // These fixtures explicitly include independently reconciled remittances.
+        // Settlement gating without evidence is covered separately below.
+        foreach (AffiliateTransaction::where('connection_id', $c->id)->where('network_status', 'approved')->whereNull('settlement_evidence')->get() as $tx) {
+            app(SettlementRecorder::class)->record($tx, $this->admin, 'fixture-remittance-'.$tx->external_id, CarbonImmutable::now()->subMinute());
+        }
+
+        return $result;
     }
 
     /** Signed-in Anna clicks "Visit webshop"; returns the click reference. */
@@ -155,8 +165,8 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e2_highest_comparable_rate_wins_and_restricted_rates_are_not_compared(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
         // Auto-matched on the merchant's verified domain.
         $this->assertSame(2, AffiliateProgram::where('webshop_id', $this->shop->id)->count());
 
@@ -165,14 +175,14 @@ class AffiliateTest extends TestCase
         $decision = DB::table('affiliate_program_selections')->latest('id')->first();
         $this->assertSame([300, 400], array_column(json_decode($decision->candidates, true), 'expected_commission_minor'));
 
-        $this->import($this->tradetracker, [$this->tradetrackerProgram(restricted: true)]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram(restricted: true)]);
         $choice = app(ProgramSelector::class)->select($this->shop);
         $this->assertSame(['daisycon', 'fallback', 'restricted_rates_not_comparable'], [$choice['program']->connection->network, $choice['method'], $choice['limitation']]);
     }
 
     public function test_card19_e2e3_visit_redirects_through_the_network_and_awards_nothing(): void
     {
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
 
         Sanctum::actingAs($this->anna);
         $response = $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery());
@@ -196,34 +206,34 @@ class AffiliateTest extends TestCase
     {
         // Legacy network-approval regime still supported via config override.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
-        $result = $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending')]);
+        $result = $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending')]);
         $this->assertSame([1, []], [$result['transactions'], $result['rejected']]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame([7995, 479, 'pending', 'pending', 239], [$tx->order_amount_minor, $tx->commission_minor, $tx->status, $tx->reward_status, $tx->reward_amount]);
         $this->assertSame([0, 239], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-24T09:00:00Z')]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-24T09:00:00Z')]); // retry
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-24T09:00:00Z')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-24T09:00:00Z')]); // retry
         $this->assertSame([239, 0, 239], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
         $this->assertSame('credited', $tx->fresh()->reward_status);
         $this->assertSame([], app(WalletService::class)->reconcile());
 
         // A rejected row in the import is reported, the rest goes through.
-        $bad = $this->import($this->daisycon, [], [['affiliatemarketing_id' => 'X']]);
+        $bad = $this->importAndReconcileApprovedFunds($this->daisycon, [], [['affiliatemarketing_id' => 'X']]);
         $this->assertCount(1, $bad['rejected']);
     }
 
-    public function test_verified_conversion_credits_immediately_with_default_70_percent_split(): void
+    public function test_verified_conversion_with_reconciled_funds_credits_authoritative_70_percent_rule(): void
     {
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-70', $ref, 'approved', commission: 10.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-70', $ref, 'approved', commission: 10.00)]);
         $tx = AffiliateTransaction::where('external_id', 'D-70')->sole();
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame([700, 0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
@@ -238,10 +248,10 @@ class AffiliateTest extends TestCase
                 'idempotency_key' => 'fixture:'.$externalId, 'order_amount_minor' => 5000, 'commission_minor' => 500, 'consumer_credit_minor' => 350,
                 'shopbonus_revenue_minor' => 150, 'status' => 'credited', 'agreement_snapshot' => [], 'converted_at' => now()]);
         }
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-DUP', $ref, 'approved', order: 'ORD-1')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-DUP', $ref, 'approved', order: 'ORD-1')]);
         $tx = AffiliateTransaction::where('external_id', 'D-DUP')->sole();
         $this->assertSame(['disputed', 'direct_merchant_reward_already_credited', 'none'], [$tx->status, $tx->review_reason, $tx->reward_status]);
         $this->assertSame(0, $this->wallet()->fresh()->total_earned);
@@ -249,11 +259,11 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e4_unknown_or_inconsistent_conversions_enter_review(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $other = $this->activeWebshop(User::factory()->create(), ['name' => 'Ander']);
         $foreign = AffiliateClick::create(['reference' => 'FOREIGNCLICK00000001', 'user_id' => $this->anna->id, 'webshop_id' => $other->id, 'program_id' => AffiliateProgram::sole()->id]);
 
-        $this->import($this->daisycon, [], [
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [
             $this->daisyconTx('D-1', null, 'approved', order: 'A'),
             $this->daisyconTx('D-2', 'NOSUCHCLICK', 'approved', order: 'B'),
             $this->daisyconTx('D-3', $foreign->reference, 'approved', order: 'C'),
@@ -275,14 +285,14 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e5_replays_and_cross_network_reports_never_reward_twice(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
         $ref = $this->annaClicks();
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved')]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved')]);
         // The same purchase reported by TradeTracker (same order reference).
-        $this->import($this->tradetracker, [], [['ID' => 'TT-9', 'campaign' => ['ID' => 'T1'], 'reference' => 'OTHER', 'orderID' => 'ORD-1', 'orderAmount' => '79.95',
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [], [['ID' => 'TT-9', 'campaign' => ['ID' => 'T1'], 'reference' => 'OTHER', 'orderID' => 'ORD-1', 'orderAmount' => '79.95',
             'commission' => '6.40', 'transactionStatus' => 'accepted', 'registrationDate' => now()->toIso8601String()]]);
 
         $this->assertSame(2, AffiliateTransaction::count());
@@ -295,18 +305,18 @@ class AffiliateTest extends TestCase
     public function test_card19_e2e7_rejection_cancels_pending_and_reversal_never_reclaims_spent_credit(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref1 = $this->annaClicks();
         $ref2 = $this->annaClicks();
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref1, 'pending', order: 'O1')]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref1, 'disapproved', '2026-10-24T09:00:00Z', order: 'O1')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref1, 'pending', order: 'O1')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref1, 'disapproved', '2026-10-24T09:00:00Z', order: 'O1')]);
         $this->assertSame(['rejected', 'cancelled'], [AffiliateTransaction::where('external_id', 'D-1')->value('status'), AffiliateTransaction::where('external_id', 'D-1')->value('reward_status')]);
         $this->assertSame([0, 0], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-2', $ref2, 'approved', order: 'O2')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-2', $ref2, 'approved', order: 'O2')]);
         app(WalletService::class)->debit($this->wallet(), 200, 'voucher-purchase'); // Anna spends most of it
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-2', $ref2, 'reversed', '2026-10-25T09:00:00Z', order: 'O2')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-2', $ref2, 'reversed', '2026-10-25T09:00:00Z', order: 'O2')]);
 
         $tx = AffiliateTransaction::where('external_id', 'D-2')->sole();
         $this->assertSame(['reversed', 'reversal_flagged'], [$tx->status, $tx->reward_status]);
@@ -319,7 +329,7 @@ class AffiliateTest extends TestCase
     public function test_card19_e2e9_postbacks_cannot_approve_and_stale_updates_are_ignored(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
         $this->postJson('/api/v1/affiliate/postback/daisycon-token', $this->daisyconTx('D-1', $ref, 'approved'))->assertStatus(202)->assertJsonPath('data.status', 'tracked');
@@ -327,27 +337,32 @@ class AffiliateTest extends TestCase
         $this->postJson('/api/v1/affiliate/postback/wrong-token', $this->daisyconTx('D-9', $ref, 'approved'))->assertNotFound();
 
         // The trusted import then processes it; a later postback cannot change it.
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', '2026-10-24T10:00:00Z')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', '2026-10-24T10:00:00Z')]);
         $this->postJson('/api/v1/affiliate/postback/daisycon-token', $this->daisyconTx('D-1', $ref, 'approved', '2026-10-25T10:00:00Z'))->assertStatus(202);
         $this->assertSame(['pending', 239], [AffiliateTransaction::sole()->status, $this->wallet()->fresh()->pending]);
 
         // Out of order: an older approval after a newer rejection is ignored.
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'disapproved', '2026-10-26T10:00:00Z')]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-25T10:00:00Z')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'disapproved', '2026-10-26T10:00:00Z')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-25T10:00:00Z')]);
         $this->assertSame(['rejected', 0], [AffiliateTransaction::sole()->status, $this->wallet()->fresh()->available]);
     }
 
-    public function test_card23_test6_instant_credit_mode_credits_once_and_rejection_does_not_reverse(): void
+    public function test_historical_instant_credit_snapshot_credits_once_and_rejection_does_not_reverse(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_validated_attribution']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 9.50)]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 9.50)]); // replay
+        AffiliateRewardRule::query()->update(['active' => false]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 9.50)]);
+        // Simulate a pre-existing historical obligation; never a config override for new rewards.
+        DB::table('affiliate_transactions')->update(['reward_timing' => 'on_validated_attribution']);
+        AffiliateRewardRule::query()->update(['active' => true]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 9.50)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 9.50)]); // replay
         $this->assertSame([475, 0], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]); // €4.75 immediately
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'disapproved', '2026-10-24T09:00:00Z', commission: 9.50)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'disapproved', '2026-10-24T09:00:00Z', commission: 9.50)]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame(['rejected', 'credited', 'network_rejected_after_credit'], [$tx->status, $tx->reward_status, $tx->review_reason]);
         $this->assertSame(475, $this->wallet()->fresh()->available);
@@ -357,10 +372,10 @@ class AffiliateTest extends TestCase
 
     public function test_rewards_above_the_review_threshold_wait_for_an_admin(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', commission: 250.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', commission: 250.00)]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame(['disputed', 'review_threshold'], [$tx->status, $tx->review_reason]);
         $this->assertSame(0, $this->wallet()->fresh()->available);
@@ -372,11 +387,37 @@ class AffiliateTest extends TestCase
         $this->postJson("/api/v1/admin/affiliate/transactions/{$tx->public_id}/resolve", ['action' => 'accept', 'note' => 'again'])->assertStatus(409);
     }
 
+    public function test_new_rewards_ignore_instant_config_and_require_independent_settlement(): void
+    {
+        config(['shopbonus.affiliate.credit_timing' => 'on_validated_attribution']);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+        $row = $this->daisyconTx('SETTLEMENT-GATE', $ref, 'approved');
+        app(AffiliateSync::class)->import($this->daisycon, [], [$row], $this->admin->id);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame('on_network_settlement', $tx->reward_timing);
+        $this->assertSame([0, 239], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        $this->assertNull($tx->settlement_evidence);
+        $recorder = app(SettlementRecorder::class);
+        try {
+            $recorder->record($tx, $this->anna, 'forged', CarbonImmutable::now()->subMinute());
+            $this->fail('Consumer must not record settlement.');
+        } catch (ApiException $e) {
+            $this->assertSame(403, $e->status);
+        }
+        $recorder->record($tx, $this->admin, 'bank-remittance-123', CarbonImmutable::now()->subMinute());
+        app(AffiliateSync::class)->import($this->daisycon, [], [$row], $this->admin->id);
+        $this->assertSame([239, 0], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        $this->assertTrue($tx->fresh()->credit_evidence['allocation']['cash_settlement_verified']);
+        $this->expectException(\LogicException::class);
+        $tx->fresh()->forceFill(['settlement_evidence' => ['reference' => 'tampered']])->save();
+    }
+
     public function test_no_active_rule_means_no_reward(): void
     {
         AffiliateRewardRule::query()->update(['active' => false]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $this->annaClicks(), 'approved')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $this->annaClicks(), 'approved')]);
 
         $this->assertSame(['approved', 'none'], [AffiliateTransaction::sole()->status, AffiliateTransaction::sole()->reward_status]);
         $this->assertSame(0, $this->wallet()->fresh()->available);
@@ -403,8 +444,8 @@ class AffiliateTest extends TestCase
 
         // Consumer view: own activity, no commission data.
         $this->app['auth']->forgetGuards();
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $this->annaClicks(), 'pending')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $this->annaClicks(), 'pending')]);
         Sanctum::actingAs($this->anna);
         $activity = $this->getJson('/api/v1/consumer/affiliate-activity')->assertOk()->json('data.0');
         $this->assertSame(['Fietsen Utrecht', 'pending', 'pending'], [$activity['webshop'], $activity['status'], $activity['reward']['status']]);
@@ -417,30 +458,30 @@ class AffiliateTest extends TestCase
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $click = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'pending', commission: 10, order: 'HIST-1')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'pending', commission: 10, order: 'HIST-1')]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame([0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
         AffiliateRewardRule::create(['version' => 3, 'unit' => 'eur_credit', 'share_bps' => 9000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
         config(['shopbonus.affiliate.credit_timing' => 'on_validated_attribution']); // Existing pending obligation must not change regime.
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'pending', '2026-10-27T10:00:00Z', 10, 'HIST-1')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'pending', '2026-10-27T10:00:00Z', 10, 'HIST-1')]);
         $this->assertSame(0, $this->wallet()->fresh()->available);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'approved', '2026-10-27T11:00:00Z', 10, 'HIST-1')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $click, 'approved', '2026-10-27T11:00:00Z', 10, 'HIST-1')]);
         $tx = $tx->fresh();
         $this->assertSame(700, $this->wallet()->fresh()->available);
-        $this->assertSame('on_network_approval', $tx->credit_evidence['timing']);
+        $this->assertSame('on_network_settlement', $tx->credit_evidence['timing']);
         $this->assertSame(7000, $tx->credit_evidence['rule_terms']['share_bps']);
         $this->assertSame(1000, $tx->credit_evidence['commission_minor']);
         $this->assertSame(700, $tx->credit_evidence['reward_amount']);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
-        $this->assertFalse($tx->credit_evidence['allocation']['cash_settlement_verified']);
+        $this->assertTrue($tx->credit_evidence['allocation']['cash_settlement_verified']);
         $sourceCheck = app(FinancialSources::class)->inspect($tx);
         $this->assertSame('matched', $sourceCheck['status'], json_encode($sourceCheck));
         $this->assertSame(['consumer_minor' => 700, 'unrecognized_residual_minor' => 300], $sourceCheck['evidence']['snapshot']['calculated_split']);
         $original = $tx->credit_evidence;
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-2', $this->annaClicks(), 'approved', commission: 10, order: 'HIST-2')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-2', $this->annaClicks(), 'approved', commission: 10, order: 'HIST-2')]);
         $this->assertSame(900, AffiliateTransaction::where('external_id', 'D-2')->sole()->reward_amount);
         $this->assertSame($original, $tx->fresh()->credit_evidence);
         $this->expectException(\LogicException::class);
@@ -457,10 +498,10 @@ class AffiliateTest extends TestCase
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'review_above_minor' => 800, 'active' => true, 'created_by' => $this->admin->id]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $click = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-CHANGED', $click, 'pending', commission: 10)]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('D-CHANGED', $click, 'approved', '2026-10-27T11:00:00Z', 20)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-CHANGED', $click, 'pending', commission: 10)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-CHANGED', $click, 'approved', '2026-10-27T11:00:00Z', 20)]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame('disputed', $tx->status);
         $this->assertSame([0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
@@ -474,10 +515,10 @@ class AffiliateTest extends TestCase
     public function test_foreign_commission_currency_cannot_silently_become_eur_wallet_credit(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $data = $this->daisyconTx('D-USD', $this->annaClicks(), 'approved', commission: 10);
         $data['parts'][0]['currency_code'] = 'USD';
-        $this->import($this->daisycon, [], [$data]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$data]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame('disputed', $tx->status);
         $this->assertSame('unsupported_reward_currency', $tx->review_reason);
@@ -491,8 +532,8 @@ class AffiliateTest extends TestCase
 
     public function test_reconciliation_detects_duplicate_credit_without_posting_corrections(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('DUP-CHECK', $this->annaClicks(), 'approved')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('DUP-CHECK', $this->annaClicks(), 'approved')]);
         $tx = AffiliateTransaction::sole();
         $wallet = $this->wallet();
         app(WalletService::class)->credit($wallet, $tx->reward_amount, 'synthetic-duplicate', meta: ['source_type' => 'affiliate', 'source_ref' => $tx->public_id]);
@@ -515,10 +556,10 @@ class AffiliateTest extends TestCase
     public function test_zero_approved_commission_closes_the_original_pending_reward_without_a_credit(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $click = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('ZERO', $click, 'pending', commission: 10)]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('ZERO', $click, 'approved', '2026-10-28T10:00:00Z', 0)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('ZERO', $click, 'pending', commission: 10)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('ZERO', $click, 'approved', '2026-10-28T10:00:00Z', 0)]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame('cancelled', $tx->reward_status);
         $this->assertSame([0, 0], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
@@ -528,8 +569,8 @@ class AffiliateTest extends TestCase
     public function test_pending_source_reconciliation_rejects_another_consumers_wallet_link(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('PENDING-OWNER', $this->annaClicks(), 'pending')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('PENDING-OWNER', $this->annaClicks(), 'pending')]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame('matched', app(FinancialSources::class)->inspect($tx)['status']);
         $wallets = app(WalletService::class);
@@ -543,9 +584,9 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e8_wallet_integrity_preserves_balances_on_failed_and_concurrent_paths(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('E2E8', $ref, 'approved', commission: 10.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('E2E8', $ref, 'approved', commission: 10.00)]);
 
         $wallet = $this->wallet()->fresh();
         $this->assertSame(500, $wallet->available); // 50% rule from setUp share_bps=5000
@@ -567,8 +608,8 @@ class AffiliateTest extends TestCase
     public function test_card19_e2e10_operations_queue_admin_monitoring_and_consumer_filters(): void
     {
         Bus::fake([SyncAffiliateConnection::class]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('OPS-1', $this->annaClicks(), 'pending')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('OPS-1', $this->annaClicks(), 'pending')]);
 
         $this->asAdminWithStepUp();
         $this->postJson("/api/v1/admin/affiliate/connections/{$this->daisycon->public_id}/sync", ['async' => true])
@@ -595,7 +636,7 @@ class AffiliateTest extends TestCase
 
     public function test_card19_points_unit_reward_credits_the_points_wallet_once(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create([
@@ -607,7 +648,8 @@ class AffiliateTest extends TestCase
             'active' => true,
             'created_by' => $this->admin->id,
         ]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('PTS-1', $this->annaClicks(), 'approved', commission: 5.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('PTS-1', $this->annaClicks(), 'approved', commission: 5.00)]);
 
         $tx = AffiliateTransaction::sole();
         $this->assertSame(['points', 500, 'credited'], [$tx->reward_unit, $tx->reward_amount, $tx->reward_status]);
@@ -618,7 +660,7 @@ class AffiliateTest extends TestCase
 
     public function test_points_rules_remain_inactive_without_explicit_program_and_rate(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
         $this->asAdminWithStepUp();
         $this->postJson('/api/v1/admin/affiliate/reward-rules', ['unit' => 'points', 'share_bps' => 7000])->assertCreated()
@@ -649,45 +691,45 @@ class AffiliateTest extends TestCase
 
     public function test_program_rate_is_frozen_for_pending_approval_and_does_not_leak_to_another_program(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
         $rule = AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 7000, 'active' => true, 'min_commission_minor' => 0,
             'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'commission_source' => 'affiliate_network', 'calculation_version' => 'points_v2',
             'points_per_eur_share' => 10, 'created_by' => $this->admin->id]);
         $ref = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'pending', commission: 10.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'pending', commission: 10.00)]);
         $tx = AffiliateTransaction::sole();
         $this->assertSame(['pending', 70, 'points'], [$tx->reward_status, $tx->reward_amount, $tx->reward_unit]);
         $this->assertSame(0, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
         AffiliateRewardRule::create([...$rule->only(['unit', 'share_bps', 'min_commission_minor', 'program_id', 'webshop_id', 'commission_source', 'calculation_version', 'created_by']),
             'version' => 3, 'points_per_eur_share' => 100, 'active' => true]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'approved', commission: 10.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('FROZEN-POINTS', $ref, 'approved', commission: 10.00)]);
         $this->assertSame(70, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
         $this->assertSame(10, $tx->fresh()->reward_terms_snapshot['points_per_eur_share']);
         $check = app(FinancialSources::class)->inspect($tx->fresh());
         $this->assertSame([], $check['evidence']['issues']);
         $this->assertSame(['points_money_allocation_undefined'], $check['evidence']['unknown']);
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
         $other = AffiliateProgram::where('connection_id', $this->tradetracker->id)->sole();
         $this->assertSame(WalletUnit::EurCredit, AffiliateRewardRule::current(webshopId: $this->shop->id, commissionSource: 'affiliate_network', programId: $other->id)->unit);
     }
 
     public function test_legacy_pending_points_snapshot_is_honoured_without_reintroducing_implicit_new_rates(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 10000, 'min_commission_minor' => 0,
             'program_id' => $program->id, 'webshop_id' => $this->shop->id, 'calculation_version' => 'points_v2', 'points_per_eur_share' => 100,
             'active' => true, 'created_by' => $this->admin->id]);
         $ref = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'pending', commission: 5.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'pending', commission: 5.00)]);
         $tx = AffiliateTransaction::sole();
         // Reproduce a pre-D104 pending record: the immutable historical snapshot had no rate fields.
         $legacy = array_diff_key($tx->reward_terms_snapshot, array_flip(['program_id', 'calculation_version', 'points_per_eur_share', 'points_multiplier_bps', 'points_rounding']));
         DB::table('affiliate_transactions')->where('id', $tx->id)->update(['reward_terms_snapshot' => json_encode($legacy, JSON_THROW_ON_ERROR)]);
         AffiliateRewardRule::query()->update(['active' => false]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'approved', commission: 5.00)]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('LEGACY-POINTS', $ref, 'approved', commission: 5.00)]);
         $this->assertSame(500, app(WalletService::class)->consumerWallet($this->anna, WalletUnit::Points)->available);
         $actual = $tx->fresh()->reward_terms_snapshot;
         ksort($legacy);
@@ -700,19 +742,19 @@ class AffiliateTest extends TestCase
     {
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'points', 'share_bps' => 10000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('NO-IMPLICIT-RATE', $this->annaClicks(), 'approved')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('NO-IMPLICIT-RATE', $this->annaClicks(), 'approved')]);
         $this->assertSame('none', AffiliateTransaction::sole()->reward_status);
         $this->assertSame(0, WalletLedgerEntry::where('source_type', 'affiliate')->count());
     }
 
     public function test_two_distinct_orders_on_one_click_are_credited_but_same_order_is_disputed(): void
     {
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
-        $this->import($this->daisycon, [], [$this->daisyconTx('DISTINCT-1', $ref, 'approved', order: 'ORDER-A')]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('DISTINCT-2', $ref, 'approved', order: 'ORDER-B')]);
-        $this->import($this->daisycon, [], [$this->daisyconTx('DUPLICATE-1', $ref, 'approved', order: 'ORDER-A')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('DISTINCT-1', $ref, 'approved', order: 'ORDER-A')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('DISTINCT-2', $ref, 'approved', order: 'ORDER-B')]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('DUPLICATE-1', $ref, 'approved', order: 'ORDER-A')]);
         $this->assertSame(2, AffiliateTransaction::where('reward_status', 'credited')->count());
         $this->assertSame('disputed', AffiliateTransaction::where('external_id', 'DUPLICATE-1')->sole()->status);
         $this->assertSame(478, $this->wallet()->fresh()->available);
@@ -722,11 +764,11 @@ class AffiliateTest extends TestCase
     {
         $selector = app(ProgramSelector::class);
         $this->assertNull($selector->current($this->shop));
-        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $this->assertSame('daisycon', $selector->current($this->shop)->connection->network);
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
         $this->assertSame('tradetracker', $selector->current($this->shop)->connection->network);
-        $this->import($this->daisycon, [$this->daisyconProgram(['type' => 'percentage', 'value' => '10', 'restricted' => false])]);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram(['type' => 'percentage', 'value' => '10', 'restricted' => false])]);
         $this->assertSame('daisycon', $selector->current($this->shop)->connection->network);
         $count = DB::table('affiliate_program_selections')->count();
         $selector->current($this->shop);
@@ -737,7 +779,7 @@ class AffiliateTest extends TestCase
 
     public function test_missing_cookie_policy_never_creates_an_affiliate_click_even_in_tests(): void
     {
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
         Sanctum::actingAs($this->anna);
         $this->assertNull(CookiePolicy::current());
         $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
@@ -762,7 +804,7 @@ class AffiliateTest extends TestCase
             'published_at' => now(),
             'published_by' => $this->admin->id,
         ]);
-        $this->import($this->tradetracker, [$this->tradetrackerProgram()]);
+        $this->importAndReconcileApprovedFunds($this->tradetracker, [$this->tradetrackerProgram()]);
 
         $this->get('/api/v1/public/webshops/fietsen-utrecht/visit')->assertRedirect('https://fietsen-utrecht.nl');
         $this->assertSame(0, AffiliateClick::count());

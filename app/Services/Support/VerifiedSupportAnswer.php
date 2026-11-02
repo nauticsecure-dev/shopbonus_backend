@@ -150,8 +150,8 @@ final class VerifiedSupportAnswer
         // Pending = a reward awaiting approval (not spendable yet); reserved = own credit held for a purchase in progress.
         $lines = [];
         if ($pending > 0) {
-            $lines[] = $nl ? 'Een beloning van '.$amount($pending).' is in behandeling en nog niet te besteden. Na goedkeuring verschijnt het bedrag in je beschikbare tegoed; een datum is niet bevestigd.'
-                : 'A reward of '.$amount($pending).' is pending and cannot be spent yet. Once approved it moves to your available credit; no date has been confirmed.';
+            $lines[] = $nl ? 'Een beloning van '.$amount($pending).' is in behandeling en nog niet te besteden. Vrijgave vereist bevestigde voorwaarden; een datum is niet bevestigd.'
+                : 'A reward of '.$amount($pending).' is pending and cannot be spent yet. Release requires verified eligibility; no date has been confirmed.';
         }
         if ($reserved > 0) {
             $lines[] = $nl ? $amount($reserved).' van je tegoed is gereserveerd voor een aankoop die nog loopt.'

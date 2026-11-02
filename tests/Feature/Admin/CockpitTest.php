@@ -11,6 +11,8 @@ use App\Enums\UserStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
 use App\Enums\WebshopStatus;
+use App\Exceptions\ApiException;
+use App\Models\AffiliateTransaction;
 use App\Models\Offer;
 use App\Models\SupportConversation;
 use App\Models\SupportMessage;
@@ -18,6 +20,7 @@ use App\Models\SupportReview;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCode;
+use App\Models\WebhookEvent;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
@@ -35,8 +38,8 @@ use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
 
 /**
- * Exactly 10 E2E scenarios for Super Admin Cockpit (Trello #21).
- * Hits authoritative admin APIs the live frontend consumes — no duplicate ledgers.
+ * API integration regression scenarios for Super Admin Cockpit (Trello #21).
+ * Exercises the admin APIs; browser/provider verification is separate — no duplicate ledgers.
  */
 class CockpitTest extends TestCase
 {
@@ -65,7 +68,8 @@ class CockpitTest extends TestCase
         $offer = $offers->transition($offers->create($this->shop->memberships()->sole()->setRelation('webshop', $this->shop), OfferAcquisition::MerchantReward,
             ['name' => 'Korting', 'discount_type' => 'fixed', 'discount_value' => 1000, 'min_order_minor' => 5000, 'redemption_validity_days' => 30]), OfferStatus::Active);
         for ($i = 1; $i <= $codes; $i++) {
-            VoucherCode::create(['webshop_id' => $this->shop->id, 'offer_id' => $offer->id, 'code' => "C{$i}-".Str::upper(Str::random(4)), 'code_hash' => VoucherCode::hashFor($this->shop->id, "C{$i}-{$i}"), 'code_last4' => sprintf('%04d', $i)]);
+            $value = "C{$i}-".Str::upper(Str::random(4));
+            VoucherCode::create(['webshop_id' => $this->shop->id, 'offer_id' => $offer->id, 'code' => $value, 'code_hash' => VoucherCode::hashFor($this->shop->id, $value), 'code_last4' => substr($value, -4)]);
         }
 
         return $offer;
@@ -148,7 +152,7 @@ class CockpitTest extends TestCase
         $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk()->assertJsonPath('meta.total', 3);
     }
 
-    public function test_change_percent_compares_with_totals_at_the_end_of_the_previous_period(): void
+    public function test_current_consumer_total_has_no_invented_historical_change(): void
     {
         foreach (range(1, 2) as $i) {
             User::factory()->create(['status' => UserStatus::Active, 'created_at' => now()->subDays(20)]);
@@ -157,7 +161,8 @@ class CockpitTest extends TestCase
 
         Sanctum::actingAs($this->admin);
         $cards = collect($this->getJson('/api/v1/admin/cockpit?period=7d')->assertOk()->json('data.cards'))->keyBy('key');
-        $this->assertEquals([3, 50], [$cards['consumers']['value'], $cards['consumers']['change_percent']]); // 2 → 3
+        $this->assertEquals([3, null], [$cards['consumers']['value'], $cards['consumers']['change_percent']]);
+        $this->assertStringContainsString('Historical snapshots', $cards['consumers']['comparison_unavailable_reason']);
         $this->assertNull($cards['open_actions']['change_percent']); // no history to compare with
     }
 
@@ -261,33 +266,40 @@ class CockpitTest extends TestCase
     /** E2E 7 — Affiliate donut */
     public function test_e2e7_affiliate_channel_distribution_percentages(): void
     {
-        $daisy = DB::table('affiliate_network_connections')->insertGetId([
-            'public_id' => strtolower((string) str()->ulid()), 'network' => 'daisycon', 'name' => 'Daisycon', 'status' => 'connected',
-            'credentials' => 'x', 'postback_token_hash' => str_repeat('c', 64), 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        $trade = DB::table('affiliate_network_connections')->insertGetId([
-            'public_id' => strtolower((string) str()->ulid()), 'network' => 'tradetracker', 'name' => 'TradeTracker', 'status' => 'connected',
-            'credentials' => 'x', 'postback_token_hash' => str_repeat('d', 64), 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        for ($i = 0; $i < 1608; $i++) {
-            $this->insertAffiliate('daisycon', 'approved', 10, "D-{$i}", $daisy);
+        $consumer = User::factory()->create();
+        $offer = $this->offerWithCodes(4);
+        $inventory = app(VoucherInventory::class);
+        $issued = [];
+        foreach (range(1, 4) as $i) {
+            $issued[] = $inventory->issue($inventory->reserve($offer, VoucherOrigin::MerchantReward, 'channel-'.$i), $consumer);
         }
-        for ($i = 0; $i < 756; $i++) {
-            $this->insertAffiliate('tradetracker', 'pending', 10, "T-{$i}", $trade);
+        foreach (['daisycon', 'daisycon', 'tradetracker'] as $i => $network) {
+            $this->insertAffiliate($network, 'approved', 10, 'CHANNEL-'.$i);
+            $t = AffiliateTransaction::where('external_id', 'CHANNEL-'.$i)->sole();
+            $t->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
+            $inventory->recordAcquisition($issued[$i], $t);
         }
-
+        $this->insertAffiliate('tradetracker', 'approved', 999, 'NO-VOUCHER');
         Sanctum::actingAs($this->admin);
-        Cache::flush();
         $channels = $this->getJson('/api/v1/admin/cockpit?period=30d')->assertOk()->json('data.affiliate_channels');
-        $this->assertSame('conversions', $channels['metric']);
-        $this->assertSame(2364, $channels['total']);
+        $this->assertSame('vouchers', $channels['metric']);
+        $this->assertSame(4, $channels['total']);
         $byNet = collect($channels['channels'])->keyBy('network');
-        $this->assertSame(1608, $byNet['daisycon']['count']);
-        $this->assertSame(756, $byNet['tradetracker']['count']);
-        $this->assertSame(68, $byNet['daisycon']['percent']);
-        $this->assertSame(32, $byNet['tradetracker']['percent']);
-        $this->assertStringContainsString('daisycon', $byNet['daisycon']['href']);
-        $this->getJson('/api/v1/admin/affiliate/transactions?network=daisycon')->assertOk();
+        $this->assertSame(2, $byNet['daisycon']['count']);
+        $this->assertSame(50, $byNet['daisycon']['percent']);
+        $this->assertSame(1, $byNet['tradetracker']['count']);
+        $this->assertSame(1, $byNet['other']['count']);
+        $this->assertStringContainsString('tab=vouchers', $byNet['daisycon']['href']);
+        $this->getJson('/api/v1/admin/vouchers?acquisition_network=daisycon&from=2026-10-24&to=2026-10-24')
+            ->assertOk()->assertJsonPath('meta.total', 2);
+        $this->getJson('/api/v1/admin/vouchers?acquisition_network=other')->assertOk()->assertJsonPath('meta.total', 1);
+        $t->forceFill(['user_id' => $this->owner->id])->save();
+        try {
+            $inventory->recordAcquisition($issued[3], $t);
+            $this->fail('Mismatched consumer evidence accepted');
+        } catch (ApiException $e) {
+            $this->assertSame(409, $e->status);
+        }
     }
 
     /** E2E 8 — Recent activity */
@@ -408,5 +420,124 @@ class CockpitTest extends TestCase
         $this->assertArrayHasKey('cards', $data);
         $this->assertIsArray($data['warnings']);
         unset($order);
+    }
+
+    public function test_hash_search_is_exact_normalized_and_masked(): void
+    {
+        $consumer = User::factory()->create();
+        $offer = $this->offerWithCodes(1);
+        $code = VoucherCode::where('offer_id', $offer->id)->sole();
+        $code->forceFill(['code' => 'Case-Code-1234', 'code_hash' => VoucherCode::hashFor($this->shop->id, 'Case-Code-1234'), 'code_last4' => '1234'])->save();
+        $v = app(VoucherInventory::class)->issue(app(VoucherInventory::class)->reserve($offer, VoucherOrigin::MerchantReward, 'hash'), $consumer);
+        Sanctum::actingAs($this->admin);
+        $found = $this->getJson('/api/v1/admin/search?q='.urlencode(' case-code-1234 '))->assertOk()->json('data.groups');
+        $this->assertSame($v->public_id, collect($found)->firstWhere('type', 'vouchers')['results'][0]['id']);
+        $this->assertStringNotContainsString('Case-Code', json_encode($found));
+        $partial = $this->getJson('/api/v1/admin/search?q=Code-1234')->assertOk()->json('data.groups');
+        $this->assertNull(collect($partial)->firstWhere('type', 'vouchers'));
+    }
+
+    public function test_usable_kpi_and_destination_exclude_invalid_codes_and_expiry_boundary(): void
+    {
+        $consumer = User::factory()->create();
+        $offer = $this->offerWithCodes(4);
+        $inventory = app(VoucherInventory::class);
+        foreach (range(1, 4) as $i) {
+            $v = $inventory->issue($inventory->reserve($offer, VoucherOrigin::MerchantReward, 'usable-'.$i), $consumer);
+            if ($i === 1) {
+                $v->code->forceFill(['status' => 'invalid'])->save();
+            }
+            if ($i === 2) {
+                $v->code->forceFill(['platform_validation' => 'mismatch'])->save();
+            }
+            if ($i === 3) {
+                $v->forceFill(['expires_at' => now()])->save();
+            }
+        }
+        Sanctum::actingAs($this->admin);
+        $data = $this->getJson('/api/v1/admin/cockpit')->assertOk()->json('data');
+        $this->assertSame(1, $data['kpis']['vouchers']['outstanding']);
+        $this->getJson('/api/v1/admin/vouchers?usable=1')->assertOk()->assertJsonPath('meta.total', 1);
+        foreach ($data['cards'] as $card) {
+            if ($card['key'] !== 'affiliate_commission') {
+                $this->assertNull($card['change_percent']);
+            }
+        }
+    }
+
+    public function test_consumer_memberships_and_explicit_test_exclusion_match_destination(): void
+    {
+        $consumer = User::factory()->create(['onboarding_intent' => 'consumer']);
+        $this->activeWebshop($consumer);
+        $fixture = User::factory()->create(['onboarding_intent' => 'consumer']);
+        config(['shopbonus.admin.test_account_public_ids' => [$fixture->public_id]]);
+        Sanctum::actingAs($this->admin);
+        $this->getJson('/api/v1/admin/cockpit')->assertOk()->assertJsonPath('data.kpis.consumers.registered', 1);
+        $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk()
+            ->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $consumer->public_id);
+    }
+
+    public function test_affiliate_destination_uses_business_day_dates_for_rows_and_totals(): void
+    {
+        $this->insertAffiliate('daisycon', 'approved', 100, 'IN');
+        $this->insertAffiliate('daisycon', 'approved', 500, 'OUT');
+        DB::table('affiliate_transactions')->where('external_id', 'IN')->update(['transaction_at' => '2026-10-23 22:00:00']);
+        DB::table('affiliate_transactions')->where('external_id', 'OUT')->update(['transaction_at' => '2026-10-24 22:00:00']);
+        Sanctum::actingAs($this->admin);
+        $this->getJson('/api/v1/admin/affiliate/transactions?network=daisycon&status=approved&from=2026-10-24&to=2026-10-24')
+            ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('totals.approved.commission_minor', 100);
+        $this->getJson('/api/v1/admin/affiliate/transactions?from=2026-10-24')->assertUnprocessable();
+        $this->getJson('/api/v1/admin/cockpit?period=custom&from=2026-10-24&to=2026-10-23')->assertUnprocessable();
+    }
+
+    public function test_failed_sources_are_deduplicated_by_connection_and_resolve_from_source_state(): void
+    {
+        Sanctum::actingAs($this->owner);
+        $this->postJson('/api/v1/workspaces/'.$this->shop->public_id.'/connections', ['platform' => 'prestashop'])->assertCreated();
+        $connection = WebshopConnection::where('webshop_id', $this->shop->id)->sole();
+        $connection->forceFill(['status' => 'error', 'last_error_code' => 'timeout'])->save();
+        foreach (range(1, 2) as $i) {
+            WebhookEvent::create(['connection_id' => $connection->id, 'webshop_id' => $this->shop->id,
+                'dedupe_key' => 'failed-'.$i, 'status' => 'failed', 'payload_hash' => hash('sha256', 'payload-'.$i), 'received_at' => now()]);
+        }
+        $this->insertAffiliate('daisycon', 'approved', 10, 'SYNC');
+        DB::table('affiliate_network_connections')->update(['status' => 'reauthentication_required']);
+        Sanctum::actingAs($this->admin);
+        $this->getJson('/api/v1/admin/cockpit')->assertOk()->assertJsonPath('data.attention.open_actions.failed_syncs.count', 2);
+        $this->getJson('/api/v1/admin/integrations?connection='.$connection->public_id)->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/v1/admin/integrations/failed-events?connection='.$connection->public_id)->assertOk()->assertJsonPath('meta.total', 2);
+        $connection->forceFill(['status' => 'connected'])->save();
+        Cache::flush();
+        $this->getJson('/api/v1/admin/cockpit')->assertOk()->assertJsonPath('data.attention.open_actions.failed_syncs.count', 2);
+        DB::table('webhook_events')->update(['status' => 'processed']);
+        DB::table('affiliate_network_connections')->update(['status' => 'connected', 'last_error' => null]);
+        Cache::flush();
+        $this->getJson('/api/v1/admin/cockpit')->assertOk()->assertJsonPath('data.attention.open_actions.failed_syncs.count', 0);
+    }
+
+    public function test_only_period_events_have_comparisons_and_custom_links_use_local_dates(): void
+    {
+        $this->insertAffiliate('daisycon', 'approved', 200, 'CURRENT');
+        $this->insertAffiliate('daisycon', 'approved', 100, 'PREVIOUS');
+        DB::table('affiliate_transactions')->where('external_id', 'PREVIOUS')->update(['transaction_at' => now()->subDays(7)]);
+        Sanctum::actingAs($this->admin);
+        $cards = collect($this->getJson('/api/v1/admin/cockpit?period=7d')->assertOk()->json('data.cards'))->keyBy('key');
+        $this->assertEquals(100, $cards['affiliate_commission']['change_percent']);
+        $this->assertNull($cards['active_webshops']['change_percent']);
+        $custom = collect($this->getJson('/api/v1/admin/cockpit?period=custom&from=2026-10-24&to=2026-10-24')->assertOk()->json('data.cards'))->keyBy('key');
+        $this->assertStringContainsString('tab=transactions&status=approved&from=2026-10-24&to=2026-10-24', $custom['affiliate_commission']['href']);
+    }
+
+    public function test_previous_period_uses_equal_local_days_across_dst(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-10-31 12:00:00', 'Europe/Amsterdam'));
+        $this->insertAffiliate('daisycon', 'approved', 100, 'DST-CURRENT');
+        $this->insertAffiliate('daisycon', 'approved', 100, 'DST-PREVIOUS');
+        $this->insertAffiliate('daisycon', 'approved', 900, 'BEFORE-PREVIOUS');
+        DB::table('affiliate_transactions')->where('external_id', 'DST-PREVIOUS')->update(['transaction_at' => '2026-09-01 22:00:00']);
+        DB::table('affiliate_transactions')->where('external_id', 'BEFORE-PREVIOUS')->update(['transaction_at' => '2026-09-01 21:30:00']);
+        Sanctum::actingAs($this->admin);
+        $cards = collect($this->getJson('/api/v1/admin/cockpit?period=30d')->assertOk()->json('data.cards'))->keyBy('key');
+        $this->assertEquals(0, $cards['affiliate_commission']['change_percent']);
     }
 }

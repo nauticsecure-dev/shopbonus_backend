@@ -1,0 +1,9 @@
+{
+  "available_codes": 10000,
+  "claims": 10000,
+  "issued": 10000,
+  "days": 30,
+  "aggregate_queries": 3,
+  "elapsed_ms": 463.7,
+  "database": "sqlite"
+}

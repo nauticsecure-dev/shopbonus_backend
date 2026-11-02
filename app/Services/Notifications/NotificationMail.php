@@ -4,6 +4,7 @@ namespace App\Services\Notifications;
 
 use App\Enums\ConsentPurpose;
 use App\Models\CentralNotification;
+use App\Models\MerchantNotification;
 use App\Models\NotificationDelivery;
 use App\Models\Offer;
 use App\Models\User;
@@ -25,6 +26,9 @@ final class NotificationMail
 
     public function eligible(User $user, CentralNotification $n): bool
     {
+        if ($n->legacy_notification_id !== null && ! MerchantNotification::whereKey($n->legacy_notification_id)->exists()) {
+            return false;
+        }
         if ($n->notifiable_type !== $user->getMorphClass()) {
             return false;
         }
@@ -125,6 +129,22 @@ final class NotificationMail
         if (! FrontendPath::isSafe($path)) {
             throw new \LogicException('Unsafe notification action.');
         }
+        $route = parse_url($path, PHP_URL_PATH);
+        $destination = config('notifications.action_paths', [])[$route] ?? $route;
+        if ($route === '/app/support' && $n->recipient_type === 'workspace') {
+            $destination = config('notifications.workspace_support_path');
+        }
+        if (! is_string($destination) || ! preg_match('#^/(?!/)[a-zA-Z0-9/_-]+$#D', $destination)) {
+            throw new \LogicException('Unsafe configured notification action.');
+        }
+        // Preserve workspace/conversation context; configuration supplies only an internal path.
+        $query = parse_url($path, PHP_URL_QUERY);
+        if ($route === '/app/support' && $n->recipient_type === 'workspace' && is_string($data['workspace_id'] ?? null)) {
+            parse_str($query ?? '', $context);
+            $context['workspace'] = $data['workspace_id'];
+            $query = http_build_query($context, '', '&', PHP_QUERY_RFC3986);
+        }
+        $path = $destination.($query === null ? '' : '?'.$query);
         $url = rtrim((string) config('shopbonus.identity.frontend_url'), '/').$path;
         if (! in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true)) {
             throw new \LogicException('Invalid frontend URL.');

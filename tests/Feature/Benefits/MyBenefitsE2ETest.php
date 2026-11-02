@@ -21,6 +21,7 @@ use App\Models\VoucherCode;
 use App\Models\WalletLedgerEntry;
 use App\Models\Webshop;
 use App\Services\Affiliate\AffiliateSync;
+use App\Services\Affiliate\SettlementRecorder;
 use App\Services\Cashback\DirectMerchantCashback;
 use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
@@ -100,11 +101,18 @@ class MyBenefitsE2ETest extends TestCase
             ->assertJsonPath('data.unit', 'EUR_REDEMPTION_CREDIT');
         $this->getJson('/api/v1/consumer/wallet')->assertOk()
             ->assertJsonPath('data.available_minor', 1220)
+            ->assertJsonPath('data.total_earned_minor', 3500)
+            ->assertJsonPath('data.total_spent_minor', 2280)
             ->assertJsonPath('data.balances.eur_credit.pending', 0)
             ->assertJsonPath('data.savings_goal', null);
+        // This fixture has no pending reward; checkout reservations remain separate.
+        $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('meta.total', 0);
+        $this->assertSame('on_network_settlement', config('shopbonus.affiliate.credit_timing'));
     }
 
-    public function test_02_standard_affiliate_cashback_immediate_70_30(): void
+    public function test_02_standard_affiliate_cashback_settled_70_30(): void
     {
         $this->seedProgram();
         $ref = $this->click();
@@ -115,6 +123,10 @@ class MyBenefitsE2ETest extends TestCase
         ]], $this->admin->id);
 
         $tx = AffiliateTransaction::where('external_id', 'E2E-2')->sole();
+        $this->assertSame('pending', $tx->reward_status);
+        $this->assertSame(0, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
+        app(SettlementRecorder::class)->record($tx, $this->admin, 'fixture-remittance-E2E-2', now()->toImmutable()->subMinute());
+        $tx->refresh();
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame(700, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
@@ -134,7 +146,12 @@ class MyBenefitsE2ETest extends TestCase
             'external_id' => 'DM-1', 'order_amount_minor' => 10_000,
         ]);
         $this->assertSame(['credited', 1200, 1080, 120], [$row->status, $row->commission_minor, $row->consumer_credit_minor, $row->shopbonus_revenue_minor]);
-        $this->assertSame(1080, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
+        $wallet = app(WalletService::class)->consumerWallet($this->anna)->fresh();
+        $this->assertSame(1080, $wallet->available);
+        $this->assertSame(0, $wallet->pending);
+        app(DirectMerchantCashback::class)->reverse($row, 'e2e-direct-reversal');
+        $this->assertSame(0, $wallet->fresh()->available);
+        $this->assertSame('reversed', $row->fresh()->status);
     }
 
     public function test_04_click_alone_never_credits_wallet(): void
@@ -159,6 +176,8 @@ class MyBenefitsE2ETest extends TestCase
         $sync = app(AffiliateSync::class);
         $sync->import($this->daisycon, [], $payload, $this->admin->id);
         $sync->import($this->daisycon, [], $payload, $this->admin->id);
+        $sync->import($this->daisycon, [], $payload, $this->admin->id);
+        app(SettlementRecorder::class)->record(AffiliateTransaction::where('external_id', 'DUP-1')->sole(), $this->admin, 'fixture-remittance-DUP-1', now()->toImmutable()->subMinute());
         $sync->import($this->daisycon, [], $payload, $this->admin->id);
 
         $this->assertSame(1, AffiliateTransaction::where('external_id', 'DUP-1')->count());
@@ -213,7 +232,8 @@ class MyBenefitsE2ETest extends TestCase
 
         $wallets = app(WalletService::class);
         $wallet = $wallets->consumerWallet($this->anna);
-        $wallets->debit($wallet, 500, 'voucher-rev', ['source_type' => 'voucher_purchase']);
+        app(SettlementRecorder::class)->record(AffiliateTransaction::where('external_id', 'REV-1')->sole(), $this->admin, 'fixture-remittance-REV-1', now()->toImmutable()->subMinute());
+        $wallets->debit($wallet->fresh(), 500, 'voucher-rev', ['source_type' => 'voucher_purchase']);
 
         $tx = AffiliateTransaction::where('external_id', 'REV-1')->sole();
         $credit = WalletLedgerEntry::findOrFail($tx->wallet_entry_id);

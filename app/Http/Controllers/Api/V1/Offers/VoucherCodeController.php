@@ -13,6 +13,7 @@ use App\Models\VoucherCode;
 use App\Models\VoucherCodeBatch;
 use App\Models\VoucherEvent;
 use App\Services\Audit\AuditLogger;
+use App\Services\Discovery\DiscoveryCache;
 use App\Services\Vouchers\CodeImporter;
 use App\Services\Vouchers\PlatformCouponVerification;
 use App\Services\Workspaces\CurrentWorkspace;
@@ -91,6 +92,8 @@ class VoucherCodeController extends Controller
         if ($updated !== 1) {
             throw ApiException::conflict('Only available codes can be invalidated.', 'code_not_available', ['status' => $model->status->value]);
         }
+
+        DiscoveryCache::flush();
 
         VoucherEvent::create(['webshop_id' => $model->webshop_id, 'voucher_code_id' => $model->id, 'type' => 'code_invalidated',
             'from_status' => 'available', 'to_status' => 'invalid', 'actor_user_id' => $current->membership()->user_id, 'summary' => ['reason' => $reason]]);

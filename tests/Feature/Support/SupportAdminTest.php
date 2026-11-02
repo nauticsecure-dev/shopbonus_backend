@@ -5,6 +5,7 @@ namespace Tests\Feature\Support;
 use App\Exceptions\ApiException;
 use App\Models\PlatformSettingVersion;
 use App\Models\SupportConversation;
+use App\Models\SupportMessage;
 use App\Models\SupportReview;
 use App\Models\User;
 use App\Services\Admin\PlatformSettings;
@@ -23,6 +24,24 @@ use Tests\TestCase;
 class SupportAdminTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_monitoring_filters_estimated_cost_coverage_and_unknown_connectivity(): void
+    {
+        $this->asAdmin($this->admin());
+        $consumer = User::factory()->create();
+        $c = SupportConversation::create(['user_id' => $consumer->id, 'locale' => 'en', 'expires_at' => now()->addDay()]);
+        foreach (['VERIFIED', 'UNAVAILABLE'] as $status) {
+            SupportMessage::create(['conversation_id' => $c->id, 'user_id' => $consumer->id, 'request_key' => (string) Str::uuid(), 'request_hash' => str_repeat('a', 64), 'question' => 'wallet balance', 'research' => [], 'status' => $status,
+                'metrics' => ['model' => 'fixture-model', 'input_tokens' => 100, 'estimated_cost_eur' => $status === 'VERIFIED' ? .001 : null], 'completed_at' => now()]);
+        }
+        $all = $this->getJson('/api/v1/admin/ai/operations?scope=consumer&locale=en')->assertOk();
+        $all->assertJsonPath('data.sample_size', 2)->assertJsonPath('data.outcome_percentages.VERIFIED', 50)
+            ->assertJsonPath('data.provider_cost', .001)->assertJsonPath('data.costed_requests', 1)
+            ->assertJsonPath('data.connectivity.reverb_live_probe', 'not_measured');
+        $this->getJson('/api/v1/admin/ai/operations?status=UNAVAILABLE&model=fixture-model')->assertOk()->assertJsonPath('data.sample_size', 1)->assertJsonPath('data.provider_cost', null);
+        $this->getJson('/api/v1/admin/ai/operations?scope=workspace')->assertOk()->assertJsonPath('data.sample_size', 0);
+        $this->getJson('/api/v1/admin/ai/operations?status=MADE_UP')->assertUnprocessable();
+    }
 
     private function admin(): User
     {
