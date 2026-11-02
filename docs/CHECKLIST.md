@@ -1110,6 +1110,11 @@ B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual H
 
 B38 checked against executed evidence in this implementation commit (parent130fd24); resulting SHA recorded in the next checkpoint. SQLite65pass+1skip/7959assertions, MySQL62pass+1skip/446assertions; static/style PASS;16 real HTTP captures.
 
+## Backend merge completion — 2026-11-02
+- [x] Verify pending main -> HassanDev merge has no unresolved entries or conflict markers and preserves HEAD's application tree (parents 0e0a6da / 313dfad; completion commit contains this checkpoint).
+- [x] Execute focused affiliate, benefits, dispute, business journey and OpenAPI regressions (70 passed, 1 skipped; 8480 assertions; PHP 8.4.15).
+- [ ] Record validation, conclude the local merge and verify clean Git status.
+
 ## Backend merge conflict resolution — 2026-11-02
 - [ ] Reconcile all 33 conflicted files, preserve independent API paths and captured examples.
 - [ ] Verify syntax, notification, support, affiliate, discovery, reporting and integration regressions.
