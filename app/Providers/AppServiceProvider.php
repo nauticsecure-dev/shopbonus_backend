@@ -24,6 +24,7 @@ use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -63,6 +64,7 @@ class AppServiceProvider extends ServiceProvider
         }
         Event::listen([ResponseReceived::class, ConnectionFailed::class], fn ($event) => app(ProviderObservations::class)->record($event));
         Queue::before(fn (JobProcessing $event) => app(Operations::class)->jobStarted($event));
+        Queue::looping(fn (Looping $event) => app(Operations::class)->workerLoop($event));
         $this->app->scoped(RequestObservation::class);
         DB::listen(fn (QueryExecuted $event) => app(RequestObservation::class)->query($event));
 

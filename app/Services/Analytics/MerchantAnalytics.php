@@ -34,6 +34,9 @@ class MerchantAnalytics
 {
     public const DEFINITIONS = [
         'active_offers' => 'Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).',
+        'reserved_codes' => 'Codes with status reserved, unavailable for another allocation.',
+        'expired_vouchers' => 'Vouchers with current status expired.',
+        'expired_offers' => 'Offers with effective lifecycle expired.',
         'available_codes' => 'Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).',
         'issued_vouchers' => 'Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.',
         'claimed_vouchers' => 'Answer24 claim links accepted by a verified consumer.',
@@ -53,6 +56,9 @@ class MerchantAnalytics
     {
         return [
             'active_offers' => Offer::where('webshop_id', $webshopId)->whereLifecycle('active')->count(),
+            'reserved_codes' => VoucherCode::where('webshop_id', $webshopId)->where('status', VoucherCodeStatus::Reserved)->count(),
+            'expired_vouchers' => Voucher::where('webshop_id', $webshopId)->where('status', VoucherStatus::Expired)->count(),
+            'expired_offers' => Offer::where('webshop_id', $webshopId)->whereLifecycle('expired')->count(),
             'available_codes' => VoucherCode::where('webshop_id', $webshopId)->where('status', VoucherCodeStatus::Available)->count(),
             'issued_vouchers' => Voucher::where('webshop_id', $webshopId)->whereNotNull('issued_at')->count(),
             'claimed_vouchers' => VoucherClaim::where('webshop_id', $webshopId)->where('status', 'claimed')->count(),

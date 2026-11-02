@@ -258,3 +258,16 @@ Owner accepted the recommendation to keep D-089: affiliate cashback becomes spen
 ### D-108 — Workspace ownership transfer (owner accepted recommendation, 2026-11-01)
 
 Only the current active owner starts a transfer, from a browser session with a recent password confirmation (`password.recent`), to an active, verified, non-owner member of the same workspace. One pending transfer per workspace. The target accepts (also `password.recent`) or declines; the owner can cancel; it expires after `shopbonus.workspaces.ownership_transfer_ttl_hours` (default 72). Acceptance rechecks both memberships and the webshop under row locks and swaps atomically: the new owner becomes owner, the previous owner becomes manager. Every step is audited. Ordinary team actions still cannot grant or edit the owner role.
+
+### Merchant checkout reservation clarification — owner, 2026-11-02
+
+Reserve when payment explicitly starts. Page opening/viewing calls the non-mutating quote API only; the existing POST checkouts action is the explicit purchase/payment-start boundary. Preserve bounded wallet/code reservations, verified payment fulfillment, idempotency and failure/expiry release (D-053). Current frontend already makes this separation. No new checkout engine or reservation-on-view is authorized. D-106 still excludes per-consumer caps.
+
+### Affiliate reconciliation scope — owner clarification, 2026-11-02
+
+Owner selected **Management allocation reporting** in this chat when asked to
+choose between management allocation and formal posted revenue accounting.
+For the EUR 10 / 70-30 scenario, prove EUR 7 consumer credit plus EUR 3 platform
+allocation using the existing frozen evidence. Label the accounting basis and
+keep recognized revenue explicitly unverified. This does not authorize a new
+revenue journal, change reward spendability, or adopt any proposed RPO/RTO.

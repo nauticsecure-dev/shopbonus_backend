@@ -24167,3 +24167,174 @@ Captured response 404:
   }
 }
 ```
+
+## CMS translation queue and NL master provenance — 2026-11-02
+
+Existing routes only; no second translation API. `POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions` returns a private queued record (201); duplicate unchanged work returns 200. Poll `GET /api/v1/admin/cms/suggestions/{suggestion}` for proposed/failed. Human apply/publish remain separate. Legal content is excluded. CMS/FAQ records accept NL/EN/DE, while frontend application locale support remains NL/EN. `GET /api/v1/admin/cms/translations` now reports DE and `stale` from immutable NL master revision provenance; historical unknown references are stale.
+
+Real HTTP examples: [TRANSLATION_HTTP_CAPTURE.json](../cms/TRANSLATION_HTTP_CAPTURE.json), eleven loopback PHP 8.4.25/isolated SQLite exchanges on backend HassanDev base 926ab34 plus uncommitted patch. Synthetic Sanctum actors and recent-password sessions were injected by a temporary fixture router; this is not browser authentication/CSRF/staging proof. Full implementation limits, pending migration, queue settings, tests and unexecuted T01–T23: [acceptance report](../cms/ONE_CMS_ACCEPTANCE.md). No live OpenAI call or production mutation.
+
+Request (synthetic actor fixture; actual browser clients use existing cookies/CSRF): POST `/api/v1/admin/cms/pages/<page>/locales/nl/suggestions`, JSON `{"kind":"translate","target_locale":"de","idempotency_key":"capture-1"}`. The exact returned 201 and deduplicated 200 bodies are capture entries 0 and 1 and the OpenAPI response examples. GET `/api/v1/admin/cms/translations` after the NL edit is capture entry 10; its `stale` EN and `missing` DE rows are the current OpenAPI example. Capture entries 3–5 retain actual 403/401/422 envelopes.
+
+## Merchant dashboard voucher summaries — 2026-11-02
+
+The existing dashboard response adds `kpis.reserved_codes`, `kpis.expired_vouchers`, `kpis.expired_offers` and corresponding definitions. These are current-state counts, scoped to the selected workspace. Compare historical issuance/claims/redemptions through the existing `GET /api/v1/workspaces/{workspace}/analytics/claims?from=YYYY-MM-DD&to=YYYY-MM-DD`; do not infer past inventory from current counters.
+
+Captured from a real local PHP 8.5 HTTP server with isolated SQLite fixtures (synthetic bearer-auth merchant, no production data). Reproduce with `php scripts/capture-voucher-dashboard.php`. Full 200/401/422 captures: [VOUCHER_DASHBOARD_HTTP_CAPTURE.json](VOUCHER_DASHBOARD_HTTP_CAPTURE.json).
+
+Example request: `GET /api/v1/workspaces/01m6dnsztvn9rwf327nbfstbky/dashboard` with `Authorization: Bearer <token>` and `Accept: application/json`.
+
+Captured 200 response:
+
+```json
+{
+  "data": {
+    "webshop": {
+      "id": "01m6dnsztvn9rwf327nbfstbky",
+      "name": "Dashboard fixture",
+      "status": "approved"
+    },
+    "greeting": "good_morning",
+    "kpis": {
+      "active_offers": 0,
+      "reserved_codes": 0,
+      "expired_vouchers": 0,
+      "expired_offers": 0,
+      "available_codes": 0,
+      "issued_vouchers": 0,
+      "claimed_vouchers": 0,
+      "redeemed_vouchers": 0,
+      "scheduled_offers": 0,
+      "paused_offers": 0,
+      "open_disputes": 0
+    },
+    "connection_health": {
+      "status": "none",
+      "total": 0,
+      "connected": 0,
+      "attention": 0,
+      "last_error_at": null
+    },
+    "recent_activity": [],
+    "quick_actions": [
+      {
+        "key": "create_offer",
+        "available": true
+      },
+      {
+        "key": "import_codes",
+        "available": false
+      },
+      {
+        "key": "connect_store",
+        "available": true
+      },
+      {
+        "key": "top_up_funding",
+        "available": false
+      },
+      {
+        "key": "review_vouchers",
+        "available": false
+      }
+    ],
+    "empty": true,
+    "definitions": {
+      "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+      "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+      "expired_vouchers": "Vouchers with current status expired.",
+      "expired_offers": "Offers with effective lifecycle expired.",
+      "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+      "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+      "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+      "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+      "scheduled_offers": "Offers with status scheduled (not yet opened).",
+      "paused_offers": "Offers with status paused.",
+      "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+    },
+    "offers": [],
+    "offers_meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 10,
+      "total": 0
+    },
+    "notifications": {
+      "unread": 0,
+      "latest": []
+    },
+    "funding": {
+      "available_minor": 1000000,
+      "reserved_minor": 0
+    },
+    "generated_at": "2026-11-02T08:25:27+00:00"
+  }
+}
+```
+
+Checkout policy confirmed by owner in this review: viewing an offer/opening checkout obtains only a read-only quote (`POST /api/v1/consumer/checkouts/quote`); the explicit Confirm/Pay action calls `POST /api/v1/consumer/checkouts`, starts provider payment and makes bounded reservations. Wallet-only issuance remains atomic. No new endpoint/state machine is introduced.
+
+## Reliability review HTTP refresh — 2026-11-02
+
+Captured on a real local PHP 8.4.25 HTTP server, isolated synthetic SQLite,
+backend HassanDev base `926ab34068e18cca081b7b168cc2ed6f7622fe29` plus uncommitted
+review changes. Synthetic Super Admin bearer token; capture-only admin MFA
+disabled. No production/provider data. Full responses and exact requests:
+[RELIABILITY_REVIEW_HTTP_CAPTURE.json](RELIABILITY_REVIEW_HTTP_CAPTURE.json).
+Reproduce with `php scripts/capture-reliability-review.php` (temporary server,
+fixture DB and log removed afterward).
+
+`GET /api/v1/admin/operations-overview`: active verified Super Admin, normal
+admin MFA/support-session restrictions; read-only, no-store, no mutation or
+idempotency key. Existing 401/403/429/500 contracts remain. Added connection
+reports and worker polling observations; missing evidence stays UNKNOWN.
+Configure `RELIABILITY_MONITORED_CONNECTIONS` as a JSON map of connection names
+to queue names, alongside `RELIABILITY_MONITORED_QUEUES`. Redis enqueue age must
+not be interpreted as ready wait. Scope: management allocation reporting;
+recognized revenue remains unverified. Recovery targets remain UNAPPROVED.
+
+```sh
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' http://localhost:8000/api/v1/admin/operations-overview
+```
+
+Actual 200 response excerpt (`data.components.backups`, copied from capture):
+
+```json
+{
+  "status": "UNKNOWN",
+  "backup_success_percent_30d": null,
+  "enabled": false,
+  "last_backup_at": null,
+  "last_backup_result": null,
+  "last_verified_restore_at": null,
+  "offsite_verified": false,
+  "key_recovery_verified": false,
+  "infrastructure_drill_verified": false,
+  "recovery_targets": {
+    "status": "UNAPPROVED",
+    "financial_rpo_minutes": 15,
+    "service_rto_minutes": 240
+  },
+  "definition": "Successful configured-disk write is not independent offsite durability or RPO/RTO proof."
+}
+```
+
+The cover route was already documented in the current OpenAPI. Its binary 200
+contract is unchanged. Fresh missing-cover evidence:
+
+```sh
+curl -i -H 'Accept: application/json' http://localhost:8000/api/v1/public/webshops/missing-fixture/cover
+```
+
+Actual 404 response:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Cover not found.",
+    "request_id": "01a19b93-ac6b-73c6-a342-bef0299e3fba"
+  }
+}
+```

@@ -74,6 +74,15 @@ B22_RECONCILIATION_QUERY_PLANS.json records10000synthetic checks/20runs, actual 
 
 B22-F001/F002/F005 have reproduced regressions and fixes. No assumption of compromise or broad security certification is made. Existing audit logger captures actor/real actor/scope/request/action/outcome and redacts metadata; trigger/resume uses it, report evidence remains admin-only. Deployment must set retention/access and independent alert delivery. No customer email/message is sent by this task.
 
+## Review update — 2026-11-02
+
+The current follow-up and its acceptance limits are in
+[REVIEW_2026-11-02.md](REVIEW_2026-11-02.md). It supersedes the historical
+default-queue and media-allowlist descriptions above: configured connections,
+worker polling and private dispute/QA/ownership files are covered. The owner
+confirmed management allocation reporting; formal revenue recognition remains
+unverified. Proposed RPO/RTO remain UNAPPROVED, including in the API response.
+
 ## Ten card acceptance mappings
 
 | Card scenario | Main-code/local evidence | External acceptance still required |

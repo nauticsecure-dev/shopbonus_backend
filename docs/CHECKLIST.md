@@ -707,6 +707,13 @@ Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local inte
 
 ## B22 — Trello #30 reliability (started 2026-10-27)
 
+### Reliability review follow-up — 2026-11-02 (uncommitted)
+- [ ] Reverify code secrecy, PHP 8.4/8.5 SOAP transport and complete OpenAPI coverage.
+- [ ] Restore encrypted dispute and QA attachment bytes with their database references intact.
+- [ ] Monitor configured connection/queue pairs and worker-loop observations without treating absent evidence as healthy.
+- [ ] Connect the existing operations API to the admin cockpit with loading, failure and UNKNOWN states.
+- [ ] Record owner-approved management allocation scope; keep formal revenue recognition and infrastructure RPO/RTO acceptance open.
+
 ### B22a — observed API monitoring and threshold incidents
 - [x] Inventory/reuse existing audit, incidents, readiness, queue failures, ledger reconciliation, scheduler and dependency tooling; preserve unresolved affiliate timing and do not activate financial flows. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
 - [x] Opt-in metadata-only request observations with monotonic processing time, DB query timing, privacy-safe route templates, bounded retention and fail-open writes; record rendered error responses without payloads/SQL/credentials/identity. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
@@ -1107,3 +1114,24 @@ B38 checked against executed evidence in this implementation commit (parent130fd
 - [ ] Reconcile all 33 conflicted files, preserve independent API paths and captured examples.
 - [ ] Verify syntax, notification, support, affiliate, discovery, reporting and integration regressions.
 - [ ] Stage resolved files and record remaining validation limitations; no merge commit without request.
+
+## One CMS NL/EN/DE translation quality — 2026-11-02
+- [ ] Reuse existing suggestions/revisions; queue bounded provider calls and deduplicate unchanged source/target requests.
+- [ ] Enforce source freshness, protected tokens/facts/negation/noncash meaning, legal exclusion and draft-only application.
+- [ ] Validate strict Responses identity/hash/locale/segment contract and retain token/model audit metadata.
+- [ ] Accept German CMS drafts without seeding English fallback as German; reject other locales.
+- [ ] Execute focused regressions and real HTTP captures; document outstanding T01–T23 staging evidence.
+
+## Platform launch acceptance follow-up — 2026-11-02
+- [ ] Verify pending affiliate credit remains unavailable and approval requires settlement in the business journey.
+- [ ] Re-run API coverage, merchant reporting and financial regressions.
+- [ ] Retire frontend sample financial endpoints and verify real HTTP 410 responses.
+- [ ] Verify API-driven analytics in Chrome and record local results and outstanding launch blockers.
+
+## Merchant dashboard and voucher review — 2026-11-02
+- [ ] Verify existing reusable redemption, dispute pagination, historical labels and protected queued exports.
+- [ ] Expose prices, campaign dates, issuance limit and code mode through the existing editor.
+- [ ] Track asynchronous import/export completion and connect dispute pages and voucher references.
+- [ ] Show reserved codes / expired vouchers and compare adjacent lifecycle periods using existing aggregates.
+- [ ] Verify read-only checkout quote versus explicit payment start; preserve D-106 no per-consumer cap.
+- [ ] Record executed regressions and remaining MySQL/staging/performance evidence.

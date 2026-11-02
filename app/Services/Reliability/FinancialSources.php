@@ -128,7 +128,10 @@ class FinancialSources
                     || ($allocation['platform_unrecognized_minor'] ?? null) !== (int) $proof['commission_minor'] - $expected)) {
                     $issues[] = 'affiliate_allocation';
                 }
+                $snapshot['accounting_basis'] = 'management_allocation';
+                $snapshot['revenue_recognition_status'] = 'unverified';
                 $snapshot['calculated_split'] = ['consumer_minor' => $expected,
+                    'platform_allocation_minor' => (int) $proof['commission_minor'] - $expected,
                     'unrecognized_residual_minor' => (int) $proof['commission_minor'] - $expected];
             } else {
                 $unknown[] = 'points_money_allocation_undefined';

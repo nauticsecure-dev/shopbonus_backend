@@ -1306,3 +1306,79 @@ Initial whole-suite run: 1,230 tests; 1,164 passed, 14 failed, 25 errored, 27 sk
 Exact next action: review the staged merge and final test evidence, run Linux CI/MySQL checks, and create the merge commit when desired. No new schema was authored by the resolution; incoming migrations remain part of the pending merge and were exercised only in isolated test databases. Checklist remains unchecked without a commit SHA.
 Final focused rerun: 200 tests, 196 passed, 1 failed, 3 skipped, no errors; 1,832 assertions. The sole failure is QaCiImportTest::test_ci_import_retains_failures_sha_execution_time_and_redacts_artifacts: Windows fileperms returns decimal 438 (0666), while the test requires decimal 384 (0600). Import/redaction assertions pass before that assertion. No test was disabled and production permission checks were not relaxed. Evidence: docs/qa/MERGE_RESOLUTION_2026-11-02.json. Initial full-suite failures are historical; full 1,230-test suite has not been rerun on the final state, so whole-suite green is not claimed. Final API coverage 3 PASS/7,780 assertions and PHPStan zero errors. Follow-up: execute Linux CI (including the POSIX permission assertion) and MySQL before release.
 Supplemental conflicted-module regressions: 68 PASS, 565 assertions (support evidence, capabilities/catalog, merchant overview, public discovery, onboarding, research hashing). Combined focused regressions: 268 tests, 264 passed, 1 Windows POSIX-permission assertion failed, 3 skipped, no errors; 2,397 assertions. API coverage is an additional 3 PASS/7,780 assertions. Final staged whitespace check PASS and zero unmerged entries. All resolution changes staged; merge commit and push not performed.
+
+## One CMS NL/EN/DE translation-quality checkpoint — 2026-11-02
+
+PARTIAL / release NO-GO. Backend HassanDev base 926ab34; frontend HassanDev base 5abab50; all implementation changes remain uncommitted. No push, deployment or persistent application DB migration. Owner brief and detailed source findings: docs/cms/ONE_CMS_ACCEPTANCE.md.
+
+Reused the existing CMS suggestion/revision/quota/audit flow: bounded database queue, configurable gpt-6.1-sol Responses JSON contract, source/target freshness and legacy-proposal rejection, protected facts/placeholders/negation/noncash/glossary rejection, model/token/hash provenance (including rejected billed output), NL-save EN/DE enqueue with save-preserving deferral, German CMS/FAQ acceptance, and immutable NL master revision references for stale translation reporting and restore. Frontend change is limited to the translation-status type. AI remains disabled by default and never publishes.
+
+Executed local SQLite CMS/OpenAPI/unit suite: 81 passed, 8,378 assertions; JUnit docs/cms/translation-regression.junit.xml. Targeted PHPStan/Pint and frontend npm run typecheck passed at checkpoint (final status in evidence manifest). Eleven isolated real loopback HTTP captures in docs/cms/TRANSLATION_HTTP_CAPTURE.json; synthetic Sanctum actor/recent-password sessions, not real browser/CSRF or staging proof. Temporary router/server/SQLite fixture removed. No live provider request. Checklist stays unticked without an implementation commit, per AGENTS.md.
+
+Pending migration: 2026_11_02_120000_add_cms_suggestion_provenance (suggestion source hash/model/tokens, immutable revision source_master_revision). Worker: php artisan queue:work database --queue=cms-translations --tries=1 --timeout=45; monitor that queue and keep retry_after >45 seconds. Do not apply to an unspecified deployment.
+
+Exact next action: extend CmsSuggestions segment extraction/replacement with canonical structured field paths for HomepageSchema, MerchantLandingSchema and AboutUsSchema; validate against the original page type/key; route legacy landing AI callers through this existing review queue. Then finish German frontend/editor/email/SEO, the existing media pipeline and Quality Center field/usage executors. No complete discovery or five exhaustive coverage denominators exist yet. All mandatory T01–T23 staging cases remain UNTESTED, and 1,000-record automation, monetary budgets, semantic/language review, real image editing/WebP/restore and release approval remain open. Wallet/voucher/order/affiliate/Answer24/Banner Studio engines untouched.
+
+## Platform launch acceptance follow-up — 2026-11-02
+PARTIAL / production NO-GO. Backend HassanDev base 926ab34068e18cca081b7b168cc2ed6f7622fe29; frontend HassanDev base 5abab5083ce7036177d7cbef27688f449d6b0f35. Uncommitted; pre-existing CMS edits preserved. Current code already enforces new affiliate settlement timing and documents public webshop cover; merchant analytics already calls scoped APIs. Updated BusinessJourney to verify pending/approved credit stays unavailable until synthetic settlement and replay credits once. Frontend retires sample transactions/vouchers endpoints with 410/no-store and keys analytics responses by current selection, resolving React effect lint errors.
+Executed PHP 8.5 SQLite: 109 PASS / 8,767 assertions (Journey, Affiliate, OpenAPI, Analytics, Wallet, Checkout); targeted Pint, TypeScript and ESLint PASS. Four Chrome assertion cases PASS on rerun; initial cold-compilation navigation timeout recorded. Read-only LOCAL launch check: 9 PASS, 12 FAIL, 4 WARN, 2 MANUAL; docs/release/LAUNCH_CHECK_2026-11-02.json. No deployment, persistent DB migration, provider activation, commit or push. Checklist remains unchecked without implementation commit/SHA.
+Exact next action: finish production build verification and review the patch; then run Linux/full CI, MySQL and authentic staging/provider/payment/restore acceptance against a clean release SHA before production rollout. Production target/access and acceptance evidence remain outstanding. Full details: sibling frontend docs/platform-launch-acceptance.md. Historical GO_NO_GO evidence is preserved, not rewritten as a current full audit.
+
+Final launch follow-up validation: frontend production webpack build PASS (exit 0, 65 pages); Chrome aggregate 4 PASS in 1.0 minute (exit 0). Existing metadataBase warning uses localhost for social image URLs and remains a deployment configuration review item. Dedicated port-3331 dev server stopped; generated test/build tsconfig includes removed. No production deployment. Next action is patch review and Linux/MySQL/authentic staging/provider acceptance against a clean SHA; local launch-check failures remain open.
+
+## Merchant dashboard and voucher review — 2026-11-02
+
+PARTIAL release acceptance; local implementation verified. HassanDev backend base 926ab34/frontend base 5abab50; scoped changes remain uncommitted alongside pre-existing CMS and launch edits. No deployment, provider activation, new package or migration. Owner confirmed reserve at explicit payment start; existing quote/Confirm flow already follows that boundary. D-106 no-per-consumer-cap preserved. Reused existing reusable voucher resolution, paginated disputes, protected queued exports and historical snapshots; connected missing UI and added scoped stock/expiry KPIs plus adjacent-period lifecycle comparisons.
+
+Executed: PHP 8.5 SQLite 75 tests, 72 PASS/3 SKIP, 8,462 assertions; PHPStan zero errors; targeted Pint; frontend TypeScript/ESLint; five Chrome fixture journeys PASS (50.5s, exit 0). Three real HTTP captures in docs/api/VOUCHER_DASHBOARD_HTTP_CAPTURE.json. Composer audit clean; npm audit 25 vulnerabilities (22 moderate, 2 high, 1 critical). Full findings, commands/evidence and validation history: docs/merchant-voucher-review.md; JUnit docs/merchant-voucher-review.junit.xml.
+
+Exact next action: review scoped patch and npm advisories, remediate dependencies, run the three pcntl/database race cases on Linux and genuine staging merchant/mobile/worker flows; measure staging P95 below 300 ms on a clean SHA. Do not report concurrency or production readiness as fully passing. Checklist remains unticked without an implementation commit/SHA.
+
+Final review checkpoint: OpenAPI coverage rerun 3 PASS/7,780 assertions; targeted Pint PASS; final TypeScript/ESLint PASS. Five final Chrome cases PASS with clean exit. Dedicated port-3332 dev server stopped; only task-added tsconfig include entries removed. No fixture SQLite database/server/log remains. No commit or deployment.
+
+## Local CSRF endpoint restored — 2026-11-02
+
+Branch `HassanDev`, HEAD `926ab34`; existing uncommitted changes preserved. The reported `http://localhost:8010/sanctum/csrf-cookie` failure was reproduced as connection refused: no backend listener on port 8010. Started PHP 8.4.15 in a hidden background process using `artisan serve --host=127.0.0.1 --port=8010 --no-reload` (launcher PID 16200). No application/configuration changes or migrations.
+
+Executed real HTTP verification with `Origin: http://localhost:3000`: **204 No Content**, both `XSRF-TOKEN` and `shopbonus-session` cookies, `Access-Control-Allow-Origin: http://localhost:3000`, and credentials allowed. Cookie values excluded from recorded output. Runtime repair complete; full login/browser journey NOT RUN. Next action: retry the frontend request; after a backend stop/reboot, restart the same command from the backend directory. Runtime logs: `storage/logs/csrf-server.out.log` and `storage/logs/csrf-server.err.log`. No commit made; documentation checkpoint uncommitted alongside pre-existing work.
+
+## Platform reliability review — 2026-11-02
+
+PARTIAL production acceptance. Backend HassanDev base 926ab34068e18cca081b7b168cc2ed6f7622fe29;
+frontend HassanDev base 5abab5083ce7036177d7cbef27688f449d6b0f35. Uncommitted;
+existing unrelated edits preserved. No commit, push, deployment or application DB migration.
+Full finding dispositions and exact next release actions: docs/reliability/REVIEW_2026-11-02.md.
+
+Verified already-present OTP logging removal, PHP 8.5 SOAP signature, private
+backup roots and cover OpenAPI path. Added restored encrypted dispute/QA
+attachment integrity/reference regression; it exposed and fixed Windows nested
+archive separators. Extended existing observations to configured connection/queue
+pairs, worker polling, Redis ready counts and explicitly labelled enqueue age.
+Exact Redis ready wait remains UNKNOWN. Native Redis interface mocked; real
+Redis infrastructure acceptance NOT RUN. Added admin cockpit operations panel,
+missing/error/refresh states and removed the old inferred Online indicators.
+Owner explicitly confirmed management allocation reporting; formal revenue
+recognition remains unverified. API recovery targets are explicitly UNAPPROVED;
+offsite/key recovery/infrastructure drill remain false/unverified. Hourly logical
+backups do not establish a 15-minute RPO.
+
+Executed: PHP 8.4 combined Reliability/SOAP/OTP/OpenAPI 76 tests: 72 passed,
+4 skipped, 8188 assertions. Skips: three MySQL concurrency cases and Windows
+symlink privileges. Final operations/OpenAPI rerun: 10 passed, 7831 assertions
+(includes final worker-event/throttle and recovery-target guards). PHP 8.5.0
+SOAP: 14 passed, 98 assertions; exact PHP 8.5.11 unavailable/NOT RUN; existing
+WAMP Xdebug DLL startup warning. Targeted Pint passed; targeted application
+PHPStan zero errors. Frontend TypeScript/targeted ESLint passed; real Chrome
+fixture regression passed, screenshot visually inspected. Three actual local
+HTTP captures in docs/api/RELIABILITY_REVIEW_HTTP_CAPTURE.json; fixture DB,
+server and log removed. JUnit evidence: docs/reliability/review-*.junit.xml.
+Full repository, production-volume restore, live Redis/provider and deployed
+browser acceptance NOT RUN. No migration needed. Checklist stays unticked until
+an implementation commit/SHA exists, per AGENTS.md.
+
+Exact next action: review scoped patch, configure/restart real workers with the
+JSON target map, verify the authenticated combined UI and alert delivery, then
+independently verify offsite copies, secure APP_KEY/backup-key recovery and a
+timed production-version/volume infrastructure recovery drill. Establish costs
+and feasible data-loss/recovery evidence before requesting RPO/RTO approval.
+Do not mark whole Trello #30 DONE.

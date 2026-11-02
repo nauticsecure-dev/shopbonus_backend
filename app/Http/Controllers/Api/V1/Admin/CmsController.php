@@ -144,6 +144,7 @@ class CmsController extends Controller
                 $status = match (true) {
                     $l === null => 'missing',
                     $published === null => 'unpublished',
+                    $locale !== 'nl' && ($published->source_master_revision === null || $published->source_master_revision !== $p->locales->firstWhere('locale', 'nl')?->draft_revision) => 'stale',
                     $l->draft_content !== $published->content => 'draft_differs',
                     default => 'published',
                 };
@@ -262,7 +263,7 @@ class CmsController extends Controller
 
     public function storeFaqCategory(Request $request): JsonResponse
     {
-        $data = $request->validate(['key' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')], 'names' => ['required', 'array:nl,en'],
+        $data = $request->validate(['key' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')], 'names' => ['required', 'array:'.implode(',', CmsService::LOCALES)],
             'names.nl' => ['required', 'string', 'max:80', 'not_regex:/[<>]/'], 'names.en' => ['required', 'string', 'max:80', 'not_regex:/[<>]/']]);
         $c = FaqCategory::create($data + ['position' => (int) FaqCategory::max('position') + 1]);
         CmsCache::flush();
@@ -317,7 +318,7 @@ class CmsController extends Controller
             'revision' => [$creating ? 'prohibited' : 'required', 'integer', 'min:1'],
             'audience' => ['sometimes', Rule::in(FaqItem::AUDIENCES)],
             'published' => ['sometimes', 'boolean'],
-            'translations' => [$creating ? 'required' : 'sometimes', 'array:nl,en', 'min:1'],
+            'translations' => [$creating ? 'required' : 'sometimes', 'array:'.implode(',', CmsService::LOCALES), 'min:1'],
             'translations.*.question' => ['required', 'string', 'max:200', 'not_regex:/[<>]/'],
             'translations.*.answer' => ['required', 'array'],
         ]);

@@ -97,6 +97,26 @@ class MerchantOverviewE2ETest extends TestCase
         return '/api/v1/workspaces/'.($shop ?? $this->woon)->public_id.'/dashboard';
     }
 
+    public function test_reserved_and_expired_summaries_are_scoped_to_the_workspace(): void
+    {
+        $offer = $this->createOffer($this->woon, codes: 3);
+        $foreign = $this->createOffer($this->fiets, codes: 3);
+        $inventory = app(VoucherInventory::class);
+        $consumer = User::factory()->create();
+        foreach ([$offer, $foreign] as $o) {
+            $inventory->reserve($o, VoucherOrigin::WalletPurchase, 'reserved-summary:'.$o->id);
+            $expired = $inventory->issue($inventory->reserve($o, VoucherOrigin::WalletPurchase, 'expired-summary:'.$o->id), $consumer);
+            $expired->forceFill(['status' => 'expired', 'expires_at' => now()->subDay()])->save();
+        }
+        $this->createOffer($this->woon, status: 'ended');
+        $this->createOffer($this->fiets, status: 'ended');
+        Sanctum::actingAs($this->owner);
+        $this->getJson($this->dash())->assertOk()
+            ->assertJsonPath('data.kpis.reserved_codes', 1)
+            ->assertJsonPath('data.kpis.expired_vouchers', 1)
+            ->assertJsonPath('data.kpis.expired_offers', 1);
+    }
+
     /** E2E 1 — Merchant login and dashboard */
     public function test_e2e_01_merchant_dashboard_loads_real_backend_payload_for_woon_and_co(): void
     {
