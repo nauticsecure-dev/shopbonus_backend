@@ -17,6 +17,8 @@ use App\Support\PhoneNumber;
  * "Eligibility"). Every failed check is recorded as a reason. An order
  * webhook alone never authorises contact: the webshop must have attested a
  * lawful basis and, for consent-based contact, the order must carry consent.
+ * These are ShopBonus disclosure safeguards for sharing a contact opportunity.
+ * Answer24 owns the final outreach decision, scheduling and execution.
  *
  * Results: eligibility_status eligible|ineligible; contact_status
  * not_callable (valid order, no usable phone) or blocked; the planner then

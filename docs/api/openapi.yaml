@@ -5,6 +5,11 @@ info:
   description: |
     Shopbonus backend REST API. All endpoints are versioned under `/api/v1`.
 
+    New trusted, validated affiliate conversions earn immediately spendable noncash
+    credit under the active versioned reward rule. Later network rejection does not
+    automatically reclaim that credit. Frozen historical reward timing is preserved.
+    The EUR 4.75 acceptance example uses an explicit 100% consumer share.
+
     **Conventions (apply to every endpoint):**
     - Responses are always JSON (the API forces `Accept: application/json`).
     - Every response carries an `X-Request-Id` header. Clients may send their own

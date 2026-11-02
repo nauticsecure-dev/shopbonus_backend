@@ -2,6 +2,8 @@
 
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
 
+Current affiliate policy (owner revised brief, 2026-11-02): trusted, validated, attributed conversions earn immediately spendable noncash credit under the active versioned rule. Later rejection changes network reporting without automatically reclaiming this credit. Historical timing snapshots remain unchanged. Earlier pending/settlement captures below describe their original checkpoint. See [revised-brief acceptance and executed evidence](../release/REVISED_BRIEF_REVIEW_2026-11-02.md) and [fresh real HTTP captures](REVISED_BRIEF_HTTP_CAPTURE.json). The EUR 4.75 example explicitly uses a 100% rule; the general default share remains 70%.
+
 
 Current connection policy: `Connected` requires all seven native verification gates. Complete webhooks and passive API probes stay `Limited`; see [B23d readiness and recovery](../integrations/READINESS_AND_RECOVERY.md). Earlier checkpoint captures below are historical.
 

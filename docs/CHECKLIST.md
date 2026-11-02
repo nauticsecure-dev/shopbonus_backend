@@ -1135,3 +1135,11 @@ B38 checked against executed evidence in this implementation commit (parent130fd
 - [ ] Show reserved codes / expired vouchers and compare adjacent lifecycle periods using existing aggregates.
 - [ ] Verify read-only checkout quote versus explicit payment start; preserve D-106 no per-consumer cap.
 - [ ] Record executed regressions and remaining MySQL/staging/performance evidence.
+
+## Revised platform brief review — 2026-11-02
+- [ ] Verify OTP secrecy, PHP 8.5 SOAP loading and cover OpenAPI coverage.
+- [ ] Make new validated affiliate conversions immediately spendable; verify explicit 100% EUR 4.75 rule, replay, rejection and expiry; preserve frozen historical timing.
+- [ ] Tie replacement allocation to the original voucher and verify a second report cannot issue another replacement.
+- [ ] Diagnose reported onboarding/catalog/connection test failures against current contracts.
+- [ ] Record audited 404 tenant policy, Answer24 disclosure safeguards and unverified/missing integration release blockers.
+- [ ] Record executed checks, branch/SHA, uncommitted status and exact remaining acceptance work.

@@ -26,8 +26,10 @@ use Illuminate\Support\Str;
 /**
  * Voucher disputes and compensation (Trello #20). Every compensation is a
  * ledger/inventory/payment operation with an idempotency key derived from
- * the dispute, applied under the dispute row lock, so it happens at most
- * once. Merchants can respond but never touch balances or vouchers.
+ * the dispute, applied under the dispute and original voucher row locks.
+ * Compensation is limited across all reports of the same original voucher;
+ * replacement allocation also uses its unique inventory key. Merchants can
+ * respond but never touch balances or vouchers.
  */
 class DisputeService
 {
@@ -255,7 +257,7 @@ class DisputeService
         if ($offer === null) {
             throw new ApiException('A replacement needs the original voucher.', 422, 'replacement_not_possible');
         }
-        $voucher = $this->inventory->reserve($offer, VoucherOrigin::Promotional, 'dispute-replacement:'.$d->public_id, actorUserId: $actorUserId);
+        $voucher = $this->inventory->reserve($offer, VoucherOrigin::Promotional, 'dispute-replacement:'.$original->public_id, actorUserId: $actorUserId);
         if ($voucher->consumer_user_id === null) {
             $voucher = $this->inventory->issue($voucher, User::findOrFail($d->user_id));
         }

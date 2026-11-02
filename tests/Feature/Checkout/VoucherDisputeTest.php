@@ -308,6 +308,16 @@ class VoucherDisputeTest extends TestCase
         $this->postJson("/api/v1/admin/disputes/{$first}/resolve", ['outcome' => 'rejected', 'compensation' => 'wallet_credit', 'amount_minor' => 1, 'note' => 'Invalid combination'])->assertUnprocessable();
         $replacement = $this->postJson("/api/v1/admin/disputes/{$first}/resolve", ['outcome' => 'resolved', 'compensation' => 'replacement', 'note' => 'New code issued'])->assertOk();
         $this->assertSame(2, Voucher::where('consumer_user_id', $this->anna->id)->where('status', VoucherStatus::Issued)->count());
+        $this->assertDatabaseHas('vouchers', ['idempotency_key' => 'dispute-replacement:'.$v->public_id]);
+
+        // Resolution releases the open-report key, but a new report cannot replace the same original again.
+        Sanctum::actingAs($this->anna);
+        $reopened = $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $v->public_id, 'reason' => 'code_invalid', 'description' => 'Reporting the same original voucher again.'])->assertCreated()->json('data.id');
+        $this->asAdmin();
+        $this->postJson("/api/v1/admin/disputes/{$reopened}/resolve", ['outcome' => 'resolved', 'compensation' => 'replacement', 'note' => 'Another replacement'])
+            ->assertConflict()->assertJsonPath('error.code', 'voucher_already_compensated');
+        $this->assertSame(2, Voucher::where('consumer_user_id', $this->anna->id)->where('status', VoucherStatus::Issued)->count());
+        $this->assertSame(1, Voucher::where('idempotency_key', 'dispute-replacement:'.$v->public_id)->count());
 
         // Refund of the Mollie part of a paid checkout (a different purchase).
         $bought = $this->issued();

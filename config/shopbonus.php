@@ -284,9 +284,9 @@ return [
 
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
-        // New rewards require network approval AND independently recorded settlement.
+        // Owner revised brief: trusted, validated attribution earns spendable credit immediately.
         // Existing reward snapshots retain their historical policy.
-        'credit_timing' => 'on_network_settlement',
+        'credit_timing' => 'on_validated_attribution',
         // Default consumer share of eligible commission (70% / ShopBonus 30%).
         'default_consumer_share_bps' => (int) env('AFFILIATE_DEFAULT_CONSUMER_SHARE_BPS', 7000),
         // Network used when programs cannot be compared reliably.
