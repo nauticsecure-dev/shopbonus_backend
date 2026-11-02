@@ -31,6 +31,30 @@ final class SupportPlanner
     ];
 
     /**
+     * A public ULID, or else a webshop order reference as customers write it:
+     * "FS-20482", "#1042", "bestelling 1042", "order nr. AB12345". Order
+     * references keep their case; ownership is still checked by the tool.
+     */
+    public static function reference(string $text): ?string
+    {
+        if (preg_match('/\b[0-9a-hjkmnp-tv-z]{26}\b/i', $text, $m) === 1) {
+            return strtolower($m[0]);
+        }
+        $patterns = [
+            '/\b(?:order|bestelling|ordernummer|bestelnummer|order\s*number|referentie|reference)\s*(?:nr\.?|nummer|number|no\.?)?\s*[:#]?\s*#?([A-Za-z0-9][A-Za-z0-9-]{2,39})\b/iu',
+            '/#([A-Za-z0-9][A-Za-z0-9-]{2,39})\b/u',
+            '/\b([A-Z]{1,6}-\d{3,20})\b/u',
+        ];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $m) === 1 && preg_match('/\d/', $m[1]) === 1) {
+                return $m[1];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed>  $previous  Authorized previous message plan in the same conversation.
      * @return array<string, mixed>
      */
@@ -47,8 +71,7 @@ final class SupportPlanner
 
             return count($matches) === 1 ? $matches[0] : $m[0];
         }, $q);
-        $reference ??= preg_match('/\b[0-9a-hjkmnp-tv-z]{26}\b/i', $question, $m) ? strtolower($m[0]) : null;
-        $reference ??= preg_match('/\b[A-Z]{1,10}-[0-9]{2,20}\b/i', $question, $m) ? $m[0] : null;
+        $reference ??= self::reference($question);
         $wantsHuman = preg_match('/\b(human|medewerker|menselijk|iemand\s+spreken|contact\s+support|support\s+ticket|praat\s+met)\b/u', $q) === 1;
         $complaint = preg_match('/complaint|klacht|belachelijk|schandalig|niet\s+klopt|geld\s+is\s+weg/u', $q) === 1;
         // Do not let a balance answer imply a refund, guaranteed date, or completed action.

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccountRole;
+use App\Enums\MembershipStatus;
 use App\Enums\OnboardingIntent;
 use App\Enums\PlatformRole;
 use App\Enums\UserStatus;
@@ -160,6 +161,19 @@ class User extends Authenticatable implements HasLocalePreference
     public function platformRoles(): HasMany
     {
         return $this->hasMany(PlatformRoleAssignment::class);
+    }
+
+    /**
+     * Consumers: no active workspace membership and no active platform role.
+     * The one definition behind the admin user list and the cockpit counts.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeConsumers(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('memberships', fn ($q) => $q->where('status', MembershipStatus::Active))
+            ->whereDoesntHave('platformRoles', fn ($q) => $q->whereNull('revoked_at'));
     }
 
     public function hasPlatformRole(PlatformRole $role): bool

@@ -7,13 +7,20 @@ use App\Models\Webshop;
 use App\Models\WebshopMembership;
 use App\Services\Admin\SupportSessions;
 use App\Services\Support\SupportChat;
+use App\Services\Workspaces\RealtimeAccess;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /*
 | Private channel authorisation. Revalidated on every subscription: a
-| removed member or suspended webshop cannot (re)subscribe.
+| removed member or suspended webshop cannot (re)subscribe. Clients also
+| sign in as a user (POST /api/broadcasting/user-auth) so a revocation can
+| terminate the sockets already open (RealtimeAccess).
 */
+
+Broadcast::userRoutes(['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum', 'account.active']]);
+Broadcast::resolveAuthenticatedUserUsing(fn (Request $request) => RealtimeAccess::signInIdentity($request));
 
 Broadcast::channel('webshops.{webshopPublicId}.orders', function (User $user, string $webshopPublicId) {
     $webshop = Webshop::where('public_id', $webshopPublicId)->first();

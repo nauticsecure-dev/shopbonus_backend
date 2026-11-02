@@ -29,11 +29,13 @@ class SyncDaisyconEvidence implements ShouldQueue
         $this->afterCommit();
     }
 
+    /** @return list<RateLimited> */
     public function middleware(): array
     {
         return [new RateLimited('daisycon-evidence')];
     }
 
+    /** @return list<int> */
     public function backoff(): array
     {
         return [60, 120, 300, 600];

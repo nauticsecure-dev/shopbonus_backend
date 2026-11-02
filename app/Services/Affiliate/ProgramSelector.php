@@ -18,12 +18,15 @@ class ProgramSelector
     /**
      * @return array{program: AffiliateProgram|null, method: string, limitation: string|null}
      */
-    public function select(Webshop $webshop): array
+    public function select(Webshop $webshop, bool $onlyIfChanged = false): array
     {
         $candidates = AffiliateProgram::with('connection')->where('webshop_id', $webshop->id)->where('active', true)->where('cashback_allowed', true)
             ->whereHas('connection', fn ($q) => $q->whereIn('status', ['connected', 'limited']))->orderBy('id')->get();
 
-        return $this->recordSelection($webshop->id, $candidates);
+        $pending = null;
+        $latest = $onlyIfChanged ? DB::table('affiliate_program_selections')->where('webshop_id', $webshop->id)->latest('id')->first() : null;
+
+        return $this->recordSelection($webshop->id, $candidates, $pending, $latest);
     }
 
     /** Resolve a directory page with bounded queries, including first-time selections.
@@ -39,20 +42,13 @@ class ProgramSelector
             DB::table('affiliate_program_selections')->selectRaw('MAX(id)')->whereIn('webshop_id', $webshopIds)->groupBy('webshop_id')
         )->get()->keyBy('webshop_id');
         $programs = AffiliateProgram::with('connection')->whereIn('webshop_id', $webshopIds)->orderBy('id')->get();
-        $byId = $programs->keyBy('id');
         $byShop = $programs->groupBy('webshop_id');
         $result = [];
         $pending = [];
         foreach ($webshopIds as $id) {
             $decision = $latest->get($id);
-            $program = $byId->get($decision?->program_id);
-            if ($decision !== null && ($decision->program_id === null || ($program !== null && $program->webshop_id === $id && $this->eligible($program)))) {
-                $result[$id] = $program;
-
-                continue;
-            }
             $candidates = ($byShop->get($id) ?? collect())->filter(fn (AffiliateProgram $p) => $this->eligible($p))->values();
-            $result[$id] = $this->recordSelection($id, $candidates, $pending)['program'];
+            $result[$id] = $this->recordSelection($id, $candidates, $pending, $decision)['program'];
         }
         if ($pending !== []) {
             DB::table('affiliate_program_selections')->insert($pending);
@@ -63,7 +59,7 @@ class ProgramSelector
 
     private function eligible(AffiliateProgram $program): bool
     {
-        return $program->active && $program->cashback_allowed && in_array($program->connection?->status, ['connected', 'limited'], true);
+        return $program->active && $program->cashback_allowed && in_array($program->connection->status, ['connected', 'limited'], true);
     }
 
     /**
@@ -71,7 +67,7 @@ class ProgramSelector
      * @param  list<array<string, mixed>>|null  $pending
      * @return array{program: AffiliateProgram|null, method: string, limitation: string|null}
      */
-    private function recordSelection(int $webshopId, Collection $candidates, ?array &$pending = null): array
+    private function recordSelection(int $webshopId, Collection $candidates, ?array &$pending = null, ?object $latest = null): array
     {
         $basket = (int) config('shopbonus.affiliate.reference_basket_minor', 5000);
 
@@ -89,6 +85,13 @@ class ProgramSelector
             default => [$candidates->sortByDesc(fn (AffiliateProgram $p) => [$p->commission_type === 'percentage' ? intdiv($basket * $p->commission_value, 10_000) : $p->commission_value, -$p->id])->first(), 'best_comparable', null],
         };
 
+        if ($latest !== null && (string) $latest->program_id === (string) $program?->id
+            && $latest->method === $method && $latest->limitation === $limitation
+            && $latest->rule_version === (string) config('shopbonus.affiliate.selection_rule_version')
+            && json_decode($latest->candidates, true) == $rows) {
+            return ['program' => $program, 'method' => $method, 'limitation' => $limitation];
+        }
+
         $row = [
             'webshop_id' => $webshopId, 'program_id' => $program?->id, 'method' => $method, 'candidates' => json_encode($rows),
             'limitation' => $limitation, 'rule_version' => (string) config('shopbonus.affiliate.selection_rule_version'), 'created_at' => now(),
@@ -104,16 +107,9 @@ class ProgramSelector
 
     public function current(Webshop $webshop): ?AffiliateProgram
     {
-        $latest = DB::table('affiliate_program_selections')->where('webshop_id', $webshop->id)->orderByDesc('id')->first();
-        $program = $latest?->program_id === null ? null : AffiliateProgram::with('connection')->find($latest->program_id);
-
-        // Re-select when there is no decision yet or the chosen program is no longer usable.
-        if ($latest === null || ($program !== null && (! $program->active || ! $program->cashback_allowed || $program->webshop_id !== $webshop->id
-            || ! in_array($program->connection->status, ['connected', 'limited'], true)))) {
-            return $this->select($webshop)['program'];
-        }
-
-        return $program;
+        // Recompute from current eligible candidates; store a new decision only
+        // when its inputs or outcome changed. A previous empty choice is not final.
+        return $this->select($webshop, onlyIfChanged: true)['program'];
     }
 
     /** @param Collection<int, AffiliateProgram> $candidates */

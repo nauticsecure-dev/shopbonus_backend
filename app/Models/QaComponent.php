@@ -24,7 +24,7 @@ class QaComponent extends Model
 {
     use HasUlids;
 
-    public const KINDS = ['job', 'event', 'listener', 'command', 'schedule', 'migration', 'connector'];
+    public const KINDS = ['job', 'event', 'listener', 'command', 'schedule', 'migration', 'connector', 'middleware', 'policy', 'service', 'model', 'controller', 'request', 'resource', 'rule', 'enum', 'provider', 'support', 'logging', 'integration'];
 
     protected $guarded = ['id'];
 

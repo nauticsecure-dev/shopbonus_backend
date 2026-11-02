@@ -32,6 +32,7 @@ class TradeTrackerSoapClient extends SoapClient
         ]);
     }
 
+    /** $uriParserClass matches the PHP 8.5 signature; it is optional, so PHP 8.4 accepts it too. */
     public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ?string $uriParserClass = null): ?string
     {
         try {

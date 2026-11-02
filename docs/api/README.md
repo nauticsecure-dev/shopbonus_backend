@@ -19483,3 +19483,4687 @@ HTTP 200 captured response:
 ```json
 {"data":{"version":null,"categories":[{"key":"necessary","required":true,"trackers":[]}],"texts":null,"requires_reconsent":false}}
 ```
+
+
+<!-- Incoming review captures retained intact during merge. -->
+
+## #29 central notifications — B20a support-reply inbox
+
+2026-10-26 local actual Laravel HTTP server, isolated SQLite/database sessions/queue; main base d2fb5ed plus B20a working tree; synthetic users/reply and local Reverb auth configuration; actual owner200/other403/support403 channel authorization, no live mail/model/deployed WebSocket claim. All examples below were captured via actual HTTP. Email delivery, the remaining event catalogue, reminders and AI templates are not implemented in this slice. [Client contract and limits](../notifications/NOTIFICATIONS.md).
+
+### `GET /api/v1/notifications?filter=unread&page=1&per_page=20` — inbox
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=unread&page=1&per_page=20' -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-inbox' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-Request-Id: b20-capture-inbox
+
+{"data":[{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":null,"created_at":"2026-10-26T20:45:48+00:00"},{"id":"c615ff79-9256-4ec5-bce9-f5ae9b83776c","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":null,"created_at":"2026-10-26T20:45:48+00:00"}],"meta":{"unread_count":2,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `GET /api/v1/notification-preferences` — preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-preferences' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 98
+X-Request-Id: b20-capture-preferences
+
+{"data":{"locale":"nl","email_enabled":true,"preferences":{"support_reply":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false}},"email_delivery_available":false}}
+```
+
+### `PUT /api/v1/notification-preferences` — update-preferences
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-update-preferences' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"email":false,"in_app":true}}}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 97
+X-Request-Id: b20-capture-update-preferences
+
+{"data":{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false}},"email_delivery_available":false}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — mark-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mark-read' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 96
+X-Request-Id: b20-capture-mark-read
+
+{"data":{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — mark-read-idempotent
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mark-read-idempotent' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-Request-Id: b20-capture-mark-read-idempotent
+
+{"data":{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}}
+```
+
+### `POST /api/v1/notifications/read-all` — read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-read-all' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 94
+X-Request-Id: b20-capture-read-all
+
+{"data":{"marked_read":1}}
+```
+
+### `GET /api/v1/notifications` — reconnect
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-reconnect' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 93
+X-Request-Id: b20-capture-reconnect
+
+{"data":[{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"},{"id":"c615ff79-9256-4ec5-bce9-f5ae9b83776c","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}],"meta":{"unread_count":0,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — foreign-notification
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-foreign-notification' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: b20-capture-foreign-notification
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+
+{"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b20-capture-foreign-notification"}}
+```
+
+### `GET /api/v1/notifications?filter=invalid` — invalid-filter
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=invalid' -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-invalid-filter' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-invalid-filter
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 92
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-invalid-filter","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+### `PUT /api/v1/notification-preferences` — mandatory-in-app
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mandatory-in-app' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"support_reply":{"in_app":false}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-mandatory-in-app
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 91
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-mandatory-in-app","fields":{"preferences.support_reply.in_app":["The preferences.support_reply.in_app field must be accepted."]}}}
+```
+
+### `PUT /api/v1/notification-preferences` — unknown-event
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unknown-event' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"unknown":{"email":true}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-unknown-event
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 90
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-unknown-event","fields":{"preferences":["The preferences field must be an array."]}}}
+```
+
+### `GET /api/v1/notifications` — unauthorized-inbox
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-inbox'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-inbox
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-inbox"}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — unauthorized-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-read' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-read
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-read"}}
+```
+
+### `POST /api/v1/notifications/read-all` — unauthorized-read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-read-all' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-read-all
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-read-all"}}
+```
+
+### `GET /api/v1/notification-preferences` — unauthorized-preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-preferences'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-preferences
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-preferences"}}
+```
+
+### `PUT /api/v1/notification-preferences` — unauthorized-update
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-update' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-update
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-update"}}
+```
+
+### `GET /api/v1/notifications` — support-denied
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-support-denied' -H 'Authorization: Bearer <SUPPORT_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-support-denied
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 89
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"b20-capture-support-denied"}}
+```
+
+### `PUT /api/v1/notification-preferences` — support-preferences-denied
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-support-preferences-denied' -H 'Authorization: Bearer <SUPPORT_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-support-preferences-denied
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 88
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"b20-capture-support-preferences-denied"}}
+```
+
+### `POST /api/v1/notifications/read-all` — browser-csrf
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-browser-csrf' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: b20-capture-browser-csrf
+Content-Type: application/json
+
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"b20-capture-browser-csrf"}}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-owner
+
+Ephemeral channel authorization signature redacted.
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-owner' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: b20-capture-broadcast-owner
+
+{"auth":"<REDACTED_EPHEMERAL_CHANNEL_AUTH>"}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-other
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-other' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-broadcast-other
+Content-Type: application/json
+
+{"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-other"}}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-support
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-support' -H 'Authorization: Bearer <SUPPORT_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-broadcast-support
+Content-Type: application/json
+
+{"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-support"}}
+```
+
+
+### `POST /api/broadcasting/user-auth` — realtime user sign-in (Trello #16)
+
+Not a live capture; behaviour from `tests/Feature/Workspaces/RealtimeRevocationTest.php`. Same auth as `/api/broadcasting/auth` (Sanctum cookie or token, active account). The Pusher/Reverb client calls it once per connection (Laravel Echo: `pusher.signin()` / user authentication enabled) so the server knows whose sockets they are. The signed user identity is the **public** user ID. Support (impersonation) sessions get 403; unauthenticated 401.
+
+When a member is removed or suspended, or loses `orders.view`, Shopbonus calls Reverb `terminate_connections` for that user after the change commits: every open socket of that user closes, the client reconnects, and channel auth then refuses what was withdrawn. A client that never signs in cannot be found by user and keeps an already-open subscription until it reconnects.
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"auth":"<REDACTED_EPHEMERAL_USER_AUTH>","user_data":"{\"id\":\"<user public_id>\"}"}
+```
+
+### `GET /api/v1/notifications` — rate-limit
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-rate-limit' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 429
+X-RateLimit-Limit: 1
+X-RateLimit-Remaining: 0
+Retry-After: 57
+X-Request-Id: b20-capture-rate-limit
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"b20-capture-rate-limit"}}
+```
+
+### `GET /api/v1/notifications` — storage-failure
+
+Temporary local router injects a storage-service failure through the actual Laravel kernel; router is not shipped.
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-storage-failure' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: b20-capture-storage-failure
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 987
+
+{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"b20-capture-storage-failure"}}
+```
+
+
+
+## Quality Center backend (B30, Trello #37)
+
+Captured on a real local PHP HTTP server (Laravel kernel), isolated synthetic SQLite, real `/login` + 2FA (TOTP for the first user, recovery codes after that, because Fortify refuses a reused TOTP code) + password confirmation. The imported report is a real PHPUnit 12 JUnit log of `tests/Feature/Qa`; the probe ran through `php artisan shopbonus:qa-probe`. Only the OpenAI Responses endpoint is a synthetic deterministic stub (no real model was called). Binary downloads are recorded as size and SHA-256. Full capture: `docs/qa/B30_QUALITY_CENTER_HTTP_CAPTURE.json`.
+
+Roles: Super Admin (everything; only role that manages schedules), `qa_tester` (inventory, runs, coverage approval, evidence, findings, retests, AI analysis) and `developer` (only findings assigned to them, their evidence, fix commits). Grant with `php artisan shopbonus:qa-role <email> qa_tester|developer [--revoke]`. All need confirmed 2FA; mutations need a recent password. Status rules: PASS only with executed assertions; FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS; only approved tests count; mocked passes stay labelled. CI imports with `php artisan shopbonus:qa-import <junit.xml> --suite=full --environment=staging --sha=<sha> [--coverage=map.json]`; after each deploy run `php artisan shopbonus:qa-discover --sha=<sha>`.
+
+`GET /api/v1/admin/qa/summary    (no session)` — summary_401
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a188d8-b776-73a4-b658-89f0560b35b3
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a188d8-b776-73a4-b658-89f0560b35b3"}}
+```
+
+`GET /api/v1/admin/qa/openapi.json    (session)` — openapi_403_consumer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-baf3-7302-867a-2ddd8c648780
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
+```
+
+`GET /api/v1/admin/qa/summary    (session)` — summary_403_developer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-c345-7276-aca7-2001da20ce28
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+```
+
+`POST /api/v1/admin/qa/inventory/scan  {"git_sha":"not-a-sha"}    (session)` — scan_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-c371-73f1-96c8-d574c933452b
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-c371-73f1-96c8-d574c933452b","fields":{"git_sha":["The git sha field format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/inventory/scan  {"git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5"}    (session)` — scan_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-c39d-713b-b9ec-77fb318ae776
+
+{"data":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}}
+```
+
+`GET /api/v1/admin/qa/snapshots?per_page=1    (session)` — snapshots_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ca68-727b-a1ca-fc1aa3b94c38
+
+{"data":[{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}],"meta":{"current_page":1,"total":1,"per_page":1,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/endpoints?q=consumer/wallet&per_page=2    (session)` — endpoints_200_search
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ca8f-70ab-8d53-c56c41e56dce
+
+{"data":[{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj8jd81wgas3et77mkty","method":"GET","path":"/api/v1/consumer/wallet/transactions","name":"api.v1.consumer.wallet.transactions.index","handler":"Api\\V1\\Consumer\\WalletController@transactions","summary":"My wallet history","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":3,"per_page":2,"last_page":2}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=untested&per_page=2    (session)` — endpoints_200_untested
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cab8-709a-baa2-8289851e7b0d
+
+{"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":362,"per_page":2,"last_page":181}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=bogus    (session)` — endpoints_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-caf0-7182-b687-efee22183308
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-caf0-7182-b687-efee22183308","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+`GET /api/v1/admin/qa/components?kind=schedule&per_page=3    (session)` — components_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cb1c-7261-a603-7298a7065f20
+
+{"data":[],"meta":{"current_page":1,"total":0,"per_page":3,"last_page":1}}
+```
+
+`POST /api/v1/admin/qa/frontend-usage  {"routes":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile","GET /api/v1/not-a-route"]}    (session)` — frontend_usage_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cb39-73d9-9777-5761f4d13404
+
+{"data":{"referenced":2,"unknown_routes":1,"unreferenced_review":339,"external_clients":21}}
+```
+
+`POST /api/v1/admin/qa/frontend-usage  {"routes":["rm -rf /"]}    (session)` — frontend_usage_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cc1f-7138-ad54-28af76854e25
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc1f-7138-ad54-28af76854e25","fields":{"routes.0":["The routes.0 field format is invalid."]}}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=unreferenced&per_page=2    (session)` — endpoints_200_unreferenced
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cc41-7397-ad42-4b564956af51
+
+{"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":339,"per_page":2,"last_page":170}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"not-junit.json","mime":"application/json","bytes":42,"sha256":"b16d06647e037937c7af7fbbf64002a45feb15dee41ff2552fbce275a43eab49"}}    (session)` — runs_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cc7a-7147-9957-2badb51d4dba
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc7a-7147-9957-2badb51d4dba","fields":{"report":["The report field must be a file of type: application/xml, text/xml, text/plain."]}}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"junit.xml","mime":"application/xml","bytes":3274,"sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e"}}    (session)` — runs_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ccaf-7361-8b5f-e79d8b18574f
+
+{"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"junit.xml","mime":"application/xml","bytes":3274,"sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e"}}    (session)` — runs_store_409_duplicate
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-ccee-7209-aee4-ca481a7d7baf
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"run_duplicate","message":"This report was already imported.","request_id":"01a188d8-ccee-7209-aee4-ca481a7d7baf","details":{"run":"01m64dhk68zrrb9fkghmzzeax9"}}}
+```
+
+`POST /api/v1/admin/qa/coverage  {"map":{"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile","GET /api/v1/unknown"]}}    (session)` — coverage_import_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd14-71e1-b193-6b6bb399bd8b
+
+{"data":{"linked":2,"unknown_tests":[],"unknown_targets":["GET /api/v1/unknown"]}}
+```
+
+`GET /api/v1/admin/qa/test-cases?status=draft&per_page=2    (session)` — test_cases_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd49-7066-bb15-ec38ba9f0471
+
+{"data":[{"id":"01m64dhk651fbkwbk32r8tgv32","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","title":"test_ai_analysis_is_advisory_and_grounded_in_the_input","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null},{"id":"01m64dhk6659bjk76pc3ba9z28","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","title":"test_cli_import_for_ci_runners","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null}],"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+```
+
+`POST /api/v1/admin/qa/test-cases  {"key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual"}    (session)` — test_case_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd67-7394-88b9-a1581b8d68b4
+
+{"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"draft","version":null,"approved_at":null}}
+```
+
+`POST /api/v1/admin/qa/test-cases  {"key":"E2E-07-shopify-install","title":"dup","source":"manual"}    (session)` — test_case_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f","fields":{"key":["The key has already been taken."]}}}
+```
+
+`POST /api/v1/admin/qa/test-cases/approve  {"keys":["Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","E2E-07-shopify-install","missing-key"]}    (session)` — test_cases_approve_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdb2-721b-acaa-55c28ca182b0
+
+{"data":{"approved":2,"skipped":1}}
+```
+
+`PUT /api/v1/admin/qa/test-cases/01m64dhkbp425gdzkkn1w8bvfh/coverage  {"endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}    (session)` — test_case_coverage_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdd7-7397-8fbb-dc1e395dd6cc
+
+{"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}}
+```
+
+`GET /api/v1/admin/qa/endpoints/01m64dhj8hp0rnvqhfymfx7j55    (session)` — endpoint_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdfb-7048-81f5-be33454d2164
+
+{"data":{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":2,"last_run_at":"2026-10-29T18:07:52+00:00","frontend_referenced":true,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null,"test_cases":[{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":null},{"id":"01m64dhk63b1mhxrct5veq7ett","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","title":"test_status_comes_only_from_approved_executed_evidence","scenario":null,"source":"phpunit","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null,"run_id":"01m64dhk68zrrb9fkghmzzeax9","created_at":"2026-10-29T18:07:52+00:00"}}]}}
+```
+
+`GET /api/v1/admin/qa/endpoints/01m6400000000000000000zzzz    (session)` — endpoint_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-ce19-7336-978d-dfb83a1a4f67
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a188d8-ce19-7336-978d-dfb83a1a4f67"}}
+```
+
+`GET /api/v1/admin/qa/runs?per_page=2    (session)` — runs_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ce37-73b4-ad7d-3e58b7bc43ee
+
+{"data":[{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},{"id":"01m64dhcezejjx7h5wmxnsfzh6","suite":"safe","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"probe","totals":{"total":3,"assertions":3,"pass":3,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":7,"report_sha256":"ae1336016d6bb54c7ecd8a2505ef978d4f2fc542104565d455c8a0df1f069981","created_at":"2026-10-29T18:07:45+00:00"}],"meta":{"current_page":1,"total":2,"per_page":2,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9?status=pass&per_page=2    (session)` — run_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ce53-71b4-adf3-5756e94ff266
+
+{"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00","results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null}],"evidence":[]},"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=json    (session)` — export_json_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.json"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ce73-7060-8675-74182acc7962
+
+{"run":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},"results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxd","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_exports_are_escaped_private_downloads","status":"pass","assertions":13,"mocked":false,"duration_ms":53,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxe","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_evidence_is_encrypted_deduplicated_and_scoped","status":"pass","assertions":16,"mocked":false,"duration_ms":83,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxf","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_finding_workflow_needs_an_independent_evidence_based_retest","status":"pass","assertions":46,"mocked":false,"duration_ms":1842,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxg","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","status":"pass","assertions":20,"mocked":false,"duration_ms":1693,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxh","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_schedules_probe_frontend_usage_and_openapi","status":"pass","assertions":34,"mocked":false,"duration_ms":2167,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxj","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_role_command_grants_and_revokes","status":"pass","assertions":7,"mocked":false,"duration_ms":40,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxk","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","status":"pass","assertions":9,"mocked":false,"duration_ms":1379,"message":null}]}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=junit    (session)` — export_junit_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/xml; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.xml"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ce95-70e2-a725-8c6dd76c4682
+
+{"body_excerpt":"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites><testsuite name=\"changed@staging\" tests=\"10\" failures=\"0\" skipped=\"0\" assertions=\"231\" time=\"15.049\">\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_roles_are_separated\" assertions=\"13\" time=\"1.161\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_discovery_finds_new_changed_removed_and_undocumented_routes\" assertions=\"31\" time=\"5.285\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_status_comes_only_from_approved_executed_evidence\" assertions=\"42\" time=\"1.346\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_exports_are_escaped","body_bytes":1701,"body_sha256":"f80ca0929ad6a5e09baa4ca2c3838f5e3ae5ce11bac579ec3ebe4d7fb9cf278b"}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=html    (session)` — export_html_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.html"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ceb7-7006-bafe-6e44c35ef953
+
+{"body_excerpt":"<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\"><title>QA run 01m64dhk68zrrb9fkghmzzeax9</title></head><body><h1>QA run 01m64dhk68zrrb9fkghmzzeax9</h1><p>Suite changed · environment staging · Git 2276fe6b9241893fe092b011e59bb0f027cc72a5 · 2026-10-29T18:07:52+00:00</p><p>total: 10 · assertions: 231 · pass: 10 · fail: 0 · blocked: 0 · not_implemented: 0 · skipped: 0 · mocked: 0</p><table><thead><tr><th>Test</th><th>Status</th><th>Assertions</th><th>Message (redacted)</th></tr></thead><tbody>\n<tr><td>Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated</td><td>PASS</td><td>13</td><td></td></tr>\n<tr><td>Tests\\Feature\\Qa\\QualityCenterTest:","body_bytes":1929,"body_sha256":"9336a6f593067263fadfcca7b5a0021ccc7c33e3479676a5564072e9e4055fc8"}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=pdf    (session)` — export_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cedc-72d5-b301-50fb3611cbec
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cedc-72d5-b301-50fb3611cbec","fields":{"format":["The selected format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"request_id":"req-capture-1","file":{"file":"proof.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf04-715d-a261-6e4c3e66499f
+
+{"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"file":{"file":"proof-again.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_200_dedupe
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf39-733f-8ff9-a39c66f581cd
+
+{"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"file":{"file":"page.html","mime":"text/html","bytes":38,"sha256":"1e88fe5a73e9700a27597a02ed7ec3c4cc1eb8e0d6ca580cd4473a5e7e6dc194"}}    (session)` — evidence_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cf58-71e0-87ff-9b10e12f3259
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"This file type is not accepted as evidence.","request_id":"01a188d8-cf58-71e0-87ff-9b10e12f3259","details":{"errors":{"file":["Upload PNG, JPEG, WebP, PDF, JSON, XML or plain text."]}}}}
+```
+
+`GET /api/v1/admin/qa/evidence/01m64dhks0pvr9vjkeaxt1s89t    (session)` — evidence_404_developer_unassigned
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-cf7b-717d-9233-4017670c8a9a
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"Evidence not found.","request_id":"01a188d8-cf7b-717d-9233-4017670c8a9a"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"full","environment":"staging","git_sha":"2276fe6","report":{"file":"junit.xml","mime":"application/xml","bytes":447,"sha256":"4e9ad14c24c8aeb1de220ef779ed76476b2ad242ca91aacf8e5f8caa21fc9dc4"}}    (session)` — runs_store_201_failing
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf9b-70f2-8738-74c0a16b96c7
+
+{"data":{"id":"01m64dhkxbgzdchpfxs6rk36as","suite":"full","environment":"staging","git_sha":"2276fe6","source":"junit","totals":{"total":1,"assertions":6,"pass":0,"fail":1,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":410,"report_sha256":"4e9ad14c24c8aeb1de220ef779ed76476b2ad242ca91aacf8e5f8caa21fc9dc4","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhkxbgzdchpfxs6rk36as/evidence  {"request_id":"req-capture-2","file":{"file":"claim.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_201_failing_run
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cfc2-73e3-8817-a4b64089d86f
+
+{"data":{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"x","severity":"p9"}    (session)` — finding_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cfe8-7376-9409-6ce2cd6d4cf4
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cfe8-7376-9409-6ce2cd6d4cf4","fields":{"severity":["The selected severity is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"reproduction":"Two parallel claims on the last code."}    (session)` — finding_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d00c-7030-a3d2-0c1106503b5e
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"reproduction":"Two parallel claims on the last code."}    (session)` — finding_store_409_exists
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d03d-7342-a1ea-38dd94e2f0df
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"finding_exists","message":"An unresolved finding already covers these routes and tests.","request_id":"01a188d8-d03d-7342-a1ea-38dd94e2f0df","details":{"finding":"01m64dhm15zxb1f002y6wq5zex"}}}
+```
+
+`GET /api/v1/admin/qa/findings    (session)` — findings_200_developer
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d066-7032-8612-010c19f63ac2
+
+{"data":[{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex    (session)` — finding_show_200_developer
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d085-71ad-b23b-c70fbb5efc1a
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null,"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/analyze    (session)` — finding_analyze_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d0ce-736f-b4b0-4f0bb455b422
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhkxbgzdchpfxs6rk36as"}    (session)` — finding_retest_409_not_fixed
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d143-707d-87c6-2d01a92e8d73
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"finding_not_fixed","message":"Only fixed findings can be retested.","request_id":"01a188d8-d143-707d-87c6-2d01a92e8d73","details":{"status":"open"}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"abcdef1"}    (session)` — finding_fix_403_tester
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d167-72cc-b69c-60f643660a50
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d167-72cc-b69c-60f643660a50"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"not hex"}    (session)` — finding_fix_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-d196-70ef-b273-3285c087f582
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-d196-70ef-b273-3285c087f582","fields":{"fix_commit":["The fix commit field format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"9f1c2ab"}    (session)` — finding_fix_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d1bd-71e3-9bd2-8b6359cece40
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"fixed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhkxbgzdchpfxs6rk36as"}    (session)` — finding_retest_409_outdated
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d1e2-7319-91c2-787497ea8ee5
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"retest_run_outdated","message":"Use a run imported after the fix was recorded.","request_id":"01a188d8-d1e2-7319-91c2-787497ea8ee5"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"full","environment":"staging","git_sha":"9f1c2ab","report":{"file":"junit.xml","mime":"application/xml","bytes":287,"sha256":"6fc86c97b47a2cd67c971de111cf58402fc074bed00d190f301d313966c54caf"}}    (session)` — runs_store_201_retest
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d5ee-731f-a037-b4cc8fa26dbf
+
+{"data":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","source":"junit","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":390,"report_sha256":"6fc86c97b47a2cd67c971de111cf58402fc074bed00d190f301d313966c54caf","created_at":"2026-10-29T18:07:54+00:00"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhnfxhezvjk35nrnekvre"}    (session)` — finding_retest_403_developer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d61a-72c9-a85d-869f76b2adc4
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d61a-72c9-a85d-869f76b2adc4"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhnfxhezvjk35nrnekvre"}    (session)` — finding_retest_200_passed
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d688-72dc-9846-5b134162eac0
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`GET /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex    (session)` — finding_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d6ae-71c1-aab4-51af8a8dbb21
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true},"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+```
+
+`GET /api/v1/admin/qa/evidence/01m64dhks0pvr9vjkeaxt1s89t    (session)` — evidence_download_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Content-Disposition: attachment; filename="proof.png"
+X-Content-Type-Options: nosniff
+Cache-Control: no-store, private
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-d6eb-71ed-b5e5-07e7c04bb130
+
+{"body_binary":true,"body_bytes":90,"body_sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}
+```
+
+`GET /api/v1/admin/qa/findings/01m6400000000000000000zzzz    (session)` — finding_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-d716-736d-98a1-975ec94e1066
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"Finding not found.","request_id":"01a188d8-d716-736d-98a1-975ec94e1066"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly"}    (session)` — schedule_store_403_tester
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d736-72bf-8130-0a1c9034a560
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d736-72bf-8130-0a1c9034a560"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Production full","suite":"full","environment":"production","trigger":"nightly"}    (session)` — schedule_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-d760-706a-84cb-c935020ad7a8
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"Production schedules can only run the read-only safe suite.","request_id":"01a188d8-d760-706a-84cb-c935020ad7a8","details":{"errors":{"suite":["Production schedules can only run the read-only safe suite."]}}}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2}    (session)` — schedule_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d789-7345-bdb2-39e322fd66df
+
+{"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2,"active":null,"last_run_at":null,"executed_by":"scheduler"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120}    (session)` — schedule_store_201_staging
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d7b1-7304-85fb-67d9d0b8ce75
+
+{"data":{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":null,"last_run_at":null,"executed_by":"ci_runner"}}
+```
+
+`PATCH /api/v1/admin/qa/schedules/01m64dhnwqxgeq2wfn7hvxb8am  {"timeout_minutes":3}    (session)` — schedule_update_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d7dd-708f-86ff-b587fe236278
+
+{"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}}
+```
+
+`GET /api/v1/admin/qa/schedules    (session)` — schedules_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d806-73b5-af97-78ff8eb5ff9f
+
+{"data":[{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":true,"last_run_at":null,"executed_by":"ci_runner"},{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}]}
+```
+
+`GET /api/v1/admin/qa/openapi.json    (session)` — openapi_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-store, private
+X-Robots-Tag: noindex, nofollow
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d825-7176-94b6-20af1827b395
+
+{"openapi":"3.1.0","info_title":"Shopbonus API","paths":328,"body_bytes":1077026}
+```
+
+`GET /api/v1/admin/qa/summary    (session)` — summary_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-da28-711e-98fd-0b2c482f6ee6
+
+{"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
+```
+
+
+
+## Restored HassanDev endpoints with re-captured examples (B31)
+
+Merge `9f927ef` kept main's `openapi.yaml` and dropped the 92 operations documented on the HassanDev branch. B31 restored their paths, parameters and request schemas, and replaced every example with a capture from a real local PHP HTTP server: isolated SQLite, demo seed plus capture fixtures, real `/login` + password confirmation and the emailed step-up flow (the synthetic code was set in the capture DB). Admin 2FA was disabled and the API rate limit raised for the capture only. Not captured: AI suggest 200 (needs a live OpenAI key; 503 `*_ai_not_configured` captured) and enrichment retry 202 (503 `enrichment_not_configured` captured). Activation tokens and voucher codes are redacted. Full capture: `docs/qa/B31_MERGE_RECOVERY_HTTP_CAPTURE.json`.
+
+`GET /api/v1/public/webshops/modehuis/cover    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Cache-Control: max-age=86400, public
+X-Content-Type-Options: nosniff
+Content-Security-Policy: default-src 'none'
+Content-Length: 79
+Content-Disposition: inline; filename=cover
+
+<79 bytes>
+```
+
+`GET /api/v1/public/webshops/sportlab/cover    (no session)` — no_cover
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Cover not found.", "request_id": "01a18e40-b5f6-7055-a35a-eb718c9cf44a"}}
+```
+
+`GET /api/v1/public/search?q=woon&limit=3    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"q": "woon", "groups": {"webshops": [{"type": "webshop", "label": "Woon & Co", "description": "Alles voor een stijlvol thuis.", "href": "/webshops/woon-en-co-demo", "slug": "woon-en-co-demo"}, {"type": "webshop", "label": "Woon & Co", "description": "Alles voor een stijlvol thuis.", "href": "/webshops/woon-en-co", "slug": "woon-en-co"}], "categories": [], "offers": [{"type": "offer", "label": "Woon & Co voordeel 1", "description": "€5.00 from €25.00", "href": "/webshops/woon-en-co/offers/woon-co-voordeel-1-ncsjbg", "slug": "woon-co-voordeel-1-ncsjbg", "webshop_slug": "woon-en-co"}, {"type": "offer", "label": "Woon & Co voordeel 2", "description": "12% from €25.00, maximum €25.00", "href": "/webshops/woon-en-co/offers/woon-co-voordeel-2-kvhevs", "slug": "woon-co-voordeel-2-kvhevs", "webshop_slug": "woon-en-co"}], "discount_codes": []}}}
+```
+
+`GET /api/v1/public/search?limit=99    (no session)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b654-731f-8a31-3d18f0d95ad4", "fields": {"limit": ["The limit field must not be greater than 20."]}}}
+```
+
+`GET /api/v1/public/discount-codes?limit=2    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416em670ad8f874ajg9y0", "slug": "homepage-demo-korting-bhj9uz", "offer_slug": "homepage-demo-korting-bhj9uz", "title": "Homepage demo korting", "summary": "10% from €25.00", "terms": null, "ends_at": null, "code": "WELKOM10", "webshop": {"slug": "woon-en-co-demo", "name": "Woon & Co", "image_url": "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200", "logo_url": null, "cover_url": "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200"}, "href": "/webshops/woon-en-co-demo"}]}
+```
+
+`GET /api/v1/public/discount-codes?limit=0    (no session)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b69d-737c-bb93-eb0d2d75f6c3", "fields": {"limit": ["The limit field must be at least 1."]}}}
+```
+
+`GET /api/v1/content/homepage    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "homepage", "type": "landing", "locale": "nl", "slug": "homepage", "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_ … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/homepage?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b6dc-732f-8a1f-f51bcb9068cf", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/voor-webshops    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust":  … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/voor-webshops?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b717-7385-9cd5-9c8509ea6394", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/pages/voor-webshops    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust":  … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/pages/voor-webshops?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b750-7074-b1b8-28527c096883", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/over-ons    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee v … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/over-ons?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b78a-7256-8e68-d543c9f11d13", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`GET /api/v1/content/pages/over-ons    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee v … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/content/pages/over-ons?locale=fr    (no session)` — unknown_locale
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b7c1-727a-a1b3-4a9e6f229fbb", "fields": {"locale": ["The selected locale is invalid."]}}}
+```
+
+`POST /api/v1/consumer/activation/verify  {"token": "<activation-token>"}    (no session)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"status": "eligible", "claim_status": "open", "expires_at": "2026-11-29T19:19:21+00:00", "webshop": {"name": "Woon & Co"}, "offer": {"summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "ends_at": null, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false}, "requirements": {"verified_account": true, "email_matches_order": true}, "explanation": "ShopBonus beloning gekoppeld aan een eerdere aankoop bij deze webshop. Log in of maak een account met het e-mailadres van de bestelling om te activeren."}}
+```
+
+`POST /api/v1/consumer/activation/verify  {"token": "xxxxxxxxxxxxxxxxxxxxxxxx"}    (no session)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "claim_not_found", "message": "This claim link is not valid.", "request_id": "01a18e40-b804-715a-bc42-335f4d4d5b37"}}
+```
+
+`POST /api/v1/consumer/activation/verify    (no session)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-b81e-7202-a8c9-0f8ad5e8bc05", "fields": {"token": ["The token field is required."]}}}
+```
+
+`GET /api/v1/me/wallet    (no session)` — unauthenticated
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18e40-b83b-7151-a8b4-f660ae937694"}}
+```
+
+`GET /api/v1/admin/network    (no session)` — unauthenticated
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18e40-b85f-701a-bd9b-c5335e567642"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers    (no session)` — unauthenticated
+
+```http
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+
+{"error": {"status": 401, "code": "unauthenticated", "message": "Authentication is required.", "request_id": "01a18e40-b883-71e7-aa6a-cddc2e18d751"}}
+```
+
+`GET /api/v1/me/wallet    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"available_minor": 1250, "reserved_minor": 0, "pending_minor": 0, "pending_cashback_minor": 0, "total_earned_minor": 1250, "total_spent_minor": 0, "currency": "EUR", "unit": "EUR_REDEMPTION_CREDIT", "updated_at": "2026-10-30T19:19:29+00:00", "withdrawable": false, "notice": "ShopBonus credit and points are not money: they cannot be withdrawn or transferred.", "balances": {"eur_credit": {"unit": "eur_credit", "available": 1250, "available_minor": 1250, "reserved": 0, "total_earned": 1250, "total_earned_minor": 1250, "total_spent": 0, "total_spent_minor": 0, "total_expired": 0, "next_expiry": null, "reserved_minor": 0, "pending": 0, "pending_cashback_minor": 0}, "points": {"unit": "points", "available": 0, "available_minor": 0, "reserved": 0, "total_earned": 0, "total_earned_minor": 0, "total_spent": 0, "total_spent_minor": 0, "total_expired": 0, "next_expiry": null, "reserved_minor": 0, "pending": 0, "pending_cashback_minor": 0}}}}
+```
+
+`GET /api/v1/me/vouchers    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"status": "issued", "source_type": "merchant_reward", "claimed_at": null, "expires_at": "2027-01-28T19:19:21+00:00"}], "meta": {"issued": 1, "redeemed": 0, "expired": 0, "cancelled": 0, "source_id": "owned_vouchers", "checked_at": "2026-10-30T19:19:29+00:00"}}
+```
+
+`GET /api/v1/me/voucher-quotes/01m67415jpb2q31jrpjpexyzbg    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"price_minor": 0, "wallet_usable_minor": 0, "mollie_due_minor": 0, "stock_available": true, "currency": "EUR", "purchasable": false, "source_id": "quote:01m67415jpb2q31jrpjpexyzbg:v1", "checked_at": "2026-10-30T19:19:29+00:00"}}
+```
+
+`GET /api/v1/me/voucher-quotes/01m000000000000000000000000    (consumer@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bb0c-705a-bbda-8efb181175fd"}}
+```
+
+`PATCH /api/v1/consumer/preferences  {"notifications": {"vouchers_discounts": true, "reminders": true, "offers_inspiration": false}}    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"notifications": {"vouchers_discounts": true, "reminders": true, "offers_inspiration": false}, "categories": [], "mandatory_mail": "Account, security and transaction emails are always sent and do not depend on these settings."}}
+```
+
+`PATCH /api/v1/consumer/preferences  {"notifications": {"reminders": "sometimes"}}    (consumer@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-bb4c-7159-abf8-b79565514f87", "fields": {"notifications.reminders": ["The notifications.reminders field must be true or false."]}}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "<activation-token>"}    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"status": "activated", "voucher_id": "01m67416tdt5agf7s0he0d57x6", "voucher_status": "issued", "code": "<voucher code>", "issued_at": "2026-10-30T19:19:29+00:00", "expires_at": "2027-01-28T19:19:29+00:00", "webshop": {"name": "Woon & Co"}, "offer": {"summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "ends_at": null, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false}, "dashboard_path": "/mijn-voordelen"}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "<activation-token>"}    (consumer@shopbonus.local)` — repeat_same_user
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"status": "activated", "voucher_id": "01m67416tdt5agf7s0he0d57x6", "voucher_status": "issued", "code": "<voucher code>", "issued_at": "2026-10-30T19:19:29+00:00", "expires_at": "2027-01-28T19:19:29+00:00", "webshop": {"name": "Woon & Co"}, "offer": {"summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "ends_at": null, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false}, "dashboard_path": "/mijn-voordelen"}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "<activation-token>"}    (consumer@shopbonus.local)` — email_mismatch
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{"error": {"status": 403, "code": "claim_email_mismatch", "message": "Sign in with the email address used for the order to claim this voucher.", "request_id": "01a18e40-bbb7-73f6-bd99-88fbf66c846d"}}
+```
+
+`GET /api/v1/me/orders/SB-10421/reward    (consumer@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"order_reference": "SB-10421", "payment_status": "paid", "reward_eligible": false, "reward_minor": 500, "reward_status": "issued", "currency": "EUR", "source_type": "answer24_claim", "claimed_at": "2026-10-30T19:19:29+00:00", "release_date": null, "source_id": "order_reward:01m67416t3fk0km6fsa169mf9e:01m67416tdt5agf7s0he0d57x6", "checked_at": "2026-10-30T19:19:29+00:00"}}
+```
+
+`GET /api/v1/me/orders/SB-00000/reward    (consumer@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bc0b-722c-ab50-3b8c8616386f"}}
+```
+
+`POST /api/v1/consumer/activation/complete  {"token": "yyyyyyyyyyyyyyyyyyyyyyyy"}    (consumer@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "claim_not_found", "message": "This claim link is not valid.", "request_id": "01a18e40-bc29-7294-8409-3a110d298634"}}
+```
+
+`GET /api/v1/admin/network    (consumer@shopbonus.local)` — forbidden
+
+```http
+HTTP/1.1 403 Forbidden
+Content-Type: application/json
+
+{"error": {"status": 403, "code": "platform_role_required", "message": "This action requires a platform administrator.", "request_id": "01a18e40-bc43-731a-829e-399684ed8269"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers    (consumer@shopbonus.local)` — not_member
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-bc64-717a-8551-9d6513d7de84"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/cost    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"consumer_reward_minor": 500, "shopbonus_fee_rate": 0.3, "shopbonus_fee_minor": 150, "merchant_total_economic_cost_minor": 650, "cost_available": true, "basis": "fixed_value", "currency": "EUR", "source_id": "offer:01m67415jpb2q31jrpjpexyzbg:v1", "checked_at": "2026-10-30T19:19:30+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m000000000000000000000000/cost    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bea3-704d-9099-5c1e9ce775e1"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/campaigns/01m6741fpv3xhnppskpdqjts02/performance    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"impressions": 0, "clicks": 0, "tracked_order_starts": null, "attributed_paid_orders": 0, "from": "2026-10-01", "to": "2026-10-30", "source_id": "campaign:01m6741fpv3xhnppskpdqjts02", "checked_at": "2026-10-30T19:19:30+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/campaigns/01m000000000000000000000000/performance    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Support evidence is unavailable.", "request_id": "01a18e40-bf15-7190-8492-aeeeff15fffb"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/integrations/health    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"connection_id": "01m67416sv8egpb2555dv3thsf", "platform": "woocommerce", "capabilities": {"order_ingestion_available": true, "verification": "unverified", "method": "webhook"}, "last_sync_at": null, "last_error_codes": [], "source_id": "integration:01m67416sv8egpb2555dv3thsf", "checked_at": "2026-10-30T19:19:30+00:00"}]}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/wallet    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"available_minor": 998050, "reserved_minor": 1950, "currency": "EUR", "unit": "EUR_REDEMPTION_CREDIT", "source_id": "merchant_wallet:01m67415hga62b9vcvd5rxhbpe", "checked_at": "2026-10-30T19:19:30+00:00"}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/codes/import-template    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Cache-Control: no-store, private
+Content-Disposition: attachment; filename=code-import-template.csv
+X-Content-Type-Options: nosniff
+
+code
+SHOP-CODE-0001
+
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416vc9thgcq72cw9masbs", "status": "issued", "origin": "merchant_reward", "code": "****B467", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": "2026-10-30T19:19:21+00:00", "expires_at": "2027-01-28T19:19:21+00:00", "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00"}, {"id": "01m67416v1y55pyy1rncntpevn", "status": "reserved", "origin": "answer24_claim", "code": "****C97E", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": null, "expires_at": null, "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00"}, {"id": "01m67416tdt5agf7s0he0d57x6", "status": "issued", "origin": "answer24_claim", "code": "****21B6", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": "2026-10-30T19:19:29+00:00", "expires_at": "2027-01-28T19:19:29+00:00", "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00"}], "meta": {"current_page": 1, "last_page": 1, "per_page": 25, "total": 3}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/export    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/csv; charset=UTF-8
+Cache-Control: no-store, private
+Content-Disposition: attachment; filename=vouchers-01m67415hga62b9vcvd5rxhbpe.csv
+X-Content-Type-Options: nosniff
+
+voucher_id,status,origin,code,offer_id,issued_at,expires_at,redeemed_at
+01m67416tdt5agf7s0he0d57x6,issued,answer24_claim,****21B6,01m67415jpb2q31jrpjpexyzbg,2026-10-30T19:19:29+00:00,2027-01-28T19:19:29+00:00,
+01m67416v1y55pyy1rncntpevn,reserved,answer24_claim,****C97E,01m67415jpb2q31jrpjpexyzbg,,,
+01m67416vc9thgcq72cw9masbs,issued,merchant_reward,****B467,01m67415jpb2q31jrpjpexyzbg,2026-10-30T19:
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m67416vc9thgcq72cw9masbs    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416vc9thgcq72cw9masbs", "status": "issued", "origin": "merchant_reward", "code": "****B467", "offer_id": "01m67415jpb2q31jrpjpexyzbg", "offer_name": "Woon & Co voordeel 1", "issued_at": "2026-10-30T19:19:21+00:00", "expires_at": "2027-01-28T19:19:21+00:00", "redeemed_at": null, "reserved_at": "2026-10-30T19:19:21+00:00", "terms": {"version": 1, "locked": true, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "redemption_source": null}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m000000000000000000000000    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "voucher_not_found", "message": "Voucher not found.", "request_id": "01a18e40-c00d-70f7-b379-dd0e12b9ec71"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m67416vc9thgcq72cw9masbs/dispute  {"reason": "code_invalid", "description": "The webshop says this code does not exist."}    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741g1s2jxj3ppk6nk6n0c5", "status": "open", "reason": "code_invalid", "description": "The webshop says this code does not exist.", "screenshots": 0, "webshop": "Woon & Co", "voucher_id": "01m67416vc9thgcq72cw9masbs", "resolution": null, "created_at": "2026-10-30T19:19:30+00:00", "timeline": [{"by": "merchant", "type": "opened", "note": "merchant_initiated", "at": "2026-10-30T19:19:30+00:00"}], "code_last4": "B467"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/vouchers/01m67416vc9thgcq72cw9masbs/dispute  {"reason": "other", "description": "short"}    (merchant@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c051-731b-bdf8-d96bf8871544", "fields": {"description": ["The description field must be at least 10 characters."]}}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/codes/01m67415knfwkvxpg9s5bphr53/platform-validation  {"mode": "manual_confirm", "note": "Checked in WooCommerce admin."}    (merchant@shopbonus.local)` — manual_confirm
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67415knfwkvxpg9s5bphr53", "code": "****B3DE", "status": "available", "reusable": false, "uses_count": 0, "platform_validation": "verified", "batch_id": null, "assigned": null, "reserved_at": null, "issued_at": null, "redeemed_at": null, "invalidated_at": null, "invalid_reason": null, "created_at": "2026-10-30T19:19:19+00:00"}, "verification": {"platform_validation": "verified", "detail": {"reason": "merchant_confirmed", "note": "Checked in WooCommerce admin.", "confirmed_by": "01m67414wsgfvfp1qd3xzn2s9m"}}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/codes/01m67415knfwkvxpg9s5bphr53/platform-validation  {"mode": "guess"}    (merchant@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c09c-73dd-8fc0-0c4608ec39e3", "fields": {"mode": ["The selected mode is invalid."]}}}
+```
+
+`GET /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/analytics/attribution/orders    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416t3fk0km6fsa169mf9e", "external_order_id": "ord-sb-10421", "reference": "SB-10421", "currency": "EUR", "amount_minor": 7500, "refunded_minor": 0, "net_minor": 7500, "payment_status": "paid", "attribution_type": "unattributed", "has_click_id": false, "is_repeat_order": false, "paid_at": "2026-10-30T19:19:21+00:00"}, {"id": "01m67416txjan18ppwka26pjkq", "external_order_id": "ord-sb-10422", "reference": "SB-10422", "currency": "EUR", "amount_minor": 7500, "refunded_minor": 0, "net_minor": 7500, "payment_status": "paid", "attribution_type": "unattributed", "has_click_id": false, "is_repeat_order": false, "paid_at": "2026-10-30T19:19:21+00:00"}], "meta": {"current_page": 1, "last_page": 1, "per_page": 25, "total": 2}, "timezone": "Europe/Amsterdam", "generated_at": "2026-10-30T19:19:30+00:00"}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/duplicate    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741g7naqbe0wgwcadqeztc", "acquisition": "merchant_reward", "status": "draft", "lifecycle_status": "draft", "inventory": {"total": 0, "available": 0, "reserved": 0, "issued": 0, "redeemed": 0}, "allowed_actions": ["edit", "import_codes", "publish", "activate", "end", "archive", "duplicate"], "terms": {"version": 1, "locked": false, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1 (copy)", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "missing_for_activation": [], "cost_preview": {"applies": true, "available": true, "basis": "fixed_value", "estimated_maximum": false, "currency": "EUR", "fee_rate_bps": 3000, "per_voucher": {"reward_minor": 500, "fee_minor": 150, "merchant_commitment_minor": 650}, "allocation": null, "note": "Estimated maximum commitment preview only. Nothing is charged when configuring an offer; funding and reservations use the merchant wallet."}, "preview": {"published": false, "offer_id": "01m6741g7naqbe0wgwcadqeztc", "status": "draft", "how_to_obtain": "earn_with_purchase", "title": "Woon & Co voordeel 1 (copy)", "summary": "€5.00 from €25.00", "badge_label": "€5 voucher", "offer_line": "Vanaf €25 · €5 vouch … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/publish    (merchant@shopbonus.local)` — already_active
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "invalid_status_transition", "message": "An offer cannot go from active to published.", "request_id": "01a18e40-c117-7019-9b04-7da0a67d32d0"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m6741g7naqbe0wgwcadqeztc/publish    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741g7naqbe0wgwcadqeztc", "acquisition": "merchant_reward", "status": "active", "lifecycle_status": "sold_out", "inventory": {"total": 0, "available": 0, "reserved": 0, "issued": 0, "redeemed": 0}, "allowed_actions": ["edit", "import_codes", "pause", "end", "archive", "duplicate"], "terms": {"version": 1, "locked": true, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1 (copy)", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "missing_for_activation": [], "cost_preview": {"applies": true, "available": true, "basis": "fixed_value", "estimated_maximum": false, "currency": "EUR", "fee_rate_bps": 3000, "per_voucher": {"reward_minor": 500, "fee_minor": 150, "merchant_commitment_minor": 650}, "allocation": null, "note": "Estimated maximum commitment preview only. Nothing is charged when configuring an offer; funding and reservations use the merchant wallet."}, "preview": {"published": false, "offer_id": "01m6741g7naqbe0wgwcadqeztc", "status": "active", "how_to_obtain": "earn_with_purchase", "title": "Woon & Co voordeel 1 (copy)", "summary": "€5.00 from €25.00", "badge_label": "€5 voucher", "offer_line": "Vanaf €25 · €5 voucher", "jour … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m6741g7naqbe0wgwcadqeztc/archive    (merchant@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741g7naqbe0wgwcadqeztc", "acquisition": "merchant_reward", "status": "archived", "lifecycle_status": "archived", "inventory": {"total": 0, "available": 0, "reserved": 0, "issued": 0, "redeemed": 0}, "allowed_actions": ["duplicate"], "terms": {"version": 1, "locked": true, "summary": "€5.00 from €25.00", "name": "Woon & Co voordeel 1 (copy)", "public_description": null, "discount_type": "fixed", "discount_value": 500, "currency": "EUR", "min_order_minor": 2500, "max_discount_minor": null, "price_minor": null, "starts_at": null, "ends_at": null, "claim_validity_days": 90, "redemption_validity_days": 90, "categories": [], "products": [], "combinable": false, "code_mode": "unique", "allocation_limit": null}, "missing_for_activation": [], "cost_preview": {"applies": true, "available": true, "basis": "fixed_value", "estimated_maximum": false, "currency": "EUR", "fee_rate_bps": 3000, "per_voucher": {"reward_minor": 500, "fee_minor": 150, "merchant_commitment_minor": 650}, "allocation": null, "note": "Estimated maximum commitment preview only. Nothing is charged when configuring an offer; funding and reservations use the merchant wallet."}, "preview": {"published": false, "offer_id": "01m6741g7naqbe0wgwcadqeztc", "status": "archived", "how_to_obtain": "earn_with_purchase", "title": "Woon & Co voordeel 1 (copy)", "summary": "€5.00 from €25.00", "badge_label": "€5 voucher", "offer_line": "Vanaf €25 · €5 voucher", "journey": {"headline": "Spend at least €25.00 and e … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m6741g7naqbe0wgwcadqeztc/resume    (merchant@shopbonus.local)` — archived
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "invalid_status_transition", "message": "An offer cannot go from archived to active.", "request_id": "01a18e40-c187-726c-9b88-17f386f24bfc"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m67415jpb2q31jrpjpexyzbg/resume    (merchant@shopbonus.local)` — not_paused
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "invalid_status_transition", "message": "An offer cannot go from active to active.", "request_id": "01a18e40-c1a5-737b-839e-a0834d571056"}}
+```
+
+`POST /api/v1/workspaces/01m67415hga62b9vcvd5rxhbpe/offers/01m000000000000000000000000/archive    (merchant@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-c1c3-7394-ad30-b428b184ad01"}}
+```
+
+`GET /api/v1/admin/merchant-enrichments    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416x61mggtrev9yctk2gq", "webshop_id": "01m674166qgs3wmw5dajh61s6j", "webshop_name": "Beauty Studio", "status": "failed", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "ba5ace6a9a0a2c21ecad4645e0df77f4731d0cb223973e09a2323626dc12176c", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": null, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": "provider_unavailable", "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": null, "human_review_required": true, "reviews": []}, {"id": "01m67416x3xsn84hpbnd39v9y8", "webshop_id": "01m674164f8defp59fqaprm59j", "webshop_name": "Techwinkel", "status": "awaiting_review", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "25932ee4e975d1d07069c71335420b772bbd473a8e2d9ba834ecb9f6bed49107", "text … (truncated; full body in the capture file)
+```
+
+`GET /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416x0mytq4s7zscben4vz", "webshop_id": "01m674161sts3c137vse3rr0ab", "webshop_name": "Modehuis", "status": "awaiting_review", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "f524ca1a79cde97ba0a20dd516d71afd84e18d3a5eef7d582e861a190829074d", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": {"short_description": "Duurzame mode voor iedereen.", "description": "Modehuis verkoopt duurzame kleding en accessoires.", "categories": ["fashion"]}, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": null, "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": null, "human_review_required": true, "reviews": []}, "availability": {"configured": false, "provider": "openai", "auto_publish": false, "effective_daily_run_limit": 50}}
+```
+
+`GET /api/v1/admin/merchant-enrichments/01m000000000000000000000000    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-c40a-70c1-8986-5aeb77f049be"}}
+```
+
+`GET /api/v1/admin/network    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"generated_at": "2026-10-30T19:19:31+00:00", "from": "2026-09-30T22:00:00+00:00", "to": "2026-10-30T22:59:59+00:00", "shops": 9, "viewable_exposure": 0, "unique_verified_members": 7, "verified_gmv": {"paid_orders": 2, "net_minor": 15000}, "vouchers": {"earned": 2, "spent": 0}, "external_affiliate": {"confirmed_commission_minor": 0, "pending_commission_minor": 0, "reversed_commission_minor": 0, "net_commission_minor": 0, "note": "Network contracts differ from the direct 30% merchant fee; gross ≠ profit."}, "direct_fees": {"fee_rate_bps": 3000, "settled_fee_minor": 0, "settled_reward_minor": 0}, "wallet_liabilities_reserved_minor": 1950, "network_journeys": {"count": 0, "gmv_minor": 0, "top_referring": [], "top_receiving": []}, "unmatched_paid_orders": 2, "limitations": {"moneybird": "Invoice drafts only until Moneybird credentials are configured.", "cross_shop_settlement": "Journeys are recorded; Wallet deduction between shops requires an agreed settlement model.", "live_affiliates": "Daisycon/TradeTracker adapters are fixture-verified; live network accounts NOT VERIFIED."}, "period_name": "30d", "timezone": "Europe/Amsterdam"}}
+```
+
+`GET /api/v1/admin/search?q=woon&limit=3    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"query": "woon", "groups": [{"type": "webshops", "label": "Webshops", "results": [{"type": "webshop", "id": "01m67415zdbsyj89xt49rr98f3", "title": "Woon & Co", "subtitle": "approved", "href": "/admin/webshops/01m67415zdbsyj89xt49rr98f3"}, {"type": "webshop", "id": "01m67415hga62b9vcvd5rxhbpe", "title": "Woon & Co", "subtitle": "approved", "href": "/admin/webshops/01m67415hga62b9vcvd5rxhbpe"}]}]}}
+```
+
+`GET /api/v1/admin/search?q=w    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c46d-7199-90c5-0e6b8cadecf2", "fields": {"q": ["The q field must be at least 2 characters."]}}}
+```
+
+`GET /api/v1/admin/vouchers    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416vc9thgcq72cw9masbs", "status": "issued", "origin": "merchant_reward", "webshop": {"id": "01m67415hga62b9vcvd5rxhbpe", "name": "Woon & Co"}, "code_last4": "B467", "issued_at": "2026-10-30T19:19:21+00:00", "redeemed_at": null, "expires_at": "2027-01-28T19:19:21+00:00"}, {"id": "01m67416v1y55pyy1rncntpevn", "status": "reserved", "origin": "answer24_claim", "webshop": {"id": "01m67415hga62b9vcvd5rxhbpe", "name": "Woon & Co"}, "code_last4": "C97E", "issued_at": null, "redeemed_at": null, "expires_at": null}, {"id": "01m67416tdt5agf7s0he0d57x6", "status": "issued", "origin": "answer24_claim", "webshop": {"id": "01m67415hga62b9vcvd5rxhbpe", "name": "Woon & Co"}, "code_last4": "21B6", "issued_at": "2026-10-30T19:19:29+00:00", "redeemed_at": null, "expires_at": "2027-01-28T19:19:29+00:00"}], "meta": {"current_page": 1, "per_page": 25, "total": 3, "last_page": 1}}
+```
+
+`GET /api/v1/admin/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements    (superadmin@shopbonus.local)` — empty
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [], "current": null}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz/approve  {"note": "Copy and cover match the shop."}    (superadmin@shopbonus.local)` — password_required
+
+```http
+HTTP/1.1 423 Locked
+Content-Type: application/json
+
+{"error": {"status": 423, "code": "password_confirmation_required", "message": "Confirm your password to continue.", "request_id": "01a18e40-c4c7-7340-9ae5-2eaed7239ddd"}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz/approve  {"note": "Copy and cover match the shop."}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416x0mytq4s7zscben4vz", "webshop_id": "01m674161sts3c137vse3rr0ab", "webshop_name": "Modehuis", "status": "published", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "f524ca1a79cde97ba0a20dd516d71afd84e18d3a5eef7d582e861a190829074d", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": {"short_description": "Duurzame mode voor iedereen.", "description": "Modehuis verkoopt duurzame kleding en accessoires.", "categories": ["fashion"]}, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": null, "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": "2026-10-30T19:19:32+00:00", "human_review_required": true, "reviews": [{"id": "01m6741hf8nvg3h91f2031wamd", "reviewed_by": "01m67413jy40j2yetm1c4ajjq4", "decision": "approved", "note": "Copy and cover match the shop.", "created_at": "2026-10-30T19:19:32+00:00"}]}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x3xsn84hpbnd39v9y8/approve  {"note": "ok"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c600-727b-82bd-4e84468e1e78", "fields": {"note": ["The note field must be at least 5 characters."]}}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x3xsn84hpbnd39v9y8/reject  {"note": "Description does not match the shop."}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416x3xsn84hpbnd39v9y8", "webshop_id": "01m674164f8defp59fqaprm59j", "webshop_name": "Techwinkel", "status": "rejected", "trigger": "manual", "source_url": "https://modehuis.example/", "research": {"schema_version": "merchant-enrichment-research-v1", "source_url": "https://modehuis.example/", "title": "Modehuis", "meta_description": "Duurzame mode", "excerpt": "Duurzame mode voor iedereen.", "evidence": {"E1": {"fact": "title", "value": "Modehuis"}}}, "research_hash": "25932ee4e975d1d07069c71335420b772bbd473a8e2d9ba834ecb9f6bed49107", "text_model": "fixture-enrichment-text", "image_model": null, "proposal": {"short_description": "Duurzame mode voor iedereen.", "description": "Modehuis verkoopt duurzame kleding en accessoires.", "categories": ["fashion"]}, "review_required": true, "risk_level": null, "cover_ready": false, "cover_failure_code": null, "failure_code": null, "created_at": "2026-10-30T19:19:21+00:00", "finished_at": "2026-10-30T19:19:21+00:00", "published_at": null, "human_review_required": true, "reviews": [{"id": "01m6741hhefby8sqeyw4snsd0d", "reviewed_by": "01m67413jy40j2yetm1c4ajjq4", "decision": "rejected", "note": "Description does not match the shop.", "created_at": "2026-10-30T19:19:32+00:00"}]}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x0mytq4s7zscben4vz/reject  {"note": "Second thoughts on this copy."}    (superadmin@shopbonus.local)` — not_reviewable
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "enrichment_not_reviewable", "message": "Only completed enrichment proposals can be rejected.", "request_id": "01a18e40-c643-70d2-9947-f28c7a2dd84b"}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m67416x61mggtrev9yctk2gq/retry    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "enrichment_not_configured", "message": "Merchant enrichment is not configured.", "request_id": "01a18e40-c667-722f-8097-9c9afe409c90"}}
+```
+
+`POST /api/v1/admin/merchant-enrichments/01m000000000000000000000000/retry    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "The requested resource was not found.", "request_id": "01a18e40-c681-72a0-8e22-a7e47daac215"}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements  {"commission_type": "percentage", "commission_rate_bps": 800, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "cashback_approved": true}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "active": true, "starts_at": null, "ends_at": null}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements  {"commission_type": "percentage", "consumer_share_bps": 7000, "shopbonus_share_bps": 3000}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c6c0-7053-acd0-9b30c6830f89", "fields": {"commission_rate_bps": ["The commission rate bps field is required when commission type is percentage."]}}}
+```
+
+`GET /api/v1/admin/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "active": true, "starts_at": null, "ends_at": null}], "current": 1}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5001", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — step_up_required
+
+```http
+HTTP/1.1 423 Locked
+Content-Type: application/json
+
+{"error": {"status": 423, "code": "step_up_code_required", "message": "Confirm this action with the code sent to your email.", "request_id": "01a18e40-c71a-735b-9d77-a07b7e6dc497"}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5001", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741j5ryr2gv121j7j1kk6t", "status": "credited", "commission_minor": 400, "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "exception_reason": null, "agreement": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "merchant": "Woon & Co", "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "status": "credited"}}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5001", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — replay
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741j5ryr2gv121j7j1kk6t", "status": "credited", "commission_minor": 400, "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "exception_reason": null, "agreement": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "merchant": "Woon & Co", "consumer_credit_minor": 280, "shopbonus_revenue_minor": 120, "status": "credited"}}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-credits  {"user_id": "01m674140sr2r5gf1hz8bw9tap", "external_id": "WOO-5002", "order_amount_minor": 5000}    (superadmin@shopbonus.local)` — missing_key
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c8f8-7275-9d8a-09bc4c01ea3b", "fields": {"key": ["The key field is required."]}}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements/1/deactivate    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"agreement_id": "01m6741hn7wcry5zfwsfks00yk", "version": 1, "commission_source": "direct_merchant", "commission_type": "percentage", "commission_rate": 0.08, "commission_rate_bps": 800, "commission_fixed_minor": null, "consumer_share": 0.7, "shopbonus_share": 0.3, "consumer_share_bps": 7000, "shopbonus_share_bps": 3000, "consumer_cashback_rate": 0.056, "cashback_approved": true, "active": false, "starts_at": null, "ends_at": null}}
+```
+
+`POST /api/v1/admin/affiliate/webshops/01m67415hga62b9vcvd5rxhbpe/commission-agreements/99/deactivate    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Agreement not found.", "request_id": "01a18e40-c93b-73f7-aaa4-a999e3a1ae2b"}}
+```
+
+`GET /api/v1/admin/content/homepage    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416ctdzhk5bttd2ehvehc", "key": "homepage", "type": "landing", "locale": "nl", "slug": "homepage", "draft_revision": 1, "draft": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops  … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/homepage  {"revision": 1, "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_slugs": [], "limit": 4}, "how_it_works": {"heading": "Zo werkt ShopBonus", "subtitle": "In 3 simpele stappen naar meer voordeel.", "steps": [{"title": "Ontdek voordeel", "description": "Zoek je favoriete webshop en bekijk actuele kortingscodes en cashbackaanbiedingen."}, {"title": "Shop via ShopBonus", "description": "Klik door naar de webshop en bestel zoals je gewend bent. Gebruik eventueel een geldige kortingscode."}, {"title": "Spaar voor vouchers", "description": "Ontvang bij deelnemende, geldige aankopen cashback in je ShopBonus-wallet. Wissel je saldo in voor een voucher."}]}, "discount_codes": {"heading": "Actuele kortingscodes", "cta_label": "Bekijk alle kortingscodes →", "cta_href": "/kortingscodes", "limit": 2}, "wallet_preview": {"heading": "Jouw ShopBonus-wallet", "guest_text": "Maak een gratis account en spaar cashback voor vouchers bij favoriete webshops.", "guest_cta": {"label": "Account aanmaken", "href": "/account"}, "voucher_cta": {"label": "Voucher kiezen", "href": "/mijn-voordelen"}, "transactions_cta": {"label": "Bekijk transacties", "href": "/mijn-voordelen"}}, "footer": {"blurb": "ShopBonus helpt je sparen voor vouchers bij deelnemende webshops."}, "section_order": ["hero", "search", "popular_webshops", "how_it_works", "discount_codes", "wallet_preview"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "homepage", "draft_revision": 2}}
+```
+
+`PUT /api/v1/admin/content/homepage  {"revision": 1, "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_slugs": [], "limit": 4}, "how_it_works": {"heading": "Zo werkt ShopBonus", "subtitle": "In 3 simpele stappen naar meer voordeel.", "steps": [{"title": "Ontdek voordeel", "description": "Zoek je favoriete webshop en bekijk actuele kortingscodes en cashbackaanbiedingen."}, {"title": "Shop via ShopBonus", "description": "Klik door naar de webshop en bestel zoals je gewend bent. Gebruik eventueel een geldige kortingscode."}, {"title": "Spaar voor vouchers", "description": "Ontvang bij deelnemende, geldige aankopen cashback in je ShopBonus-wallet. Wissel je saldo in voor een voucher."}]}, "discount_codes": {"heading": "Actuele kortingscodes", "cta_label": "Bekijk alle kortingscodes →", "cta_href": "/kortingscodes", "limit": 2}, "wallet_preview": {"heading": "Jouw ShopBonus-wallet", "guest_text": "Maak een gratis account en spaar cashback voor vouchers bij favoriete webshops.", "guest_cta": {"label": "Account aanmaken", "href": "/account"}, "voucher_cta": {"label": "Voucher kiezen", "href": "/mijn-voordelen"}, "transactions_cta": {"label": "Bekijk transacties", "href": "/mijn-voordelen"}}, "footer": {"blurb": "ShopBonus helpt je sparen voor vouchers bij deelnemende webshops."}, "section_order": ["hero", "search", "popular_webshops", "how_it_works", "discount_codes", "wallet_preview"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-c99b-726e-b84f-0eb4d7dfce03", "details": {"current_revision": 2}}}
+```
+
+`PUT /api/v1/admin/content/homepage  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-c9bd-73bc-96a4-b2f51bf0353d", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/homepage/sections/hero  {"revision": 2, "section": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "homepage", "draft_revision": 3, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/homepage/sections/not-a-section  {"revision": 3, "section": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ca25-7337-a86e-ae2c23c0bffa", "fields": {"section": ["Unknown homepage section."]}}}
+```
+
+`POST /api/v1/admin/content/homepage/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "homepage", "content": {"title": "ShopBonus", "seo_title": "ShopBonus — spaar cashback voor vouchers", "seo_description": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "search": true, "popular_webshops": true, "how_it_works": true, "discount_codes": true, "wallet_preview": true}, "nav": {"logo_alt": "ShopBonus", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}]}, "hero": {"heading": "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.", "subtitle": "Ontdek korting, cashback en vouchers bij jouw favoriete webshops.", "primary_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "secondary_cta": {"label": "Hoe werkt het?", "href": "/hoe-werkt-het"}, "artwork_note": "Spaar voor cadeaubonnen van jouw favoriete winkels", "promo_balance_example": "€ 42,50", "promo_voucher_example": "€ 25", "background_asset_id": null, "trust": ["Gratis aanmelden", "Kortingscodes en cashback", "Sparen voor vouchers"]}, "search": {"placeholder": "Zoek een webshop of aanbieding..."}, "popular_webshops": {"heading": "Populaire webshops", "cta_label": "Bekijk alle webshops →", "cta_href": "/webshops", "mode": "auto", "featured_slugs": [], "limit": 4}, "how_it_works … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/homepage/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741jm7reseh86ae1nprmb7", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}}
+```
+
+`GET /api/v1/admin/content/homepage/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416dqb9v86vhq9ywnxfa9", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741jm7reseh86ae1nprmb7", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}, {"id": "01m67416dx6vzf33wq41mq3n0x", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/homepage/restore  {"revision_id": "01m67416dx6vzf33wq41mq3n0x"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741jp64ff3a94dsamdy4gf", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}}
+```
+
+`POST /api/v1/admin/content/homepage/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-cadd-7054-a60a-e80879404fc0"}}
+```
+
+`POST /api/v1/admin/content/homepage/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:33+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 5, "schedule": {"publish_at": "2026-11-01T19:19:33+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/homepage/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:33+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cb3d-7265-9dde-b7161a95a729", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/homepage/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "homepage_ai_not_configured", "message": "Homepage AI suggestions are not configured.", "request_id": "01a18e40-cb64-710a-999a-62614916313b"}}
+```
+
+`POST /api/v1/admin/content/homepage/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cb7f-73f1-b42d-606a466edf32", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/homepage/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741jy5es704t8tmj3p97r7", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741jy5es704t8tmj3p97r7"}}
+```
+
+`POST /api/v1/admin/content/homepage/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cbde-7143-bc16-4346c8c9abbd", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/voor-webshops    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416fyt4ehk8as161xnagb", "key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "draft_revision": 1, "draft": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_as … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/voor-webshops  {"revision": 1, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 2}}
+```
+
+`PUT /api/v1/admin/content/voor-webshops  {"revision": 1, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-cc54-734b-a8d9-92bd219cd3f8", "details": {"current_revision": 2}}}
+```
+
+`PUT /api/v1/admin/content/voor-webshops  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cc7d-7076-8e1c-184fff09bd3b", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/voor-webshops/sections/hero  {"revision": 2, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 3, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/voor-webshops/sections/not-a-section  {"revision": 3, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ccf0-73c1-8914-5188cab71005", "fields": {"section": ["Unknown merchant landing section."]}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/voor-webshops/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741karbw645490f5hesnh9", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}}
+```
+
+`GET /api/v1/admin/content/voor-webshops/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416gxebkht4b70b8q4j2c", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741karbw645490f5hesnh9", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}, {"id": "01m67416h5wptkhf8xtszkpv47", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/voor-webshops/restore  {"revision_id": "01m67416h5wptkhf8xtszkpv47"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741kcp9ahhdrm6jnc4pnnd", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-cdac-72a8-8c28-73fd125f6862"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:34+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 5, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ce0f-72b4-943f-e7ddb8b669c4", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "merchant_landing_ai_not_configured", "message": "Merchant landing AI suggestions are not configured.", "request_id": "01a18e40-ce2c-72ee-9265-f060863ad4b6"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ce48-714b-a3c3-bf6fbf11633b", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741kkjthx153hnhe1hxzgb", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741kkjthx153hnhe1hxzgb"}}
+```
+
+`POST /api/v1/admin/content/voor-webshops/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-ce8c-70bc-845d-9d7fc130ccea", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/pages/voor-webshops    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416fyt4ehk8as161xnagb", "key": "voor-webshops", "type": "landing", "locale": "nl", "slug": "voor-webshops", "draft_revision": 5, "draft": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_as … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/pages/voor-webshops  {"revision": 5, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 6}}
+```
+
+`PUT /api/v1/admin/content/pages/voor-webshops  {"revision": 5, "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}, "platforms": {"heading": "Werkt met de populairste platforms", "subtitle": "Verbind je webshop met een ondersteunde integratie.", "cta_label": "Bekijk alle integraties", "cta_href": "/voor-webshops/aanmelden#platforms", "tiles": [{"platform": "shopify", "name": "Shopify", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=shopify", "connectable": true, "blocked_reason": null}, {"platform": "woocommerce", "name": "WooCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=woocommerce", "connectable": true, "blocked_reason": null}, {"platform": "wix", "name": "Wix", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=wix", "connectable": true, "blocked_reason": null}, {"platform": "bigcommerce", "name": "BigCommerce", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=bigcommerce", "connectable": true, "blocked_reason": null}, {"platform": "ecwid", "name": "Ecwid", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=ecwid", "connectable": true, "blocked_reason": null}, {"platform": "lightspeed_c", "name": "Lightspeed C-Series", "status": "AVAILABLE", "href": "/voor-webshops/aanmelden?platform=lightspeed_c", "connectable": true, "blocked_reason": null}, {"platform": "prestashop", "name": "PrestaShop", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=prestashop", "connectable": true, "blocked_reason": null}, {"platform": "opencart", "name": "OpenCart", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=opencart", "connectable": true, "blocked_reason": null}, {"platform": "shopware6", "name": "Shopware", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=shopware6", "connectable": true, "blocked_reason": null}, {"platform": "magento", "name": "Adobe Commerce / Magento", "status": "MANUAL_SETUP", "href": "/voor-webshops/aanmelden?platform=magento", "connectable": true, "blocked_reason": null}]}, "benefits": {"eyebrow": "GROEI MET SHOPBONUS", "heading": "Maak je webshop\nonweerstaanbaar.", "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.", "image_asset_id": null, "items": [{"icon": "people", "title": "Bereik nieuwe klanten", "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."}, {"icon": "tag", "title": "Kortingen én cashback", "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."}, {"icon": "cog", "title": "Jij bepaalt de commissie", "description": "Stel je commerciële afspraken in en houd controle over je marges."}]}, "offer_preview": {"eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT", "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.", "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.", "cta_label": "Bekijk een voorbeeld", "cta_href": "/webshops", "preview_asset_id": null, "illustrative": true}, "onboarding": {"eyebrow": "IN 3 EENVOUDIGE STAPPEN", "heading": "Binnen enkele stappen live.", "steps": [{"number": "01", "title": "Aanmelden", "description": "Maak een account aan en registreer jouw webshop.", "icon": "document"}, {"number": "02", "title": "Koppelen", "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.", "icon": "link"}, {"number": "03", "title": "Start met aanbiedingen", "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.", "icon": "megaphone"}]}, "bottom_cta": {"eyebrow": "START MET SHOPBONUS", "heading": "Klaar om nieuwe klanten te bereiken?", "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.", "cta_label": "Webshop aanmelden →", "cta_href": "/voor-webshops/aanmelden"}, "faq": {"heading": "Veelgestelde vragen", "items": [{"question": "Wat kost aansluiten bij ShopBonus?", "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."}, {"question": "Hoe werkt de commissie?", "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."}, {"question": "Kan ik mijn eigen cashbackacties instellen?", "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."}, {"question": "Welke webshopplatformen ondersteunen jullie?", "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."}, {"question": "Kan ik kortingscodes toevoegen?", "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."}, {"question": "Wanneer verschijnt mijn webshop op ShopBonus?", "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."}, {"question": "Hoe worden bestellingen geregistreerd?", "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."}, {"question": "Kan ik mijn aanbiedingen aanpassen?", "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]}, "footer": {"blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}, "section_order": ["hero", "platforms", "benefits", "offer_preview", "onboarding", "bottom_cta", "faq"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-cef7-73c8-9500-b056ae40e5b3", "details": {"current_revision": 6}}}
+```
+
+`PUT /api/v1/admin/content/pages/voor-webshops  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cf1c-721c-9aa5-aa51dfa885de", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/pages/voor-webshops/sections/hero  {"revision": 6, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "draft_revision": 7, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/pages/voor-webshops/sections/not-a-section  {"revision": 7, "section": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten", "Meer zichtbaarheid"]}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-cf80-726a-97ff-4c06d88511be", "fields": {"section": ["Unknown merchant landing section."]}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "voor-webshops", "content": {"title": "ShopBonus voor webshops", "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat", "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "platforms": true, "benefits": true, "offer_preview": true, "onboarding": true, "bottom_cta": true, "faq": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login&role=merchant", "cta_label": "Webshop aanmelden", "cta_href": "/voor-webshops/aanmelden", "links": [{"label": "Voordelen", "href": "#voordelen"}, {"label": "Zo werkt het", "href": "#zo-werkt-het"}, {"label": "Integraties", "href": "#integraties"}, {"label": "Veelgestelde vragen", "href": "#faq"}]}, "hero": {"eyebrow": "VOOR WEBSHOPS", "heading": "Meer klanten. Meer bestellingen.\nAlleen betalen voor resultaat.", "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.", "primary_cta": {"label": "Sluit je webshop aan", "href": "/voor-webshops/aanmelden"}, "secondary_cta": {"label": "Bekijk hoe het werkt", "href": "#zo-werkt-het"}, "artwork_note": "Promotionele illustratie — geen live resultaten", "background_asset_id": null, "illustration_asset_id": null, "trust": ["Zelf commissie bepalen", "Snel aansluiten … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741kz67m9daspsqmfyzk5y", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}}
+```
+
+`GET /api/v1/admin/content/pages/voor-webshops/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416gxebkht4b70b8q4j2c", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741kz67m9daspsqmfyzk5y", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}, {"id": "01m6741kcp9ahhdrm6jnc4pnnd", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}, {"id": "01m6741karbw645490f5hesnh9", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:33+00:00"}, {"id": "01m67416h5wptkhf8xtszkpv47", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/restore  {"revision_id": "01m67416h5wptkhf8xtszkpv47"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741m19wfy5600mmmhv7qhd", "locale": "nl", "number": 5, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:34+00:00"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-d043-70a5-a0e9-91ded829068f"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:34+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 9, "schedule": {"publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:34+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d0a9-73e8-bdfe-a5759dcc0671", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "merchant_landing_ai_not_configured", "message": "Merchant landing AI suggestions are not configured.", "request_id": "01a18e40-d0ca-7212-befa-b1768b23ffea"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d0e2-7154-9049-7685316f20c4", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741m8e70aasw6c0nb4sy9t", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741m8e70aasw6c0nb4sy9t"}}
+```
+
+`POST /api/v1/admin/content/pages/voor-webshops/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d127-73a8-a2f3-123f585348a3", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/over-ons    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416evhwg6hbv25kx9mps4", "key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "draft_revision": 1, "draft": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/over-ons  {"revision": 1, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 2}}
+```
+
+`PUT /api/v1/admin/content/over-ons  {"revision": 1, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-d191-7184-a1f8-fe9870205015", "details": {"current_revision": 2}}}
+```
+
+`PUT /api/v1/admin/content/over-ons  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d1b9-7398-a9c0-ce818e770e92", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/over-ons/sections/hero  {"revision": 2, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 3, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/over-ons/sections/not-a-section  {"revision": 3, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d222-7283-ae51-9ed9fa0b5d56", "fields": {"section": ["Unknown About Us section."]}}}
+```
+
+`POST /api/v1/admin/content/over-ons/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan  … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/over-ons/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741mm70g56p4jbxa1memfk", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}}
+```
+
+`GET /api/v1/admin/content/over-ons/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416fk8kq4cxbf82tz0qpw", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741mm70g56p4jbxa1memfk", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m67416frxz192eqzb23rpcjk", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/over-ons/restore  {"revision_id": "01m67416frxz192eqzb23rpcjk"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741mp552ekn613m7nefxtb", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}}
+```
+
+`POST /api/v1/admin/content/over-ons/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-d2df-7243-942b-b4c38d5896f7"}}
+```
+
+`POST /api/v1/admin/content/over-ons/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:35+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 5, "schedule": {"publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/over-ons/schedule  {"revision": 4, "publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d346-7265-bf54-25eeeffdfa57", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/over-ons/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "about_us_ai_not_configured", "message": "About Us AI suggestions are not configured.", "request_id": "01a18e40-d369-72fb-828c-fab865caa4a1"}}
+```
+
+`POST /api/v1/admin/content/over-ons/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d382-7323-8d00-06cf04e66c85", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/over-ons/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741mxcm614x959x2g35y08", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741mxcm614x959x2g35y08"}}
+```
+
+`POST /api/v1/admin/content/over-ons/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d3c0-720d-b39d-8af1e441c569", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+`GET /api/v1/admin/content/pages/over-ons    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m67416evhwg6hbv25kx9mps4", "key": "over-ons", "type": "landing", "locale": "nl", "slug": "over-ons", "draft_revision": 5, "draft": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": … (truncated; full body in the capture file)
+```
+
+`PUT /api/v1/admin/content/pages/over-ons  {"revision": 5, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": null}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 6}}
+```
+
+`PUT /api/v1/admin/content/pages/over-ons  {"revision": 5, "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan korting.", "image_asset_id": null, "paragraphs": ["ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.", "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.", "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."]}, "revenue_model": {"eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL", "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.", "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.", "consumer_label": "voor de consument", "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.", "platform_label": "voor ShopBonus", "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.", "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.", "consumer_percent": 70, "platform_percent": 30}, "values": {"eyebrow": "WAAR WIJ IN GELOVEN", "heading": "Meer dan alleen kortingen.", "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.", "items": [{"icon": "tag", "title": "Eerlijk voordeel", "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."}, {"icon": "shop", "title": "Vrijheid voor webshops", "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."}, {"icon": "users", "title": "Eenvoud voor iedereen", "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."}]}, "team": {"eyebrow": "DE MENSEN ACHTER SHOPBONUS", "heading": "Een betrokken team met een duidelijke missie.", "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.", "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.", "image_asset_id": null, "show_profiles": false, "profiles": [], "placeholder_label": "Foto oprichter\ntoevoegen"}, "contact": {"heading": "Contact met ShopBonus", "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.", "legal_name": "", "address": "", "kvk": "", "email": "", "links": [{"label": "Contact", "href": "/support"}, {"label": "Privacy", "href": "/pagina/privacy"}, {"label": "Voorwaarden", "href": "/pagina/voorwaarden"}, {"label": "Bedrijfsgegevens", "href": "/over-ons#contact"}]}, "bottom_cta": {"eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST", "heading": "Samen maken we shoppen", "heading_accent": "slimmer.", "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.", "consumer_cta": {"label": "Ontdek aanbiedingen", "href": "/webshops"}, "merchant_cta": {"label": "Voor webshops", "href": "/voor-webshops"}}, "footer": {"blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."}, "schedule": {"publish_at": "2026-11-01T19:19:35+00:00", "unpublish_at": null}, "section_order": ["hero", "story", "revenue_model", "values", "team", "contact", "bottom_cta"]}}    (superadmin@shopbonus.local)` — stale_revision
+
+```http
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{"error": {"status": 409, "code": "draft_revision_conflict", "message": "Someone else saved this page in the meantime. Reload to continue.", "request_id": "01a18e40-d42c-714f-95da-591fda8ae830", "details": {"current_revision": 6}}}
+```
+
+`PUT /api/v1/admin/content/pages/over-ons  {"revision": 0}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d44f-70b5-8a75-1f3bd1995884", "fields": {"revision": ["The revision field must be at least 1."], "content": ["The content field is required."]}}}
+```
+
+`PATCH /api/v1/admin/content/pages/over-ons/sections/hero  {"revision": 6, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "draft_revision": 7, "section": "hero"}}
+```
+
+`PATCH /api/v1/admin/content/pages/over-ons/sections/not-a-section  {"revision": 7, "section": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}}    (superadmin@shopbonus.local)` — unknown_section
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d4b2-714b-b8ac-d6240b237921", "fields": {"section": ["Unknown About Us section."]}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/preview    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "slug": "over-ons", "content": {"title": "Over ShopBonus", "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel", "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.", "seo_image_asset_id": null, "body": {"type": "doc", "content": []}, "section_visibility": {"hero": true, "story": true, "revenue_model": true, "values": true, "team": true, "contact": true, "bottom_cta": true}, "nav": {"logo_alt": "ShopBonus", "login_label": "Inloggen", "login_href": "/account?mode=login", "cta_label": "Account aanmaken", "cta_href": "/account?mode=register", "links": [{"label": "Webshops", "href": "/webshops"}, {"label": "Cashback", "href": "/webshops?has_offers=1"}, {"label": "Kortingscodes", "href": "/kortingscodes"}, {"label": "Over ons", "href": "/over-ons"}, {"label": "Voor webshops", "href": "/voor-webshops"}]}, "hero": {"eyebrow": "OVER SHOPBONUS", "heading": "Samen maken we online shoppen", "heading_accent": "voordeliger.", "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.", "cta_label": "Ontdek ons verhaal", "cta_href": "#verhaal", "float_title": "Eerlijk voordeel", "float_text": "Aantrekkelijke deals en cashback, altijd transparant.", "image_asset_id": null}, "story": {"eyebrow": "ONS VERHAAL", "heading": "Een goed idee verdient", "heading_accent": "meer dan  … (truncated; full body in the capture file)
+```
+
+`POST /api/v1/admin/content/pages/over-ons/publish    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741n8y5r7z2wqp7d4x9ass", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}}
+```
+
+`GET /api/v1/admin/content/pages/over-ons/versions    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": [{"id": "01m67416fk8kq4cxbf82tz0qpw", "locale": "en", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}, {"id": "01m6741n8y5r7z2wqp7d4x9ass", "locale": "nl", "number": 4, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m6741mp552ekn613m7nefxtb", "locale": "nl", "number": 3, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m6741mm70g56p4jbxa1memfk", "locale": "nl", "number": 2, "restored_from": null, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:35+00:00"}, {"id": "01m67416frxz192eqzb23rpcjk", "locale": "nl", "number": 1, "restored_from": null, "published_by": "Myrthe", "published_at": "2026-10-30T19:19:20+00:00"}]}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/restore  {"revision_id": "01m67416frxz192eqzb23rpcjk"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"id": "01m6741nb30te9cbnx9eh4fg5e", "locale": "nl", "number": 5, "restored_from": 1, "published_by": "Super Admin", "published_at": "2026-10-30T19:19:36+00:00"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/restore  {"revision_id": "01m000000000000000000000000"}    (superadmin@shopbonus.local)` — unknown
+
+```http
+HTTP/1.1 404 Not Found
+Content-Type: application/json
+
+{"error": {"status": 404, "code": "not_found", "message": "Revision not found.", "request_id": "01a18e40-d579-7161-a8f7-7be731f33a73"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:36+00:00"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data": {"locale": "nl", "draft_revision": 9, "schedule": {"publish_at": "2026-11-01T19:19:36+00:00", "unpublish_at": null}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/schedule  {"revision": 8, "publish_at": "2026-11-01T19:19:36+00:00", "unpublish_at": "2020-01-01T00:00:00Z"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d5d7-729c-9001-e50126b710f4", "fields": {"unpublish_at": ["The unpublish at field must be a date after publish at."]}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/ai-suggest  {"section": "hero"}    (superadmin@shopbonus.local)` — not_configured
+
+```http
+HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
+
+{"error": {"status": 503, "code": "about_us_ai_not_configured", "message": "About Us AI suggestions are not configured.", "request_id": "01a18e40-d5f4-7325-b8c4-b89db5b3bcee"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/ai-suggest  {"section": "not-a-section"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d611-7068-a475-499f664635c6", "fields": {"section": ["The selected section is invalid."]}}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/assets  {"image": "<hero.png>"}    (superadmin@shopbonus.local)` — ok
+
+```http
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{"data": {"id": "01m6741nhxqh4cb5he2k587hjq", "width": 32, "height": 32, "url": "http://localhost:8765/api/v1/public/content-assets/01m6741nhxqh4cb5he2k587hjq"}}
+```
+
+`POST /api/v1/admin/content/pages/over-ons/assets  {"image": "<notes.txt>"}    (superadmin@shopbonus.local)` — invalid
+
+```http
+HTTP/1.1 422 Unprocessable Content
+Content-Type: application/json
+
+{"error": {"status": 422, "code": "validation_failed", "message": "The given data was invalid.", "request_id": "01a18e40-d653-73a1-96e3-f0a0a2c9caae", "fields": {"image": ["The image field must be a file of type: png, jpg, jpeg, webp.", "The image field must be a file of type: image/png, image/jpeg, image/webp.", "The image field has invalid image dimensions."]}}}
+```
+
+
+
+
+## Separate points prices — D-103, 2026-10-31
+
+Merchants may set `price_points` (1–100000000, or null to disable) through the existing offer POST/PATCH APIs. Wallet-purchase activation requires `price_minor` or `price_points`. Offer versions and issued terms preserve the price. Public offers expose `price_points`. This is independent of the EUR discount value.
+
+Checkout quote/start accept `wallet_unit: "points"`; omitted means `eur_credit`. Points purchases require `use_wallet: true` and enough available points. Pending/reserved points and EUR balances do not cover shortfalls. No euro conversion or Mollie request occurs. All `*_minor` payment amounts are zero; `price_points` and `wallet_part_points` hold integer quantities. Existing EUR-credit/Mollie behavior is unchanged. A changed offer/unit on the same key returns 409 `checkout_request_conflict`.
+
+Actual HTTP captures from `php artisan serve` on isolated SQLite with synthetic fixtures, based on `1a3eee0` plus the points changes: [B33_POINTS_HTTP_CAPTURE.json](../qa/B33_POINTS_HTTP_CAPTURE.json). No upstream calls. Existing middleware error examples remain applicable. The following request/response bodies were captured from that running server (Authorization tokens excluded):
+
+### create_points_offer — `POST /api/v1/workspaces/{workspace}/offers`
+
+Request:
+
+```json
+{
+  "acquisition": "wallet_purchase",
+  "name": "Points voucher",
+  "discount_type": "fixed",
+  "discount_value": 1000,
+  "price_points": 250,
+  "redemption_validity_days": 30
+}
+```
+
+Response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68f1ahvwnra9zgs7rn35fwj",
+    "acquisition": "wallet_purchase",
+    "status": "draft",
+    "lifecycle_status": "draft",
+    "inventory": {
+      "total": 0,
+      "available": 0,
+      "reserved": 0,
+      "issued": 0,
+      "redeemed": 0
+    },
+    "allowed_actions": [
+      "edit",
+      "import_codes",
+      "publish",
+      "activate",
+      "end",
+      "archive",
+      "duplicate"
+    ],
+    "terms": {
+      "version": 1,
+      "locked": false,
+      "summary": "€10.00",
+      "name": "Points voucher",
+      "public_description": null,
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": null,
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "price_minor": null,
+      "price_points": 250,
+      "starts_at": null,
+      "ends_at": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "categories": [],
+      "products": [],
+      "combinable": null,
+      "code_mode": null,
+      "allocation_limit": null
+    },
+    "missing_for_activation": [],
+    "cost_preview": {
+      "applies": false,
+      "reason": "consumer_funded"
+    },
+    "preview": {
+      "published": false,
+      "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+      "status": "draft",
+      "how_to_obtain": "buy_with_wallet",
+      "title": "Points voucher",
+      "summary": "€10.00",
+      "badge_label": "€10 voucher",
+      "offer_line": "€10 voucher",
+      "journey": {
+        "headline": "€10.00",
+        "steps": [],
+        "claim_window": null,
+        "redemption_window": "Redeem within 30 days after claim.",
+        "campaign": null
+      },
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "price_points": 250,
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "starts_at": null,
+      "ends_at": null,
+      "conditions": null,
+      "combinable": false,
+      "categories": [],
+      "webshop": {
+        "name": "Points Demo",
+        "short_description": null,
+        "description": null,
+        "logo_url": null,
+        "cover_url": null,
+        "website_url": "https://points.example.test",
+        "verified_domain": "points.example.test",
+        "ownership_verified": true
+      }
+    },
+    "activated_at": null,
+    "paused_at": null,
+    "ended_at": null,
+    "archived_at": null,
+    "created_at": "2026-10-31T07:50:53+00:00"
+  }
+}
+```
+
+### versioned_points_price — `PATCH /api/v1/workspaces/{workspace}/offers/{offer}`
+
+Request:
+
+```json
+{
+  "price_points": 500
+}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68f1ahvwnra9zgs7rn35fwj",
+    "acquisition": "wallet_purchase",
+    "status": "active",
+    "lifecycle_status": "active",
+    "inventory": {
+      "total": 2,
+      "available": 1,
+      "reserved": 0,
+      "issued": 1,
+      "redeemed": 0
+    },
+    "allowed_actions": [
+      "edit",
+      "import_codes",
+      "pause",
+      "end",
+      "archive",
+      "duplicate"
+    ],
+    "terms": {
+      "version": 2,
+      "locked": true,
+      "summary": "€10.00",
+      "name": "Points voucher",
+      "public_description": null,
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "price_minor": null,
+      "price_points": 500,
+      "starts_at": null,
+      "ends_at": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "categories": [],
+      "products": [],
+      "combinable": false,
+      "code_mode": "unique",
+      "allocation_limit": null
+    },
+    "missing_for_activation": [],
+    "cost_preview": {
+      "applies": false,
+      "reason": "consumer_funded"
+    },
+    "preview": {
+      "published": false,
+      "offer_id": "01m68f1ahvwnra9zgs7rn35fwj",
+      "status": "active",
+      "how_to_obtain": "buy_with_wallet",
+      "title": "Points voucher",
+      "summary": "€10.00",
+      "badge_label": "€10 voucher",
+      "offer_line": "€10 voucher",
+      "journey": {
+        "headline": "€10.00",
+        "steps": [],
+        "claim_window": null,
+        "redemption_window": "Redeem within 30 days after claim.",
+        "campaign": null
+      },
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "price_points": 500,
+      "min_order_minor": null,
+      "max_discount_minor": null,
+      "claim_validity_days": null,
+      "redemption_validity_days": 30,
+      "starts_at": null,
+      "ends_at": null,
+      "conditions": null,
+      "combinable": false,
+      "categories": [],
+      "webshop": {
+        "name": "Points Demo",
+        "short_description": null,
+        "description": null,
+        "logo_url": null,
+        "cover_url": null,
+        "website_url": "https://points.example.test",
+        "verified_domain": "points.example.test",
+        "ownership_verified": true
+      }
+    },
+    "activated_at": "2026-10-31T07:50:54+00:00",
+    "paused_at": null,
+    "ended_at": null,
+    "archived_at": null,
+    "created_at": "2026-10-31T07:50:53+00:00"
+  }
+}
+```
+
+### public_points_offer — `GET /api/v1/public/offers`
+
+Request:
+
+```json
+null
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher",
+      "summary": "€10.00",
+      "offer_kind": "voucher_purchase",
+      "cta_hint": "view_code_and_shop",
+      "how_to_obtain": "buy_with_wallet",
+      "discount_type": "fixed",
+      "discount_value": 1000,
+      "currency": "EUR",
+      "min_order_minor": null,
+      "price_minor": null,
+      "price_points": 250,
+      "ends_at": null,
+      "availability": "available",
+      "cashback_label": null,
+      "benefit_label": "€10 korting",
+      "combinable": false,
+      "webshop": {
+        "slug": "points-demo",
+        "name": "Points Demo"
+      }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 20,
+    "total": 1
+  }
+}
+```
+
+### points_quote — `POST /api/v1/consumer/checkouts/quote`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_available_points": 1000,
+    "wallet_part_points": 250,
+    "shortfall_points": 0,
+    "price_minor": 0,
+    "currency": "EUR",
+    "wallet_available": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "shortfall_minor": 0,
+    "validity_days": 30,
+    "blockers": []
+  }
+}
+```
+
+### points_purchase — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68f1b2ran2sz7q3wgrne9wy",
+    "state": "completed",
+    "offer": {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher"
+    },
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_part_points": 250,
+    "price_minor": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "currency": "EUR",
+    "payment": null,
+    "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+    "failure_reason": null,
+    "expires_at": "2026-10-31T08:20:54+00:00",
+    "completed_at": "2026-10-31T07:50:54+00:00"
+  }
+}
+```
+
+### points_replay — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68f1b2ran2sz7q3wgrne9wy",
+    "state": "completed",
+    "offer": {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher"
+    },
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_part_points": 250,
+    "price_minor": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "currency": "EUR",
+    "payment": null,
+    "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+    "failure_reason": null,
+    "expires_at": "2026-10-31T08:20:54+00:00",
+    "completed_at": "2026-10-31T07:50:54+00:00"
+  }
+}
+```
+
+### points_shortfall — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "checkout_blocked",
+    "message": "This voucher cannot be bought right now.",
+    "request_id": "01a190f0-ac16-725f-9967-ee985cc47875",
+    "details": {
+      "blockers": [
+        "insufficient_points"
+      ]
+    }
+  }
+}
+```
+
+### points_wallet_required — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points",
+  "use_wallet": false
+}
+```
+
+Response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "checkout_blocked",
+    "message": "This voucher cannot be bought right now.",
+    "request_id": "01a190f0-ac31-706f-baa1-ffa5ae1ed8f1",
+    "details": {
+      "blockers": [
+        "points_wallet_required"
+      ]
+    }
+  }
+}
+```
+
+### changed_unit_replay — `POST /api/v1/consumer/checkouts`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "eur_credit"
+}
+```
+
+Response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "checkout_request_conflict",
+    "message": "This checkout key belongs to a different purchase.",
+    "request_id": "01a190f0-aca9-7384-a2e3-9e92545c8bb2"
+  }
+}
+```
+
+### frozen_points_checkout — `GET /api/v1/consumer/checkouts/{id}`
+
+Request:
+
+```json
+null
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68f1b2ran2sz7q3wgrne9wy",
+    "state": "completed",
+    "offer": {
+      "slug": "points-voucher-nu6aoc",
+      "title": "Points voucher"
+    },
+    "wallet_unit": "points",
+    "price_points": 250,
+    "wallet_part_points": 250,
+    "price_minor": 0,
+    "wallet_part_minor": 0,
+    "payment_part_minor": 0,
+    "currency": "EUR",
+    "payment": null,
+    "voucher_id": "01m68f1b2w6s1rfry1reka49bb",
+    "failure_reason": null,
+    "expires_at": "2026-10-31T08:20:54+00:00",
+    "completed_at": "2026-10-31T07:50:54+00:00"
+  }
+}
+```
+
+### negative_points_price — `POST /api/v1/workspaces/{workspace}/offers`
+
+Request:
+
+```json
+{
+  "acquisition": "wallet_purchase",
+  "name": "Points voucher",
+  "discount_type": "fixed",
+  "discount_value": 1000,
+  "price_points": -1,
+  "redemption_validity_days": 30
+}
+```
+
+Response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a190f0-a9ae-72d8-8327-31d1adb5c23e",
+    "fields": {
+      "price_points": [
+        "The price points field must be at least 1."
+      ]
+    }
+  }
+}
+```
+
+### invalid_wallet_unit — `POST /api/v1/consumer/checkouts/quote`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "cash"
+}
+```
+
+Response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a190f0-abdc-730a-a15a-c3dd2ce4ee24",
+    "fields": {
+      "wallet_unit": [
+        "The selected wallet unit is invalid."
+      ]
+    }
+  }
+}
+```
+
+### quote_unauthenticated — `POST /api/v1/consumer/checkouts/quote`
+
+Request:
+
+```json
+{
+  "offer": "points-voucher-nu6aoc",
+  "wallet_unit": "points"
+}
+```
+
+Response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a190f0-abc0-71e7-934a-09e6c875ce81"
+  }
+}
+```
+
+### other_user_checkout — `GET /api/v1/consumer/checkouts/{id}`
+
+Request:
+
+```json
+null
+```
+
+Response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Checkout not found.",
+    "request_id": "01a190f0-acd9-72ba-b614-2395bb88dfac"
+  }
+}
+```
+
+### other_workspace_offer — `POST /api/v1/workspaces/{workspace}/offers`
+
+Request:
+
+```json
+{
+  "acquisition": "wallet_purchase",
+  "name": "Points voucher",
+  "discount_type": "fixed",
+  "discount_value": 1000,
+  "price_points": 250,
+  "redemption_validity_days": 30
+}
+```
+
+Response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "The requested resource was not found.",
+    "request_id": "01a190f0-ad26-7113-b147-603adff77215"
+  }
+}
+```
+
+
+
+
+## Affiliate consent and purchase identity — 2026-10-31
+
+`GET /api/v1/public/webshops/{slug}/visit` accepts optional `consent_id`. A published policy and current explicit marketing opt-in are required even locally. Missing/unknown/stale/withdrawn consent yields a direct merchant redirect and creates no click. Valid consent permits the network redirect; signed-in verified active consumers may be attributed. Network selection reflects current eligibility/rates, including newly available programs after an empty decision. Repeated unchanged reads do not append identical decisions. Different credible purchase references on one click are separate purchases; repeated purchase references and ambiguous legacy click-only reports remain protected against duplicate reward. D-089 is unchanged.
+
+Captured from a real local HTTP server using isolated SQLite, synthetic policy/consent and no followed redirects: [B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json](../qa/B34_AFFILIATE_CONSENT_HTTP_CAPTURE.json).
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://merchant.example.test
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://merchant.example.test'" />
+
+        <title>Redirecting to https://merchant.example.test</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://merchant.example.test">https://merchant.example.test</a>.
+    </body>
+</html>
+```
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://merchant.example.test
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://merchant.example.test'" />
+
+        <title>Redirecting to https://merchant.example.test</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://merchant.example.test">https://merchant.example.test</a>.
+    </body>
+</html>
+```
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit?consent_id=synthetic-capture-consent
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://tc.tradetracker.net/?c=1&m=2&a=3&r=l4iziw5vUbs1bdXhdo7C
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C'" />
+
+        <title>Redirecting to https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C">https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</a>.
+    </body>
+</html>
+```
+
+```http
+GET /api/v1/public/webshops/consent-demo/visit?consent_id=synthetic-capture-consent
+Accept: application/json
+
+HTTP/1.1 302 Found
+Location: https://merchant.example.test
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="0;url='https://merchant.example.test'" />
+
+        <title>Redirecting to https://merchant.example.test</title>
+    </head>
+    <body>
+        Redirecting to <a href="https://merchant.example.test">https://merchant.example.test</a>.
+    </body>
+</html>
+```
+
+
+
+
+## Quality Center CI provenance and complete backend source inventory — 2026-10-31
+
+QA run imports and filters accept `environment=ci`; schedules remain staging/production. All CI results are labelled mocked automatically. A linked schedule must match suite/environment or returns 409 `qa_schedule_mismatch`. Components now include general services/models/controllers/requests/resources/rules/enums/providers/support/logging/integrations. Their presence never grants approved test coverage. Every backend PHP source/config/route/migration change conservatively invalidates endpoint fingerprints, including transitive dependencies.
+
+[Actual HTTP captures](../qa/B35_CI_HTTP_CAPTURE.json): isolated SQLite, genuine cookie/CSRF login and password confirmation, synthetic admin/consumer, real executed PHPUnit report. Base 40d8e83 plus B35 WIP, not released-build acceptance. MFA was disabled only for this local capture.
+
+### service_inventory — `GET /api/v1/admin/qa/components?kind=service&per_page=1`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m68fwsw2fhxkghagfq614k67",
+      "kind": "service",
+      "name": "app/Services/Admin/ApiRouteRegistry",
+      "tested": false,
+      "first_seen_sha": "40d8e83",
+      "changed_sha": "40d8e83",
+      "changed_at": "2026-10-31T08:05:53+00:00",
+      "removed_at": null
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 142,
+    "per_page": 1,
+    "last_page": 142
+  }
+}
+```
+
+### model_inventory — `GET /api/v1/admin/qa/components?kind=model&per_page=1`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m68fwst8qf2wqaaa7mkevhmx",
+      "kind": "model",
+      "name": "app/Models/AdminApprovalRequest",
+      "tested": false,
+      "first_seen_sha": "40d8e83",
+      "changed_sha": "40d8e83",
+      "changed_at": "2026-10-31T08:05:53+00:00",
+      "removed_at": null
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 124,
+    "per_page": 1,
+    "last_page": 124
+  }
+}
+```
+
+### ci_runs_unauthenticated — `GET /api/v1/admin/qa/runs?environment=ci`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a190fe-682b-7114-a260-e3081889e52c"
+  }
+}
+```
+
+### ci_runs_forbidden — `GET /api/v1/admin/qa/runs?environment=ci`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 403:
+
+```json
+{
+  "error": {
+    "status": 403,
+    "code": "platform_role_required",
+    "message": "This action requires a platform administrator.",
+    "request_id": "01a190fe-6860-73de-8ca7-6d7801f85263"
+  }
+}
+```
+
+### schedule_environment_mismatch — `POST /api/v1/admin/qa/runs`
+
+Request fields (multipart report: actual executed QA JUnit XML):
+
+```json
+{
+  "suite": "full",
+  "environment": "ci",
+  "git_sha": "40d8e83",
+  "mocked": "0",
+  "schedule_id": "01m68fvnasdwgfmq109q7dvs37"
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "qa_schedule_mismatch",
+    "message": "The schedule does not match the tested suite/environment.",
+    "request_id": "01a190fe-6889-7279-a9e6-8936c91421d5"
+  }
+}
+```
+
+### import_ci_execution — `POST /api/v1/admin/qa/runs`
+
+Request fields (multipart report: actual executed QA JUnit XML):
+
+```json
+{
+  "suite": "full",
+  "environment": "ci",
+  "git_sha": "40d8e83",
+  "mocked": "0"
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68fwt78gv770nshywd0f4ga",
+    "suite": "full",
+    "environment": "ci",
+    "git_sha": "40d8e83",
+    "source": "junit",
+    "totals": {
+      "total": 17,
+      "assertions": 297,
+      "pass": 17,
+      "fail": 0,
+      "blocked": 0,
+      "not_implemented": 0,
+      "skipped": 0,
+      "mocked": 17
+    },
+    "duration_ms": 31493,
+    "report_sha256": "f08c42af2f4674976f3ed569c8f360b801ee6fe8ea757503ce2a033b2fc7b533",
+    "created_at": "2026-10-31T08:05:54+00:00"
+  }
+}
+```
+
+### ci_execution_results — `GET /api/v1/admin/qa/runs?environment=ci`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m68fwt78gv770nshywd0f4ga",
+      "suite": "full",
+      "environment": "ci",
+      "git_sha": "40d8e83",
+      "source": "junit",
+      "totals": {
+        "total": 17,
+        "assertions": 297,
+        "pass": 17,
+        "fail": 0,
+        "blocked": 0,
+        "not_implemented": 0,
+        "skipped": 0,
+        "mocked": 17
+      },
+      "duration_ms": 31493,
+      "report_sha256": "f08c42af2f4674976f3ed569c8f360b801ee6fe8ea757503ce2a033b2fc7b533",
+      "created_at": "2026-10-31T08:05:54+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 1,
+    "per_page": 25,
+    "last_page": 1
+  }
+}
+```
+
+
+
+
+## Independent retest proof — 2026-10-31
+
+Different builds are compared through read-only local Git ancestry when available. A later inventory scan alone cannot prove inclusion of a fix. Unknown ancestry remains `time_only` and STALE even for a freshly imported/executed report. Exact declared matching SHAs remain supported when Git history is absent; report provenance still depends on the authorized runner. Unknown finding builds require an explicit independent `build_includes_fix` attestation, recorded separately; known older/unrelated builds are refused.
+
+Both actual execution and import must follow the recorded fix. Manual/unlinked PASS requires an executed unmocked assertion and a valid unexpired checksum-verified attachment tied to its result. Linked browser/manual cases require per-result proof too. Missing/expired/corrupt proof cannot close the finding or make a browser endpoint PASS. Existing role separation remains enforced.
+
+[Actual HTTP captures](../qa/B36_RETEST_PROOF_HTTP_CAPTURE.json): real local server/cookie/CSRF/password flow, isolated SQLite/storage and explicitly synthetic findings/reports/evidence. These demonstrate the guards, not independently executed staging or provider acceptance.
+
+### manual_evidence_required — `POST /api/v1/admin/qa/findings/01m68gjq5fcppnn7t7mszrrdcj/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq4p2yek3vm1ar1382qv",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_evidence_required",
+    "message": "A passing manual retest needs an executed unmocked assertion with valid result evidence.",
+    "request_id": "01a1910a-3d7c-7121-bc89-a9ff07631200"
+  }
+}
+```
+
+### execution_before_fix — `POST /api/v1/admin/qa/findings/01m68gjq5hf6eeb12whhbamz4y/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq4zm0fj0mj47skfq3rg",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_run_outdated",
+    "message": "Use a run executed and imported after the fix was recorded.",
+    "request_id": "01a1910a-3dbc-7033-830b-67424a87a3a1"
+  }
+}
+```
+
+### unverified_build — `POST /api/v1/admin/qa/findings/01m68gjq5jfnxavt09bth049a2/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq542eymgzwb4h57z23a",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_build_unverified",
+    "message": "Cannot tell whether the tested build contains the fix commit. Confirm with build_includes_fix after checking the build.",
+    "request_id": "01a1910a-3dd2-7243-9741-721fb4d34da2",
+    "details": {
+      "run_sha": "f11e22d",
+      "fix_commit": "1284bc1"
+    }
+  }
+}
+```
+
+### build_without_fix — `POST /api/v1/admin/qa/findings/01m68gjq5mm7g5vmj5s3pvvdz1/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq5ac6av7nfmcjjtphcx",
+  "passed": true
+}
+```
+
+Captured response 409:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "retest_build_outdated",
+    "message": "The run tested a build recorded before the fix commit.",
+    "request_id": "01a1910a-3e2e-703b-b435-2b3644b28f07",
+    "details": {
+      "run_sha": "40d8e83",
+      "fix_commit": "1284bc1"
+    }
+  }
+}
+```
+
+### fresh_report_unknown_build_stays_stale — `GET /api/v1/admin/qa/endpoints/01m68gjq5s3j9exccetc9h1y7p`
+
+Request fields:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68gjq5s3j9exccetc9h1y7p",
+    "method": "GET",
+    "path": "/api/v1/consumer/wallet",
+    "name": null,
+    "handler": null,
+    "summary": null,
+    "access": "verified",
+    "permission": null,
+    "scope": "consumer",
+    "documented": true,
+    "status": "stale",
+    "mocked": false,
+    "tests": 1,
+    "last_run_at": "2026-10-31T08:17:52+00:00",
+    "provenance": "time_only",
+    "evidence_missing": false,
+    "frontend_referenced": null,
+    "external_client": false,
+    "review": null,
+    "first_seen_sha": "1284bc1",
+    "changed_sha": "1284bc1",
+    "changed_at": "2026-10-31T08:07:52+00:00",
+    "removed_at": null,
+    "test_cases": [
+      {
+        "id": "01m68gjq53cecy0yvs1a3hxtph",
+        "key": "Proof::unknown_build",
+        "title": "unknown_build",
+        "scenario": null,
+        "source": "phpunit",
+        "status": "approved",
+        "version": 1,
+        "approved_at": "2026-10-31T08:17:52+00:00",
+        "latest_result": {
+          "id": "01m68gjq542eymgzwb4h57z23b",
+          "key": "Proof::unknown_build",
+          "status": "pass",
+          "assertions": 1,
+          "mocked": false,
+          "duration_ms": 0,
+          "message": null,
+          "run_id": "01m68gjq542eymgzwb4h57z23a",
+          "created_at": "2026-10-31T08:17:52+00:00"
+        }
+      }
+    ]
+  }
+}
+```
+
+### attach_result_evidence — `POST /api/v1/admin/qa/runs/01m68gjq4p2yek3vm1ar1382qv/evidence`
+
+Request fields (multipart file: synthetic plain-text evidence):
+
+```json
+{
+  "result_id": "01m68gjq4p2yek3vm1ar1382qw"
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "id": "01m68gmfqbz2z0aarjasncbqss",
+    "name": "synthetic-proof.txt",
+    "mime": "text/plain",
+    "size": 70,
+    "sha256": "5b8c4b23b4d997d60c77688517513d9ab54d142544ebc799b29717ad215a72d7",
+    "request_id": null,
+    "retain_until": "2027-10-31T08:18:50+00:00",
+    "created_at": "2026-10-31T08:18:50+00:00"
+  }
+}
+```
+
+### manual_retest_with_valid_fixture_evidence — `POST /api/v1/admin/qa/findings/01m68gjq5fcppnn7t7mszrrdcj/retest`
+
+Request fields:
+
+```json
+{
+  "run_id": "01m68gjq4p2yek3vm1ar1382qv",
+  "passed": true
+}
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "id": "01m68gjq5fcppnn7t7mszrrdcj",
+    "title": "Synthetic manual",
+    "severity": "p2",
+    "status": "retest_passed",
+    "affected_routes": [],
+    "test_keys": [],
+    "run_id": null,
+    "owner_id": "01m68gjq4ey2r1fm845nxydz3b",
+    "fix_commit": "1284bc1",
+    "fixed_by": "01m68gjq4ey2r1fm845nxydz3b",
+    "fixed_at": "2026-10-31T08:07:52+00:00",
+    "retest_run_id": "01m68gjq4p2yek3vm1ar1382qv",
+    "retested_by": "01m68gjq40ypcb7mxxd211grh0",
+    "ai_status": null,
+    "created_at": "2026-10-31T08:17:52+00:00",
+    "updated_at": "2026-10-31T08:18:50+00:00",
+    "reproduction": null,
+    "ai_analysis": null
+  }
+}
+```
+
+
+
+
+## Validation language with NL fallback — 2026-10-31
+
+English requests now use English field labels even when APP_FALLBACK_LOCALE=nl. Each request restores the configured default locale afterward, so unsupported/missing preferences cannot inherit another visitor’s language. [Actual local HTTP captures](../qa/B37_LOCALE_HTTP_CAPTURE.json), isolated SQLite/storage with NL defaults:
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, Accept-Language: nl-NL. Captured 422, Content-Language: nl.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "De ingevulde gegevens zijn ongeldig.",
+    "request_id": "01a19114-adda-70fc-b791-84757d086c10",
+    "fields": {
+      "policy_version": [
+        "Beleidsversie is verplicht."
+      ],
+      "action": [
+        "Actie is verplicht."
+      ]
+    }
+  }
+}
+```
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, Accept-Language: en. Captured 422, Content-Language: en.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19114-ae42-72a2-bed2-0950cba40a0c",
+    "fields": {
+      "policy_version": [
+        "The policy version field is required."
+      ],
+      "action": [
+        "The action field is required."
+      ]
+    }
+  }
+}
+```
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, Accept-Language: fr-FR. Captured 422, Content-Language: nl.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "De ingevulde gegevens zijn ongeldig.",
+    "request_id": "01a19114-ae5b-702d-b3b3-0bfa4535766b",
+    "fields": {
+      "policy_version": [
+        "Beleidsversie is verplicht."
+      ],
+      "action": [
+        "Actie is verplicht."
+      ]
+    }
+  }
+}
+```
+
+Request: `POST /api/v1/public/cookie-consents`, body `{}`, no Accept-Language header. Captured 422, Content-Language: nl.
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "De ingevulde gegevens zijn ongeldig.",
+    "request_id": "01a19114-ae74-727f-b360-14ac8eefc8d9",
+    "fields": {
+      "policy_version": [
+        "Beleidsversie is verplicht."
+      ],
+      "action": [
+        "Actie is verplicht."
+      ]
+    }
+  }
+}
+```
+
+
+
+
+## Explicit program points earning — D-104, 2026-10-31
+
+Super Admin reward-rule POST accepts `program_id` (public ULID), `points_per_eur_share` (integer 1–1000000), `points_multiplier_bps` (1–1000000; default10000), and `points_rounding` (`floor`, `half_up`, `ceil`; defaultfloor), only for points. A mapped program, EUR commission and positive explicit rate are required. Incomplete rules are stored inactive with activation_blockers, even if active=true was requested. Create a new configured version to activate; terms cannot be patched. The default effective start for new points rules is creation time. Program/source/webshop mismatches and foreign-currency programs are refused. Current global EUR rules keep their behavior. `current` in the rules list denotes the global rule, not every program override.
+
+Exact final calculation:
+
+```text
+points = round(commission_minor × share_bps × points_per_eur_share × points_multiplier_bps / 10000000000)
+```
+
+For €10 commission, 70% consumer share, 10 points per EUR of that share and a 2× multiplier, the result is140points. This is commission-based earning, not points per euro of an order and not points-to-cash redemption. `max_reward_minor` remains the legacy cap field; for a points rule its quantity is points. Integer arithmetic uses the existing Brick Math dependency, including overflow-safe caps and final rounding.
+
+Program rules take precedence over applicable webshop/global rules. Old unconfigured points curves cannot create new rewards; existing immutable pending/credited snapshots retain their original calculation, including legacy floor terms. D-089 approval timing is unchanged. Financial reconciliation checks the frozen program/rate/quantity; monetary allocation of points still remains UNKNOWN (`points_money_allocation_undefined`) because no points cash value was approved. D-105 keeps commission remainder allocation reporting, not formal accounting revenue.
+
+Public discovery exposes reward_unit=points, the commission-share rate basis and NL/EN labels; consumer_cashback_rate is null, so points cannot masquerade as an EUR cashback percentage.
+
+[Sixteen actual HTTP captures](../qa/B38_POINTS_EARNING_HTTP_CAPTURE.json), real server/cookie/CSRF/recent-password flow with isolated SQLite/storage and synthetic network/program metadata. No upstream calls. MFA was disabled only for the local capture. Based on130fd24 plus B38 WIP, not provider acceptance.
+
+### points_rule_csrf — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000
+}
+```
+
+Captured response 419:
+
+```json
+{
+  "error": {
+    "status": 419,
+    "code": "csrf_token_mismatch",
+    "message": "The session or CSRF token has expired. Refresh and try again.",
+    "request_id": "01a19123-90cd-725c-a859-0981de6d06e0"
+  }
+}
+```
+
+### points_rule_unauthenticated — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000
+}
+```
+
+Captured response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a19123-90fa-7234-a764-15ff387d80e8"
+  }
+}
+```
+
+### points_rule_forbidden — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000
+}
+```
+
+Captured response 403:
+
+```json
+{
+  "error": {
+    "status": 403,
+    "code": "platform_role_required",
+    "message": "This action requires a platform administrator.",
+    "request_id": "01a19123-9126-72d3-918f-9863219a47dd"
+  }
+}
+```
+
+### existing_eur_rule — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "eur_credit",
+  "share_bps": 7000
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 1,
+    "unit": "eur_credit",
+    "program_id": null,
+    "calculation_version": "legacy_v1",
+    "points_per_eur_share": null,
+    "points_multiplier_bps": 10000,
+    "points_rounding": "floor",
+    "activation_blockers": [],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": null,
+    "commission_source": null,
+    "cashback_approved": true,
+    "starts_at": null,
+    "ends_at": null,
+    "active": true
+  }
+}
+```
+
+### unconfigured_points_rule_disabled — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "active": true
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 2,
+    "unit": "points",
+    "program_id": null,
+    "calculation_version": "points_v2",
+    "points_per_eur_share": null,
+    "points_multiplier_bps": 10000,
+    "points_rounding": "floor",
+    "activation_blockers": [
+      "points_program_required",
+      "points_program_webshop_required",
+      "points_rate_required"
+    ],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": null,
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": false
+  }
+}
+```
+
+### unmapped_program_rule_disabled — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc7zfhezx7xjhehr583",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 3,
+    "unit": "points",
+    "program_id": "01m68j1tc7zfhezx7xjhehr583",
+    "calculation_version": "points_v2",
+    "points_per_eur_share": 10,
+    "points_multiplier_bps": 10000,
+    "points_rounding": "floor",
+    "activation_blockers": [
+      "points_program_webshop_required"
+    ],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": null,
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": false
+  }
+}
+```
+
+### invalid_rate — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "points_per_eur_share": 0
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-91d2-71ce-9c97-2e4f380ac9ab",
+    "fields": {
+      "points_per_eur_share": [
+        "The points per eur share field must be at least 1."
+      ]
+    }
+  }
+}
+```
+
+### program_webshop_mismatch — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "webshop_id": "01m68j1tbjyp2kq7cdh5fsd1p0",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-91f1-711f-a659-c1f4ec068b51",
+    "fields": {
+      "webshop_id": [
+        "Choose the webshop that owns this program."
+      ]
+    }
+  }
+}
+```
+
+### foreign_currency_program — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc5jd3kcst67gdndbv9",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-9213-71fd-b304-f8f457000a54",
+    "fields": {
+      "program_id": [
+        "Points earning requires an EUR commission program."
+      ]
+    }
+  }
+}
+```
+
+### wrong_commission_source — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "points_per_eur_share": 10,
+  "commission_source": "direct_merchant"
+}
+```
+
+Captured response 422:
+
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19123-922e-72b2-9478-3014bb7fbdfa",
+    "fields": {
+      "commission_source": [
+        "Points earning rules require an affiliate network program."
+      ]
+    }
+  }
+}
+```
+
+### configured_program_points_rule — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+  "points_per_eur_share": 10,
+  "points_multiplier_bps": 20000,
+  "points_rounding": "half_up"
+}
+```
+
+Captured response 201:
+
+```json
+{
+  "data": {
+    "version": 4,
+    "unit": "points",
+    "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+    "calculation_version": "points_v2",
+    "points_per_eur_share": 10,
+    "points_multiplier_bps": 20000,
+    "points_rounding": "half_up",
+    "activation_blockers": [],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": "01m68j1tax01dn90btz3gnjjry",
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": true
+  }
+}
+```
+
+### versioned_rules_list — `GET /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": [
+    {
+      "version": 4,
+      "unit": "points",
+      "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+      "calculation_version": "points_v2",
+      "points_per_eur_share": 10,
+      "points_multiplier_bps": 20000,
+      "points_rounding": "half_up",
+      "activation_blockers": [],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": "01m68j1tax01dn90btz3gnjjry",
+      "commission_source": "affiliate_network",
+      "cashback_approved": true,
+      "starts_at": "2026-10-31T08:46:29+00:00",
+      "ends_at": null,
+      "active": true
+    },
+    {
+      "version": 3,
+      "unit": "points",
+      "program_id": "01m68j1tc7zfhezx7xjhehr583",
+      "calculation_version": "points_v2",
+      "points_per_eur_share": 10,
+      "points_multiplier_bps": 10000,
+      "points_rounding": "floor",
+      "activation_blockers": [
+        "points_program_webshop_required"
+      ],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": null,
+      "commission_source": "affiliate_network",
+      "cashback_approved": true,
+      "starts_at": "2026-10-31T08:46:29+00:00",
+      "ends_at": null,
+      "active": false
+    },
+    {
+      "version": 2,
+      "unit": "points",
+      "program_id": null,
+      "calculation_version": "points_v2",
+      "points_per_eur_share": null,
+      "points_multiplier_bps": 10000,
+      "points_rounding": "floor",
+      "activation_blockers": [
+        "points_program_required",
+        "points_program_webshop_required",
+        "points_rate_required"
+      ],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": null,
+      "commission_source": "affiliate_network",
+      "cashback_approved": true,
+      "starts_at": "2026-10-31T08:46:29+00:00",
+      "ends_at": null,
+      "active": false
+    },
+    {
+      "version": 1,
+      "unit": "eur_credit",
+      "program_id": null,
+      "calculation_version": "legacy_v1",
+      "points_per_eur_share": null,
+      "points_multiplier_bps": 10000,
+      "points_rounding": "floor",
+      "activation_blockers": [],
+      "share_bps": 7000,
+      "consumer_share": 0.7,
+      "shopbonus_share": 0.3,
+      "min_commission_minor": 0,
+      "max_reward_minor": null,
+      "review_above_minor": null,
+      "webshop_id": null,
+      "commission_source": null,
+      "cashback_approved": true,
+      "starts_at": null,
+      "ends_at": null,
+      "active": true
+    }
+  ],
+  "current": 1
+}
+```
+
+### public_points_earning — `GET /api/v1/public/webshops/rate-demo`
+
+Request:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "slug": "rate-demo",
+    "name": "Rate Demo",
+    "short_description": null,
+    "logo_url": null,
+    "cover_url": null,
+    "categories": [],
+    "badge_label": "Punten verdienen",
+    "cashback_label": "Punten verdienen",
+    "description": null,
+    "website_url": "https://rate.example.test",
+    "benefits": [
+      {
+        "offer_kind": "cashback",
+        "reward_unit": "points",
+        "label": "Punten verdienen",
+        "labels": {
+          "nl": "Punten verdienen na netwerkgoedkeuring",
+          "en": "Earn points after network approval"
+        },
+        "consumer_cashback_rate": null,
+        "points_per_eur_share": 10,
+        "points_rate_basis": "eur_consumer_commission_share",
+        "points_multiplier_bps": 20000,
+        "points_rounding": "half_up",
+        "category_restricted": false,
+        "cta_hint": "shop_and_earn",
+        "source": "affiliate"
+      }
+    ],
+    "offers": [
+      {
+        "slug": null,
+        "title": "Punten verdienen",
+        "summary": "Shop bij Rate Demo en verdien tegoed na een geldige aankoop.",
+        "offer_kind": "cashback",
+        "cta_hint": "shop_and_earn",
+        "how_to_obtain": "earn_cashback",
+        "discount_type": null,
+        "discount_value": null,
+        "currency": "EUR",
+        "min_order_minor": null,
+        "price_minor": null,
+        "price_points": null,
+        "ends_at": null,
+        "availability": "available",
+        "cashback_label": "Punten verdienen",
+        "benefit_label": "Punten verdienen",
+        "combinable": false,
+        "source": "affiliate",
+        "consumer_cashback_rate": null,
+        "webshop": {
+          "slug": "rate-demo",
+          "name": "Rate Demo"
+        }
+      }
+    ]
+  }
+}
+```
+
+### deactivate_points_rule — `POST /api/v1/admin/affiliate/reward-rules/4/deactivate`
+
+Request:
+
+```json
+{}
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "version": 4,
+    "unit": "points",
+    "program_id": "01m68j1tc3d701kjxy7kpaa3ft",
+    "calculation_version": "points_v2",
+    "points_per_eur_share": 10,
+    "points_multiplier_bps": 20000,
+    "points_rounding": "half_up",
+    "activation_blockers": [],
+    "share_bps": 7000,
+    "consumer_share": 0.7,
+    "shopbonus_share": 0.3,
+    "min_commission_minor": 0,
+    "max_reward_minor": null,
+    "review_above_minor": null,
+    "webshop_id": "01m68j1tax01dn90btz3gnjjry",
+    "commission_source": "affiliate_network",
+    "cashback_approved": true,
+    "starts_at": "2026-10-31T08:46:29+00:00",
+    "ends_at": null,
+    "active": false
+  }
+}
+```
+
+### existing_eur_behavior_after_deactivation — `GET /api/v1/public/webshops/rate-demo`
+
+Request:
+
+```json
+null
+```
+
+Captured response 200:
+
+```json
+{
+  "data": {
+    "slug": "rate-demo",
+    "name": "Rate Demo",
+    "short_description": null,
+    "logo_url": null,
+    "cover_url": null,
+    "categories": [],
+    "badge_label": "7% cashback",
+    "cashback_label": "7% cashback",
+    "description": null,
+    "website_url": "https://rate.example.test",
+    "benefits": [
+      {
+        "offer_kind": "cashback",
+        "label": "7% cashback",
+        "consumer_cashback_rate": 0.07,
+        "category_restricted": false,
+        "cta_hint": "shop_and_earn",
+        "source": "affiliate"
+      }
+    ],
+    "offers": [
+      {
+        "slug": null,
+        "title": "7% cashback",
+        "summary": "Shop bij Rate Demo en verdien tegoed na een geldige aankoop.",
+        "offer_kind": "cashback",
+        "cta_hint": "shop_and_earn",
+        "how_to_obtain": "earn_cashback",
+        "discount_type": null,
+        "discount_value": null,
+        "currency": "EUR",
+        "min_order_minor": null,
+        "price_minor": null,
+        "price_points": null,
+        "ends_at": null,
+        "availability": "available",
+        "cashback_label": "7% cashback",
+        "benefit_label": "7% cashback",
+        "combinable": false,
+        "source": "affiliate",
+        "consumer_cashback_rate": 0.07,
+        "webshop": {
+          "slug": "rate-demo",
+          "name": "Rate Demo"
+        }
+      }
+    ]
+  }
+}
+```
+
+### unknown_program — `POST /api/v1/admin/affiliate/reward-rules`
+
+Request:
+
+```json
+{
+  "unit": "points",
+  "share_bps": 7000,
+  "program_id": "01H00000000000000000000000",
+  "points_per_eur_share": 10
+}
+```
+
+Captured response 404:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Affiliate program not found.",
+    "request_id": "01a19126-b754-71f2-a814-ed6f1d1b1141"
+  }
+}
+```

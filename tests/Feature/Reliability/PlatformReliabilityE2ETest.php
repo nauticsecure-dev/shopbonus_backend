@@ -10,13 +10,13 @@ use App\Models\AffiliateRewardRule;
 use App\Models\AffiliateTransaction;
 use App\Models\AuditEvent;
 use App\Models\FinancialReconciliationCheck;
-use App\Models\FinancialReconciliationRun;
 use App\Models\MerchantCommissionAgreement;
 use App\Models\MerchantCommissionConversion;
 use App\Models\User;
 use App\Models\WalletLedgerEntry;
 use App\Models\Webshop;
 use App\Services\Affiliate\AffiliateSync;
+use App\Services\Affiliate\SettlementRecorder;
 use App\Services\Cashback\DirectMerchantCashback;
 use App\Services\Reliability\FinancialReconciliation;
 use App\Services\Reliability\FinancialSources;
@@ -75,6 +75,8 @@ class PlatformReliabilityE2ETest extends TestCase
         ]], $this->admin->id);
 
         $tx = AffiliateTransaction::where('external_id', 'REL-1')->sole();
+        app(SettlementRecorder::class)->record($tx, $this->admin, 'fixture-remittance-REL-1', now()->toImmutable()->subMinute());
+        $tx->refresh();
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
         $this->assertSame(700, app(WalletService::class)->consumerWallet($this->consumer)->fresh()->available);
@@ -94,6 +96,7 @@ class PlatformReliabilityE2ETest extends TestCase
         $sync = app(AffiliateSync::class);
         $sync->import($this->daisycon, [], $payload, $this->admin->id);
         $sync->import($this->daisycon, [], $payload, $this->admin->id);
+        app(SettlementRecorder::class)->record(AffiliateTransaction::where('external_id', 'REL-DUP')->sole(), $this->admin, 'fixture-remittance-REL-DUP', now()->toImmutable()->subMinute());
         $this->assertSame(1, AffiliateTransaction::where('external_id', 'REL-DUP')->count());
         $this->assertSame(1, WalletLedgerEntry::where('source_type', 'affiliate')->where('type', 'credit')->count());
     }

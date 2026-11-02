@@ -61,7 +61,7 @@ class DaisyconAdapter extends BaseAffiliateAdapter
     {
         $rows = $this->pages($connection, 'programs', ['media_id' => $connection->credentials['media_id']]);
 
-        return array_map(fn (array $row) => $this->normalizeProgram($row), is_array($rows) ? $rows : []);
+        return array_map(fn (array $row) => $this->normalizeProgram($row), $rows);
     }
 
     public function fetchTransactions(AffiliateConnection $connection, ?CarbonImmutable $since): array
@@ -70,7 +70,7 @@ class DaisyconAdapter extends BaseAffiliateAdapter
         $end = CarbonImmutable::now()->format('Y-m-d');
         $rows = $this->pages($connection, 'transactions', ['start' => $start, 'end' => $end]);
 
-        return array_map(fn (array $row) => $this->normalizeTransaction($row), is_array($rows) ? $rows : []);
+        return array_map(fn (array $row) => $this->normalizeTransaction($row), $rows);
     }
 
     /**
@@ -78,6 +78,7 @@ class DaisyconAdapter extends BaseAffiliateAdapter
      * leaves AffiliateSync's durable last_synced_at checkpoint untouched; retry
      * replays that window with a seven-day overlap and idempotent conversion IDs.
      *
+     * @param  array<string, mixed>  $query
      * @return list<array<string, mixed>>
      */
     private function pages(AffiliateConnection $connection, string $resource, array $query, bool $plural = false): array
@@ -129,7 +130,9 @@ class DaisyconAdapter extends BaseAffiliateAdapter
         throw new NetworkFailure('pagination_limit_reached');
     }
 
-    /** Separate resource retrieval; retained for review, never inferred cashback permission. */
+    /** Separate resource retrieval; retained for review, never inferred cashback permission.
+     * @return list<array<string, mixed>>
+     */
     public function fetchEvidence(AffiliateConnection $connection, string $resource, ?string $programId = null): array
     {
         if ($resource === 'promotions' && $programId === null) {

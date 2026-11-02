@@ -24,7 +24,7 @@ class ConnectionReadiness
         $ingested = $bound && ($event->result['ingested'] ?? false) === true;
         $changed = $bound && WebhookEvent::where('connection_id', $c->id)->where('credential_generation', $c->credential_generation)
             ->where('source_method', 'native_api')->where('status', WebhookEventStatus::Processed)
-            ->where('result->native_external_order_id', $r->external_order_id)->where('result->native_change_recovered', true)->exists();
+            ->where('result->native_external_order_id', $r->external_order_id)->where('result->native_refund_recovered', true)->exists();
 
         return [
             'authorization_verified' => $bound,

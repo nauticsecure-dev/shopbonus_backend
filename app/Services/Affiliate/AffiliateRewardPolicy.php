@@ -13,14 +13,24 @@ class AffiliateRewardPolicy
 {
     public const SOURCE = 'affiliate_network';
 
-    public function rule(?CarbonImmutable $at = null, ?int $webshopId = null): ?AffiliateRewardRule
+    public function rule(?CarbonImmutable $at = null, ?int $webshopId = null, ?int $programId = null): ?AffiliateRewardRule
     {
-        return AffiliateRewardRule::current($at, $webshopId, self::SOURCE);
+        return AffiliateRewardRule::current($at, $webshopId, self::SOURCE, $programId);
     }
 
-    public function fromRules(Collection $rules, int $webshopId): ?AffiliateRewardRule
+    /** @param Collection<int, AffiliateRewardRule> $rules */
+    public function fromRules(Collection $rules, int $webshopId, ?int $programId = null): ?AffiliateRewardRule
     {
-        $eligible = $rules->filter(fn ($r) => $r->commission_source === null || $r->commission_source === self::SOURCE);
+        $eligible = $rules->filter(fn ($r) => ($r->commission_source === null || $r->commission_source === self::SOURCE)
+            && ($r->unit !== WalletUnit::Points || $r->activationBlockers() === []));
+
+        if ($programId !== null) {
+            $programRule = $eligible->first(fn ($r) => $r->program_id === $programId && $r->webshop_id === $webshopId);
+            if ($programRule !== null) {
+                return $programRule;
+            }
+        }
+        $eligible = $eligible->whereNull('program_id');
 
         return $eligible->firstWhere('webshop_id', $webshopId) ?? $eligible->first(fn ($r) => $r->webshop_id === null);
     }

@@ -56,6 +56,8 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | total_minor | `totalPriceSet.shopMoney` | Shop-money basis |
 | payment_status | displayFinancialStatus + transactions | |
 | refund_minor | successful refunds | |
+| amount_breakdown | `totalPriceSet` (original), `currentTotalPriceSet` (after returns), `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded` | Same shop currency only; shipping null (`totalShippingPriceSet` is documented as shipping returned to the customer). Verified against the Admin GraphQL Order reference 2026-10-31 |
+| products[] | `lineItems(first: 100)` `discountedTotalSet(withCodeDiscounts: true)` | |
 | source_event_id | `X-Shopify-Event-Id` | |
 | event_created_at | `updatedAt` / webhook | |
 
@@ -104,7 +106,7 @@ Redacted sample: `{ "id": "gid://shopify/Order/1", "name": "#1001", "email": "[r
 | Orders | `GET https://www.wixapis.com/ecom/v1/orders/{uuid}` |
 | Transactions | `GET .../ecom/v1/payments/orders/{uuid}` |
 | Banners | App/Blocks/Velo only; no silent HTML |
-| Status | Native lookup **WORKING**; backfill/search **MISSING**; `paid_at` null by design |
+| Status | Native lookup **WORKING**; backfill via `POST /ecom/v1/orders/search`; `paid_at` null by design |
 
 Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`.
 
@@ -118,6 +120,8 @@ Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`
 | customer_phone | `billingInfo.contactDetails.phone` |
 | total_minor | price summary + currency |
 | payment_status | transactions mapping |
+| amount_breakdown | `priceSummary.{total,tax,shipping,discount}.amount` (current total not mapped) |
+| products[] | `lineItems[].{id, quantity, catalogReference.catalogItemId, physicalProperties.sku, totalPriceBeforeTax.amount}` (after discounts, before tax). Verified against the Wix eCom Order object 2026-10-31 |
 | source_event_id | JWT / event `id` |
 
 ---

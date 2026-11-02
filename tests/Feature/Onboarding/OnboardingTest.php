@@ -96,6 +96,7 @@ class OnboardingTest extends TestCase
         $this->putJson($this->url('/business-profile'), ['legal_name' => 'Fietsen Utrecht B.V.'])
             ->assertOk()
             ->assertJsonPath('data.confirmed', false)
+            // country_code defaults to NL, so an NL KvK number is required from the start.
             ->assertJsonPath('data.missing_fields', ['website_url', 'contact_email', 'address_line', 'postal_code', 'city', 'kvk_number']);
 
         $this->putJson($this->url('/business-profile'), ['country_code' => 'NL', 'confirm' => true])

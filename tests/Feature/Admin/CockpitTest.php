@@ -148,7 +148,22 @@ class CockpitTest extends TestCase
         $this->assertSame('/admin/webshops?status=approved', $cards['active_webshops']['href']);
         $this->assertStringContainsString('consumer', $cards['consumers']['href']);
         $this->getJson('/api/v1/admin/webshops?status=approved')->assertOk()->assertJsonPath('meta.total', 2);
-        $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk();
+        // The card and the list it links to use the same consumer definition.
+        $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk()->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_current_consumer_total_has_no_invented_historical_change(): void
+    {
+        foreach (range(1, 2) as $i) {
+            User::factory()->create(['status' => UserStatus::Active, 'created_at' => now()->subDays(20)]);
+        }
+        User::factory()->create(['status' => UserStatus::Active, 'created_at' => now()->subDay()]);
+
+        Sanctum::actingAs($this->admin);
+        $cards = collect($this->getJson('/api/v1/admin/cockpit?period=7d')->assertOk()->json('data.cards'))->keyBy('key');
+        $this->assertEquals([3, null], [$cards['consumers']['value'], $cards['consumers']['change_percent']]);
+        $this->assertStringContainsString('Historical snapshots', $cards['consumers']['comparison_unavailable_reason']);
+        $this->assertNull($cards['open_actions']['change_percent']); // no history to compare with
     }
 
     /** E2E 3 — Voucher lifecycle */

@@ -42,7 +42,7 @@ class AffiliateProgram extends Model
     protected function casts(): array
     {
         return ['active' => 'boolean', 'category_restricted' => 'boolean', 'cashback_allowed' => 'boolean', 'commission_value' => 'integer',
-            'raw_evidence' => 'array', 'raw_evidence' => 'array', 'last_seen_at' => 'immutable_datetime'];
+            'raw_evidence' => 'array', 'last_seen_at' => 'immutable_datetime'];
     }
 
     /** @return list<string> */

@@ -97,6 +97,32 @@ class ShopifyApiTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_order_keeps_provider_original_current_tax_and_discount_beside_the_canonical_amount(): void
+    {
+        $c = $this->connection();
+        $order = $this->order() + ['totalTaxSet' => ['shopMoney' => ['amount' => '10.40', 'currencyCode' => 'EUR']],
+            'totalDiscountsSet' => ['shopMoney' => ['amount' => '5.00', 'currencyCode' => 'EUR']], 'taxesIncluded' => true];
+        Http::fake(function (Request $r) use ($order) {
+            if (str_contains($r['query'], 'ShopbonusOrder')) {
+                $this->assertStringContainsString('totalTaxSet { shopMoney { amount currencyCode } } totalDiscountsSet { shopMoney { amount currencyCode } } taxesIncluded', $r['query']);
+            }
+
+            return Http::response(['data' => str_contains($r['query'], 'ShopbonusIdentity') ? $this->identity() : ['order' => $order]], 200, ['X-Shopify-API-Version' => '2026-10']);
+        });
+        $connector = new ShopifyConnector;
+        $normalized = $connector->normalizeOrder($connector->fetchOrder($c, '4711'));
+
+        // The canonical amount stays the original total; refunds remain separate (no double subtraction).
+        $this->assertSame([5995, 1000], [$normalized->amountMinor, $normalized->refundedMinor]);
+        $this->assertSame(['source' => 'shopify_order', 'currency' => 'EUR', 'tax_included' => true, 'original_total_minor' => 5995, 'current_total_minor' => 4995,
+            'tax_minor' => 1040, 'shipping_minor' => null, 'discount_minor' => 500], $normalized->amountBreakdown);
+
+        // An amount in another currency is not mixed in.
+        $foreign = $order;
+        $foreign['totalTaxSet']['shopMoney']['currencyCode'] = 'USD';
+        $this->assertNull($connector->normalizeOrder($foreign)->amountBreakdown['tax_minor']);
+    }
+
     public function test_foreign_store_identity_stops_before_any_order_read(): void
     {
         $c = $this->connection();

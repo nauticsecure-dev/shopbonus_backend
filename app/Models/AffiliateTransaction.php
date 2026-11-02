@@ -34,6 +34,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $reward_timing
  * @property array<string, mixed>|null $reward_terms_snapshot
  * @property array<string, mixed>|null $credit_evidence
+ * @property array<string, mixed>|null $settlement_evidence
  * @property int|null $reward_rule_version
  * @property int|null $wallet_pending_id
  * @property int|null $wallet_entry_id

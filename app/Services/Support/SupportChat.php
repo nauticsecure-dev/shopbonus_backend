@@ -14,6 +14,7 @@ use App\Models\Webshop;
 use App\Services\Admin\Diagnostics\ProviderFailure;
 use App\Services\Audit\AuditLogger;
 use App\Services\Errors\ErrorRecorder;
+use App\Support\FrontendPath;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,10 @@ class SupportChat
                 }
                 $previous = SupportMessage::where('conversation_id', $c->id)->whereNotNull('completed_at')->latest('id')->first();
                 $plan = $this->planner->plan($data['message'], $workspace !== null, $data['reference'] ?? null, $previous->research ?? []);
+                if ($plan['intent'] === 'knowledge' && $plan['reference'] === null
+                    && ($faq = $this->tools->matchKnowledge($workspace !== null, $data['message'], $data['locale'] ?? 'en')) !== null) {
+                    $plan = $this->planner->plan($data['message'], $workspace !== null, $faq);
+                }
                 $m = SupportMessage::create(['conversation_id' => $c->id, 'user_id' => $actor->id, 'request_key' => $key, 'request_hash' => $hash,
                     'question' => $data['message'], 'research' => $plan, 'status' => 'PENDING']);
                 $this->audit->record('support.message_requested', category: AuditCategory::Security, actorUserId: $actor->id, resource: $m, webshopId: $c->webshop_id);
@@ -365,12 +370,12 @@ class SupportChat
     private function action(array $plan, ?string $workspace, string $locale): ?array
     {
         $route = match ($plan['intent']) {
-            'wallet', 'reward' => '/app/wallet',
-            'vouchers', 'quote' => '/app/vouchers',
-            'funding' => '/app/workspaces/'.($workspace ?? 'current').'/wallet',
-            'offer_cost' => '/app/workspaces/'.($workspace ?? 'current').'/offers',
-            'campaign' => '/app/workspaces/'.($workspace ?? 'current').'/banners',
-            'integration' => '/app/workspaces/'.($workspace ?? 'current').'/integrations',
+            'wallet', 'reward' => FrontendPath::to('consumer_wallet'),
+            'vouchers', 'quote' => FrontendPath::to('consumer_vouchers'),
+            'funding' => FrontendPath::to('workspace_wallet', ['workspace' => $workspace ?? 'current']),
+            'offer_cost' => FrontendPath::to('workspace_offers', ['workspace' => $workspace ?? 'current']),
+            'campaign' => FrontendPath::to('workspace_banners', ['workspace' => $workspace ?? 'current']),
+            'integration' => FrontendPath::to('workspace_integrations', ['workspace' => $workspace ?? 'current']),
             default => null,
         };
         if ($route === null) {

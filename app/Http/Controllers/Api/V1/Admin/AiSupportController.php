@@ -82,6 +82,19 @@ class AiSupportController extends Controller
         return response()->json(['data' => $report]);
     }
 
+    /** @return array{currency: string, amount_minor: int, basis: string}|null */
+    private static function costEstimate(int $input, int $output): ?array
+    {
+        $in = config('support_ai.price_eur_per_million_input');
+        $out = config('support_ai.price_eur_per_million_output');
+        if (! is_numeric($in) || ! is_numeric($out) || (float) $in < 0 || (float) $out < 0) {
+            return null;
+        }
+
+        return ['currency' => 'EUR', 'amount_minor' => (int) round(($input * (float) $in + $output * (float) $out) / 1_000_000 * 100),
+            'basis' => 'configured_token_prices'];
+    }
+
     public function operations(Request $request, SupportPolicy $policy): JsonResponse
     {
         $filters = $request->validate([
@@ -128,6 +141,7 @@ class AiSupportController extends Controller
             'statuses' => $rows->countBy('status')->all(), 'failures' => $rows->whereNotNull('failure_code')->countBy('failure_code')->all(),
             'retrieval_retries' => $rows->where('retry_used', true)->count(), 'latency_p95_ms' => $latency->isEmpty() ? null : $latency[(int) ceil($latency->count() * .95) - 1],
             'input_tokens' => $rows->sum('metrics.input_tokens'), 'output_tokens' => $rows->sum('metrics.output_tokens'), 'provider_cost' => $costed->isEmpty() ? null : round($costed->sum('metrics.estimated_cost_eur'), 8), 'costed_requests' => $costed->count(), 'cost_currency' => 'EUR',
+            'provider_cost_estimate' => self::costEstimate((int) $rows->sum('metrics.input_tokens'), (int) $rows->sum('metrics.output_tokens')),
             'cost_notice' => 'Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.',
             'open_reviews' => SupportReview::whereNull('outcome')->count(), 'approved_regressions' => SupportRegression::count(),
             'daily_requests' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'global')->value('requests') ?? 0),

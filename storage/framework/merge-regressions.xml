@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="200" assertions="1610" errors="9" failures="5" skipped="3" time="102.228797">
+    <testsuite name="Tests\Feature\Admin\CockpitTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" tests="18" assertions="152" errors="0" failures="0" skipped="0" time="7.051493">
+      <testcase name="test_e2e1_super_admin_opens_cockpit_and_merchant_is_denied" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="106" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="9" time="2.964938"/>
+      <testcase name="test_e2e2_active_webshops_and_consumers_follow_definitions" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="135" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="9" time="0.186340"/>
+      <testcase name="test_current_consumer_total_has_no_invented_historical_change" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="155" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="4" time="0.149821"/>
+      <testcase name="test_e2e3_active_vouchers_and_issuance_chart_respect_lifecycle" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="170" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="6" time="0.378225"/>
+      <testcase name="test_e2e4_confirmed_pending_and_reversed_commissions_stay_separate" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="199" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="9" time="0.136173"/>
+      <testcase name="test_e2e5_wallet_liability_reconciles_available_and_reserved" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="223" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="6" time="0.197695"/>
+      <testcase name="test_e2e6_voucher_chart_periods_and_day_filter" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="242" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="16" time="0.300082"/>
+      <testcase name="test_e2e7_affiliate_channel_distribution_percentages" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="267" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="13" time="0.345290"/>
+      <testcase name="test_e2e8_recent_activity_lists_platform_events_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="306" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="8" time="0.130031"/>
+      <testcase name="test_e2e9_action_required_counts_update_after_resolution" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="331" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="14" time="0.269522"/>
+      <testcase name="test_e2e10_search_security_masking_and_degraded_warnings" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="376" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="16" time="0.854945"/>
+      <testcase name="test_hash_search_is_exact_normalized_and_masked" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="425" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="5" time="0.156967"/>
+      <testcase name="test_usable_kpi_and_destination_exclude_invalid_codes_and_expiry_boundary" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="440" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="9" time="0.245545"/>
+      <testcase name="test_consumer_memberships_and_explicit_test_exclusion_match_destination" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="468" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="5" time="0.142070"/>
+      <testcase name="test_affiliate_destination_uses_business_day_dates_for_rows_and_totals" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="480" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="5" time="0.123336"/>
+      <testcase name="test_failed_sources_are_deduplicated_by_connection_and_resolve_from_source_state" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="493" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="11" time="0.199025"/>
+      <testcase name="test_only_period_events_have_comparisons_and_custom_links_use_local_dates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="518" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="5" time="0.142894"/>
+      <testcase name="test_previous_period_uses_equal_local_days_across_dst" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\CockpitTest.php" line="531" class="Tests\Feature\Admin\CockpitTest" classname="Tests.Feature.Admin.CockpitTest" assertions="2" time="0.128594"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Admin\UserAdministrationTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" tests="8" assertions="92" errors="0" failures="0" skipped="0" time="1.973604">
+      <testcase name="test_search_filters_and_detail_never_expose_secrets" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="53" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="24" time="0.310022"/>
+      <testcase name="test_card21_e2e3_suspension_ends_access_at_once_and_last_admin_is_protected" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="79" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="24" time="0.240648"/>
+      <testcase name="test_card21_e2e3_public_signup_never_creates_administrators" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="123" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="3" time="0.457643"/>
+      <testcase name="test_reset_security_turns_off_2fa_and_signs_out_everywhere" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="130" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="6" time="0.161648"/>
+      <testcase name="test_membership_revocation_is_enforced_and_the_last_owner_is_protected" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="144" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="9" time="0.266163"/>
+      <testcase name="test_webshop_list_columns_checklist_and_information_request" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="165" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="13" time="0.215502"/>
+      <testcase name="test_login_records_last_login_for_activity_counts" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="186" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="3" time="0.145451"/>
+      <testcase name="test_every_new_admin_route_refuses_non_admins" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Admin\UserAdministrationTest.php" line="193" class="Tests\Feature\Admin\UserAdministrationTest" classname="Tests.Feature.Admin.UserAdministrationTest" assertions="10" time="0.176526"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Affiliate\AffiliateTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" tests="33" assertions="282" errors="0" failures="0" skipped="0" time="9.326710">
+      <testcase name="test_card19_e2e1_network_setup_rejects_invalid_credentials_with_actionable_status" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="135" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="10" time="0.264147"/>
+      <testcase name="test_card19_e2e2_highest_comparable_rate_wins_and_restricted_rates_are_not_compared" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="166" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.185419"/>
+      <testcase name="test_card19_e2e3_visit_redirects_through_the_network_and_awards_nothing" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="183" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="12" time="0.191248"/>
+      <testcase name="test_card19_e2e4_and_e2e6_import_normalises_pending_is_not_spendable_and_approval_credits_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="205" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="9" time="0.204990"/>
+      <testcase name="test_verified_conversion_with_reconciled_funds_credits_authoritative_70_percent_rule" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="229" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.182635"/>
+      <testcase name="test_order_already_credited_as_direct_merchant_conversion_is_never_credited_again" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="243" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="4" time="1.291531"/>
+      <testcase name="test_card19_e2e4_unknown_or_inconsistent_conversions_enter_review" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="260" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="9" time="0.510050"/>
+      <testcase name="test_card19_e2e5_replays_and_cross_network_reports_never_reward_twice" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="286" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="6" time="0.318156"/>
+      <testcase name="test_card19_e2e7_rejection_cancels_pending_and_reversal_never_reclaims_spent_credit" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="305" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="9" time="0.289374"/>
+      <testcase name="test_card19_e2e9_postbacks_cannot_approve_and_stale_updates_are_ignored" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="329" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="9" time="0.209766"/>
+      <testcase name="test_historical_instant_credit_snapshot_credits_once_and_rejection_does_not_reverse" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="350" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="6" time="0.196580"/>
+      <testcase name="test_rewards_above_the_review_threshold_wait_for_an_admin" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="373" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="8" time="0.210469"/>
+      <testcase name="test_new_rewards_ignore_instant_config_and_require_independent_settlement" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="390" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="9" time="0.224912"/>
+      <testcase name="test_no_active_rule_means_no_reward" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="416" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="4" time="0.233422"/>
+      <testcase name="test_admin_connection_setup_rules_and_consumer_activity" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="426" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="19" time="0.321851"/>
+      <testcase name="test_approved_credit_uses_frozen_rule_and_timing_while_new_conversions_use_new_rates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="457" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="17" time="0.261073"/>
+      <testcase name="test_reward_rule_history_cannot_be_overwritten" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="491" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="2" time="0.130711"/>
+      <testcase name="test_increased_approved_commission_requires_review_again_before_becoming_spendable" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="497" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="8" time="0.202917"/>
+      <testcase name="test_foreign_commission_currency_cannot_silently_become_eur_wallet_credit" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="515" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="10" time="0.173112"/>
+      <testcase name="test_reconciliation_detects_duplicate_credit_without_posting_corrections" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="533" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="8" time="0.245705"/>
+      <testcase name="test_zero_approved_commission_closes_the_original_pending_reward_without_a_credit" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="556" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.193753"/>
+      <testcase name="test_pending_source_reconciliation_rejects_another_consumers_wallet_link" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="569" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.165288"/>
+      <testcase name="test_card19_e2e8_wallet_integrity_preserves_balances_on_failed_and_concurrent_paths" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="585" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="11" time="0.205336"/>
+      <testcase name="test_card19_e2e10_operations_queue_admin_monitoring_and_consumer_filters" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="608" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="19" time="0.225048"/>
+      <testcase name="test_card19_points_unit_reward_credits_the_points_wallet_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="637" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.197604"/>
+      <testcase name="test_points_rules_remain_inactive_without_explicit_program_and_rate" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="661" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="18" time="0.282240"/>
+      <testcase name="test_program_rate_is_frozen_for_pending_approval_and_does_not_leak_to_another_program" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="692" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="9" time="0.354161"/>
+      <testcase name="test_legacy_pending_points_snapshot_is_honoured_without_reintroducing_implicit_new_rates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="717" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.353341"/>
+      <testcase name="test_legacy_unconfigured_points_rules_are_not_used_for_new_rewards" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="741" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="4" time="0.367247"/>
+      <testcase name="test_two_distinct_orders_on_one_click_are_credited_but_same_order_is_disputed" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="751" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="5" time="0.421429"/>
+      <testcase name="test_current_selection_changes_with_rates_and_recovers_from_empty_candidates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="763" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="7" time="0.210379"/>
+      <testcase name="test_missing_cookie_policy_never_creates_an_affiliate_click_even_in_tests" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="780" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="6" time="0.216866"/>
+      <testcase name="test_visit_without_marketing_consent_is_untracked_when_policy_published" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\AffiliateTest.php" line="790" class="Tests\Feature\Affiliate\AffiliateTest" classname="Tests.Feature.Affiliate.AffiliateTest" assertions="14" time="0.285954"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Analytics\SalesAttributionE2ETest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" tests="14" assertions="134" errors="0" failures="0" skipped="0" time="11.607704">
+      <testcase name="test_review_voucher_hash_first_evidence_and_refunded_network" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="214" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="12" time="0.379396"/>
+      <testcase name="test_review_mixed_currency_and_wallet_units_are_separate" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="244" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="8" time="0.238799"/>
+      <testcase name="test_review_consent_withdrawal_policy_renewal_and_click_retry" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="267" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="7" time="0.423689"/>
+      <testcase name="test_review_storefront_preflight_is_scoped_and_reports_reject_unbounded_ranges" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="289" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="14" time="0.363583"/>
+      <testcase name="test_e2e01_true_impressions_ctr_and_device_splits" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="305" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="5" time="0.875952"/>
+      <testcase name="test_e2e02_consent_click_joins_paid_order_and_no_consent_creates_no_tracker" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="336" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="8" time="0.232651"/>
+      <testcase name="test_e2e03_paid_order_accuracy_dedupe_and_refund_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="366" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="6" time="0.253607"/>
+      <testcase name="test_e2e04_first_order_voucher_requires_verified_account_and_redeems_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="390" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="9" time="0.289522"/>
+      <testcase name="test_e2e05_real_coupon_supported_vs_limited_unsupported" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="436" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="3" time="0.209716"/>
+      <testcase name="test_e2e06_wallet_plus_mollie_purchase_once_and_failed_payment_releases" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="500" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="12" time="0.311115"/>
+      <testcase name="test_e2e07_merchant_fees_topup_invoice_and_empty_wallet_blocks" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="547" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="9" time="0.297239"/>
+      <testcase name="test_e2e08_network_referral_sponsor_recorded_and_orders_isolated" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="597" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="15" time="0.247143"/>
+      <testcase name="test_e2e09_affiliate_net_and_answer24_no_calling_task" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="638" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="10" time="0.314749"/>
+      <testcase name="test_e2e10_ab_holdout_bot_filter_security_and_scale_ingest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Analytics\SalesAttributionE2ETest.php" line="705" class="Tests\Feature\Analytics\SalesAttributionE2ETest" classname="Tests.Feature.Analytics.SalesAttributionE2ETest" assertions="16" time="7.170542"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Benefits\MyBenefitsE2ETest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" tests="10" assertions="75" errors="0" failures="3" skipped="0" time="1.966752">
+      <testcase name="test_01_wallet_dashboard_available_earned_spent_and_navbar_match" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="88" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="16" time="0.210108">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Benefits\MyBenefitsE2ETest::test_01_wallet_dashboard_available_earned_spent_and_navbar_match&#13;
+Failed asserting that two strings are identical.
+--- Expected
++++ Actual
+@@ @@
+-'on_validated_attribution'
++'on_network_settlement'
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php:111</failure>
+      </testcase>
+      <testcase name="test_02_standard_affiliate_cashback_immediate_70_30" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="114" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="3" time="0.181603">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Benefits\MyBenefitsE2ETest::test_02_standard_affiliate_cashback_immediate_70_30&#13;
+Failed asserting that two arrays are identical.
+--- Expected
++++ Actual
+@@ @@
+ Array &amp;0 [
+     0 =&gt; 1000,
+     1 =&gt; 700,
+-    2 =&gt; 'credited',
++    2 =&gt; 'pending',
+ ]
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php:125</failure>
+      </testcase>
+      <testcase name="test_03_custom_direct_merchant_12_percent_with_90_10_split" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="131" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="7" time="0.192348"/>
+      <testcase name="test_04_click_alone_never_credits_wallet" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="152" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="5" time="0.167320"/>
+      <testcase name="test_05_duplicate_conversion_credits_exactly_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="162" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="4" time="0.194920">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Benefits\MyBenefitsE2ETest::test_05_duplicate_conversion_credits_exactly_once&#13;
+Failed asserting that 0 is identical to 1.
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php:177</failure>
+      </testcase>
+      <testcase name="test_06_voucher_list_statuses_and_copy_permissions" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="181" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="13" time="0.247785"/>
+      <testcase name="test_07_voucher_redemption_debits_wallet_atomically" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="202" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="5" time="0.185179"/>
+      <testcase name="test_08_ledger_and_auditable_reversal" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="216" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="6" time="0.221375"/>
+      <testcase name="test_09_ai_voucher_support_receives_authorized_reference" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="243" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="7" time="0.211758"/>
+      <testcase name="test_10_reverb_wallet_event_and_account_isolation" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Benefits\MyBenefitsE2ETest.php" line="260" class="Tests\Feature\Benefits\MyBenefitsE2ETest" classname="Tests.Feature.Benefits.MyBenefitsE2ETest" assertions="9" time="0.154354"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\ConcurrentNotificationTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\ConcurrentNotificationTest.php" tests="3" assertions="0" errors="0" failures="0" skipped="3" time="0.241129">
+      <testcase name="test_concurrent_publication_of_one_reply_creates_one_recipient_event" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\ConcurrentNotificationTest.php" line="43" class="Tests\Feature\Notifications\ConcurrentNotificationTest" classname="Tests.Feature.Notifications.ConcurrentNotificationTest" assertions="0" time="0.077395">
+        <skipped/>
+      </testcase>
+      <testcase name="test_concurrent_template_generation_reserves_one_global_provider_slot" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\ConcurrentNotificationTest.php" line="59" class="Tests\Feature\Notifications\ConcurrentNotificationTest" classname="Tests.Feature.Notifications.ConcurrentNotificationTest" assertions="0" time="0.085329">
+        <skipped/>
+      </testcase>
+      <testcase name="test_concurrent_mail_workers_claim_one_attempt" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\ConcurrentNotificationTest.php" line="79" class="Tests\Feature\Notifications\ConcurrentNotificationTest" classname="Tests.Feature.Notifications.ConcurrentNotificationTest" assertions="0" time="0.078405">
+        <skipped/>
+      </testcase>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationActionLinkTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationActionLinkTest.php" tests="5" assertions="12" errors="0" failures="0" skipped="0" time="0.421350">
+      <testcase name="test_email_links_use_real_frontend_pages_and_keep_recipient_context" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationActionLinkTest.php" line="24" class="Tests\Feature\Notifications\NotificationActionLinkTest" classname="Tests.Feature.Notifications.NotificationActionLinkTest" assertions="8" time="0.091213"/>
+      <testcase name="test_operator_can_override_the_destination_without_losing_workspace" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationActionLinkTest.php" line="33" class="Tests\Feature\Notifications\NotificationActionLinkTest" classname="Tests.Feature.Notifications.NotificationActionLinkTest" assertions="1" time="0.088942"/>
+      <testcase name="test_workspace_support_opens_the_authorized_workspace_conversation" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationActionLinkTest.php" line="39" class="Tests\Feature\Notifications\NotificationActionLinkTest" classname="Tests.Feature.Notifications.NotificationActionLinkTest" assertions="1" time="0.079124"/>
+      <testcase name="test_configuration_cannot_redirect_to_an_external_origin" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationActionLinkTest.php" line="44" class="Tests\Feature\Notifications\NotificationActionLinkTest" classname="Tests.Feature.Notifications.NotificationActionLinkTest" assertions="1" time="0.077695"/>
+      <testcase name="test_configuration_cannot_add_tracking_parameters" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationActionLinkTest.php" line="51" class="Tests\Feature\Notifications\NotificationActionLinkTest" classname="Tests.Feature.Notifications.NotificationActionLinkTest" assertions="1" time="0.084376"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationCommitTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationCommitTest.php" tests="2" assertions="13" errors="0" failures="0" skipped="0" time="2.304846">
+      <testcase name="test_broadcasts_only_after_commit_and_rollback_publishes_nothing" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationCommitTest.php" line="29" class="Tests\Feature\Notifications\NotificationCommitTest" classname="Tests.Feature.Notifications.NotificationCommitTest" assertions="6" time="1.054576"/>
+      <testcase name="test_queue_outage_cannot_lose_a_committed_reply_or_read_state" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationCommitTest.php" line="45" class="Tests\Feature\Notifications\NotificationCommitTest" classname="Tests.Feature.Notifications.NotificationCommitTest" assertions="7" time="1.250270"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationDeliveryTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" tests="7" assertions="32" errors="0" failures="0" skipped="0" time="2.536144">
+      <testcase name="test_actual_multipart_mail_has_safe_content_stable_message_id_and_one_delivery" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="33" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="9" time="1.641836"/>
+      <testcase name="test_optional_preferences_and_revocation_are_rechecked_at_delivery" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="55" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="3" time="0.233560"/>
+      <testcase name="test_disabled_transport_keeps_durable_pending_record_for_recovery" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="68" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="2" time="0.116214"/>
+      <testcase name="test_ambiguous_transport_is_never_automatically_resent" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="76" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="4" time="0.132329"/>
+      <testcase name="test_pre_transport_render_errors_retry_boundedly_without_sending" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="89" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="3" time="0.141250"/>
+      <testcase name="test_retention_keeps_uncertain_claims_and_owned_deletion_is_isolated" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="105" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="8" time="0.146257"/>
+      <testcase name="test_delete_cannot_cancel_mandatory_pending_mail_or_an_active_send" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationDeliveryTest.php" line="123" class="Tests\Feature\Notifications\NotificationDeliveryTest" classname="Tests.Feature.Notifications.NotificationDeliveryTest" assertions="3" time="0.124698"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationInboxTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" tests="12" assertions="96" errors="0" failures="0" skipped="0" time="1.659103">
+      <testcase name="test_owned_inbox_read_state_filter_pagination_and_generic_encrypted_content" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="37" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="17" time="0.174595"/>
+      <testcase name="test_other_recipient_cannot_read_or_mark_foreign_notifications_even_as_admin" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="61" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="4" time="0.130771"/>
+      <testcase name="test_workspace_history_and_counts_disappear_after_membership_or_workspace_revocation" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="75" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="8" time="0.139595"/>
+      <testcase name="test_transaction_rollback_leaves_no_reply_or_inbox_and_replay_deduplicates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="93" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="4" time="0.137115"/>
+      <testcase name="test_preferences_share_locale_preserve_consent_and_enforce_mandatory_in_app" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="107" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="16" time="0.170650"/>
+      <testcase name="test_strict_pagination_and_auth_account_verification_gates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="126" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="10" time="0.175879"/>
+      <testcase name="test_private_channel_and_support_impersonation_never_expose_inbox" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="142" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="19" time="0.138118"/>
+      <testcase name="test_notification_writes_require_csrf_for_browser_requests_and_respect_rate_limits" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="166" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="4" time="0.109769"/>
+      <testcase name="test_revoked_admin_role_hides_historical_admin_entries_without_tenant_bypass" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="177" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="3" time="0.119888"/>
+      <testcase name="test_no_new_inbox_delivery_for_inactive_or_removed_recipients" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="191" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="1" time="0.118402"/>
+      <testcase name="test_storage_failure_uses_safe_global_500_envelope" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="202" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="5" time="0.100641"/>
+      <testcase name="test_read_all_only_marks_current_users_visible_unread_entries" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationInboxTest.php" line="212" class="Tests\Feature\Notifications\NotificationInboxTest" classname="Tests.Feature.Notifications.NotificationInboxTest" assertions="5" time="0.143681"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationJourneyTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" tests="6" assertions="31" errors="0" failures="0" skipped="0" time="1.096359">
+      <testcase name="test_e2e_credited_conversion_creates_one_exact_nl_wallet_notice_after_ledger_posting" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" line="49" class="Tests\Feature\Notifications\NotificationJourneyTest" classname="Tests.Feature.Notifications.NotificationJourneyTest" assertions="6" time="0.142673"/>
+      <testcase name="test_e2e_issued_voucher_and_all_reminder_stages_are_once_and_stop_after_actual_redemption" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" line="72" class="Tests\Feature\Notifications\NotificationJourneyTest" classname="Tests.Feature.Notifications.NotificationJourneyTest" assertions="10" time="0.227063"/>
+      <testcase name="test_e2e_delayed_reminders_are_suppressed_after_expiry_or_source_change" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" line="98" class="Tests\Feature\Notifications\NotificationJourneyTest" classname="Tests.Feature.Notifications.NotificationJourneyTest" assertions="2" time="0.163249"/>
+      <testcase name="test_e2e_favorite_promotion_requires_current_consent_and_preference_and_membership_changes_do_not_leak" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" line="110" class="Tests\Feature\Notifications\NotificationJourneyTest" classname="Tests.Feature.Notifications.NotificationJourneyTest" assertions="6" time="0.196637"/>
+      <testcase name="test_late_queued_reminder_rechecks_the_exact_stage_before_email" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" line="144" class="Tests\Feature\Notifications\NotificationJourneyTest" classname="Tests.Feature.Notifications.NotificationJourneyTest" assertions="2" time="0.171151"/>
+      <testcase name="test_published_custom_reminder_policy_controls_scheduler_and_tampering_fails_closed" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationJourneyTest.php" line="157" class="Tests\Feature\Notifications\NotificationJourneyTest" classname="Tests.Feature.Notifications.NotificationJourneyTest" assertions="5" time="0.195586"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationMigrationTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationMigrationTest.php" tests="1" assertions="8" errors="0" failures="0" skipped="0" time="1.084290">
+      <testcase name="test_new_notification_migrations_can_rollback_and_reapply_with_existing_base_schema" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationMigrationTest.php" line="11" class="Tests\Feature\Notifications\NotificationMigrationTest" classname="Tests.Feature.Notifications.NotificationMigrationTest" assertions="8" time="1.084290"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationSourcesTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" tests="9" assertions="45" errors="0" failures="0" skipped="0" time="2.099194">
+      <testcase name="test_event_outbox_is_transactional_and_recoverable_without_inline_fanout" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="32" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="8" time="1.106651"/>
+      <testcase name="test_merchant_compatibility_bridge_is_once_per_recipient_and_read_states_are_personal" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="50" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="10" time="0.151987"/>
+      <testcase name="test_membership_and_admin_role_are_rechecked_before_fanout" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="69" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="1" time="0.111642"/>
+      <testcase name="test_posted_correction_creates_an_intent_but_arbitrary_credit_and_pending_do_not_claim_cashback" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="82" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="3" time="0.112009"/>
+      <testcase name="test_real_source_audit_creates_admin_intent_and_no_ordinary_request_noise" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="96" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="3" time="0.115567"/>
+      <testcase name="test_complete_catalogue_mandatory_channels_and_unknown_inputs_are_enforced" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="108" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="7" time="0.111836"/>
+      <testcase name="test_legacy_read_before_projection_is_recorded_for_only_the_acting_recipient" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="120" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="3" time="0.126287"/>
+      <testcase name="test_automatic_support_review_creates_one_admin_notice_without_explicit_user_escalation" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="134" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="3" time="0.116443"/>
+      <testcase name="test_exhausted_inbox_dispatch_preserves_source_and_admin_retry_recovers_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationSourcesTest.php" line="147" class="Tests\Feature\Notifications\NotificationSourcesTest" classname="Tests.Feature.Notifications.NotificationSourcesTest" assertions="7" time="0.146771"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Notifications\NotificationTemplateTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" tests="7" assertions="80" errors="0" failures="0" skipped="0" time="1.098674">
+      <testcase name="test_test_gate_second_admin_immutable_edit_rollback_and_locale_fallback" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="50" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="26" time="0.259161"/>
+      <testcase name="test_unsafe_variables_literals_and_lengths_are_rejected" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="81" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="7" time="0.161988"/>
+      <testcase name="test_name_placeholders_are_allowed_and_substituted_as_plain_text" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="90" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="5" time="0.128880"/>
+      <testcase name="test_ai_is_budgeted_idempotent_private_and_receives_only_event_schema" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="105" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="9" time="0.142331"/>
+      <testcase name="test_admin_guards_settings_and_delivery_review_are_audited" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="120" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="16" time="0.174887"/>
+      <testcase name="test_provider_refusal_tools_malformed_and_invented_values_fail_without_publication_or_secret_echo" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="146" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="15" time="0.132580"/>
+      <testcase name="test_admin_revocation_while_provider_runs_discards_generated_drafts" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Notifications\NotificationTemplateTest.php" line="173" class="Tests\Feature\Notifications\NotificationTemplateTest" classname="Tests.Feature.Notifications.NotificationTemplateTest" assertions="2" time="0.098847"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Qa\QaCiImportTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php" tests="4" assertions="18" errors="1" failures="1" skipped="0" time="4.285883">
+      <testcase name="test_ci_import_retains_failures_sha_execution_time_and_redacts_artifacts" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php" line="37" class="Tests\Feature\Qa\QaCiImportTest" classname="Tests.Feature.Qa.QaCiImportTest" assertions="11" time="0.140981">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Qa\QaCiImportTest::test_ci_import_retains_failures_sha_execution_time_and_redacts_artifacts&#13;
+Failed asserting that 438 is identical to 384.
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php:54</failure>
+      </testcase>
+      <testcase name="test_transitive_backend_changes_invalidate_routes_and_services_are_inventoried" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php" line="57" class="Tests\Feature\Qa\QaCiImportTest" classname="Tests.Feature.Qa.QaCiImportTest" assertions="0" time="3.917984">
+        <error type="Error">Tests\Feature\Qa\QaCiImportTest::test_transitive_backend_changes_invalidate_routes_and_services_are_inventoried&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php:63</error>
+      </testcase>
+      <testcase name="test_existing_output_is_not_overwritten_or_imported" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php" line="74" class="Tests\Feature\Qa\QaCiImportTest" classname="Tests.Feature.Qa.QaCiImportTest" assertions="3" time="0.106685"/>
+      <testcase name="test_ci_cannot_be_imported_as_a_staging_schedule_or_scheduled_as_production" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaCiImportTest.php" line="84" class="Tests\Feature\Qa\QaCiImportTest" classname="Tests.Feature.Qa.QaCiImportTest" assertions="4" time="0.120233"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Qa\QaRetestProofTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaRetestProofTest.php" tests="5" assertions="16" errors="0" failures="0" skipped="0" time="1.613477">
+      <testcase name="test_manual_pass_needs_unexpired_checksum_verified_result_evidence" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaRetestProofTest.php" line="53" class="Tests\Feature\Qa\QaRetestProofTest" classname="Tests.Feature.Qa.QaRetestProofTest" assertions="7" time="0.192122"/>
+      <testcase name="test_mocked_manual_run_cannot_close_a_finding_even_with_an_attachment" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaRetestProofTest.php" line="68" class="Tests\Feature\Qa\QaRetestProofTest" classname="Tests.Feature.Qa.QaRetestProofTest" assertions="2" time="0.108004"/>
+      <testcase name="test_linked_manual_result_also_requires_its_own_valid_evidence" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaRetestProofTest.php" line="75" class="Tests\Feature\Qa\QaRetestProofTest" classname="Tests.Feature.Qa.QaRetestProofTest" assertions="3" time="0.131223"/>
+      <testcase name="test_old_execution_cannot_become_a_retest_by_importing_it_after_the_fix" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaRetestProofTest.php" line="83" class="Tests\Feature\Qa\QaRetestProofTest" classname="Tests.Feature.Qa.QaRetestProofTest" assertions="2" time="0.115992"/>
+      <testcase name="test_later_scan_order_alone_is_not_positive_build_proof" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QaRetestProofTest.php" line="89" class="Tests\Feature\Qa\QaRetestProofTest" classname="Tests.Feature.Qa.QaRetestProofTest" assertions="2" time="1.066137"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Qa\QualityCenterTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" tests="13" assertions="74" errors="8" failures="1" skipped="0" time="43.542310">
+      <testcase name="test_roles_are_separated" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="88" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="13" time="0.198856"/>
+      <testcase name="test_discovery_finds_new_changed_removed_and_undocumented_routes" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="106" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="2" time="3.851365">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Qa\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes&#13;
+Expected response status code [201] but received 500.
+Failed asserting that 500 is identical to 201.&#13;
+&#13;
+The following exception occurred during the last request:
+
+Error: Class "Symfony\Component\Filesystem\Path" not found in C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+Stack trace:
+#0 C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php(52): App\Services\Qa\QaInventory-&gt;discoverComponents()
+#1 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Controllers\Api\V1\Admin\QaController.php(111): App\Services\Qa\QaInventory-&gt;scan('aaaaaaa', 2)
+#2 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\ControllerDispatcher.php(46): App\Http\Controllers\Api\V1\Admin\QaController-&gt;scan(Object(Illuminate\Http\Request), Object(App\Services\Qa\QaInventory))
+#3 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Route.php(276): Illuminate\Routing\ControllerDispatcher-&gt;dispatch(Object(Illuminate\Routing\Route), Object(App\Http\Controllers\Api\V1\Admin\QaController), 'scan')
+#4 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Route.php(216): Illuminate\Routing\Route-&gt;runController()
+#5 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Router.php(834): Illuminate\Routing\Route-&gt;run()
+#6 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Illuminate\Routing\Router-&gt;{closure:Illuminate\Routing\Router::runRouteWithinStack():833}(Object(Illuminate\Http\Request))
+#7 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\RequireRecentPassword.php(27): Illuminate\Pipeline\Pipeline-&gt;{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}(Object(Illuminate\Http\Request))
+#8 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\RequireRecentPassword-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#9 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\EnsurePlatformRole.php(33): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#10 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\EnsurePlatformRole-&gt;handle(Object(Illuminate\Http\Request), Object(Closure), 'super_admin', 'qa_tester')
+#11 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\EnsureEmailIsVerified.php(25): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#12 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\EnsureEmailIsVerified-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#13 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\GuardSupportSession.php(98): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#14 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\GuardSupportSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#15 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\EnsureAccountIsActive.php(40): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#16 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\EnsureAccountIsActive-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#17 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Middleware\SubstituteBindings.php(52): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#18 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#19 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Middleware\ThrottleRequests.php(168): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#20 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Middleware\ThrottleRequests.php(129): Illuminate\Routing\Middleware\ThrottleRequests-&gt;handleRequest(Object(Illuminate\Http\Request), Object(Closure), Array)
+#21 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Middleware\ThrottleRequests.php(90): Illuminate\Routing\Middleware\ThrottleRequests-&gt;handleRequestUsingNamedLimiter(Object(Illuminate\Http\Request), Object(Closure), 'api', Object(Closure))
+#22 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Routing\Middleware\ThrottleRequests-&gt;handle(Object(Illuminate\Http\Request), Object(Closure), 'api')
+#23 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Auth\Middleware\Authenticate.php(63): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#24 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate-&gt;handle(Object(Illuminate\Http\Request), Object(Closure), 'sanctum')
+#25 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\sanctum\src\Http\Middleware\EnsureFrontendRequestsAreStateful.php(26): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#26 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful-&gt;{closure:Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::handle():25}(Object(Illuminate\Http\Request))
+#27 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\sanctum\src\Http\Middleware\AuthenticateSession.php(60): Illuminate\Pipeline\Pipeline-&gt;{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}(Object(Illuminate\Http\Request))
+#28 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Laravel\Sanctum\Http\Middleware\AuthenticateSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#29 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\PreventRequestForgery.php(104): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#30 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestForgery-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#31 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Session\Middleware\StartSession.php(120): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#32 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Session\Middleware\StartSession.php(63): Illuminate\Session\Middleware\StartSession-&gt;handleStatefulRequest(Object(Illuminate\Http\Request), Object(Illuminate\Session\Store), Object(Closure))
+#33 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Session\Middleware\StartSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#34 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#35 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#36 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Cookie\Middleware\EncryptCookies.php(74): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#37 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#38 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\sanctum\src\Http\Middleware\EnsureFrontendRequestsAreStateful.php(61): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#39 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(201): Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful-&gt;{closure:Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::frontendMiddleware():58}(Object(Illuminate\Http\Request), Object(Closure))
+#40 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#41 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\sanctum\src\Http\Middleware\EnsureFrontendRequestsAreStateful.php(25): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#42 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#43 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\SetRequestLocale.php(34): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#44 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\SetRequestLocale-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#45 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\AuditAccessDenials.php(32): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#46 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\AuditAccessDenials-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#47 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\ForceJsonResponse.php(19): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#48 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\ForceJsonResponse-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#49 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#50 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Router.php(833): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#51 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Router.php(812): Illuminate\Routing\Router-&gt;runRouteWithinStack(Object(Illuminate\Routing\Route), Object(Illuminate\Http\Request))
+#52 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Router.php(776): Illuminate\Routing\Router-&gt;runRoute(Object(Illuminate\Http\Request), Object(Illuminate\Routing\Route))
+#53 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Routing\Router.php(765): Illuminate\Routing\Router-&gt;dispatchToRoute(Object(Illuminate\Http\Request))
+#54 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(200): Illuminate\Routing\Router-&gt;dispatch(Object(Illuminate\Http\Request))
+#55 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Illuminate\Foundation\Http\Kernel-&gt;{closure:Illuminate\Foundation\Http\Kernel::dispatchToRouter():197}(Object(Illuminate\Http\Request))
+#56 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\SecurityHeaders.php(18): Illuminate\Pipeline\Pipeline-&gt;{closure:Illuminate\Pipeline\Pipeline::prepareDestination():178}(Object(Illuminate\Http\Request))
+#57 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\SecurityHeaders-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#58 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TransformsRequest.php(38): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#59 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#60 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#61 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TransformsRequest.php(38): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#62 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#63 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#64 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Http\Middleware\ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#65 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#66 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance.php(110): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#67 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#68 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Http\Middleware\HandleCors.php(74): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#69 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\HandleCors-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#70 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Http\Middleware\TrustProxies.php(58): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#71 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#72 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#73 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#74 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Http\Middleware\ValidatePathEncoding.php(28): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#75 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#76 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\EmbedCors.php(17): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#77 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\EmbedCors-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#78 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\RecordSecurityIncidents.php(21): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#79 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\RecordSecurityIncidents-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#80 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\ObserveApiRequest.php(18): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#81 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\ObserveApiRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#82 C:\wamp64\www\shopbonus\shopbonus_backend\app\Http\Middleware\AssignRequestId.php(34): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#83 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\AssignRequestId-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#84 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;{closure:{closure:Illuminate\Pipeline\Pipeline::carry():194}:195}(Object(Illuminate\Http\Request))
+#85 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(175): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#86 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(144): Illuminate\Foundation\Http\Kernel-&gt;sendRequestThroughRouter(Object(Illuminate\Http\Request))
+#87 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(638): Illuminate\Foundation\Http\Kernel-&gt;handle(Object(Illuminate\Http\Request))
+#88 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(604): Illuminate\Foundation\Testing\TestCase-&gt;call('POST', '/api/v1/admin/q...', Array, Array, Array, Array, '{"git_sha":"aaa...')
+#89 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(411): Illuminate\Foundation\Testing\TestCase-&gt;json('POST', '/api/v1/admin/q...', Array, Array, 0)
+#90 C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php(109): Illuminate\Foundation\Testing\TestCase-&gt;postJson('/api/v1/admin/q...', Array)
+#91 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestCase.php(1320): Tests\Feature\Qa\QualityCenterTest-&gt;test_discovery_finds_new_changed_removed_and_undocumented_routes()
+#92 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestCase.php(1357): PHPUnit\Framework\TestCase-&gt;invokeTestMethod('test_discovery_...', Array)
+#93 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestCase.php(521): PHPUnit\Framework\TestCase-&gt;runTest()
+#94 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestRunner\TestRunner.php(98): PHPUnit\Framework\TestCase-&gt;runBare()
+#95 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestCase.php(361): PHPUnit\Framework\TestRunner-&gt;run(Object(Tests\Feature\Qa\QualityCenterTest))
+#96 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestSuite.php(382): PHPUnit\Framework\TestCase-&gt;run()
+#97 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\Framework\TestSuite.php(382): PHPUnit\Framework\TestSuite-&gt;run()
+#98 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\TextUI\TestRunner.php(64): PHPUnit\Framework\TestSuite-&gt;run()
+#99 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\src\TextUI\Application.php(228): PHPUnit\TextUI\TestRunner-&gt;run(Object(PHPUnit\TextUI\Configuration\Configuration), Object(PHPUnit\Runner\ResultCache\DefaultResultCache), Object(PHPUnit\Framework\TestSuite))
+#100 C:\wamp64\www\shopbonus\shopbonus_backend\vendor\phpunit\phpunit\phpunit(104): PHPUnit\TextUI\Application-&gt;run(Array)
+#101 {main}
+
+----------------------------------------------------------------------------------
+
+Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:46
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:183
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\Concerns\AssertsStatusCodes.php:26
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:109</failure>
+      </testcase>
+      <testcase name="test_status_comes_only_from_approved_executed_evidence" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="152" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="0" time="4.049969">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:154</error>
+      </testcase>
+      <testcase name="test_freshness_follows_the_tested_build_not_the_import_time" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="216" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="0" time="5.052963">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_freshness_follows_the_tested_build_not_the_import_time&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:218</error>
+      </testcase>
+      <testcase name="test_fingerprints_cover_direct_dependencies_and_discovery_covers_middleware_and_adapters" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="247" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="3" time="4.432735">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_fingerprints_cover_direct_dependencies_and_discovery_covers_middleware_and_adapters&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:255</error>
+      </testcase>
+      <testcase name="test_a_browser_pass_counts_only_with_evidence_attached" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="261" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="0" time="5.183961">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_a_browser_pass_counts_only_with_evidence_attached&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:263</error>
+      </testcase>
+      <testcase name="test_exports_are_escaped_private_downloads" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="282" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="13" time="0.237256"/>
+      <testcase name="test_evidence_is_encrypted_deduplicated_and_scoped" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="299" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="16" time="0.321330"/>
+      <testcase name="test_finding_workflow_needs_an_independent_evidence_based_retest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="331" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="0" time="5.323617">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_finding_workflow_needs_an_independent_evidence_based_retest&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:333</error>
+      </testcase>
+      <testcase name="test_ai_analysis_is_advisory_and_grounded_in_the_input" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="424" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="0" time="6.145128">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:426</error>
+      </testcase>
+      <testcase name="test_schedules_probe_frontend_usage_and_openapi" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="456" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="20" time="4.273283">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_schedules_probe_frontend_usage_and_openapi&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:480</error>
+      </testcase>
+      <testcase name="test_role_command_grants_and_revokes" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="498" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="7" time="0.115288"/>
+      <testcase name="test_cli_import_for_ci_runners" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php" line="510" class="Tests\Feature\Qa\QualityCenterTest" classname="Tests.Feature.Qa.QualityCenterTest" assertions="0" time="4.356558">
+        <error type="Error">Tests\Feature\Qa\QualityCenterTest::test_cli_import_for_ci_runners&#13;
+Error: Class "Symfony\Component\Filesystem\Path" not found
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:243
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Services\Qa\QaInventory.php:52
+C:\wamp64\www\shopbonus\shopbonus_backend\app\Console\Commands\QaDiscover.php:23
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:36
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Util.php:43
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:96
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php:35
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:803
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:292
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Command\Command.php:285
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Command.php:261
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:1129
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:380
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\symfony\console\Application.php:219
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Console\Application.php:165
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:450
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:452
+C:\wamp64\www\shopbonus\shopbonus_backend\vendor\laravel\framework\src\Illuminate\Testing\PendingCommand.php:676
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Qa\QualityCenterTest.php:512</error>
+      </testcase>
+    </testsuite>
+    <testsuite name="Tests\Feature\Reliability\PlatformReliabilityE2ETest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" tests="10" assertions="51" errors="0" failures="0" skipped="0" time="1.495863">
+      <testcase name="test_01_affiliate_ten_euro_split_matches_reconciliation" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="66" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="4" time="0.166417"/>
+      <testcase name="test_02_duplicate_affiliate_delivery_credits_once" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="86" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="2" time="0.162379"/>
+      <testcase name="test_03_commission_change_freezes_historical_direct_merchant_rates" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="104" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="7" time="0.153383"/>
+      <testcase name="test_04_ledger_mismatch_creates_finding_without_silent_correction" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="136" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="6" time="0.153950"/>
+      <testcase name="test_05_operations_overview_unknown_when_unobserved" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="154" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="6" time="0.132504"/>
+      <testcase name="test_06_direct_merchant_credit_is_audited" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="166" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="7" time="0.127405"/>
+      <testcase name="test_07_direct_merchant_source_covered_by_reconciliation_run" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="187" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="7" time="0.174714"/>
+      <testcase name="test_08_consumer_wallet_isolation" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="217" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="3" time="0.127016"/>
+      <testcase name="test_09_direct_merchant_duplicate_and_forged_credit_detection" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="229" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="5" time="0.144223"/>
+      <testcase name="test_10_failed_run_resume_and_disaster_status_truthfulness" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Reliability\PlatformReliabilityE2ETest.php" line="258" class="Tests\Feature\Reliability\PlatformReliabilityE2ETest" classname="Tests.Feature.Reliability.PlatformReliabilityE2ETest" assertions="4" time="0.153873"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" tests="10" assertions="172" errors="0" failures="0" skipped="0" time="2.729083">
+      <testcase name="test_e2e1_publish_schedules_future_offers_and_activates_current_ones" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="72" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="18" time="0.277094"/>
+      <testcase name="test_e2e2_lifecycle_command_activates_due_offers_and_ends_expired_ones" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="98" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="17" time="0.305181"/>
+      <testcase name="test_e2e3_pause_resume_and_archive_follow_the_status_machine" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="125" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="25" time="0.342956"/>
+      <testcase name="test_e2e4_duplicate_copies_terms_into_a_draft_without_codes" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="155" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="15" time="0.208274"/>
+      <testcase name="test_e2e5_offer_index_paginates_and_filters_lifecycle" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="177" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="20" time="0.398241"/>
+      <testcase name="test_e2e6_import_template_free_shipping_and_date_window" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="199" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="12" time="0.251797"/>
+      <testcase name="test_e2e7_voucher_list_show_and_export_mask_codes_without_pii" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="229" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="24" time="0.282624"/>
+      <testcase name="test_e2e8_merchant_can_open_a_dispute_on_its_voucher" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="268" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="10" time="0.260674"/>
+      <testcase name="test_e2e9_dashboard_reports_kpis_health_activity_actions_and_empty" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="292" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="20" time="0.192556"/>
+      <testcase name="test_e2e10_archived_and_foreign_offers_stay_isolated" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Offers\WebshopDashboardOffersE2ETest.php" line="319" class="Tests\Feature\Offers\WebshopDashboardOffersE2ETest" classname="Tests.Feature.Offers.WebshopDashboardOffersE2ETest" assertions="11" time="0.209685"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Support\SupportAdminTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" tests="6" assertions="84" errors="0" failures="0" skipped="0" time="1.288256">
+      <testcase name="test_monitoring_filters_estimated_cost_coverage_and_unknown_connectivity" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" line="28" class="Tests\Feature\Support\SupportAdminTest" classname="Tests.Feature.Support.SupportAdminTest" assertions="12" time="0.135685"/>
+      <testcase name="test_e2e_settings_require_test_independent_publish_and_audited_rollback_with_immutable_guards" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" line="66" class="Tests\Feature\Support\SupportAdminTest" classname="Tests.Feature.Support.SupportAdminTest" assertions="21" time="0.356167"/>
+      <testcase name="test_e2e_admin_review_reply_metrics_and_step_up_authorization" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" line="99" class="Tests\Feature\Support\SupportAdminTest" classname="Tests.Feature.Support.SupportAdminTest" assertions="21" time="0.225503"/>
+      <testcase name="test_approved_human_errors_execute_in_future_policy_tests_and_stale_test_corpus_blocks_publication" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" line="129" class="Tests\Feature\Support\SupportAdminTest" classname="Tests.Feature.Support.SupportAdminTest" assertions="7" time="0.206700"/>
+      <testcase name="test_published_faq_history_and_rollback_are_immutable_audited_and_revision_guarded" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" line="180" class="Tests\Feature\Support\SupportAdminTest" classname="Tests.Feature.Support.SupportAdminTest" assertions="16" time="0.197292"/>
+      <testcase name="test_policy_cannot_accept_secrets_arbitrary_semantics_or_unbounded_retries" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Support\SupportAdminTest.php" line="201" class="Tests\Feature\Support\SupportAdminTest" classname="Tests.Feature.Support.SupportAdminTest" assertions="7" time="0.166909"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Integrations\WixAppTokensTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppTokensTest.php" tests="5" assertions="22" errors="0" failures="0" skipped="0" time="0.749466">
+      <testcase name="test_app_mode_binds_app_without_storing_a_manual_token_and_prohibits_one" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppTokensTest.php" line="71" class="Tests\Feature\Integrations\WixAppTokensTest" classname="Tests.Feature.Integrations.WixAppTokensTest" assertions="3" time="0.159056"/>
+      <testcase name="test_first_read_mints_token_with_client_credentials_and_reuses_it_until_near_expiry" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppTokensTest.php" line="79" class="Tests\Feature\Integrations\WixAppTokensTest" classname="Tests.Feature.Integrations.WixAppTokensTest" assertions="7" time="0.152204"/>
+      <testcase name="test_renewal_near_expiry_keeps_same_authority_for_in_flight_snapshots" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppTokensTest.php" line="91" class="Tests\Feature\Integrations\WixAppTokensTest" classname="Tests.Feature.Integrations.WixAppTokensTest" assertions="5" time="0.198072"/>
+      <testcase name="test_changed_app_or_disabled_mode_fails_before_any_http" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppTokensTest.php" line="108" class="Tests\Feature\Integrations\WixAppTokensTest" classname="Tests.Feature.Integrations.WixAppTokensTest" assertions="3" time="0.113628"/>
+      <testcase name="test_invalid_or_rejected_token_response_stores_nothing" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppTokensTest.php" line="117" class="Tests\Feature\Integrations\WixAppTokensTest" classname="Tests.Feature.Integrations.WixAppTokensTest" assertions="4" time="0.126505"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Integrations\WixAppRemovedTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppRemovedTest.php" tests="3" assertions="13" errors="0" failures="0" skipped="0" time="0.588307">
+      <testcase name="test_app_removed_disconnects_only_after_native_authentication_failure" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppRemovedTest.php" line="63" class="Tests\Feature\Integrations\WixAppRemovedTest" classname="Tests.Feature.Integrations.WixAppRemovedTest" assertions="4" time="0.169993"/>
+      <testcase name="test_replayed_removal_with_valid_current_grant_is_ignored_and_redelivery_dedupes" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppRemovedTest.php" line="73" class="Tests\Feature\Integrations\WixAppRemovedTest" classname="Tests.Feature.Integrations.WixAppRemovedTest" assertions="5" time="0.254564"/>
+      <testcase name="test_app_installed_is_stored_without_effects" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixAppRemovedTest.php" line="82" class="Tests\Feature\Integrations\WixAppRemovedTest" classname="Tests.Feature.Integrations.WixAppRemovedTest" assertions="4" time="0.163750"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Integrations\WixDiscoveryTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixDiscoveryTest.php" tests="3" assertions="10" errors="0" failures="0" skipped="0" time="0.431970">
+      <testcase name="test_fixed_bounded_native_search_explicitly_includes_pending_and_rejected_and_preserves_cursor" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixDiscoveryTest.php" line="61" class="Tests\Feature\Integrations\WixDiscoveryTest" classname="Tests.Feature.Integrations.WixDiscoveryTest" assertions="6" time="0.140941"/>
+      <testcase name="test_identity_failure_precedes_search" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixDiscoveryTest.php" line="73" class="Tests\Feature\Integrations\WixDiscoveryTest" classname="Tests.Feature.Integrations.WixDiscoveryTest" assertions="2" time="0.153110"/>
+      <testcase name="test_invalid_page_count_and_out_of_window_rows_fail_closed" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\WixDiscoveryTest.php" line="84" class="Tests\Feature\Integrations\WixDiscoveryTest" classname="Tests.Feature.Integrations.WixDiscoveryTest" assertions="2" time="0.137919"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Integrations\PlatformCatalogTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" tests="6" assertions="98" errors="0" failures="0" skipped="0" time="1.036829">
+      <testsuite name="Tests\Feature\Integrations\PlatformCatalogTest::test_native_catalog_and_coupons_sync_read_only" tests="6" assertions="98" errors="0" failures="0" skipped="0" time="1.036829">
+        <testcase name="test_native_catalog_and_coupons_sync_read_only with data set &quot;bigcommerce&quot;" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" line="160" class="Tests\Feature\Integrations\PlatformCatalogTest" classname="Tests.Feature.Integrations.PlatformCatalogTest" assertions="17" time="0.159058"/>
+        <testcase name="test_native_catalog_and_coupons_sync_read_only with data set &quot;ecwid&quot;" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" line="160" class="Tests\Feature\Integrations\PlatformCatalogTest" classname="Tests.Feature.Integrations.PlatformCatalogTest" assertions="17" time="0.134844"/>
+        <testcase name="test_native_catalog_and_coupons_sync_read_only with data set &quot;magento&quot;" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" line="160" class="Tests\Feature\Integrations\PlatformCatalogTest" classname="Tests.Feature.Integrations.PlatformCatalogTest" assertions="17" time="0.154837"/>
+        <testcase name="test_native_catalog_and_coupons_sync_read_only with data set &quot;prestashop&quot;" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" line="160" class="Tests\Feature\Integrations\PlatformCatalogTest" classname="Tests.Feature.Integrations.PlatformCatalogTest" assertions="16" time="0.150851"/>
+        <testcase name="test_native_catalog_and_coupons_sync_read_only with data set &quot;shopware&quot;" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" line="160" class="Tests\Feature\Integrations\PlatformCatalogTest" classname="Tests.Feature.Integrations.PlatformCatalogTest" assertions="15" time="0.174098"/>
+        <testcase name="test_native_catalog_and_coupons_sync_read_only with data set &quot;wix&quot;" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Integrations\PlatformCatalogTest.php" line="160" class="Tests\Feature\Integrations\PlatformCatalogTest" classname="Tests.Feature.Integrations.PlatformCatalogTest" assertions="16" time="0.263140"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

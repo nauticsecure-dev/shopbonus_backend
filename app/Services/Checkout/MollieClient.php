@@ -64,6 +64,14 @@ class MollieClient
         return ['id' => (string) $r['id'], 'status' => (string) $r['status']];
     }
 
+    /** @return array{id: string, status: string, amount_minor: int} */
+    public function getRefund(string $paymentId, string $refundId): array
+    {
+        $r = $this->send(fn (PendingRequest $http) => $http->get('/payments/'.rawurlencode($paymentId).'/refunds/'.rawurlencode($refundId)));
+
+        return ['id' => (string) $r['id'], 'status' => (string) $r['status'], 'amount_minor' => self::minor((string) $r['amount']['value'])];
+    }
+
     public static function decimal(int $minor): string
     {
         return intdiv($minor, 100).'.'.str_pad((string) ($minor % 100), 2, '0', STR_PAD_LEFT);

@@ -166,6 +166,7 @@ class OrderIngestion
             'provider_updated_at' => $keep($o->providerUpdatedAt, $order->provider_updated_at),
             'last_webhook_event_id' => $event->id,
             'line_items' => $o->lineItems ?? $order->line_items,
+            'amount_breakdown' => $o->amountBreakdown ?? $order->amount_breakdown,
         ]);
 
         $missing = array_keys(array_filter([

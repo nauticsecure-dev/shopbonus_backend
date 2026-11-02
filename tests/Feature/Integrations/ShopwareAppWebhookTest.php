@@ -93,6 +93,28 @@ class ShopwareAppWebhookTest extends TestCase
         $this->assertSame(2, (int) WebhookEvent::where('dedupe_key', 'like', '%'.self::ORDER_A)->value('delivery_count'));
     }
 
+    public function test_payment_and_refund_state_events_queue_a_lookup_of_their_order(): void
+    {
+        // Only the order ID is used; amounts or states in the payload are never evidence.
+        $paid = ['order' => ['id' => self::ORDER_A, 'amountTotal' => 9999.99], 'toPlace' => ['technicalName' => 'paid']];
+        $this->hook('state_enter.order_transaction.state.paid', $paid, eventId: 'tx-paid')->assertOk()->assertJsonPath('data.lookups_queued', 1);
+        $this->hook('state_enter.order_transaction.state.refunded_partially', ['order' => ['id' => self::ORDER_A]], eventId: 'tx-refund')
+            ->assertOk()->assertJsonPath('data.lookups_queued', 1);
+        $this->hook('state_enter.order_transaction.state.paid', $paid, eventId: 'tx-paid')->assertOk()->assertJsonPath('data.lookups_queued', 0);
+
+        $events = WebhookEvent::orderBy('id')->get();
+        $this->assertSame(['state_enter.order_transaction.state.paid', 'state_enter.order_transaction.state.refunded_partially'], $events->pluck('topic')->all());
+        $connector = app(ShopwareConnector::class);
+        $this->assertSame([self::ORDER_A, self::ORDER_A], $events->map(fn ($e) => $connector->notificationOrderId($this->c, (string) $e->payload))->all());
+        $this->assertStringNotContainsString('9999', (string) $events[0]->payload);
+        Bus::assertDispatchedTimes(ProcessWebhookEvent::class, 2);
+
+        // Other states are acknowledged and ignored; a malformed order ID is refused.
+        $this->hook('state_enter.order_transaction.state.in_progress', ['order' => ['id' => self::ORDER_A]], eventId: 'tx-other')->assertOk()->assertJsonPath('data.ignored', true);
+        $this->hook('state_enter.order_transaction.state.paid', ['order' => ['id' => '../../etc']], eventId: 'tx-bad')->assertStatus(401);
+        $this->assertSame(2, WebhookEvent::count());
+    }
+
     public function test_forged_stale_unknown_or_malformed_webhooks_are_refused(): void
     {
         $this->hook('order.written', $this->written(), secret: 'SYNTHETIC_wrong_shop_secret')->assertStatus(401)->assertJsonPath('error.details.reason', 'signature_invalid');

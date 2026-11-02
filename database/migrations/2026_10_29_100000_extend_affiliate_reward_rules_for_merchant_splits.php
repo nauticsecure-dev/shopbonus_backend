@@ -28,7 +28,7 @@ return new class extends Migration
             Schema::table('affiliate_reward_rules', function (Blueprint $table) {
                 $table->index(['webshop_id', 'commission_source', 'active'], 'arr_webshop_source_active_idx');
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Index may already exist from a partial earlier run.
         }
     }
@@ -39,13 +39,13 @@ return new class extends Migration
             Schema::table('affiliate_reward_rules', function (Blueprint $table) {
                 $table->dropIndex('arr_webshop_source_active_idx');
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
         try {
             Schema::table('affiliate_reward_rules', function (Blueprint $table) {
                 $table->dropIndex('affiliate_reward_rules_webshop_id_commission_source_active_index');
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         Schema::table('affiliate_reward_rules', function (Blueprint $table) {

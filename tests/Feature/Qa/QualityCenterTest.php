@@ -5,10 +5,13 @@ namespace Tests\Feature\Qa;
 use App\Enums\PlatformRole;
 use App\Models\AuditEvent;
 use App\Models\QaEndpoint;
+use App\Models\QaEvidence;
 use App\Models\QaFinding;
 use App\Models\QaTestCase;
+use App\Models\QaTestResult;
 use App\Models\QaTestRun;
 use App\Models\User;
+use App\Services\Qa\QaInventory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\UploadedFile;
@@ -148,7 +151,7 @@ class QualityCenterTest extends TestCase
 
     public function test_status_comes_only_from_approved_executed_evidence(): void
     {
-        $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaaaaa'])->assertSuccessful();
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'abc1234'])->assertSuccessful();
         $wallet = $this->endpointId('GET', '/api/v1/consumer/wallet');
         $profile = $this->endpointId('GET', '/api/v1/consumer/profile');
         $run = $this->import([
@@ -198,7 +201,7 @@ class QualityCenterTest extends TestCase
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$vouchers}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.mocked', true);
 
         // A code change after the evidence makes it STALE, never PASS.
-        QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->addMinute()]);
+        QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->addMinute(), 'changed_sha' => 'ddddddd']);
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale');
         $this->travel(8)->days();
         QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->subDays(30)]);
@@ -208,6 +211,72 @@ class QualityCenterTest extends TestCase
         // Eight days later all three covered endpoints are STALE (including the failure), none PASS.
         $summary->assertJsonPath('data.fail', 0)->assertJsonPath('data.stale', 3)->assertJsonPath('data.pass', 0)->assertJsonPath('data.last_run.suite', 'full');
         $this->assertSame($summary->json('data.endpoints') - 3, $summary->json('data.untested'));
+    }
+
+    public function test_freshness_follows_the_tested_build_not_the_import_time(): void
+    {
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaaaaa'])->assertSuccessful();
+        $wallet = $this->endpointId('GET', '/api/v1/consumer/wallet');
+        $case = [['Tests\\WalletTest', 'test_balance', 5, '']];
+        $this->import($case, 'aaaaaaa', ['executed_at' => now()->subMinutes(5)->toIso8601String()]);
+        $this->as($this->qa)->postJson('/api/v1/admin/qa/coverage', ['map' => ['Tests\\WalletTest::test_balance' => ['GET /api/v1/consumer/wallet']]])->assertOk();
+        $this->as($this->qa)->postJson('/api/v1/admin/qa/test-cases/approve', ['keys' => ['Tests\\WalletTest::test_balance']])->assertOk();
+        // Ran on exactly the scanned build: fresh even though it executed before the scan was recorded.
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.provenance', 'sha_verified');
+
+        // The handler changes in build bbbbbbb; a report of the old build imported afterwards stays STALE.
+        $this->travel(10)->minutes();
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'bbbbbbb'])->assertSuccessful();
+        QaEndpoint::where('public_id', $wallet)->update(['changed_sha' => 'bbbbbbb', 'changed_at' => now()]);
+        $this->travel(1)->minutes();
+        $this->import([['Tests\\WalletTest', 'test_balance', 6, '']], 'aaaaaaa');
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'sha_outdated');
+
+        // An unknown build remains stale; import/execution time alone is not build proof.
+        $this->import([['Tests\\WalletTest', 'test_balance', 7, '']], 'ccccccc', ['executed_at' => now()->subHour()->toIso8601String()]);
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'time_only');
+        $this->import([['Tests\\WalletTest', 'test_balance', 9, '']], 'ddddddd', ['executed_at' => now()->toIso8601String()]);
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'time_only');
+        $this->import([['Tests\\WalletTest', 'test_balance', 8, '']], 'bbbbbbb1234');
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.provenance', 'sha_verified');
+
+        $this->as($this->qa)->post('/api/v1/admin/qa/runs', ['report' => $this->junit($case), 'suite' => 'full', 'environment' => 'staging', 'git_sha' => 'abc1234',
+            'executed_at' => now()->addDay()->toIso8601String()])->assertUnprocessable();
+    }
+
+    public function test_fingerprints_cover_direct_dependencies_and_discovery_covers_middleware_and_adapters(): void
+    {
+        $route = collect(Route::getRoutes()->getRoutes())->first(fn ($r) => $r->uri() === 'api/v1/consumer/wallet' && in_array('GET', $r->methods(), true));
+        $deps = (new \ReflectionMethod(QaInventory::class, 'dependencies'))->invoke(app(QaInventory::class), $route);
+        $this->assertArrayHasKey('App\\Http\\Controllers\\Api\\V1\\Consumer\\WalletController', $deps); // whole controller class
+        $this->assertArrayHasKey('App\\Http\\Middleware\\EnsureAccountIsActive', $deps); // route middleware
+        $this->assertSame(hash_file('sha256', app_path('Http/Middleware/EnsureAccountIsActive.php')), $deps['App\\Http\\Middleware\\EnsureAccountIsActive']);
+
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaaaaa'])->assertSuccessful();
+        $names = DB::table('qa_components')->pluck('kind', 'name');
+        $this->assertSame('middleware', $names['app/Http/Middleware/RequireRecentPassword']);
+        $this->assertSame('connector', $names['app/Affiliate/Adapters/TradeTrackerSoapClient']);
+    }
+
+    public function test_a_browser_pass_counts_only_with_evidence_attached(): void
+    {
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaaaaa'])->assertSuccessful();
+        $wallet = $this->endpointId('GET', '/api/v1/consumer/wallet');
+        $run = $this->import([['Manual\\Wallet', 'test_balance_shown', 1, '']], 'aaaaaaa', ['source' => 'browser']);
+        $this->as($this->qa)->postJson('/api/v1/admin/qa/coverage', ['map' => ['Manual\\Wallet::test_balance_shown' => ['GET /api/v1/consumer/wallet']]])->assertOk();
+        $this->as($this->qa)->postJson('/api/v1/admin/qa/test-cases/approve', ['keys' => ['Manual\\Wallet::test_balance_shown']])->assertOk();
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);
+
+        $result = $this->as($this->qa)->getJson("/api/v1/admin/qa/runs/{$run}")->json('data.results.0.id');
+        $png = UploadedFile::fake()->image('screen.png', 20, 20);
+        $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$run}/evidence", ['file' => $png, 'result_id' => $result])->assertCreated();
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.evidence_missing', false);
+        $evidence = QaEvidence::sole();
+        $evidence->forceFill(['retain_until' => now()->subMinute()])->save();
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);
+        $evidence->forceFill(['retain_until' => now()->addDay()])->save();
+        Storage::disk('local')->put($evidence->path, 'corrupt attachment');
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);
     }
 
     public function test_exports_are_escaped_private_downloads(): void
@@ -299,6 +368,15 @@ class QualityCenterTest extends TestCase
         $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$finding}/retest", ['run_id' => $mocked])->assertOk()->assertJsonPath('data.status', 'retest_failed');
         $this->as($this->dev)->postJson("/api/v1/admin/qa/findings/{$finding}/fix", ['fix_commit' => 'cdef123'])->assertOk();
 
+        // Build provenance: a later import of a build scanned before the fix is refused; an unknown build needs explicit confirmation.
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaa111'])->assertSuccessful();
+        $this->artisan('shopbonus:qa-discover', ['--sha' => 'cdef123'])->assertSuccessful();
+        $this->travel(1)->minutes();
+        $old = $this->import([['Tests\\Claim', 'test_last_code', 6, '']], 'aaaa111');
+        $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$finding}/retest", ['run_id' => $old])->assertConflict()->assertJsonPath('error.code', 'retest_build_outdated');
+        $unknown = $this->import([['Tests\\Claim', 'test_last_code', 6, '']], 'eeee999');
+        $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$finding}/retest", ['run_id' => $unknown])->assertConflict()->assertJsonPath('error.code', 'retest_build_unverified');
+
         // The fixer cannot retest their own fix (Super Admin fixing then retesting).
         $this->as($this->admin)->postJson("/api/v1/admin/qa/findings/{$finding}/fix", ['fix_commit' => 'cdef123'])->assertConflict();
         $this->travel(1)->minutes();
@@ -316,7 +394,22 @@ class QualityCenterTest extends TestCase
         $this->as($this->admin)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any, 'passed' => true])
             ->assertForbidden()->assertJsonPath('error.code', 'retest_not_independent');
         $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any])->assertUnprocessable();
+        $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any, 'passed' => true])
+            ->assertConflict()->assertJsonPath('error.code', 'retest_evidence_required');
+        $result = QaTestResult::where('run_id', QaTestRun::where('public_id', $any)->value('id'))->firstOrFail();
+        $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$any}/evidence", ['file' => UploadedFile::fake()->createWithContent('retest.txt', 'Executed regression proof'), 'result_id' => $result->public_id])->assertCreated();
         $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$selfFix->public_id}/retest", ['run_id' => $any, 'passed' => true])->assertJsonPath('data.status', 'retest_passed');
+
+        $confirmed = QaFinding::create(['fingerprint' => 'g', 'title' => 'u', 'severity' => 'p2', 'status' => 'open', 'affected_routes' => [], 'test_keys' => [],
+            'owner_id' => $this->dev->id, 'created_by' => $this->qa->id]);
+        $this->as($this->dev)->postJson("/api/v1/admin/qa/findings/{$confirmed->public_id}/fix", ['fix_commit' => 'fff0001'])->assertOk();
+        $this->travel(1)->minutes();
+        $release = $this->import([['Tests\\Z', 'test_z', 1, '']], 'eeee998');
+        $result = QaTestResult::where('run_id', QaTestRun::where('public_id', $release)->value('id'))->firstOrFail();
+        $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$release}/evidence", ['file' => UploadedFile::fake()->createWithContent('retest.txt', 'Executed release regression proof'), 'result_id' => $result->public_id])->assertCreated();
+        $this->as($this->qa)->postJson("/api/v1/admin/qa/findings/{$confirmed->public_id}/retest", ['run_id' => $release, 'passed' => true, 'build_includes_fix' => true])
+            ->assertOk()->assertJsonPath('data.status', 'retest_passed');
+        $this->assertSame('confirmed_by_retester', AuditEvent::where('action', 'qa.finding_retested')->latest('id')->first()->metadata['build_provenance']);
     }
 
     private function fakeModel(array $analysis): void

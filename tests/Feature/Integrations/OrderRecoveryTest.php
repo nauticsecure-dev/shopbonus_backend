@@ -131,6 +131,23 @@ class OrderRecoveryTest extends TestCase
         $this->assertSame(2, OrderEvent::count());
     }
 
+    public function test_a_recovered_non_refund_change_does_not_prove_refund_recovery(): void
+    {
+        $this->performRecovery($this->request());
+        $this->performRecovery($this->request());
+        $this->payload['date_modified_gmt'] = '2026-10-23T11:00:00';
+        $this->payload['status'] = 'completed'; // a real, newer order-state change, but no refund
+        $this->performRecovery($this->request());
+
+        $this->performRecovery($this->request());
+
+        $this->assertTrue(WebhookEvent::latest('id')->first()->result['native_change_recovered']);
+        $this->assertFalse(WebhookEvent::latest('id')->first()->result['native_refund_recovered']);
+        $failing = array_keys(array_filter(app(ConnectionReadiness::class)->gates($this->connection->fresh()), fn (bool $passed) => ! $passed));
+        $this->assertSame(['changes_refunds_recoverable'], $failing);
+        $this->assertSame(ConnectionStatus::Limited, $this->connection->fresh()->status);
+    }
+
     public function test_request_uuid_replay_is_stable_and_payload_conflict_is_rejected(): void
     {
         $key = (string) Str::uuid();
@@ -257,6 +274,8 @@ class OrderRecoveryTest extends TestCase
         $this->assertSame(5995, $order->amount_minor);
         $this->assertSame(1000, $order->refunded_minor);
         $this->assertSame(2, OrderEvent::count());
+        // Original and current totals are stored beside the canonical amount, which is not reduced twice.
+        $this->assertSame([5995, 4995], [$order->amount_breakdown['original_total_minor'], $order->amount_breakdown['current_total_minor']]);
     }
 
     public function test_processing_failure_closes_staged_request_instead_of_endless_requeue(): void

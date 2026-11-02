@@ -6,6 +6,7 @@ use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
 use App\Enums\VoucherCodeStatus;
 use App\Enums\VoucherStatus;
+use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
 use App\Models\AffiliateProgram;
 use App\Models\AffiliateRewardRule;
@@ -16,6 +17,7 @@ use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
 use App\Models\WebshopPublicProfile;
+use App\Services\Affiliate\AffiliateRewardPolicy;
 use App\Services\Affiliate\ProgramSelector;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -42,7 +44,7 @@ class PublicCatalog
             $search = trim((string) ($filters['search'] ?? ''));
             $slugs = array_values(array_unique(array_filter(
                 $filters['slugs'] ?? [],
-                fn ($s) => is_string($s) && $s !== ''
+                fn ($s) => $s !== ''
             )));
 
             if ($slugs !== []) {
@@ -450,7 +452,8 @@ class PublicCatalog
             ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', $at))
             ->orderByDesc('version')->get();
         foreach ($webshopIds as $id) {
-            $rule = app(\App\Services\Affiliate\AffiliateRewardPolicy::class)->fromRules($rules, $id);
+            $program = $programs[$id] ?? null;
+            $rule = app(AffiliateRewardPolicy::class)->fromRules($rules, $id, $program?->id);
             $map[$id] = $this->cashbackForProgram($programs[$id] ?? null, $rule);
         }
 
@@ -494,9 +497,9 @@ class PublicCatalog
 
     /**
      * @param  list<int>  $webshopIds
-     * @return Collection<int, Collection<int, Offer>>
+     * @return Collection<int|string, \Illuminate\Database\Eloquent\Collection<int, Offer>>
      */
-    private function offersGroupedByWebshop(array $webshopIds)
+    private function offersGroupedByWebshop(array $webshopIds): Collection
     {
         if ($webshopIds === []) {
             return collect();
@@ -562,6 +565,7 @@ class PublicCatalog
             'currency' => $v->currency,
             'min_order_minor' => $v->min_order_minor,
             'price_minor' => $offerKind === 'voucher_purchase' ? $v->price_minor : null,
+            'price_points' => $offerKind === 'voucher_purchase' ? $v->price_points : null,
             'ends_at' => $v->ends_at?->toIso8601String(),
             'availability' => $this->availability($offer, $v, $availabilityContext),
             'cashback_label' => in_array($offerKind, ['combined', 'cashback'], true) ? ($cashback['label'] ?? null) : null,
@@ -631,21 +635,35 @@ class PublicCatalog
         }
 
         $program = $this->programSelector->current($shop);
-        if ($program === null || ! $program->active || ! $program->cashback_allowed || $program->commission_type !== 'percentage') {
+        if ($program === null || ! $program->active || ! $program->cashback_allowed) {
             return null;
         }
 
-        $rule = app(\App\Services\Affiliate\AffiliateRewardPolicy::class)->rule(webshopId: $webshopId);
+        $rule = app(AffiliateRewardPolicy::class)->rule(webshopId: $webshopId, programId: $program->id);
 
         return $this->cashbackForProgram($program, $rule);
     }
 
+    /** @return array<string, mixed>|null */
     private function cashbackForProgram(?AffiliateProgram $program, ?AffiliateRewardRule $rule): ?array
     {
-        if ($program === null || ! $program->active || ! $program->cashback_allowed || $program->commission_type !== 'percentage') {
+        if ($program === null || ! $program->active || ! $program->cashback_allowed) {
             return null;
         }
-        $rate = app(\App\Services\Affiliate\AffiliateRewardPolicy::class)->publicRate($program, $rule);
+        if ($rule?->unit === WalletUnit::Points) {
+            if ($program->currency !== 'EUR' || $rule->activationBlockers() !== []) {
+                return null;
+            }
+
+            return [
+                'offer_kind' => 'cashback', 'reward_unit' => 'points', 'label' => 'Punten verdienen',
+                'labels' => ['nl' => 'Punten verdienen na netwerkgoedkeuring', 'en' => 'Earn points after network approval'],
+                'consumer_cashback_rate' => null, 'points_per_eur_share' => $rule->points_per_eur_share,
+                'points_rate_basis' => 'eur_consumer_commission_share', 'points_multiplier_bps' => $rule->points_multiplier_bps,
+                'points_rounding' => $rule->points_rounding, 'category_restricted' => $program->category_restricted, 'cta_hint' => 'shop_and_earn',
+            ];
+        }
+        $rate = app(AffiliateRewardPolicy::class)->publicRate($program, $rule);
         if ($rate === null || $rate <= 0) {
             return null;
         }
@@ -660,7 +678,10 @@ class PublicCatalog
     }
 
     /**
-     * @param  Collection<int, array<string, mixed>>  $offers
+     * @template TBenefit of array<string, mixed>
+     *
+     * @param  array<string, mixed>|null  $cashback
+     * @param  Collection<int, TBenefit>  $offers
      * @return list<array<string, mixed>>
      */
     private function webshopBenefits(?array $cashback, Collection $offers): array
@@ -687,14 +708,21 @@ class PublicCatalog
         return $benefits;
     }
 
-    /** @param  Collection<int, array<string, mixed>>  $offers */
+    /**
+     * @template TOffer of array<string, mixed>
+     *
+     * @param  Collection<int, TOffer>  $offers
+     * @return Collection<int, TOffer>
+     */
     private function sortBenefitOffers(Collection $offers): Collection
     {
         return $offers->sortBy(fn (array $o) => [$this->offerKindPriority($o['offer_kind'] ?? ''), $o['title'] ?? ''])->values();
     }
 
     /**
-     * @param  Collection<int, array<string, mixed>>  $active
+     * @template TActive of array<string, mixed>
+     *
+     * @param  Collection<int, TActive>  $active
      * @param  array<string, mixed>|null  $cashback
      * @return array<string, mixed>|null
      */
@@ -794,7 +822,7 @@ class PublicCatalog
             'discount_value' => null,
             'currency' => 'EUR',
             'min_order_minor' => null,
-            'price_minor' => null,
+            'price_minor' => null, 'price_points' => null,
             'ends_at' => null,
             'availability' => 'available',
             'cashback_label' => $label,

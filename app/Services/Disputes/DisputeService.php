@@ -167,6 +167,9 @@ class DisputeService
         return DB::transaction(function () use ($dispute, $outcome, $compensation, $amountMinor, $note, $actorUserId) {
             $d = VoucherDispute::whereKey($dispute->id)->lockForUpdate()->firstOrFail();
             $this->assertOpen($d);
+            if ($compensation !== 'none') {
+                $this->assertVoucherNotCompensated($d);
+            }
 
             [$amount, $ref] = match ($compensation) {
                 'wallet_credit' => $this->walletCredit($d, $amountMinor, $note, $actorUserId),
@@ -197,9 +200,13 @@ class DisputeService
                 throw ApiException::conflict('Only paid but unfulfilled checkouts are refunded here.', 'checkout_not_refundable', ['state' => $c->state]);
             }
             $payment = $c->payment ?? throw ApiException::conflict('This checkout has no payment.', 'checkout_not_refundable');
-            $refund = $this->mollie->refund($payment->provider_ref, $payment->amount_minor - $payment->refunded_minor, $payment->currency, 'ShopBonus voucher could not be delivered', 'refund:checkout:'.$c->public_id);
-            $payment->forceFill(['refunded_minor' => $payment->amount_minor, 'refund_ref' => $refund['id']])->save();
-            $c->forceFill(['state' => 'refunded'])->save();
+            $refund = $this->mollie->refund($payment->provider_ref, $payment->amount_minor - $payment->refunded_minor, $payment->currency, 'ShopBonus voucher could not be delivered',
+                // A retry after a failed refund needs a new key, or Mollie replays the failed one.
+                'refund:checkout:'.$c->public_id.($payment->refund_ref === null ? '' : ':after:'.$payment->refund_ref));
+            $amount = $payment->amount_minor - $payment->refunded_minor;
+            $payment->forceFill(['refunded_minor' => $payment->amount_minor, 'refund_ref' => $refund['id'], 'refund_status' => $refund['status'], 'refund_amount_minor' => $amount])->save();
+            // Mollie settles refunds asynchronously; CheckoutService::syncRefunds() confirms or rolls back.
+            $c->forceFill(['state' => $refund['status'] === 'refunded' ? 'refunded' : 'refund_pending'])->save();
             $this->audit->record('checkout.refunded', category: AuditCategory::Financial, resource: $c, webshopId: $c->webshop_id, actorUserId: $actorUserId,
                 metadata: ['amount' => $payment->amount_minor, 'note' => mb_substr($note, 0, 200)]);
 
@@ -208,6 +215,25 @@ class DisputeService
     }
 
     // ------------------------------------------------------------------ compensation
+
+    /**
+     * One compensation per voucher, across consumer and merchant reports. The
+     * voucher row lock serializes concurrent resolutions of different reports.
+     */
+    private function assertVoucherNotCompensated(VoucherDispute $d): void
+    {
+        $voucherId = $d->voucher_id ?? ($d->checkout_id === null ? null : VoucherCheckout::whereKey($d->checkout_id)->value('voucher_id'));
+        if ($voucherId === null) {
+            return;
+        }
+        Voucher::whereKey($voucherId)->lockForUpdate()->first();
+        $checkouts = VoucherCheckout::where('voucher_id', $voucherId)->select('id');
+        $prior = VoucherDispute::where(fn ($q) => $q->where('voucher_id', $voucherId)->orWhereIn('checkout_id', $checkouts))
+            ->whereKeyNot($d->id)->whereNotNull('compensated_at')->first();
+        if ($prior !== null) {
+            throw ApiException::conflict('This voucher was already compensated through another report.', 'voucher_already_compensated', ['dispute_id' => $prior->public_id]);
+        }
+    }
 
     /** @return array{0: int, 1: string} */
     private function walletCredit(VoucherDispute $d, ?int $amount, string $note, int $actorUserId): array
@@ -248,7 +274,7 @@ class DisputeService
             throw new ApiException('The refund exceeds what was paid.', 422, 'refund_exceeds_payment');
         }
         $refund = $this->mollie->refund($payment->provider_ref, $amount, $payment->currency, 'ShopBonus voucher report '.$d->public_id, 'refund:dispute:'.$d->public_id);
-        $payment->forceFill(['refunded_minor' => $payment->refunded_minor + $amount, 'refund_ref' => $refund['id']])->save();
+        $payment->forceFill(['refunded_minor' => $payment->refunded_minor + $amount, 'refund_ref' => $refund['id'], 'refund_status' => $refund['status'], 'refund_amount_minor' => $amount])->save();
 
         return [$amount, $refund['id']];
     }

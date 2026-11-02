@@ -8,6 +8,7 @@ use App\Models\AuditEvent;
 use App\Models\ImpersonationSession;
 use App\Models\User;
 use App\Notifications\StepUpCode;
+use App\Services\Admin\UserAdministration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -273,6 +274,21 @@ class AdminSecurityTest extends TestCase
         $list = $this->spa('GET', '/api/v1/admin/support-sessions')->assertOk()->json('data');
         $this->assertSame(['expired', 'ended', 'ended', 'ended'], array_column($list, 'status'));
         $this->assertSame([$id4], array_column($this->spa('GET', '/api/v1/admin/support-sessions?status=expired')->json('data'), 'id'));
+    }
+
+    public function test_suspending_the_impersonating_admin_ends_their_support_sessions(): void
+    {
+        $this->signInAdmin();
+        [$id, $token] = $this->startSupportSession();
+        $this->asSupport($token, 'GET', '/api/v1/me')->assertOk();
+
+        $other = User::factory()->create();
+        $other->platformRoles()->create(['role' => PlatformRole::SuperAdmin, 'granted_via' => 'console', 'granted_at' => now()]);
+        app(UserAdministration::class)->suspend($other, $this->admin, 'Compromised admin account');
+
+        $this->assertSame('ended_by_admin', ImpersonationSession::where('public_id', $id)->value('ended_reason'));
+        $this->assertSame(0, $this->target->tokens()->count());
+        $this->asSupport($token, 'GET', '/api/v1/me')->assertUnauthorized();
     }
 
     public function test_support_session_targets_are_restricted(): void

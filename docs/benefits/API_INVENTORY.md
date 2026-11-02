@@ -28,7 +28,7 @@ No withdraw / transfer / cash-out routes exist.
 
 | Method | Path | Notes |
 |--------|------|-------|
-| (internal) | `AffiliateProcessor` | Daisycon / TradeTracker verified conversions → immediate credit (`AFFILIATE_CREDIT_TIMING=on_validated_attribution` default). Default share 70% consumer (`share_bps=7000`). |
+| (internal) | `AffiliateProcessor` | Daisycon / TradeTracker verified conversions → pending credit, spendable after network approval (`AFFILIATE_CREDIT_TIMING=on_network_approval` default, D-089). Default share 70% consumer (`share_bps=7000`). |
 | GET/POST | `/api/v1/admin/affiliate/reward-rules` | Super Admin versioned splits; optional `webshop_id` + `commission_source`. |
 | GET | `/api/v1/admin/webshops/{id}/commission-agreements` | Direct-merchant agreements. |
 | POST | `/api/v1/admin/affiliate/webshops/{id}/commission-agreements` | Create versioned 12%/90-10 style agreement (shares must total 100%). |

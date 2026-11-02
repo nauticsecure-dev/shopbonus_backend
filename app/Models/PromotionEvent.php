@@ -37,6 +37,7 @@ class PromotionEvent extends Model
         ];
     }
 
+    /** @return BelongsTo<Webshop, $this> */
     public function webshop(): BelongsTo
     {
         return $this->belongsTo(Webshop::class);

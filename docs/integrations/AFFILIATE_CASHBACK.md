@@ -32,7 +32,7 @@ Public discovery exposes affiliate consumer cashback (never raw network commissi
 
 ## Credit timing
 
-- Default `AFFILIATE_CREDIT_TIMING=on_validated_attribution` credits immediately after attribution.
+- Default `AFFILIATE_CREDIT_TIMING=on_network_approval` (D-089): pending, not spendable, until the network approves. `on_validated_attribution` credits immediately after attribution and is off.
 - `on_network_approval` holds rewards in pending until the network approves (legacy/admin override).
 
 ## Tests

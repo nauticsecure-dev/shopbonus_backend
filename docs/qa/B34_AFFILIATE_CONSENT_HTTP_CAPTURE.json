@@ -1,0 +1,38 @@
+{
+  "captured_at": "2026-10-31",
+  "environment": "Actual local HTTP server, isolated SQLite, synthetic merchant/policy/consent; redirects not followed, no upstream calls. Based on fe699ad plus B34.",
+  "captures": [
+    {
+      "method": "GET",
+      "path": "/api/v1/public/webshops/consent-demo/visit",
+      "label": "no_cookie_policy",
+      "status": 302,
+      "location": "https://merchant.example.test",
+      "response_body": "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://merchant.example.test'\" />\n\n        <title>Redirecting to https://merchant.example.test</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://merchant.example.test\">https://merchant.example.test</a>.\n    </body>\n</html>"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/webshops/consent-demo/visit",
+      "label": "no_marketing_consent",
+      "status": 302,
+      "location": "https://merchant.example.test",
+      "response_body": "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://merchant.example.test'\" />\n\n        <title>Redirecting to https://merchant.example.test</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://merchant.example.test\">https://merchant.example.test</a>.\n    </body>\n</html>"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/webshops/consent-demo/visit?consent_id=synthetic-capture-consent",
+      "label": "current_marketing_consent",
+      "status": 302,
+      "location": "https://tc.tradetracker.net/?c=1&m=2&a=3&r=l4iziw5vUbs1bdXhdo7C",
+      "response_body": "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C'\" />\n\n        <title>Redirecting to https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C\">https://tc.tradetracker.net/?c=1&amp;m=2&amp;a=3&amp;r=l4iziw5vUbs1bdXhdo7C</a>.\n    </body>\n</html>"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/webshops/consent-demo/visit?consent_id=synthetic-capture-consent",
+      "label": "withdrawn_marketing_consent",
+      "status": 302,
+      "location": "https://merchant.example.test",
+      "response_body": "<!DOCTYPE html>\n<html>\n    <head>\n        <meta charset=\"UTF-8\" />\n        <meta http-equiv=\"refresh\" content=\"0;url='https://merchant.example.test'\" />\n\n        <title>Redirecting to https://merchant.example.test</title>\n    </head>\n    <body>\n        Redirecting to <a href=\"https://merchant.example.test\">https://merchant.example.test</a>.\n    </body>\n</html>"
+    }
+  ]
+}

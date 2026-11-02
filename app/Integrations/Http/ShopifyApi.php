@@ -18,7 +18,7 @@ class ShopifyApi
 
     private const SHOP = 'query ShopbonusIdentity { shop { id myshopifyDomain primaryDomain { host } } currentAppInstallation { accessScopes { handle } } }';
 
-    private const FIELDS = 'id legacyResourceId name email phone billingAddress { firstName phone } createdAt updatedAt cancelledAt displayFinancialStatus fullyPaid totalPriceSet { shopMoney { amount currencyCode } } currentTotalPriceSet { shopMoney { amount currencyCode } } totalRefundedSet { shopMoney { amount currencyCode } } discountCodes customAttributes { key value }';
+    private const FIELDS = 'id legacyResourceId name email phone billingAddress { firstName phone } createdAt updatedAt cancelledAt displayFinancialStatus fullyPaid totalPriceSet { shopMoney { amount currencyCode } } currentTotalPriceSet { shopMoney { amount currencyCode } } totalTaxSet { shopMoney { amount currencyCode } } totalDiscountsSet { shopMoney { amount currencyCode } } taxesIncluded totalRefundedSet { shopMoney { amount currencyCode } } discountCodes customAttributes { key value }';
 
     public function __construct(private PinnedJsonReader $reader) {}
 

@@ -110,6 +110,8 @@ class CookieConsentTest extends TestCase
 
     public function test_card5_e2e1_validation_messages_follow_accept_language(): void
     {
+        config(['app.locale' => 'nl', 'app.fallback_locale' => 'nl']);
+        app('translator')->setFallback('nl');
         $nl = $this->postJson('/api/v1/public/cookie-consents', [], ['Accept-Language' => 'nl-NL,nl;q=0.9'])->assertUnprocessable()->assertHeader('Content-Language', 'nl');
         $this->assertSame('Beleidsversie is verplicht.', $nl->json('error.fields.policy_version.0'));
 
@@ -117,7 +119,11 @@ class CookieConsentTest extends TestCase
         $this->assertSame('The policy version field is required.', $en->json('error.fields.policy_version.0'));
 
         // No (supported) preference: the default, and nothing leaks from the previous request.
+        $this->postJson('/api/v1/public/cookie-consents', [], ['Accept-Language' => 'fr-FR'])->assertHeader('Content-Language', 'nl');
+        // Symfony's test request supplies English by default; blank means no preference.
+        $this->postJson('/api/v1/public/cookie-consents', [], ['Accept-Language' => ''])->assertHeader('Content-Language', 'nl');
+        config(['app.locale' => 'en']);
         $this->postJson('/api/v1/public/cookie-consents', [], ['Accept-Language' => 'fr-FR'])->assertHeader('Content-Language', 'en');
-        $this->postJson('/api/v1/public/cookie-consents', [])->assertHeader('Content-Language', 'en');
+        $this->postJson('/api/v1/public/cookie-consents', [], ['Accept-Language' => ''])->assertHeader('Content-Language', 'en');
     }
 }

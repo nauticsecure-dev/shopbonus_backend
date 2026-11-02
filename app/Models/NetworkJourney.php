@@ -47,16 +47,19 @@ class NetworkJourney extends Model
         return ['public_id'];
     }
 
+    /** @return BelongsTo<Webshop, $this> */
     public function referringWebshop(): BelongsTo
     {
         return $this->belongsTo(Webshop::class, 'referring_webshop_id');
     }
 
+    /** @return BelongsTo<Webshop, $this> */
     public function receivingWebshop(): BelongsTo
     {
         return $this->belongsTo(Webshop::class, 'receiving_webshop_id');
     }
 
+    /** @return BelongsTo<WebshopOrder, $this> */
     public function order(): BelongsTo
     {
         return $this->belongsTo(WebshopOrder::class, 'order_id');

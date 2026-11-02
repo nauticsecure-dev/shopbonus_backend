@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonImmutable|null $verified_at
  * @property int $refunded_minor
  * @property string|null $refund_ref
+ * @property string|null $refund_status Mollie refund status; null for refunds recorded before it was tracked
+ * @property int|null $refund_amount_minor amount of the latest refund
  */
 class VoucherCheckoutPayment extends Model
 {
@@ -28,6 +30,6 @@ class VoucherCheckoutPayment extends Model
 
     protected function casts(): array
     {
-        return ['amount_minor' => 'integer', 'refunded_minor' => 'integer', 'test_mode' => 'boolean', 'verified_at' => 'immutable_datetime'];
+        return ['amount_minor' => 'integer', 'refunded_minor' => 'integer', 'refund_amount_minor' => 'integer', 'test_mode' => 'boolean', 'verified_at' => 'immutable_datetime'];
     }
 }

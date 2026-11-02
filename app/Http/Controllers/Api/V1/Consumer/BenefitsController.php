@@ -109,7 +109,7 @@ class BenefitsController extends Controller
                 'type' => $e->type->value,
                 'amount' => $e->amount,
                 'reason' => $e->reason,
-                'at' => $e->created_at?->toIso8601String(),
+                'at' => $e->created_at->toIso8601String(),
             ])->all();
 
         return response()->json(['data' => [
@@ -131,7 +131,7 @@ class BenefitsController extends Controller
             'recent_vouchers' => $this->present($recent->all()),
             'recent_activity' => $recentActivity,
             'favorites' => array_slice($catalog->cardsFor($favorites), 0, 4),
-            'relevant_offers' => array_slice($catalog->offers(['per_page' => 4, 'available' => true, 'sort' => 'newest'])['data'] ?? [], 0, 4),
+            'relevant_offers' => array_slice($catalog->offers(['per_page' => 4, 'available' => true, 'sort' => 'newest'])['data'], 0, 4),
             'savings_goal' => null,
         ]]);
     }
@@ -174,7 +174,7 @@ class BenefitsController extends Controller
                 'webshop' => [
                     'name' => $profile->display_name ?? $names[$v->webshop_id] ?? null,
                     'slug' => $profile->slug ?? null,
-                    'logo_url' => $profile?->logo_path === null || $profile?->slug === null
+                    'logo_url' => $profile === null || $profile->logo_path === null
                         ? null
                         : route('api.v1.public.webshops.logo', ['slug' => $profile->slug, 'v' => $profile->updated_at->getTimestamp()]),
                     'categories' => $profile?->categories() ?? [],

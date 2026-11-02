@@ -168,7 +168,7 @@ class Cockpit
                 'type' => 'voucher',
                 'id' => $v->public_id,
                 'title' => $v->public_id,
-                'subtitle' => $v->webshop->name.' · '.$v->status->value.' · ****'.$v->code->code_last4,
+                'subtitle' => ($v->webshop->name ?? 'Voucher').' · '.$v->status->value.(' · ****'.$v->code->code_last4),
                 'href' => '/admin/vouchers?id='.$v->public_id,
             ])->all();
 
@@ -439,7 +439,7 @@ class Cockpit
         $bucket = fn (Collection $rows) => $rows->countBy(fn ($ts) => CarbonImmutable::parse($ts, 'UTC')->setTimezone($tz)->format('Y-m-d'));
         $series = [
             'new_webshops' => $bucket(Webshop::whereBetween('created_at', [$from, $to])->pluck('created_at')),
-            'new_consumers' => $bucket(User::where('onboarding_intent', 'consumer')->whereBetween('created_at', [$from, $to])->pluck('created_at')),
+            'new_consumers' => $bucket(User::query()->consumers()->whereBetween('created_at', [$from, $to])->pluck('created_at')),
             'paid_orders' => $bucket(WebshopOrder::whereBetween('paid_at', [$from, $to])->pluck('paid_at')),
             'vouchers_issued' => $bucket(Voucher::whereBetween('issued_at', [$from, $to])->pluck('issued_at')),
             'vouchers_redeemed' => $bucket(Voucher::whereBetween('redeemed_at', [$from, $to])->pluck('redeemed_at')),
@@ -681,8 +681,11 @@ class Cockpit
         }
     }
 
-    private function changePercent(int $current, int $previous): ?float
+    private function changePercent(int $current, ?int $previous): ?float
     {
+        if ($previous === null) {
+            return null;
+        }
         if ($previous === 0) {
             return $current === 0 ? 0.0 : null;
         }
