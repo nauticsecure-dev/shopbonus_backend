@@ -5,8 +5,8 @@ namespace App\Services\Admin;
 use App\Enums\AuditCategory;
 use App\Enums\AuditOutcome;
 use App\Enums\UserStatus;
-use App\Enums\VoucherStatus;
 use App\Enums\WebshopStatus;
+use App\Models\AffiliateConnection;
 use App\Models\AffiliateTransaction;
 use App\Models\ApplicationError;
 use App\Models\AuditEvent;
@@ -53,7 +53,7 @@ class Cockpit
     /** @return array<string, mixed> */
     public function summary(CarbonImmutable $from, CarbonImmutable $to): array
     {
-        return Cache::remember('cockpit:summary:'.$from->timestamp.':'.$to->timestamp, self::CACHE_SECONDS, function () use ($from, $to) {
+        return Cache::remember('cockpit:summary:v2:'.$from->timestamp.':'.$to->timestamp, self::CACHE_SECONDS, function () use ($from, $to) {
             $warnings = [];
             $sources = ['webshops' => 'ok', 'consumers' => 'ok', 'vouchers' => 'ok', 'affiliate' => 'ok', 'wallets' => 'ok', 'support' => 'ok', 'integrations' => 'ok'];
 
@@ -61,15 +61,16 @@ class Cockpit
                 $kpis = $this->kpis($from, $to);
             } catch (Throwable $e) {
                 report($e);
-                $kpis = $this->emptyKpis();
+                $kpis = $this->emptyKpis() + ['comparison_unavailable' => true];
                 $warnings[] = ['code' => 'kpis_degraded', 'message' => 'Some KPI sources were unavailable.', 'request_id' => (string) Str::uuid()];
                 $sources = array_map(fn () => 'degraded', $sources);
             }
 
-            $span = max(1, $from->diffInSeconds($to));
-            $prevTo = $from->subSecond();
-            $prevFrom = $prevTo->subSeconds($span);
-            $prev = $this->safeKpis($prevFrom, $prevTo, $warnings, $sources);
+            $localFrom = $from->setTimezone(config('shopbonus.business_timezone'))->startOfDay();
+            $days = (int) $localFrom->diffInDays($to->setTimezone(config('shopbonus.business_timezone'))->startOfDay()) + 1;
+            $prevFrom = $localFrom->subDays($days)->utc();
+            $prevTo = $localFrom->subDay()->endOfDay()->utc();
+            $prev = $this->safeComparison($prevFrom, $prevTo, $warnings, $sources);
 
             $attention = $this->safeAttention($warnings, $sources);
             $channels = $this->safeAffiliateChannels($from, $to, $warnings, $sources);
@@ -123,8 +124,7 @@ class Cockpit
                 'href' => '/admin/webshops/'.$w->public_id,
             ])->all();
 
-        $consumers = User::query()
-            ->where('onboarding_intent', 'consumer')
+        $consumers = User::consumerAccounts()
             ->where('status', '!=', UserStatus::Deleted)
             ->where(fn ($u) => $u->whereRaw('LOWER(email) like ?', [$like])
                 ->orWhereRaw('LOWER(first_name) like ?', [$like])
@@ -144,28 +144,31 @@ class Cockpit
                 ->orWhereRaw("LOWER(COALESCE(reference, '')) like ?", [$like]))
             ->orderByDesc('id')->limit($limit)->get(['public_id', 'external_order_id', 'reference', 'webshop_id'])
             ->map(function (WebshopOrder $o) {
-                $shop = Webshop::whereKey($o->webshop_id)->first(['public_id', 'name']);
+                $shop = Webshop::whereKey($o->webshop_id)->firstOrFail(['public_id', 'name']);
 
                 return [
                     'type' => 'order',
                     'id' => $o->public_id,
                     'title' => $o->external_order_id ?: ($o->reference ?: $o->public_id),
-                    'subtitle' => $shop?->name,
-                    'href' => '/admin/webshops/'.($shop?->public_id ?? '').'?order='.$o->public_id,
+                    'subtitle' => $shop->name,
+                    'href' => '/admin/webshops/'.$shop->public_id.'?order='.$o->public_id,
                 ];
             })->all();
+
+        // Hashes are webshop-scoped; use indexed exact hashes, never ciphertext.
+        $hashes = Webshop::query()->pluck('id')->map(fn ($id) => VoucherCode::hashFor((int) $id, $q))->all();
 
         $vouchers = Voucher::query()
             ->where(fn ($v) => $v->whereRaw('LOWER(public_id) = ?', [$exact])
                 ->orWhereRaw('LOWER(redemption_reference) like ?', [$like])
-                ->orWhereHas('code', fn ($c) => $c->whereRaw('LOWER(code) like ?', [$like])->orWhereRaw('LOWER(public_id) = ?', [$exact])))
+                ->orWhereHas('code', fn ($c) => $c->whereIn('code_hash', $hashes)->orWhere('public_id', $exact)))
             ->with(['code:id,public_id,code_last4', 'webshop:id,public_id,name'])
             ->orderByDesc('id')->limit($limit)->get()
             ->map(fn (Voucher $v) => [
                 'type' => 'voucher',
                 'id' => $v->public_id,
                 'title' => $v->public_id,
-                'subtitle' => ($v->webshop?->name ?? 'Voucher').' · '.$v->status->value.($v->code ? ' · ****'.$v->code->code_last4 : ''),
+                'subtitle' => $v->webshop->name.' · '.$v->status->value.' · ****'.$v->code->code_last4,
                 'href' => '/admin/vouchers?id='.$v->public_id,
             ])->all();
 
@@ -197,9 +200,15 @@ class Cockpit
      *
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function vouchers(?string $status, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $publicId, int $perPage = 25): array
+    public function vouchers(?string $status, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $publicId, int $perPage = 25, bool $usable = false, ?string $network = null): array
     {
         $query = Voucher::query()->with(['webshop:id,public_id,name', 'code:id,public_id,code_last4']);
+        if ($usable) {
+            $query->usable();
+        }
+        if ($network) {
+            $query->whereNotNull('issued_at')->acquisitionNetwork($network);
+        }
         if ($publicId) {
             $query->where('public_id', strtolower($publicId));
         }
@@ -218,7 +227,7 @@ class Cockpit
                 'status' => $v->status->value,
                 'origin' => $v->origin->value,
                 'webshop' => $v->webshop ? ['id' => $v->webshop->public_id, 'name' => $v->webshop->name] : null,
-                'code_last4' => $v->code?->code_last4,
+                'code_last4' => $v->code->code_last4,
                 'issued_at' => $v->issued_at?->toIso8601String(),
                 'redeemed_at' => $v->redeemed_at?->toIso8601String(),
                 'expires_at' => $v->expires_at?->toIso8601String(),
@@ -238,11 +247,7 @@ class Cockpit
         $in = fn ($query, string $column) => $query->whereBetween($column, [$from, $to]);
         $webshops = Webshop::query()->selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
 
-        $consumers = User::where('onboarding_intent', 'consumer')->where('status', UserStatus::Active);
-
-        $affiliate = $in(AffiliateTransaction::query(), 'transaction_at')
-            ->whereIn('status', ['pending', 'approved', 'rejected', 'reversed'])
-            ->selectRaw('status, currency, COUNT(*) n, COALESCE(SUM(commission_minor),0) total')->groupBy('status', 'currency')->get();
+        $consumers = User::consumerAccounts()->where('status', UserStatus::Active);
 
         $ledger = $in(WalletLedgerEntry::query()->join('wallets', 'wallets.id', '=', 'wallet_ledger_entries.wallet_id')
             ->where('wallets.kind', 'consumer_credit'), 'wallet_ledger_entries.created_at')
@@ -255,9 +260,7 @@ class Cockpit
 
         $contacts = $in(ContactOpportunity::query(), 'created_at')->selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n);
 
-        $activeVouchers = Voucher::where('status', VoucherStatus::Issued)
-            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-            ->count();
+        $activeVouchers = Voucher::usable()->count();
 
         return [
             'webshops' => [
@@ -288,10 +291,7 @@ class Cockpit
                 'requests_in_period' => $contacts->sum(),
                 'by_status' => $contacts->all(),
             ],
-            'affiliate_commissions' => collect(['pending', 'approved', 'rejected', 'reversed'])->mapWithKeys(fn ($status) => [$status => [
-                'count' => (int) $affiliate->where('status', $status)->sum('n'),
-                'by_currency' => $affiliate->where('status', $status)->mapWithKeys(fn ($r) => [(string) $r->getAttribute('currency') => (int) $r->getAttribute('total')])->all(),
-            ]])->all(),
+            'affiliate_commissions' => $this->affiliateCommissions($from, $to),
             'wallets' => $units->mapWithKeys(function ($unit) use ($ledger, $outstanding) {
                 $sum = fn (string $type) => (int) $ledger->where('unit', $unit)->where('type', $type)->sum('total');
                 $o = $outstanding->firstWhere('unit', $unit);
@@ -334,13 +334,11 @@ class Cockpit
         $prevApproved = (int) ($prev['affiliate_commissions']['approved']['by_currency']['EUR'] ?? 0);
 
         $wallet = $kpis['wallets']['eur_credit'] ?? ['outstanding' => 0, 'available' => 0, 'reserved' => 0, 'pending' => 0];
-        $prevWallet = (int) (($prev['wallets']['eur_credit']['outstanding'] ?? 0));
 
         $openTotal = (int) ($attention['open_actions']['total'] ?? 0);
-        $prevOpen = (int) ($prev['open_actions_total'] ?? $openTotal);
 
-        $issuedDay = $from->toDateString();
-        $issuedTo = $to->toDateString();
+        $issuedDay = $from->setTimezone(config('shopbonus.business_timezone'))->toDateString();
+        $issuedTo = $to->setTimezone(config('shopbonus.business_timezone'))->toDateString();
 
         return [
             [
@@ -348,7 +346,8 @@ class Cockpit
                 'label' => 'Actieve webshops',
                 'value' => (int) $kpis['webshops']['active'],
                 'display' => number_format((int) $kpis['webshops']['active'], 0, ',', '.'),
-                'change_percent' => $this->changePercent((int) $kpis['webshops']['active'], (int) ($prev['webshops']['active'] ?? 0)),
+                'change_percent' => null,
+                'comparison_unavailable_reason' => 'Historical snapshots are unavailable for this current-state total.',
                 'helper' => 'Goedgekeurde workspaces',
                 'href' => '/admin/webshops?status=approved',
                 'tone' => 'blue',
@@ -359,7 +358,8 @@ class Cockpit
                 'label' => 'Consumenten',
                 'value' => (int) $kpis['consumers']['registered'],
                 'display' => number_format((int) $kpis['consumers']['registered'], 0, ',', '.'),
-                'change_percent' => $this->changePercent((int) $kpis['consumers']['registered'], (int) ($prev['consumers']['registered'] ?? 0)),
+                'change_percent' => null,
+                'comparison_unavailable_reason' => 'Historical snapshots are unavailable for this current-state total.',
                 'helper' => 'Actieve consumentenaccounts',
                 'href' => '/admin/users?role=consumer&status=active',
                 'tone' => 'blue',
@@ -370,9 +370,10 @@ class Cockpit
                 'label' => 'Actieve vouchers',
                 'value' => (int) $kpis['vouchers']['outstanding'],
                 'display' => number_format((int) $kpis['vouchers']['outstanding'], 0, ',', '.'),
-                'change_percent' => $this->changePercent((int) $kpis['vouchers']['outstanding'], (int) ($prev['vouchers']['outstanding'] ?? 0)),
+                'change_percent' => null,
+                'comparison_unavailable_reason' => 'Historical snapshots are unavailable for this current-state total.',
                 'helper' => 'Uitgegeven en nog bruikbaar',
-                'href' => '/admin/vouchers?status=issued',
+                'href' => '/admin/vouchers?usable=1',
                 'tone' => 'blue',
                 'icon' => 'ticket',
             ],
@@ -381,7 +382,7 @@ class Cockpit
                 'label' => 'Affiliatecommissie',
                 'value' => $approvedEur,
                 'display' => $this->formatEur($approvedEur),
-                'change_percent' => $this->changePercent($approvedEur, $prevApproved),
+                'change_percent' => isset($prev['comparison_unavailable']) || isset($kpis['comparison_unavailable']) ? null : $this->changePercent($approvedEur, $prevApproved),
                 'helper' => 'Bevestigd · pending '.$this->formatEur($pendingEur),
                 'status' => 'confirmed',
                 'breakdown' => [
@@ -390,7 +391,7 @@ class Cockpit
                     'rejected_minor' => (int) ($kpis['affiliate_commissions']['rejected']['by_currency']['EUR'] ?? 0),
                     'reversed_minor' => (int) ($kpis['affiliate_commissions']['reversed']['by_currency']['EUR'] ?? 0),
                 ],
-                'href' => '/admin/affiliate?status=approved&from='.$issuedDay.'&to='.$issuedTo,
+                'href' => '/admin/affiliate?tab=transactions&status=approved&from='.$issuedDay.'&to='.$issuedTo,
                 'tone' => 'blue',
                 'icon' => 'coins',
             ],
@@ -399,7 +400,8 @@ class Cockpit
                 'label' => 'Virtueel wallettegoed',
                 'value' => (int) ($wallet['outstanding'] ?? 0),
                 'display' => $this->formatEur((int) ($wallet['outstanding'] ?? 0)),
-                'change_percent' => $this->changePercent((int) ($wallet['outstanding'] ?? 0), $prevWallet),
+                'change_percent' => null,
+                'comparison_unavailable_reason' => 'Historical snapshots are unavailable for this current-state total.',
                 'helper' => 'Beschikbaar '.$this->formatEur((int) ($wallet['available'] ?? 0)).' · gereserveerd '.$this->formatEur((int) ($wallet['reserved'] ?? 0)).' · geen winst',
                 'breakdown' => [
                     'available_minor' => (int) ($wallet['available'] ?? 0),
@@ -416,7 +418,8 @@ class Cockpit
                 'label' => 'Openstaande acties',
                 'value' => $openTotal,
                 'display' => number_format($openTotal, 0, ',', '.'),
-                'change_percent' => $this->changePercent($openTotal, $prevOpen),
+                'change_percent' => null,
+                'comparison_unavailable_reason' => 'Historical snapshots are unavailable for this current-state total.',
                 'helper' => 'Goedkeuringen, syncs en support',
                 'href' => '/admin#actions',
                 'tone' => $openTotal > 0 ? 'amber' : 'blue',
@@ -453,50 +456,31 @@ class Cockpit
 
     /**
      * Affiliate-driven activity by network for the donut chart.
-     * Metric is conversion events (not commission amounts, not ShopBonus voucher inventory).
+     * Metric is issued vouchers, never inferred from conversion counts or wallet funding.
      *
      * @return array<string, mixed>
      */
     private function affiliateChannels(CarbonImmutable $from, CarbonImmutable $to): array
     {
-        $rows = AffiliateTransaction::query()
-            ->whereBetween('transaction_at', [$from, $to])
-            ->where(fn ($q) => $q->whereNull('duplicate_of_id'))
-            ->selectRaw('LOWER(network) as network, COUNT(*) as n')
-            ->groupBy('network')
-            ->orderByDesc('n')
-            ->get();
-
-        $total = (int) $rows->sum('n');
-        $known = ['daisycon' => 'Daisycon', 'tradetracker' => 'TradeTracker'];
+        $issued = Voucher::whereBetween('issued_at', [$from, $to]);
+        $total = (clone $issued)->count();
         $channels = [];
-        $other = 0;
-
-        foreach ($rows as $row) {
-            $network = (string) $row->network;
-            $count = (int) $row->n;
-            if (isset($known[$network])) {
-                $channels[] = [
-                    'network' => $network,
-                    'label' => $known[$network],
-                    'count' => $count,
-                    'percent' => $total > 0 ? (int) round(($count / $total) * 100) : 0,
-                    'href' => '/admin/affiliate?network='.$network.'&from='.$from->toDateString().'&to='.$to->toDateString(),
-                ];
-            } else {
-                $other += $count;
+        $networks = AffiliateTransaction::where('status', 'approved')->whereNull('duplicate_of_id')->distinct()->pluck('network')
+            ->mapWithKeys(fn ($n) => [$n => ['daisycon' => 'Daisycon', 'tradetracker' => 'TradeTracker'][$n] ?? ucfirst($n)])->all();
+        $networks['other'] = 'Overig / onbekend';
+        foreach ($networks as $network => $label) {
+            $count = (clone $issued)->acquisitionNetwork($network)->count();
+            if ($count === 0) {
+                continue;
             }
-        }
-
-        if ($other > 0) {
             $channels[] = [
-                'network' => 'other',
-                'label' => 'Overig / onbekend',
-                'count' => $other,
-                'percent' => $total > 0 ? (int) round(($other / $total) * 100) : 0,
-                'href' => '/admin/affiliate?from='.$from->toDateString().'&to='.$to->toDateString(),
+                'network' => $network, 'label' => $label, 'count' => $count,
+                'percent' => $total > 0 ? (int) round($count / $total * 100) : 0,
+                'href' => '/admin/affiliate?tab=vouchers&network='.$network.'&from='.$from->setTimezone(config('shopbonus.business_timezone'))->toDateString().'&to='.$to->setTimezone(config('shopbonus.business_timezone'))->toDateString(),
             ];
         }
+
+        usort($channels, fn ($a, $b) => $b['count'] <=> $a['count']);
 
         // Keep percentages summing to 100 when possible by adjusting the largest slice.
         if ($channels !== [] && $total > 0) {
@@ -507,8 +491,8 @@ class Cockpit
         }
 
         return [
-            'metric' => 'conversions',
-            'metric_label' => 'Affiliateconversies in de periode (geen commissiebedragen; geen vouchervoorraad).',
+            'metric' => 'vouchers',
+            'metric_label' => 'Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.',
             'total' => $total,
             'period' => ['from' => $from->toIso8601String(), 'to' => $to->toIso8601String()],
             'channels' => $channels,
@@ -530,11 +514,23 @@ class Cockpit
                 'platform' => $c->platform, 'error_code' => $c->last_error_code, 'at' => $c->last_error_at?->toIso8601String()])->all();
 
         $pendingCount = Webshop::where('status', WebshopStatus::PendingReview)->count();
-        $failedSyncCount = WebshopConnection::where('status', 'error')->count();
+        // One operational item per connection. Incident occurrences and failed
+        // jobs are diagnostics of these sources, never additive duplicates.
+        $connections = WebshopConnection::where(fn ($q) => $q->where('status', 'error')->orWhereHas('events', fn ($e) => $e->where('status', 'failed')));
+        $affiliates = AffiliateConnection::whereIn('status', ['error', 'reauthentication_required', 'auth_failed', 'rate_limited', 'unavailable']);
+        $failedSyncCount = (clone $connections)->count() + (clone $affiliates)->count();
+        $syncItems = (clone $connections)->limit(10)->get()->map(fn ($c) => [
+            'id' => $c->public_id, 'type' => 'webshop_connection',
+            'href' => '/admin/integrations?connection='.$c->public_id,
+        ])->concat((clone $affiliates)->limit(10)->get()->map(fn ($c) => [
+            'id' => $c->public_id, 'type' => 'affiliate_connection',
+            'href' => '/admin/affiliate?tab=connections&connection='.$c->public_id,
+        ]));
         $openSupportCount = SupportReview::whereNull('outcome')->count();
 
         return [
             'pending_approvals' => $pendingApprovals,
+            'failed_sync_items' => $syncItems->values()->all(),
             'integration_failures' => $integrationFailures,
             'failed_jobs' => DB::table('failed_jobs')->orderByDesc('id')->limit(10)->get(['uuid', 'queue', 'payload', 'failed_at'])
                 ->map(fn ($j) => ['uuid' => $j->uuid, 'queue' => $j->queue, 'job' => json_decode((string) $j->payload, true)['displayName'] ?? null, 'failed_at' => CarbonImmutable::parse($j->failed_at)->toIso8601String()])->all(),
@@ -558,7 +554,7 @@ class Cockpit
                 'failed_syncs' => [
                     'count' => $failedSyncCount,
                     'severity' => $failedSyncCount > 0 ? 'medium' : 'none',
-                    'href' => '/admin/integrations?status=error',
+                    'href' => '/admin/integrations?attention=1',
                     'title' => 'mislukte syncs',
                     'detail' => 'Controleer mislukte imports of connectorfouten.',
                 ],
@@ -598,20 +594,16 @@ class Cockpit
      * @param  array<string, string>  $sources
      * @return array<string, mixed>
      */
-    private function safeKpis(CarbonImmutable $from, CarbonImmutable $to, array &$warnings, array &$sources): array
+    private function safeComparison(CarbonImmutable $from, CarbonImmutable $to, array &$warnings, array &$sources): array
     {
         try {
-            $kpis = $this->kpis($from, $to);
-            $attention = $this->attention();
-            $kpis['open_actions_total'] = (int) ($attention['open_actions']['total'] ?? 0);
-
-            return $kpis;
+            return ['affiliate_commissions' => $this->affiliateCommissions($from, $to)];
         } catch (Throwable $e) {
             report($e);
             $warnings[] = ['code' => 'comparison_degraded', 'message' => 'Period comparison partially unavailable.', 'request_id' => (string) Str::uuid()];
-            $sources['webshops'] = 'degraded';
+            $sources['affiliate'] = 'degraded';
 
-            return $this->emptyKpis() + ['open_actions_total' => 0];
+            return $this->emptyKpis() + ['comparison_unavailable' => true];
         }
     }
 
@@ -640,7 +632,7 @@ class Cockpit
                 'recent_admin_actions' => [],
                 'open_actions' => [
                     'pending_approvals' => ['count' => 0, 'severity' => 'none', 'href' => '/admin/webshops?status=pending_review', 'title' => 'webshops wachten op goedkeuring', 'detail' => ''],
-                    'failed_syncs' => ['count' => 0, 'severity' => 'none', 'href' => '/admin/integrations?status=error', 'title' => 'mislukte syncs', 'detail' => ''],
+                    'failed_syncs' => ['count' => 0, 'severity' => 'none', 'href' => '/admin/integrations?attention=1', 'title' => 'mislukte syncs', 'detail' => ''],
                     'open_support' => ['count' => 0, 'severity' => 'none', 'href' => '/admin/support?outcome=open', 'title' => 'supportcases', 'detail' => ''],
                     'total' => 0,
                 ],
@@ -662,8 +654,8 @@ class Cockpit
             $sources['affiliate'] = 'degraded';
 
             return [
-                'metric' => 'conversions',
-                'metric_label' => 'Affiliateconversies in de periode (geen commissiebedragen; geen vouchervoorraad).',
+                'metric' => 'vouchers',
+                'metric_label' => 'Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.',
                 'total' => 0,
                 'period' => ['from' => $from->toIso8601String(), 'to' => $to->toIso8601String()],
                 'channels' => [],
@@ -698,6 +690,19 @@ class Cockpit
         return round((($current - $previous) / $previous) * 100, 1);
     }
 
+    /** @return array<string, mixed> */
+    private function affiliateCommissions(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $affiliate = AffiliateTransaction::whereBetween('transaction_at', [$from, $to])
+            ->whereIn('status', ['pending', 'approved', 'rejected', 'reversed'])
+            ->selectRaw('status, currency, COUNT(*) n, COALESCE(SUM(commission_minor),0) total')->groupBy('status', 'currency')->get();
+
+        return collect(['pending', 'approved', 'rejected', 'reversed'])->mapWithKeys(fn ($status) => [$status => [
+            'count' => (int) $affiliate->where('status', $status)->sum('n'),
+            'by_currency' => $affiliate->where('status', $status)->mapWithKeys(fn ($r) => [(string) $r->getAttribute('currency') => (int) $r->getAttribute('total')])->all(),
+        ]])->all();
+    }
+
     private function formatEur(int $minor): string
     {
         return '€ '.number_format($minor / 100, 2, ',', '.');
@@ -717,17 +722,17 @@ class Cockpit
     private const DEFINITIONS = [
         'webshops.active' => 'Status approved (commercially active workspaces).',
         'webshops.pending' => 'Status draft, awaiting_verification, verification_failed or pending_review; pending_review is waiting for an admin.',
-        'consumers.registered' => 'Consumer-intent accounts with status active (deleted/suspended excluded).',
+        'consumers.registered' => 'Active consumer-intent accounts, including webshop members; active platform staff and configured test_account_public_ids excluded.',
         'consumers.active_in_period' => 'Active consumers who signed in during the period.',
         'offers.published' => 'Offers with status active.',
         'vouchers.issued_in_period' => 'Vouchers whose issued_at is in the period (reserved claims are not issued).',
-        'vouchers.outstanding' => 'Status issued and not past expires_at; usable vouchers only.',
+        'vouchers.outstanding' => 'Issued, not expired, with an available/issued code that is not invalidated or mismatched.',
         'vouchers.available_codes' => 'Codes in inventory that are not reserved, issued, redeemed or invalid.',
         'orders.confirmed_paid_in_period' => 'Orders whose paid_at (provider-confirmed payment) is in the period.',
         'affiliate_commissions' => 'Network commissions by our status, summed per currency; pending, approved, rejected and reversed are never added together. Headline card shows confirmed (approved) only.',
-        'affiliate_channels' => 'Count of non-duplicate affiliate conversions per network in the period. Not commission amounts and not ShopBonus voucher inventory.',
+        'affiliate_channels' => 'Issued vouchers grouped by explicit approved non-duplicate acquisition transaction with matching consumer and webshop; absent or invalid evidence is Other/Unknown.',
         'wallets' => 'Consumer wallets per unit: credits issued, debits spent and expiries in the period; outstanding = available + reserved now (liability, not profit); pending (not yet credited) is separate.',
-        'open_actions' => 'Sum of unique pending webshop reviews, errored integrations and unresolved support reviews.',
+        'open_actions' => 'Pending webshop reviews, unresolved support reviews and unique webshop connections with errors/failed webhooks plus affiliate connections in error. Incident occurrences and failed jobs are diagnostic, not additive.',
         'incidents' => 'Counts of recorded technical faults and failures; access denials are audited 401/403 responses.',
     ];
 }

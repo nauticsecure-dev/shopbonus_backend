@@ -12,6 +12,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -169,6 +170,18 @@ class User extends Authenticatable implements HasLocalePreference
     public function isSuperAdmin(): bool
     {
         return $this->hasPlatformRole(PlatformRole::SuperAdmin);
+    }
+
+    /**
+     * Consumer identity is independent of webshop memberships.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeConsumerAccounts(Builder $query): void
+    {
+        $query->where('onboarding_intent', 'consumer')
+            ->whereDoesntHave('platformRoles', fn ($q) => $q->whereNull('revoked_at'))
+            ->whereNotIn('public_id', config('shopbonus.admin.test_account_public_ids', []));
     }
 
     /**

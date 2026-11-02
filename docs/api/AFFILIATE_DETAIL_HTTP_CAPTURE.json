@@ -1,0 +1,69 @@
+{
+    "captured_at": "2026-11-01T16:16:04+00:00",
+    "environment": "Real local PHP HTTP server, isolated SQLite; synthetic records and no provider calls",
+    "captures": [
+        {
+            "request": "GET /api/v1/public/webshops/affiliate-fixture",
+            "authorization": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "slug": "affiliate-fixture",
+                    "name": "Affiliate capture fixture",
+                    "short_description": null,
+                    "logo_url": null,
+                    "cover_url": null,
+                    "categories": [],
+                    "badge_label": null,
+                    "cashback_label": null,
+                    "description": null,
+                    "website_url": null,
+                    "benefits": [],
+                    "offers": []
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/consumer/wallet/transactions?filter=pending",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": [],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "per_page": 25,
+                    "total": 0
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/consumer/affiliate-activity?locale=en",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": [],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "per_page": 25,
+                    "total": 0
+                },
+                "notice": "Cashback becomes available after approval and receipt of the network payment. Checkout reservations are separate."
+            }
+        },
+        {
+            "request": "GET /api/v1/public/webshops/affiliate-fixture/cover?width=640",
+            "authorization": null,
+            "status": 404,
+            "response": {
+                "error": {
+                    "status": 404,
+                    "code": "not_found",
+                    "message": "Cover not found.",
+                    "request_id": "01a197e5-86b9-73e9-b2c6-672475d708da"
+                }
+            }
+        }
+    ]
+}

@@ -101,6 +101,15 @@ class FinancialSources
             if (($proof['timing'] ?? null) === 'on_network_approval' && ($proof['network_status'] ?? null) !== 'approved') {
                 $issues[] = 'affiliate_approval_required';
             }
+            if (($proof['timing'] ?? null) === 'on_network_settlement') {
+                $settlement = $proof['settlement'] ?? null;
+                if (($proof['network_status'] ?? null) !== 'approved' || ! is_array($settlement)
+                    || ($settlement['external_id'] ?? null) !== $tx->external_id || ($settlement['network'] ?? null) !== $tx->network
+                    || ($settlement['commission_minor'] ?? null) !== $proof['commission_minor'] || ($settlement['currency'] ?? null) !== $proof['currency']
+                    || empty($settlement['reference']) || empty($settlement['settled_at']) || empty($settlement['recorded_by'])) {
+                    $issues[] = 'affiliate_settlement_required';
+                }
+            }
             if (($proof['timing'] ?? null) === null) {
                 $unknown[] = 'legacy_reward_timing';
             }

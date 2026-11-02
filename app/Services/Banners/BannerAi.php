@@ -186,6 +186,7 @@ class BannerAi
     {
         $config = $run->source_config;
         $config['placement']['anchor'] = $proposal['anchor'];
+        $config['layers'] = $proposal['layers'] ?? $config['layers'] ?? array_map(fn ($type) => ['type' => $type, 'visible' => true, 'align' => 'left', 'font_size' => 16, 'width_pct' => 100], ['text', 'image', 'cta']);
         foreach (['background', 'text', 'font'] as $key) {
             $config['style'][$key] = $proposal[$key];
         }

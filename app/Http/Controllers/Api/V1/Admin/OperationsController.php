@@ -20,9 +20,9 @@ class OperationsController extends Controller
 {
     public function connections(Request $request): JsonResponse
     {
-        $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100'], 'webshop_id' => ['sometimes', 'ulid']]);
+        $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100'], 'webshop_id' => ['sometimes', 'ulid'], 'connection' => ['sometimes', 'ulid'], 'attention' => ['sometimes', 'boolean']]);
         $today = CarbonImmutable::now(config('shopbonus.business_timezone', 'Europe/Amsterdam'))->startOfDay()->utc();
-        $page = WebshopConnection::with('webshop:id,public_id,name')->when($data['webshop_id'] ?? null,
+        $page = WebshopConnection::with('webshop:id,public_id,name')->when($data['attention'] ?? false, fn ($q) => $q->where(fn ($c) => $c->where('status', 'error')->orWhereHas('events', fn ($e) => $e->where('status', 'failed'))))->when($data['connection'] ?? null, fn ($q, $id) => $q->where('public_id', Str::lower($id)))->when($data['webshop_id'] ?? null,
             fn ($q, $id) => $q->whereHas('webshop', fn ($s) => $s->where('public_id', Str::lower($id))))->orderByDesc('id')->paginate($data['per_page'] ?? 25);
         $rows = $page->getCollection()->map(function (WebshopConnection $c) use ($today) {
             $success = $c->events()->where('status', 'processed')->max('processed_at');
@@ -71,8 +71,8 @@ class OperationsController extends Controller
 
     public function events(Request $request): JsonResponse
     {
-        $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100']]);
-        $page = WebhookEvent::where('status', 'failed')->with('connection:id,public_id')->orderByDesc('id')->paginate($data['per_page'] ?? 25);
+        $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:100'], 'connection' => ['sometimes', 'ulid']]);
+        $page = WebhookEvent::where('status', 'failed')->when($data['connection'] ?? null, fn ($q, $id) => $q->whereHas('connection', fn ($c) => $c->where('public_id', Str::lower($id))))->with('connection:id,public_id')->orderByDesc('id')->paginate($data['per_page'] ?? 25);
 
         return response()->json(['data' => $page->getCollection()->map(fn (WebhookEvent $e) => [
             'id' => $e->public_id, 'connection_id' => $e->connection->public_id, 'status' => $e->status->value,

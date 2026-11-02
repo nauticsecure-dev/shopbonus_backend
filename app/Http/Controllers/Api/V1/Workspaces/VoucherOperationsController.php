@@ -11,12 +11,14 @@ use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\Offer;
 use App\Models\Voucher;
+use App\Models\VoucherClaim;
 use App\Models\VoucherCode;
 use App\Models\VoucherDispute;
 use App\Services\Audit\AuditLogger;
 use App\Services\Disputes\DisputeService;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Workspaces\CurrentWorkspace;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -146,13 +148,14 @@ class VoucherOperationsController extends Controller
             'id' => $voucher->public_id,
             'status' => $voucher->status->value,
             'origin' => $voucher->origin->value,
-            'code' => $voucher->code === null ? null : '****'.$voucher->code->code_last4,
+            'code' => '****'.$voucher->code->code_last4,
             'offer_id' => $voucher->offer?->public_id,
             'offer_name' => $voucher->offer?->currentVersion?->name,
             'issued_at' => $voucher->issued_at?->toIso8601String(),
             'expires_at' => $voucher->expires_at?->toIso8601String(),
             'redeemed_at' => $voucher->redeemed_at?->toIso8601String(),
             'reserved_at' => $voucher->reserved_at?->toIso8601String(),
+            'claimed_at' => $voucher->getAttribute('claimed_at') === null ? null : CarbonImmutable::parse($voucher->getAttribute('claimed_at'), 'UTC')->toIso8601String(),
         ];
         if ($detailed) {
             $row['terms'] = $voucher->terms_snapshot;
@@ -168,6 +171,7 @@ class VoucherOperationsController extends Controller
         return $request->validate([
             'status' => ['sometimes', Rule::enum(VoucherStatus::class)],
             'origin' => ['sometimes', Rule::enum(VoucherOrigin::class)],
+            'claimed' => ['sometimes', 'boolean'],
             'offer' => ['sometimes', 'string', 'size:26'],
             'search' => ['sometimes', 'string', 'max:100'],
             'from' => ['sometimes', 'date'],
@@ -186,12 +190,20 @@ class VoucherOperationsController extends Controller
             ? Offer::where('webshop_id', $current->webshop()->id)->where('public_id', Str::lower($filters['offer']))->value('id')
             : null;
 
-        return Voucher::query()->where('webshop_id', $current->webshop()->id)
+        return Voucher::query()->select('vouchers.*')->selectSub(VoucherClaim::select('claimed_at')->whereColumn('voucher_id', 'vouchers.id')->whereColumn('webshop_id', 'vouchers.webshop_id')->where('status', 'claimed'), 'claimed_at')
+            ->where('webshop_id', $current->webshop()->id)
+            ->when(filter_var($filters['claimed'] ?? false, FILTER_VALIDATE_BOOLEAN), function ($q) use ($current, $filters) {
+                $tz = (string) config('shopbonus.business_timezone');
+                $q->whereIn('id', VoucherClaim::where('webshop_id', $current->webshop()->id)->where('status', 'claimed')->whereNotNull('claimed_at')
+                    ->when($filters['from'] ?? null, fn ($c, $from) => $c->where('claimed_at', '>=', CarbonImmutable::parse($from, $tz)->startOfDay()->utc()))
+                    ->when($filters['to'] ?? null, fn ($c, $to) => $c->where('claimed_at', '<', CarbonImmutable::parse($to, $tz)->startOfDay()->addDay()->utc()))
+                    ->select('voucher_id'));
+            })
             ->when($filters['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when($filters['origin'] ?? null, fn ($q, $o) => $q->where('origin', $o))
             ->when(isset($filters['offer']), fn ($q) => $q->where('offer_id', $offerId ?? 0))
-            ->when($filters['from'] ?? null, fn ($q, $from) => $q->where('issued_at', '>=', $from))
-            ->when($filters['to'] ?? null, fn ($q, $to) => $q->where('issued_at', '<=', $to))
+            ->when(! filter_var($filters['claimed'] ?? false, FILTER_VALIDATE_BOOLEAN) && isset($filters['from']), fn ($q) => $q->where('issued_at', '>=', $filters['from']))
+            ->when(! filter_var($filters['claimed'] ?? false, FILTER_VALIDATE_BOOLEAN) && isset($filters['to']), fn ($q) => $q->where('issued_at', '<=', $filters['to']))
             ->when($filters['search'] ?? null, function ($q, $search) {
                 $like = '%'.addcslashes($search, '%_\\').'%';
                 $q->where(fn ($w) => $w->whereHas('code', fn ($c) => $c->where('code_last4', $search))

@@ -1,3 +1,19 @@
+# Consumer profile review follow-up — 2026-10-31
+
+PARTIAL acceptance. Verified the existing uncommitted OTP log removal and
+authenticated password confirmation enforcement; added explicit absent-confirmation
+coverage alongside mismatch/throttle coverage. Registration/reset retain D-014.
+Focused SQLite integration run: 136 tests, 133 passed, 3 skipped, 6125 assertions;
+ConsumerProfile, Identity, Answer24Channel, Notifications and OpenApiCoverage.
+No endpoint, schema or migration added. API v1 contracts unchanged.
+
+Frontend recovery/concurrency checks are recorded in the sibling frontend
+`docs/consumer-profile-acceptance.md`. Ten real-service browser journeys and
+approved screenshot matching remain outstanding; do not mark #10 complete.
+Verification wording for email changes is six-digit **codes**, per D-050.
+
+---
+
 # Active handoff — #31 B23o Wix webhook envelope fix + AppRemoved, whole card IN_PROGRESS (2026-10-29, Claude)
 
 Branch `main`. Base `daecc72` (B23n, [CI 40842608297](https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/40842608297) SUCCESS on all 3 jobs). Session commits: `f23f3a9` B23i/j, `c478831` B23k, `0274a77` B23l, `9f0d7fa` B23m, `daecc72` B23n; all CI green. D-089 unchanged. Credentials senior-owned.
@@ -257,3 +273,188 @@ B20b–f final local checkpoint: complete main implementation, main branch base 
 B20 final implementation `911e053` committed/pushed; CI `40412989638` SUCCESS all3jobs. Exact719tests/database: SQLite701passed+18skipped/9278assertions/40.77s; MySQL717passed+2skipped/9340assertions/144.63s. Three real MySQL process races and migration rollback/reapply PASS; Pint/PHPStan/composer audit green. Follow-up strengthens the existing actual password/OTP workspace approval journey with owner/admin notification scope and public workspace reference; all14 tests375assertions pass locally, no application-code change. This docs/test closeout records final verified main backend Done. No remaining #29 main-code scope; Hassan UI and senior real model/mail/deployed Reverb/staging acceptance are separate NOT RUN live work.
 
 Final approval-scope follow-up `5a8c36d`, CI `40414186822` SUCCESS all3jobs. Exact719tests/database: SQLite701pass+18skip/9281assertions/43.05s; MySQL717pass+2skip/9341assertions/101.94s. Actual password/OTP approval→owner notice/admin-only review assertions pass on both DBs. All #29 main backend acceptance complete; final docs-only closeout records these results.
+
+
+## Discovery integration accuracy checkpoint — 2026-10-31
+
+Branch HassanDev, backend base 59916e9, frontend base 3d0b0ad; uncommitted.
+Reuse/fixes and exact evidence: [Discovery review](discovery/INTEGRATION_ACCURACY_REVIEW.md).
+Unified obtainability sort/filter/count, actual batching (including null/zero cases),
+stock/import/allocation and after-commit invalidation, <=30s cache with scheduled
+expiry, shared voucher list/status, URL Back/Forward synchronization. No migration
+or new endpoint. Existing unrelated edits preserved; no commit/push/deployment.
+Validation: Discovery+Vouchers+OpenAPI 47 tests / 43 passed / 4 skipped / 5490 assertions;
+benchmark separately 1 passed / 201 assertions; 10 Chromium directory fixture
+journeys passed; frontend typecheck/targeted ESLint and backend targeted Pint passed.
+Broader Affiliate+Vouchers+OpenAPI: 67 passed, 4 skipped, 2 unrelated pending-activity
+failures (existing WalletController/AffiliateActivityController edits); not green.
+Local 200-shop/1000-offer/2000-code HTTP-kernel benchmark: 100 cold + 100 warm
+samples, P95 431.16ms cold / 62.97ms warm. Not staging/network/load evidence.
+Status PARTIAL: missing design reference, full real-service platform browser
+journeys and staging P95 remain open. Next: obtain reference, run full live
+journeys and MySQL/Redis staging search load measurements; investigate cold P95.
+
+
+## Merchant overview review follow-up — 2026-10-31
+
+Implementation checkpoint, PARTIAL acceptance. Backend branch HassanDev, base 59916e9; frontend HassanDev, base 3d0b0ad. Changes remain uncommitted; unrelated existing changes were preserved. No production migration or deployment performed.
+
+Implemented overview pagination (10/page), lifecycle filters before pagination, four primary KPI cards, secondary operational details, unavailable/error states, request cancellation, 30-second visible-tab polling, focus refresh and generated_at freshness text. KPI/chart/claim notices open existing voucher records using claimed=1 and business-timezone claim-day filters, including subsequent redemption; list adds claimed_at. No new route or duplicate claim store.
+
+Recovered stock alerts resolve on generator runs and dashboard/workspace-notification reads; resolved legacy records remain stored but are excluded from dashboard, workspace list and central inbox. Count-change signals refresh central badges; pending outbox/mail delivery skips resolved entries. Invalid import batches and explicit provider mismatch/sync_error results now produce deduplicated offer alerts. Normal unverified/manual-required codes are not treated as verification failures.
+
+Effective lifecycle is shared by SQL filters/KPIs and displayed rows: archived, expired, scheduled, draft, paused, sold_out and active, including allocation limits. Active excludes sold-out/future/expired offers. Existing platform access policy retained: nonmember 404 (existence concealed), member lacking permission 403. API contract and real HTTP captures are in docs/api/MERCHANT_OVERVIEW_CAPTURE.json and docs/api/README.md.
+
+Executed: focused Analytics/Notifications/OpenApiCoverage run 70 tests, 67 passed, 3 skipped, 5587 assertions (SQLite); targeted Pint and PHPStan pass (0 errors); frontend typecheck and targeted ESLint pass; ten Playwright Chrome browser contract journeys pass. Browser responses are controlled fixtures, not ten real-service E2E journeys. Desktop/mobile screenshots were visually inspected. Backend historical E2E naming now explicitly describes API integration evidence; sequential claims no longer described as concurrency.
+
+Volume evidence: 10,000 available codes + 10,000 accepted claims/issued vouchers, 30 days, three SQL aggregate queries, 463.7 ms on local SQLite. See docs/analytics/MERCHANT_OVERVIEW_BENCHMARK.json. Daily SQL grouping uses UTC boundaries of each local day (DST tested), returning at most one row/day/source. Added workspace/timestamp indexes. This is not a production P95 or MySQL/Redis load result.
+
+Migrations: 2026_10_31_160000_add_resolution_to_merchant_notifications and 2026_10_31_160100_index_merchant_lifecycle_analytics. Applied only to isolated test/capture SQLite databases. Apply both before running this code against an existing database. The synthetic HTTP capture server and temporary credentials/database were removed afterward.
+
+Exact next acceptance work: supply the original screenshot for a reference comparison; exercise all ten journeys with real sessions/services and a real concurrent claim workload; benchmark representative MySQL/Redis deployment and inspect plans. Full repository test/build suite and production provider verification NOT RUN. Checklist items stay unchecked until a commit records evidence/SHA, per AGENTS.md rule 12.
+
+
+## AI support repair — 2026-10-31
+
+Status: implementation verified locally; live-service acceptance PARTIAL. Backend branch HassanDev/base 59916e9; frontend HassanDev/base 3d0b0ad. Uncommitted; unrelated existing changes preserved. No commit, push, migration or deployment.
+
+Removed unsupported reserved-reward/release claims from both sidebar and verified NL template. Wallet request state separates loading/error/verified empty; missing categories stay unavailable. Planner now normalizes unambiguous one-edit typos, preserves subject/reference/unit for bounded follow-ups in the owned conversation, extracts FS-20482-style references, and exposes ORDER_STATUS/PAYMENT_QUESTION through the existing authorized order evidence tool. This is conservative contextual routing, not a general semantic assistant; ambiguous requests clarify.
+
+Pending history renders immediately and HTTP sync recovers answers/human replies on refresh, focus, browser online and authorized Reverb resubscription (3s pending / 15s idle while visible). Transport acknowledgements are labelled live updates, never provider/worker availability. Private event payloads and evidence rechecks remain unchanged.
+
+Settings use Behavior/OpenAI/Rules/Quality/Monitoring. Published progress/badge/action controls execute; request/time/token/retry controls remain bounded. Unsupported prose/word-limit/deadline/cost-ceiling/fallback/model-specific controls are locked in UI and reject non-default API writes. Store/parallel execution remain false and verification tool choice required. Language selection is available; human escalation remains enabled. Restrictions respect scope. No guessed model capability list or default provider pricing.
+
+Workspace action routes preserve destination/workspace. A destination gate validates the accessible workspace list and awaits the existing authorized selection API before mounting page queries. Financial actions remain read-only navigation. Funding opens the existing overview; offers/campaigns/integrations retain their pages.
+
+Monitoring supports dates, scope, locale, status, model, retry and review outcome filters; bounded sample percentages and matching totals; timestamped provider-success/worker-execution/dispatch evidence. Reverb live health explicitly not measured. EUR cost estimates require deployment-owned exact-model rates in config/support_ai.php; null and priced-request coverage distinguish missing pricing from zero. No billed cost or enforced spend ceiling is claimed.
+
+API contract/examples: docs/api/SUPPORT_REPAIR_HTTP_CAPTURE.json (five real local HTTP requests on isolated SQLite with synthetic actor), docs/api/README.md and docs/api/openapi.yaml. No route or migration added. Capture server and generated token/database are temporary and removed after capture.
+
+Validation: full Support + OpenApiCoverageTest: 185 tests, 183 passed, 2 database-specific skips, 6653 assertions at prior checkpoint. Added final context/unit checks and final frontend checks recorded in the root docs/ai-support-frontend-repair.md. Targeted PHPStan zero errors; Pint, frontend typecheck/targeted ESLint pass. Twelve controlled browser regressions passed before the settings case was added. Final results recorded in root repair report.
+
+Exact next release action: run original ten real-service support journeys with verified consumer/workspace/admin sessions, real worker, Reverb disconnect/resubscribe and configured provider; verify real model compatibility, supply verified pricing, and verify deployed connectivity. Credentials/services not supplied; controlled browser tests are not proof of production connectivity. No AI financial activation or cashback-timing decision changed.
+
+
+## Super Admin cockpit reporting correction — 2026-10-31
+
+Implementation complete locally; production/provider acceptance remains PARTIAL. Backend HassanDev base 59916e9; sibling frontend HassanDev base 3d0b0ad. Uncommitted; no commit/push/deployment. Existing unrelated edits preserved.
+
+Current-state cards omit unsupported comparisons; the previous-period query now reads only commission events and uses equal business-calendar days across DST. Voucher distribution counts issued vouchers using explicit immutable acquisition_transaction_id evidence, approved/nonduplicate transactions and matching consumer/webshop; additional networks are dynamic. Missing evidence remains Other/Unknown, including direct/legacy issuance. No wallet-funding or selected-network inference. VoucherInventory::recordAcquisition is a trusted internal evidence writer, with no public mutation endpoint; no existing affiliate conversion flow issues vouchers automatically. Do not backfill links without evidence.
+
+Voucher search uses normalized webshop-scoped exact hashes with a code_hash index. Shared usable scope and consumer code-copy eligibility exclude invalidated/invalid/mismatched codes, expired vouchers and invalid unique-code states. Consumer intent is independent of merchant memberships; active platform staff and explicit ADMIN_TEST_ACCOUNT_PUBLIC_IDS are excluded consistently. Failed webhook imports deduplicate with connector errors per connection; failed affiliate connections include reauthentication. Source status controls resolution; incident occurrences and failed jobs are diagnostic, not additive. Capped source-item links and attention=1 operations preserve exact affected connections.
+
+Commission and voucher drill-downs preserve inclusive business-timezone from/to dates, status/network and tab; transactions totals use the same query as rows. Missing transaction boundary returns 422. UI supports custom dates with validation, visible-tab 60-second polling and focus refresh. Existing cache TTL remains 60 seconds.
+
+Executed: CockpitTest + OpenApiCoverageTest **20 passed / 5270 assertions** (17 cockpit + 3 contract tests; SQLite). Includes encrypted-code search, invalid code/provider mismatch, mixed memberships/test exclusions, source deduplication/resolution, period dates and DST. **5 Chromium browser contract tests passed** for custom range validation, donut/commission drill-downs, usable-card filters and automatic polling; these use controlled responses from recorded HTTP fixtures, not real-service E2E. Frontend TypeScript and targeted ESLint passed. Targeted backend Pint and PHPStan (0 errors, 512M worker limit) passed.
+
+11 actual local HTTP captures include 200/401/403/422, generated by scripts/capture-cockpit.php using an isolated SQLite database and temporary PHP HTTP server. Task migration 170000 apply/rollback/reapply passed there. It was also selectively applied to the configured existing local MySQL shopbonus database at 127.0.0.1; other pending migrations were not applied by this task. Real stored local aggregates reconcile: active webshops 8, consumers 3, usable vouchers 0, approved period commission EUR 0, wallet liability EUR 0, open actions 1. All sources report ok, no degraded warnings. No production/provider numbers are claimed.
+
+Evidence: docs/api/COCKPIT_HTTP_CAPTURE.json, docs/api/COCKPIT_LOCAL_MYSQL.json, docs/api/README.md and sibling frontend docs/admin-cockpit-reporting.md. New migration: 2026_10_31_170000_add_voucher_acquisition_evidence.php. Frontend tests carry their own captured fixture in e2e/fixtures/admin-cockpit.json and do not depend on a sibling checkout.
+
+Next release action: review the uncommitted patch, apply the task migration in the target environment before deployment, configure explicit test-account IDs, verify real authenticated browser/provider journeys and record acquisition links only from independently verified voucher-source relationships. Full repository suites, production load and live provider attribution NOT RUN. Checklist boxes remain unchecked pending an implementation commit/SHA per AGENTS.md.
+
+
+AI support final local evidence (2026-10-31): Support + OpenApiCoverageTest 185 tests, 183 passed, 2 database-specific skips, 6659 assertions. Final focused policy/context/admin regression 10 passed/130 assertions (overlapping subset). All 13 controlled Chrome browser regressions passed. Frontend typecheck/targeted ESLint, targeted Pint/PHPStan and diff whitespace checks passed. Historical actions now respect current suggestion policy. Temporary capture server/credentials/database removed. No live E2E credentials supplied; real provider/worker/Reverb/MySQL acceptance remains open. Uncommitted on HassanDev; no commit SHA or deployment. Exact next release action remains the real-service acceptance documented above and in ../docs/ai-support-frontend-repair.md.
+
+## Merchant landing / inline CMS review — 2026-10-31
+
+Implementation checkpoint on HassanDev (backend base 59916e9, frontend base 3d0b0ad); changes remain uncommitted alongside pre-existing and concurrent work. No migration or deployment.
+
+Implemented separate published/draft snapshots, failure-gated serialized saves, debounced autosave with unload protection, stable preview transitions, and atomic expected-revision checking at Publish. Cancel restores the approved publication while saved drafts remain on the server. NL/EN public content follows the shared locale and a persisted cookie; server metadata refreshes with that cookie. Public fetches use no-store; failures retain an already loaded approved snapshot or show an unavailable state, never fallback marketing defaults.
+
+The on-page settings panel provides section drag/drop and keyboard ordering, visibility, structured collection addition/removal/reordering, platform descriptions, benefit/step icons, navigation/footer links, FAQ authoring, SEO text, schedule controls and an explicit historical publication picker. Shared CMS images have an authenticated paginated library, uploads, crop ratios/focal positions, alt text and desktop/mobile variants. Main imagery uses approved media slots with labeled code-native illustrative fallbacks; external stock photographs were removed. The integration query is retained through onboarding and validated against the live catalogue when opening App Store.
+
+Schedule publication uses the existing CmsScheduler API and pins the saved revision, keeping the previous publication live until execution. Further draft saves invalidate that pinned schedule; pending schedule cancellation remains in Content Studio. The existing visibility-window fields can also be applied immediately through Publish. The existing shopbonus:publish-scheduled-content scheduler command must run in the deployment. Schedule visibility checks now run outside the publication cache.
+
+Onboarding diagnosis: BusinessProfile already defaults country_code to NL and explicitly requires KvK for Dutch businesses. Updated the stale missing_fields assertion to kvk_number; no business-verification or activation rule relaxed.
+
+API captures: docs/api/MERCHANT_LANDING_CAPTURE.json, from a local HTTP server with isolated SQLite and synthetic actor/session context (not browser-auth proof). New media GET aliases and optional Publish revision are documented in OpenAPI/README. No production credentials used. Temporary capture router is removed after capture.
+
+Validation results are recorded in frontend docs/merchant-landing-acceptance.md. Checklist items remain unticked until a commit records a SHA, per AGENTS.md. Exact next action: review these uncommitted changes separately from other work, run deployment acceptance with real sessions/media and confirm the existing scheduled-content command is running. Full repository backend suite, production build, MySQL/load and deployment/provider acceptance NOT RUN.
+
+
+Final verification note: a later full frontend typecheck reported TS2307 in src/components/over-ons/AboutUsInlineCms.tsx:27 (missing ./AboutUsCmsControls). This is outside the support changes; earlier full typechecks passed. Targeted support lint and browser checks are separate evidence. No unrelated About Us edit was made.
+
+
+## Sales attribution review follow-up — 2026-10-31
+
+Local implementation, acceptance PARTIAL. Backend HassanDev base 59916e9; frontend HassanDev base 3d0b0ad. All changes remain uncommitted alongside pre-existing work; no commit, push, migration or deployment.
+
+API-driven merchant analytics replaces sample figures and toast-only actions, with 7/30/90-day business-timezone sales series, currency selection, scoped order drill-down and actual voucher/banner navigation. Embed tracking now requires the latest recorded analytics+marketing CMP decision; storage/assignment/measurement fail closed and withdrawal clears metadata and revokes assignments. Assignment tokens (including holdout) and retry-safe click IDs reach the cart metadata bridge. Unknown viewability emits no impression; bounded queues preserve UUIDs across retries. Registered storefront origins get credential-free embed CORS.
+
+Voucher attribution matches per-shop hashes. First linked evidence and the order label/click source stay consistent inside an order-row lock; unattributed orders may gain first evidence. Network totals read authoritative order refunds and separate currencies, wallet kinds and units, including available consumer credit. Moneybird is explicitly provider_not_verified; internal drafts/references are not promoted into issued invoices.
+
+Final affected PHP run: 55 tests, 53 passed, 2 skipped, 5638 assertions / 70.749s (SalesAttributionE2E + Banners + OpenApiCoverage, SQLite). The 2000-event timing assertion passed with its original 60-second budget after batch-local consent/campaign/version/assignment lookup caching and once-per-batch daily-stat initialization. Earlier runs failed the timing budget (80.97s, 111.00s, 60.66s); no sample/threshold was weakened. The broader Analytics/Banners/CMP/OpenAPI run earlier passed all 75 application tests with 2 skips, but had 2 YAML errors; those were corrected and final OpenAPI tests passed in the 55-test run.
+
+Public embed lifecycle harness: 8/8 passed. Frontend Chromium contract fixtures: 2/2 passed (API totals, date requests, currencies, drill-down, links, error/retry); these are fixtures, not provider evidence. Frontend typecheck passed. Targeted Pint and PHPStan passed before the final batch-stat refinement; its final check is recorded below. git diff --check passed on touched files. Six existing API contracts contain actual isolated local HTTP captures in docs/api/SALES_ATTRIBUTION_CAPTURE.json; temporary loopback fixture router/server removed.
+
+Details and storefront contracts: docs/analytics/SALES_ATTRIBUTION_REVIEW.md. No new route or migration. Checklist intentionally remains unchecked until a commit provides the required SHA. Remaining: actual host CMP/storefront adapters must implement getConsentId and setAttribution and be verified through signed paid orders; live randomized holdout completeness, MySQL and one-million-event staging acceptance NOT RUN. Moneybird has no delivery/reconciliation client or verified credentials/account/legal acceptance; provider integration remains open. Exact next action: wire and verify each supported storefront bridge, then implement and authenticate Moneybird issuance/delivery/status reconciliation under OPEN-FINANCIAL-LEGAL and execute staging/provider acceptance.
+
+Verified backend checkpoint: focused MerchantLandingCmsTest / OnboardingTest / OpenApiCoverageTest: 36 passed, 5,358 assertions (SQLite). Targeted PHPStan: 0 errors. Targeted Pint passed after formatting the added CMS tests. Earlier OpenAPI parse failures were resolved before the successful final run; concurrent unrelated changes are preserved.
+
+Final quality closeout: targeted Pint and PHPStan passed after the final batch-stat refinement; frontend typecheck passed. Temporary capture router is absent and its server was stopped. Local source changes are ready for review; the explicitly listed storefront and Moneybird implementation/acceptance work remains open.
+
+Final API documentation recheck after request-example updates: 3 passed / 5123 assertions / 16.608s.
+
+
+Final rerun resolution: the unrelated AboutUsCmsControls module subsequently appeared and the full frontend typecheck passed again. Targeted support ESLint passed. After the final stale-history generation guard, human-reply and reconnect browser checks passed; the refresh check first timed out in page.goto (ERR_ABORTED before support assertions), then passed alone on retry. The earlier complete 13-case browser suite passed. Shared local test-results also contained concurrent unrelated homepage/CMS runs; no unrelated files or processes were changed. Final backend PHPStan remains zero errors, and the final policy-focused regression passed. Current release limitation is live-service acceptance, not a known support test failure.
+
+
+## Homepage + inline CMS review correction — 2026-10-31
+
+Backend HassanDev/base 59916e9; frontend HassanDev/base 3d0b0ad. Uncommitted, unrelated edits preserved. No migration, commit/push or deployment. Frontend report: sibling frontend docs/homepage-cms-review.md.
+
+Backend validates the rendered benefits/CTA/FAQ sections, their plain text/safe links, extended order/visibility keys and existing responsive image asset references. Admin history includes resolved revision content for inspect/select/confirm restoration. Homepage public reads check schedules every request; homepage/coupon HTTP responses use no-store, matching uncached Next.js/client requests. Existing service publication/restore audit and authorization paths retained.
+
+Executed: HomepageCmsTest 10 passed/66 assertions; expanded HomepageCmsTest + CmsScheduleAndSuggestionTest + OpenApiCoverageTest 22 passed/5293 assertions (SQLite). Five real local HTTP captures in docs/api/HOMEPAGE_HTTP_CAPTURE.json (public EN homepage/coupons, admin history 200/401/403), isolated fixture DB and synthetic actors; temporary server/database/tokens removed. TypeScript passed at checkpoint. Targeted Pint formatted two task-owned files; frontend browser/lint final results are recorded in the frontend report. No production/provider acceptance is claimed.
+
+Next: finish controlled browser regression verification, review uncommitted patch, then run real authenticated Super Admin/public NL/EN journeys and compare the approved design reference when available. Checklist stays unchecked without implementation commit/SHA.
+
+Homepage final verification: TypeScript PASS; targeted frontend ESLint PASS (zero errors, five unused suppression warnings); targeted backend Pint PASS; 22 backend tests/5293 assertions PASS after API documentation changes. Eleven core Chrome browser regressions and responsive layout PASS; coupon destination/expiry isolated rerun PASS, timing now controlled by the browser clock. Desktop/mobile screenshots inspected. Real-service acceptance remains unverified; full report and final deterministic-test result are in sibling frontend docs/homepage-cms-review.md.
+
+Final deterministic coupon clock check PASS (1 test, 11.8s); isolated desktop/mobile rerun PASS (1 test, 6.4s). The earlier parallel layout retry timed out awaiting navigation load; fresh preview and explicit DOM/content readiness resolved the verification run. All 13 browser scenarios have passing evidence across the main run and these isolated reruns.
+
+Merchant inline CMS final browser evidence: 14 cases have passing focused executions (controlled APIs), including save-before-navigation/failure retention. Targeted ESLint and PHPStan pass; 36 focused backend tests/5,358 assertions pass. Desktop/mobile fixtures were visually reviewed; see frontend docs/merchant-landing-acceptance.md. Full typecheck has reported unrelated concurrent About Us/discovery errors; no production acceptance claim. Changes remain uncommitted, no migrations.
+
+Final typecheck limitation update: the last whole-frontend run reports missing generated .next-about-cms/dev/types files during concurrent test cleanup (TS6053). Earlier About Us/discovery source errors were also outside this task. Do not report whole-repository typecheck/build as green.
+# About Us inline CMS review follow-up — 2026-10-31
+
+Code repair implemented; release acceptance remains PARTIAL pending authentic
+approved photography/company records and deployed scheduler/browser acceptance.
+Branch HassanDev, base 59916e9, uncommitted. No migration/new endpoint.
+Responsive media validation/resolution, comparison content in versions,
+locale-bound restore, optional reviewed revision guard on Publish, and uncached
+public publication/window evaluation. Five real isolated HTTP captures recorded.
+AboutUsCmsTest + OpenApiCoverageTest: 17 passed, 5207 assertions. Targeted Pint
+passed. Sibling frontend has the controls and controlled browser regressions.
+
+
+
+## Live storefront studio review correction — 2026-10-31 / 2026-11-01
+
+PARTIAL whole-card acceptance; implementation and focused validation are being finalized. Backend HassanDev base 59916e9, frontend HassanDev base 3d0b0ad; all changes uncommitted alongside existing work. No migration, commit/push or deployment. Actual storefront frame plus opener fallback, strict authenticated messaging, failure-gated Save/Publish, timestamped currency-aware native cart contract, bounded publication refresh, functional size handles/corner snapping/inline missing-target warning, explicit unsupported viewability and editable AI text/image/CTA layers. Details and exact next acceptance actions: docs/banners/STOREFRONT_REPAIR.md. Real storefront adapters/themes and genuine model/merchant acceptance NOT RUN. API examples captured on a real isolated local HTTP server in docs/api/BANNER_STUDIO_HTTP_CAPTURE.json; fixture server/database removed by the script. Final test results follow below.
+
+
+Final local verification — 2026-11-01: 35 focused PHP tests, 33 passed and 2 existing database-specific skips, 5,452 assertions. Twelve embed lifecycle tests passed. All eight Chromium fixture regressions passed (1.0m): Save 409/500 failure gates, real iframe embed/live edits/publish and mobile frame, resized dimensions/layers including frame-exit completion, inline target recovery, forged origin/source rejection, native popup/opener pairing and stable corner snapping. Whole frontend TypeScript and targeted ESLint passed. Targeted PHPStan: zero errors; targeted Pint and diff whitespace checks passed. Five real HTTP captures include public config, authorized/unauthorized editor draft and completed AI show/index (explicitly synthetic provider; no live model claim). Capture database/server removed; dedicated frontend test server stopped. Whole-repository suites/build/MySQL/real storefront and provider acceptance NOT RUN. Uncommitted on HassanDev, backend base 59916e9/frontend base 3d0b0ad; no migration or deployment. Exact next action: review the isolated patch, deploy/configure FRONTEND_URL and verify actual merchant themes/opener policy, platform cart adapters and genuine model/human design acceptance.
+
+## Affiliate detail review — 2026-11-01
+
+PARTIAL whole-card acceptance; local implementation verified on HassanDev, base 59916e94c26cada8696939845e40deca6d1d4697. Existing uncommitted edits preserved, no commit/push/deployment or application-database migration. Settlement gate, shared policy, bounded pagination, PHP 8.5 SOAP, image validation/variants and enrichment refresh were already in the working tree and verified. This continuation fixed research evidence-ID collisions, added audited/versioned Super Admin advertiser-permission recording and invalidation on merchant edits/duplication, and corrected detail consent/state lifecycle.
+
+Executed PHP 8.5 SQLite: 81 tests, 80 passed, 1 skipped, 5721 assertions; final OpenAPI 3 passed/5123 assertions. Targeted Pint/PHPStan (zero errors), frontend TypeScript/ESLint and 3 Chromium fixture journeys pass. Four real local HTTP captures in docs/api/AFFILIATE_DETAIL_HTTP_CAPTURE.json; temporary server/database removed. Broader Offers run has an unrelated voucher claimed_at failure (44 tests, 42 passed, 1 skipped, 1 failed); full repository green is not claimed.
+
+Exact next action: review patch and the two pending affiliate migrations, verify provider endpoints/response fields and promotion/exclusion mappings with authorized accounts, then execute authenticated browser/MySQL/staging and reference-image acceptance. New operator commands and all limitations: docs/discovery/AFFILIATE_DETAIL_REVIEW.md. Checklist remains unchecked pending a commit SHA; provider and full-card acceptance remain open.
+
+## Multilingual CMS review repairs — 2026-11-02
+Implementation checkpoint, uncommitted on HassanDev (backend base 59916e9; frontend base 3d0b0ad). Extensive pre-existing edits preserved. No migration, deployment or commit.
+Manual Publish requires the reviewed revision, checked under the existing row lock; preview returns the same snapshot's draft_revision. Existing legal approval, scheduled publication and history flows remain. Mutable public CMS/page-index/FAQ/consent configuration uses no-store; frontend CMS requests explicitly bypass caching. Role chrome/notification-management/checkout labels use localized interface keys. Rich document controls preserve backend-allowlisted nodes/marks/media. Explicit visitor selection is distinguished from automatic locale storage; published alternates drive page language navigation. Tracker lifecycle hooks stop controlled SDKs, delete optional cookies/storage, and replace the document for a loaded SDK without shutdown support.
+Executed: 20 focused CMS/scheduling/consent tests PASS (278 assertions); API coverage 3 PASS (5123 assertions); targeted Pint PASS; frontend TypeScript + targeted ESLint PASS; six frontend regressions PASS; nine real HTTP captures (isolated SQLite + synthetic session) in docs/api/CMS_REVIEW_HTTP_CAPTURE.json. Browser/production/real-provider acceptance NOT RUN; no claim of an exhaustive all-screen language audit. Checklist remains unchecked pending implementation commit/SHA.
+
+Final multilingual CMS validation checkpoint: combined backend CMS/scheduling/consent/OpenAPI run 23 PASS, 5,401 assertions; frontend six node regressions PASS, two real Chrome consent lifecycle regressions PASS (including unmanaged SDK document replacement and repeated re-consent), TypeScript and targeted ESLint PASS; diff whitespace checks PASS. This supersedes the earlier browser NOT RUN note for the focused consent fixtures only. Full authenticated app journeys, exhaustive role-wide translation coverage and real tracker providers remain unverified. No new commits or migrations; unrelated working-tree changes preserved. Exact next action remains review scoped changes and run authenticated NL/EN acceptance before coordinated client/API release.
+
+## Notification email destinations and template UI — 2026-11-02
+PARTIAL release acceptance. HassanDev, backend base 59916e94c26cada8696939845e40deca6d1d4697; frontend base 3d0b0adb3c72abc8d1680bc2aa062cae00349e29. Uncommitted; unrelated working-tree edits preserved. No migration, API contract change, commit, push, live configuration change, template publication or customer email.
+Email rendering now maps legacy action roots through config/notifications.php to real Next.js pages; environment overrides are documented in .env.example. Workspace support opens /dashboard/support with conversation and workspace context; configured paths reject external destinations and injected queries. Existing FRONTEND_URL supplies the origin. Template UI adds versioned checksum-aware editing, field limits/approved variables/audit reason, readable synthetic preview and existing password/OTP recovery. Independent publication remains enforced by existing backend APIs.
+Executed: 18 focused notification action-link/delivery/template PHP tests PASS, 119 assertions; targeted Pint PASS; frontend TypeScript and targeted ESLint PASS; three real Chrome browser tests with intercepted API fixtures PASS (versioned save + preview without publish, stale edit preservation, password/OTP retry). Screenshot visually inspected: sibling frontend docs/notification-template-preview.png. Browser fixtures are not real-provider/authentication acceptance. Initial browser runs failed because the bundled Chromium executable was absent and fixture CSRF interception was missing; final run used installed Chrome and corrected fixtures. Full ten business journeys and real mail transport NOT RUN.
+Exact next action: Hassan confirms the five destination defaults and deployed FRONTEND_URL listed in sibling frontend docs/notification-template-review.md, applies approved deployment configuration/cache rebuild, and verifies authenticated email navigation including multiple workspaces. Live provider and full-card acceptance remain pending. Checklist remains unchecked until a commit SHA exists.
+Browser harness note: all three cases reported ok, but Playwright remained waiting during Windows webServer teardown after port 3327 had closed. The wrapper was interrupted after completion; no clean aggregate runner exit is claimed. Test assertions passed; server teardown needs follow-up if this dedicated config is used in CI.

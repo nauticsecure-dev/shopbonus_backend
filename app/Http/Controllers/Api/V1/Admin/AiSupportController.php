@@ -18,6 +18,7 @@ use App\Services\Support\SupportKnowledge;
 use App\Services\Support\SupportPlanner;
 use App\Services\Support\SupportPolicy;
 use App\Services\Support\SupportReviews;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -81,21 +82,58 @@ class AiSupportController extends Controller
         return response()->json(['data' => $report]);
     }
 
-    public function operations(SupportPolicy $policy): JsonResponse
+    public function operations(Request $request, SupportPolicy $policy): JsonResponse
     {
-        $from = now()->utc()->subDay();
-        $rows = SupportMessage::where('created_at', '>=', $from)->latest('id')->limit(500)->get();
+        $filters = $request->validate([
+            'from' => ['sometimes', 'date', 'after_or_equal:'.now()->subDays(90)->toDateString()],
+            'to' => ['sometimes', 'date', ...($request->filled('from') ? ['after_or_equal:from'] : [])],
+            'scope' => ['sometimes', Rule::in(['consumer', 'workspace'])],
+            'locale' => ['sometimes', Rule::in(['en', 'nl'])],
+            'status' => ['sometimes', Rule::in(['PENDING', 'RESEARCHING', 'VERIFYING', 'RETRYING', 'VERIFIED', 'PARTIALLY_VERIFIED', 'NEEDS_CLARIFICATION', 'ESCALATED', 'UNAVAILABLE'])],
+            'model' => ['sometimes', 'string', 'max:100'],
+            'retry_used' => ['sometimes', 'boolean'],
+            'outcome' => ['sometimes', Rule::in(['CONFIRMED_ERROR', 'ANSWER_CORRECT', 'NEEDS_INVESTIGATION'])],
+        ]);
+        $from = isset($filters['from']) ? CarbonImmutable::parse($filters['from'])->utc() : now()->utc()->subDay();
+        $to = isset($filters['to']) ? CarbonImmutable::parse($filters['to'])->utc() : now()->utc();
+        $query = SupportMessage::whereBetween('created_at', [$from, $to]);
+        foreach (['status', 'retry_used'] as $key) {
+            if (isset($filters[$key])) {
+                $query->where($key, $filters[$key]);
+            }
+        }
+        if (isset($filters['model'])) {
+            $query->where('metrics->model', $filters['model']);
+        }
+        if (isset($filters['outcome'])) {
+            $query->whereIn('id', SupportReview::where('outcome', $filters['outcome'])->select('message_id'));
+        }
+        if (isset($filters['scope']) || isset($filters['locale'])) {
+            $conversations = SupportConversation::query();
+            if (isset($filters['scope'])) {
+                $filters['scope'] === 'consumer' ? $conversations->whereNull('webshop_id') : $conversations->whereNotNull('webshop_id');
+            }
+            if (isset($filters['locale'])) {
+                $conversations->where('locale', $filters['locale']);
+            }
+            $query->whereIn('conversation_id', $conversations->select('id'));
+        }
+        $total = (clone $query)->count();
+        $rows = $query->latest('id')->limit(500)->get();
+        $percentages = $rows->countBy('status')->map(fn ($count) => round($count * 100 / max(1, $rows->count()), 2))->all();
+        $costed = $rows->filter(fn ($row) => is_numeric($row->metrics['estimated_cost_eur'] ?? null));
         $latency = $rows->pluck('metrics.latency_ms')->filter(fn ($v) => is_int($v))->sort()->values();
 
-        return response()->json(['data' => ['from' => $from->toIso8601String(), 'checked_at' => now()->toIso8601String(), 'sample_limit' => 500, 'sample_size' => $rows->count(),
+        return response()->json(['data' => ['from' => $from->toIso8601String(), 'checked_at' => now()->toIso8601String(), 'sample_limit' => 500, 'sample_size' => $rows->count(), 'matching_total' => $total, 'to' => $to->toIso8601String(), 'outcome_percentages' => $percentages,
             'statuses' => $rows->countBy('status')->all(), 'failures' => $rows->whereNotNull('failure_code')->countBy('failure_code')->all(),
             'retrieval_retries' => $rows->where('retry_used', true)->count(), 'latency_p95_ms' => $latency->isEmpty() ? null : $latency[(int) ceil($latency->count() * .95) - 1],
-            'input_tokens' => $rows->sum('metrics.input_tokens'), 'output_tokens' => $rows->sum('metrics.output_tokens'), 'provider_cost' => null,
-            'cost_notice' => 'Token usage is measured; billed provider cost is not available here.',
+            'input_tokens' => $rows->sum('metrics.input_tokens'), 'output_tokens' => $rows->sum('metrics.output_tokens'), 'provider_cost' => $costed->isEmpty() ? null : round($costed->sum('metrics.estimated_cost_eur'), 8), 'costed_requests' => $costed->count(), 'cost_currency' => 'EUR',
+            'cost_notice' => 'Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.',
             'open_reviews' => SupportReview::whereNull('outcome')->count(), 'approved_regressions' => SupportRegression::count(),
             'daily_requests' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'global')->value('requests') ?? 0),
             'circuit_open' => Cache::has('support-ai:circuit'), 'broadcaster' => config('broadcasting.default'), 'last_successful_broadcast_at' => Cache::get('support-ai:last-broadcast-at'),
             'broadcast_failures_last_24h' => DB::table('audit_events')->where('action', 'support.broadcast_unavailable')->where('occurred_at', '>=', $from)->count(),
+            'connectivity' => ['provider_last_success_at' => Cache::get('support-ai:last-provider-success-at'), 'worker_last_execution_at' => Cache::get('support-ai:last-worker-execution-at'), 'queue_connection' => config('queue.default'), 'reverb_live_probe' => 'not_measured', 'broadcast_evidence' => 'dispatch_attempt_only'],
             'policy_version' => $policy->current()['version']]], 200, ['Cache-Control' => 'private, no-store']);
     }
 

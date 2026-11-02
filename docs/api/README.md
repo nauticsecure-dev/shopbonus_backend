@@ -16951,3 +16951,2535 @@ X-Request-Id: 01a188d8-da28-711e-98fd-0b2c482f6ee6
 
 {"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
 ```
+
+
+### Discovery accuracy update — 2026-10-31
+
+Public list booleans use query values 1/0. Counters, has_offers=1 and sort=most_offers
+use currently obtainable offers: active/public, started, not ended, stock present,
+allocation limit not reached. most_offers is a supported sort. Cover URLs work
+without a logo. Cache age is capped at 30 seconds with earlier scheduled start/end
+expiry and inventory/import/allocation invalidation after commits.
+
+The earlier directory captures above are historical. Current real HTTP example
+(local artisan serve, existing demo data, dirty HassanDev based on 59916e9):
+
+GET http://127.0.0.1:8018/api/v1/public/webshops?has_offers=1&sort=most_offers&per_page=2
+
+Response: HTTP 200. Full captured response and timestamp:
+[directory-http-capture.json](../discovery/directory-http-capture.json).
+OpenAPI's list example has been replaced with that captured response.
+See [review](../discovery/INTEGRATION_ACCURACY_REVIEW.md) for validation and freshness.
+
+
+## Merchant overview review — 2026-10-31
+
+Captured from a real `php artisan serve` server at 127.0.0.1:8018 using an isolated SQLite database, synthetic merchant/voucher fixtures, current HassanDev working tree (base 59916e9). No production data or provider calls. Full requests and actual 200 responses: [MERCHANT_OVERVIEW_CAPTURE.json](MERCHANT_OVERVIEW_CAPTURE.json).
+
+Overview accepts `status`, `page` and `per_page` (1–50, default 10). Filters apply before pagination. Effective lifecycle matches offer rows, including dates, sold out and allocation limits. `generated_at` is displayed by the client; visible dashboards refresh every 30 seconds and on focus.
+
+`GET /api/v1/workspaces/{workspace}/vouchers?claimed=1&from=2026-10-31&to=2026-10-31` and `/vouchers/export` filter accepted claims by local business day, including subsequently redeemed vouchers. List responses add `claimed_at`; codes stay masked and consumer details are excluded. Without `claimed`, existing issuance-date filters retain their prior semantics.
+
+Unauthorized nonmembers receive 404 to conceal workspace existence; authorized members without the required permission receive 403. This follows the platform policy instead of changing all workspace lookups for a single dashboard. Resolved stock alerts are preserved for history/deduplication and excluded from overview, workspace notification list and central inbox counts. Notification generation remains on the existing 15-minute schedule.
+
+### `GET /api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/dashboard?status=active&page=1&per_page=10`
+
+```sh
+curl -i "http://127.0.0.1:8018/api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/dashboard?status=active&page=1&per_page=10" -H "Accept: application/json" -H "Authorization: Bearer <LOCAL_CAPTURE_TOKEN>"
+```
+
+Captured HTTP 200:
+
+```json
+{
+  "data": {
+    "webshop": {
+      "id": "01m6906wgknk9djzc49c7x5vsn",
+      "name": "Review Webshop",
+      "status": "approved"
+    },
+    "greeting": "good_afternoon",
+    "kpis": {
+      "active_offers": 1,
+      "available_codes": 2,
+      "issued_vouchers": 1,
+      "claimed_vouchers": 1,
+      "redeemed_vouchers": 0,
+      "scheduled_offers": 0,
+      "paused_offers": 0,
+      "open_disputes": 0
+    },
+    "connection_health": {
+      "status": "none",
+      "total": 0,
+      "connected": 0,
+      "attention": 0,
+      "last_error_at": null
+    },
+    "recent_activity": [
+      {
+        "action": "offer.status_changed",
+        "at": "2026-10-31T17:51:01+05:00",
+        "resource_type": "App\\Models\\Offer"
+      },
+      {
+        "action": "offer.created",
+        "at": "2026-10-31T17:51:01+05:00",
+        "resource_type": "App\\Models\\Offer"
+      }
+    ],
+    "quick_actions": [
+      {
+        "key": "create_offer",
+        "available": true
+      },
+      {
+        "key": "import_codes",
+        "available": true
+      },
+      {
+        "key": "connect_store",
+        "available": true
+      },
+      {
+        "key": "top_up_funding",
+        "available": false
+      },
+      {
+        "key": "review_vouchers",
+        "available": true
+      }
+    ],
+    "empty": false,
+    "definitions": {
+      "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+      "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+      "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+      "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+      "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+      "scheduled_offers": "Offers with status scheduled (not yet opened).",
+      "paused_offers": "Offers with status paused.",
+      "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+    },
+    "offers": [
+      {
+        "id": "01m6906wk5czd32xamr3pgkjgp",
+        "name": "Review offer",
+        "summary": "€5.00 from €50.00",
+        "type": "fixed",
+        "acquisition": "merchant_reward",
+        "min_order_minor": 5000,
+        "available_codes": 2,
+        "issued": 1,
+        "status": "active",
+        "lifecycle_status": "active",
+        "attention": [
+          "low_inventory"
+        ]
+      }
+    ],
+    "offers_meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 10,
+      "total": 1
+    },
+    "notifications": {
+      "unread": 0,
+      "latest": []
+    },
+    "funding": {
+      "available_minor": 999350,
+      "reserved_minor": 650
+    },
+    "generated_at": "2026-10-31T17:51:38+05:00"
+  }
+}
+```
+
+### `GET /api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/vouchers?claimed=1&from=2026-10-31&to=2026-10-31`
+
+```sh
+curl -i "http://127.0.0.1:8018/api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/vouchers?claimed=1&from=2026-10-31&to=2026-10-31" -H "Accept: application/json" -H "Authorization: Bearer <LOCAL_CAPTURE_TOKEN>"
+```
+
+Captured HTTP 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6906wptgb0mwabb6qqnarfz",
+      "status": "issued",
+      "origin": "answer24_claim",
+      "code": "****0001",
+      "offer_id": "01m6906wk5czd32xamr3pgkjgp",
+      "offer_name": "Review offer",
+      "issued_at": "2026-10-31T17:51:02+05:00",
+      "expires_at": "2026-11-30T17:51:02+05:00",
+      "redeemed_at": null,
+      "reserved_at": "2026-10-31T17:51:01+05:00",
+      "claimed_at": "2026-10-31T17:51:02+05:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 1
+  }
+}
+```
+
+### `GET /api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/analytics/claims?days=7`
+
+```sh
+curl -i "http://127.0.0.1:8018/api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/analytics/claims?days=7" -H "Accept: application/json" -H "Authorization: Bearer <LOCAL_CAPTURE_TOKEN>"
+```
+
+Captured HTTP 200:
+
+```json
+{
+  "data": {
+    "timezone": "Europe/Amsterdam",
+    "from": "2026-10-25",
+    "to": "2026-10-31",
+    "days": [
+      {
+        "date": "2026-10-25",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-26",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-27",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-28",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-29",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-30",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-31",
+        "claims": 1,
+        "issued": 1,
+        "redeemed": 0
+      }
+    ],
+    "totals": {
+      "claims": 1,
+      "issued": 1,
+      "redeemed": 0
+    }
+  }
+}
+```
+
+## Merchant landing inline editor follow-up — 2026-10-31
+
+GET /api/v1/admin/content/voor-webshops/assets and GET /api/v1/admin/content/pages/voor-webshops/assets list shared reusable CMS images, 24 per page (page >= 1). Super Admin and the existing recent-password session are required. No credential or storage path is exposed. Request example: `curl -H 'Accept: application/json' -b '<SESSION_COOKIE>' 'http://localhost:8013/api/v1/admin/content/voor-webshops/assets?page=1'`.
+
+Actual local PHP 8.4 HTTP server responses (isolated in-memory SQLite, synthetic actor/recent-password context attached by a temporary capture router): [MERCHANT_LANDING_CAPTURE.json](MERCHANT_LANDING_CAPTURE.json). Both aliases return 200; page=0 returns 422. Authentication is verified separately by feature tests, not claimed by this capture fixture.
+
+The existing draft PUT now accepts optional media slots hero_background, hero, benefits and offers, each with desktop_asset_id/mobile_asset_id and plain-text alt. IDs must refer to uploaded CMS assets. The public response resolves desktop_url/mobile_url. Footer links use the same safe-link rules as navigation; platform descriptions are plain text (max 400). The captured public GET includes actual resolved media and footer links. Public merchant HTML/API fetches bypass HTTP caches; backend publication cache remains versioned and schedule boundaries are checked on each request.
+
+
+## Support repair HTTP captures — 2026-10-31
+
+Actual local PHP server on port 8137, isolated SQLite with synthetic user/conversation; no live OpenAI or Reverb call. [Captured requests and responses](SUPPORT_REPAIR_HTTP_CAPTURE.json). Existing authorization gates remain in place; admin MFA disabled only in the isolated capture harness.
+
+Chat submission and message/history projection include `display.show_progress_updates` and `display.show_verified_badge`. Published action suggestions are enforced before result persistence. Monitoring accepts `from`, `to`, `scope`, `locale`, `status`, `model`, `retry_used`, `outcome`, validates inputs and returns matching total, bounded sample percentages, cost coverage and timestamped connectivity evidence. Cost is an estimate only when deployment supplies exact-model verified EUR rates; absent rates produce null. Broadcast dispatch is not a live connectivity probe.
+
+### GET /api/v1/admin/ai/operations?scope=consumer&locale=en (200)
+
+```json
+{
+  "request": null,
+  "response": {
+    "data": {
+      "from": "2026-10-30T13:38:10+00:00",
+      "checked_at": "2026-10-31T13:38:10+00:00",
+      "sample_limit": 500,
+      "sample_size": 1,
+      "matching_total": 1,
+      "to": "2026-10-31T13:38:10+00:00",
+      "outcome_percentages": {
+        "NEEDS_CLARIFICATION": 100
+      },
+      "statuses": {
+        "NEEDS_CLARIFICATION": 1
+      },
+      "failures": [],
+      "retrieval_retries": 0,
+      "latency_p95_ms": null,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "provider_cost": null,
+      "costed_requests": 0,
+      "cost_currency": "EUR",
+      "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+      "open_reviews": 0,
+      "approved_regressions": 0,
+      "daily_requests": 0,
+      "circuit_open": false,
+      "broadcaster": "null",
+      "last_successful_broadcast_at": null,
+      "broadcast_failures_last_24h": 0,
+      "connectivity": {
+        "provider_last_success_at": null,
+        "worker_last_execution_at": null,
+        "queue_connection": "database",
+        "reverb_live_probe": "not_measured",
+        "broadcast_evidence": "dispatch_attempt_only"
+      },
+      "policy_version": "default-disabled"
+    }
+  }
+}
+```
+
+### GET /api/v1/admin/ai/operations?status=INVALID (422)
+
+```json
+{
+  "request": null,
+  "response": {
+    "error": {
+      "status": 422,
+      "code": "validation_failed",
+      "message": "The given data was invalid.",
+      "request_id": "01a1922e-a354-70b5-a734-e42f37af64ec",
+      "fields": {
+        "status": [
+          "The selected status is invalid."
+        ]
+      }
+    }
+  }
+}
+```
+
+### GET /api/v1/ai/messages/01m692t1s6as7ahfzywnwxt6h1 (200)
+
+```json
+{
+  "request": null,
+  "response": {
+    "data": {
+      "id": "01m692t1s6as7ahfzywnwxt6h1",
+      "message_id": "01m692t1s6as7ahfzywnwxt6h1",
+      "conversation_id": "01m692t1n811tw8fspcm9a5gxd",
+      "question": "Order status FS-20482",
+      "status": "NEEDS_CLARIFICATION",
+      "answer": "Provide the order reference to check its recorded status.",
+      "evidence_ids": [],
+      "checked_at": null,
+      "retry_used": false,
+      "action": null,
+      "checks": null,
+      "display": {
+        "show_progress_updates": true,
+        "show_verified_badge": true
+      },
+      "result": {
+        "answer": "Provide the order reference to check its recorded status.",
+        "action": null
+      },
+      "created_at": "2026-10-31T13:36:26+00:00",
+      "completed_at": "2026-10-31T13:36:26+00:00"
+    }
+  }
+}
+```
+
+### GET /api/v1/ai/conversations/01m692t1n811tw8fspcm9a5gxd (200)
+
+```json
+{
+  "request": null,
+  "response": {
+    "data": {
+      "id": "01m692t1n811tw8fspcm9a5gxd",
+      "messages": [
+        {
+          "id": "01m692t1s6as7ahfzywnwxt6h1",
+          "message_id": "01m692t1s6as7ahfzywnwxt6h1",
+          "conversation_id": "01m692t1n811tw8fspcm9a5gxd",
+          "question": "Order status FS-20482",
+          "status": "NEEDS_CLARIFICATION",
+          "answer": "Provide the order reference to check its recorded status.",
+          "evidence_ids": [],
+          "checked_at": null,
+          "retry_used": false,
+          "action": null,
+          "checks": null,
+          "display": {
+            "show_progress_updates": true,
+            "show_verified_badge": true
+          },
+          "result": {
+            "answer": "Provide the order reference to check its recorded status.",
+            "action": null
+          },
+          "created_at": "2026-10-31T13:36:26+00:00",
+          "completed_at": "2026-10-31T13:36:26+00:00"
+        }
+      ],
+      "replies": [],
+      "next_before": "01m692t1s6as7ahfzywnwxt6h1"
+    }
+  }
+}
+```
+
+### POST /api/v1/ai/chat (202)
+
+```json
+{
+  "request": {
+    "message": "What is my order status FS-20482?",
+    "locale": "en"
+  },
+  "response": {
+    "data": {
+      "id": "01m692xg9g05b7pxhwm4xcdwqm",
+      "conversation_id": "01m692xg7qa19ys58n0xx3wv1d",
+      "status": "PENDING",
+      "display": {
+        "show_progress_updates": true,
+        "show_verified_badge": true
+      }
+    }
+  }
+}
+```
+
+
+
+## Cockpit reporting correction — 2026-10-31
+
+The cockpit omits current-state percentage comparisons (webshops, consumers, usable vouchers, wallets and actions) because no historical snapshots exist. Commission comparisons use equal transaction-date periods and the current approved status. Stock totals remain current regardless of the reporting range.
+
+The donut counts issued vouchers. An explicit acquisition_transaction_id links an approved, nonduplicate affiliate transaction to the same consumer and webshop. VoucherInventory::recordAcquisition validates and records immutable evidence; no public endpoint accepts this field. Existing vouchers are not backfilled from wallet spending, consumer membership or a webshop network selection. Missing/invalid evidence stays Other/Unknown, including direct vouchers; this makes the unknown population explicit. Additional evidenced networks appear automatically. No current affiliate conversion flow issues vouchers, so trusted callers must have real acquisition evidence before recording a link.
+
+Consumer identity is consumer onboarding intent, independent of webshop memberships, excluding active platform staff. ADMIN_TEST_ACCOUNT_PUBLIC_IDS is an explicit comma-separated fixture identity exclusion list; empty by default. No email-domain/name guesses. The cockpit, search, trend and role=consumer list share this scope.
+
+Usability requires issued, unexpired vouchers with an issued code (or reusable available code), no invalidated_at and no known provider mismatch. Manual/unverified provider status is not proof of acceptance and is not itself an invalidation. The card opens usable=1; consumer code-copy eligibility uses the same rule.
+
+Failed synchronization items are unique webshop connections in error or having failed webhook imports, plus affiliate connections in error/reauthentication_required/auth_failed/rate_limited/unavailable. Multiple webhook failures and a connection error count once. Diagnostic incident records, occurrences and failed jobs are not added to these source items. Resolved source states disappear after the existing cache TTL (60 seconds) and automatic visible-tab refresh; focus also refreshes. The attention=1 operations destination includes webhook-only failures and links to affiliate failures.
+
+GET /admin/affiliate/transactions accepts paired from/to YYYY-MM-DD dates (business timezone, inclusive local days), status and network; rows and totals use identical filters. One missing boundary returns 422. Cockpit commission links open tab=transactions; channel links open tab=vouchers with acquisition_network, from and to forwarded to GET /admin/vouchers. That endpoint also accepts usable=1. Integrations and failed-events accept connection public IDs, filtered server-side before pagination.
+
+Actual HTTP requests/responses, including 200/401/403/422, are captured in [COCKPIT_HTTP_CAPTURE.json](COCKPIT_HTTP_CAPTURE.json), generated by scripts/capture-cockpit.php against an isolated SQLite database and a real local PHP HTTP server. These fixtures do not prove external-provider behavior. Existing local MySQL aggregates are separately reconciled in [COCKPIT_LOCAL_MYSQL.json](COCKPIT_LOCAL_MYSQL.json). The task migration was applied only to local MySQL; no production migration or deployment.
+
+Publication POST accepts optional integer revision (the just-saved draft_revision). The inline editor always sends it. CmsService checks it under the existing row lock; another administrator saving between Save and Publish returns 409 instead of publishing a different draft. Legacy callers omitting revision remain compatible. Actual POST {"locale":"nl","revision":1} returned 409 and revision=2 returned 200 in MERCHANT_LANDING_CAPTURE.json.
+
+
+## Sales attribution reporting and embed consent — 2026-10-31
+
+Local PHP 8.4 HTTP server with a fresh in-memory SQLite fixture per request. No live provider. Full captures: [SALES_ATTRIBUTION_CAPTURE.json](SALES_ATTRIBUTION_CAPTURE.json). The temporary loopback fixture router used X-Fixture-Actor for test authentication; normal clients require the documented workspace/admin authorization.
+
+Consent=true requires consent_id from the latest recorded CMP decision with analytics and marketing enabled and no required policy renewal. Missing/withdrawn/renewal-required records reject assignment (403 tracking_consent_required) and reject consented events per item (202 with rejected count). Config accepts consent_id and returns tracking_allowed with private/no-store caching. Ordinary anonymous legacy event requests remain anonymous; the public embed itself emits no events without consent.
+
+Overview accepts days=7|30|90, with explicit from/to taking precedence, capped at 366 days. sales_series contains zero-filled business-calendar days and currency-separated paid-order/net-sales values; generated_at records report freshness. Attribution links freeze first evidence. Network net values read current order refunds. by_currency is authoritative; mixed-currency legacy scalars are null. wallet_liabilities groups kind/unit, separates pending, and includes available+reserved as outstanding; deprecated wallet_liabilities_reserved_minor is null. invoice_reconciliation explicitly reports provider_not_verified. See [review and storefront bridge contract](../analytics/SALES_ATTRIBUTION_REVIEW.md).
+
+### `GET /api/v1/banners/config`
+
+Actual fixture request:
+
+```http
+GET /api/v1/banners/config?key=pk_attribution_fixture&consent_id=d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834
+Accept: application/json
+Origin: https://example.test
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "campaigns": [
+      {
+        "campaign": "01K00000000000000000000001",
+        "version": 1,
+        "config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "top"
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      }
+    ],
+    "tracking_allowed": true
+  }
+}
+```
+
+### `POST /api/v1/banners/events`
+
+Actual fixture request:
+
+```http
+POST /api/v1/banners/events
+Accept: application/json
+Origin: https://example.test
+Content-Type: application/json
+
+{"key":"pk_attribution_fixture","events":[{"id":"1c557cc8-d03c-47e6-bfb6-ec9c867bb1eb","campaign":"01K00000000000000000000001","version":1,"type":"cta_click","occurred_at":"2026-10-31T13:37:59.348Z","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"}]}
+```
+
+Actual response 202:
+
+```json
+{
+  "data": {
+    "accepted": 1,
+    "duplicates": 0,
+    "rejected": 0,
+    "bots": 0,
+    "click_ids": {
+      "1c557cc8-d03c-47e6-bfb6-ec9c867bb1eb": "bc_83a7ac3409c4daeb5b94c686"
+    }
+  }
+}
+```
+
+### `POST /api/v1/banners/assignments`
+
+Actual fixture request:
+
+```http
+POST /api/v1/banners/assignments
+Accept: application/json
+Origin: https://example.test
+Content-Type: application/json
+
+{"key":"pk_attribution_fixture","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": []
+}
+```
+
+### `GET /api/v1/workspaces/{workspace}/analytics/overview`
+
+Actual fixture request:
+
+```http
+GET /api/v1/workspaces/01k00000000000000000000000/analytics/overview?days=7
+Accept: application/json
+Origin: https://example.test
+X-Fixture-Actor: owner
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "from": "2026-10-24T22:00:00+00:00",
+    "to": "2026-10-31T22:59:59+00:00",
+    "orders": [],
+    "sales_series": [
+      {
+        "date": "2026-10-25",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-26",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-27",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-28",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-29",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-30",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-31",
+        "paid_orders": 0,
+        "orders": []
+      }
+    ],
+    "vouchers": {
+      "reserved": 0,
+      "issued": 0,
+      "redeemed": 0,
+      "redemption_rate": null
+    },
+    "reward_cost": {
+      "currency": "EUR",
+      "reward_minor": 0,
+      "fee_minor": 0,
+      "total_minor": 0
+    },
+    "answer24": {
+      "opportunities": [],
+      "claims": 0
+    },
+    "funding": {
+      "available_minor": 1000000,
+      "reserved_minor": 0
+    },
+    "banner_metrics": {
+      "status": "available",
+      "eligible": 0,
+      "viewable_impressions": 0,
+      "cta_clicks": 0,
+      "dismissals": 0,
+      "ctr": null
+    },
+    "attribution": {
+      "click": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "voucher": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "view": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "unattributed": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "confidence_note": "click > voucher > view > unattributed; success-page visits never count as paid."
+    },
+    "repeats": {
+      "repeat_paid_orders": 0,
+      "definition": "Paid orders whose customer_key already had an earlier paid order in this shop."
+    },
+    "network": {
+      "status": "available",
+      "as_referrer": {
+        "journeys": 0,
+        "currency": null,
+        "network_gmv_minor": 0,
+        "by_currency": []
+      },
+      "as_receiver": {
+        "journeys": 0,
+        "currency": null,
+        "network_gmv_minor": 0,
+        "by_currency": []
+      },
+      "settlement_note": "Cross-shop journeys are recorded for agreed settlement only; ShopBonus never silently deducts the receiving shop Wallet.",
+      "definitions": {
+        "as_referrer": "Paid orders at other shops carrying a consented click ID from this shop.",
+        "as_receiver": "Paid orders at this shop carrying a consented click ID from another shop."
+      }
+    },
+    "attribution_priority": [
+      "click",
+      "voucher",
+      "view",
+      "unattributed"
+    ],
+    "note": "Attributed revenue is association evidence, not incremental lift. Use A/B + holdout for lift.",
+    "timezone": "Europe/Amsterdam",
+    "generated_at": "2026-10-31T13:44:19+00:00"
+  }
+}
+```
+
+### `GET /api/v1/admin/network`
+
+Actual fixture request:
+
+```http
+GET /api/v1/admin/network
+Accept: application/json
+Origin: https://example.test
+X-Fixture-Actor: owner
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "generated_at": "2026-10-31T13:39:52+00:00",
+    "from": "2026-10-01T22:00:00+00:00",
+    "to": "2026-10-31T22:59:59+00:00",
+    "shops": 1,
+    "viewable_exposure": 0,
+    "unique_verified_members": 2,
+    "verified_gmv": {
+      "paid_orders": 0,
+      "currency": null,
+      "net_minor": 0,
+      "by_currency": []
+    },
+    "vouchers": {
+      "earned": 0,
+      "spent": 0
+    },
+    "external_affiliate": {
+      "currency": null,
+      "confirmed_commission_minor": 0,
+      "pending_commission_minor": 0,
+      "reversed_commission_minor": 0,
+      "net_commission_minor": 0,
+      "by_currency": [],
+      "note": "Network contracts differ from the direct 30% merchant fee; gross ≠ profit."
+    },
+    "direct_fees": {
+      "currency": "EUR",
+      "fee_rate_bps": 3000,
+      "settled_fee_minor": 0,
+      "settled_reward_minor": 0
+    },
+    "wallet_liabilities_reserved_minor": null,
+    "wallet_liabilities": [
+      {
+        "kind": "merchant_funding",
+        "unit": "eur_credit",
+        "available": 1000000,
+        "reserved": 0,
+        "pending": 0,
+        "outstanding": 1000000
+      }
+    ],
+    "invoice_reconciliation": {
+      "status": "provider_not_verified",
+      "provider_issued_verified": false,
+      "internal_drafts": 0,
+      "externally_referenced": 0,
+      "note": "An internal draft or external reference is not proof of provider issuance, delivery or payment reconciliation."
+    },
+    "network_journeys": {
+      "count": 0,
+      "currency": null,
+      "gmv_minor": 0,
+      "by_currency": [],
+      "top_referring": [],
+      "top_receiving": []
+    },
+    "unmatched_paid_orders": 0,
+    "limitations": {
+      "moneybird": "Invoice drafts only until Moneybird credentials are configured.",
+      "cross_shop_settlement": "Journeys are recorded; Wallet deduction between shops requires an agreed settlement model.",
+      "live_affiliates": "Daisycon/TradeTracker adapters are fixture-verified; live network accounts NOT VERIFIED."
+    },
+    "period_name": "30d",
+    "timezone": "Europe/Amsterdam"
+  }
+}
+```
+
+### `GET /api/v1/workspaces/{workspace}/analytics/attribution/orders`
+
+Actual fixture request:
+
+```http
+GET /api/v1/workspaces/01k00000000000000000000000/analytics/attribution/orders?type=click
+Accept: application/json
+Origin: https://example.test
+X-Fixture-Actor: owner
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 0
+  },
+  "timezone": "Europe/Amsterdam",
+  "generated_at": "2026-10-31T13:44:34+00:00"
+}
+```
+
+The inline editor also calls the existing generic CMS page schedules endpoint with action=publish, locale, revision and due_at. This queues the reviewed draft while retaining the existing publication until execution. Schedule cancellation uses existing Content Studio. Further draft changes make the queued revision stale.
+
+
+## Homepage CMS review correction — 2026-10-31
+
+Real requests/responses: [HOMEPAGE_HTTP_CAPTURE.json](HOMEPAGE_HTTP_CAPTURE.json), produced by `php scripts/capture-homepage.php` against an isolated SQLite database and a running local PHP HTTP server. Synthetic actors only; temporary tokens/database/server are removed. Captured GET public English homepage, public coupons, admin history (200/401/403). No production credentials or provider calls.
+
+Homepage/coupon HTTP responses now use `Cache-Control: no-store`; Next.js and client public reads also bypass their data caches. Homepage schedule eligibility is evaluated on every read, including the first read after expiry.
+
+Existing PUT `/api/v1/admin/content/homepage` accepts the rendered optional `benefits`, `cta_band`, `faq_teaser` sections with validated plain text and safe CTAs. Section order/visibility accepts those keys. Hero accepts optional `background_mobile_asset_id` and `background_alt`; both desktop/mobile assets must exist. Public content resolves `background_mobile_url`; draft clients strip resolved URLs before saving. POST `/api/v1/admin/content/homepage/assets` remains the existing authenticated, Super Admin image upload (PNG/JPEG/WebP, 4 MB).
+
+GET `/api/v1/admin/content/homepage/versions?locale=en` now includes each immutable revision's resolved `content` for inspection before selecting and confirming restoration. Publish/restore permissions, CSRF, revision-conflict behavior and audit paths are retained. No new endpoint or migration.
+
+
+## About Us inline CMS follow-up — 2026-10-31
+
+Real HTTP evidence: [ABOUT_HTTP_CAPTURE.json](ABOUT_HTTP_CAPTURE.json), generated by `scripts/capture-about.php` on a local PHP server with an isolated SQLite fixture database. No application database or external providers used.
+
+The existing About Us draft contract accepts optional `media.hero`, `media.story` and `media.team` objects containing `desktop_asset_id`, `mobile_asset_id` and required plain-text `alt`. Both IDs must reference uploaded CMS images. Resolved URLs are response-only and must be omitted from draft writes. Existing `/assets` upload supports browser-cropped PNG/JPEG/WebP images.
+
+Admin state resolves media/profile/SEO URLs. Versions now include `content` for explicit comparison before restoration. Restore accepts `locale` (default nl) and rejects a revision from another locale with 404. These are additive response changes; no new endpoint or migration. Public About Us and admin versions use `Cache-Control: no-store, private`. Visibility windows are evaluated on every public request.
+
+Publish accepts optional integer `revision`; the inline editor sends the successfully saved draft revision. A later draft change returns 409 rather than publishing edits that were not reviewed. Existing callers without this optional field remain compatible.
+
+Delayed publication uses the existing generic CMS schedules endpoint with `{action: publish, locale, revision, due_at}`. It pins the successfully saved revision and keeps the current publication until execution. Later saves make pending schedules stale. Scheduler operation remains a deployment requirement.
+
+### `GET /api/v1/content/over-ons?locale=nl` — HTTP 200
+
+```http
+GET /api/v1/content/over-ons?locale=nl
+Accept: application/json
+```
+
+```json
+{
+  "data": {
+    "key": "over-ons",
+    "type": "landing",
+    "locale": "nl",
+    "slug": "over-ons",
+    "content": {
+      "media": {
+        "hero": {
+          "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "alt": "Approved fixture photography",
+          "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+          "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+        }
+      },
+      "title": "Over ShopBonus",
+      "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+      "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+      "seo_image_asset_id": null,
+      "body": {
+        "type": "doc",
+        "content": []
+      },
+      "section_visibility": {
+        "hero": true,
+        "story": true,
+        "revenue_model": true,
+        "values": true,
+        "team": true,
+        "contact": true,
+        "bottom_cta": true
+      },
+      "nav": {
+        "logo_alt": "ShopBonus",
+        "login_label": "Inloggen",
+        "login_href": "/account?mode=login",
+        "cta_label": "Account aanmaken",
+        "cta_href": "/account?mode=register",
+        "links": [
+          {
+            "label": "Webshops",
+            "href": "/webshops"
+          },
+          {
+            "label": "Cashback",
+            "href": "/webshops?has_offers=1"
+          },
+          {
+            "label": "Kortingscodes",
+            "href": "/kortingscodes"
+          },
+          {
+            "label": "Over ons",
+            "href": "/over-ons"
+          },
+          {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        ]
+      },
+      "hero": {
+        "eyebrow": "OVER SHOPBONUS",
+        "heading": "Samen maken we online shoppen",
+        "heading_accent": "voordeliger.",
+        "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+        "cta_label": "Ontdek ons verhaal",
+        "cta_href": "#verhaal",
+        "float_title": "Eerlijk voordeel",
+        "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+        "image_asset_id": null
+      },
+      "story": {
+        "eyebrow": "ONS VERHAAL",
+        "heading": "Een goed idee verdient",
+        "heading_accent": "meer dan korting.",
+        "image_asset_id": null,
+        "paragraphs": [
+          "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+          "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+          "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+        ]
+      },
+      "revenue_model": {
+        "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+        "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+        "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+        "consumer_label": "voor de consument",
+        "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+        "platform_label": "voor ShopBonus",
+        "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+        "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+        "consumer_percent": 70,
+        "platform_percent": 30
+      },
+      "values": {
+        "eyebrow": "WAAR WIJ IN GELOVEN",
+        "heading": "Meer dan alleen kortingen.",
+        "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+        "items": [
+          {
+            "icon": "tag",
+            "title": "Eerlijk voordeel",
+            "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+          },
+          {
+            "icon": "shop",
+            "title": "Vrijheid voor webshops",
+            "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+          },
+          {
+            "icon": "users",
+            "title": "Eenvoud voor iedereen",
+            "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+          }
+        ]
+      },
+      "team": {
+        "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+        "heading": "Een betrokken team met een duidelijke missie.",
+        "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+        "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+        "image_asset_id": null,
+        "show_profiles": false,
+        "profiles": [],
+        "placeholder_label": "Foto oprichter\ntoevoegen"
+      },
+      "contact": {
+        "heading": "Contact met ShopBonus",
+        "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+        "legal_name": "",
+        "address": "",
+        "kvk": "",
+        "email": "",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "/support"
+          },
+          {
+            "label": "Privacy",
+            "href": "/pagina/privacy"
+          },
+          {
+            "label": "Voorwaarden",
+            "href": "/pagina/voorwaarden"
+          },
+          {
+            "label": "Bedrijfsgegevens",
+            "href": "/over-ons#contact"
+          }
+        ]
+      },
+      "bottom_cta": {
+        "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+        "heading": "Samen maken we shoppen",
+        "heading_accent": "slimmer.",
+        "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+        "consumer_cta": {
+          "label": "Ontdek aanbiedingen",
+          "href": "/webshops"
+        },
+        "merchant_cta": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+        }
+      },
+      "footer": {
+        "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+      },
+      "section_order": [
+        "hero",
+        "story",
+        "revenue_model",
+        "values",
+        "team",
+        "contact",
+        "bottom_cta"
+      ]
+    },
+    "revision": 1,
+    "published_at": "2026-10-31T14:12:25+00:00"
+  }
+}
+```
+
+### `GET /api/v1/content/over-ons?locale=en` — HTTP 404
+
+```http
+GET /api/v1/content/over-ons?locale=en
+Accept: application/json
+```
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "About Us page not found.",
+    "request_id": "01a1924e-167f-7165-a315-687e76a3852a"
+  }
+}
+```
+
+### `GET /api/v1/admin/content/over-ons?locale=nl` — HTTP 200
+
+```http
+GET /api/v1/admin/content/over-ons?locale=nl
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+```json
+{
+  "data": {
+    "id": "01m694vws5ez83b71frwyhy414",
+    "key": "over-ons",
+    "type": "landing",
+    "locale": "nl",
+    "slug": "over-ons",
+    "draft_revision": 2,
+    "draft": {
+      "media": {
+        "hero": {
+          "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "alt": "Approved fixture photography",
+          "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+          "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+        }
+      },
+      "title": "Over ShopBonus",
+      "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+      "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+      "seo_image_asset_id": null,
+      "body": {
+        "type": "doc",
+        "content": []
+      },
+      "section_visibility": {
+        "hero": true,
+        "story": true,
+        "revenue_model": true,
+        "values": true,
+        "team": true,
+        "contact": true,
+        "bottom_cta": true
+      },
+      "nav": {
+        "logo_alt": "ShopBonus",
+        "login_label": "Inloggen",
+        "login_href": "/account?mode=login",
+        "cta_label": "Account aanmaken",
+        "cta_href": "/account?mode=register",
+        "links": [
+          {
+            "label": "Webshops",
+            "href": "/webshops"
+          },
+          {
+            "label": "Cashback",
+            "href": "/webshops?has_offers=1"
+          },
+          {
+            "label": "Kortingscodes",
+            "href": "/kortingscodes"
+          },
+          {
+            "label": "Over ons",
+            "href": "/over-ons"
+          },
+          {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        ]
+      },
+      "hero": {
+        "eyebrow": "OVER SHOPBONUS",
+        "heading": "Samen maken we online shoppen",
+        "heading_accent": "voordeliger.",
+        "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+        "cta_label": "Ontdek ons verhaal",
+        "cta_href": "#verhaal",
+        "float_title": "Eerlijk voordeel",
+        "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+        "image_asset_id": null
+      },
+      "story": {
+        "eyebrow": "ONS VERHAAL",
+        "heading": "Een goed idee verdient",
+        "heading_accent": "meer dan korting.",
+        "image_asset_id": null,
+        "paragraphs": [
+          "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+          "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+          "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+        ]
+      },
+      "revenue_model": {
+        "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+        "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+        "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+        "consumer_label": "voor de consument",
+        "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+        "platform_label": "voor ShopBonus",
+        "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+        "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+        "consumer_percent": 70,
+        "platform_percent": 30
+      },
+      "values": {
+        "eyebrow": "WAAR WIJ IN GELOVEN",
+        "heading": "Meer dan alleen kortingen.",
+        "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+        "items": [
+          {
+            "icon": "tag",
+            "title": "Eerlijk voordeel",
+            "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+          },
+          {
+            "icon": "shop",
+            "title": "Vrijheid voor webshops",
+            "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+          },
+          {
+            "icon": "users",
+            "title": "Eenvoud voor iedereen",
+            "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+          }
+        ]
+      },
+      "team": {
+        "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+        "heading": "Een betrokken team met een duidelijke missie.",
+        "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+        "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+        "image_asset_id": null,
+        "show_profiles": false,
+        "profiles": [],
+        "placeholder_label": "Foto oprichter\ntoevoegen"
+      },
+      "contact": {
+        "heading": "Contact met ShopBonus",
+        "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+        "legal_name": "",
+        "address": "",
+        "kvk": "",
+        "email": "",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "/support"
+          },
+          {
+            "label": "Privacy",
+            "href": "/pagina/privacy"
+          },
+          {
+            "label": "Voorwaarden",
+            "href": "/pagina/voorwaarden"
+          },
+          {
+            "label": "Bedrijfsgegevens",
+            "href": "/over-ons#contact"
+          }
+        ]
+      },
+      "bottom_cta": {
+        "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+        "heading": "Samen maken we shoppen",
+        "heading_accent": "slimmer.",
+        "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+        "consumer_cta": {
+          "label": "Ontdek aanbiedingen",
+          "href": "/webshops"
+        },
+        "merchant_cta": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+        }
+      },
+      "footer": {
+        "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+      },
+      "section_order": [
+        "hero",
+        "story",
+        "revenue_model",
+        "values",
+        "team",
+        "contact",
+        "bottom_cta"
+      ]
+    },
+    "published": {
+      "media": {
+        "hero": {
+          "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "alt": "Approved fixture photography",
+          "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+          "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+        }
+      },
+      "title": "Over ShopBonus",
+      "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+      "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+      "seo_image_asset_id": null,
+      "body": {
+        "type": "doc",
+        "content": []
+      },
+      "section_visibility": {
+        "hero": true,
+        "story": true,
+        "revenue_model": true,
+        "values": true,
+        "team": true,
+        "contact": true,
+        "bottom_cta": true
+      },
+      "nav": {
+        "logo_alt": "ShopBonus",
+        "login_label": "Inloggen",
+        "login_href": "/account?mode=login",
+        "cta_label": "Account aanmaken",
+        "cta_href": "/account?mode=register",
+        "links": [
+          {
+            "label": "Webshops",
+            "href": "/webshops"
+          },
+          {
+            "label": "Cashback",
+            "href": "/webshops?has_offers=1"
+          },
+          {
+            "label": "Kortingscodes",
+            "href": "/kortingscodes"
+          },
+          {
+            "label": "Over ons",
+            "href": "/over-ons"
+          },
+          {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        ]
+      },
+      "hero": {
+        "eyebrow": "OVER SHOPBONUS",
+        "heading": "Samen maken we online shoppen",
+        "heading_accent": "voordeliger.",
+        "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+        "cta_label": "Ontdek ons verhaal",
+        "cta_href": "#verhaal",
+        "float_title": "Eerlijk voordeel",
+        "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+        "image_asset_id": null
+      },
+      "story": {
+        "eyebrow": "ONS VERHAAL",
+        "heading": "Een goed idee verdient",
+        "heading_accent": "meer dan korting.",
+        "image_asset_id": null,
+        "paragraphs": [
+          "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+          "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+          "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+        ]
+      },
+      "revenue_model": {
+        "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+        "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+        "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+        "consumer_label": "voor de consument",
+        "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+        "platform_label": "voor ShopBonus",
+        "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+        "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+        "consumer_percent": 70,
+        "platform_percent": 30
+      },
+      "values": {
+        "eyebrow": "WAAR WIJ IN GELOVEN",
+        "heading": "Meer dan alleen kortingen.",
+        "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+        "items": [
+          {
+            "icon": "tag",
+            "title": "Eerlijk voordeel",
+            "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+          },
+          {
+            "icon": "shop",
+            "title": "Vrijheid voor webshops",
+            "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+          },
+          {
+            "icon": "users",
+            "title": "Eenvoud voor iedereen",
+            "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+          }
+        ]
+      },
+      "team": {
+        "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+        "heading": "Een betrokken team met een duidelijke missie.",
+        "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+        "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+        "image_asset_id": null,
+        "show_profiles": false,
+        "profiles": [],
+        "placeholder_label": "Foto oprichter\ntoevoegen"
+      },
+      "contact": {
+        "heading": "Contact met ShopBonus",
+        "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+        "legal_name": "",
+        "address": "",
+        "kvk": "",
+        "email": "",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "/support"
+          },
+          {
+            "label": "Privacy",
+            "href": "/pagina/privacy"
+          },
+          {
+            "label": "Voorwaarden",
+            "href": "/pagina/voorwaarden"
+          },
+          {
+            "label": "Bedrijfsgegevens",
+            "href": "/over-ons#contact"
+          }
+        ]
+      },
+      "bottom_cta": {
+        "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+        "heading": "Samen maken we shoppen",
+        "heading_accent": "slimmer.",
+        "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+        "consumer_cta": {
+          "label": "Ontdek aanbiedingen",
+          "href": "/webshops"
+        },
+        "merchant_cta": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+        }
+      },
+      "footer": {
+        "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+      },
+      "section_order": [
+        "hero",
+        "story",
+        "revenue_model",
+        "values",
+        "team",
+        "contact",
+        "bottom_cta"
+      ]
+    },
+    "published_revision": 1,
+    "published_at": "2026-10-31T14:12:25+00:00",
+    "draft_updated_at": "2026-10-31T14:12:25+00:00"
+  }
+}
+```
+
+### `GET /api/v1/admin/content/over-ons/versions?locale=nl` — HTTP 200
+
+```http
+GET /api/v1/admin/content/over-ons/versions?locale=nl
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "01m694vxbb3pn6890a64qzw2kt",
+      "locale": "nl",
+      "number": 1,
+      "restored_from": null,
+      "published_by": "Lisa",
+      "published_at": "2026-10-31T14:12:25+00:00",
+      "content": {
+        "media": {
+          "hero": {
+            "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+            "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+            "alt": "Approved fixture photography",
+            "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+            "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+          }
+        },
+        "title": "Over ShopBonus",
+        "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+        "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+        "seo_image_asset_id": null,
+        "body": {
+          "type": "doc",
+          "content": []
+        },
+        "section_visibility": {
+          "hero": true,
+          "story": true,
+          "revenue_model": true,
+          "values": true,
+          "team": true,
+          "contact": true,
+          "bottom_cta": true
+        },
+        "nav": {
+          "logo_alt": "ShopBonus",
+          "login_label": "Inloggen",
+          "login_href": "/account?mode=login",
+          "cta_label": "Account aanmaken",
+          "cta_href": "/account?mode=register",
+          "links": [
+            {
+              "label": "Webshops",
+              "href": "/webshops"
+            },
+            {
+              "label": "Cashback",
+              "href": "/webshops?has_offers=1"
+            },
+            {
+              "label": "Kortingscodes",
+              "href": "/kortingscodes"
+            },
+            {
+              "label": "Over ons",
+              "href": "/over-ons"
+            },
+            {
+              "label": "Voor webshops",
+              "href": "/voor-webshops"
+            }
+          ]
+        },
+        "hero": {
+          "eyebrow": "OVER SHOPBONUS",
+          "heading": "Samen maken we online shoppen",
+          "heading_accent": "voordeliger.",
+          "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+          "cta_label": "Ontdek ons verhaal",
+          "cta_href": "#verhaal",
+          "float_title": "Eerlijk voordeel",
+          "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+          "image_asset_id": null
+        },
+        "story": {
+          "eyebrow": "ONS VERHAAL",
+          "heading": "Een goed idee verdient",
+          "heading_accent": "meer dan korting.",
+          "image_asset_id": null,
+          "paragraphs": [
+            "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+            "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+            "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+          ]
+        },
+        "revenue_model": {
+          "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+          "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+          "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+          "consumer_label": "voor de consument",
+          "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+          "platform_label": "voor ShopBonus",
+          "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+          "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden."
+        },
+        "values": {
+          "eyebrow": "WAAR WIJ IN GELOVEN",
+          "heading": "Meer dan alleen kortingen.",
+          "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+          "items": [
+            {
+              "icon": "tag",
+              "title": "Eerlijk voordeel",
+              "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+            },
+            {
+              "icon": "shop",
+              "title": "Vrijheid voor webshops",
+              "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+            },
+            {
+              "icon": "users",
+              "title": "Eenvoud voor iedereen",
+              "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+            }
+          ]
+        },
+        "team": {
+          "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+          "heading": "Een betrokken team met een duidelijke missie.",
+          "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+          "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+          "image_asset_id": null,
+          "show_profiles": false,
+          "profiles": [],
+          "placeholder_label": "Foto oprichter\ntoevoegen"
+        },
+        "contact": {
+          "heading": "Contact met ShopBonus",
+          "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+          "legal_name": "",
+          "address": "",
+          "kvk": "",
+          "email": "",
+          "links": [
+            {
+              "label": "Contact",
+              "href": "/support"
+            },
+            {
+              "label": "Privacy",
+              "href": "/pagina/privacy"
+            },
+            {
+              "label": "Voorwaarden",
+              "href": "/pagina/voorwaarden"
+            },
+            {
+              "label": "Bedrijfsgegevens",
+              "href": "/over-ons#contact"
+            }
+          ]
+        },
+        "bottom_cta": {
+          "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+          "heading": "Samen maken we shoppen",
+          "heading_accent": "slimmer.",
+          "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+          "consumer_cta": {
+            "label": "Ontdek aanbiedingen",
+            "href": "/webshops"
+          },
+          "merchant_cta": {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        },
+        "footer": {
+          "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+        },
+        "section_order": [
+          "hero",
+          "story",
+          "revenue_model",
+          "values",
+          "team",
+          "contact",
+          "bottom_cta"
+        ]
+      }
+    }
+  ]
+}
+```
+
+### `GET /api/v1/admin/content/over-ons/versions?locale=nl` — HTTP 401
+
+```http
+GET /api/v1/admin/content/over-ons/versions?locale=nl
+Accept: application/json
+```
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a1924e-2e94-71ea-b7d0-456c56ae0dd4"
+  }
+}
+```
+
+
+
+### Live storefront editor correction — 2026-10-31
+
+GET /api/v1/banners/config now includes editor_origin from FRONTEND_URL and per-campaign reward {threshold_minor,currency} from scoped linked offer terms (null when absent). The embed trusts no message until this origin is loaded. GET /api/v1/banners/editor/campaigns/{banner} returns the same reward metadata alongside the private draft. Bounded 15-second revalidation refreshes published versions, pause and rollback on visible storefronts.
+
+Draft create/save/editor-save configs accept optional placement.width (160–720 px), placement.height (80–800 px), and ordered layers: exactly one each of text/image/cta; visible boolean, align left/center/right, font_size 10–40 and width_pct 20–100. Existing configs remain valid. AI proposals generate these layers; acceptance still creates a private test draft and requires manual publishing.
+
+Real local HTTP examples (isolated SQLite, synthetic fixtures, backend base 59916e9 plus uncommitted patch) are in [BANNER_STUDIO_HTTP_CAPTURE.json](BANNER_STUDIO_HTTP_CAPTURE.json). Reproduce with php scripts/capture-banner-studio.php. No production credentials or provider acceptance implied.
+
+Captured requests/responses:
+
+The AI GET/index captures use a synthetic provider response generated through Http::fake, not a live model. Returned layer layouts are from the real running API.
+
+Request: `GET /api/v1/banners/config?key=pk_mszh1ylgmkocxqx3rdnnb4cw` with `Origin: https://banner-fixture.test`
+
+HTTP 200
+```json
+{
+  "data": {
+    "editor_origin": "http://localhost:3000",
+    "campaigns": [
+      {
+        "campaign": "01m6by27yyr6tcfp454xztxk8a",
+        "version": 1,
+        "config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "top",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        "reward": {
+          "threshold_minor": 10000,
+          "currency": "EUR"
+        }
+      }
+    ]
+  }
+}
+```
+
+Request: `GET /api/v1/banners/editor/campaigns/01m6by27yyr6tcfp454xztxk8a` with `Origin: https://banner-fixture.test` and `X-Banner-Editor-Token: <isolated-fixture>`
+
+HTTP 200
+```json
+{
+  "data": {
+    "id": "01m6by27yyr6tcfp454xztxk8a",
+    "name": "Isolated studio fixture",
+    "draft_revision": 1,
+    "draft_config": {
+      "template": "ribbon",
+      "placement": {
+        "anchor": "top",
+        "width": 360,
+        "height": 180
+      },
+      "content": {
+        "heading": "Next-purchase reward",
+        "subtitle": "Approved offer terms apply",
+        "cta_label": "View offer",
+        "cta_url": "https://example.nl/rewards",
+        "terms": "Original terms"
+      },
+      "style": {
+        "background": "#123456",
+        "text": "#FFFFFF",
+        "font": "inter",
+        "animation": "none"
+      },
+      "frequency": {
+        "per_session": 1,
+        "hide_after_dismiss": true
+      },
+      "triggers": {
+        "all": [
+          {
+            "type": "url_match",
+            "value": "/collections/*"
+          }
+        ]
+      },
+      "layers": [
+        {
+          "type": "text",
+          "visible": true,
+          "align": "left",
+          "font_size": 16,
+          "width_pct": 100
+        },
+        {
+          "type": "image",
+          "visible": true,
+          "align": "left",
+          "font_size": 16,
+          "width_pct": 100
+        },
+        {
+          "type": "cta",
+          "visible": true,
+          "align": "left",
+          "font_size": 16,
+          "width_pct": 100
+        }
+      ],
+      "devices": [
+        "desktop",
+        "mobile"
+      ]
+    },
+    "reward": {
+      "threshold_minor": 10000,
+      "currency": "EUR"
+    }
+  }
+}
+```
+
+Request: `GET /api/v1/banners/editor/campaigns/01m6by27yyr6tcfp454xztxk8a` with `Origin: https://banner-fixture.test`
+
+HTTP 401
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "editor_token_invalid",
+    "message": "Editor session expired or not valid for this site.",
+    "request_id": "01a197e1-2c0f-720f-84b1-085c48e5e33b"
+  }
+}
+```
+
+Request: `GET /api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests/01m6by282tesf9vb3wcm5mdypf` with `Origin: https://banner-fixture.test` and `Bearer <isolated-fixture>`
+
+HTTP 200
+```json
+{
+  "data": {
+    "id": "01m6by282tesf9vb3wcm5mdypf",
+    "kind": "designs",
+    "status": "completed",
+    "failure_code": null,
+    "source_revision": 1,
+    "evidence": {
+      "E1": {
+        "template": "ribbon",
+        "anchor": "top",
+        "style": {
+          "background": "#123456",
+          "text": "#FFFFFF",
+          "font": "inter"
+        }
+      },
+      "E2": {
+        "reward_minor": 1000,
+        "fee_minor": 300,
+        "total_minor": 1300,
+        "basis": "fixed",
+        "min_order_minor": 10000,
+        "currency": "EUR"
+      }
+    },
+    "proposals": [
+      {
+        "index": 0,
+        "hypothesis": "Test placement bottom and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+        "evidence_refs": [
+          "E1"
+        ],
+        "editable_config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "bottom",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      },
+      {
+        "index": 1,
+        "hypothesis": "Test placement top and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+        "evidence_refs": [
+          "E1"
+        ],
+        "editable_config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "top",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      },
+      {
+        "index": 2,
+        "hypothesis": "Test placement bottom_right and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+        "evidence_refs": [
+          "E1"
+        ],
+        "editable_config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "bottom_right",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      }
+    ],
+    "review": null,
+    "human_review_required": true,
+    "measured_uplift": null
+  }
+}
+```
+
+Request: `GET /api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests` with `Origin: https://banner-fixture.test` and `Bearer <isolated-fixture>`
+
+HTTP 200
+```json
+{
+  "current_page": 1,
+  "data": [
+    {
+      "id": "01m6by282tesf9vb3wcm5mdypf",
+      "kind": "designs",
+      "status": "completed",
+      "failure_code": null,
+      "source_revision": 1,
+      "evidence": {
+        "E1": {
+          "template": "ribbon",
+          "anchor": "top",
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter"
+          }
+        },
+        "E2": {
+          "reward_minor": 1000,
+          "fee_minor": 300,
+          "total_minor": 1300,
+          "basis": "fixed",
+          "min_order_minor": 10000,
+          "currency": "EUR"
+        }
+      },
+      "proposals": [
+        {
+          "index": 0,
+          "hypothesis": "Test placement bottom and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+          "evidence_refs": [
+            "E1"
+          ],
+          "editable_config": {
+            "template": "ribbon",
+            "placement": {
+              "anchor": "bottom",
+              "width": 360,
+              "height": 180
+            },
+            "content": {
+              "heading": "Next-purchase reward",
+              "subtitle": "Approved offer terms apply",
+              "cta_label": "View offer",
+              "cta_url": "https://example.nl/rewards",
+              "terms": "Original terms"
+            },
+            "style": {
+              "background": "#123456",
+              "text": "#FFFFFF",
+              "font": "inter",
+              "animation": "none"
+            },
+            "frequency": {
+              "per_session": 1,
+              "hide_after_dismiss": true
+            },
+            "triggers": {
+              "all": [
+                {
+                  "type": "url_match",
+                  "value": "/collections/*"
+                }
+              ]
+            },
+            "layers": [
+              {
+                "type": "text",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "image",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "cta",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              }
+            ],
+            "devices": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        },
+        {
+          "index": 1,
+          "hypothesis": "Test placement top and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+          "evidence_refs": [
+            "E1"
+          ],
+          "editable_config": {
+            "template": "ribbon",
+            "placement": {
+              "anchor": "top",
+              "width": 360,
+              "height": 180
+            },
+            "content": {
+              "heading": "Next-purchase reward",
+              "subtitle": "Approved offer terms apply",
+              "cta_label": "View offer",
+              "cta_url": "https://example.nl/rewards",
+              "terms": "Original terms"
+            },
+            "style": {
+              "background": "#123456",
+              "text": "#FFFFFF",
+              "font": "inter",
+              "animation": "none"
+            },
+            "frequency": {
+              "per_session": 1,
+              "hide_after_dismiss": true
+            },
+            "triggers": {
+              "all": [
+                {
+                  "type": "url_match",
+                  "value": "/collections/*"
+                }
+              ]
+            },
+            "layers": [
+              {
+                "type": "text",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "image",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "cta",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              }
+            ],
+            "devices": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        },
+        {
+          "index": 2,
+          "hypothesis": "Test placement bottom_right and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+          "evidence_refs": [
+            "E1"
+          ],
+          "editable_config": {
+            "template": "ribbon",
+            "placement": {
+              "anchor": "bottom_right",
+              "width": 360,
+              "height": 180
+            },
+            "content": {
+              "heading": "Next-purchase reward",
+              "subtitle": "Approved offer terms apply",
+              "cta_label": "View offer",
+              "cta_url": "https://example.nl/rewards",
+              "terms": "Original terms"
+            },
+            "style": {
+              "background": "#123456",
+              "text": "#FFFFFF",
+              "font": "inter",
+              "animation": "none"
+            },
+            "frequency": {
+              "per_session": 1,
+              "hide_after_dismiss": true
+            },
+            "triggers": {
+              "all": [
+                {
+                  "type": "url_match",
+                  "value": "/collections/*"
+                }
+              ]
+            },
+            "layers": [
+              {
+                "type": "text",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "image",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "cta",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              }
+            ],
+            "devices": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        }
+      ],
+      "review": null,
+      "human_review_required": true,
+      "measured_uplift": null
+    }
+  ],
+  "first_page_url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+  "from": 1,
+  "last_page": 1,
+  "last_page_url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+  "links": [
+    {
+      "url": null,
+      "label": "&laquo; Previous",
+      "page": null,
+      "active": false
+    },
+    {
+      "url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+      "label": "1",
+      "page": 1,
+      "active": true
+    },
+    {
+      "url": null,
+      "label": "Next &raquo;",
+      "page": null,
+      "active": false
+    }
+  ],
+  "next_page_url": null,
+  "path": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests",
+  "per_page": 20,
+  "prev_page_url": null,
+  "to": 1,
+  "total": 1
+}
+```
+
+## Affiliate detail correction — 2026-11-01
+
+Captured from a real local PHP 8.5 HTTP server with an isolated SQLite database and synthetic actors. Source: [AFFILIATE_DETAIL_HTTP_CAPTURE.json](AFFILIATE_DETAIL_HTTP_CAPTURE.json), reproducible with scripts/capture-affiliate-detail.php. Earlier examples are historical.
+
+New affiliate rewards require network approval plus independently recorded receipt of network funds. Approval is not settlement. Pending wallet rows remain unavailable. Combined promotions require reviewed advertiser permission for the selected network/account/program and unexpired terms; a merchant combinable boolean alone does not grant permission. Generated covers accept width=640, 960 or 1536, falling back to the original when no variant exists.
+
+### GET /api/v1/public/webshops/affiliate-fixture
+
+Request: GET /api/v1/public/webshops/affiliate-fixture (public)
+
+Response: HTTP 200
+
+```json
+{
+  "data": {
+    "slug": "affiliate-fixture",
+    "name": "Affiliate capture fixture",
+    "short_description": null,
+    "logo_url": null,
+    "cover_url": null,
+    "categories": [],
+    "badge_label": null,
+    "cashback_label": null,
+    "description": null,
+    "website_url": null,
+    "benefits": [],
+    "offers": []
+  }
+}
+```
+
+### GET /api/v1/consumer/wallet/transactions?filter=pending
+
+Request: GET /api/v1/consumer/wallet/transactions?filter=pending with Authorization: Bearer <redacted>
+
+Response: HTTP 200
+
+```json
+{
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 0
+  }
+}
+```
+
+### GET /api/v1/consumer/affiliate-activity?locale=en
+
+Request: GET /api/v1/consumer/affiliate-activity?locale=en with Authorization: Bearer <redacted>
+
+Response: HTTP 200
+
+```json
+{
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 0
+  },
+  "notice": "Cashback becomes available after approval and receipt of the network payment. Checkout reservations are separate."
+}
+```
+
+### GET /api/v1/public/webshops/affiliate-fixture/cover?width=640
+
+Request: GET /api/v1/public/webshops/affiliate-fixture/cover?width=640 (public)
+
+Response: HTTP 404
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Cover not found.",
+    "request_id": "01a197e5-86b9-73e9-b2c6-672475d708da"
+  }
+}
+```
+
+## CMS reviewed publication repair — 2026-11-02
+
+Manual publication requires `revision` (integer >= 1) from the draft/preview being reviewed. Preview now returns `draft_revision`. Save/restore increments the draft revision; a stale Publish returns 409 `draft_changed` without a new public revision. Missing revision returns 422. All CMS publishers must send this field, including legal publication with version, date and approval. Public page/index/FAQ/cookie-policy responses use no-store; existing Laravel versioned caching remains.
+
+Real local HTTP server + isolated SQLite fixture and synthetic signed-in session; no production data. Captures: [CMS_REVIEW_HTTP_CAPTURE.json](CMS_REVIEW_HTTP_CAPTURE.json).
+
+`GET /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/preview`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"locale":"nl","slug":"review-http","content":{"title":"Reviewed legal text","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}},"draft_revision":1,"preview":true}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish`
+
+Request body: `{"legal_version":"review-2026.11","effective_date":"2026-11-02","approve":true}`
+
+HTTP 422 captured response:
+
+```json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19aa9-a880-73d3-a604-eeb2dcccc188","fields":{"revision":["The revision field is required."]}}}
+```
+
+`PUT /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl`
+
+Request body: `{"revision":1,"content":{"title":"New unreviewed draft","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}}}`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"locale":"nl","slug":"review-http","draft_revision":2}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish`
+
+Request body: `{"legal_version":"review-2026.11","effective_date":"2026-11-02","approve":true,"revision":1}`
+
+HTTP 409 captured response:
+
+```json
+{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a19aa9-ad5a-7171-8ffd-492186505283"}}
+```
+
+`GET /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/preview`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"locale":"nl","slug":"review-http","content":{"title":"New unreviewed draft","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}},"draft_revision":2,"preview":true}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish`
+
+Request body: `{"legal_version":"review-2026.11","effective_date":"2026-11-02","approve":true,"revision":2}`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"id":"01m6dakckbmy9asbrdhaayp2jf","locale":"nl","number":1,"legal_version":"review-2026.11","effective_date":"2026-11-02","approved_by":"Olaf","published_by":"Olaf","restored_from":null,"published_at":"2026-11-02T05:09:34+00:00"}}
+```
+
+`GET /api/v1/public/pages/nl/review-http`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"key":"review-http","type":"terms","locale":"nl","slug":"review-http","content":{"title":"New unreviewed draft","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}},"legal":{"version":"review-2026.11","effective_date":"2026-11-02"},"revision":1,"published_at":"2026-11-02T05:09:34+00:00","alternates":{"nl":"review-http"}}}
+```
+
+`GET /api/v1/public/faq?locale=en`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":[]}
+```
+
+`GET /api/v1/public/cookie-policy?locale=en`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"version":null,"categories":[{"key":"necessary","required":true,"trackers":[]}],"texts":null,"requires_reconsent":false}}
+```

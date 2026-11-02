@@ -1,0 +1,26 @@
+{
+    "environment": "Local PHPUnit HTTP kernel, SQLite memory, array cache, sequential, throttling disabled",
+    "shops": 200,
+    "offers": 1000,
+    "codes": 2000,
+    "paths": [
+        "/api/v1/public/webshops?search=Benchmark&sort=most_offers&per_page=12",
+        "/api/v1/public/webshops?search=Shop&category=home_living&has_offers=1&sort=most_offers&per_page=12",
+        "/api/v1/public/webshops?search=Shop%201&sort=name&per_page=12",
+        "/api/v1/public/webshops?search=no-match&sort=most_offers&per_page=12"
+    ],
+    "results": {
+        "cold": {
+            "samples": 100,
+            "p50_ms": 168.64,
+            "p95_ms": 431.16,
+            "max_ms": 1413.65
+        },
+        "warm": {
+            "samples": 100,
+            "p50_ms": 10.82,
+            "p95_ms": 62.97,
+            "max_ms": 926.16
+        }
+    }
+}

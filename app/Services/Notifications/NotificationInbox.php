@@ -25,6 +25,10 @@ final class NotificationInbox
     public function visible(User $user): Builder
     {
         return CentralNotification::query()->where('in_app_enabled', true)->where('notifiable_type', $user->getMorphClass())->where('notifiable_id', $user->id)
+            ->whereNotExists(function ($q) {
+                $q->selectRaw('1')->from('merchant_notifications as legacy')
+                    ->whereColumn('legacy.id', 'notifications.legacy_notification_id')->whereNotNull('legacy.resolved_at');
+            })
             ->where(function (Builder $scope) use ($user) {
                 $scope->where('recipient_type', 'consumer')->whereNull('webshop_id')
                     ->orWhere(function (Builder $workspace) use ($user) {

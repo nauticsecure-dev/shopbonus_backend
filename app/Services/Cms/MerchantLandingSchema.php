@@ -29,7 +29,7 @@ final class MerchantLandingSchema
     public function validate(array $content): array
     {
         $allowed = [
-            'title', 'seo_title', 'seo_description', 'seo_image_asset_id', 'body',
+            'title', 'seo_title', 'seo_description', 'seo_image_asset_id', 'body', 'media',
             'section_order', 'section_visibility', 'nav', 'hero', 'platforms',
             'benefits', 'offer_preview', 'onboarding', 'bottom_cta', 'faq', 'footer', 'schedule',
         ];
@@ -38,6 +38,11 @@ final class MerchantLandingSchema
         }
 
         $data = Validator::make($content, [
+            'media' => ['sometimes', 'array:hero_background,hero,benefits,offers'],
+            'media.*' => ['array:desktop_asset_id,mobile_asset_id,alt'],
+            'media.*.desktop_asset_id' => ['nullable', 'string', 'max:40'],
+            'media.*.mobile_asset_id' => ['nullable', 'string', 'max:40'],
+            'media.*.alt' => ['required', 'string', 'max:200', 'not_regex:/[<>]/'],
             'title' => ['required', 'string', 'max:120', 'not_regex:/[<>]/'],
             'seo_title' => ['sometimes', 'nullable', 'string', 'max:70', 'not_regex:/[<>]/'],
             'seo_description' => ['sometimes', 'nullable', 'string', 'max:160', 'not_regex:/[<>]/'],
@@ -64,6 +69,13 @@ final class MerchantLandingSchema
         $this->rejectBanned($data['seo_title'] ?? '', 'content.seo_title');
         $this->rejectBanned($data['seo_description'] ?? '', 'content.seo_description');
 
+        foreach ($data['media'] ?? [] as $slot => $media) {
+            foreach (['desktop_asset_id', 'mobile_asset_id'] as $variant) {
+                if (! empty($media[$variant])) {
+                    $this->assertAsset($media[$variant], "content.media.{$slot}.{$variant}");
+                }
+            }
+        }
         if (! empty($data['seo_image_asset_id'])) {
             $this->assertAsset($data['seo_image_asset_id'], 'content.seo_image_asset_id');
         }
@@ -455,6 +467,7 @@ final class MerchantLandingSchema
             'cta_href' => ['sometimes', 'nullable', 'string', 'max:500'],
             'tiles' => ['sometimes', 'array', 'max:20'],
             'tiles.*.platform' => ['required', 'string', 'max:40', 'regex:/^[a-z0-9_]+$/'],
+            'tiles.*.description' => ['sometimes', 'nullable', 'string', 'max:400', 'not_regex:/[<>]/'],
             'tiles.*.name' => ['required', 'string', 'max:80', 'not_regex:/[<>]/'],
             'tiles.*.status' => ['required', Rule::in(self::PLATFORM_STATUSES)],
             'tiles.*.href' => ['required', 'string', 'max:500'],
@@ -613,8 +626,15 @@ final class MerchantLandingSchema
     private function footer(array $footer): array
     {
         $data = Validator::make($footer, [
+            'links' => ['sometimes', 'array', 'max:12'],
+            'links.*.label' => ['required', 'string', 'max:80', 'not_regex:/[<>]/'],
+            'links.*.href' => ['required', 'string', 'max:500'],
             'blurb' => ['sometimes', 'nullable', 'string', 'max:400', 'not_regex:/[<>]/'],
         ])->validate();
+        foreach ($data['links'] ?? [] as $i => $link) {
+            $this->assertHref($link['href'], "content.footer.links.{$i}.href");
+            $this->rejectBanned($link['label'], "content.footer.links.{$i}.label");
+        }
         if (isset($data['blurb'])) {
             $this->rejectBanned($data['blurb'], 'content.footer.blurb');
         }

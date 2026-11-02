@@ -57,9 +57,50 @@ class MerchantCoverGenerator
             throw new ProviderFailure('invalid_cover_output');
         }
 
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagewebp')) {
+            throw new ProviderFailure('cover_codec_unavailable');
+        }
+        $info = @getimagesizefromstring($binary);
+        if ($info === false || ! in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)
+            || $info[0] < 640 || $info[1] < 320 || $info[0] > 4096 || $info[1] > 4096 || $info[0] * $info[1] > 12_000_000) {
+            throw new ProviderFailure('invalid_cover_output');
+        }
+        $image = @imagecreatefromstring($binary);
+        if ($image === false) {
+            throw new ProviderFailure('invalid_cover_output');
+        }
         $path = 'public-profiles/'.$webshopPublicId.'/cover-'.Str::lower((string) Str::ulid()).'.webp';
-        if (Storage::disk(PublicProfileService::DISK)->put($path, $binary) === false) {
-            throw new ProviderFailure('cover_storage_unavailable');
+        $written = [];
+        try {
+            foreach ([640, 960, 1536] as $width) {
+                $targetWidth = min($width, $info[0]);
+                $height = max(1, (int) round($info[1] * $targetWidth / $info[0]));
+                $variant = imagescale($image, $targetWidth, $height, IMG_BICUBIC_FIXED);
+                if ($variant === false) {
+                    throw new ProviderFailure('invalid_cover_output');
+                }
+                ob_start();
+                try {
+                    $ok = imagewebp($variant, null, 82);
+                    $bytes = ob_get_contents();
+                } finally {
+                    ob_end_clean();
+                    imagedestroy($variant);
+                }
+                if (! $ok || ! is_string($bytes) || $bytes === '' || @getimagesizefromstring($bytes) === false) {
+                    throw new ProviderFailure('invalid_cover_output');
+                }
+                $variantPath = $width === 1536 ? $path : substr($path, 0, -5).'-'.$width.'.webp';
+                if (! Storage::disk(PublicProfileService::DISK)->put($variantPath, $bytes)) {
+                    throw new ProviderFailure('cover_storage_unavailable');
+                }
+                $written[] = $variantPath;
+            }
+        } catch (Throwable $e) {
+            Storage::disk(PublicProfileService::DISK)->delete($written);
+            throw $e;
+        } finally {
+            imagedestroy($image);
         }
 
         return ['path' => $path, 'mime' => 'image/webp'];

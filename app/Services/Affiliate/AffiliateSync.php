@@ -36,6 +36,7 @@ class AffiliateSync
             return ['programs' => 0, 'transactions' => 0, 'error' => 'connection_disabled'];
         }
         $adapter = $this->registry->for($connection->network);
+        $syncStartedAt = now();
 
         try {
             $programs = $adapter->fetchPrograms($connection);
@@ -52,13 +53,13 @@ class AffiliateSync
             return ['programs' => 0, 'transactions' => 0, 'error' => $error];
         }
 
-        return DB::transaction(function () use ($connection, $programs, $transactions): array {
+        return DB::transaction(function () use ($connection, $programs, $transactions, $syncStartedAt): array {
             $locked = AffiliateConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
             // A disable while the provider was responding must stop ingestion too.
             if ($locked->status === 'disabled') {
                 return ['programs' => 0, 'transactions' => 0, 'error' => 'connection_disabled'];
             }
-            if ($locked->network === 'tradetracker') {
+            if (in_array($locked->network, ['tradetracker', 'daisycon'], true)) {
                 // The completed SOAP pull is an authoritative full program snapshot.
                 AffiliateProgram::where('connection_id', $locked->id)->update(['active' => false]);
             }
@@ -66,7 +67,7 @@ class AffiliateSync
             foreach ($transactions as $data) {
                 $this->processor->ingest($locked, $data, 'sync');
             }
-            $locked->forceFill(['last_synced_at' => now(), 'last_error' => null, 'status' => 'connected'])->save();
+            $locked->forceFill(['last_synced_at' => $syncStartedAt, 'last_error' => null, 'status' => 'connected'])->save();
 
             return ['programs' => count($programs), 'transactions' => count($transactions), 'error' => null];
         });

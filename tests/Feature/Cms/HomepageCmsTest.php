@@ -15,7 +15,9 @@ use App\Services\Cms\CmsCache;
 use App\Services\Cms\CmsService;
 use App\Services\Offers\OfferService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\Concerns\InteractsWithIdentity;
@@ -59,7 +61,7 @@ class HomepageCmsTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/homepage?locale=nl')
             ->assertOk()
-            ->assertHeader('Cache-Control', 'max-age=60, public')
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('data.content.title', 'ShopBonus')
             ->assertJsonPath('data.content.hero.heading', "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.");
     }
@@ -161,6 +163,42 @@ class HomepageCmsTest extends TestCase
                 'primary_cta' => ['label' => 'Go', 'href' => '/webshops'],
             ],
         ])->assertUnprocessable();
+    }
+
+    public function test_extended_homepage_sections_and_responsive_images_are_validated(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/homepage?locale=en')->json('data');
+        $content = $state['draft'];
+        $content['section_order'] = ['search', 'hero', 'benefits', 'cta_band', 'faq_teaser'];
+        $content['benefits'] = ['heading' => 'Benefits', 'consumer_title' => 'Consumers', 'consumer_items' => ['Save credit'], 'merchant_title' => 'Merchants', 'merchant_items' => ['Reach shoppers']];
+        $content['cta_band'] = ['heading' => 'Start', 'subtitle' => 'Join us', 'consumer_cta' => ['label' => 'Join', 'href' => '/account'], 'merchant_cta' => ['label' => 'Register', 'href' => '/voor-webshops']];
+        $content['faq_teaser'] = ['heading' => 'FAQ', 'subtitle' => 'Answers', 'cta_label' => 'Read more', 'cta_href' => '/faq'];
+        Storage::fake('local');
+        $asset = $this->post('/api/v1/admin/content/homepage/assets', ['image' => UploadedFile::fake()->image('hero.png', 100, 100)], ['Accept' => 'application/json'])->assertCreated()->json('data');
+        $content['hero']['background_mobile_asset_id'] = $asset['id'];
+        $this->putJson('/api/v1/admin/content/homepage?locale=en', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=en')->assertOk();
+        $this->getJson('/api/v1/content/homepage?locale=en')->assertOk()->assertJsonPath('data.content.hero.background_mobile_url', $asset['url'])->assertJsonPath('data.content.section_order.0', 'search');
+        $revision = $this->getJson('/api/v1/admin/content/homepage?locale=en')->json('data.draft_revision');
+        $content['faq_teaser']['cta_href'] = 'javascript:alert(1)';
+        $this->putJson('/api/v1/admin/content/homepage?locale=en', ['revision' => $revision, 'content' => $content])->assertUnprocessable();
+        $content['faq_teaser']['cta_href'] = '/faq';
+        $content['hero']['background_mobile_asset_id'] = 'unknown-asset';
+        $this->putJson('/api/v1/admin/content/homepage?locale=en', ['revision' => $revision, 'content' => $content])->assertUnprocessable();
+    }
+
+    public function test_cached_homepage_cannot_outlive_its_schedule(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/homepage?locale=nl')->json('data');
+        $content = $state['draft'];
+        $content['schedule'] = ['publish_at' => now()->subMinute()->toIso8601String(), 'unpublish_at' => now()->addSeconds(10)->toIso8601String()];
+        $this->putJson('/api/v1/admin/content/homepage?locale=nl', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl')->assertOk();
+        $this->getJson('/api/v1/content/homepage?locale=nl')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
+        $this->travel(11)->seconds();
+        $this->getJson('/api/v1/content/homepage?locale=nl')->assertNotFound();
     }
 
     public function test_search_endpoint_basics(): void

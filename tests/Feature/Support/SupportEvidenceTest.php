@@ -89,6 +89,11 @@ class SupportEvidenceTest extends TestCase
         $this->assertStringContainsString("EUR {$available}; reserved: EUR {$reserved}; pending: EUR {$pending}; spent: EUR {$spent}", $result['answer']);
         $this->assertSame(1000, $e->facts['available_minor']);
         $this->assertSame(500, $e->facts['reserved_minor']);
+        $nl = $this->tools()->retrieve($user, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'nl');
+        $nlAnswer = $this->answer($user, [$nl])['answer'];
+        $this->assertStringContainsString('gereserveerd: EUR 5.00', $nlAnswer);
+        $this->assertStringNotContainsString('Je beloning', $nlAnswer);
+        $this->assertStringNotContainsString('Zodra', $nlAnswer);
         $this->assertSame(2500, $e->facts['spent_minor']);
         $this->assertSame('EUR_REDEMPTION_CREDIT', $e->facts['unit']);
         $this->assertStringNotContainsString('999', $result['answer']);

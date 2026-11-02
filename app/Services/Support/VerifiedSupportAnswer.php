@@ -100,7 +100,7 @@ final class VerifiedSupportAnswer
             ? json_encode($f['capabilities'], JSON_THROW_ON_ERROR)
             : (string) ($f['capabilities'] ?? '');
         $errors = $f['last_error_codes'] ?? (($f['last_error_code'] ?? null) === null ? [] : [$f['last_error_code']]);
-        $errorText = $errors === [] || $errors === null
+        $errorText = $errors === []
             ? ($nl ? 'geen geregistreerd' : 'none recorded')
             : (is_array($errors) ? implode(',', $errors) : (string) $errors);
 
@@ -144,15 +144,10 @@ final class VerifiedSupportAnswer
         $pending = (int) ($f['pending_minor'] ?? $f['pending'] ?? 0);
         $available = (int) ($f['available_minor'] ?? $f['available'] ?? 0);
         $spent = (int) ($f['spent_minor'] ?? $f['spent'] ?? 0);
-        // Keep exact unit ledger wording for evidence tests; add a reserved-reward line when NL locale holds funds.
+        // Aggregate ledger categories do not establish a reward source or release date.
         $ledger = $nl
             ? 'Beschikbaar ShopBonus-tegoed: '.$amount($available).'; gereserveerd: '.$amount($reserved).'; in behandeling: '.$amount($pending).'; besteed: '.$amount($spent).'. Geen geldopname of overdracht.'
             : 'Available ShopBonus credit: '.$amount($available).'; reserved: '.$amount($reserved).'; pending: '.$amount($pending).'; spent: '.$amount($spent).'. Cannot be withdrawn or transferred.';
-        if ($nl && ($reserved > 0 || $pending > 0)) {
-            $held = $reserved > 0 ? $reserved : $pending;
-
-            return 'Je beloning van '.$amount($held).' is gereserveerd. Zodra deze beschikbaar is, verschijnt het bedrag in je ShopBonus-tegoed. '.$ledger;
-        }
 
         return $ledger;
     }

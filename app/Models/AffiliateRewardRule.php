@@ -37,8 +37,9 @@ class AffiliateRewardRule extends Model
 
     protected static function booted(): void
     {
+        static::saved(fn () => \App\Services\Discovery\DiscoveryCache::flush());
         static::updating(function (self $rule) {
-            if ($rule->isDirty(['version', 'unit', 'share_bps', 'min_commission_minor', 'max_reward_minor', 'review_above_minor', 'starts_at', 'ends_at', 'created_by'])) {
+            if ($rule->isDirty(['version', 'unit', 'share_bps', 'min_commission_minor', 'max_reward_minor', 'review_above_minor', 'starts_at', 'ends_at', 'created_by', 'webshop_id', 'commission_source', 'cashback_approved'])) {
                 throw new \LogicException('Reward rule terms are immutable; create a new version.');
             }
         });
@@ -75,7 +76,9 @@ class AffiliateRewardRule extends Model
             }
         }
 
-        return $base()->whereNull('webshop_id')->orderByDesc('version')->first();
+        return $base()->whereNull('webshop_id')
+            ->when($commissionSource !== null, fn ($q) => $q->where(fn ($q) => $q->whereNull('commission_source')->orWhere('commission_source', $commissionSource)))
+            ->orderByDesc('version')->first();
     }
 
     public function consumerShare(): float

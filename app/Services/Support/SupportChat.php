@@ -56,7 +56,8 @@ class SupportChat
                 if (SupportMessage::where('conversation_id', $c->id)->whereIn('status', self::ACTIVE)->exists()) {
                     throw ApiException::conflict('Wait for the current support answer.', 'support_conversation_busy');
                 }
-                $plan = $this->planner->plan($data['message'], $workspace !== null, $data['reference'] ?? null);
+                $previous = SupportMessage::where('conversation_id', $c->id)->whereNotNull('completed_at')->latest('id')->first();
+                $plan = $this->planner->plan($data['message'], $workspace !== null, $data['reference'] ?? null, $previous->research ?? []);
                 $m = SupportMessage::create(['conversation_id' => $c->id, 'user_id' => $actor->id, 'request_key' => $key, 'request_hash' => $hash,
                     'question' => $data['message'], 'research' => $plan, 'status' => 'PENDING']);
                 $this->audit->record('support.message_requested', category: AuditCategory::Security, actorUserId: $actor->id, resource: $m, webshopId: $c->webshop_id);
@@ -117,6 +118,10 @@ class SupportChat
         }
 
         $result = is_array($m->result) ? $m->result : [];
+        $displayPolicy = $this->policies->current();
+        if (! $displayPolicy['suggest_relevant_actions']) {
+            $result['action'] = null;
+        }
 
         // Contract projection (message_id/answer/evidence) plus nested result for existing clients.
         return [
@@ -131,7 +136,8 @@ class SupportChat
             'retry_used' => (bool) $m->retry_used,
             'action' => $result['action'] ?? null,
             'checks' => $result['checks'] ?? null,
-            'result' => $m->result,
+            'display' => array_intersect_key($displayPolicy, array_flip(['show_progress_updates', 'show_verified_badge'])),
+            'result' => $m->result === null ? null : $result,
             'created_at' => $m->created_at->toIso8601String(),
             'completed_at' => $m->completed_at?->toIso8601String(),
         ];
@@ -156,14 +162,14 @@ class SupportChat
             $p = $this->policies->current();
             $plan = $m->research;
             $metrics['policy_version'] = $p['version'];
-            $action = $this->policies->action($p, $plan['intent']);
+            $action = $this->policies->action($p, $plan['intent'], $workspace !== null);
             $metrics['restriction_action'] = $action;
             if ($plan['intent'] === 'escalate' || $action === 'ESCALATE' || $action === 'REVIEW') {
                 $this->finish($m, 'ESCALATED', $c->locale === 'nl' ? 'Een beoordeling door ondersteuning is aangevraagd.' : 'A human support review has been requested.', [], [], $metrics, $started, true);
 
                 return;
             }
-            if ($plan['intent'] === 'release_date') {
+            if ($plan['intent'] === 'release_date' && $plan['reference'] === null) {
                 $this->finish($m, 'NEEDS_CLARIFICATION', $c->locale === 'nl' ? 'Er is geen bevestigde vrijgavedatum. Geef uw orderreferentie of vraag ondersteuning.' : 'No release date has been confirmed. Provide your order reference or request human support.', [], [], $metrics, $started);
 
                 return;
@@ -199,7 +205,7 @@ class SupportChat
                 $diagnostic = SupportAnswerChecks::diagnostic(
                     $m->question,
                     'MISSING_REWARD_STATUS',
-                    is_array($known) ? array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])) : [],
+                    array_intersect_key($known, array_flip(['available_minor', 'reserved_minor', 'pending_minor', 'spent_minor', 'currency', 'unit'])),
                     ['order_reward_status'],
                     ['get_my_order_reward_status'],
                     1,
@@ -232,7 +238,7 @@ class SupportChat
                 throw new ProviderFailure('policy_changed');
             }
             $this->conversation($actor, $c->public_id);
-            $answer['action'] = $this->action($plan, $workspace);
+            $answer['action'] = ($p['suggest_relevant_actions'] ? $this->action($plan, $workspace, $c->locale) : null);
             if ($primaryFailed && $answer['answer'] !== null) {
                 $answer['status'] = 'PARTIALLY_VERIFIED';
                 $answer['answer'] .= $c->locale === 'nl' ? ' Het walletsaldo kon niet worden gecontroleerd.' : ' The wallet balance could not be verified.';
@@ -343,6 +349,7 @@ class SupportChat
         }
 
         return match ($plan['intent']) {
+            'order_status', 'payment_question' => $nl ? 'Geef de orderreferentie om de geregistreerde status te controleren.' : 'Provide the order reference to check its recorded status.',
             'reward' => $nl ? 'Geef de orderreferentie of het publieke ID van uw verwachte walletbeloning. Deel geen kortingscodes of betaalgegevens.' : 'Provide the order reference or public ID of your pending wallet reward. Do not send voucher codes or payment details.',
             'quote', 'offer_cost' => $nl ? 'Geef het publieke ID van de aanbieding waarvoor u de prijsopgave of kosten wilt controleren.' : 'Provide the public offer ID for the quote or cost you want checked.',
             'campaign' => $nl ? 'Geef het publieke campagne-ID uit de geselecteerde webshop.' : 'Provide the public campaign ID from the selected workspace.',
@@ -355,7 +362,7 @@ class SupportChat
     /** @param array<string, mixed> $plan
      * @return array<string, string>|null
      */
-    private function action(array $plan, ?string $workspace): ?array
+    private function action(array $plan, ?string $workspace, string $locale): ?array
     {
         $route = match ($plan['intent']) {
             'wallet', 'reward' => '/app/wallet',
@@ -375,9 +382,19 @@ class SupportChat
             'funding' => 'Bekijk webshopfinanciering',
             'offer_cost' => 'Bekijk aanbiedingen',
             'campaign' => 'Bekijk campagneoverzicht',
-            'integration' => 'Bekijk integraties',
-            default => 'Bekijk details',
+            default => 'Bekijk integraties',
         };
+
+        if ($locale !== 'nl') {
+            $label = match ($plan['intent']) {
+                'wallet', 'reward' => 'View my credit',
+                'vouchers', 'quote' => 'View my vouchers',
+                'funding' => 'View workspace funding',
+                'offer_cost' => 'View offers',
+                'campaign' => 'View campaigns',
+                default => 'View integrations',
+            };
+        }
 
         return ['label' => $label, 'route' => $route];
     }

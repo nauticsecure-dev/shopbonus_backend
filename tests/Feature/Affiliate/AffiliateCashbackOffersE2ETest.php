@@ -6,20 +6,26 @@ use App\Console\Commands\EnrichMerchants;
 use App\Enums\OfferAcquisition;
 use App\Enums\OfferStatus;
 use App\Enums\PlatformRole;
+use App\Exceptions\ApiException;
 use App\Models\AffiliateClick;
 use App\Models\AffiliateConnection;
 use App\Models\AffiliateProgram;
 use App\Models\AffiliateRewardRule;
 use App\Models\AffiliateTransaction;
+use App\Models\OfferVersion;
 use App\Models\User;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
 use App\Services\Affiliate\AffiliateSync;
 use App\Services\Affiliate\ProgramSelector;
+use App\Services\Affiliate\PromotionPermissionRecorder;
+use App\Services\Affiliate\SettlementRecorder;
+use App\Services\Discovery\DiscoveryCache;
 use App\Services\Enrichment\EnrichmentPipeline;
 use App\Services\Enrichment\SafeUrlFetcher;
 use App\Services\Offers\OfferService;
 use App\Services\Onboarding\Network\HostResolver;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -101,6 +107,11 @@ class AffiliateCashbackOffersE2ETest extends TestCase
             'name' => $name, 'discount_type' => 'percentage', 'discount_value' => $discountBps, 'combinable' => $combinable,
             'redemption_validity_days' => 30, 'code_mode' => 'reusable',
         ]), OfferStatus::Active);
+        if ($combinable) {
+            $offer = app(PromotionPermissionRecorder::class)->record($offer,
+                AffiliateProgram::where('connection_id', $this->daisycon->id)->where('external_id', 'P1')->firstOrFail(),
+                $this->admin, 'advertiser-letter-123', 'SAVE10NOW preserves cashback for this campaign.', now()->addMonth());
+        }
         VoucherCode::create([
             'webshop_id' => $this->shop->id, 'offer_id' => $offer->id, 'code' => 'SAVE10NOW',
             'code_hash' => VoucherCode::hashFor($this->shop->id, 'SAVE10NOW'), 'code_last4' => '0NOW',
@@ -204,6 +215,49 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $this->assertSame('discount_code', $solo['offer_kind']);
     }
 
+    public function test_advertiser_permission_is_versioned_authorized_expires_and_is_cleared_on_merchant_edit(): void
+    {
+        $this->importPrograms();
+        $this->promoOffer(combinable: true);
+        $offer = $this->shop->offers()->latest('id')->firstOrFail();
+        $program = AffiliateProgram::where('connection_id', $this->daisycon->id)->sole();
+        $version = $offer->currentVersion;
+        $this->assertTrue($version->cashbackCombinationPermitted($program));
+        $this->assertSame(2, $version->version);
+        $this->assertNull($offer->versions()->where('version', 1)->sole()->cashback_permission);
+        try {
+            app(PromotionPermissionRecorder::class)->record($offer, $program, $this->anna, 'forged', 'forged', now()->addMonth());
+            $this->fail('A consumer cannot assert advertiser permission.');
+        } catch (ApiException $e) {
+            $this->assertSame(403, $e->status);
+        }
+        $this->travel(32)->days();
+        $this->assertFalse($version->cashbackCombinationPermitted($program));
+        $this->travelBack();
+        $membership = $this->shop->memberships()->where('role', 'owner')->firstOrFail();
+        $updated = app(OfferService::class)->update($membership, $offer, ['discount_value' => 2000]);
+        $this->assertNull($updated->currentVersion->cashback_permission);
+        $this->assertTrue($version->cashbackCombinationPermitted($program));
+        $this->assertFalse($updated->currentVersion->cashbackCombinationPermitted($program));
+    }
+
+    public function test_display_requires_an_authoritative_network_rule_and_permission_is_not_a_boolean(): void
+    {
+        $this->importPrograms();
+        $this->promoOffer(combinable: true);
+        OfferVersion::query()->update(['cashback_permission' => null]);
+        $this->app['auth']->forgetGuards();
+        $detail = $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk();
+        $this->assertSame('discount_code', collect($detail->json('data.offers'))->firstWhere('title', '10% kortingscode')['offer_kind']);
+        AffiliateRewardRule::query()->update(['active' => false]);
+        DiscoveryCache::flush();
+        $this->assertNull($this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()->json('data.cashback_label'));
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 9000, 'commission_source' => 'direct_merchant', 'active' => true, 'created_by' => $this->admin->id]);
+        $this->assertNull($this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()->json('data.cashback_label'));
+        AffiliateRewardRule::create(['version' => 3, 'unit' => 'eur_credit', 'share_bps' => 6000, 'commission_source' => 'affiliate_network', 'active' => true, 'created_by' => $this->admin->id]);
+        $this->assertSame('Tot 6% cashback', $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()->json('data.cashback_label'));
+    }
+
     public function test_acceptance_08_tracked_conversion_hundred_ten_yields_seven_pending_and_three_platform_evidence(): void
     {
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
@@ -260,6 +314,8 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $approved['parts'][0]['status'] = 'approved';
         app(AffiliateSync::class)->import($this->daisycon, [], [$approved], $this->admin->id);
         Sanctum::actingAs($this->anna);
+        $this->getJson('/api/v1/me/wallet')->assertJsonPath('data.pending_cashback_minor', 700)->assertJsonPath('data.available_minor', 0);
+        app(SettlementRecorder::class)->record(AffiliateTransaction::sole(), $this->admin, 'remittance-1', CarbonImmutable::now()->subMinute());
         $this->getJson('/api/v1/me/wallet')->assertJsonPath('data.pending_cashback_minor', 0)->assertJsonPath('data.available_minor', 700);
         $this->app['auth']->forgetGuards();
 

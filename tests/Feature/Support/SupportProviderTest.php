@@ -62,6 +62,24 @@ class SupportProviderTest extends TestCase
         $this->assertSame([$e->id], $result['selection']['evidence_ids']);
     }
 
+    public function test_cost_estimate_requires_rates_and_model_specific_controls_are_omitted(): void
+    {
+        config(['support_ai.api_key' => 'fixture-secret', 'support_ai.verified_eur_rates' => ['fixture.model' => ['input_per_million' => 2, 'cached_input_per_million' => 1, 'output_per_million' => 4, 'verified_at' => '2026-10-31']]]);
+        $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available_minor' => 0], CarbonImmutable::now());
+        Http::fake(function ($request) use ($e) {
+            $this->assertArrayNotHasKey('reasoning', $request->data());
+            $this->assertArrayNotHasKey('text', $request->data());
+            $this->assertSame('required', $request['tool_choice']);
+            $this->assertFalse($request['store']);
+
+            return Http::response(['status' => 'completed', 'output' => [['type' => 'function_call', 'name' => 'verify_support_evidence', 'arguments' => json_encode(['evidence_ids' => [$e->id]])]], 'usage' => ['input_tokens' => 100, 'input_tokens_details' => ['cached_tokens' => 20], 'output_tokens' => 50]]);
+        });
+        $policy = ['model' => 'fixture.model', 'version' => 'test', 'timeout_seconds' => 5, 'reasoning_effort' => 'high', 'text_verbosity' => 'high', 'store' => true];
+        $this->assertEqualsWithDelta(.00038, app(SupportProvider::class)->select([$e], $policy)['usage']['estimated_cost_eur'], .00000001);
+        config(['support_ai.verified_eur_rates' => []]);
+        $this->assertNull(app(SupportProvider::class)->select([$e], $policy)['usage']['estimated_cost_eur']);
+    }
+
     public function test_timeout_is_safe_with_no_automatic_retry(): void
     {
         config(['support_ai.api_key' => 'fixture-secret']);

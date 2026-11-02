@@ -15,6 +15,7 @@ use App\Models\WebshopMembership;
 use App\Services\Banners\BannerExperiments;
 use App\Services\Banners\BannerMeasurement;
 use App\Services\Banners\BannerService;
+use App\Services\Consent\CookieConsents;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,20 +37,26 @@ class PublicBannerController extends Controller
         $installation = $this->installation($request, (string) $request->query('key', ''));
         $installation->forceFill(['last_seen_origin' => $request->header('Origin'), 'last_seen_at' => now()])->saveQuietly();
 
-        $data = $request->validate(['assignments' => ['sometimes', 'array', 'max:50'], 'assignments.*' => ['string', 'max:80']]);
-        $body = ['data' => ['campaigns' => $measurement->publishedConfig($installation, $data['assignments'] ?? [])]];
+        $data = $request->validate(['consent_id' => ['sometimes', 'nullable', 'uuid'], 'assignments' => ['sometimes', 'array', 'max:50'], 'assignments.*' => ['string', 'max:80']]);
+        $body = ['data' => ['editor_origin' => preg_replace('#^(https?://[^/]+).*$#', '$1', (string) config('shopbonus.identity.frontend_url')), 'campaigns' => $measurement->publishedConfig($installation, $data['assignments'] ?? [])]];
+        if (array_key_exists('consent_id', $data)) {
+            $body['data']['tracking_allowed'] = app(CookieConsents::class)->trackingAllowed($data['consent_id']);
+        }
         $etag = '"'.md5((string) json_encode($body)).'"';
         if ($request->header('If-None-Match') === $etag) {
             return response()->json(null, 304, ['ETag' => $etag]);
         }
 
-        return response()->json($body, 200, ['Cache-Control' => empty($data['assignments']) ? 'public, max-age=60' : 'private, no-store', 'ETag' => $etag, 'Vary' => 'Origin']);
+        return response()->json($body, 200, ['Cache-Control' => empty($data['assignments']) && ! array_key_exists('consent_id', $data) ? 'public, max-age=60' : 'private, no-store', 'ETag' => $etag, 'Vary' => 'Origin']);
     }
 
     public function assignments(Request $request, BannerExperiments $experiments): JsonResponse
     {
-        $data = $request->validate(['key' => ['required', 'string', 'max:40'], 'visitor_key' => ['required', 'uuid'], 'consent' => ['required', 'boolean']]);
+        $data = $request->validate(['key' => ['required', 'string', 'max:40'], 'visitor_key' => ['required', 'uuid'], 'consent' => ['required', 'boolean'], 'consent_id' => ['sometimes', 'nullable', 'uuid']]);
         $installation = $this->installation($request, $data['key']);
+        if ($data['consent'] && ! app(CookieConsents::class)->trackingAllowed($data['consent_id'] ?? null)) {
+            throw new ApiException('Current tracking consent is required.', 403, 'tracking_consent_required');
+        }
         if ($data['consent'] && DB::table('webshops')->where('id', $installation->webshop_id)->value('status') !== 'approved') {
             throw new ApiException('Unknown key or origin not allowed.', 403, 'origin_not_allowed');
         }
@@ -77,6 +84,7 @@ class PublicBannerController extends Controller
             'events.*.path' => ['sometimes', 'nullable', 'string', 'max:500', 'starts_with:/'],
             'events.*.category' => ['sometimes', 'nullable', 'string', 'max:40'],
             'events.*.consent' => ['required', 'boolean'],
+            'events.*.consent_id' => ['sometimes', 'nullable', 'uuid'],
             'events.*.assignment_token' => ['sometimes', 'nullable', 'string', 'max:80'],
         ]);
         $installation = $this->installation($request, $data['key']);
@@ -118,7 +126,7 @@ class PublicBannerController extends Controller
     {
         $c = $this->editable($request, $banner);
 
-        return response()->json(['data' => ['id' => $c->public_id, 'name' => $c->name, 'draft_revision' => $c->draft_revision, 'draft_config' => $c->draft_config]]);
+        return response()->json(['data' => ['id' => $c->public_id, 'name' => $c->name, 'draft_revision' => $c->draft_revision, 'draft_config' => $c->draft_config, 'reward' => app(BannerMeasurement::class)->rewardFor($c)]]);
     }
 
     public function editorSave(Request $request, string $banner, BannerService $banners): JsonResponse

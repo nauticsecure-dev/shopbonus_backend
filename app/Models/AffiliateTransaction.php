@@ -47,18 +47,18 @@ class AffiliateTransaction extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'connection_id', 'program_id', 'click_id', 'user_id', 'webshop_id', 'order_reference_hash', 'duplicate_of_id', 'wallet_pending_id', 'wallet_entry_id', 'reward_timing', 'reward_terms_snapshot', 'credit_evidence'];
+    protected $hidden = ['id', 'connection_id', 'program_id', 'click_id', 'user_id', 'webshop_id', 'order_reference_hash', 'duplicate_of_id', 'wallet_pending_id', 'wallet_entry_id', 'reward_timing', 'reward_terms_snapshot', 'credit_evidence', 'settlement_evidence'];
 
     protected function casts(): array
     {
-        return ['reward_terms_snapshot' => 'array', 'credit_evidence' => 'array', 'order_amount_minor' => 'integer', 'commission_minor' => 'integer', 'reward_amount' => 'integer',
+        return ['settlement_evidence' => 'array', 'reward_terms_snapshot' => 'array', 'credit_evidence' => 'array', 'order_amount_minor' => 'integer', 'commission_minor' => 'integer', 'reward_amount' => 'integer',
             'transaction_at' => 'immutable_datetime', 'network_updated_at' => 'immutable_datetime', 'last_synced_at' => 'immutable_datetime'];
     }
 
     protected static function booted(): void
     {
         static::updating(function (self $transaction) {
-            foreach (['reward_timing', 'reward_terms_snapshot', 'credit_evidence'] as $field) {
+            foreach (['reward_timing', 'reward_terms_snapshot', 'credit_evidence', 'settlement_evidence'] as $field) {
                 if ($transaction->getOriginal($field) !== null && $transaction->isDirty($field)) {
                     throw new \LogicException('Financial reward evidence is immutable.');
                 }

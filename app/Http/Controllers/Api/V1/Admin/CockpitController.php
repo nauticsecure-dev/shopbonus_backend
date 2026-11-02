@@ -125,6 +125,8 @@ class CockpitController extends Controller
         $data = $request->validate([
             'status' => ['sometimes', Rule::enum(VoucherStatus::class)],
             'id' => ['sometimes', 'string', 'max:26'],
+            'usable' => ['sometimes', 'boolean'],
+            'acquisition_network' => ['sometimes', 'string', 'max:32', 'regex:/^[a-z0-9_-]+$/D'],
             'issued_on' => ['sometimes', 'date_format:Y-m-d'],
             'from' => ['sometimes', 'date_format:Y-m-d'],
             'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
@@ -148,6 +150,8 @@ class CockpitController extends Controller
             $to,
             $data['id'] ?? null,
             $data['per_page'] ?? 25,
+            (bool) ($data['usable'] ?? false),
+            $data['acquisition_network'] ?? null,
         ));
     }
 

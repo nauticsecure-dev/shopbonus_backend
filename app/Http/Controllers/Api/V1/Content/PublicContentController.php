@@ -55,7 +55,7 @@ class PublicContentController extends Controller
                 'revision' => $r->number, 'published_at' => $r->created_at->toIso8601String(), 'alternates' => $alternates];
         });
 
-        return response()->json(['data' => $data ?? throw new ApiException('Page not found.', 404, 'not_found')], 200, ['Cache-Control' => 'public, max-age=60']);
+        return response()->json(['data' => $data ?? throw new ApiException('Page not found.', 404, 'not_found')], 200, ['Cache-Control' => 'no-store']);
     }
 
     public function pages(Request $request): JsonResponse
@@ -70,7 +70,7 @@ class PublicContentController extends Controller
             ->get(['cms_pages.key', 'cms_pages.type', 'cms_page_locales.slug', 'cms_revisions.content'])
             ->map(fn (object $row): array => ['key' => $row->key, 'type' => $row->type, 'slug' => $row->slug, 'title' => json_decode((string) $row->content, true)['title'] ?? null])->all());
 
-        return response()->json(['data' => $rows]);
+        return response()->json(['data' => $rows], 200, ['Cache-Control' => 'no-store']);
     }
 
     public function faq(Request $request): JsonResponse
@@ -100,7 +100,7 @@ class PublicContentController extends Controller
             return ['key' => $c->key, 'name' => $c->names[$locale] ?? $c->names['nl'], 'items' => $items->all()];
         })->filter(fn ($c) => $c['items'] !== [])->values();
 
-        return response()->json(['data' => $categories->all()], 200, ['Cache-Control' => count($audiences) > 1 ? 'private, no-store' : 'public, max-age=60']);
+        return response()->json(['data' => $categories->all()], 200, ['Cache-Control' => count($audiences) > 1 ? 'private, no-store' : 'no-store']);
     }
 
     public function asset(string $id): Response

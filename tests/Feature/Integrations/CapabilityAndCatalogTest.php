@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Integrations;
 
-use App\Models\CatalogCoupon;
-use App\Models\CatalogProduct;
+use App\Models\ConnectionCoupon;
+use App\Models\ConnectionProduct;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
@@ -75,16 +75,18 @@ class CapabilityAndCatalogTest extends TestCase
         $created = $this->postJson($this->url('/connections'), ['platform' => 'woocommerce'])->assertCreated();
         $id = $created->json('data.id');
 
-        $caps = $this->getJson($this->url("/connections/{$id}/capabilities"))->assertOk()->json('data.capabilities');
-        $this->assertSame('AVAILABLE', $caps['webhooks']['state']);
-        $this->assertSame('LIMITED', $caps['products']['state']);
+        $caps = collect($this->getJson($this->url("/connections/{$id}/capabilities"))->assertOk()->json('data'))
+            ->keyBy('capability');
+        $this->assertSame('LIMITED', $caps['webhooks']['status']);
+        $this->assertSame('LIMITED', $caps['products']['status']);
 
         $health = $this->getJson($this->url("/connections/{$id}/health"))->assertOk()->json('data');
         $this->assertSame(0, $health['products_synced']);
         $this->assertSame(0, $health['eligible_coupons']);
+        $this->assertSame('LIMITED', $health['capabilities']['products']['state']);
     }
 
-    public function test_woocommerce_product_and_coupon_sync_upserts_and_marks_expired_ineligible(): void
+    public function test_woocommerce_product_and_coupon_sync_upserts_and_marks_expired_inactive(): void
     {
         $created = $this->postJson($this->url('/connections'), [
             'platform' => 'woocommerce',
@@ -97,6 +99,9 @@ class CapabilityAndCatalogTest extends TestCase
 
         Http::fake(function (\Illuminate\Http\Client\Request $request) {
             $url = $request->url();
+            if (str_contains($url, '/data/currencies/current')) {
+                return Http::response(['code' => 'EUR', 'name' => 'Euro', 'symbol' => '&euro;']);
+            }
             if (str_contains($url, '/products')) {
                 return Http::response([
                     [
@@ -104,13 +109,18 @@ class CapabilityAndCatalogTest extends TestCase
                         'name' => 'Blue Mug',
                         'sku' => 'MUG-1',
                         'price' => '12.50',
-                        'currency' => 'EUR',
+                        'regular_price' => '12.50',
                         'permalink' => 'https://fietsen-utrecht.nl/product/mug',
                         'short_description' => 'Ceramic',
+                        'description' => 'Ceramic',
+                        'type' => 'simple',
+                        'status' => 'publish',
+                        'catalog_visibility' => 'visible',
                         'stock_status' => 'instock',
+                        'stock_quantity' => 5,
                         'date_modified_gmt' => '2026-10-28T10:00:00',
                         'images' => [['src' => 'https://cdn.example/mug.jpg']],
-                        'categories' => [['name' => 'Drinkware']],
+                        'categories' => [['id' => 9, 'name' => 'Drinkware']],
                     ],
                 ], 200, ['X-WP-TotalPages' => '1']);
             }
@@ -127,6 +137,7 @@ class CapabilityAndCatalogTest extends TestCase
                         'excluded_product_categories' => [],
                         'usage_limit' => 100,
                         'usage_count' => 1,
+                        'date_modified_gmt' => '2026-10-28T10:00:00',
                     ],
                     [
                         'id' => 8,
@@ -137,6 +148,7 @@ class CapabilityAndCatalogTest extends TestCase
                         'date_expires_gmt' => '2020-01-01T00:00:00',
                         'individual_use' => false,
                         'excluded_product_categories' => [],
+                        'date_modified_gmt' => '2020-01-01T00:00:00',
                     ],
                 ], 200, ['X-WP-TotalPages' => '1']);
             }
@@ -151,21 +163,26 @@ class CapabilityAndCatalogTest extends TestCase
         $this->postJson($this->url("/connections/{$id}/sync/coupons"))->assertStatus(202)
             ->assertJsonPath('data.imported', 2);
 
-        $this->assertSame(1, CatalogProduct::where('connection_id', $connection->id)->count());
-        $product = CatalogProduct::where('external_product_id', '101')->sole();
+        $this->assertSame(1, ConnectionProduct::where('connection_id', $connection->id)->whereNull('removed_at')->count());
+        $product = ConnectionProduct::where('external_id', '101')->sole();
         $this->assertSame('Blue Mug', $product->name);
         $this->assertSame(1250, $product->price_minor);
-        $this->assertSame('Drinkware', $product->category);
 
-        $eligible = CatalogCoupon::where('connection_id', $connection->id)->where('eligible_public', true)->get();
-        $this->assertCount(1, $eligible);
-        $this->assertSame('SAVE10', $eligible->first()->code);
-        $this->assertFalse(CatalogCoupon::where('code', 'OLD20')->sole()->eligible_public);
+        $active = ConnectionCoupon::where('connection_id', $connection->id)->whereNull('removed_at')->get()->filter(fn (ConnectionCoupon $c) => $c->isActive());
+        $this->assertCount(1, $active);
+        $this->assertSame('SAVE10', $active->first()->code);
+        $this->assertFalse(ConnectionCoupon::where('external_id', '8')->sole()->isActive());
 
         $this->getJson($this->url("/connections/{$id}/products"))->assertOk()
-            ->assertJsonPath('data.0.name', 'Blue Mug');
+            ->assertJsonPath('data.0.name', 'Blue Mug')
+            ->assertJsonPath('data.0.external_product_id', '101');
         $this->getJson($this->url("/connections/{$id}/coupons"))->assertOk()
             ->assertJsonCount(2, 'data');
+
+        $health = $this->getJson($this->url("/connections/{$id}/health"))->assertOk()->json('data');
+        $this->assertSame(1, $health['products_synced']);
+        $this->assertSame(2, $health['coupons_synced']);
+        $this->assertSame(1, $health['eligible_coupons']);
     }
 
     public function test_reward_source_guard_blocks_cross_path_duplicates(): void

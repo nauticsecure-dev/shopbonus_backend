@@ -160,7 +160,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
     public function test_scheduled_archive_hides_the_page(): void
     {
         $id = $this->page();
-        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish")->assertOk();
+        $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertOk();
         $this->postJson("/api/v1/admin/cms/pages/{$id}/schedules", ['action' => 'archive', 'due_at' => now()->addHour()->toIso8601String()])->assertCreated();
         $this->travel(61)->minutes();
         $this->artisan('shopbonus:publish-scheduled-content')->assertSuccessful();

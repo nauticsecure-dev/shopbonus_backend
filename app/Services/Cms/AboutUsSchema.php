@@ -31,7 +31,7 @@ final class AboutUsSchema
     public function validate(array $content): array
     {
         $allowed = [
-            'title', 'seo_title', 'seo_description', 'seo_image_asset_id', 'body',
+            'title', 'seo_title', 'seo_description', 'seo_image_asset_id', 'body', 'media',
             'section_order', 'section_visibility', 'nav', 'hero', 'story', 'revenue_model',
             'values', 'team', 'contact', 'bottom_cta', 'footer', 'schedule',
         ];
@@ -40,6 +40,11 @@ final class AboutUsSchema
         }
 
         $data = Validator::make($content, [
+            'media' => ['sometimes', 'array:hero,story,team'],
+            'media.*' => ['array:desktop_asset_id,mobile_asset_id,alt'],
+            'media.*.desktop_asset_id' => ['nullable', 'string', 'max:40'],
+            'media.*.mobile_asset_id' => ['nullable', 'string', 'max:40'],
+            'media.*.alt' => ['required', 'string', 'max:200', 'not_regex:/[<>]/'],
             'title' => ['required', 'string', 'max:120', 'not_regex:/[<>]/'],
             'seo_title' => ['sometimes', 'nullable', 'string', 'max:70', 'not_regex:/[<>]/'],
             'seo_description' => ['sometimes', 'nullable', 'string', 'max:160', 'not_regex:/[<>]/'],
@@ -65,6 +70,14 @@ final class AboutUsSchema
         $this->rejectBanned($data['title'] ?? '', 'content.title');
         $this->rejectBanned($data['seo_title'] ?? '', 'content.seo_title');
         $this->rejectBanned($data['seo_description'] ?? '', 'content.seo_description');
+
+        foreach ($data['media'] ?? [] as $slot => $media) {
+            foreach (['desktop_asset_id', 'mobile_asset_id'] as $variant) {
+                if (! empty($media[$variant])) {
+                    $this->assertAsset($media[$variant], "content.media.{$slot}.{$variant}");
+                }
+            }
+        }
 
         if (! empty($data['seo_image_asset_id'])) {
             $this->assertAsset($data['seo_image_asset_id'], 'content.seo_image_asset_id');

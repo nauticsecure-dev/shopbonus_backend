@@ -23,7 +23,6 @@ use App\Services\Attribution\OrderAttribution;
 use App\Services\Funding\MerchantFunding;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,7 +33,7 @@ use Illuminate\Support\Facades\DB;
 class MerchantAnalytics
 {
     public const DEFINITIONS = [
-        'active_offers' => 'Offers with status active (draft, paused and ended excluded).',
+        'active_offers' => 'Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).',
         'available_codes' => 'Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).',
         'issued_vouchers' => 'Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.',
         'claimed_vouchers' => 'Answer24 claim links accepted by a verified consumer.',
@@ -53,13 +52,13 @@ class MerchantAnalytics
     public function kpis(int $webshopId): array
     {
         return [
-            'active_offers' => Offer::where('webshop_id', $webshopId)->where('status', OfferStatus::Active)->count(),
+            'active_offers' => Offer::where('webshop_id', $webshopId)->whereLifecycle('active')->count(),
             'available_codes' => VoucherCode::where('webshop_id', $webshopId)->where('status', VoucherCodeStatus::Available)->count(),
             'issued_vouchers' => Voucher::where('webshop_id', $webshopId)->whereNotNull('issued_at')->count(),
             'claimed_vouchers' => VoucherClaim::where('webshop_id', $webshopId)->where('status', 'claimed')->count(),
             'redeemed_vouchers' => Voucher::where('webshop_id', $webshopId)->where('status', VoucherStatus::Redeemed)->count(),
-            'scheduled_offers' => Offer::where('webshop_id', $webshopId)->where('status', OfferStatus::Scheduled)->count(),
-            'paused_offers' => Offer::where('webshop_id', $webshopId)->where('status', OfferStatus::Paused)->count(),
+            'scheduled_offers' => Offer::where('webshop_id', $webshopId)->whereLifecycle('scheduled')->count(),
+            'paused_offers' => Offer::where('webshop_id', $webshopId)->whereLifecycle('paused')->count(),
             'open_disputes' => VoucherDispute::where('webshop_id', $webshopId)->whereNotIn('status', VoucherDispute::CLOSED)->count(),
         ];
     }
@@ -130,17 +129,8 @@ class MerchantAnalytics
      */
     public function offers(int $webshopId, int $perPage = 10, int $page = 1, ?string $status = null): array
     {
-        $statuses = match ($status) {
-            'active' => [OfferStatus::Active],
-            'paused' => [OfferStatus::Paused],
-            'draft' => [OfferStatus::Draft],
-            'ended', 'expired' => [OfferStatus::Ended],
-            'scheduled' => [OfferStatus::Scheduled],
-            'archived' => [OfferStatus::Archived],
-            default => [OfferStatus::Active, OfferStatus::Paused, OfferStatus::Draft, OfferStatus::Ended, OfferStatus::Scheduled, OfferStatus::Archived],
-        };
-
-        $query = Offer::with('currentVersion')->where('webshop_id', $webshopId)->whereIn('status', $statuses)
+        $query = Offer::with('currentVersion')->where('webshop_id', $webshopId)
+            ->when($status !== null, fn ($q) => $q->whereLifecycle($status))
             ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 WHEN 'draft' THEN 2 WHEN 'scheduled' THEN 3 WHEN 'ended' THEN 4 ELSE 5 END")->orderByDesc('id');
         $total = (clone $query)->count();
         $perPage = max(1, min(50, $perPage));
@@ -186,11 +176,24 @@ class MerchantAnalytics
         $tz = (string) config('shopbonus.business_timezone');
         $start = $fromDay->setTimezone($tz)->startOfDay();
         $end = $toDay->setTimezone($tz)->endOfDay();
-        $bucket = fn (Collection $rows) => $rows->countBy(fn ($ts) => CarbonImmutable::parse($ts, 'UTC')->setTimezone($tz)->format('Y-m-d'));
+        // UTC boundaries for each local day preserve DST without database timezone tables.
+        // Only one aggregate row per day leaves the database, regardless of volume.
+        $bucket = function (string $table, string $column) use ($webshopId, $start, $end) {
+            $case = 'CASE';
+            $bindings = [];
+            for ($day = $start; $day->lessThan($end); $day = $day->addDay()) {
+                $case .= " WHEN {$column} >= ? AND {$column} < ? THEN ?";
+                array_push($bindings, $day->utc()->toDateTimeString(), $day->addDay()->utc()->toDateTimeString(), $day->format('Y-m-d'));
+            }
+            $case .= ' END';
 
-        $claims = $bucket(VoucherClaim::where('webshop_id', $webshopId)->whereBetween('claimed_at', [$start->utc(), $end->utc()])->pluck('claimed_at'));
-        $issued = $bucket(Voucher::where('webshop_id', $webshopId)->whereBetween('issued_at', [$start->utc(), $end->utc()])->pluck('issued_at'));
-        $redeemed = $bucket(Voucher::where('webshop_id', $webshopId)->whereBetween('redeemed_at', [$start->utc(), $end->utc()])->pluck('redeemed_at'));
+            return DB::table($table)->where('webshop_id', $webshopId)->whereBetween($column, [$start->utc(), $end->utc()])
+                ->when($table === 'voucher_claims', fn ($q) => $q->where('status', 'claimed'))
+                ->selectRaw("{$case} as day, COUNT(*) as n", $bindings)->groupBy('day')->pluck('n', 'day');
+        };
+        $claims = $bucket('voucher_claims', 'claimed_at');
+        $issued = $bucket('vouchers', 'issued_at');
+        $redeemed = $bucket('vouchers', 'redeemed_at');
 
         $days = [];
         foreach (CarbonPeriod::create($start->format('Y-m-d'), $end->format('Y-m-d')) as $day) {
@@ -227,6 +230,7 @@ class MerchantAnalytics
         return [
             'from' => $from->toIso8601String(), 'to' => $to->toIso8601String(),
             'orders' => $byCurrency->all(),
+            'sales_series' => $this->salesSeries($webshop->id, $from, $to),
             'vouchers' => ['reserved' => $vouchers('reserved_at'), 'issued' => $issued, 'redeemed' => $redeemed,
                 'redemption_rate' => $issued === 0 ? null : round($redeemed / $issued, 4)],
             'reward_cost' => ['currency' => 'EUR', 'reward_minor' => (int) $settled?->getAttribute('r'), 'fee_minor' => (int) $settled?->getAttribute('f'),
@@ -300,14 +304,15 @@ class MerchantAnalytics
             ->where('webshop_id', $webshopId)
             ->whereNotNull('paid_at')
             ->whereBetween('paid_at', [$from, $to])
-            ->selectRaw('attribution_type, COUNT(*) n, COALESCE(SUM(amount_minor - refunded_minor),0) revenue')
-            ->groupBy('attribution_type')
+            ->selectRaw('attribution_type, currency, COUNT(*) n, COALESCE(SUM(amount_minor - refunded_minor),0) revenue')
+            ->groupBy('attribution_type', 'currency')
             ->get()
-            ->keyBy('attribution_type');
+            ->groupBy('attribution_type');
 
         $bucket = fn (string $type) => [
-            'orders' => (int) ($rows[$type]->n ?? 0),
-            'net_revenue_minor' => (int) ($rows[$type]->revenue ?? 0),
+            'orders' => (int) ($rows->get($type)?->sum('n') ?? 0),
+            'net_revenue_minor' => ($rows->get($type)?->count() ?? 0) > 1 ? null : (int) ($rows->get($type)?->sum('revenue') ?? 0),
+            'by_currency' => $rows->get($type, collect())->mapWithKeys(fn ($r) => [$r->currency => ['orders' => (int) $r->n, 'net_revenue_minor' => (int) $r->revenue]])->all(),
         ];
 
         return [
@@ -317,6 +322,32 @@ class MerchantAnalytics
             'unattributed' => $bucket(OrderAttribution::TYPE_UNATTRIBUTED),
             'confidence_note' => 'click > voucher > view > unattributed; success-page visits never count as paid.',
         ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function salesSeries(int $webshopId, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $tz = (string) config('shopbonus.business_timezone');
+        $start = $from->setTimezone($tz)->startOfDay();
+        $end = $to->setTimezone($tz)->endOfDay();
+        $case = 'CASE';
+        $bindings = [];
+        $days = [];
+        for ($day = $start; $day->lessThan($end); $day = $day->addDay()) {
+            $key = $day->format('Y-m-d');
+            $days[$key] = ['date' => $key, 'paid_orders' => 0, 'orders' => []];
+            $case .= ' WHEN paid_at >= ? AND paid_at < ? THEN ?';
+            array_push($bindings, $day->utc()->toDateTimeString(), $day->addDay()->utc()->toDateTimeString(), $key);
+        }
+        $case .= ' END';
+        $rows = DB::table('webshop_orders')->where('webshop_id', $webshopId)->whereBetween('paid_at', [$from, $to])
+            ->selectRaw("{$case} day, currency, COUNT(*) n, SUM(amount_minor - refunded_minor) net", $bindings)->groupBy('day', 'currency')->get();
+        foreach ($rows as $row) {
+            $days[$row->day]['paid_orders'] += (int) $row->n;
+            $days[$row->day]['orders'][$row->currency] = ['paid_orders' => (int) $row->n, 'net_minor' => (int) $row->net];
+        }
+
+        return array_values($days);
     }
 
     /**

@@ -3,7 +3,9 @@
 namespace Tests\Feature\Cms;
 
 use App\Enums\PlatformRole;
+use App\Models\CmsAsset;
 use App\Models\User;
+use App\Services\Cms\CmsScheduler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\InteractsWithIdentity;
@@ -47,7 +49,7 @@ class MerchantLandingCmsTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/voor-webshops?locale=nl')
             ->assertOk()
-            ->assertHeader('Cache-Control', 'max-age=60, public')
+            ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('data.content.hero.eyebrow', 'VOOR WEBSHOPS')
             ->assertJsonPath('data.content.bottom_cta.cta_href', '/voor-webshops/aanmelden');
     }
@@ -185,5 +187,88 @@ class MerchantLandingCmsTest extends TestCase
             'section' => 'hero',
             'focus' => 'heading',
         ])->assertStatus(503);
+    }
+
+    public function test_media_library_requires_admin_and_validates_pagination(): void
+    {
+        $this->getJson('/api/v1/admin/content/voor-webshops/assets')->assertUnauthorized();
+        $this->asAdmin();
+        $this->getJson('/api/v1/admin/content/voor-webshops/assets?page=0')->assertUnprocessable();
+        $this->getJson('/api/v1/admin/content/voor-webshops/assets')->assertOk()
+            ->assertJsonPath('data', [])->assertJsonPath('meta.last_page', 1);
+        $ordinary = User::factory()->create();
+        Sanctum::actingAs($ordinary);
+        $this->getJson('/api/v1/admin/content/voor-webshops/assets')->assertForbidden();
+    }
+
+    public function test_responsive_media_and_footer_are_validated_and_published(): void
+    {
+        $this->asAdmin();
+        $asset = CmsAsset::create(['path' => 'cms/test.webp', 'mime' => 'image/webp', 'width' => 800, 'height' => 600, 'uploaded_by' => $this->admin->id]);
+        $state = $this->getJson('/api/v1/admin/content/voor-webshops?locale=nl')->json('data');
+        $draft = $state['draft'];
+        $draft['media'] = ['hero' => ['desktop_asset_id' => $asset->public_id, 'mobile_asset_id' => $asset->public_id, 'alt' => 'Merchant dashboard']];
+        $draft['footer']['links'] = [['label' => 'Help', 'href' => '/help']];
+        $draft['platforms']['tiles'][0]['description'] = 'Connect your store';
+        $this->putJson('/api/v1/admin/content/voor-webshops', ['locale' => 'nl', 'revision' => $state['draft_revision'], 'content' => $draft])->assertOk();
+        $this->postJson('/api/v1/admin/content/voor-webshops/publish?locale=nl')->assertOk();
+        $public = $this->getJson('/api/v1/content/voor-webshops?locale=nl')->assertOk();
+        $public->assertJsonPath('data.content.footer.links.0.href', '/help')
+            ->assertJsonPath('data.content.media.hero.alt', 'Merchant dashboard');
+        $this->assertStringContainsString($asset->public_id, $public->json('data.content.media.hero.mobile_url'));
+        $this->getJson('/api/v1/admin/content/voor-webshops/assets')->assertOk()->assertJsonPath('data.0.id', $asset->public_id);
+        $revision = $this->getJson('/api/v1/admin/content/voor-webshops')->json('data.draft_revision');
+        $draft['media']['hero']['desktop_asset_id'] = 'unknown';
+        $this->putJson('/api/v1/admin/content/voor-webshops', ['revision' => $revision, 'content' => $draft])->assertUnprocessable();
+        $draft['media']['hero']['desktop_asset_id'] = $asset->public_id;
+        $draft['footer']['links'][0]['href'] = 'javascript:alert(1)';
+        $this->putJson('/api/v1/admin/content/voor-webshops', ['revision' => $revision, 'content' => $draft])->assertUnprocessable();
+    }
+
+    public function test_schedule_boundaries_are_checked_even_when_publication_is_cached(): void
+    {
+        $this->asAdmin();
+        $revision = $this->getJson('/api/v1/admin/content/voor-webshops')->json('data.draft_revision');
+        $this->postJson('/api/v1/admin/content/voor-webshops/schedule', [
+            'revision' => $revision, 'publish_at' => now()->addMinute()->toIso8601String(), 'unpublish_at' => now()->addMinutes(3)->toIso8601String(),
+        ])->assertOk();
+        $this->postJson('/api/v1/admin/content/voor-webshops/publish')->assertOk();
+        $this->getJson('/api/v1/content/voor-webshops')->assertNotFound();
+        $this->travel(2)->minutes();
+        $this->getJson('/api/v1/content/voor-webshops')->assertOk();
+        $this->travel(2)->minutes();
+        $this->getJson('/api/v1/content/voor-webshops')->assertNotFound();
+    }
+
+    public function test_conflicted_draft_does_not_change_publication(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/voor-webshops')->json('data');
+        $this->postJson('/api/v1/admin/content/voor-webshops/publish')->assertOk();
+        $draft = $state['draft'];
+        $draft['hero']['heading'] = 'Saved draft only';
+        $this->putJson('/api/v1/admin/content/voor-webshops', ['revision' => $state['draft_revision'], 'content' => $draft])->assertOk();
+        $draft['hero']['heading'] = 'Conflicting change';
+        $this->putJson('/api/v1/admin/content/voor-webshops', ['revision' => $state['draft_revision'], 'content' => $draft])->assertConflict();
+        $this->postJson('/api/v1/admin/content/voor-webshops/publish', ['revision' => $state['draft_revision']])->assertConflict();
+        $this->getJson('/api/v1/content/voor-webshops')->assertOk()->assertJsonPath('data.content.hero.heading', $state['draft']['hero']['heading']);
+        $this->postJson('/api/v1/admin/content/voor-webshops/publish', ['revision' => $state['draft_revision'] + 1])->assertOk();
+    }
+
+    public function test_queued_merchant_publication_keeps_current_live_and_pins_reviewed_draft(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/voor-webshops')->json('data');
+        $this->postJson('/api/v1/admin/content/voor-webshops/publish')->assertOk();
+        $draft = $state['draft'];
+        $draft['hero']['heading'] = 'Reviewed scheduled merchant publication';
+        $saved = $this->putJson('/api/v1/admin/content/voor-webshops', ['revision' => $state['draft_revision'], 'content' => $draft])->assertOk()->json('data.draft_revision');
+        $url = '/api/v1/admin/cms/pages/'.$state['id'].'/schedules';
+        $this->postJson($url, ['action' => 'publish', 'locale' => 'nl', 'revision' => $state['draft_revision'], 'due_at' => now()->addMinutes(2)->toIso8601String()])->assertConflict();
+        $this->postJson($url, ['action' => 'publish', 'locale' => 'nl', 'revision' => $saved, 'due_at' => now()->addMinutes(2)->toIso8601String()])->assertCreated();
+        $this->getJson('/api/v1/content/voor-webshops')->assertJsonPath('data.content.hero.heading', $state['draft']['hero']['heading']);
+        $this->travel(3)->minutes();
+        $this->assertSame(1, app(CmsScheduler::class)->runDue());
+        $this->getJson('/api/v1/content/voor-webshops')->assertJsonPath('data.content.hero.heading', 'Reviewed scheduled merchant publication');
     }
 }

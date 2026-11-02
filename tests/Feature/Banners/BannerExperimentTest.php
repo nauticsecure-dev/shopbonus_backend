@@ -57,14 +57,14 @@ class BannerExperimentTest extends TestCase
 
     private function assign(string $visitor): array
     {
-        return $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => $visitor, 'consent' => true], ['Origin' => 'https://example.nl'])
+        return $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => $visitor, 'consent_id' => BannerFixture::consentId(), 'consent' => true], ['Origin' => 'https://example.nl'])
             ->assertOk()->json('data.0');
     }
 
     private function event(array $assignment, string $type = 'viewable_impression'): array
     {
         return ['id' => (string) Str::uuid(), 'campaign' => $this->campaign->public_id, 'version' => $assignment['version'], 'type' => $type,
-            'occurred_at' => now()->toIso8601String(), 'device' => 'desktop', 'consent' => true, 'assignment_token' => $assignment['assignment_token']];
+            'occurred_at' => now()->toIso8601String(), 'device' => 'desktop', 'consent_id' => BannerFixture::consentId(), 'consent' => true, 'assignment_token' => $assignment['assignment_token']];
     }
 
     public function test_explicit_launch_pinned_variants_stable_assignment_and_stop(): void
@@ -81,7 +81,7 @@ class BannerExperimentTest extends TestCase
         $this->postJson(str_replace('/experiment', '/publish', $this->url))->assertStatus(409)->assertJsonPath('error.code', 'banner_experiment_active');
         $this->postJson($this->url.'/stop')->assertOk()->assertJsonPath('data.active', false);
         $this->assertCount(1, app(BannerMeasurement::class)->publishedConfig($this->installation));
-        $this->assertSame([], $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => $visitor, 'consent' => true], ['Origin' => 'https://example.nl'])->json('data'));
+        $this->assertSame([], $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => $visitor, 'consent_id' => BannerFixture::consentId(), 'consent' => true], ['Origin' => 'https://example.nl'])->json('data'));
     }
 
     public function test_holdout_never_renders_or_counts_impressions_and_events_require_bound_token(): void
@@ -129,7 +129,7 @@ class BannerExperimentTest extends TestCase
         $this->postJson($this->url, ['control_version' => 1, 'variant_version' => 2, 'variant_bps' => 0])->assertStatus(422);
         $this->start();
         $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => (string) Str::uuid(), 'consent' => false], ['Origin' => 'https://example.nl'])->assertOk()->assertJsonPath('data', []);
-        $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => (string) Str::uuid(), 'consent' => true], ['Origin' => 'https://foreign.example'])->assertStatus(403);
+        $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => (string) Str::uuid(), 'consent_id' => BannerFixture::consentId(), 'consent' => true], ['Origin' => 'https://foreign.example'])->assertStatus(403);
         $this->assertDatabaseCount('banner_assignments', 0);
         Sanctum::actingAs(User::factory()->create());
         $this->getJson($this->url)->assertStatus(404);
@@ -146,7 +146,7 @@ class BannerExperimentTest extends TestCase
         $this->assertSame([], app(BannerMeasurement::class)->publishedConfig($this->installation, [$this->campaign->public_id => $a['assignment_token']]));
         $this->assertSame(1, app(BannerMeasurement::class)->ingest($this->installation, [$this->event($a)])['rejected']);
         $this->shop->forceFill(['status' => 'approved'])->save();
-        $this->assertSame([], $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => $visitor, 'consent' => true], ['Origin' => 'https://example.nl'])->json('data'));
+        $this->assertSame([], $this->postJson('/api/v1/banners/assignments', ['key' => $this->installation->public_key, 'visitor_key' => $visitor, 'consent_id' => BannerFixture::consentId(), 'consent' => true], ['Origin' => 'https://example.nl'])->json('data'));
     }
 
     public function test_signed_order_ingestion_carries_assignment_without_accepting_forged_payment(): void

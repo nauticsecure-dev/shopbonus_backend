@@ -20,6 +20,6 @@ class PublicDiscountCodesController extends Controller
 
         return response()->json([
             'data' => $this->codes->list((int) ($data['limit'] ?? 10), $data['search'] ?? null),
-        ], 200, ['Cache-Control' => 'public, max-age=60']);
+        ], 200, ['Cache-Control' => 'no-store']);
     }
 }

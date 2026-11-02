@@ -1,0 +1,99 @@
+{
+  "captured_at": "2026-10-31T12:42:56.517Z",
+  "request": "GET http://127.0.0.1:8018/api/v1/public/webshops?has_offers=1&sort=most_offers&per_page=2",
+  "status": 200,
+  "body": {
+    "data": [
+      {
+        "slug": "woon-en-co-demo",
+        "name": "Woon & Co",
+        "short_description": "Alles voor een stijlvol thuis.",
+        "logo_url": null,
+        "cover_url": "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=1200",
+        "categories": [
+          {
+            "key": "home_living",
+            "label": {
+              "nl": "Wonen",
+              "en": "Home & living"
+            }
+          }
+        ],
+        "offer_count": 4,
+        "active_offer_count": 4,
+        "featured_offer": {
+          "slug": "homepage-demo-korting-try3ce",
+          "title": "Homepage demo korting",
+          "summary": "10% from €25.00",
+          "offer_kind": "discount_code",
+          "cta_hint": "view_code_and_shop",
+          "how_to_obtain": "claim",
+          "discount_type": "percentage",
+          "discount_value": 1000,
+          "currency": "EUR",
+          "min_order_minor": 2500,
+          "price_minor": null,
+          "ends_at": null,
+          "availability": "available",
+          "cashback_label": null,
+          "benefit_label": "10% korting",
+          "combinable": false,
+          "webshop": {
+            "slug": "woon-en-co-demo",
+            "name": "Woon & Co"
+          }
+        },
+        "badge_label": "10% korting",
+        "cashback_label": null
+      },
+      {
+        "slug": "modehuis",
+        "name": "Modehuis",
+        "short_description": "Mode die bij jou past.",
+        "logo_url": null,
+        "cover_url": "https://images.pexels.com/photos/5706273/pexels-photo-5706273.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800&fit=crop",
+        "categories": [
+          {
+            "key": "fashion",
+            "label": {
+              "nl": "Mode",
+              "en": "Fashion"
+            }
+          }
+        ],
+        "offer_count": 3,
+        "active_offer_count": 3,
+        "featured_offer": {
+          "slug": "modehuis-voordeel-1-xqiwca",
+          "title": "Modehuis voordeel 1",
+          "summary": "€5.00 from €25.00",
+          "offer_kind": "discount_code",
+          "cta_hint": "view_code_and_shop",
+          "how_to_obtain": "claim",
+          "discount_type": "fixed",
+          "discount_value": 500,
+          "currency": "EUR",
+          "min_order_minor": 2500,
+          "price_minor": null,
+          "ends_at": null,
+          "availability": "available",
+          "cashback_label": null,
+          "benefit_label": "€5 korting",
+          "combinable": false,
+          "webshop": {
+            "slug": "modehuis",
+            "name": "Modehuis"
+          }
+        },
+        "badge_label": "€5 korting",
+        "cashback_label": null
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 4,
+      "per_page": 2,
+      "total": 8
+    }
+  }
+}

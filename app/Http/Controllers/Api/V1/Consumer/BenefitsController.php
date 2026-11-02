@@ -72,7 +72,7 @@ class BenefitsController extends Controller
         $profile = WebshopPublicProfile::where('webshop_id', $v->webshop_id)->first();
         $terms = $v->terms_snapshot;
         $checkout = VoucherCheckout::where('voucher_id', $v->id)->first();
-        $usable = $v->status === VoucherStatus::Issued && ($v->expires_at === null || $v->expires_at->isFuture());
+        $usable = $v->isUsable();
 
         return response()->json(['data' => $this->present([$v])[0] + [
             'code' => $usable || $v->status === VoucherStatus::Redeemed ? $v->code->code : null,
@@ -158,7 +158,7 @@ class BenefitsController extends Controller
             $displayDiscount = $discountType === 'percentage' && is_numeric($discountValue)
                 ? ((int) $discountValue >= 100 ? (int) $discountValue / 100 : (float) $discountValue)
                 : $discountValue;
-            $usable = $v->status === VoucherStatus::Issued && ($v->expires_at === null || $v->expires_at->isFuture());
+            $usable = $v->isUsable();
             $daysLeft = $usable && $v->expires_at !== null ? max(0, (int) now()->diffInDays($v->expires_at, false)) : null;
 
             return [

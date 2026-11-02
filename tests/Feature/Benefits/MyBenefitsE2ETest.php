@@ -98,8 +98,15 @@ class MyBenefitsE2ETest extends TestCase
             ->assertJsonPath('data.unit', 'EUR_REDEMPTION_CREDIT');
         $this->getJson('/api/v1/consumer/wallet')->assertOk()
             ->assertJsonPath('data.available_minor', 1220)
+            ->assertJsonPath('data.total_earned_minor', 3500)
+            ->assertJsonPath('data.total_spent_minor', 2280)
             ->assertJsonPath('data.balances.eur_credit.pending', 0)
             ->assertJsonPath('data.savings_goal', null);
+        // Consumer policy: no pending-cashback ledger; holds remain for checkout reservations.
+        $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('meta.total', 0);
+        $this->assertSame('on_validated_attribution', config('shopbonus.affiliate.credit_timing'));
     }
 
     public function test_02_standard_affiliate_cashback_immediate_70_30(): void
@@ -132,7 +139,12 @@ class MyBenefitsE2ETest extends TestCase
             'external_id' => 'DM-1', 'order_amount_minor' => 10_000,
         ]);
         $this->assertSame(['credited', 1200, 1080, 120], [$row->status, $row->commission_minor, $row->consumer_credit_minor, $row->shopbonus_revenue_minor]);
-        $this->assertSame(1080, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
+        $wallet = app(WalletService::class)->consumerWallet($this->anna)->fresh();
+        $this->assertSame(1080, $wallet->available);
+        $this->assertSame(0, $wallet->pending);
+        app(DirectMerchantCashback::class)->reverse($row, 'e2e-direct-reversal');
+        $this->assertSame(0, $wallet->fresh()->available);
+        $this->assertSame('reversed', $row->fresh()->status);
     }
 
     public function test_04_click_alone_never_credits_wallet(): void

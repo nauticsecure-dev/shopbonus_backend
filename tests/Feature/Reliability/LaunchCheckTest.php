@@ -35,6 +35,7 @@ class LaunchCheckTest extends TestCase
         config(['app.env' => 'production', 'app.debug' => false, 'app.url' => 'https://api.shopbonus.example', 'session.secure' => true, 'session.http_only' => true,
             'session.same_site' => 'lax', 'session.driver' => 'redis', 'cors.allowed_origins' => ['https://shopbonus.example'], 'sanctum.stateful' => ['shopbonus.example'],
             'shopbonus.security.hsts_max_age' => 31536000, 'shopbonus.security.trusted_proxies' => '10.0.0.0/8', 'shopbonus.admin.mfa_required' => true,
+            'shopbonus.workspace.mfa_required_for_sensitive' => true, 'shopbonus.workspace.step_up_for_sensitive' => true,
             'queue.default' => 'redis', 'cache.default' => 'redis', 'mail.default' => 'smtp', 'shopbonus.payments.mollie.key' => 'live_SYNTHETIC',
             'shopbonus.payments.mollie.allow_live' => true, 'shopbonus.answer24.signing_secret' => 'SYNTHETIC', 'shopbonus.answer24.base_url' => 'https://answer24.example',
             'shopbonus.answer24.dispatch_enabled' => true, 'recovery.enabled' => true, 'recovery.key' => 'SYNTHETIC', 'recovery.restore_connection' => 'restore']);

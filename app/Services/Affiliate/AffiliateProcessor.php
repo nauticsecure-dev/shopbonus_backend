@@ -32,9 +32,8 @@ use Illuminate\Support\Facades\DB;
  *   webshop, inside the attribution window. Otherwise: unmatched (review).
  * - A second report of the same click or order reference: disputed, no reward.
  * - Postbacks are untrusted: they only record "tracked"; rewards need sync/import.
- * - Rewards follow `affiliate.credit_timing` (default on_validated_attribution:
- *   credit immediately after attribution; network rejection does not auto-reverse).
- * - on_network_approval remains available as a legacy/admin override.
+ * - New rewards remain pending until approved and backed by settlement evidence.
+ * - Historical reward timing snapshots retain their original behavior.
  */
 class AffiliateProcessor
 {
@@ -191,23 +190,37 @@ class AffiliateProcessor
             return;
         }
 
-        $rule = $tx->reward_terms_snapshot === null ? AffiliateRewardRule::current($tx->transaction_at, $tx->webshop_id, 'affiliate_network')
+        $rule = $tx->reward_terms_snapshot === null ? app(AffiliateRewardPolicy::class)->rule($tx->transaction_at, $tx->webshop_id)
             : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
-        $instant = ($tx->reward_timing ?? config('shopbonus.affiliate.credit_timing')) === 'on_validated_attribution';
+        $timing = $tx->reward_timing ?? 'on_network_settlement';
+        $instant = $timing === 'on_validated_attribution';
+        $settled = $timing === 'on_network_approval' || $this->hasSettlement($tx);
 
         if ($tx->reward_status === 'none') {
-            $amount = $rule === null ? 0 : $rule->rewardFor($tx->commission_minor);
+            $amount = app(AffiliateRewardPolicy::class)->reward($rule, $tx->commission_minor);
             if ($rule === null || $amount === 0 || ! in_array($tx->network_status, ['pending', 'approved'], true)) {
                 return; // no rule in force → no reward
             }
             if ($tx->reward_terms_snapshot === null) {
-                $tx->forceFill(['reward_timing' => config('shopbonus.affiliate.credit_timing'), 'reward_terms_snapshot' => $rule->evidence()])->save();
+                $tx->forceFill(['reward_timing' => $tx->reward_timing ?? 'on_network_settlement', 'reward_terms_snapshot' => $rule->evidence()])->save();
             }
             if ($this->requiresReview($tx, $rule, $amount, $source, $actorUserId, $skipReview)) {
                 return;
             }
             $tx->forceFill(['reward_amount' => $amount, 'reward_unit' => $rule->unit->value, 'reward_rule_version' => $rule->version])->save();
 
+        }
+
+        if ($tx->reward_status === 'pending' && $tx->network_status === 'approved') {
+            $approvedAmount = app(AffiliateRewardPolicy::class)->reward($rule, $tx->commission_minor);
+            if ($this->requiresReview($tx, $rule, $approvedAmount, $source, $actorUserId, $skipReview)) {
+                return;
+            }
+            if ($approvedAmount === 0) {
+                $this->cancelPending($tx);
+
+                return;
+            }
         }
 
         $wallet = $this->wallets->consumerWallet(User::findOrFail($tx->user_id), WalletUnit::from((string) $tx->reward_unit));
@@ -219,9 +232,9 @@ class AffiliateProcessor
             $instant && $tx->reward_status === 'none' => $this->credited($tx, $this->wallets->credit($wallet, (int) $tx->reward_amount, $creditKey, meta: $meta + ['reason' => 'Affiliate purchase']), $source),
             $instant && in_array($tx->network_status, ['rejected', 'reversed'], true) && $tx->reward_status === 'credited' => $tx->forceFill(['review_reason' => 'network_'.$tx->network_status.'_after_credit'])->save(),
 
-            // Safe default: pending until the network approves.
-            ! $instant && $tx->network_status === 'pending' && $tx->reward_status === 'none' => $this->pending($tx, $this->wallets->addPending($wallet, (int) $tx->reward_amount, 'affiliate:'.$tx->public_id, $meta + ['description' => 'Affiliate purchase, awaiting confirmation'])),
-            ! $instant && $tx->network_status === 'approved' && in_array($tx->reward_status, ['none', 'pending'], true) => $this->approve($tx, $wallet, $creditKey, $meta, $source, $actorUserId, $skipReview),
+            // Approval alone is insufficient for new rewards.
+            ! $instant && ($tx->network_status === 'pending' || ($tx->network_status === 'approved' && ! $settled)) && $tx->reward_status === 'none' => $this->pending($tx, $this->wallets->addPending($wallet, (int) $tx->reward_amount, 'affiliate:'.$tx->public_id, $meta + ['description' => 'Affiliate purchase, awaiting approval and settlement'])),
+            ! $instant && $settled && $tx->network_status === 'approved' && in_array($tx->reward_status, ['none', 'pending'], true) => $this->approve($tx, $wallet, $creditKey, $meta, $source, $actorUserId, $skipReview),
             ! $instant && in_array($tx->network_status, ['rejected', 'reversed'], true) && $tx->reward_status === 'pending' => $this->cancelPending($tx),
             ! $instant && in_array($tx->network_status, ['rejected', 'reversed'], true) && $tx->reward_status === 'credited' => $this->reverseCredit($tx, $actorUserId),
             default => null,
@@ -268,6 +281,18 @@ class AffiliateProcessor
         return true;
     }
 
+    private function hasSettlement(AffiliateTransaction $tx): bool
+    {
+        $evidence = $tx->settlement_evidence;
+
+        return is_array($evidence) && ($evidence['network'] ?? null) === $tx->network
+            && ($evidence['external_id'] ?? null) === $tx->external_id
+            && ($evidence['currency'] ?? null) === $tx->currency
+            && ($evidence['commission_minor'] ?? null) === $tx->commission_minor
+            && is_string($evidence['reference'] ?? null) && trim($evidence['reference']) !== ''
+            && is_string($evidence['settled_at'] ?? null) && isset($evidence['recorded_by']);
+    }
+
     private function pending(AffiliateTransaction $tx, WalletPendingCredit $pending): void
     {
         $tx->forceFill(['reward_status' => 'pending', 'wallet_pending_id' => $pending->id])->save();
@@ -278,9 +303,9 @@ class AffiliateProcessor
         $tx->forceFill(['reward_status' => 'credited', 'wallet_entry_id' => $entry->id, 'credit_evidence' => [
             'source' => $source, 'network_status' => $tx->network_status, 'commission_minor' => $tx->commission_minor, 'currency' => $tx->currency,
             'reward_amount' => $entry->amount, 'reward_unit' => $tx->reward_unit, 'rule_version' => $tx->reward_rule_version,
-            'rule_terms' => $tx->reward_terms_snapshot, 'timing' => $tx->reward_timing,
+            'rule_terms' => $tx->reward_terms_snapshot, 'timing' => $tx->reward_timing, 'settlement' => $tx->settlement_evidence,
             'allocation' => $tx->reward_unit === 'eur_credit' ? ['commission_minor' => $tx->commission_minor, 'consumer_minor' => $entry->amount,
-                'platform_unrecognized_minor' => $tx->commission_minor - $entry->amount, 'currency' => $tx->currency, 'cash_settlement_verified' => false] : null,
+                'platform_unrecognized_minor' => $tx->commission_minor - $entry->amount, 'currency' => $tx->currency, 'cash_settlement_verified' => $this->hasSettlement($tx)] : null,
             'ledger_entry' => $entry->public_id, 'credited_at' => now()->toIso8601String(),
         ]])->save();
     }

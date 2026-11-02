@@ -37,7 +37,7 @@ class NotificationDeliveryTest extends TestCase
         $mail = app(NotificationMail::class);
         $views = $mail->render($n);
         $this->assertStringContainsString('ShopBonus', $views['html']);
-        $this->assertStringContainsString('/app/benefits', $views['text']);
+        $this->assertStringContainsString('/mijn-voordelen', $views['text']);
         $mail->send($d->id);
         $mail->send($d->id);
         $this->assertSame('sent', $d->fresh()->status);

@@ -19,6 +19,7 @@ use App\Services\Affiliate\AffiliateProcessor;
 use App\Services\Affiliate\AffiliateSync;
 use App\Services\Affiliate\ProgramSelector;
 use App\Services\Audit\AuditLogger;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -169,15 +170,21 @@ class AffiliateController extends Controller
         $filters = $request->validate([
             'status' => ['sometimes', Rule::in(['tracked', 'pending', 'approved', 'rejected', 'reversed', 'unmatched', 'disputed'])],
             'network' => ['sometimes', 'string', 'max:32'],
+            'from' => ['required_with:to', 'date_format:Y-m-d'],
+            'to' => ['required_with:from', 'date_format:Y-m-d', 'after_or_equal:from'],
         ]);
-        $page = AffiliateTransaction::query()
+        $query = AffiliateTransaction::query()
             ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))
             ->when(isset($filters['network']), fn ($q) => $q->where('network', strtolower($filters['network'])))
-            ->orderByDesc('id')->paginate(50);
+            ->when(isset($filters['from']), fn ($q) => $q->whereBetween('transaction_at', [
+                CarbonImmutable::parse($filters['from'], config('shopbonus.business_timezone'))->startOfDay()->utc(),
+                CarbonImmutable::parse($filters['to'], config('shopbonus.business_timezone'))->endOfDay()->utc(),
+            ]));
+        $page = (clone $query)->orderByDesc('id')->paginate(50);
 
         return response()->json(['data' => collect($page->items())->map(fn ($t) => $this->transaction($t))->all(),
             'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
-            'totals' => AffiliateTransaction::selectRaw('status, COUNT(*) c, COALESCE(SUM(commission_minor),0) commission')->groupBy('status')->get()
+            'totals' => (clone $query)->selectRaw('status, COUNT(*) c, COALESCE(SUM(commission_minor),0) commission')->groupBy('status')->get()
                 ->mapWithKeys(fn ($r) => [$r->getAttribute('status') => ['count' => (int) $r->getAttribute('c'), 'commission_minor' => (int) $r->getAttribute('commission')]])->all()]);
     }
 

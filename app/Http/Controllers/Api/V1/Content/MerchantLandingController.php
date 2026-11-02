@@ -23,7 +23,7 @@ class MerchantLandingController extends Controller
         return response()->json(
             ['data' => $data ?? throw new ApiException('Merchant landing not found.', 404, 'not_found')],
             200,
-            ['Cache-Control' => 'public, max-age=60'],
+            ['Cache-Control' => 'no-store'],
         );
     }
 }

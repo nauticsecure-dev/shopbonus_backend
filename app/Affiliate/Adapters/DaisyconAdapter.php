@@ -4,6 +4,7 @@ namespace App\Affiliate\Adapters;
 
 use App\Affiliate\Data\AffiliateProgramData;
 use App\Affiliate\Data\AffiliateTransactionData;
+use App\Affiliate\NetworkFailure;
 use App\Models\AffiliateConnection;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
@@ -58,10 +59,7 @@ class DaisyconAdapter extends BaseAffiliateAdapter
 
     public function fetchPrograms(AffiliateConnection $connection): array
     {
-        $rows = $this->client($connection)->get($this->publisherPath($connection, 'programs'), [
-            'media_id' => $connection->credentials['media_id'],
-            'per_page' => 1000,
-        ])->throw()->json() ?? [];
+        $rows = $this->pages($connection, 'programs', ['media_id' => $connection->credentials['media_id']]);
 
         return array_map(fn (array $row) => $this->normalizeProgram($row), is_array($rows) ? $rows : []);
     }
@@ -70,14 +68,83 @@ class DaisyconAdapter extends BaseAffiliateAdapter
     {
         $start = ($since ?? CarbonImmutable::now()->subDays(90))->format('Y-m-d');
         $end = CarbonImmutable::now()->format('Y-m-d');
-        $rows = $this->client($connection)->get($this->publisherPath($connection, 'transactions'), [
-            'start' => $start,
-            'end' => $end,
-            'page' => 1,
-            'per_page' => 1000,
-        ])->throw()->json() ?? [];
+        $rows = $this->pages($connection, 'transactions', ['start' => $start, 'end' => $end]);
 
         return array_map(fn (array $row) => $this->normalizeTransaction($row), is_array($rows) ? $rows : []);
+    }
+
+    /**
+     * Fetch an entire bounded snapshot before ingestion. A failed/incomplete pull
+     * leaves AffiliateSync's durable last_synced_at checkpoint untouched; retry
+     * replays that window with a seven-day overlap and idempotent conversion IDs.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function pages(AffiliateConnection $connection, string $resource, array $query, bool $plural = false): array
+    {
+        $rows = [];
+        $seen = [];
+        $expectedTotal = null;
+        $bytes = 0;
+        $pageSize = 1000;
+        $maxPages = max(1, min(100, (int) config('shopbonus.affiliate.networks.daisycon.max_pages', 100)));
+        for ($page = 1; $page <= $maxPages; $page++) {
+            $response = $this->client($connection)->get(($plural ? '/publishers/'.$connection->credentials['publisher_id'].'/'.$resource : $this->publisherPath($connection, $resource)), $query + ['page' => $page, 'per_page' => $pageSize])->throw();
+            $bytes += strlen($response->body());
+            if ($bytes > 32 * 1024 * 1024 || strlen($response->body()) > 4 * 1024 * 1024) {
+                throw new NetworkFailure('provider_snapshot_too_large');
+            }
+            $batch = $response->json();
+            if (! is_array($batch) || ! array_is_list($batch) || count($batch) > $pageSize) {
+                throw new NetworkFailure('invalid_provider_response');
+            }
+            $total = $response->header('X-Total-Count');
+            if ($total !== '') {
+                if (! ctype_digit($total) || ($expectedTotal !== null && $expectedTotal !== (int) $total)) {
+                    throw new NetworkFailure('inconsistent_pagination');
+                }
+                $expectedTotal = (int) $total;
+            }
+            foreach ($batch as $row) {
+                $id = is_array($row) ? ($row['affiliatemarketing_id'] ?? $row['id'] ?? null) : null;
+                if ((! is_string($id) && ! is_int($id)) || (string) $id === '' || isset($seen[(string) $id])) {
+                    throw new NetworkFailure('inconsistent_pagination');
+                }
+                $seen[(string) $id] = true;
+                $rows[] = $row;
+            }
+            if ($expectedTotal !== null && count($rows) > $expectedTotal) {
+                throw new NetworkFailure('inconsistent_pagination');
+            }
+            // Daisycon documents fetching until an empty page; servers may cap per_page.
+            if ($batch === [] || ($expectedTotal !== null && count($rows) === $expectedTotal)) {
+                if ($expectedTotal !== null && count($rows) !== $expectedTotal) {
+                    throw new NetworkFailure('incomplete_pagination');
+                }
+
+                return $rows;
+            }
+        }
+
+        throw new NetworkFailure('pagination_limit_reached');
+    }
+
+    /** Separate resource retrieval; retained for review, never inferred cashback permission. */
+    public function fetchEvidence(AffiliateConnection $connection, string $resource, ?string $programId = null): array
+    {
+        if ($resource === 'promotions' && $programId === null) {
+            return $this->pages($connection, 'material/promotions', [], true);
+        }
+        if (! in_array($resource, ['commissions', 'access-rules'], true) || $programId === null || $programId === '' || strlen($programId) > 100) {
+            throw new NetworkFailure('invalid_resource');
+        }
+        $response = $this->client($connection)->get('/publishers/'.$connection->credentials['publisher_id'].'/programs/'.rawurlencode($programId).'/'.$resource)->throw();
+        $data = $response->json();
+        if (strlen($response->body()) > 4 * 1024 * 1024 || ! is_array($data)) {
+            throw new NetworkFailure('invalid_provider_response');
+        }
+
+        return $data;
     }
 
     private function publisherPath(AffiliateConnection $connection, string $resource): string

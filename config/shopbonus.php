@@ -42,6 +42,8 @@ return [
 
     // Super Admin security (B16a, Trello #21 "Audit & security controls").
     'admin' => [
+        // Explicit fixture identities only; never guess test accounts from names/domains.
+        'test_account_public_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_TEST_ACCOUNT_PUBLIC_IDS', ''))))),
         // Super Admin routes require confirmed TOTP two-factor authentication.
         'mfa_required' => (bool) env('ADMIN_MFA_REQUIRED', true),
         // Emailed step-up code for sensitive admin actions (after a recent password).
@@ -51,6 +53,14 @@ return [
             'valid_minutes' => (int) env('ADMIN_STEP_UP_VALID_MINUTES', 10),
         ],
         'support_session_minutes' => (int) env('ADMIN_SUPPORT_SESSION_MINUTES', 30),
+    ],
+
+    // Workspace owner-only permissions (Trello #4 "owners with sensitive rights").
+    'workspace' => [
+        // ownership.manage, agreements.accept, finance.manage require confirmed TOTP.
+        'mfa_required_for_sensitive' => (bool) env('OWNER_MFA_REQUIRED', true),
+        // Mutating owner-sensitive routes also require recent password + emailed OTP.
+        'step_up_for_sensitive' => (bool) env('OWNER_STEP_UP_REQUIRED', true),
     ],
 
     'security' => [
@@ -252,10 +262,9 @@ return [
 
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
-        // on_validated_attribution: credit immediately after Laravel verifies attribution
-        // and eligible commission (consumer product: no pending cashback balance).
-        // on_network_approval: hold pending until the network approves (legacy/admin override).
-        'credit_timing' => env('AFFILIATE_CREDIT_TIMING', 'on_validated_attribution'),
+        // New rewards require network approval AND independently recorded settlement.
+        // Existing reward snapshots retain their historical policy.
+        'credit_timing' => 'on_network_settlement',
         // Default consumer share of eligible commission (70% / ShopBonus 30%).
         'default_consumer_share_bps' => (int) env('AFFILIATE_DEFAULT_CONSUMER_SHARE_BPS', 7000),
         // Network used when programs cannot be compared reliably.
@@ -275,8 +284,10 @@ return [
     ],
 
     // Public discovery (Trello #18). Category keys are stable API values; labels NL/EN.
+    // Cache freshness: version bump on profile/offer/status/inventory changes; TTL caps
+    // time-based offer expiry and any missed stock flushes (target ≤30s stale window).
     'discovery' => [
-        'cache_ttl_seconds' => (int) env('DISCOVERY_CACHE_TTL_SECONDS', 60),
+        'cache_ttl_seconds' => (int) env('DISCOVERY_CACHE_TTL_SECONDS', 30),
         'max_per_page' => 50,
         'logo_max_kb' => 1024,
         'categories' => [

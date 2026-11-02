@@ -46,7 +46,8 @@ class AboutUsCmsService
             return null;
         }
 
-        return CmsCache::remember("over-ons:{$locale}", function () use ($locale) {
+        // Visibility windows and new publications must be evaluated on every request.
+        return (function () use ($locale) {
             $page = CmsPage::where('key', 'over-ons')->where('type', 'landing')->whereNull('archived_at')->where('audience', 'public')->first();
             if ($page === null) {
                 return null;
@@ -73,7 +74,7 @@ class AboutUsCmsService
                 'revision' => $r->number,
                 'published_at' => $r->created_at->toIso8601String(),
             ];
-        });
+        })();
     }
 
     /**
@@ -92,8 +93,8 @@ class AboutUsCmsService
             'locale' => $locale,
             'slug' => $l->slug,
             'draft_revision' => $l->draft_revision,
-            'draft' => $l->draft_content === null ? null : $this->enrichContact($this->enrichCommissionSplit($l->draft_content)),
-            'published' => $published === null ? null : $this->enrichContact($this->enrichCommissionSplit($published->content)),
+            'draft' => $l->draft_content === null ? null : $this->resolveAssets($this->enrichContact($this->enrichCommissionSplit($l->draft_content))),
+            'published' => $published === null ? null : $this->resolveAssets($this->enrichContact($this->enrichCommissionSplit($published->content))),
             'published_revision' => $published === null ? null : $published->number,
             'published_at' => $published?->created_at?->toIso8601String(),
             'draft_updated_at' => $l->draft_updated_at?->toIso8601String(),
@@ -253,6 +254,10 @@ class AboutUsCmsService
     public function resolveAssets(array $content): array
     {
         $url = fn (?string $id) => $id === null || $id === '' ? null : route('api.v1.public.content-assets.show', ['id' => $id]);
+        foreach ($content['media'] ?? [] as $slot => $media) {
+            $content['media'][$slot]['desktop_url'] = $url($media['desktop_asset_id'] ?? null);
+            $content['media'][$slot]['mobile_url'] = $url($media['mobile_asset_id'] ?? null);
+        }
         if (isset($content['seo_image_asset_id'])) {
             $content['seo_image_url'] = $url($content['seo_image_asset_id']);
         }

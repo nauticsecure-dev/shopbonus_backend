@@ -99,7 +99,7 @@ class CmsController extends Controller
         $this->locale($locale);
         $l = CmsPageLocale::where('page_id', $this->find($page)->id)->where('locale', $locale)->first() ?? throw new ApiException('This translation does not exist.', 404, 'not_found');
 
-        return response()->json(['data' => ['locale' => $locale, 'slug' => $l->slug, 'content' => $l->draft_content, 'preview' => true]], 200,
+        return response()->json(['data' => ['locale' => $locale, 'slug' => $l->slug, 'content' => $l->draft_content, 'draft_revision' => $l->draft_revision, 'preview' => true]], 200,
             ['Cache-Control' => 'private, no-store', 'X-Robots-Tag' => 'noindex, nofollow']);
     }
 
@@ -107,8 +107,8 @@ class CmsController extends Controller
     {
         $this->locale($locale);
         $data = $request->validate(['legal_version' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9._-]+$/'], 'effective_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
-            'approve' => ['sometimes', 'boolean']]);
-        $revision = $this->cms->publish($this->find($page), $locale, $request->user()->id, $data);
+            'approve' => ['sometimes', 'boolean'], 'revision' => ['required', 'integer', 'min:1']]);
+        $revision = $this->cms->publish($this->find($page), $locale, $request->user()->id, $data, (int) $data['revision']);
 
         return response()->json(['data' => $this->revision($revision)]);
     }

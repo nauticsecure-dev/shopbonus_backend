@@ -32,7 +32,7 @@ class TradeTrackerSoapClient extends SoapClient
         ]);
     }
 
-    public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false): ?string
+    public function __doRequest(string $request, string $location, string $action, int $version, bool $oneWay = false, ?string $uriParserClass = null): ?string
     {
         try {
             $response = Http::withOptions(['cookies' => $this->cookies, 'allow_redirects' => false])

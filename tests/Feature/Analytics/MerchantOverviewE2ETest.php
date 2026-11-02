@@ -14,6 +14,8 @@ use App\Models\Voucher;
 use App\Models\VoucherClaim;
 use App\Models\VoucherCode;
 use App\Models\Webshop;
+use App\Services\Analytics\MerchantAnalytics;
+use App\Services\Analytics\MerchantNotifications;
 use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
 use Carbon\CarbonImmutable;
@@ -24,7 +26,7 @@ use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
 
 /**
- * Exactly 10 E2E scenarios for Trello #8 Merchant Overview Dashboard.
+ * Ten backend integration scenarios for Trello #8; not browser E2E evidence.
  * Hits authoritative workspace APIs the live frontend consumes.
  */
 class MerchantOverviewE2ETest extends TestCase
@@ -133,9 +135,9 @@ class MerchantOverviewE2ETest extends TestCase
     /** E2E 2 — Active offer counting */
     public function test_e2e_02_active_offers_kpi_excludes_paused_and_ended_but_filters_remain(): void
     {
-        $this->createOffer($this->woon, ['name' => 'Actief A']);
-        $this->createOffer($this->woon, ['name' => 'Actief B']);
-        $this->createOffer($this->woon, ['name' => 'Actief C']);
+        $this->createOffer($this->woon, ['name' => 'Actief A'], codes: 1);
+        $this->createOffer($this->woon, ['name' => 'Actief B'], codes: 1);
+        $this->createOffer($this->woon, ['name' => 'Actief C'], codes: 1);
         $this->createOffer($this->woon, ['name' => 'Gepauzeerd'], status: 'paused');
         $this->createOffer($this->woon, ['name' => 'Verlopen'], status: 'ended');
 
@@ -287,7 +289,7 @@ class MerchantOverviewE2ETest extends TestCase
             User::factory()->create(['email_verified_at' => now()])
         );
 
-        $this->assertSame(1, $this->getJson($this->dash())->json('data.kpis.active_offers'));
+        $this->assertSame(0, $this->getJson($this->dash())->json('data.kpis.active_offers')); // Last code issued: effective lifecycle is sold_out.
         $this->postJson('/api/v1/workspaces/'.$this->woon->public_id.'/offers/'.$created['id'].'/pause')->assertOk();
         $this->assertSame(0, $this->getJson($this->dash())->json('data.kpis.active_offers'));
         $this->assertSame(1, $this->getJson($this->dash())->json('data.kpis.issued_vouchers'));
@@ -323,8 +325,11 @@ class MerchantOverviewE2ETest extends TestCase
                 'code_last4' => substr($code, -4),
             ]);
         }
-        $this->assertSame(0, app(\App\Services\Analytics\MerchantNotifications::class)->forWebshop($this->woon, CarbonImmutable::now()));
-        $this->assertSame($before, MerchantNotification::where('webshop_id', $this->woon->id)->where('type', 'low_inventory')->count());
+        $this->assertSame(0, app(MerchantNotifications::class)->forWebshop($this->woon, CarbonImmutable::now()));
+        $this->assertSame($before, MerchantNotification::withoutGlobalScope('unresolved')->where('webshop_id', $this->woon->id)->where('type', 'low_inventory')->count());
+        $resolved = $this->getJson($this->dash())->assertOk();
+        $resolved->assertJsonPath('data.notifications.unread', 0)->assertJsonPath('data.notifications.latest', []);
+        $this->getJson('/api/v1/workspaces/'.$this->woon->public_id.'/notifications')->assertOk()->assertJsonPath('data', []);
         $this->assertGreaterThanOrEqual(15, VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->count());
     }
 
@@ -423,7 +428,7 @@ class MerchantOverviewE2ETest extends TestCase
         $this->assertSame(250, $dash['kpis']['available_codes']);
         $this->assertLessThan(2000, $elapsedMs, 'Dashboard aggregate should stay fast with large inventory');
 
-        // Concurrent claim: two successful claims must not double in totals.
+        // Sequential claim integrity; true concurrency is covered separately by inventory locking tests.
         $inventory = app(VoucherInventory::class);
         $v1 = $inventory->issue($inventory->reserve($offer, VoucherOrigin::Answer24Claim, 'perf-1'), User::factory()->create(['email_verified_at' => now()]));
         $v2 = $inventory->issue($inventory->reserve($offer, VoucherOrigin::Answer24Claim, 'perf-2'), User::factory()->create(['email_verified_at' => now()]));
@@ -449,5 +454,5 @@ class MerchantOverviewE2ETest extends TestCase
 /** @return array<string, string> */
 function MerchantAnalyticsDefinitions(): array
 {
-    return \App\Services\Analytics\MerchantAnalytics::DEFINITIONS;
+    return MerchantAnalytics::DEFINITIONS;
 }

@@ -120,10 +120,28 @@ class Offer extends Model
             $this->status === OfferStatus::Scheduled => 'scheduled',
             $this->status === OfferStatus::Draft => 'draft',
             $this->status === OfferStatus::Paused => 'paused',
-            $this->status === OfferStatus::Active && $version?->starts_at !== null && $version->starts_at->isFuture() => 'scheduled',
-            $this->status === OfferStatus::Active && $this->isSoldOut() => 'sold_out',
+            $version?->starts_at !== null && $version->starts_at->isFuture() => 'scheduled',
+            $this->isSoldOut() => 'sold_out',
             default => $this->status->publicValue(),
         };
+    }
+
+    /** SQL equivalent of lifecycleStatus(), applied before pagination and counts.
+     * @param  Builder<Offer>  $query
+     */
+    public function scopeWhereLifecycle(Builder $query, string $status): void
+    {
+        $query->whereRaw("(CASE
+            WHEN offers.status = 'archived' THEN 'archived'
+            WHEN offers.status = 'ended' OR EXISTS (SELECT 1 FROM offer_versions v WHERE v.id = offers.current_version_id AND v.ends_at < ?) THEN 'expired'
+            WHEN offers.status IN ('scheduled', 'draft', 'paused') THEN offers.status
+            WHEN offers.status = 'active' AND EXISTS (SELECT 1 FROM offer_versions v WHERE v.id = offers.current_version_id AND v.starts_at > ?) THEN 'scheduled'
+            WHEN offers.status = 'active' AND (
+                NOT EXISTS (SELECT 1 FROM voucher_codes c WHERE c.offer_id = offers.id AND c.status = 'available')
+                OR EXISTS (SELECT 1 FROM offer_versions v WHERE v.id = offers.current_version_id AND v.allocation_limit IS NOT NULL
+                    AND v.allocation_limit <= (SELECT COUNT(*) FROM vouchers issued WHERE issued.offer_id = offers.id AND issued.status != 'cancelled'))
+            ) THEN 'sold_out'
+            ELSE offers.status END) = ?", [now(), now(), $status === 'ended' ? 'expired' : $status]);
     }
 
     /** @return list<string> */

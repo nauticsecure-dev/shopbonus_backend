@@ -56,15 +56,20 @@ class EmailVerificationCodes
             ]);
         });
 
+        // Plain code must never be written to logs or audit metadata — only the
+        // encrypted mail notification carries it (see test_code_never_appears_in_logs_or_audit_trail).
         $user->notify(new EmailVerificationCode($code, $ttl));
-        // log verification code for testing
-        \Log::info("Verification code sent for user {$user->id}: {$code}");
 
         $this->audit->recordSafely(
             action: 'identity.verification_code_sent',
             category: AuditCategory::Identity,
             resource: $user,
             actorUserId: $user->id,
+            metadata: [
+                'challenge_id' => $challenge->id,
+                'expires_at' => $challenge->expires_at->toIso8601String(),
+                'delivery' => 'queued_mail',
+            ],
         );
 
         return $challenge;
@@ -130,7 +135,7 @@ class EmailVerificationCodes
             return null;
         });
 
-        if ( $failure !== null) {
+        if ($failure !== null) {
             $this->audit->recordSafely(
                 action: 'identity.verification_code_failed',
                 outcome: AuditOutcome::Failure,

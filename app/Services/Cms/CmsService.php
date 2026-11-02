@@ -246,9 +246,9 @@ class CmsService
             if ($l->draft_content === null) {
                 throw ApiException::conflict('There is no draft to publish.', 'nothing_to_publish');
             }
-            // A scheduled publication only publishes the exact draft that was reviewed.
+            // Manual and scheduled publication use the exact reviewed draft.
             if ($expectedDraftRevision !== null && $l->draft_revision !== $expectedDraftRevision) {
-                throw ApiException::conflict('The draft changed after it was scheduled.', 'draft_changed');
+                throw ApiException::conflict('The draft changed after review. Preview it again before publishing.', 'draft_changed');
             }
             if ($isLegal && CmsRevision::where('page_id', $page->id)->where('locale', $locale)->where('legal_version', $legal['legal_version'])->exists()) {
                 throw ApiException::conflict('This legal version was already published; use a new version number.', 'legal_version_exists');

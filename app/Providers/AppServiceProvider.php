@@ -56,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('daisycon-evidence', fn () => Limit::perMinute(20)->by('daisycon-evidence'));
         $proxies = config('shopbonus.security.trusted_proxies');
         if (is_string($proxies) && trim($proxies) !== '') {
             TrustProxies::at(trim($proxies) === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $proxies)))));
