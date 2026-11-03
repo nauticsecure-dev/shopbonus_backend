@@ -68,6 +68,7 @@ class GuardSupportSession
         'api.v1.workspaces.invitations.*',
         'api.v1.workspaces.members.*',
         'api.v1.workspaces.ownership.*',
+        'api.v1.workspaces.ownership-transfer.*',
         'api.v1.workspaces.vouchers.redeem',
         'api.v1.workspaces.disputes.*',
     ];
@@ -89,7 +90,19 @@ class GuardSupportSession
         $session = $token instanceof PersonalAccessToken ? $this->sessions->forToken($token) : null;
 
         if ($token instanceof PersonalAccessToken && $token->name === SupportSessions::TOKEN_NAME && ($session === null || ! $session->isActive())) {
+            // Authority/expiry may change between token resolution and the final check.
+            if ($session !== null && $session->ended_at === null) {
+                $session = $this->sessions->end($session, $session->expires_at->isFuture() ? 'admin_authority_lost' : 'expired');
+            }
             $token->delete();
+            if ($session !== null) {
+                Context::add(AuditLogger::CONTEXT_REAL_ACTOR_ID, $session->admin_user_id);
+                try {
+                    $this->record($request, $session, 401, AuditOutcome::Denied);
+                } finally {
+                    Context::forget(AuditLogger::CONTEXT_REAL_ACTOR_ID);
+                }
+            }
 
             throw new ApiException('This support session has ended.', 401, 'support_session_ended');
         }

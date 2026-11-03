@@ -24480,3 +24480,623 @@ Accept-Language: nl
   }
 }
 ```
+
+## Admin backend authority, pagination and webshop filters — B54/B55 (2026-11-03)
+
+[Forty-one actual HTTP exchanges](../qa/B54_B55_ADMIN_BACKEND_HTTP_CAPTURE.json) were captured on a local Laravel server with isolated SQLite and synthetic accounts/business records. Authority changes were injected into fixture records to bypass lifecycle hooks deliberately. MFA was disabled for capture only; required-MFA loss is regression-tested separately. No frontend or native-provider acceptance is claimed. Capture servers, private credentials, storage and DB were removed.
+
+Support-token requests revalidate the initiating administrator's current active/verified/Super Admin authority and required MFA without trusting loaded relations. Lost authority closes the session, revokes the token and records an attributed401 denial; restoring authority cannot revive it. Ordinary bearer tokens retain existing behavior. Ownership-transfer writes, including cancellation, are explicitly denied during impersonation. Persisted lifecycle display is separate from live request authorization; invalid authority is closed/audited on token use.
+
+All four admin lists accept positive integer `page`, bounded `per_page`1–100 and return pagination metadata. Webshop pagination links retain search/status filters. Vouchers and activity accept canonical `webshop_id` or alias `webshop` as a public ULID. Both are allowed only for the same shop; conflict/malformed input422, valid unknown shop200empty. Scoping precedes pagination. These are Super Admin endpoints, not consumer/merchant endpoints.
+
+The cockpit already accepts `period=today` in business timezone and exposes detailed `data.kpis`: orders, Answer24 requests/by_status, available inventory, per-unit wallet issuance/spend/outstanding and disputes. `data.cards` remains six headlines. See [backend handoff](../admin/COCKPIT_BACKEND_HANDOFF.md). Client selectors/buttons/filter forwarding remain Hassan's work.
+
+**role-authority-lost**
+
+```http
+GET /api/v1/me
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "support_session_ended",
+    "message": "This support session has ended.",
+    "request_id": "01a1a068-6345-7050-9e5a-566d5d0515ab"
+  }
+}
+```
+
+**support-ownership-cancel-denied**
+
+```http
+DELETE /api/v1/workspaces/current/ownership-transfer
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 403:
+
+```json
+{
+  "error": {
+    "status": 403,
+    "code": "blocked_during_impersonation",
+    "message": "This action is not available during a support session.",
+    "request_id": "01a1a068-6229-71d0-8e45-7fa23ba01659"
+  }
+}
+```
+
+**users-page2**
+
+```http
+GET /api/v1/admin/users?search=Pagination&per_page=1&page=2
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6g6gqcvk6ybw19g2623f3bs",
+      "first_name": "Pagination 2",
+      "email": "pagination-2@example.test",
+      "email_verified": true,
+      "status": "active",
+      "onboarding_intent": "consumer",
+      "roles": [],
+      "workspaces": [],
+      "two_factor_enabled": false,
+      "registered_at": "2026-11-03T07:55:56+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "per_page": 1,
+    "total": 3,
+    "last_page": 3
+  }
+}
+```
+
+**webshops-page2**
+
+```http
+GET /api/v1/admin/webshops?search=Pagination&per_page=1&page=2
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6g6gqe3y876snn90tecd4dh",
+      "name": "Pagination B",
+      "platform": "squarespace",
+      "status": "approved",
+      "status_reason": null,
+      "review_flags": [],
+      "ownership_verified": true,
+      "ownership_method": "dns_txt",
+      "verified_domain": null,
+      "website_domain": null,
+      "owners": [
+        {
+          "id": "01m6g6gqcb82d3324wfsv302a1",
+          "first_name": "Synthetic Owner",
+          "email": "capture-owner@example.test"
+        }
+      ],
+      "review_requested_at": null,
+      "approved_at": "2026-11-03T07:55:56+00:00",
+      "created_at": "2026-11-03T07:55:56+00:00",
+      "integration_status": "not_connected",
+      "last_activity_at": "2026-11-03T07:55:56+00:00",
+      "active_offers": 1
+    }
+  ],
+  "links": {
+    "first": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+    "last": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3",
+    "prev": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+    "next": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3"
+  },
+  "meta": {
+    "current_page": 2,
+    "from": 2,
+    "last_page": 3,
+    "links": [
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+        "label": "&laquo; Previous",
+        "page": 1,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+        "label": "1",
+        "page": 1,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=2",
+        "label": "2",
+        "page": 2,
+        "active": true
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3",
+        "label": "3",
+        "page": 3,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3",
+        "label": "Next &raquo;",
+        "page": 3,
+        "active": false
+      }
+    ],
+    "path": "http://127.0.0.1:8792/api/v1/admin/webshops",
+    "per_page": 1,
+    "to": 2,
+    "total": 3
+  }
+}
+```
+
+**vouchers-webshop_id-page2**
+
+```http
+GET /api/v1/admin/vouchers?webshop_id=01m6g6gqd860dbgjb1swv50vjc&per_page=2&page=2
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6g6gqga20cevz600sth83zd",
+      "status": "issued",
+      "origin": "merchant_reward",
+      "webshop": {
+        "id": "01m6g6gqd860dbgjb1swv50vjc",
+        "name": "Pagination A"
+      },
+      "code_last4": "-1-0",
+      "issued_at": "2026-11-03T07:55:56+00:00",
+      "redeemed_at": null,
+      "expires_at": "2026-12-03T07:55:56+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "per_page": 2,
+    "total": 3,
+    "last_page": 2
+  }
+}
+```
+
+**activity-webshop_id-page2**
+
+```http
+GET /api/v1/admin/activity?webshop_id=01m6g6gqd860dbgjb1swv50vjc&per_page=2&page=2&action=fixture.drilldown
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "3",
+      "occurred_at": "2026-11-03T07:55:56+00:00",
+      "category": "admin",
+      "action": "fixture.drilldown",
+      "outcome": "success",
+      "type": "Systeem",
+      "description": "fixture drilldown",
+      "detail": "Pagination A",
+      "href": "/admin/webshops/01m6g6gqd860dbgjb1swv50vjc",
+      "actor": {
+        "id": "01m6g6gqbytahk52jbj5sqrpxk",
+        "email": "ca***********@example.test",
+        "name": "Synthetic Admin"
+      },
+      "real_actor": null,
+      "webshop": {
+        "id": "01m6g6gqd860dbgjb1swv50vjc",
+        "name": "Pagination A"
+      },
+      "http_status": null,
+      "http_method": null,
+      "route": null,
+      "request_id": null
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "per_page": 2,
+    "total": 3,
+    "last_page": 2
+  }
+}
+```
+
+**cockpit-today**
+
+```http
+GET /api/v1/admin/cockpit?period=today
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "generated_at": "2026-11-03T07:56:01+00:00",
+    "cache_seconds": 60,
+    "period": {
+      "from": "2026-11-02T23:00:00+00:00",
+      "to": "2026-11-03T22:59:59+00:00"
+    },
+    "kpis": {
+      "webshops": {
+        "total": 3,
+        "active": 3,
+        "pending": 0,
+        "pending_review": 0,
+        "suspended": 0,
+        "rejected": 0
+      },
+      "consumers": {
+        "registered": 9,
+        "new_in_period": 9,
+        "active_in_period": 0
+      },
+      "offers": {
+        "published": 2
+      },
+      "vouchers": {
+        "issued_in_period": 4,
+        "redeemed_in_period": 0,
+        "outstanding": 4,
+        "available_codes": 2
+      },
+      "orders": {
+        "received_in_period": 1,
+        "confirmed_paid_in_period": 1
+      },
+      "answer24": {
+        "requests_in_period": 1,
+        "by_status": {
+          "pending": 1
+        }
+      },
+      "affiliate_commissions": {
+        "pending": {
+          "count": 0,
+          "by_currency": []
+        },
+        "approved": {
+          "count": 0,
+          "by_currency": []
+        },
+        "rejected": {
+          "count": 0,
+          "by_currency": []
+        },
+        "reversed": {
+          "count": 0,
+          "by_currency": []
+        }
+      },
+      "wallets": {
+        "points": {
+          "issued_in_period": 100,
+          "spent_in_period": 20,
+          "expired_in_period": 0,
+          "available": 80,
+          "reserved": 0,
+          "outstanding": 80,
+          "pending": 0
+        }
+      },
+      "disputes": {
+        "open": 1
+      },
+      "incidents": {
+        "application_errors_in_period": 0,
+        "failed_jobs": 0,
+        "failed_webhooks_in_period": 0,
+        "failed_outbox": 0,
+        "open_reconciliation_flags": 0,
+        "paid_unfulfilled_checkouts": 0,
+        "access_denials_in_period": 18
+      }
+    },
+    "cards": [
+      {
+        "key": "active_webshops",
+        "label": "Actieve webshops",
+        "value": 3,
+        "display": "3",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Goedgekeurde workspaces",
+        "href": "/admin/webshops?status=approved",
+        "tone": "blue",
+        "icon": "store"
+      },
+      {
+        "key": "consumers",
+        "label": "Consumenten",
+        "value": 9,
+        "display": "9",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Actieve consumentenaccounts",
+        "href": "/admin/users?role=consumer&status=active",
+        "tone": "blue",
+        "icon": "users"
+      },
+      {
+        "key": "active_vouchers",
+        "label": "Actieve vouchers",
+        "value": 4,
+        "display": "4",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Uitgegeven en nog bruikbaar",
+        "href": "/admin/vouchers?usable=1",
+        "tone": "blue",
+        "icon": "ticket"
+      },
+      {
+        "key": "affiliate_commission",
+        "label": "Affiliatecommissie",
+        "value": 0,
+        "display": "€ 0,00",
+        "change_percent": 0,
+        "helper": "Bevestigd · pending € 0,00",
+        "status": "confirmed",
+        "breakdown": {
+          "confirmed_minor": 0,
+          "pending_minor": 0,
+          "rejected_minor": 0,
+          "reversed_minor": 0
+        },
+        "href": "/admin/affiliate?tab=transactions&status=approved&from=2026-11-03&to=2026-11-03",
+        "tone": "blue",
+        "icon": "coins"
+      },
+      {
+        "key": "wallet_liability",
+        "label": "Virtueel wallettegoed",
+        "value": 0,
+        "display": "€ 0,00",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Beschikbaar € 0,00 · gereserveerd € 0,00 · geen winst",
+        "breakdown": {
+          "available_minor": 0,
+          "reserved_minor": 0,
+          "pending_minor": 0,
+          "outstanding_minor": 0
+        },
+        "href": "/admin/wallets",
+        "tone": "blue",
+        "icon": "wallet"
+      },
+      {
+        "key": "open_actions",
+        "label": "Openstaande acties",
+        "value": 0,
+        "display": "0",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Goedkeuringen, syncs en support",
+        "href": "/admin#actions",
+        "tone": "blue",
+        "icon": "list"
+      }
+    ],
+    "trends": {
+      "timezone": "Europe/Amsterdam",
+      "days": [
+        {
+          "date": "2026-11-03",
+          "new_webshops": 3,
+          "new_consumers": 8,
+          "paid_orders": 1,
+          "vouchers_issued": 4,
+          "vouchers_redeemed": 0
+        }
+      ]
+    },
+    "affiliate_channels": {
+      "metric": "vouchers",
+      "metric_label": "Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.",
+      "total": 4,
+      "period": {
+        "from": "2026-11-02T23:00:00+00:00",
+        "to": "2026-11-03T22:59:59+00:00"
+      },
+      "channels": [
+        {
+          "network": "other",
+          "label": "Overig / onbekend",
+          "count": 4,
+          "percent": 100,
+          "href": "/admin/affiliate?tab=vouchers&network=other&from=2026-11-03&to=2026-11-03"
+        }
+      ]
+    },
+    "attention": {
+      "pending_approvals": [],
+      "failed_sync_items": [],
+      "integration_failures": [],
+      "failed_jobs": [],
+      "reconciliation_flags": [],
+      "paid_unfulfilled_checkouts": [],
+      "affiliate_problems": 0,
+      "security_denials_24h": [
+        {
+          "route": "api/v1/me",
+          "http_status": 401,
+          "count": 12
+        },
+        {
+          "route": "api/v1/workspaces/{workspace}/ownership-transfer",
+          "http_status": 403,
+          "count": 2
+        },
+        {
+          "route": "api/v1/admin/activity",
+          "http_status": 403,
+          "count": 1
+        },
+        {
+          "route": "api/v1/admin/users",
+          "http_status": 403,
+          "count": 1
+        },
+        {
+          "route": "api/v1/admin/vouchers",
+          "http_status": 403,
+          "count": 1
+        },
+        {
+          "route": "api/v1/admin/webshops",
+          "http_status": 403,
+          "count": 1
+        }
+      ],
+      "recent_admin_actions": [
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:56:00+00:00"
+        },
+        {
+          "action": "support_session.ended",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:56:00+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:56:00+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:55:59+00:00"
+        },
+        {
+          "action": "support_session.ended",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:59+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:59+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        },
+        {
+          "action": "support_session.ended",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        }
+      ],
+      "open_actions": {
+        "pending_approvals": {
+          "count": 0,
+          "severity": "none",
+          "href": "/admin/webshops?status=pending_review",
+          "title": "webshops wachten op goedkeuring",
+          "detail": "Bekijk en keur nieuwe webshops goed."
+        },
+        "failed_syncs": {
+          "count": 0,
+          "severity": "none",
+          "href": "/admin/integrations?attention=1",
+          "title": "mislukte syncs",
+          "detail": "Controleer mislukte imports of connectorfouten."
+        },
+        "open_support": {
+          "count": 0,
+          "severity": "none",
+          "href": "/admin/support?outcome=open",
+          "title": "supportcases",
+          "detail": "Nieuwe of openstaande supportcases."
+        },
+        "total": 0
+      }
+    },
+    "sources": {
+      "webshops": "ok",
+      "consumers": "ok",
+      "vouchers": "ok",
+      "affiliate": "ok",
+      "wallets": "ok",
+      "support": "ok",
+      "integrations": "ok"
+    },
+    "warnings": [],
+    "definitions": {
+      "webshops.active": "Status approved (commercially active workspaces).",
+      "webshops.pending": "Status draft, awaiting_verification, verification_failed or pending_review; pending_review is waiting for an admin.",
+      "consumers.registered": "Active consumer-intent accounts, including webshop members; active platform staff and configured test_account_public_ids excluded.",
+      "consumers.active_in_period": "Active consumers who signed in during the period.",
+      "offers.published": "Offers with status active.",
+      "vouchers.issued_in_period": "Vouchers whose issued_at is in the period (reserved claims are not issued).",
+      "vouchers.outstanding": "Issued, not expired, with an available/issued code that is not invalidated or mismatched.",
+      "vouchers.available_codes": "Codes in inventory that are not reserved, issued, redeemed or invalid.",
+      "orders.confirmed_paid_in_period": "Orders whose paid_at (provider-confirmed payment) is in the period.",
+      "affiliate_commissions": "Network commissions by our status, summed per currency; pending, approved, rejected and reversed are never added together. Headline card shows confirmed (approved) only.",
+      "affiliate_channels": "Issued vouchers grouped by explicit approved non-duplicate acquisition transaction with matching consumer and webshop; absent or invalid evidence is Other/Unknown.",
+      "wallets": "Consumer wallets per unit: credits issued, debits spent and expiries in the period; outstanding = available + reserved now (liability, not profit); pending (not yet credited) is separate.",
+      "open_actions": "Pending webshop reviews, unresolved support reviews and unique webshop connections with errors/failed webhooks plus affiliate connections in error. Incident occurrences and failed jobs are diagnostic, not additive.",
+      "incidents": "Counts of recorded technical faults and failures; access denials are audited 401/403 responses."
+    },
+    "period_name": "today",
+    "timezone": "Europe/Amsterdam"
+  }
+}
+```

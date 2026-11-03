@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $token_id
  * @property CarbonImmutable $expires_at
  * @property CarbonImmutable|null $ended_at
- * @property string|null $ended_reason ended_by_admin | ended_by_session | replaced | expired
+ * @property string|null $ended_reason ended_by_admin | ended_by_session | replaced | expired | admin_authority_lost | invalid_token_binding
  * @property CarbonImmutable $created_at
  * @property-read User $admin
  * @property-read User $target
@@ -69,14 +69,24 @@ class ImpersonationSession extends Model
 
     public function isActive(): bool
     {
-        return $this->ended_at === null && $this->expires_at->isFuture();
+        return $this->ended_at === null && $this->expires_at->isFuture() && $this->hasActiveAdministrator();
     }
 
+    /** Never trust a previously loaded administrator or role relationship. */
+    public function hasActiveAdministrator(): bool
+    {
+        $admin = $this->admin()->first();
+
+        return $admin !== null && $admin->isActive() && $admin->hasVerifiedEmail() && $admin->isSuperAdmin()
+            && (! config('shopbonus.admin.mfa_required') || $admin->hasEnabledTwoFactorAuthentication());
+    }
+
+    /** Persisted lifecycle view; request authorization additionally calls isActive(). */
     public function status(): string
     {
         return match (true) {
             $this->ended_at !== null => 'ended',
-            $this->expires_at->isPast() => 'expired',
+            ! $this->expires_at->isFuture() => 'expired',
             default => 'active',
         };
     }

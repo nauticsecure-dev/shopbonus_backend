@@ -1181,3 +1181,22 @@ B51/B52 implementation40e0e0c plus main-integration refinement commit (parent40e
 - [x] Record implementation SHAs, current handoff and exact next CI action.
 
 B53 implementation parentb484cdf: MerchantDashboardTest SQLite11/85 andMySQL11/85 PASS; Pint/diff PASS. Full CI41596390972 SQLite failed only this stale expectation; replacement exact-code CI still required.
+
+### B54 — Request-time impersonation authority (backend only, 2026-11-03)
+
+- [x] Revalidate the initiating administrator's active/verified/Super Admin authority and required MFA from current records on every support-token request.
+- [x] Close/revoke invalid sessions, reject stale model relations and token binding mismatches, and keep audit attribution without reviving ended tokens.
+- [x] Enforce initiating authority inside the existing start transaction; preserve target restrictions and expiry behavior.
+- [x] Block the ownership-transfer write route family during impersonation, including cancellation.
+- [x] Test direct status/role/verification/MFA changes bypassing lifecycle hooks, normal tokens, audit and replay; capture actual HTTP evidence.
+- [x] Update API/security docs and checkpoint evidence after executed checks.
+
+### B55 — Cockpit API filtering and pagination contract (backend only, 2026-11-03)
+
+- [x] Verify existing detailed KPI and Today behavior without implementing client screens.
+- [x] Add voucher webshop scoping and activity webshop alias; reject conflicting/malformed filters without silently broadening results.
+- [x] Validate page parameters for all four lists and preserve webshop list filters in pagination links.
+- [x] Prove page2/scoped results, unknown shops, authorization and invalid inputs; capture real HTTP examples and document frontend handoff.
+- [x] Record focused verification and implementation SHAs.
+
+B54/B55 implementation parent5a84660: SQLite46/8417; MySQL43/637; final principal/race refinement15/299 on each driver; API3/7780. PHPStan/Pint/diff PASS.41 real HTTP captures plus database assertions; no frontend changes. Implementing SHA recorded in the following closeout. Full new CI pending.

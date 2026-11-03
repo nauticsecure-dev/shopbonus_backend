@@ -39,6 +39,7 @@ class UserController extends Controller
             'registered_from' => ['sometimes', 'date_format:Y-m-d'],
             'registered_to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:registered_from'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
         $search = isset($data['search']) ? '%'.addcslashes(Str::lower($data['search']), '%_\\').'%' : null;
         $activeMembership = fn ($q) => $q->where('status', MembershipStatus::Active);

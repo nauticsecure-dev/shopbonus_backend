@@ -200,9 +200,12 @@ class Cockpit
      *
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function vouchers(?string $status, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $publicId, int $perPage = 25, bool $usable = false, ?string $network = null): array
+    public function vouchers(?string $status, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $publicId, int $perPage = 25, bool $usable = false, ?string $network = null, ?string $webshop = null): array
     {
         $query = Voucher::query()->with(['webshop:id,public_id,name', 'code:id,public_id,code_last4']);
+        if ($webshop !== null) {
+            $query->where('webshop_id', Webshop::where('public_id', strtolower($webshop))->value('id') ?? 0);
+        }
         if ($usable) {
             $query->usable();
         }
