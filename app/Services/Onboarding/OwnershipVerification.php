@@ -77,6 +77,10 @@ class OwnershipVerification
         $code = $mail['code'] ?? null;
 
         $verification = DB::transaction(function () use ($actor, $webshop, $method, $domain, $email, $code) {
+            $webshop = Webshop::whereKey($webshop->id)->lockForUpdate()->firstOrFail();
+            if ($this->assertCanStart($webshop) !== $domain) {
+                throw ApiException::conflict('The domain changed. Start a new verification.', 'verification_domain_changed');
+            }
             $webshop->verifications()->where('status', VerificationStatus::Pending)->update(['status' => VerificationStatus::Superseded]);
 
             $verification = $webshop->verifications()->create([
@@ -194,6 +198,10 @@ class OwnershipVerification
         $stored = array_map(fn (UploadedFile $file) => $this->storeEvidence($webshop, $file), $files);
 
         return DB::transaction(function () use ($actor, $webshop, $domain, $notes, $stored, $duplicate) {
+            $webshop = Webshop::whereKey($webshop->id)->lockForUpdate()->firstOrFail();
+            if ($this->assertCanStart($webshop) !== $domain) {
+                throw ApiException::conflict('The domain changed. Start a new verification.', 'verification_domain_changed');
+            }
             $webshop->verifications()->where('status', VerificationStatus::Pending)->update(['status' => VerificationStatus::Superseded]);
 
             $verification = $webshop->verifications()->create([
@@ -230,6 +238,10 @@ class OwnershipVerification
 
             if ($locked->status !== VerificationStatus::Pending) {
                 throw ApiException::conflict('This verification is no longer open.', 'verification_not_pending');
+            }
+
+            if ($webshop->businessProfile?->website_domain !== $locked->domain) {
+                throw ApiException::conflict('The domain changed. Start a new verification.', 'verification_domain_changed');
             }
 
             // Re-checked under lock: two webshops racing for the same domain.

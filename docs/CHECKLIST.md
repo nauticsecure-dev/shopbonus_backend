@@ -1248,3 +1248,12 @@ B58 implementing SHA: `6ed1395`.
 B59 implementing parentee1f2b6: SQLite28/8546 plus final API5/8269; MySQL23/277; PHPStan/Pint/diff PASS. Three real local HTTP exchanges and actual synthetic console reconciliation. Deployed/client/genuine-provider acceptance remains open. SHA recorded in following closeout.
 
 B59 implementing SHA: `f115f44`.
+
+### B60 — Verified domain change and Step2 backend acceptance (2026-11-03)
+
+- [x] Add authorized explicit domain-change reconciliation with expected-domain guard and reason; keep ordinary saves locked.
+- [x] Reset ownership/business confirmation/approval, supersede open challenges and disconnect current integration credentials/generations atomically.
+- [x] Guard stale profile/challenge races; test authorization, status, concurrency and old/new connection evidence.
+- [x] Capture actual HTTP onboarding reset evidence, run focused checks and document coupon-write/deployed/client limitations and foreign-workspace404 policy.
+
+B60 implementing parent0a9ac29: SQLite48/894, MySQL34/305, API5/8269; PHPStan/Pint/diff PASS. Nine actual local HTTP exchanges and console reset. These checks complete domain reset only; coupon-write capability and external/frontend acceptance remain OPEN. Implementing SHA recorded in subsequent closeout.

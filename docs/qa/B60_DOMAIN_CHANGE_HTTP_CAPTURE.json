@@ -1,0 +1,317 @@
+{
+  "captured_at": "2026-11-03T13:54:02Z",
+  "baseline": "0a9ac29 plus B60 working tree",
+  "environment": "Actual local Laravel HTTP; isolated SQLite/array cache, synthetic verified merchant and integrations; MFA/owner step-up disabled locally for capture only. Real console reset executed. No new-domain ownership, provider writes or deployed browser acceptance claimed.",
+  "exchanges": [
+    {
+      "label": "before-reset",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "legal_name": null,
+            "trading_name": null,
+            "website_url": "https://old-store.nl",
+            "website_domain": "old-store.nl",
+            "kvk_number": null,
+            "vat_number": null,
+            "contact_email": null,
+            "contact_phone": null,
+            "main_contact_name": null,
+            "address_line": null,
+            "postal_code": null,
+            "city": null,
+            "country_code": "NL",
+            "preferred_language": "nl",
+            "google_place_id": null,
+            "business_category": null,
+            "source": "manual",
+            "confirmed": true,
+            "confirmed_at": "2026-11-03T13:54:01+00:00",
+            "missing_fields": [
+              "legal_name",
+              "contact_email",
+              "address_line",
+              "postal_code",
+              "city",
+              "kvk_number"
+            ],
+            "domain_locked": true
+          }
+        }
+      }
+    },
+    {
+      "label": "ordinary-change-denied",
+      "request": {
+        "method": "PUT",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile",
+        "body": {
+          "website_url": "https://new-store.nl"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "domain_locked",
+            "message": "The website domain is locked after ownership verification.",
+            "request_id": "01a1a1b0-34dc-71ba-a017-592a7628f44c"
+          }
+        }
+      }
+    },
+    {
+      "label": "foreign-concealed",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "The requested resource was not found.",
+            "request_id": "01a1a1b0-3508-7091-8e98-47262dc3dc57"
+          }
+        }
+      }
+    },
+    {
+      "label": "after-reset",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "legal_name": null,
+            "trading_name": null,
+            "website_url": "https://new-store.nl",
+            "website_domain": "new-store.nl",
+            "kvk_number": null,
+            "vat_number": null,
+            "contact_email": null,
+            "contact_phone": null,
+            "main_contact_name": null,
+            "address_line": null,
+            "postal_code": null,
+            "city": null,
+            "country_code": "NL",
+            "preferred_language": "nl",
+            "google_place_id": null,
+            "business_category": null,
+            "source": "manual",
+            "confirmed": false,
+            "confirmed_at": null,
+            "missing_fields": [
+              "legal_name",
+              "contact_email",
+              "address_line",
+              "postal_code",
+              "city",
+              "kvk_number"
+            ],
+            "domain_locked": false
+          }
+        }
+      }
+    },
+    {
+      "label": "connections-reset",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/connections",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "id": "01m6gv0cd22s84sg4tgazfjqaf",
+              "platform": "woocommerce",
+              "method": "webhook",
+              "status": "disconnected",
+              "external_shop_ref": null,
+              "limitations": [],
+              "last_event_at": null,
+              "last_verified_order_at": null,
+              "connected_at": null,
+              "disconnected_at": "2026-11-03T13:54:02+00:00",
+              "last_error": null,
+              "created_at": "2026-11-03T13:54:01+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "old-challenge-rejected",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications/01m6gv0cddj2q3mz9vh6a368mt/check",
+        "body": {},
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "verification_not_pending",
+            "message": "This verification is no longer open.",
+            "request_id": "01a1a1b0-3690-7364-803c-537f7fa19e54"
+          }
+        }
+      }
+    },
+    {
+      "label": "confirmation-required",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications",
+        "body": {
+          "method": "dns_txt"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "business_details_incomplete",
+            "message": "Confirm the business details first.",
+            "request_id": "01a1a1b0-36af-71b9-95a8-a4b8282ebe41"
+          }
+        }
+      }
+    },
+    {
+      "label": "reconfirmed",
+      "request": {
+        "method": "PUT",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile",
+        "body": {
+          "legal_name": "Synthetic Shop B.V.",
+          "website_url": "https://new-store.nl",
+          "kvk_number": "12345678",
+          "contact_email": "synthetic-owner@example.test",
+          "contact_phone": "+31301234567",
+          "main_contact_name": "Synthetic Owner",
+          "address_line": "Syntheticstraat 1",
+          "postal_code": "1234 AB",
+          "city": "Utrecht",
+          "country_code": "NL",
+          "confirm": true
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "legal_name": "Synthetic Shop B.V.",
+            "trading_name": null,
+            "website_url": "https://new-store.nl",
+            "website_domain": "new-store.nl",
+            "kvk_number": "12345678",
+            "vat_number": null,
+            "contact_email": "synthetic-owner@example.test",
+            "contact_phone": "+31301234567",
+            "main_contact_name": "Synthetic Owner",
+            "address_line": "Syntheticstraat 1",
+            "postal_code": "1234 AB",
+            "city": "Utrecht",
+            "country_code": "NL",
+            "preferred_language": "nl",
+            "google_place_id": null,
+            "business_category": null,
+            "source": "manual",
+            "confirmed": true,
+            "confirmed_at": "2026-11-03T13:54:02+00:00",
+            "missing_fields": [],
+            "domain_locked": false
+          }
+        }
+      }
+    },
+    {
+      "label": "new-challenge",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications",
+        "body": {
+          "method": "dns_txt"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6gv0dr97h1nyvr2gjjq2x3b",
+            "method": "dns_txt",
+            "status": "pending",
+            "domain": "new-store.nl",
+            "instructions": {
+              "record_type": "TXT",
+              "record_name": "_shopbonus-verification.new-store.nl",
+              "record_value": "shopbonus-verification=d091e9b2c7edae467354f8d95fb0579e"
+            },
+            "attempt_count": 0,
+            "expires_at": "2026-11-10T13:54:02+00:00",
+            "verified_at": null,
+            "failure_reason": null,
+            "created_at": "2026-11-03T13:54:02+00:00"
+          }
+        }
+      }
+    }
+  ]
+}

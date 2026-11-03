@@ -25266,3 +25266,100 @@ Content-Type: application/json
 
 {"data":[{"id":"01m6gtgnrqqsv1wp94p4h11476","status":"issued","origin":"merchant_reward","webshop":{"id":"01m6gtgnq2ajrkxyjf00q1pbvx","name":"Synthetic acquisition"},"code_last4":"CODE","issued_at":"2026-11-03T13:45:26+00:00","redeemed_at":null,"expires_at":"2026-12-03T13:45:26+00:00"}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
 ```
+
+
+## B60 — Verified-domain change workflow (2026-11-03)
+
+Normal profile edits retain409 domain_locked. The [privileged console reset procedure](../admin/DOMAIN_CHANGE.md) requires explicit expected-domain and authorized change case; it clears current proof/confirmation/approval and disconnects old integration generations. New-domain ownership and fresh integrations must be verified. No API route or coupon-write capability was added. Foreign workspace access remains audited404.
+
+[Actual HTTP evidence](../qa/B60_DOMAIN_CHANGE_HTTP_CAPTURE.json): isolated local Laravel/SQLite, synthetic merchant/profile/connection, baseline0a9ac29 plus B60 source, actual console reset between requests. MFA/owner step-up disabled locally for capture only. Not deployed/browser/worker/provider evidence.
+
+### before-reset
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":200,"body":{"data":{"legal_name":null,"trading_name":null,"website_url":"https://old-store.nl","website_domain":"old-store.nl","kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-11-03T13:54:01+00:00","missing_fields":["legal_name","contact_email","address_line","postal_code","city","kvk_number"],"domain_locked":true}}}
+```
+
+### ordinary-change-denied
+
+```bash
+curl -i -X PUT 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"website_url": "https://new-store.nl"}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"domain_locked","message":"The website domain is locked after ownership verification.","request_id":"01a1a1b0-34dc-71ba-a017-592a7628f44c"}}}
+```
+
+### foreign-concealed
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":404,"body":{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1a1b0-3508-7091-8e98-47262dc3dc57"}}}
+```
+
+### after-reset
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":200,"body":{"data":{"legal_name":null,"trading_name":null,"website_url":"https://new-store.nl","website_domain":"new-store.nl","kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":false,"confirmed_at":null,"missing_fields":["legal_name","contact_email","address_line","postal_code","city","kvk_number"],"domain_locked":false}}}
+```
+
+### connections-reset
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/connections' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":200,"body":{"data":[{"id":"01m6gv0cd22s84sg4tgazfjqaf","platform":"woocommerce","method":"webhook","status":"disconnected","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":"2026-11-03T13:54:02+00:00","last_error":null,"created_at":"2026-11-03T13:54:01+00:00"}]}}
+```
+
+### old-challenge-rejected
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications/01m6gv0cddj2q3mz9vh6a368mt/check' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"verification_not_pending","message":"This verification is no longer open.","request_id":"01a1a1b0-3690-7364-803c-537f7fa19e54"}}}
+```
+
+### confirmation-required
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"method": "dns_txt"}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"business_details_incomplete","message":"Confirm the business details first.","request_id":"01a1a1b0-36af-71b9-95a8-a4b8282ebe41"}}}
+```
+
+### reconfirmed
+
+```bash
+curl -i -X PUT 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"legal_name": "Synthetic Shop B.V.", "website_url": "https://new-store.nl", "kvk_number": "12345678", "contact_email": "synthetic-owner@example.test", "contact_phone": "+31301234567", "main_contact_name": "Synthetic Owner", "address_line": "Syntheticstraat 1", "postal_code": "1234 AB", "city": "Utrecht", "country_code": "NL", "confirm": true}'
+```
+
+```json
+{"status":200,"body":{"data":{"legal_name":"Synthetic Shop B.V.","trading_name":null,"website_url":"https://new-store.nl","website_domain":"new-store.nl","kvk_number":"12345678","vat_number":null,"contact_email":"synthetic-owner@example.test","contact_phone":"+31301234567","main_contact_name":"Synthetic Owner","address_line":"Syntheticstraat 1","postal_code":"1234 AB","city":"Utrecht","country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-11-03T13:54:02+00:00","missing_fields":[],"domain_locked":false}}}
+```
+
+### new-challenge
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"method": "dns_txt"}'
+```
+
+```json
+{"status":201,"body":{"data":{"id":"01m6gv0dr97h1nyvr2gjjq2x3b","method":"dns_txt","status":"pending","domain":"new-store.nl","instructions":{"record_type":"TXT","record_name":"_shopbonus-verification.new-store.nl","record_value":"shopbonus-verification=d091e9b2c7edae467354f8d95fb0579e"},"attempt_count":0,"expires_at":"2026-11-10T13:54:02+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-11-03T13:54:02+00:00"}}}
+```
