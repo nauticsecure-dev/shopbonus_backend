@@ -1,5 +1,7 @@
 # B50 — Recovery cadence and deployment acceptance (2026-11-03, Codex)
 
+B49 acceptance implementation `7027e2c`; B50 recovery implementation `fd27a24`, both pushed. Previous PR#3 is merged; new draft PR#5: https://github.com/nauticsecure-dev/shopbonus_backend/pull/5. Full CI triggered by the new PR; result not yet verified. Working tree clean before this documentation closeout.
+
 Branch `frank/review-fixes`, parent `7027e2c` (B49). User supplies four recovery/queue acceptance findings. Implemented five-minute backup attempts (was hourly), preserving opt-in and60-minute overlap lock. Default overdue15minutes (was120), minimum1 (was30), so a15-minute threshold is honored. No RPO/RTO approval or actual infrastructure guarantee inferred from this schedule. Existing deployments must update overrides/config cache and capacity-plan dump duration/retention before enabling.
 
 Added docs/reliability/DEPLOYMENT_RECOVERY_ACCEPTANCE.md: independent disk/failure-domain retrieval, separate APP_KEY/backup-key escrow and recovery, measured data cutoff/durable availability, full infrastructure rebuild timeline and inventory of actual producer/worker queue connections with pause/backlog/failure/recovery acceptance. Updated stale hourly runbook statements and remaining-work inventory. offsite_verified remains false; no deployment or positive verification attestation invented. Default queue coverage stays default+affiliate; additional connections and Redis worker/ready-age proof require deployment telemetry.

@@ -958,3 +958,5 @@ B49 evidence: SQLite61/491 and17/7827, MySQL1/12; Pint/diff PASS. Implementing c
 - [x] Run focused recovery/operations/API checks and record results and deployment blockers.
 
 B50 implementing commit parent7027e2c: SQLite14/7660, MySQL operations4/28; PHPStan512MiB/Pint/diff PASS. Checkboxes cover implemented code/runbook only; deployed offsite/key/infrastructure/queue acceptance remains NOT RUN.
+
+Implementation SHAs: B49 `7027e2c`; B50 `fd27a24`. Draft PR#5 contains both; no deployment acceptance promoted.
