@@ -1,3 +1,5 @@
+B60 implementing SHA `5cf9707`; focused checks and nine actual HTTP exchanges passed. No migrations. Coupon generation and deployed/client acceptance remain open as detailed below.
+
 # B60 — Verified-domain reset and Step2 backend review (2026-11-03, Codex)
 
 Branch frank/review-fixes, parent0a9ac29; draft PR#5. Added explicit privileged `shopbonus:change-verified-domain` console workflow with current verified active Super Admin, expected-domain guard, authorized change case and reset-verification confirmation. Ordinary profile PUT remains409 domain_locked; service freshly locks/rechecks webshop, preventing stale-model bypass. Target normalized to canonical HTTPS public hostname. Suspended/rejected shops cannot bypass lifecycle restrictions.
