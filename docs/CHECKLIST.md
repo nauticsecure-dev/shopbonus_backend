@@ -1481,4 +1481,6 @@ B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/
 - [x] Make the Daisycon raw-permission snapshot assertion independent of JSON object key order while preserving strict values and no-activation guards.
 - [x] Fix reported formatting violations and regenerate deterministic merchant archives/manifests without changing native behavior or weakening lint.
 - [x] Run focused database/package checks, full lint/static checks and dependency audit.
-- [ ] Verify the pushed revision's complete GitHub CI jobs and record results/SHA.
+- [x] Verify the pushed revision's complete GitHub CI jobs and record results/SHA.
+
+B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL1364pass+4skip/23124assertions, SQLite1339pass+29skip/23023assertions. Local fullPint/PHPStan/Composer audit PASS; docs/qa/B67_CI_REPAIR_RESULTS.json records actual results.

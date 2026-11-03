@@ -40,5 +40,37 @@
       "abandoned": []
     }
   },
-  "limits": "MySQL focused10/85 preceded the additional42 platform-independent ZIP assertions; those passed on SQLite10/127. Complete pushed CI pending. No API/migration/financial behavior changes or genuine native installation acceptance."
+  "limits": "All three GitHub CI jobs passed for36c9029. This verifies backend regression/quality checks, not genuine provider installation or staging acceptance. No API/migration/financial behavior changes.",
+  "verified_github_ci": {
+    "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931",
+    "head_sha": "36c902997dc794f9fdefe392bf2c523226cf63a1",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Lint & static analysis",
+        "conclusion": "success",
+        "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931/job/126019815359"
+      },
+      {
+        "name": "Tests (PHP 8.4, mysql)",
+        "conclusion": "success",
+        "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931/job/126019815672"
+      },
+      {
+        "name": "Tests (PHP 8.4, sqlite)",
+        "conclusion": "success",
+        "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931/job/126019815678"
+      }
+    ],
+    "mysql": {
+      "passed": 1364,
+      "skipped": 4,
+      "assertions": 23124
+    },
+    "sqlite": {
+      "passed": 1339,
+      "skipped": 29,
+      "assertions": 23023
+    }
+  }
 }
