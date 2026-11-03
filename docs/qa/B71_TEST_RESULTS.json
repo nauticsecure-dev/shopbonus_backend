@@ -2,18 +2,18 @@
   "sqlite_offers_integrations_api": {
     "tool": "phpunit",
     "result": "passed",
-    "tests": 282,
-    "passed": 282,
-    "assertions": 13382,
-    "duration_ms": 38127
+    "tests": 284,
+    "passed": 284,
+    "assertions": 13390,
+    "duration_ms": 38089
   },
   "mysql_native_coupon_current": {
     "tool": "phpunit",
     "result": "passed",
-    "tests": 23,
-    "passed": 23,
-    "assertions": 117,
-    "duration_ms": 22984
+    "tests": 25,
+    "passed": 25,
+    "assertions": 125,
+    "duration_ms": 24122
   },
   "earlier_selected_mysql_regression": {
     "tool": "phpunit",
@@ -41,12 +41,21 @@
     "errors": 0
   },
   "capture": {
-    "responses": 10,
+    "responses": 11,
     "file": "B71_COUPON_VERIFICATION_HTTP_CAPTURE.json",
     "environment": "Actual loopback Laravel HTTP; isolated temporary SQLite/storage/key/router. Native provider transport/DNS synthetic only."
   },
   "limits": "Actual provider/checkout/redemption acceptance NOT RUN. Only supported unrestricted configurations verify automatically. Unsupported platforms and unprovable caps/restrictions retain manual states. No provider writes or migrations. Full matrix execution is recorded under PR#7 checks.",
   "baseline_sha": "52ef8c5ad8a5bd95166694a9c5e27f4d44becff0",
-  "implementation_sha": "65af0e3",
-  "ci_checks_url": "https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks"
+  "ci_checks_url": "https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks",
+  "base_implementation_sha": "65af0e3",
+  "focused_sqlite_native_and_api_final": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 30,
+    "passed": 30,
+    "assertions": 8478,
+    "duration_ms": 7913
+  },
+  "context_followup": "Locked revalidation rejects changed current terms/credentials/store/domain/code after native IO. Canonical dates preserve stable terms; historical snapshots remain separate. Initial CI41735755501 superseded/cancelled; actual latest-head matrix is linked under PR#7 checks."
 }

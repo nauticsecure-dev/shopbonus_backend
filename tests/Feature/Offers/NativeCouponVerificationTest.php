@@ -229,4 +229,35 @@ class NativeCouponVerificationTest extends TestCase
         app(OfferService::class)->transition($offer, OfferStatus::Active);
         $this->postJson($this->url, ['mode' => 'provider_check'])->assertOk()->assertJsonPath('data.platform_validation', 'verified');
     }
+
+    public function test_in_flight_offer_edit_or_credential_rotation_cannot_persist_verified(): void
+    {
+        $this->fixture('shopify');
+        foreach (['terms', 'credentials'] as $change) {
+            $offer = $this->code->offer;
+            $offer->currentVersion->forceFill(['discount_value' => 1000])->save();
+            Http::swap(new Factory);
+            Http::fake(function (Request $r) use ($change, $offer) {
+                if (str_contains($r['query'], 'ShopbonusCouponByCode')) {
+                    if ($change === 'terms') {
+                        $offer->currentVersion->forceFill(['discount_value' => 2000])->save();
+                    } else {
+                        $this->connection->increment('credential_generation');
+                    }
+                }
+
+                return NativeCouponFixture::response($r, $this->platform, $this->native);
+            });
+            $this->postJson($this->url, ['mode' => 'provider_check'])->assertOk()->assertJsonPath('data.platform_validation', 'sync_error')
+                ->assertJsonPath('verification.detail.reason', 'verification_context_changed');
+        }
+    }
+
+    public function test_stable_explicit_offer_dates_survive_final_context_check(): void
+    {
+        $this->fixture('shopify');
+        app(OfferService::class)->update($this->shop->memberships()->sole(), $this->code->offer,
+            ['starts_at' => now()->subDay(), 'ends_at' => now()->addDays(31)]);
+        $this->postJson($this->url, ['mode' => 'provider_check'])->assertOk()->assertJsonPath('data.platform_validation', 'verified');
+    }
 }
