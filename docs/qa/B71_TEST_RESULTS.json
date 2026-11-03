@@ -46,5 +46,7 @@
     "environment": "Actual loopback Laravel HTTP; isolated temporary SQLite/storage/key/router. Native provider transport/DNS synthetic only."
   },
   "limits": "Actual provider/checkout/redemption acceptance NOT RUN. Only supported unrestricted configurations verify automatically. Unsupported platforms and unprovable caps/restrictions retain manual states. No provider writes or migrations. Full matrix execution is recorded under PR#7 checks.",
-  "baseline_sha": "52ef8c5ad8a5bd95166694a9c5e27f4d44becff0"
+  "baseline_sha": "52ef8c5ad8a5bd95166694a9c5e27f4d44becff0",
+  "implementation_sha": "65af0e3",
+  "ci_checks_url": "https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks"
 }

@@ -1,3 +1,5 @@
+B71 implementing SHA `65af0e3` (2026-11-04), branch `frank/moneybird-experiment-followup`, draft [PR#7](https://github.com/nauticsecure-dev/shopbonus_backend/pull/7). Local SQLite282/13382, focusedMySQL23/117, API5/8353, fullPint/PHPStan/diff PASS; ten real local HTTP captures with explicitly synthetic native transport. No migration. Automatic provider coverage adds Shopify, BigCommerce legacy, Ecwid and Lightspeed E-Series; unsupported kinds/caps/constraints remain manual. Genuine provider/checkout/redemption acceptance remains NOT RUN. Full current-head CI execution: [PR#7 checks](https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks). Exact next: push this checkpoint, inspect complete CI, then senior configures real read scopes and executes provider acceptance. Source and working tree were clean before this documentation-only SHA closeout; no main merge, deployment or actual provider effects.
+
 # B71 — Automatic native coupon configuration verification (2026-11-04, Codex)
 
 IMPLEMENTED backend boundary; PARTIAL genuine provider/checkout acceptance. Branch `frank/moneybird-experiment-followup`, parent `52ef8c5ad8a5bd95166694a9c5e27f4d44becff0`, existing draft PR#7. Added read-only exact-code lookup adapters for Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside the existing WooCommerce checker. Reuses current store/domain/scope/credential/SSRF/pause/version guards and bounded native transport. Each new check requires two native operations. Duplicate/partial/malformed results cannot establish a match; native restrictions, exact currency/amount/minimum, lifecycle, usage and expiry are compared conservatively.
@@ -8,7 +10,7 @@ Executed SQLite offers/integrations/API282PASS/13382assertions; selected MySQL42
 
 No migration or business/financial decision change; D-109 remains approval plus independently recorded settlement. MainDB/sharedRedis and genuine providers untouched. These connector changes alter the B70 measurement pipeline fingerprint: actual study evidence must match deployed code; no stale measurement artifact is promoted. Other native platforms remain manual even when catalog reads exist. Genuine credentialed native acceptance, customer/cart availability and verified redemption are NOT RUN; senior configures real read scopes and runs those journeys.
 
-Exact next: commit the B71 boundary and SHA closeout, update/push draft PR#7 and inspect its complete CI matrix. No main merge or deployment. Current uncommitted changes are B71 native coupon readers/comparison/tests/captures/API/runbook/checkpoint only; unrelated work preserved.
+B71 source committed as65af0e3; current-head full matrix execution is recorded under PR#7 checks. Senior provider acceptance remains next. No main merge or deployment. Current uncommitted changes are B71 native coupon readers/comparison/tests/captures/API/runbook/checkpoint only; unrelated work preserved.
 
 # B68–B70 implementation closeout — 2026-11-03
 
