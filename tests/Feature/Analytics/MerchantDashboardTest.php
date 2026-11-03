@@ -104,6 +104,25 @@ class MerchantDashboardTest extends TestCase
         $this->assertSame([], $other->json('data.offers'));
     }
 
+    public function test_reserved_and_expired_kpis_are_nonzero_and_scoped_to_the_selected_shop(): void
+    {
+        $offer = $this->offer($this->woon, 2, terms: ['ends_at' => now()->addDay()]);
+        $inventory = app(VoucherInventory::class);
+        $inventory->issue($inventory->reserve($offer, VoucherOrigin::MerchantReward, 'expiry-issued'), User::factory()->create());
+        $inventory->reserve($offer, VoucherOrigin::MerchantReward, 'expiry-reserved');
+        $this->travel(2)->days();
+        $inventory->expire(now());
+        Sanctum::actingAs($this->owner);
+        $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/dashboard")->assertOk()
+            ->assertJsonPath('data.kpis.reserved_codes', 1)
+            ->assertJsonPath('data.kpis.expired_vouchers', 1)
+            ->assertJsonPath('data.kpis.expired_offers', 1);
+        $this->getJson("/api/v1/workspaces/{$this->fiets->public_id}/dashboard")->assertOk()
+            ->assertJsonPath('data.kpis.reserved_codes', 0)
+            ->assertJsonPath('data.kpis.expired_vouchers', 0)
+            ->assertJsonPath('data.kpis.expired_offers', 0);
+    }
+
     public function test_card8_claims_chart_uses_the_business_timezone_and_zero_fills(): void
     {
         $offer = $this->offer($this->woon, 3);
@@ -190,11 +209,17 @@ class MerchantDashboardTest extends TestCase
         $this->assertSame([], $this->getJson('/api/v1/owner/dashboard')->json('data.webshops'));
     }
 
-    public function test_employees_without_dashboard_permission_are_refused(): void
+    public function test_nonmembers_are_concealed_and_members_without_offer_permission_are_forbidden(): void
     {
         $outsider = User::factory()->create();
         Sanctum::actingAs($outsider);
         $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/dashboard")->assertNotFound();
+        $this->assertDatabaseHas('audit_events', ['actor_user_id' => $outsider->id, 'http_status' => 404]);
+        $this->woon->memberships()->create(['user_id' => $outsider->id, 'role' => 'employee', 'status' => 'active', 'joined_at' => now()]);
+        $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/dashboard")->assertOk();
+        $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/offers")->assertForbidden()
+            ->assertJsonPath('error.code', 'workspace_permission_denied');
+        $this->assertDatabaseHas('audit_events', ['actor_user_id' => $outsider->id, 'http_status' => 403]);
     }
 
     public function test_effective_lifecycle_filters_and_pagination_reconcile(): void

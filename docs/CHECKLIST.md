@@ -1420,3 +1420,12 @@ Boxes remain unticked until a tested implementation commit SHA exists. Live acce
 B61 parent15e58dc + mainb04ea65: repaired SQLite162/2001, merged focused68/8445, MySQL99/883; PHPStan PASS. Initial broad run failed; local GD failures remain documented. Remote mergeability verification follows push.
 
 B61 implementing merge SHA `be4a3e5`; pushed and GitHub MERGEABLE confirmed. Backend Pint/PHPStan/diff PASS; CI41650765241 pending.
+
+### B62 — Merchant dashboard contract and claim concurrency evidence
+
+- [x] Verify exact current KPI contract and nonzero reserved/expired counters with webshop isolation.
+- [x] Assert audited foreign-workspace404 and active-member permission403 without weakening concealment.
+- [x] Execute actual MySQL concurrent promotional claims and inventory races; separate correctness from staging latency.
+- [x] Record focused SQLite/MySQL results and remaining real browser/visual/staging acceptance; do not claim full suite green.
+
+B62 parentddc698c: SQLite15/127; MySQL20/153 including five real process races; PHPStan/Pint/diff PASS. Test-only backend boundary; full CI/browser/staging/visual acceptance is not claimed. Implementing SHA recorded in next closeout.

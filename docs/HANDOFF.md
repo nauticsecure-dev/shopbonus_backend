@@ -1,3 +1,15 @@
+# B62 — Merchant dashboard contract and real MySQL claim races (2026-11-03, Codex)
+
+Branch frank/review-fixes, parentddc698c; draft PR#5. Review assertion was stale: exact KPI array already includes reserved_codes, expired_vouchers and expired_offers. No runtime contract rollback or needless source rewrite. Added nonzero lifecycle counts and selected-workspace isolation, plus accurately named audited nonmember404 / active employee offers-permission403 tests. Employee dashboard access remains allowed by its default dashboard.view permission.
+
+New ConcurrentPromotionalClaimTest uses existing real-process race helpers and committed isolated MySQL rows: four retries by one consumer issue one voucher; eight consumers/three codes produce exactly three unique issued vouchers and five stock conflicts, with no sponsored obligations. Existing three inventory races also executed. Tests cover backend service concurrency, not browser/network/staging performance.
+
+Executed SQLite dashboard/claim15pass/127assertions; MySQL dashboard/claim/concurrency20pass/153assertions, including five actual process races. PHPStan512MiB/targetedPint/diff PASS. Captured MySQL test JSON and scope/acceptance details in docs/qa/B62_MYSQL_DASHBOARD_CLAIMS_RESULTS.json and MERCHANT_DASHBOARD_BACKEND_ACCEPTANCE.md. No migrations, runtime routes/payloads or frontend changes; no new HTTP response examples needed for test-only changes. Disposable shopbonus_testing cleanup only; mainDB/sharedRedis untouched.
+
+Status backend contract/concurrency boundary verified locally. Full current suite not green: prior broad SQLite failures documented B61; baseline CI41650964112 global Pint FAILED with DB jobs still running at inspection. Do not call focused checks full-suite success. Real authenticated browser navigation/workspace switching/filter/badge reconciliation, actual deployed Redis/workers, representative staging P95<300ms and approved screenshot fidelity remain NOT RUN/unverified. Historical local SQLite463.7ms benchmark is not staging or concurrency proof. D-109 financial timing and audited404/403 policy unchanged. Exact next: commit/push test evidence, inspect full CI separately and run representative deployment/browser acceptance when that environment exists. Uncommitted checkpoint scope B62 tests/checklist/docs only; no main merge/deploy/Trello edits.
+
+---
+
 B61 merge `be4a3e5` pushed; parents15e58dc andb04ea65. GitHub PR#5 confirmed MERGEABLE (checks pending/UNSTABLE, not a conflict). CI41650765241 in progress at verification. Backend Pint(app/tests/config/routes/database), PHPStan and diff PASS; focused SQLite162/2001 plus68/8445 and MySQL99/883 PASS. Local broad image-codec failures remain documented below; no full green claim. Working tree clean before this documentation closeout. Next: inspect CI results; do not merge/deploy automatically.
 
 # B61 — Resolve PR#5 conflicts with current main (2026-11-03, Codex)
