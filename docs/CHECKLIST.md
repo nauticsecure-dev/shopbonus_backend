@@ -1502,3 +1502,12 @@ B68 implementing SHA follows at closeout. Parent `92adc46`: Funding SQLite19PASS
 - [x] Update provider/bridge contracts, real API evidence if contracts change, tests and checkpoint SHA without claiming installed storefront persistence.
 
 B69 parent `5861751`: SQLite203/1905; MySQL14/148; PHPStan/Pint/diff PASS. B68 implementing SHA `5861751`. B69 implementing SHA follows next checkpoint. Installed cart/storefront and genuine provider evidence remain NOT RUN.
+
+### B70 — Pre-registered experiment protocol and fixed readout
+
+- [x] Register immutable opt-in analysis/measurement snapshots before launch; pin versions, allocation, enrollment/follow-up, sample/effect thresholds and native evidence bindings.
+- [x] Stop new enrollment at the fixed cutoff while retaining existing assignments; require mature follow-up, source reconciliation, cohort integrity and sample-ratio checks.
+- [x] Finalize one immutable captured-purchase conversion readout with explicit uncertainty/winner criteria and no automatic publication; retain null causal estimates for unverified legacy studies.
+- [x] Verify authorization, missing/stale/changed proof, early stop, consent/source/cohort gaps, inadequate samples and replay; capture actual HTTP, update API/spec/runbook and record tests/SHA.
+
+B70 local backend boundary: parent `cfef279`; SQLite302PASS+4skip/13412, MySQL40PASS/251, API5/8353, fullPint/PHPStan/audit/diff PASS. Six actual synthetic local HTTP captures; real native validator/finalizer exercised with explicit synthetic evidence. Implementing SHA follows at closeout. Actual provider/study/legal acceptance remains NOT RUN. B69 implementing SHA `cfef279`; B68 `5861751`. New branch `frank/moneybird-experiment-followup` because PR#5 was merged externally; full new-head CI pending.

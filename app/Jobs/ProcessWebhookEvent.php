@@ -19,6 +19,7 @@ use App\Models\WebhookEvent;
 use App\Models\WebshopConnection;
 use App\Models\WebshopOrder;
 use App\Services\Audit\AuditLogger;
+use App\Services\Banners\BannerExperiments;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -155,6 +156,8 @@ class ProcessWebhookEvent implements ShouldQueue
                     && ($event->result['ingested'] ?? false) === true;
                 $event->forceFill(['result' => ($event->result ?? []) + [
                     'native_external_order_id' => $order->externalId,
+                    ...($order->paidAt === null ? [] : ['native_paid_at_utc' => $order->paidAt->utc()->format('Y-m-d H:i:s')]),
+                    ...($order->bannerAssignmentToken === null ? [] : ['native_assignment_token_hash' => app(BannerExperiments::class)->tokenHash($order->bannerAssignmentToken)]),
                     'native_payment_evidence' => $order->paidAt !== null && in_array($order->paymentStatus,
                         [PaymentStatus::Paid, PaymentStatus::PartiallyRefunded, PaymentStatus::Refunded], true),
                     'native_change_recovered' => $changed,

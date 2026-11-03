@@ -1,5 +1,8 @@
 # Shopbonus — Backend Consolidated Specification
 
+2026-11-03 B68–B70 backend additions: [guarded Moneybird funding invoice lifecycle](funding/MONEYBIRD.md), [native assignment containers](banners/ASSIGNMENT_BRIDGES.md), and [opt-in registered experiment readout](banners/EXPERIMENT_PROTOCOL.md). Moneybird writes and optional BigCommerce metadata reads default OFF. Causal/winner reporting requires actual reviewed native measurement and the registered fixed endpoint; legacy studies stay exploratory. No actual seller/VAT records or provider acceptance is invented. New rewards retain D-109 approval plus recorded settlement.
+
+
 Source: Trello Shopbonus board export, 2026-10-23. This is a synthesis of a **requirements snapshot**, not an audit of existing source. Full verbatim descriptions: `requirements/TRELLO_CARDS.md`.
 
 Current acceptance clarifications: [review alignment](qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) governs approval-plus-recorded-settlement credit (D-109; historical snapshots preserved), explicit reward-share fixtures, audited foreign-workspace404 and Answer24 responsibilities. Historical card wording does not override those decisions.
