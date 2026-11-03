@@ -1,3 +1,5 @@
+B62 implementing SHA `6394e80`; dashboard contract and five real MySQL process races passed locally. No migrations/runtime changes. Full CI and deployed/browser/visual acceptance remain separate as detailed below.
+
 # B62 — Merchant dashboard contract and real MySQL claim races (2026-11-03, Codex)
 
 Branch frank/review-fixes, parentddc698c; draft PR#5. Review assertion was stale: exact KPI array already includes reserved_codes, expired_vouchers and expired_offers. No runtime contract rollback or needless source rewrite. Added nonzero lifecycle counts and selected-workspace isolation, plus accurately named audited nonmember404 / active employee offers-permission403 tests. Employee dashboard access remains allowed by its default dashboard.view permission.
