@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "state": "unmapped",
+  "source": {"version": null, "path": null, "sha256": null},
+  "checks": [],
+  "provider_subruns": [],
+  "frontend_discovery": null,
+  "blocker": "Original approved 175-check source is unavailable; do not invent check IDs or accept fixture/provider claims."
+}

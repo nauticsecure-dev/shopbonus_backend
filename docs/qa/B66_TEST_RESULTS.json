@@ -1,0 +1,35 @@
+{
+  "qa_sqlite": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 27,
+    "passed": 27,
+    "assertions": 358,
+    "duration_ms": 63707
+  },
+  "acceptance_mysql": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 4,
+    "passed": 4,
+    "assertions": 28,
+    "duration_ms": 49901
+  },
+  "api_inventory": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 5,
+    "passed": 5,
+    "assertions": 8353,
+    "duration_ms": 5626
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "limits": [
+    "Synthetic gate tests only; not the actual175 checks or provider journeys.",
+    "No full current-build application suite, deployed staging, nightly/weekly runner or portal/frontend acceptance."
+  ]
+}

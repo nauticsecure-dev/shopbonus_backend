@@ -2,6 +2,8 @@
 
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
 
+B66 (2026-11-03): Quality Center run/result `pass` and totals describe imported execution, not provider acceptance or release approval. The separate [source-mapped acceptance gate](../qa/ACCEPTANCE_GATE.md) requires independently reviewed result-bound proof for all mapped checks and provider subruns. The original175-check source remains UNMAPPED and the gate blocks. No QA API endpoint or response shape changed.
+
 B65 (2026-11-03): platform/connection/capability/health reports include per-feature `evidence_id`, `source_url`, `error_code` and `evidence_scope`. Platform declarations are not observations. Connection evidence is feature/current-credential-specific. GET catalog-syncs/events accepts optional exact ULID `evidence_id` (malformed422, unrelated200/empty, foreign workspace404). [Eleven real local HTTP request/response captures](../qa/B65_FEATURE_PROVENANCE_HTTP_CAPTURE.json) include actual URLs, headers and JSON; isolated synthetic SQLite at `516e9d1` plus B65, no genuine provider acceptance. OpenAPI response examples below are refreshed from those captures. [Evidence and monetary definitions](../integrations/FEATURE_PROVENANCE.md) distinguish Shopify current shipping, Ecwid reported totals and unknown settlement/cash evidence.
 
 

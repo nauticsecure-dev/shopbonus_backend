@@ -1463,3 +1463,12 @@ B64 implementing SHA: `8c95e5c`; B63 `25fa46c`. Both pushed to draft PR#5; no li
 B65 tests: SQLite191/1773; MySQL191/1775; API35/10983; PHPStan/Pint/diff PASS. Parent `516e9d1`; implementing SHA recorded at closeout. Genuine provider/native publication acceptance remains NOT RUN.
 
 B65 implementing SHA: `f44d759`. All four checked items refer to the tested local backend boundary; genuine provider installation/publication/release acceptance remains open.
+
+### B66 — Executable acceptance manifest and fail-closed deployment gate
+
+- [x] Define source-hashed unique 175-check mapping contracts with assertions, executor, environment, instructions and separately identified required provider subruns; leave unavailable source UNMAPPED.
+- [x] Evaluate exact staging-build approved unmocked results and result-bound checksum-valid evidence of each required kind, with independent authorized review; raw JUnit is not acceptance.
+- [x] Add a console deployment gate with nonzero blocked exit, safe artifact handling and documented deploy integration; never execute AI-generated commands or claim scheduled staging journeys ran.
+- [x] Test missing/duplicate mappings, wrong build/environment/reviewer, incomplete/expired/corrupt evidence and synthetic complete gate; record tests and remaining frontend/provider/staging gaps.
+
+B66 local boundary: QA SQLite27/358; acceptance MySQL4/28; API5/8353; PHPStan/targeted Pint/diff PASS. Parent `ced2fd9`; implementing SHA follows in closeout. Actual175-source mapping, independent real staging/provider runs, controlled scheduled runners and frontend/portal delivery remain OPEN.

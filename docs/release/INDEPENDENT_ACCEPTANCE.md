@@ -1,5 +1,7 @@
 # Independent release acceptance — 2026-11-03
 
+B66 provides a [fail-closed acceptance/deployment-hook command](../qa/ACCEPTANCE_GATE.md). It consumes independently reviewed source/check/provider/frontend evidence and never approves a release itself. `requirements/QA_ACCEPTANCE.json` remains UNMAPPED; this is an enforceable input contract, not the missing original175-row executable mapping. Actual isolated CLI output is retained in `docs/qa/B66_GATE_CLI_CAPTURE.json`; no genuine staging/provider run is implied.
+
 **NO-GO.** Backend fixture/CI passes are implementation evidence; independent E2E-01–25 packages, required native installation/order/refund subruns and deployed staging acceptance remain unverified. This register creates no approved Quality Center cases and does not certify175 checks. The original PDF v2 is unavailable in this workspace; attachment access was rechecked2026-11-03 and returnedHTTP401, and no matching local PDF was found. Its contents/check IDs are not reconstructed from filenames, totals or previous agent claims.
 
 ## What can be established now
