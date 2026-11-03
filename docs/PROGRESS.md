@@ -1,3 +1,15 @@
+# B50 — Recovery cadence and deployment acceptance (2026-11-03, Codex)
+
+Branch `frank/review-fixes`, parent `7027e2c` (B49). User supplies four recovery/queue acceptance findings. Implemented five-minute backup attempts (was hourly), preserving opt-in and60-minute overlap lock. Default overdue15minutes (was120), minimum1 (was30), so a15-minute threshold is honored. No RPO/RTO approval or actual infrastructure guarantee inferred from this schedule. Existing deployments must update overrides/config cache and capacity-plan dump duration/retention before enabling.
+
+Added docs/reliability/DEPLOYMENT_RECOVERY_ACCEPTANCE.md: independent disk/failure-domain retrieval, separate APP_KEY/backup-key escrow and recovery, measured data cutoff/durable availability, full infrastructure rebuild timeline and inventory of actual producer/worker queue connections with pause/backlog/failure/recovery acceptance. Updated stale hourly runbook statements and remaining-work inventory. offsite_verified remains false; no deployment or positive verification attestation invented. Default queue coverage stays default+affiliate; additional connections and Redis worker/ready-age proof require deployment telemetry.
+
+Executed SQLite recovery+operations+API14passed/7660assertions (19.012s); focused MySQL operations4passed/28assertions (54.574s). Recovery tests intentionally use isolated SQLite, not MySQL restore proof. Schedule test verifies cron expression, overlap lock and enabled/disabled gates; freshness test verifies14minuteWARNING→16minuteCRITICAL with15minute threshold. Initial schedule test needed console kernel boot via schedule:list; corrected final suite passed. Pint dirty check PASS, diff check PASS. PHPStan L6 PASS with512MiB (initial128MiB attempt exhausted memory). No route/response schema changes, no migrations, no credentials or primary DB writes.
+
+Status PARTIAL overall: code cadence/freshness DONE after tests; offsite durability/key recovery/full infrastructure drill and production queue acceptance NOT RUN without deployed infrastructure. Proposed RPO≤15minutes/RTO≤4hours remain UNAPPROVED. Exact next: push review checkpoint and have senior execute the documented isolated deployment acceptance against the actual topology; do not mark #30 complete. Full local suites NOT RUN; exact commit CI pending. Uncommitted scope at checkpoint B50 only; no merge/deploy/Trello edits.
+
+---
+
 # B49 — Review acceptance alignment (2026-11-03, Codex)
 
 Branch `frank/review-fixes`, parent `e3b25c8dc1b5a0dbe653269a329b34314aec295d` (CI41295450472 SUCCESS). User asks to fix five review findings. D-089/D-107 already resolve timing: approval, not settlement or instant attribution. D-105 allocation-only remains. No replacement financial policy assumed.

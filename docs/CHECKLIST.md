@@ -948,3 +948,13 @@ B38 checked against executed evidence in this implementation commit (parent130fd
 - [x] Record executed focused tests, API compatibility and branch/SHA/next action in checkpoint docs.
 
 B49 evidence: SQLite61/491 and17/7827, MySQL1/12; Pint/diff PASS. Implementing commit has parent e3b25c8; provider delivery remains OPEN.
+
+### B50 — Recovery scheduling and deployment acceptance gaps (2026-11-03)
+
+- [x] Replace hourly backup scheduling with five-minute attempts while preserving opt-in and overlap protection; verify actual scheduled event.
+- [x] Tighten overdue detection to15minutes by default and test healthy/failure/stale boundaries without asserting RPO proof.
+- [x] Document independent archive/key recovery and timed infrastructure drill evidence; retain unverified flags until real proof.
+- [x] Define production queue inventory and safe per-queue backlog/failure acceptance evidence.
+- [x] Run focused recovery/operations/API checks and record results and deployment blockers.
+
+B50 implementing commit parent7027e2c: SQLite14/7660, MySQL operations4/28; PHPStan512MiB/Pint/diff PASS. Checkboxes cover implemented code/runbook only; deployed offsite/key/infrastructure/queue acceptance remains NOT RUN.
