@@ -57,5 +57,6 @@
     "assertions": 8478,
     "duration_ms": 7913
   },
-  "context_followup": "Locked revalidation rejects changed current terms/credentials/store/domain/code after native IO. Canonical dates preserve stable terms; historical snapshots remain separate. Initial CI41735755501 superseded/cancelled; actual latest-head matrix is linked under PR#7 checks."
+  "context_followup": "Locked revalidation rejects changed current terms/credentials/store/domain/code after native IO. Canonical dates preserve stable terms; historical snapshots remain separate. Initial CI41735755501 superseded/cancelled; actual latest-head matrix is linked under PR#7 checks.",
+  "implementation_sha": "d599c40a8b3f048bdf8c592c3af4429788894157"
 }

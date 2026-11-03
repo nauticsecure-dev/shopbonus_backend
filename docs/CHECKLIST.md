@@ -1524,3 +1524,5 @@ B68–B70 closeout: `5861751` / `cfef279` / `94e3f87`, integrated source `d8c9aa
 B71 tested backend boundary (2026-11-04): parent52ef8c5; SQLite282PASS/13382, final focusedMySQL23PASS/117, earlier selectedMySQL42PASS/469, API5PASS/8353, fullPint/PHPStan/diff PASS. Ten actual local HTTP captures use explicit synthetic provider transport. Implementing SHA `65af0e3`; real provider/checkout/redemption acceptance remains NOT RUN. No migrations.
 
 B71 context follow-up (parentc6c173e): final locked source/code/current-term revalidation rejects in-flight edits/rotations; stable-date canonical comparison and frozen historical scope verified. SQLite284/13390; MySQL25/125; PHPStan PASS; eleven actual local HTTP captures include context-change rejection. Final focused SQLite/native/API30PASS/8478 and fullPint/diff PASS; source SHA follows in the closeout. Provider/checkout/redemption NOT RUN.
+
+B71 final implementing source SHA `d599c40` includes adapters65af0e3 and the tested locked context guard. Checked items certify the backend configuration boundary only; actual provider/checkout/redemption remains NOT RUN.
