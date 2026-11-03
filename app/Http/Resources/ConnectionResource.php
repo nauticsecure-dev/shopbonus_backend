@@ -56,6 +56,7 @@ class ConnectionResource extends JsonResource
             'platform' => $c->platform->value,
             'method' => $c->method->value,
             'status' => $c->status->value,
+            'paused_at' => $c->paused_at?->toIso8601String(),
             'external_shop_ref' => $c->external_shop_ref,
             'limitations' => $c->limitations ?? [],
             'last_event_at' => $c->last_event_at?->toIso8601String(),

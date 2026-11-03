@@ -5,22 +5,61 @@ namespace App\Integrations\Connectors;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
+use App\Integrations\Data\VerifiedEvent;
+use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\WooCommerceApi;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
+use App\Support\ExactJson;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 
 /** PrestaShop9 native Webservice reads; legacy Shopbonus signed module contract remains explicit. */
-final class PrestaShopConnector extends GenericSignedWebhookConnector implements CatalogReader, PagedOrderReader
+final class PrestaShopConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
         parent::__construct(EcommercePlatform::PrestaShop);
+    }
+
+    public function verifyIncomingEvent(WebshopConnection $connection, Request $request): VerifiedEvent
+    {
+        $event = parent::verifyIncomingEvent($connection, $request);
+        try {
+            $payload = ExactJson::decode($this->rawBody($request));
+        } catch (\JsonException) {
+            throw new InvalidWebhook('invalid_json');
+        }
+        if (is_array($payload) && ($payload['shopbonus_lookup_v1'] ?? false) === true) {
+            if ($event->kind !== VerifiedEvent::KIND_ORDER || $this->notificationOrderId($connection, $request->getContent()) === null) {
+                throw new InvalidWebhook('invalid_order_id');
+            }
+
+            return new VerifiedEvent($event->dedupeKey, $event->topic, VerifiedEvent::KIND_ORDER_LOOKUP);
+        }
+
+        return $event;
+    }
+
+    public function notificationOrderId(WebshopConnection $connection, string $raw): ?string
+    {
+        try {
+            $payload = ExactJson::decode($raw);
+            if (! is_array($payload) || ($payload['shopbonus_lookup_v1'] ?? false) !== true
+                || ! is_string($payload['shop_id'] ?? null) || $payload['shop_id'] !== $connection->credential('shop_id')) {
+                return null;
+            }
+
+            return WooCommerceApi::orderId(is_string($payload['order_id'] ?? null) ? $payload['order_id'] : '');
+        } catch (\JsonException|\InvalidArgumentException|ApiException) {
+            return null;
+        }
     }
 
     public function connectRules(): array
@@ -42,7 +81,10 @@ final class PrestaShopConnector extends GenericSignedWebhookConnector implements
 
     public function setupInstructions(WebshopConnection $c, string $url): array
     {
-        return parent::setupInstructions($c, $url) + ['native_version' => 'PrestaShop9 Webservice JSON', 'native_read_configured' => $c->credential('webservice_key') !== null, 'native_notice' => 'Configure exact multistore shop ID, HTTPS installation URL, restricted GET Webservice key and store timezone. Credit slips are credit documents, not confirmed cash refunds. Native refund qualification remains unavailable without settlement evidence. No installable ZIP is included.'];
+        $instructions = parent::setupInstructions($c, $url);
+        $instructions['steps'][0] = 'PrestaShop 9 candidate package: '.url('/downloads/integrations/shopbonus-prestashop9.zip').'. Upload in Module Manager, select one shop, configure the webhook and signing secret, and schedule the bundled CLI worker every minute. Configure the backend native Webservice credentials before delivery.';
+
+        return $instructions + ['native_version' => 'PrestaShop9 Webservice JSON', 'native_read_configured' => $c->credential('webservice_key') !== null, 'native_notice' => 'Configure exact multistore shop ID, HTTPS installation URL, restricted GET Webservice key and store timezone. Module notifications trigger authenticated native reads. Credit slips are credit documents, not confirmed cash refunds. Native refund qualification remains unavailable without settlement evidence. Installation and storefront acceptance remain unverified.'];
     }
 
     /**

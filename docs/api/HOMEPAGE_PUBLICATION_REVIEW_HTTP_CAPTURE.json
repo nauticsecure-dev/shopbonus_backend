@@ -1,0 +1,121 @@
+{
+  "captured_at": "2026-11-03T04:29:28.852Z",
+  "environment": "Real Laravel HTTP + real Next.js, isolated SQLite, genuine cookie login/CSRF/TOTP; no response fixtures",
+  "captures": [
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 423,
+      "response": {
+        "error": {
+          "status": 423,
+          "code": "password_confirmation_required",
+          "message": "Confirm your password to continue.",
+          "request_id": "01a19f9d-bf18-721a-bd82-f0479ec51d14"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 419,
+      "response": {
+        "error": {
+          "status": 419,
+          "code": "csrf_token_mismatch",
+          "message": "The session or CSRF token has expired. Refresh and try again.",
+          "request_id": "01a19f9d-d06e-727f-b07d-765f403871d0"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 423,
+      "response": {
+        "error": {
+          "status": 423,
+          "code": "password_confirmation_required",
+          "message": "Confirm your password to continue.",
+          "request_id": "01a19fa3-556b-73f7-aa73-5b7145da4c21"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 419,
+      "response": {
+        "error": {
+          "status": 419,
+          "code": "csrf_token_mismatch",
+          "message": "The session or CSRF token has expired. Refresh and try again.",
+          "request_id": "01a19fa3-674c-70d3-9655-736b6612cb83"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 423,
+      "response": {
+        "error": {
+          "status": 423,
+          "code": "password_confirmation_required",
+          "message": "Confirm your password to continue.",
+          "request_id": "01a19fa9-bd95-7024-a9a9-fff725db23cd"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 419,
+      "response": {
+        "error": {
+          "status": 419,
+          "code": "csrf_token_mismatch",
+          "message": "The session or CSRF token has expired. Refresh and try again.",
+          "request_id": "01a19fa9-ce48-73db-acdf-1c6b6ea3fba2"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 422,
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a19faa-13d1-7163-bab6-0e4718b66214",
+          "fields": {
+            "revision": [
+              "The revision field is required."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m6ftmah2e80s258hz9s2zm5n",
+          "locale": "nl",
+          "number": 2,
+          "restored_from": null,
+          "published_by": "Homepage Admin",
+          "published_at": "2026-11-03T04:28:11+00:00"
+        }
+      }
+    },
+    {
+      "request": "POST /api/v1/admin/content/homepage/publish",
+      "status": 409,
+      "response": {
+        "error": {
+          "status": 409,
+          "code": "draft_changed",
+          "message": "The draft changed after review. Preview it again before publishing.",
+          "request_id": "01a19faa-5343-721f-85a6-282e474e7b79"
+        }
+      }
+    }
+  ]
+}

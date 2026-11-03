@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $compensation
  * @property int|null $compensation_amount_minor
  * @property string|null $compensation_ref
+ * @property string|null $compensation_status
+ * @property string|null $compensation_request_key
  * @property CarbonImmutable|null $compensated_at
  * @property string|null $resolution_note
  * @property int|null $resolved_by
@@ -41,7 +43,7 @@ class VoucherDispute extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'user_id', 'webshop_id', 'voucher_id', 'checkout_id', 'resolved_by', 'open_key'];
+    protected $hidden = ['id', 'user_id', 'webshop_id', 'voucher_id', 'checkout_id', 'resolved_by', 'open_key', 'compensation_request_key'];
 
     protected function casts(): array
     {

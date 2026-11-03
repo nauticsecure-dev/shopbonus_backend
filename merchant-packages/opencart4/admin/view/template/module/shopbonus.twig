@@ -1,0 +1,15 @@
+{{ header }}{{ column_left }}
+<div id="content"><div class="container-fluid">
+  <h1>Shopbonus order bridge</h1>
+  <p>OpenCart 4.1, default store only. Order status is not payment proof: this bridge sends unknown payment status. Run the CLI worker every minute. No network call runs during checkout.</p>
+  <form method="post" action="{{ save }}">
+    <p><label>Webhook URL <input class="form-control" name="endpoint" value="{{ endpoint|escape('html_attr') }}"></label></p>
+    <p><label>Signing secret (blank preserves existing) <input class="form-control" type="password" name="secret" autocomplete="new-password"></label></p>
+    <p><label>Database timezone <input class="form-control" name="timezone" value="{{ timezone|escape('html_attr') }}" placeholder="Europe/Amsterdam" required></label></p>
+    <p><label>Backend HTTPS origin <input class="form-control" name="origin" value="{{ origin|escape('html_attr') }}"></label></p>
+    <p><label>Banner public key <input class="form-control" name="key" value="{{ key|escape('html_attr') }}"></label></p>
+    <p><label><input type="checkbox" name="status" value="1" {% if status == '1' %}checked{% endif %}> Enable order bridge</label></p>
+    <p><label><input type="checkbox" name="banner" value="1" {% if banner == '1' %}checked{% endif %}> Enable storefront banner</label></p>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+</div></div>{{ footer }}

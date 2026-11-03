@@ -2,7 +2,6 @@
 
 namespace App\Integrations\Http;
 
-use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
@@ -26,7 +25,10 @@ class PinnedJsonReader
      */
     public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', #[\SensitiveParameter] array $query = [], bool $form = false, bool $allowEmpty = false): array
     {
-        if ($connection->status === ConnectionStatus::Disconnected) {
+        if ($connection->paused_at !== null && ! $connection->isLifecycleProbe()) {
+            throw ApiException::conflict('This integration is paused.', 'connection_paused');
+        }
+        if (! $connection->status->receivesEvents()) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
         $parts = parse_url($url);

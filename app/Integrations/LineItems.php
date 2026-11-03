@@ -99,6 +99,74 @@ final class LineItems
         return $out;
     }
 
+    /** Native flat order snapshots; parent relationships are retained, never summed here.
+     * @return list<array<string,mixed>>|null
+     */
+    public static function magento(mixed $rows, ?string $currency): ?array
+    {
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100 || ! Money::isCurrency($currency)) {
+            return null;
+        }
+        $out = $seen = [];
+        foreach ($rows as $r) {
+            if (! is_array($r) || ! self::id($r['item_id'] ?? null) || isset($seen[(string) $r['item_id']])) {
+                return null;
+            }
+            $quantity = $r['qty_ordered'] ?? null;
+            // Fractional quantities require a separate canonical quantity contract.
+            if ((! is_int($quantity) && ! is_string($quantity)) || ! preg_match('/\A[0-9]{1,7}(?:\.0+)?\z/D', (string) $quantity) || (int) $quantity > 1000000
+                || (! is_string($r['row_total'] ?? null) && ! is_int($r['row_total'] ?? null))) {
+                return null;
+            }
+            try {
+                $amount = Money::toMinor($r['row_total'], $currency);
+            } catch (\InvalidArgumentException) {
+                return null;
+            }
+            if ($amount < 0) {
+                return null;
+            }
+            $id = (string) $r['item_id'];
+            $seen[$id] = true;
+            $out[] = ['id' => $id, 'parent_id' => self::id($r['parent_item_id'] ?? null) ? (string) $r['parent_item_id'] : null,
+                'product_id' => self::id($r['product_id'] ?? null) ? (string) $r['product_id'] : null, 'sku' => self::sku($r['sku'] ?? null),
+                'quantity' => (int) $quantity, 'amount_minor' => $amount, 'amount_basis' => 'provider_row_total_ex_tax_before_discount',
+                'currency' => $currency, 'eligible_amount_minor' => null];
+        }
+
+        return $out;
+    }
+
+    /** @return list<array<string,mixed>>|null */
+    public static function shopware(mixed $rows, ?string $currency, ?string $taxStatus): ?array
+    {
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100 || ! Money::isCurrency($currency)) {
+            return null;
+        }
+        $out = $seen = [];
+        foreach ($rows as $r) {
+            $id = is_array($r) ? ($r['id'] ?? null) : null;
+            if (! is_string($id) || ! preg_match('/\A[a-f0-9]{32}\z/D', $id) || isset($seen[$id]) || ! is_int($r['quantity'] ?? null) || $r['quantity'] < 0
+                || (! is_string($r['totalPrice'] ?? null) && ! is_int($r['totalPrice'] ?? null))) {
+                return null;
+            }
+            try {
+                $amount = Money::toMinor($r['totalPrice'], $currency);
+            } catch (\InvalidArgumentException) {
+                return null;
+            }
+            $seen[$id] = true;
+            $out[] = ['id' => $id, 'parent_id' => self::sku($r['parentId'] ?? null), 'product_id' => self::sku($r['productId'] ?? null),
+                'sku' => self::sku($r['payload']['productNumber'] ?? null), 'quantity' => $r['quantity'], 'amount_minor' => $amount,
+                'amount_basis' => match ($taxStatus) {
+                    'gross' => 'provider_total_inc_tax', 'net', 'tax-free' => 'provider_total_ex_tax', default => 'provider_total_tax_unknown'
+                },
+                'currency' => $currency, 'eligible_amount_minor' => null];
+        }
+
+        return $out;
+    }
+
     private static function id(mixed $v): bool
     {
         return (is_int($v) || is_string($v)) && preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $v) === 1;

@@ -1,0 +1,22 @@
+{
+    "shopbonus-prestashop9.zip": {
+        "sha256": "8ab3de661b0182d542c5aef8381ffd8f97b82867092a4c66024c102b9ac782d2",
+        "bytes": 7491,
+        "live_verified": false
+    },
+    "shopbonus.ocmod.zip": {
+        "sha256": "57b2fb583038793b5dfa42e24fef967ada30560e37b3a537e497ddede0949015",
+        "bytes": 10246,
+        "live_verified": false
+    },
+    "shopbonus-woocommerce-banner.zip": {
+        "sha256": "24f205647a9c0b234af0ef711e23843ac8b78f9ec1d9c58d81ba870edc64c67b",
+        "bytes": 4251,
+        "live_verified": false
+    },
+    "shopbonus-shopify-theme-source.zip": {
+        "sha256": "09628b7ad2c5f93c612fab4d9cadfab4e3a1e35c03ad7b4411414c0b29805e3d",
+        "bytes": 4407,
+        "live_verified": false
+    }
+}

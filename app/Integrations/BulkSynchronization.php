@@ -25,7 +25,10 @@ class BulkSynchronization
 
         return DB::transaction(function () use ($model, $since, $until, $key) {
             $c = WebshopConnection::with('webshop')->whereKey($model->id)->lockForUpdate()->firstOrFail();
-            if ($c->status === ConnectionStatus::Disconnected || ! $c->webshop->isOwnershipVerified() || $c->external_shop_ref === null) {
+            if ($c->paused_at !== null) {
+                throw ApiException::conflict('This integration is paused.', 'connection_paused');
+            }
+            if (! $c->acceptsData() || ! $c->webshop->isOwnershipVerified() || $c->external_shop_ref === null) {
                 throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
             }
             if (! $this->registry->for($c->platform) instanceof PagedOrderReader) {
@@ -57,6 +60,9 @@ class BulkSynchronization
             $c = WebshopConnection::with('webshop')->whereKey($candidate->connection_id)->lockForUpdate()->firstOrFail();
             $r = IntegrationSyncRun::whereKey($candidate->id)->lockForUpdate()->firstOrFail();
             if (in_array($r->status, ['completed', 'failed', 'superseded'], true)) {
+                return null;
+            }
+            if ($c->paused_at !== null) {
                 return null;
             }
             if (! $this->matches($r, $c)) {
@@ -106,6 +112,11 @@ class BulkSynchronization
                 if ($r->lease_token !== $claimed->lease_token || $r->status !== 'reading' || $r->leased_until === null || $r->leased_until->isPast()) {
                     return;
                 }
+                if ($c->paused_at !== null && $this->matches($r, $c) && $snapshot->hasSameCredentialAuthority($c)) {
+                    $r->forceFill(['status' => 'pending', 'lease_token' => null, 'leased_until' => null])->save();
+
+                    return;
+                }
                 if (! $this->matches($r, $c) || ! $snapshot->hasSameCredentialAuthority($c)) {
                     $r->forceFill(['status' => 'superseded', 'last_error_code' => 'connection_changed'])->save();
 
@@ -142,6 +153,11 @@ class BulkSynchronization
             $c = WebshopConnection::with('webshop')->whereKey($claimed->connection_id)->lockForUpdate()->firstOrFail();
             $r = IntegrationSyncRun::whereKey($claimed->id)->lockForUpdate()->firstOrFail();
             if ($r->status === 'reading' && $r->lease_token === $claimed->lease_token) {
+                if ($c->paused_at !== null && $this->matches($r, $c)) {
+                    $r->forceFill(['status' => 'pending', 'lease_token' => null, 'leased_until' => null])->save();
+
+                    return;
+                }
                 $r->forceFill(['status' => $this->matches($r, $c) ? 'failed' : 'superseded', 'last_error_code' => $code, 'lease_token' => null, 'leased_until' => null])->save();
             }
         }

@@ -40,7 +40,7 @@ class ConnectionReadiness
     /** Caller holds the connection row lock. */
     public function refresh(WebshopConnection $c): void
     {
-        if ($c->status === ConnectionStatus::Disconnected) {
+        if ($c->status === ConnectionStatus::Disconnected || $c->paused_at !== null) {
             return;
         }
         $gates = $this->gates($c);

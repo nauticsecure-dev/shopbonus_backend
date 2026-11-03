@@ -56,7 +56,7 @@ class HomepageCmsTest extends TestCase
         $this->getJson('/api/v1/content/homepage?locale=nl')->assertNotFound();
 
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl')->assertOk()->assertJsonPath('data.number', 1);
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl', ['revision' => $this->getJson('/api/v1/admin/content/homepage?locale=nl')->json('data.draft_revision')])->assertOk()->assertJsonPath('data.number', 1);
 
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/homepage?locale=nl')
@@ -87,7 +87,7 @@ class HomepageCmsTest extends TestCase
             ->assertJsonPath('data.content.hero.heading', 'Nieuwe hero')
             ->assertHeader('Cache-Control', 'no-store, private');
 
-        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl')->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl', ['revision' => $this->getJson('/api/v1/admin/content/homepage?locale=nl')->json('data.draft_revision')])->assertOk();
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/homepage?locale=nl')->assertJsonPath('data.content.hero.heading', 'Nieuwe hero');
 
@@ -116,13 +116,13 @@ class HomepageCmsTest extends TestCase
     public function test_nl_and_en_drafts_are_independent(): void
     {
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl')->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl', ['revision' => $this->getJson('/api/v1/admin/content/homepage?locale=nl')->json('data.draft_revision')])->assertOk();
         $enRev = $this->getJson('/api/v1/admin/content/homepage?locale=en')->json('data.draft_revision');
         $this->patchJson('/api/v1/admin/content/homepage/sections/hero?locale=en', [
             'revision' => $enRev,
             'section' => ['heading' => 'English only', 'primary_cta' => ['label' => 'Go', 'href' => '/webshops']],
         ])->assertOk();
-        $this->postJson('/api/v1/admin/content/homepage/publish?locale=en')->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=en', ['revision' => $this->getJson('/api/v1/admin/content/homepage?locale=en')->json('data.draft_revision')])->assertOk();
 
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/homepage?locale=nl')->assertJsonPath('data.content.hero.heading', "Shop zoals je altijd doet.\nSpaar voor wat je écht wilt.");
@@ -178,7 +178,7 @@ class HomepageCmsTest extends TestCase
         $asset = $this->post('/api/v1/admin/content/homepage/assets', ['image' => UploadedFile::fake()->image('hero.png', 100, 100)], ['Accept' => 'application/json'])->assertCreated()->json('data');
         $content['hero']['background_mobile_asset_id'] = $asset['id'];
         $this->putJson('/api/v1/admin/content/homepage?locale=en', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk();
-        $this->postJson('/api/v1/admin/content/homepage/publish?locale=en')->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=en', ['revision' => $this->getJson('/api/v1/admin/content/homepage?locale=en')->json('data.draft_revision')])->assertOk();
         $this->getJson('/api/v1/content/homepage?locale=en')->assertOk()->assertJsonPath('data.content.hero.background_mobile_url', $asset['url'])->assertJsonPath('data.content.section_order.0', 'search');
         $revision = $this->getJson('/api/v1/admin/content/homepage?locale=en')->json('data.draft_revision');
         $content['faq_teaser']['cta_href'] = 'javascript:alert(1)';
@@ -195,10 +195,56 @@ class HomepageCmsTest extends TestCase
         $content = $state['draft'];
         $content['schedule'] = ['publish_at' => now()->subMinute()->toIso8601String(), 'unpublish_at' => now()->addSeconds(10)->toIso8601String()];
         $this->putJson('/api/v1/admin/content/homepage?locale=nl', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk();
-        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl')->assertOk();
+        $this->postJson('/api/v1/admin/content/homepage/publish?locale=nl', ['revision' => $this->getJson('/api/v1/admin/content/homepage?locale=nl')->json('data.draft_revision')])->assertOk();
         $this->getJson('/api/v1/content/homepage?locale=nl')->assertOk()->assertHeader('Cache-Control', 'no-store, private');
         $this->travel(11)->seconds();
         $this->getJson('/api/v1/content/homepage?locale=nl')->assertNotFound();
+    }
+
+    public function test_publication_requires_reviewed_revision_and_rejects_concurrent_draft_changes(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/homepage')->json('data');
+        $this->postJson('/api/v1/admin/content/homepage/publish')->assertUnprocessable();
+        $this->postJson('/api/v1/admin/content/homepage/publish', ['revision' => $state['draft_revision']])->assertOk();
+        $original = $this->getJson('/api/v1/content/homepage')->json('data');
+        $content = $state['draft'];
+        $content['hero']['heading'] = 'Concurrent unreviewed edit';
+        $otherAdmin = User::factory()->create();
+        $otherAdmin->platformRoles()->create(['role' => PlatformRole::SuperAdmin, 'granted_via' => 'console', 'granted_at' => now()]);
+        Sanctum::actingAs($otherAdmin);
+        $this->putJson('/api/v1/admin/content/homepage', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk();
+        $this->asAdmin();
+        $this->postJson('/api/v1/admin/content/homepage/publish', ['revision' => $state['draft_revision']])
+            ->assertConflict()->assertJsonPath('error.code', 'draft_changed');
+        $this->assertSame($original, $this->getJson('/api/v1/content/homepage')->json('data'));
+        $this->getJson('/api/v1/admin/content/homepage/versions?locale=nl')->assertJsonCount(1, 'data');
+        $this->postJson('/api/v1/admin/content/homepage/publish', ['revision' => $state['draft_revision'] + 1])->assertOk();
+        $this->getJson('/api/v1/content/homepage')->assertJsonPath('data.content.hero.heading', 'Concurrent unreviewed edit');
+    }
+
+    public function test_queued_homepage_replacement_preserves_live_content_and_rejects_later_edits(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/homepage')->json('data');
+        $this->postJson('/api/v1/admin/content/homepage/publish', ['revision' => $state['draft_revision']])->assertOk();
+        $live = $this->getJson('/api/v1/content/homepage')->json('data.content.hero.heading');
+        $content = $state['draft'];
+        $content['hero']['heading'] = 'Scheduled replacement';
+        $rev = $this->putJson('/api/v1/admin/content/homepage', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk()->json('data.draft_revision');
+        $url = '/api/v1/admin/cms/pages/'.$state['id'].'/schedules';
+        $this->postJson($url, ['action' => 'publish', 'locale' => 'nl', 'revision' => $rev, 'due_at' => now()->addMinutes(2)->toIso8601String()])->assertCreated();
+        $this->getJson('/api/v1/content/homepage')->assertJsonPath('data.content.hero.heading', $live);
+        $this->travel(3)->minutes();
+        $this->artisan('shopbonus:publish-scheduled-content')->assertSuccessful();
+        $this->getJson('/api/v1/content/homepage')->assertJsonPath('data.content.hero.heading', 'Scheduled replacement');
+        $scheduled = $this->postJson($url, ['action' => 'publish', 'locale' => 'nl', 'revision' => $rev, 'due_at' => now()->addMinutes(2)->toIso8601String()])->assertCreated()->json('data.id');
+        $content['hero']['heading'] = 'Unreviewed later edit';
+        $this->putJson('/api/v1/admin/content/homepage', ['revision' => $rev, 'content' => $content])->assertOk();
+        $this->travel(3)->minutes();
+        $this->artisan('shopbonus:publish-scheduled-content')->assertSuccessful();
+        $this->assertDatabaseHas('cms_publication_schedules', ['public_id' => $scheduled, 'status' => 'stale']);
+        $this->getJson('/api/v1/content/homepage')->assertJsonPath('data.content.hero.heading', 'Scheduled replacement');
     }
 
     public function test_search_endpoint_basics(): void

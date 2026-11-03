@@ -1,0 +1,17 @@
+{% if block.settings.backend_origin != blank and block.settings.public_key != blank %}
+  <span hidden data-shopbonus-install="{{ block.id | escape }}"
+    data-origin="{{ block.settings.backend_origin | escape }}"
+    data-key="{{ block.settings.public_key | escape }}"></span>
+{% endif %}
+{% schema %}
+{
+  "name": "Shopbonus Banner",
+  "target": "body",
+  "javascript": "shopbonus-loader.js",
+  "settings": [
+    { "type": "text", "id": "backend_origin", "label": "Backend HTTPS origin" },
+    { "type": "text", "id": "public_key", "label": "Shopbonus public banner key" },
+    { "type": "paragraph", "content": "Publish your campaign and authorize this storefront domain in Shopbonus. Enable this app embed and save the theme. Never enter an API token or signing secret here." }
+  ]
+}
+{% endschema %}

@@ -4,12 +4,14 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AmountBreakdown;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\WooCommerceApi;
+use App\Integrations\LineItems;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\Money;
@@ -221,7 +223,9 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
             $total === null => PaymentStatus::Unknown,($o['state'] ?? null) === 'canceled' => PaymentStatus::Cancelled,$qualified && $refund === $total && $total > 0 => PaymentStatus::Refunded,$qualified && $refund > 0 => PaymentStatus::PartiallyRefunded,$qualified => PaymentStatus::Paid,$refund > 0 => PaymentStatus::Unknown,default => PaymentStatus::Pending
         };
 
-        return new NormalizedOrder(externalId: $this->str($o['entity_id'] ?? null), reference: $this->str($o['increment_id'] ?? null), firstName: $this->str($o['customer_firstname'] ?? $o['billing_address']['firstname'] ?? null), email: $this->str($o['customer_email'] ?? null), phone: $this->str($o['billing_address']['telephone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['status'] ?? null), placedAt: $this->utc($o['created_at'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->utc($o['updated_at'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($o['entity_id'] ?? null), reference: $this->str($o['increment_id'] ?? null), firstName: $this->str($o['customer_firstname'] ?? $o['billing_address']['firstname'] ?? null), email: $this->str($o['customer_email'] ?? null), phone: $this->str($o['billing_address']['telephone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['status'] ?? null), placedAt: $this->utc($o['created_at'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->utc($o['updated_at'] ?? null),
+            lineItems: LineItems::magento($o['items'] ?? null, $currency),
+            amountBreakdown: AmountBreakdown::make($currency, 'magento_rest_order', ['original_total' => isset($o['grand_total']) ? (string) $o['grand_total'] : null, 'tax' => isset($o['tax_amount']) ? (string) $o['tax_amount'] : null, 'shipping' => isset($o['shipping_amount']) ? (string) $o['shipping_amount'] : null, 'discount' => isset($o['discount_amount']) && is_numeric($o['discount_amount']) && $o['discount_amount'] <= 0 ? ltrim((string) $o['discount_amount'], '-') : null]));
     }
 
     /** @return array<string,mixed> this connection's store view config, after the identity gate */

@@ -90,8 +90,9 @@ class HomepageCmsController extends Controller
     public function publish(Request $request): JsonResponse
     {
         $locale = $this->locale($request);
+        $data = $request->validate(['revision' => ['required', 'integer', 'min:1']]);
         $page = $this->homepage->page();
-        $revision = $this->cms->publish($page, $locale, $request->user()->id);
+        $revision = $this->cms->publish($page, $locale, $request->user()->id, expectedDraftRevision: (int) $data['revision']);
 
         return response()->json(['data' => $this->revision($revision)]);
     }

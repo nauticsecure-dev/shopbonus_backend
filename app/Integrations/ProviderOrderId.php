@@ -10,9 +10,10 @@ final class ProviderOrderId
     public static function validate(EcommercePlatform $platform, string $id): string
     {
         $pattern = match ($platform) {
-            EcommercePlatform::Ecwid => '/\A[1-9][0-9]{0,18}\z/D',
+            EcommercePlatform::Ecwid, EcommercePlatform::LightspeedE => '/\A[1-9][0-9]{0,18}\z/D',
             EcommercePlatform::Wix => '/\A[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\z/D',
             EcommercePlatform::Shopware6 => '/\A[a-f0-9]{32}\z/D',
+            EcommercePlatform::Squarespace => '/\A[a-f0-9]{24}\z/D',
             default => null,
         };
         if ($pattern === null) {

@@ -1,5 +1,7 @@
 # Merchant dashboard, offers and voucher review — 2026-11-02
 
+Latest continuation: [local real-service acceptance and dependency remediation](merchant-voucher-acceptance-followup.md). Includes the resolved policy decisions, fresh 72-pass/3-skip run, 23 real HTTP inventory/queue exchanges, real dummy-session Chrome checks, production-only clean npm audit and measured local performance limits. The checkpoint below remains historical.
+
 Status: local implementation verified; release acceptance PARTIAL. Backend HassanDev at 926ab34, frontend HassanDev at 5abab50. Changes remain uncommitted alongside pre-existing CMS/launch work. No deployment, provider activation, new package or migration.
 
 | Finding | Current result |
@@ -35,3 +37,5 @@ Outstanding release evidence/actions:
 5. Review this scoped patch and the unrelated pre-existing work before committing/releasing. Checklist remains unticked until a tested implementation commit provides its SHA, per AGENTS.md.
 
 Known validation history: initial new quote regression used a voucher public ID where the existing endpoint expects an offer slug; corrected fixture and rerun passed. Initial import browser fixture intercepted the wrong preview path; corrected to the existing code-imports endpoint and all final journeys passed. Initial Pint found formatting only in the new capture script; fixed and rechecked. Whole repository suites and production build for this patch were not run; prior release evidence is not reclassified as current proof.
+
+2026-11-03 offers/code findings: [implementation, acceptance correction and current evidence](offers-code-review-2026-11-03.md).

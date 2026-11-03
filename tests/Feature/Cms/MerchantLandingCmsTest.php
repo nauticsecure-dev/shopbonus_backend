@@ -103,9 +103,24 @@ class MerchantLandingCmsTest extends TestCase
         $this->asAdmin();
         $versions = $this->getJson('/api/v1/admin/content/voor-webshops/versions?locale=nl')->assertOk()->json('data');
         $this->assertNotEmpty($versions);
+        $this->assertArrayNotHasKey('content', $versions[0]);
+        $snapshot = $this->getJson('/api/v1/admin/content/voor-webshops/versions?locale=nl&include_content=1')
+            ->assertOk()->json('data.0');
+        $this->assertSame($versions[0]['id'], $snapshot['id']);
+        $this->assertSame('Nieuwe hero voor webshops', $snapshot['content']['hero']['heading']);
+        $this->assertNotSame('Alleen draft', $snapshot['content']['hero']['heading']);
+        $this->getJson('/api/v1/admin/content/pages/voor-webshops/versions?locale=nl&include_content=1')
+            ->assertOk()->assertJsonPath('data.0.content.hero.heading', 'Nieuwe hero voor webshops');
         $this->postJson('/api/v1/admin/content/voor-webshops/restore', [
             'revision_id' => $versions[0]['id'],
         ])->assertOk();
+    }
+
+    public function test_revision_content_is_not_accessible_to_guests_or_merchants(): void
+    {
+        $this->getJson('/api/v1/admin/content/voor-webshops/versions?include_content=1')->assertUnauthorized();
+        Sanctum::actingAs(User::factory()->create());
+        $this->getJson('/api/v1/admin/content/voor-webshops/versions?include_content=1')->assertForbidden();
     }
 
     public function test_guest_cannot_mutate(): void

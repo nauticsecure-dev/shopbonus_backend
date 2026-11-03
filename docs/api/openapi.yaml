@@ -1,4 +1,5 @@
 openapi: 3.1.0
+x-dispute-refund-lifecycle: {"description":"Dispute resolution carries compensation_status (requested, pending, failed, completed) and compensated_at. The timestamp is set only after provider completion. A requested refund replays its frozen amount/key; a failed refund may be retried via the authenticated admin resolve endpoint with a new key. Legacy unmatched refunds require manual provider reconciliation. EUR checkout remains D-053.","source":"docs/api/DISPUTE_REFUND_HTTP_CAPTURE.json","examples":[{"fixture_state":"requested","response":{"data":{"id":"01m6esb76bkmqcvcmdmtkkptvk","status":"resolved","reason":"missing_after_payment","description":"Synthetic refund lifecycle contract fixture","screenshots":[],"webshop":"Dashboard fixture","voucher_id":null,"checkout_id":null,"resolution":{"note":"Synthetic lifecycle fixture","compensation":"refund","amount_minor":1000,"at":"2026-11-02T18:46:30+00:00","compensation_status":"requested","compensated_at":null},"created_at":"2026-11-02T18:46:30+00:00","timeline":[]}}},{"fixture_state":"pending","response":{"data":{"id":"01m6esb76bkmqcvcmdmtkkptvk","status":"resolved","reason":"missing_after_payment","description":"Synthetic refund lifecycle contract fixture","screenshots":[],"webshop":"Dashboard fixture","voucher_id":null,"checkout_id":null,"resolution":{"note":"Synthetic lifecycle fixture","compensation":"refund","amount_minor":1000,"at":"2026-11-02T18:46:30+00:00","compensation_status":"pending","compensated_at":null},"created_at":"2026-11-02T18:46:30+00:00","timeline":[]}}},{"fixture_state":"failed","response":{"data":{"id":"01m6esb76bkmqcvcmdmtkkptvk","status":"resolved","reason":"missing_after_payment","description":"Synthetic refund lifecycle contract fixture","screenshots":[],"webshop":"Dashboard fixture","voucher_id":null,"checkout_id":null,"resolution":{"note":"Synthetic lifecycle fixture","compensation":"refund","amount_minor":1000,"at":"2026-11-02T18:46:30+00:00","compensation_status":"failed","compensated_at":null},"created_at":"2026-11-02T18:46:30+00:00","timeline":[]}}},{"fixture_state":"completed","response":{"data":{"id":"01m6esb76bkmqcvcmdmtkkptvk","status":"resolved","reason":"missing_after_payment","description":"Synthetic refund lifecycle contract fixture","screenshots":[],"webshop":"Dashboard fixture","voucher_id":null,"checkout_id":null,"resolution":{"note":"Synthetic lifecycle fixture","compensation":"refund","amount_minor":1000,"at":"2026-11-02T18:46:30+00:00","compensation_status":"completed","compensated_at":"2026-11-02T18:46:34+00:00"},"created_at":"2026-11-02T18:46:30+00:00","timeline":[]}}}]}
 info:
   title: Shopbonus API
   version: 1.0.0-dev
@@ -284,7 +285,7 @@ paths:
                 terms_version: { type: string, description: Version the user was shown; must equal the current one. }
                 privacy_version: { type: string }
                 marketing_opt_in: { type: boolean, default: false }
-                locale: { type: string, enum: [nl, en], default: nl }
+                locale: { type: string, enum: [nl, en, de], default: nl }
             example:
               account_type: consumer
               first_name: Jan
@@ -1476,7 +1477,7 @@ paths:
                 postal_code: { type: [string, 'null'] }
                 city: { type: [string, 'null'] }
                 country_code: { type: [string, 'null'], pattern: '^[A-Z]{2}$' }
-                preferred_language: { type: string, enum: [nl, en] }
+                preferred_language: { type: string, enum: [nl, en, de] }
                 google_place_id: { type: [string, 'null'] }
                 business_category: { type: [string, 'null'] }
                 source: { type: string, enum: [manual, google] }
@@ -2101,7 +2102,7 @@ paths:
               properties:
                 key: { type: string, enum: [merchant_agreement] }
                 version: { type: string, pattern: '^[A-Za-z0-9._-]+$', maxLength: 32 }
-                locale: { type: string, enum: [nl, en] }
+                locale: { type: string, enum: [nl, en, de] }
                 title: { type: string, maxLength: 255 }
                 body: { type: string, description: 'Markdown. Placeholders: {{webshop_name}} {{legal_name}} {{trading_name}} {{kvk_number}} {{vat_number}} {{website_domain}} {{address}}; anything else is rejected.' }
                 requires_reacceptance: { type: boolean, default: true, description: Whether approved webshops must accept this version before further commercial actions. }
@@ -2157,7 +2158,7 @@ paths:
               properties:
                 key: { type: string, enum: [merchant_agreement] }
                 version: { type: string, pattern: '^[A-Za-z0-9._-]+$', maxLength: 32 }
-                locale: { type: string, enum: [nl, en] }
+                locale: { type: string, enum: [nl, en, de] }
                 title: { type: string, maxLength: 255 }
                 body: { type: string, description: 'Markdown. Placeholders: {{webshop_name}} {{legal_name}} {{trading_name}} {{kvk_number}} {{vat_number}} {{website_domain}} {{address}}; anything else is rejected.' }
                 requires_reacceptance: { type: boolean, default: true, description: Whether approved webshops must accept this version before further commercial actions. }
@@ -2236,6 +2237,14 @@ paths:
   /api/v1/workspaces/{workspace}/connections/{connection}/credentials:
     parameters: [{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"description":"Connection public ID.","schema":{"type":"string"}}]
     post: {"tags":["Integrations"],"operationId":"replaceConnectionCredentials","summary":"Rotate or replace credentials","description":"Generated secrets: a new secret is returned once and the old one stops working immediately. Shopify: send a new `signing_secret` (and `shop_domain`). Audited.\n\nB23a adds optional WooCommerce encrypted read credentials and reviewed capability profiles. Native reads are not live/provider production verification. See docs/integrations/WOO_READ_API.md. Connected now requires all seven B23d gates; a complete webhook stays Limited.\n\nB23b supports optional encrypted Shopify access_token and fixed2026-10 read-only GraphQL probes; shop/domain/scopes/version checked before order reads. No OAuth lifecycle, writes, status promotion or live readiness claim. See docs/integrations/SHOPIFY_READ_API.md and B23_SHOPIFY_HTTP_CAPTURE.json.\n\nB23c: accepted events bind internally to the credential generation. Rotation resets current readiness; stale or legacy-unbound queued events cannot affect orders or connection state. Merchant/admin retries reject old bindings. Original event dedupe/history are retained. See docs/integrations/CREDENTIAL_LIFECYCLE.md and B23_CREDENTIAL_HTTP_CAPTURE.json.\n\nCurrent B23d policy: Connected requires all seven generation/domain-bound gates from authenticated native order ingestion, observed duplicate prevention and recovered change/refund. Complete webhooks and passive API probes cannot qualify. Verification adds quality_gates and missing_gates. Recovery is operator-only via shopbonus:recover-integration-order; no public recovery mutation route. Prior checkpoint notes are historical. See docs/integrations/READINESS_AND_RECOVERY.md.\n\nB23l Wix: with `WIX_APP_ENABLED=true` the request omits `access_token` (sending one is a 422 `prohibited` validation error). Shopbonus binds the connection to the configured Wix app and mints 4-hour app-instance tokens on demand (client_credentials). With it off (default), the merchant/senior-supplied `access_token` stays required. See docs/integrations/REMAINING_BACKEND.md.\n\nB23m Shopware 6: `{app_registration: true, store_url, sales_channel_id}` creates an app-registration connection without client credentials (sending `client_id`/`client_secret` with it is a 422). The Admin API credentials arrive through the Shopware app registration handshake and are bound when the shop URL equals `store_url` on the verified domain.","x-access":"verified","x-permission":"integrations.manage","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <XSRF_TOKEN>' --data '{\"store_url\":\"https://fietsen-utrecht.nl\",\"consumer_key\":\"<LOCAL_CONSUMER_KEY>\",\"consumer_secret\":\"<LOCAL_CONSUMER_SECRET>\"}' 'http://localhost:8000/api/v1/workspaces/01m6102yjss303ctz63gsbsd8e/connections/01m6102zv4nrrhpsnmvm4c8q2v/credentials'"},{"lang":"curl","label":"Shopify credentials","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{\"shop_domain\":\"fietsen.myshopify.com\",\"signing_secret\":\"<REDACTED>\",\"access_token\":\"<REDACTED>\"}' 'http://localhost:8000/api/v1/workspaces/01m612620xm2kaaya5fd4xf895/connections/01m61263rs4717r9f5zs21dc1c/credentials'"},{"lang":"curl","label":"Credential lifecycle rotate","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}' 'http://localhost:8000/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/credentials'"},{"lang":"curl","label":"Credential lifecycle rotate_again","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}' 'http://localhost:8000/api/v1/workspaces/01m613rcypqmyntqabv0e57c6q/connections/01m613rew0sgkb6m1svdjpawcx/credentials'"},{"lang":"curl","label":"Readiness store_switch_rejected","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{\"store_url\":\"https://fietsen-utrecht.nl/other-store\",\"consumer_key\":\"<REDACTED>\",\"consumer_secret\":\"<REDACTED>\"}' 'http://localhost:8000/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/credentials'"},{"lang":"curl","label":"Readiness rotate","source":"curl -i -X POST -H 'Accept: application/json' -H 'Cookie: <SPA_SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}' 'http://localhost:8000/api/v1/workspaces/01m6238a726tfp7ft7x687m4qg/connections/01m6238cmfns7j6w5cshgj5nfc/credentials'"}],"responses":{"200":{"description":"Actual2026-10-28 local HTTP capture, synthetic provider fixtures only; generated webhooks and read credentials redacted.","content":{"application/json":{"examples":{"previousCapture":{"value":{"data":{"id":"01m6102zv4nrrhpsnmvm4c8q2v","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":"https://fietsen-utrecht.nl","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T10:14:58+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"http://127.0.0.1:8094/api/v1/webhooks/woocommerce/<WEBHOOK_TOKEN>","read_api_configured":true,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<GENERATED_SECRET>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}},"shopify_credentials":{"summary":"Actual B23b HTTP; synthetic upstream success","value":{"data":{"id":"01m61263rs4717r9f5zs21dc1c","platform":"shopify","method":"webhook","status":"setup_required","external_shop_ref":"fietsen.myshopify.com","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T10:51:38+00:00","setup":{"format":"shopify-webhooks","webhook_url":"<REDACTED>","shop_domain":"fietsen.myshopify.com","read_api_configured":true,"read_api_notice":"Optional approved app access token enables pinned GraphQL reads. OAuth install/refresh and live readiness are separate capabilities.","steps":["In Shopify admin open Settings → Notifications → Webhooks and create webhooks (JSON) for \"Order creation\", \"Order payment\", \"Order update\" and \"Order cancellation\" to the webhook URL.","Copy the signing secret shown on that page into this connection.","Place a genuine paid test order. Shopify may hide customer details; if so the connection shows \"Connected with limitations\" until protected customer data access is arranged."]}}}},"credential_rotate":{"summary":"Actual B23c HTTP rotate","value":{"data":{"id":"01m613rew0sgkb6m1svdjpawcx","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T11:19:07+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"<REDACTED>","read_api_configured":false,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<REDACTED>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}},"credential_rotate_again":{"summary":"Actual B23c HTTP rotate_again","value":{"data":{"id":"01m613rew0sgkb6m1svdjpawcx","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T11:19:07+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"<REDACTED>","read_api_configured":false,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order."]},"secrets":{"webhook_secret":"<REDACTED>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}},"readiness_rotate":{"summary":"Actual B23d HTTP rotate","value":{"data":{"id":"01m6238cmfns7j6w5cshgj5nfc","platform":"woocommerce","method":"webhook","status":"setup_required","external_shop_ref":"https://fietsen-utrecht.nl","limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-10-28T20:29:35+00:00","setup":{"format":"woocommerce-webhooks","webhook_url":"<REDACTED>","read_api_configured":false,"read_api_notice":"Optional read-only REST credentials require verified store-domain ownership. API tests do not establish live production readiness.","steps":["In WordPress go to WooCommerce → Settings → Advanced → Webhooks → Add webhook.","Create two webhooks, topics \"Order created\" and \"Order updated\", status Active, API version WP REST API Integration v3.","Delivery URL: the webhook URL above. Secret: the secret shown once when this connection was created.","Save, then place a real paid test order. The connection remains Limited until all seven provider verification checks pass."]},"secrets":{"webhook_secret":"<REDACTED>"},"secrets_notice":"Shown only once. Store it in your shop settings now; it cannot be retrieved later."}}}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"},"409":{"description":"connection_disconnected (same envelope).","content":{"application/json":{"examples":{"previousCapture":{"value":{"error":{"status":409,"code":"connection_exists","message":"This webshop already has a connection for this platform.","request_id":"01a1694b-b54f-71a4-a22e-92820b37f4af"}}},"readiness_store_switch_rejected":{"summary":"Actual B23d HTTP store_switch_rejected","value":{"error":{"status":409,"code":"provider_store_change_requires_review","message":"Changing the provider store after orders exist requires a reviewed migration.","request_id":"01a18434-3fed-729d-9d05-45e7e2c7e9e1"}}}}}}},"422":{"$ref":"#/components/responses/ValidationFailed"}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"store_url":{"type":"string","format":"uri","description":"HTTPS WordPress base URL. With API credentials its normalized ownership domain must match the verified workspace domain."},"consumer_key":{"type":"string","minLength":16,"maxLength":255,"description":"Optional read-only WooCommerce API key; requires consumer_secret and store_url."},"consumer_secret":{"type":"string","minLength":16,"maxLength":255,"description":"Optional read-only API secret; encrypted at rest, never returned."},"access_token":{"type":"string","minLength":16,"maxLength":2048,"writeOnly":true,"description":"Optional approved Shopify app token; encrypted, never returned. Does not implement OAuth installation or token refresh."}}},"example":{"store_url":"https://fietsen-utrecht.nl","consumer_key":"<LOCAL_CONSUMER_KEY>","consumer_secret":"<LOCAL_CONSUMER_SECRET>"}}}}}
+
+  /api/v1/workspaces/{workspace}/connections/{connection}/pause:
+    parameters: [{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"schema":{"type":"string"}}]
+    post: {"tags":["Integrations"],"operationId":"pauseConnection","summary":"Pause integration data processing","x-access":"verified","x-permission":"integrations.manage","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <TOKEN>' 'http://localhost:8000/api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/pause'"}],"responses":{"200":{"description":"Captured from a real local HTTP server; isolated SQLite, synthetic connection.","content":{"application/json":{"example":{"data":{"id":"01m6fth5yzyg8sv06gzk51jahb","platform":"prestashop","method":"private_module","status":"setup_required","paused_at":"2026-11-03T04:26:33+00:00","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-11-03T04:26:28+00:00"}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"},"409":{"description":"Disconnected integration cannot be paused or resumed. Real local HTTP capture.","content":{"application/json":{"example":{"error":{"status":409,"code":"connection_disconnected","message":"This connection is disconnected. Create a new one.","request_id":"01a19fa8-ba3b-7165-85dc-0b4b2be1115f"}}}}},"419":{"$ref":"#/components/responses/CsrfMismatch"},"429":{"$ref":"#/components/responses/TooManyRequests"},"500":{"$ref":"#/components/responses/ServerError"}}}
+
+  /api/v1/workspaces/{workspace}/connections/{connection}/resume:
+    parameters: [{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"schema":{"type":"string"}}]
+    post: {"tags":["Integrations"],"operationId":"resumeConnection","summary":"Resume integration data processing","x-access":"verified","x-permission":"integrations.manage","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST -H 'Accept: application/json' -H 'Authorization: Bearer <TOKEN>' 'http://localhost:8000/api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/resume'"}],"responses":{"200":{"description":"Captured from a real local HTTP server; isolated SQLite, synthetic connection.","content":{"application/json":{"example":{"data":{"id":"01m6fth5yzyg8sv06gzk51jahb","platform":"prestashop","method":"private_module","status":"setup_required","paused_at":null,"external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":null,"last_error":null,"created_at":"2026-11-03T04:26:28+00:00"}}}}},"401":{"$ref":"#/components/responses/Unauthenticated"},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"$ref":"#/components/responses/WorkspaceNotFound"},"409":{"description":"Disconnected integration cannot be paused or resumed. Real local HTTP capture.","content":{"application/json":{"example":{"error":{"status":409,"code":"connection_disconnected","message":"This connection is disconnected. Create a new one.","request_id":"01a19fa8-ba3b-7165-85dc-0b4b2be1115f"}}}}},"419":{"$ref":"#/components/responses/CsrfMismatch"},"429":{"$ref":"#/components/responses/TooManyRequests"},"500":{"$ref":"#/components/responses/ServerError"}}}
 
   /api/v1/workspaces/{workspace}/connections/{connection}/verify:
     parameters: [{"$ref":"#/components/parameters/Workspace"},{"name":"connection","in":"path","required":true,"description":"Connection public ID.","schema":{"type":"string"}}]
@@ -4845,7 +4854,7 @@ paths:
       operationId: updateConsumerProfile
       summary: "Update own profile"
       description: |
-        Partial update of `first_name` (letters, spaces, hyphen, apostrophe; max 60; no HTML), `phone` (any common format, normalised to E.164 with NL default; `null` removes it; stored encrypted) and `locale` (`nl`/`en`). Email, status and role fields are ignored (email has its own verified flow). Invalid input changes nothing. Audited.
+        Partial update of `first_name` (letters, spaces, hyphen, apostrophe; max 60; no HTML), `phone` (any common format, normalised to E.164 with NL default; `null` removes it; stored encrypted) and `locale` (`nl`/`en`/`de`). Email, status and role fields are ignored (email has its own verified flow). Invalid input changes nothing. Audited.
       x-access: verified
       requestBody:
         required: true
@@ -4856,7 +4865,7 @@ paths:
               properties:
                 first_name: { type: string, maxLength: 60 }
                 phone: { type: string, nullable: true, maxLength: 30 }
-                locale: { type: string, enum: [nl, en] }
+                locale: { type: string, enum: [nl, en, de] }
             example: {"first_name": "Anna", "phone": "06 1234 5678", "locale": "nl"}
       x-codeSamples:
         - lang: curl
@@ -15836,7 +15845,7 @@ paths:
           description: Real local HTTP capture; simulated provider only.
           content:
             application/json:
-              example: {"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+              example: {"data":{"experiment":"01m6fw1ffp988jgnfhe491a58k","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"conversion_comparison":{"status":"insufficient_data","method":"two_proportion_z_test_wald_interval","confidence_level":0.95,"absolute_difference":0,"relative_change":null,"confidence_interval":null,"p_value":null,"statistically_significant":null,"favored_arm":null,"winner":null,"winner_status":"blocked_unverified_measurement_and_analysis_plan"},"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.","comparison":"Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results."}}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -15866,7 +15875,7 @@ paths:
           description: Real local HTTP capture; simulated provider only.
           content:
             application/json:
-              example: {"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+              example: {"data":{"experiment":"01m6fw1ffp988jgnfhe491a58k","active":true,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null}},"currency":"EUR","causal_uplift":null,"conversion_comparison":{"status":"insufficient_data","method":"two_proportion_z_test_wald_interval","confidence_level":0.95,"absolute_difference":null,"relative_change":null,"confidence_interval":null,"p_value":null,"statistically_significant":null,"favored_arm":null,"winner":null,"winner_status":"blocked_unverified_measurement_and_analysis_plan"},"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.","comparison":"Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results."}}}
         '409':
           description: Source changed, review already recorded, or experiment state conflict.
           content:
@@ -15900,7 +15909,7 @@ paths:
           description: Real local HTTP capture; simulated provider only.
           content:
             application/json:
-              example: {"data":{"experiment":"01m5ve14vbdpker3jk2vct6wd4","active":false,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":0,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":null},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed."}}}
+              example: {"data":{"experiment":"01m6fw1ffp988jgnfhe491a58k","active":false,"holdout":true,"variant_bps":5000,"arms":{"control":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0},"variant":{"assigned_visitors":1,"viewable_impressions":0,"cta_clicks":0,"verified_paid_orders":0,"converted_visitors":0,"net_revenue_minor":0,"conversion_rate":0}},"currency":"EUR","causal_uplift":null,"conversion_comparison":{"status":"insufficient_data","method":"two_proportion_z_test_wald_interval","confidence_level":0.95,"absolute_difference":0,"relative_change":null,"confidence_interval":null,"p_value":null,"statistically_significant":null,"favored_arm":null,"winner":null,"winner_status":"blocked_unverified_measurement_and_analysis_plan"},"definitions":{"orders":"Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.","limitations":"Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.","comparison":"Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results."}}}
         '409':
           description: Source changed, review already recorded, or experiment state conflict.
           content:
@@ -22050,7 +22059,19 @@ paths:
         - Admin
       operationId: getApiV1AdminContentVoorWebshopsVersions
       summary: api.v1.admin.content.voor-webshops.versions
-      description: 'Documented for access-registry coverage. Replace placeholder examples with captured responses.'
+      description: 'Super Admin publication history, optionally including immutable stored content for revision comparison. include_content defaults to false; it does not return the current draft.'
+      parameters:
+        - in: query
+          name: include_content
+          schema:
+            type: boolean
+            default: false
+          description: Include stored publication content for comparison.
+        - in: query
+          name: locale
+          schema:
+            type: string
+            enum: [nl, en, de]
       x-access: admin
       x-codeSamples:
         -
@@ -22058,12 +22079,10 @@ paths:
           source: "curl -i -X GET 'http://localhost:8000/api/v1/admin/content/voor-webshops/versions' -H 'Accept: application/json'"
       responses:
         200:
-          description: 'Successful response (placeholder; capture a live example when available).'
+          description: 'Publication history. Captured from isolated real Laravel HTTP; see MERCHANT_HISTORY_HTTP_CAPTURE.json.'
           content:
             application/json:
-              example:
-                data:
-                  ok: true
+              example: {"data":[{"id":"01m6g13xct2ts62r2shhg2pqfs","locale":"nl","number":2,"restored_from":null,"published_by":"Sylvie","published_at":"2026-11-03T06:21:33+00:00","content":{"media":{"hero":{"alt":"Actual uploaded image","mobile_asset_id":"01m6g13a6w5pc1ckgf3yy63gvs"}},"title":"ShopBonus voor webshops","seo_title":"ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat","seo_description":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","seo_image_asset_id":null,"body":{"type":"doc","content":[]},"section_visibility":{"hero":true,"platforms":true,"benefits":true,"offer_preview":true,"onboarding":true,"bottom_cta":true,"faq":true},"nav":{"logo_alt":"ShopBonus","login_label":"Inloggen","login_href":"/account?mode=login&role=merchant","cta_label":"Webshop aanmelden","cta_href":"/voor-webshops/aanmelden","links":[{"label":"Voordelen","href":"#voordelen"},{"label":"Zo werkt het","href":"#zo-werkt-het"},{"label":"Integraties","href":"#integraties"},{"label":"Veelgestelde vragen","href":"#faq"}]},"hero":{"eyebrow":"VOOR WEBSHOPS","heading":"HTTP saved unpublished draft","subtitle":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","primary_cta":{"label":"Sluit je webshop aan","href":"/voor-webshops/aanmelden"},"secondary_cta":{"label":"Bekijk hoe het werkt","href":"#zo-werkt-het"},"artwork_note":"Promotionele illustratie — geen live resultaten","background_asset_id":null,"illustration_asset_id":null,"trust":["Zelf commissie bepalen","Snel aansluiten","Meer zichtbaarheid"]},"platforms":{"heading":"Werkt met de populairste platforms","subtitle":"Verbind je webshop met een ondersteunde integratie.","cta_label":"Bekijk alle integraties","cta_href":"/voor-webshops/aanmelden#platforms","tiles":[{"platform":"shopify","name":"Shopify","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=shopify"},{"platform":"woocommerce","name":"WooCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=woocommerce"},{"platform":"wix","name":"Wix","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=wix"},{"platform":"bigcommerce","name":"BigCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=bigcommerce"},{"platform":"ecwid","name":"Ecwid","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=ecwid"},{"platform":"lightspeed_c","name":"Lightspeed C-Series","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=lightspeed_c"},{"platform":"prestashop","name":"PrestaShop","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=prestashop"},{"platform":"opencart","name":"OpenCart","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=opencart"},{"platform":"shopware6","name":"Shopware","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=shopware6"},{"platform":"magento","name":"Adobe Commerce / Magento","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=magento"}]},"benefits":{"eyebrow":"GROEI MET SHOPBONUS","heading":"Maak je webshop\nonweerstaanbaar.","description":"Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.","image_asset_id":null,"items":[{"icon":"people","title":"Bereik nieuwe klanten","description":"Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."},{"icon":"tag","title":"Kortingen én cashback","description":"Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."},{"icon":"cog","title":"Jij bepaalt de commissie","description":"Stel je commerciële afspraken in en houd controle over je marges."}]},"offer_preview":{"eyebrow":"ZO ZIEN JOUW AANBIEDINGEN ERUIT","heading":"Jouw aanbiedingen.\nProfessioneel gepresenteerd.","description":"Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.","cta_label":"Bekijk een voorbeeld","cta_href":"/webshops","preview_asset_id":null,"illustrative":true},"onboarding":{"eyebrow":"IN 3 EENVOUDIGE STAPPEN","heading":"Binnen enkele stappen live.","steps":[{"number":"01","title":"Aanmelden","description":"Maak een account aan en registreer jouw webshop.","icon":"document"},{"number":"02","title":"Koppelen","description":"Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.","icon":"link"},{"number":"03","title":"Start met aanbiedingen","description":"Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.","icon":"megaphone"}]},"bottom_cta":{"eyebrow":"START MET SHOPBONUS","heading":"Klaar om nieuwe klanten te bereiken?","description":"Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.","cta_label":"Webshop aanmelden →","cta_href":"/voor-webshops/aanmelden"},"faq":{"heading":"Veelgestelde vragen","items":[{"question":"Wat kost aansluiten bij ShopBonus?","answer":"Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."},{"question":"Hoe werkt de commissie?","answer":"Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."},{"question":"Kan ik mijn eigen cashbackacties instellen?","answer":"Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."},{"question":"Welke webshopplatformen ondersteunen jullie?","answer":"Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."},{"question":"Kan ik kortingscodes toevoegen?","answer":"Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."},{"question":"Wanneer verschijnt mijn webshop op ShopBonus?","answer":"Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."},{"question":"Hoe worden bestellingen geregistreerd?","answer":"Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."},{"question":"Kan ik mijn aanbiedingen aanpassen?","answer":"Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]},"footer":{"blurb":"ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."},"section_order":["hero","platforms","benefits","offer_preview","onboarding","bottom_cta","faq"]}},{"id":"01m6g0dnt6mjkdjb7fr1qsw4db","locale":"nl","number":1,"restored_from":null,"published_by":"Sylvie","published_at":"2026-11-03T06:09:25+00:00","content":{"title":"ShopBonus voor webshops","seo_title":"ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat","seo_description":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","seo_image_asset_id":null,"body":{"type":"doc","content":[]},"section_visibility":{"hero":true,"platforms":true,"benefits":true,"offer_preview":true,"onboarding":true,"bottom_cta":true,"faq":true},"nav":{"logo_alt":"ShopBonus","login_label":"Inloggen","login_href":"/account?mode=login&role=merchant","cta_label":"Webshop aanmelden","cta_href":"/voor-webshops/aanmelden","links":[{"label":"Voordelen","href":"#voordelen"},{"label":"Zo werkt het","href":"#zo-werkt-het"},{"label":"Integraties","href":"#integraties"},{"label":"Veelgestelde vragen","href":"#faq"}]},"hero":{"eyebrow":"VOOR WEBSHOPS","heading":"Echte goedgekeurde publicatie","subtitle":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","primary_cta":{"label":"Sluit je webshop aan","href":"/voor-webshops/aanmelden"},"secondary_cta":{"label":"Bekijk hoe het werkt","href":"#zo-werkt-het"},"artwork_note":"Promotionele illustratie — geen live resultaten","background_asset_id":null,"illustration_asset_id":null,"trust":["Zelf commissie bepalen","Snel aansluiten","Meer zichtbaarheid"]},"platforms":{"heading":"Werkt met de populairste platforms","subtitle":"Verbind je webshop met een ondersteunde integratie.","cta_label":"Bekijk alle integraties","cta_href":"/voor-webshops/aanmelden#platforms","tiles":[{"platform":"shopify","name":"Shopify","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=shopify"},{"platform":"woocommerce","name":"WooCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=woocommerce"},{"platform":"wix","name":"Wix","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=wix"},{"platform":"bigcommerce","name":"BigCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=bigcommerce"},{"platform":"ecwid","name":"Ecwid","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=ecwid"},{"platform":"lightspeed_c","name":"Lightspeed C-Series","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=lightspeed_c"},{"platform":"prestashop","name":"PrestaShop","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=prestashop"},{"platform":"opencart","name":"OpenCart","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=opencart"},{"platform":"shopware6","name":"Shopware","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=shopware6"},{"platform":"magento","name":"Adobe Commerce / Magento","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=magento"}]},"benefits":{"eyebrow":"GROEI MET SHOPBONUS","heading":"Maak je webshop\nonweerstaanbaar.","description":"Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.","image_asset_id":null,"items":[{"icon":"people","title":"Bereik nieuwe klanten","description":"Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."},{"icon":"tag","title":"Kortingen én cashback","description":"Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."},{"icon":"cog","title":"Jij bepaalt de commissie","description":"Stel je commerciële afspraken in en houd controle over je marges."}]},"offer_preview":{"eyebrow":"ZO ZIEN JOUW AANBIEDINGEN ERUIT","heading":"Jouw aanbiedingen.\nProfessioneel gepresenteerd.","description":"Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.","cta_label":"Bekijk een voorbeeld","cta_href":"/webshops","preview_asset_id":null,"illustrative":true},"onboarding":{"eyebrow":"IN 3 EENVOUDIGE STAPPEN","heading":"Binnen enkele stappen live.","steps":[{"number":"01","title":"Aanmelden","description":"Maak een account aan en registreer jouw webshop.","icon":"document"},{"number":"02","title":"Koppelen","description":"Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.","icon":"link"},{"number":"03","title":"Start met aanbiedingen","description":"Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.","icon":"megaphone"}]},"bottom_cta":{"eyebrow":"START MET SHOPBONUS","heading":"Klaar om nieuwe klanten te bereiken?","description":"Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.","cta_label":"Webshop aanmelden →","cta_href":"/voor-webshops/aanmelden"},"faq":{"heading":"Veelgestelde vragen","items":[{"question":"Wat kost aansluiten bij ShopBonus?","answer":"Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."},{"question":"Hoe werkt de commissie?","answer":"Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."},{"question":"Kan ik mijn eigen cashbackacties instellen?","answer":"Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."},{"question":"Welke webshopplatformen ondersteunen jullie?","answer":"Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."},{"question":"Kan ik kortingscodes toevoegen?","answer":"Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."},{"question":"Wanneer verschijnt mijn webshop op ShopBonus?","answer":"Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."},{"question":"Hoe worden bestellingen geregistreerd?","answer":"Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."},{"question":"Kan ik mijn aanbiedingen aanpassen?","answer":"Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]},"footer":{"blurb":"ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."},"section_order":["hero","platforms","benefits","offer_preview","onboarding","bottom_cta","faq"]}}]}
         401:
           description: 'Authentication is required.'
           content:
@@ -22210,7 +22229,19 @@ paths:
         - Admin
       operationId: getApiV1AdminContentPagesVoorWebshopsVersions
       summary: api.v1.admin.content.pages.voor-webshops.versions
-      description: 'Documented for access-registry coverage. Replace placeholder examples with captured responses.'
+      description: 'Super Admin publication history, optionally including immutable stored content for revision comparison. include_content defaults to false; it does not return the current draft.'
+      parameters:
+        - in: query
+          name: include_content
+          schema:
+            type: boolean
+            default: false
+          description: Include stored publication content for comparison.
+        - in: query
+          name: locale
+          schema:
+            type: string
+            enum: [nl, en, de]
       x-access: admin
       x-codeSamples:
         -
@@ -22218,12 +22249,10 @@ paths:
           source: "curl -i -X GET 'http://localhost:8000/api/v1/admin/content/pages/voor-webshops/versions' -H 'Accept: application/json'"
       responses:
         200:
-          description: 'Successful response (placeholder; capture a live example when available).'
+          description: 'Publication history. Captured from isolated real Laravel HTTP; see MERCHANT_HISTORY_HTTP_CAPTURE.json.'
           content:
             application/json:
-              example:
-                data:
-                  ok: true
+              example: {"data":[{"id":"01m6g13xct2ts62r2shhg2pqfs","locale":"nl","number":2,"restored_from":null,"published_by":"Sylvie","published_at":"2026-11-03T06:21:33+00:00","content":{"media":{"hero":{"alt":"Actual uploaded image","mobile_asset_id":"01m6g13a6w5pc1ckgf3yy63gvs"}},"title":"ShopBonus voor webshops","seo_title":"ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat","seo_description":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","seo_image_asset_id":null,"body":{"type":"doc","content":[]},"section_visibility":{"hero":true,"platforms":true,"benefits":true,"offer_preview":true,"onboarding":true,"bottom_cta":true,"faq":true},"nav":{"logo_alt":"ShopBonus","login_label":"Inloggen","login_href":"/account?mode=login&role=merchant","cta_label":"Webshop aanmelden","cta_href":"/voor-webshops/aanmelden","links":[{"label":"Voordelen","href":"#voordelen"},{"label":"Zo werkt het","href":"#zo-werkt-het"},{"label":"Integraties","href":"#integraties"},{"label":"Veelgestelde vragen","href":"#faq"}]},"hero":{"eyebrow":"VOOR WEBSHOPS","heading":"HTTP saved unpublished draft","subtitle":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","primary_cta":{"label":"Sluit je webshop aan","href":"/voor-webshops/aanmelden"},"secondary_cta":{"label":"Bekijk hoe het werkt","href":"#zo-werkt-het"},"artwork_note":"Promotionele illustratie — geen live resultaten","background_asset_id":null,"illustration_asset_id":null,"trust":["Zelf commissie bepalen","Snel aansluiten","Meer zichtbaarheid"]},"platforms":{"heading":"Werkt met de populairste platforms","subtitle":"Verbind je webshop met een ondersteunde integratie.","cta_label":"Bekijk alle integraties","cta_href":"/voor-webshops/aanmelden#platforms","tiles":[{"platform":"shopify","name":"Shopify","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=shopify"},{"platform":"woocommerce","name":"WooCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=woocommerce"},{"platform":"wix","name":"Wix","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=wix"},{"platform":"bigcommerce","name":"BigCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=bigcommerce"},{"platform":"ecwid","name":"Ecwid","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=ecwid"},{"platform":"lightspeed_c","name":"Lightspeed C-Series","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=lightspeed_c"},{"platform":"prestashop","name":"PrestaShop","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=prestashop"},{"platform":"opencart","name":"OpenCart","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=opencart"},{"platform":"shopware6","name":"Shopware","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=shopware6"},{"platform":"magento","name":"Adobe Commerce / Magento","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=magento"}]},"benefits":{"eyebrow":"GROEI MET SHOPBONUS","heading":"Maak je webshop\nonweerstaanbaar.","description":"Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.","image_asset_id":null,"items":[{"icon":"people","title":"Bereik nieuwe klanten","description":"Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."},{"icon":"tag","title":"Kortingen én cashback","description":"Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."},{"icon":"cog","title":"Jij bepaalt de commissie","description":"Stel je commerciële afspraken in en houd controle over je marges."}]},"offer_preview":{"eyebrow":"ZO ZIEN JOUW AANBIEDINGEN ERUIT","heading":"Jouw aanbiedingen.\nProfessioneel gepresenteerd.","description":"Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.","cta_label":"Bekijk een voorbeeld","cta_href":"/webshops","preview_asset_id":null,"illustrative":true},"onboarding":{"eyebrow":"IN 3 EENVOUDIGE STAPPEN","heading":"Binnen enkele stappen live.","steps":[{"number":"01","title":"Aanmelden","description":"Maak een account aan en registreer jouw webshop.","icon":"document"},{"number":"02","title":"Koppelen","description":"Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.","icon":"link"},{"number":"03","title":"Start met aanbiedingen","description":"Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.","icon":"megaphone"}]},"bottom_cta":{"eyebrow":"START MET SHOPBONUS","heading":"Klaar om nieuwe klanten te bereiken?","description":"Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.","cta_label":"Webshop aanmelden →","cta_href":"/voor-webshops/aanmelden"},"faq":{"heading":"Veelgestelde vragen","items":[{"question":"Wat kost aansluiten bij ShopBonus?","answer":"Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."},{"question":"Hoe werkt de commissie?","answer":"Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."},{"question":"Kan ik mijn eigen cashbackacties instellen?","answer":"Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."},{"question":"Welke webshopplatformen ondersteunen jullie?","answer":"Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."},{"question":"Kan ik kortingscodes toevoegen?","answer":"Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."},{"question":"Wanneer verschijnt mijn webshop op ShopBonus?","answer":"Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."},{"question":"Hoe worden bestellingen geregistreerd?","answer":"Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."},{"question":"Kan ik mijn aanbiedingen aanpassen?","answer":"Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]},"footer":{"blurb":"ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."},"section_order":["hero","platforms","benefits","offer_preview","onboarding","bottom_cta","faq"]}},{"id":"01m6g0dnt6mjkdjb7fr1qsw4db","locale":"nl","number":1,"restored_from":null,"published_by":"Sylvie","published_at":"2026-11-03T06:09:25+00:00","content":{"title":"ShopBonus voor webshops","seo_title":"ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat","seo_description":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","seo_image_asset_id":null,"body":{"type":"doc","content":[]},"section_visibility":{"hero":true,"platforms":true,"benefits":true,"offer_preview":true,"onboarding":true,"bottom_cta":true,"faq":true},"nav":{"logo_alt":"ShopBonus","login_label":"Inloggen","login_href":"/account?mode=login&role=merchant","cta_label":"Webshop aanmelden","cta_href":"/voor-webshops/aanmelden","links":[{"label":"Voordelen","href":"#voordelen"},{"label":"Zo werkt het","href":"#zo-werkt-het"},{"label":"Integraties","href":"#integraties"},{"label":"Veelgestelde vragen","href":"#faq"}]},"hero":{"eyebrow":"VOOR WEBSHOPS","heading":"Echte goedgekeurde publicatie","subtitle":"Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.","primary_cta":{"label":"Sluit je webshop aan","href":"/voor-webshops/aanmelden"},"secondary_cta":{"label":"Bekijk hoe het werkt","href":"#zo-werkt-het"},"artwork_note":"Promotionele illustratie — geen live resultaten","background_asset_id":null,"illustration_asset_id":null,"trust":["Zelf commissie bepalen","Snel aansluiten","Meer zichtbaarheid"]},"platforms":{"heading":"Werkt met de populairste platforms","subtitle":"Verbind je webshop met een ondersteunde integratie.","cta_label":"Bekijk alle integraties","cta_href":"/voor-webshops/aanmelden#platforms","tiles":[{"platform":"shopify","name":"Shopify","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=shopify"},{"platform":"woocommerce","name":"WooCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=woocommerce"},{"platform":"wix","name":"Wix","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=wix"},{"platform":"bigcommerce","name":"BigCommerce","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=bigcommerce"},{"platform":"ecwid","name":"Ecwid","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=ecwid"},{"platform":"lightspeed_c","name":"Lightspeed C-Series","status":"AVAILABLE","href":"/voor-webshops/aanmelden?platform=lightspeed_c"},{"platform":"prestashop","name":"PrestaShop","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=prestashop"},{"platform":"opencart","name":"OpenCart","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=opencart"},{"platform":"shopware6","name":"Shopware","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=shopware6"},{"platform":"magento","name":"Adobe Commerce / Magento","status":"MANUAL_SETUP","href":"/voor-webshops/aanmelden?platform=magento"}]},"benefits":{"eyebrow":"GROEI MET SHOPBONUS","heading":"Maak je webshop\nonweerstaanbaar.","description":"Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.","image_asset_id":null,"items":[{"icon":"people","title":"Bereik nieuwe klanten","description":"Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."},{"icon":"tag","title":"Kortingen én cashback","description":"Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."},{"icon":"cog","title":"Jij bepaalt de commissie","description":"Stel je commerciële afspraken in en houd controle over je marges."}]},"offer_preview":{"eyebrow":"ZO ZIEN JOUW AANBIEDINGEN ERUIT","heading":"Jouw aanbiedingen.\nProfessioneel gepresenteerd.","description":"Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.","cta_label":"Bekijk een voorbeeld","cta_href":"/webshops","preview_asset_id":null,"illustrative":true},"onboarding":{"eyebrow":"IN 3 EENVOUDIGE STAPPEN","heading":"Binnen enkele stappen live.","steps":[{"number":"01","title":"Aanmelden","description":"Maak een account aan en registreer jouw webshop.","icon":"document"},{"number":"02","title":"Koppelen","description":"Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.","icon":"link"},{"number":"03","title":"Start met aanbiedingen","description":"Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.","icon":"megaphone"}]},"bottom_cta":{"eyebrow":"START MET SHOPBONUS","heading":"Klaar om nieuwe klanten te bereiken?","description":"Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.","cta_label":"Webshop aanmelden →","cta_href":"/voor-webshops/aanmelden"},"faq":{"heading":"Veelgestelde vragen","items":[{"question":"Wat kost aansluiten bij ShopBonus?","answer":"Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."},{"question":"Hoe werkt de commissie?","answer":"Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."},{"question":"Kan ik mijn eigen cashbackacties instellen?","answer":"Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."},{"question":"Welke webshopplatformen ondersteunen jullie?","answer":"Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."},{"question":"Kan ik kortingscodes toevoegen?","answer":"Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."},{"question":"Wanneer verschijnt mijn webshop op ShopBonus?","answer":"Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."},{"question":"Hoe worden bestellingen geregistreerd?","answer":"Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."},{"question":"Kan ik mijn aanbiedingen aanpassen?","answer":"Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."}]},"footer":{"blurb":"ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."},"section_order":["hero","platforms","benefits","offer_preview","onboarding","bottom_cta","faq"]}}]}
         401:
           description: 'Authentication is required.'
           content:
@@ -24088,20 +24117,43 @@ paths:
         - Admin
       operationId: postApiV1AdminContentHomepagePublish
       summary: api.v1.admin.content.homepage.publish
-      description: 'Documented for access-registry coverage. Replace placeholder examples with captured responses.'
+      description: 'Publishes only the reviewed draft revision under a row lock. Missing revision returns 422; a changed draft returns 409 draft_changed and leaves the live page and history unchanged.'
       x-access: admin
       x-codeSamples:
         -
           lang: curl
-          source: "curl -i -X POST 'http://localhost:8000/api/v1/admin/content/homepage/publish' -H 'Accept: application/json'"
+          source: "curl -i -X POST 'http://localhost:8000/api/v1/admin/content/homepage/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' --data '{\"locale\":\"nl\",\"revision\":1}'"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision]
+              properties:
+                locale:
+                  type: string
+                  enum: [nl, en, de]
+                  default: nl
+                revision:
+                  type: integer
+                  minimum: 1
       responses:
         200:
-          description: 'Successful response (placeholder; capture a live example when available).'
+          description: Published the reviewed draft (real isolated HTTP capture).
           content:
             application/json:
-              example:
-                data:
-                  ok: true
+              example: {"data":{"id":"01m6ftmah2e80s258hz9s2zm5n","locale":"nl","number":2,"restored_from":null,"published_by":"Homepage Admin","published_at":"2026-11-03T04:28:11+00:00"}}
+        409:
+          description: The stored draft changed after review (real isolated HTTP capture).
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a19faa-5343-721f-85a6-282e474e7b79"}}
+        422:
+          description: A reviewed revision is required (real isolated HTTP capture).
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19faa-13d1-7163-bab6-0e4718b66214","fields":{"revision":["The revision field is required."]}}}
         401:
           description: 'Authentication is required.'
           content:
@@ -27098,6 +27150,50 @@ paths:
       security:
         -
           sessionCookie: {}
+  '/api/v1/workspaces/{workspace}/offers/{offer}/code-batches':
+    get:
+      tags: [Workspaces]
+      operationId: getApiV1WorkspacesWorkspaceOffersOfferCodeBatches
+      summary: List all offer import batches independently of code inventory pages
+      description: 'Offer-scoped paginated batch metadata; no codes. Fetch all pages to populate filters.'
+      x-access: verified
+      x-permission: vouchers.view
+      security:
+        - sessionCookie: {}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i 'http://localhost:8000/api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-batches?per_page=1' -H 'Accept: application/json' -H 'Authorization: Bearer <TOKEN>'"
+      parameters:
+        - { name: workspace, in: path, required: true, schema: { type: string } }
+        - { name: offer, in: path, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 200 } }
+      responses:
+        200:
+          description: 'Captured from real local HTTP server; OFFERS_CODE_REVIEW_HTTP_CAPTURE.json.'
+          content:
+            application/json:
+              example: {"data":[{"id":"01m6ftfmmqtwmr8mm6z71fndnx","status":"preview","created_at":"2026-11-03T04:25:38+00:00"}],"meta":{"current_page":1,"last_page":2}}
+        422:
+          description: 'Captured from real local HTTP server; OFFERS_CODE_REVIEW_HTTP_CAPTURE.json.'
+          content:
+            application/json:
+              example: {"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19fa8-046f-7021-a428-9595daf07fdc","fields":{"per_page":["The per page field must not be greater than 200."]}}}
+        404:
+          description: 'Captured from real local HTTP server; OFFERS_CODE_REVIEW_HTTP_CAPTURE.json.'
+          content:
+            application/json:
+              example: {"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a19fa8-2b6c-7232-871b-914507afd96c"}}
+        401:
+          description: 'Captured from real local HTTP server; OFFERS_CODE_REVIEW_HTTP_CAPTURE.json.'
+          content:
+            application/json:
+              example: {"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a19fa8-1269-738a-8a0a-aae83931f883"}}
+        403:
+          description: 'Captured from real local HTTP server; OFFERS_CODE_REVIEW_HTTP_CAPTURE.json.'
+          content:
+            application/json:
+              example: {"error":{"status":403,"code":"workspace_permission_denied","message":"You do not have permission to do this in this workspace.","request_id":"01a19fa8-1ff9-70f7-9d7c-8c244f89f343","details":{"required_permission":"vouchers.view"}}}
   '/api/v1/workspaces/{workspace}/offers/{offer}/codes/import-template':
     get:
       tags:
@@ -27439,7 +27535,7 @@ paths:
         - Workspaces
       operationId: postApiV1WorkspacesWorkspaceCodesCodePlatformValidation
       summary: api.v1.workspaces.codes.platform-validation
-      description: 'Documented for access-registry coverage. Replace placeholder examples with captured responses.'
+      description: 'Optional voucher_id selects frozen contractual terms; missing or foreign references return concealed 404. Historical results are event-scoped and do not overwrite inventory platform_validation. Manual confirmation returns manually_confirmed, never provider proof. Automatic adapter remains WooCommerce-only; real checkout acceptance evidence remains outstanding.'
       x-access: verified
       x-codeSamples:
         -
@@ -27447,12 +27543,10 @@ paths:
           source: "curl -i -X POST 'http://localhost:8000/api/v1/workspaces/{workspace}/codes/{code}/platform-validation' -H 'Accept: application/json'"
       responses:
         200:
-          description: 'Successful response (placeholder; capture a live example when available).'
+          description: 'Real local HTTP historical check without a connection; OFFERS_CODE_REVIEW_HTTP_CAPTURE.json.'
           content:
             application/json:
-              example:
-                data:
-                  ok: true
+              example: {"data":{"id":"01m6ftf9myb555ys88vxtd00wq","code":"****0001","status":"available","reusable":false,"uses_count":0,"platform_validation":"merchant_verification_required","batch_id":"01m6ftf8b2bn58yv82exnte07e","assigned":null,"reserved_at":null,"issued_at":null,"redeemed_at":null,"invalidated_at":null,"invalid_reason":null,"created_at":"2026-11-03T04:25:26+00:00"},"verification":{"platform_validation":"merchant_verification_required","detail":{"reason":"no_usable_connection","message":"Connect and verify a webshop integration before automatic coupon checks.","scope":"historical_voucher","voucher_id":"01m6ftfd3h3t34d53jvv4jcnvn"}}}
         401:
           description: 'Authentication is required.'
           content:
@@ -27504,6 +27598,13 @@ paths:
         required: true
         content:
           application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { type: string, enum: [provider_check, manual_confirm] }
+                note: { type: string, minLength: 3, maxLength: 255 }
+                voucher_id: { type: string, minLength: 26, maxLength: 26, description: 'Specific historical voucher attached to this code in this workspace.' }
             example:
               mode: manual_confirm
               note: 'Checked in WooCommerce admin.'
@@ -28166,6 +28267,69 @@ paths:
                   request_id: 01a191fa-7cd0-71a2-98eb-d77552c93c46
         429:
           $ref: '#/components/responses/TooManyRequests'
+  '/api/v1/workspaces/{workspace}/access-history':
+    get:
+      tags:
+        - Workspaces
+      summary: 'Paginated workspace team and ownership audit history'
+      operationId: workspaceAccessHistory
+      x-access: verified
+      x-permission: team.manage
+      parameters:
+        -
+          name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        -
+          name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000
+      x-codeSamples:
+        -
+          lang: Shell
+          source: "curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <TOKEN>' http://localhost:8000/api/v1/workspaces/<workspace>/access-history"
+      responses:
+        200:
+          description: 'Workspace-scoped history; no-store'
+          content:
+            application/json:
+              example:
+                data:
+                  -
+                    action: team.member_updated
+                    occurred_at: '2026-11-02T19:28:30+00:00'
+                    outcome: success
+                meta:
+                  current_page: 1
+                  last_page: 1
+        401:
+          description: 'Authentication required'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 401
+                  code: unauthenticated
+                  message: 'Authentication is required.'
+                  request_id: 01a19dbc-1aff-71cb-add5-e9aacd52b068
+        422:
+          description: 'Invalid page'
+          content:
+            application/json:
+              example:
+                error:
+                  status: 422
+                  code: validation_failed
+                  message: 'The given data was invalid.'
+                  request_id: 01a19dbc-1fe3-73dc-bea4-2fdac527cacd
+                  fields:
+                    page:
+                      - 'The page field must be at least 1.'
 components:
   parameters:
     Workspace:

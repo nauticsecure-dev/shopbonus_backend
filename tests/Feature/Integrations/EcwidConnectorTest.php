@@ -4,7 +4,7 @@ namespace Tests\Feature\Integrations;
 
 use App\Enums\EcommercePlatform;
 use App\Integrations\ConnectionManager;
-use App\Integrations\Connectors\EcwidConnector;
+use App\Integrations\ConnectorRegistry;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Jobs\ProcessWebhookEvent;
@@ -25,6 +25,8 @@ class EcwidConnectorTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected const PLATFORM = EcommercePlatform::Ecwid;
+
     private WebshopConnection $c;
 
     protected function setUp(): void
@@ -32,7 +34,7 @@ class EcwidConnectorTest extends TestCase
         parent::setUp();
         $u = User::factory()->create();
         $s = Webshop::factory()->withMember($u)->create(['created_by' => $u->id, 'verified_domain' => 'fietsen-utrecht.nl', 'ownership_verified_at' => now(), 'ownership_method' => 'dns_txt']);
-        [$this->c] = app(ConnectionManager::class)->create($s->memberships()->sole(), EcommercePlatform::Ecwid, ['store_id' => '1003', 'access_token' => 'secret_SYNTHETIC_token', 'client_secret' => 'SYNTHETIC_ecwid_app_secret']);
+        [$this->c] = app(ConnectionManager::class)->create($s->memberships()->sole(), static::PLATFORM, ['store_id' => '1003', 'access_token' => 'secret_SYNTHETIC_token', 'client_secret' => 'SYNTHETIC_ecwid_app_secret']);
         $this->app->bind(HostResolver::class, fn () => new class implements HostResolver
         {
             public function addresses(string $h): array
@@ -63,7 +65,7 @@ class EcwidConnectorTest extends TestCase
     public function test_documented_signature_is_notification_only_and_bad_secret_is_rejected(): void
     {
         $p = $this->notification();
-        $adapter = app(EcwidConnector::class);
+        $adapter = app(ConnectorRegistry::class)->for(static::PLATFORM);
         $this->assertSame(VerifiedEvent::KIND_ORDER_LOOKUP, $adapter->verifyIncomingEvent($this->c, $this->request($p))->kind);
         $this->expectException(InvalidWebhook::class);
         $adapter->verifyIncomingEvent($this->c, $this->request($p, 'wrong'));
@@ -74,7 +76,7 @@ class EcwidConnectorTest extends TestCase
         $p = $this->notification();
         $p['storeId'] = 2004;
         $this->expectException(InvalidWebhook::class);
-        app(EcwidConnector::class)->verifyIncomingEvent($this->c, $this->request($p));
+        app(ConnectorRegistry::class)->for(static::PLATFORM)->verifyIncomingEvent($this->c, $this->request($p));
     }
 
     public function test_webhook_queues_native_lookup_without_trusting_claimed_payment_and_is_idempotent(): void
@@ -82,7 +84,7 @@ class EcwidConnectorTest extends TestCase
         Bus::fake([ProcessWebhookEvent::class, RecoverProviderOrder::class]);
         $p = $this->notification();
         $body = json_encode($p);
-        $url = '/api/v1/webhooks/ecwid/'.$this->c->webhook_token;
+        $url = '/api/v1/webhooks/'.static::PLATFORM->value.'/'.$this->c->webhook_token;
         $headers = ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_X_ECWID_WEBHOOK_SIGNATURE' => base64_encode(hash_hmac('sha256', $p['eventCreated'].'.'.$p['eventId'], 'SYNTHETIC_ecwid_app_secret', true))];
         $this->call('POST', $url, [], [], [], $headers, $body)->assertSuccessful();
         $event = $this->c->events()->sole();
@@ -99,7 +101,7 @@ class EcwidConnectorTest extends TestCase
         Http::fake(fn ($r) => Http::response(str_contains($r->url(), '/profile')
             ? ['generalInfo' => ['storeId' => 1003, 'storeUrl' => 'https://fietsen-utrecht.nl'], 'account' => ['suspended' => false, 'availableFeatures' => ['API']], 'formatsAndUnits' => ['currency' => 'EUR']]
             : ['id' => 'K8XTQ', 'internalId' => 4711, 'paymentStatus' => 'PAID', 'total' => '10.00', 'vendorOrderNumber' => 'K8XTQ', 'email' => 'buyer@example.com', 'billingPerson' => ['firstName' => 'Ada'], 'createDate' => '2026-10-28 10:00:00 +0000']));
-        $a = app(EcwidConnector::class);
+        $a = app(ConnectorRegistry::class)->for(static::PLATFORM);
         $o = $a->normalizeOrder($a->fetchOrder($this->c, '4711'));
         $this->assertSame('4711', $o->externalId);
         $this->assertSame(1000, $o->amountMinor);
@@ -115,7 +117,8 @@ class EcwidConnectorTest extends TestCase
         Http::fake(fn ($r) => Http::response(str_contains($r->url(), '/profile')
             ? ['generalInfo' => ['storeId' => 1003, 'storeUrl' => 'https://fietsen-utrecht.nl'], 'account' => ['suspended' => false, 'availableFeatures' => ['API']]]
             : ['id' => 'K8XTQ', 'internalId' => 4711, 'paymentStatus' => 'PAID', 'total' => '10.00', 'vendorOrderNumber' => 'K8XTQ', 'createDate' => '2026-10-28 10:00:00 +0000']));
-        $o = app(EcwidConnector::class)->normalizeOrder(app(EcwidConnector::class)->fetchOrder($this->c, '4711'));
+        $adapter = app(ConnectorRegistry::class)->for(static::PLATFORM);
+        $o = $adapter->normalizeOrder($adapter->fetchOrder($this->c, '4711'));
         $this->assertNull($o->amountMinor);
         $this->assertNull($o->currency);
         $this->assertNull($o->paidAt);

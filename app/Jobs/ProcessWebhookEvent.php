@@ -69,7 +69,11 @@ class ProcessWebhookEvent implements ShouldQueue
 
             $kind = $event->result['kind'] ?? VerifiedEvent::KIND_OTHER;
 
-            if ($connection->status === ConnectionStatus::Disconnected || $event->webshop_id !== $connection->webshop_id
+            if ($connection->paused_at !== null) {
+                return; // Retain verified work; resume dispatches it again.
+            }
+
+            if (! $connection->acceptsData() || $event->webshop_id !== $connection->webshop_id
                 || $event->credential_generation === null || $event->credential_generation !== $connection->credential_generation) {
                 $this->finish($event, WebhookEventStatus::Ignored, ['kind' => $kind], 'credential_generation_stale');
                 $audit->record('integration.event_stale', category: AuditCategory::Integration, resource: $event,

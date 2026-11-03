@@ -1,0 +1,117 @@
+{
+    "environment": "Isolated SQLite, local PHP HTTP server, synthetic states, no provider requests",
+    "captures": [
+        {
+            "request": "GET /api/v1/consumer/disputes/01m6esb76bkmqcvcmdmtkkptvk",
+            "authorization": "Bearer <redacted>",
+            "fixture_state": "requested",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6esb76bkmqcvcmdmtkkptvk",
+                    "status": "resolved",
+                    "reason": "missing_after_payment",
+                    "description": "Synthetic refund lifecycle contract fixture",
+                    "screenshots": [],
+                    "webshop": "Dashboard fixture",
+                    "voucher_id": null,
+                    "checkout_id": null,
+                    "resolution": {
+                        "note": "Synthetic lifecycle fixture",
+                        "compensation": "refund",
+                        "amount_minor": 1000,
+                        "at": "2026-11-02T18:46:30+00:00",
+                        "compensation_status": "requested",
+                        "compensated_at": null
+                    },
+                    "created_at": "2026-11-02T18:46:30+00:00",
+                    "timeline": []
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/consumer/disputes/01m6esb76bkmqcvcmdmtkkptvk",
+            "authorization": "Bearer <redacted>",
+            "fixture_state": "pending",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6esb76bkmqcvcmdmtkkptvk",
+                    "status": "resolved",
+                    "reason": "missing_after_payment",
+                    "description": "Synthetic refund lifecycle contract fixture",
+                    "screenshots": [],
+                    "webshop": "Dashboard fixture",
+                    "voucher_id": null,
+                    "checkout_id": null,
+                    "resolution": {
+                        "note": "Synthetic lifecycle fixture",
+                        "compensation": "refund",
+                        "amount_minor": 1000,
+                        "at": "2026-11-02T18:46:30+00:00",
+                        "compensation_status": "pending",
+                        "compensated_at": null
+                    },
+                    "created_at": "2026-11-02T18:46:30+00:00",
+                    "timeline": []
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/consumer/disputes/01m6esb76bkmqcvcmdmtkkptvk",
+            "authorization": "Bearer <redacted>",
+            "fixture_state": "failed",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6esb76bkmqcvcmdmtkkptvk",
+                    "status": "resolved",
+                    "reason": "missing_after_payment",
+                    "description": "Synthetic refund lifecycle contract fixture",
+                    "screenshots": [],
+                    "webshop": "Dashboard fixture",
+                    "voucher_id": null,
+                    "checkout_id": null,
+                    "resolution": {
+                        "note": "Synthetic lifecycle fixture",
+                        "compensation": "refund",
+                        "amount_minor": 1000,
+                        "at": "2026-11-02T18:46:30+00:00",
+                        "compensation_status": "failed",
+                        "compensated_at": null
+                    },
+                    "created_at": "2026-11-02T18:46:30+00:00",
+                    "timeline": []
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/consumer/disputes/01m6esb76bkmqcvcmdmtkkptvk",
+            "authorization": "Bearer <redacted>",
+            "fixture_state": "completed",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6esb76bkmqcvcmdmtkkptvk",
+                    "status": "resolved",
+                    "reason": "missing_after_payment",
+                    "description": "Synthetic refund lifecycle contract fixture",
+                    "screenshots": [],
+                    "webshop": "Dashboard fixture",
+                    "voucher_id": null,
+                    "checkout_id": null,
+                    "resolution": {
+                        "note": "Synthetic lifecycle fixture",
+                        "compensation": "refund",
+                        "amount_minor": 1000,
+                        "at": "2026-11-02T18:46:30+00:00",
+                        "compensation_status": "completed",
+                        "compensated_at": "2026-11-02T18:46:34+00:00"
+                    },
+                    "created_at": "2026-11-02T18:46:30+00:00",
+                    "timeline": []
+                }
+            }
+        }
+    ]
+}

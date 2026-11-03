@@ -77,6 +77,16 @@ class ConnectionController extends Controller
         return ConnectionResource::make($this->connections->disconnect($this->find($current, $connection)))->response()->setStatusCode(200);
     }
 
+    public function pause(CurrentWorkspace $current, string $connection): JsonResponse
+    {
+        return ConnectionResource::make($this->connections->setPaused($this->find($current, $connection), true))->response();
+    }
+
+    public function resume(CurrentWorkspace $current, string $connection): JsonResponse
+    {
+        return ConnectionResource::make($this->connections->setPaused($this->find($current, $connection), false))->response();
+    }
+
     /** Sanitised event history: no payloads, no PII. */
     public function events(CurrentWorkspace $current, string $connection): JsonResponse
     {

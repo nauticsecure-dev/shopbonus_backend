@@ -65,7 +65,9 @@ class GenericSignedWebhookConnector extends WebhookConnector
             'webhook_url' => $webhookUrl,
             'steps' => [
                 $this->method() === ConnectionMethod::PrivateModule
-                    ? 'A compatible merchant-side module is required. This backend does not include an installable module.'
+                    ? ($this->platform() === EcommercePlatform::OpenCart
+                        ? 'OpenCart 4.1 default-store candidate package: '.url('/downloads/integrations/shopbonus.ocmod.zip').'. Install through Extensions > Installer, then Modules; configure and enable the CLI worker. Payment/refund evidence remains unsupported; see the bundled INSTALL.md.'
+                        : 'A compatible merchant-side module is required; see this platform’s installation instructions.')
                     : 'Configure your shop software to POST order events in the Shopbonus webhook format v1.',
                 'Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).',
                 'Place a real test order. The connection remains Limited until all seven provider verification checks pass.',

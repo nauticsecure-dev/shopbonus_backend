@@ -8,7 +8,10 @@ use App\Models\CmsAiSuggestion;
 use App\Models\CmsPublicationSchedule;
 use App\Models\CmsRevision;
 use App\Models\User;
+use App\Services\Cms\AboutUsSchema;
 use App\Services\Cms\CmsSuggestions;
+use App\Services\Cms\HomepageSchema;
+use App\Services\Cms\MerchantLandingSchema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
@@ -177,6 +180,50 @@ class CmsScheduleAndSuggestionTest extends TestCase
     }
 
     // ------------------------------------------------------------ AI suggestions
+
+    public function test_structured_landing_translations_keep_sections_and_apply_only_reviewed_german_drafts(): void
+    {
+        foreach (['homepage', 'over-ons', 'voor-webshops'] as $key) {
+            $this->asAdmin();
+            $content = ['title' => 'Welkom bij ShopBonus', 'hero' => ['heading' => 'Welkom'],
+                'nav' => ['links' => [['label' => 'Voordelen', 'href' => '/voordelen']]],
+                'body' => ['type' => 'doc', 'content' => []]];
+            $response = $this->postJson('/api/v1/admin/cms/pages', ['key' => $key, 'type' => 'landing',
+                'locales' => ['nl' => ['slug' => $key, 'content' => $content]]]);
+            $this->assertSame(201, $response->status(), $response->getContent());
+            $id = $response->json('data.id');
+            $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/publish", ['revision' => 1])->assertOk();
+            $translated = ['Welkom bij ShopBonus' => 'Willkommen bei ShopBonus', 'Voordelen' => 'Vorteile', 'Welkom' => 'Willkommen'];
+            $this->fakeProvider(array_map(fn ($segment) => $translated[$segment[1]], CmsSuggestions::segments($content, 'landing', $key)));
+            $suggestion = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate',
+                'target_locale' => 'de', 'idempotency_key' => 'structured-'.$key])->assertCreated()
+                ->assertJsonPath('data.proposed.hero.heading', 'Willkommen')
+                ->assertJsonPath('data.proposed.nav.links.0.href', '/voordelen')->json('data.id');
+            Http::assertSent(fn ($r) => str_contains($r['input'], 'hero.heading') && ! str_contains($r['input'], '/voordelen'));
+            $this->postJson("/api/v1/admin/cms/suggestions/{$suggestion}/apply", ['slug' => $key.'-de'])->assertOk();
+            $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertOk()
+                ->assertJsonPath('data.locales_detail.de.draft.hero.heading', 'Willkommen')
+                ->assertJsonPath('data.locales_detail.de.published', null)
+                ->assertJsonPath('data.locales_detail.nl.published.hero.heading', 'Welkom');
+        }
+    }
+
+    public function test_full_landing_defaults_round_trip_through_queue_without_losing_copy_or_settings(): void
+    {
+        foreach (['homepage' => HomepageSchema::class, 'over-ons' => AboutUsSchema::class,
+            'voor-webshops' => MerchantLandingSchema::class] as $key => $schema) {
+            $this->asAdmin();
+            $content = app($schema)->defaults('nl');
+            $response = $this->postJson('/api/v1/admin/cms/pages', ['key' => $key, 'type' => 'landing',
+                'locales' => ['nl' => ['slug' => $key, 'content' => $content]]]);
+            $this->assertSame(201, $response->status(), $response->getContent());
+            $id = $response->json('data.id');
+            $draft = $this->getJson("/api/v1/admin/cms/pages/{$id}")->json('data.locales_detail.nl.draft');
+            $this->fakeProvider(array_column(CmsSuggestions::segments($draft, 'landing', $key), 1));
+            $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'improve', 'idempotency_key' => 'full-'.$key])
+                ->assertCreated()->assertJsonPath('data.status', 'proposed')->assertJsonPath('data.proposed', $draft);
+        }
+    }
 
     public function test_improve_suggestion_keeps_structure_needs_human_approval_and_never_publishes(): void
     {

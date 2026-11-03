@@ -122,6 +122,7 @@ class OffersCodesE2ETest extends TestCase
             $detail = $this->getJson($this->url("/offers/{$id}"))->assertOk();
             $detail->assertJsonPath('data.terms.name', "Offer {$label}");
             $sheet = $this->getJson($this->url("/offers/{$id}/codes"))->assertOk();
+            $this->getJson($this->url("/offers/{$id}/code-batches"))->assertOk();
             $this->assertSame(2, $sheet->json('meta.counters.total'));
             $this->assertSame(2, $sheet->json('meta.counters.available'));
             $this->assertCount(2, $sheet->json('data'));
@@ -316,6 +317,13 @@ class OffersCodesE2ETest extends TestCase
         $offer = Offer::where('public_id', $id)->sole();
         $this->seedCodes($offer, ['WOON-VERIFY-01']);
         $code = VoucherCode::sole();
+        $batchId = $code->batch->public_id;
+        $this->seedCodes($offer, ['SECOND-BATCH-01']);
+        $this->getJson($this->url("/offers/{$id}/code-batches?per_page=1"))->assertOk()
+            ->assertJsonCount(1, 'data')->assertJsonPath('meta.last_page', 2);
+        $this->getJson($this->url("/offers/{$id}/code-batches?per_page=1&page=2"))->assertOk()
+            ->assertJsonPath('data.0.id', $batchId);
+        $this->getJson($this->url("/offers/{$id}/code-batches?per_page=201"))->assertUnprocessable();
 
         $this->postJson($this->url('/connections'), [
             'platform' => 'woocommerce',
@@ -346,6 +354,20 @@ class OffersCodesE2ETest extends TestCase
             ->assertJsonPath('verification.detail.reason', 'provider_match');
         $this->assertSame('verified', $verified->json('data.platform_validation'));
 
+        // Historical checks use the issued snapshot, not a later current version.
+        $this->postJson($this->url("/offers/{$id}/activate"))->assertOk();
+        $voucher = app(VoucherInventory::class)->reserve($offer->fresh(), VoucherOrigin::Answer24Claim, 'historical-check');
+        $this->patchJson($this->url("/offers/{$id}"), ['discount_value' => 2000])->assertOk();
+        $this->postJson($this->url("/codes/{$code->public_id}/platform-validation"), ['mode' => 'provider_check'])
+            ->assertOk()->assertJsonPath('verification.platform_validation', 'mismatch');
+        $this->postJson($this->url("/codes/{$code->public_id}/platform-validation"), [
+            'mode' => 'provider_check', 'voucher_id' => $voucher->public_id,
+        ])->assertOk()->assertJsonPath('verification.platform_validation', 'verified')
+            ->assertJsonPath('verification.detail.scope', 'historical_voucher')
+            ->assertJsonPath('data.platform_validation', 'mismatch');
+        $this->assertDatabaseHas('voucher_events', ['voucher_id' => $voucher->id, 'type' => 'platform_validation_provider_check', 'to_status' => 'verified']);
+        $this->assertSame(1000, $voucher->fresh()->terms_snapshot['discount_value']);
+
         // Unsupported platform → never advertise Verified.
         $otherOwner = User::factory()->create();
         $other = $this->activeWebshop($otherOwner, ['name' => 'Wix Shop', 'verified_domain' => 'wixshop.nl']);
@@ -369,11 +391,16 @@ class OffersCodesE2ETest extends TestCase
             ->assertJsonPath('data.platform_validation', 'unsupported_integration')
             ->assertJsonPath('verification.detail.reason', 'coupon_api_unsupported');
 
+        $this->getJson($this->url("/offers/{$id}/code-batches", $other))->assertNotFound();
+        $this->postJson($this->url("/codes/{$wixCode->public_id}/platform-validation", $other), [
+            'mode' => 'provider_check', 'voucher_id' => $voucher->public_id,
+        ])->assertNotFound();
+
         // Manual confirmation path for unsupported integrations.
         $this->postJson($this->url("/codes/{$wixCode->public_id}/platform-validation", $other), [
             'mode' => 'manual_confirm',
             'note' => 'Checked in Wix admin — code applies at checkout.',
-        ])->assertOk()->assertJsonPath('data.platform_validation', 'verified');
+        ])->assertOk()->assertJsonPath('data.platform_validation', 'manually_confirmed');
     }
 
     /** E2E 8 — Eligible €102 order rewards once; funding reserved; replay creates no second reward/charge. */
@@ -442,6 +469,22 @@ class OffersCodesE2ETest extends TestCase
         $this->assertStringContainsString('B1-0200', $csv);
         $this->assertStringNotContainsString('B2-0001', $csv);
         $this->assertSame(1, AuditEvent::where('action', 'codes.exported')->count());
+
+        $firstCode = VoucherCode::where('offer_id', $offer->id)->oldest('id')->firstOrFail();
+        $firstCode->forceFill(['created_at' => '2026-10-01 00:00:00'])->save();
+        $this->getJson($this->url("/offers/{$id}/codes").'?'.http_build_query([
+            'added_from' => '2026-10-01T05:00:00+05:00', 'added_to' => '2026-10-01T05:00:00+05:00',
+        ]))->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $firstCode->public_id);
+
+        // Sorting that differs from ID order must not skip rows at the 500-row export boundary.
+        $this->seedCodes($offer, ['B3-0501']);
+        foreach (VoucherCode::where('offer_id', $offer->id)->orderBy('id')->get() as $i => $row) {
+            $row->forceFill(['created_at' => now()->subSeconds($i % 2)])->save();
+        }
+        $allCsv = $this->get($this->url("/offers/{$id}/codes/export?sort=-created_at"))->assertOk()->streamedContent();
+        $lines = array_filter(explode("\n", trim($allCsv)));
+        $this->assertCount(502, $lines);
+        $this->assertCount(502, array_unique($lines));
     }
 
     /** E2E 10 — Tenant isolation 403/404, failed upload, sync error, no duplicate codes or wallet side-effects. */
@@ -492,5 +535,8 @@ class OffersCodesE2ETest extends TestCase
         $this->getJson($this->url("/offers/{$id}/codes"))->assertOk();
         $this->postJson($this->url("/codes/{$code->public_id}/reveal"))->assertForbidden();
         $this->get($this->url("/offers/{$id}/codes/export"), ['Accept' => 'application/json'])->assertForbidden();
+        $this->postJson($this->url("/codes/{$code->public_id}/platform-validation"), ['mode' => 'provider_check'])->assertForbidden();
+        $this->woon->memberships()->where('user_id', $employee->id)->update(['permissions' => []]);
+        $this->getJson($this->url("/offers/{$id}/code-batches"))->assertForbidden();
     }
 }

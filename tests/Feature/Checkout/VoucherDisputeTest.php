@@ -15,6 +15,8 @@ use App\Models\Voucher;
 use App\Models\VoucherCheckout;
 use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherCode;
+use App\Models\VoucherDispute;
+use App\Models\VoucherDisputeEvent;
 use App\Models\VoucherExport;
 use App\Models\WalletLedgerEntry;
 use App\Models\Webshop;
@@ -23,6 +25,7 @@ use App\Services\Offers\OfferService;
 use App\Services\Vouchers\VoucherInventory;
 use App\Services\Wallet\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -331,6 +334,36 @@ class VoucherDisputeTest extends TestCase
         $this->postJson("/api/v1/admin/disputes/{$second}/resolve", ['outcome' => 'resolved', 'compensation' => 'refund', 'note' => 'Refund the card payment'])->assertOk()->assertJsonPath('data.resolution.amount_minor', 1000);
         Http::assertSent(fn (HttpRequest $r) => str_ends_with($r->url(), '/payments/tr_refundme1/refunds') && $r['amount'] === ['currency' => 'EUR', 'value' => '10.00'] && $r->hasHeader('Idempotency-Key'));
         $this->assertSame(1000, VoucherCheckoutPayment::where('provider_ref', 'tr_refundme1')->value('refunded_minor'));
+
+        $dispute = VoucherDispute::where('public_id', $second)->sole();
+        $this->assertSame('pending', $dispute->compensation_status);
+        $this->assertNull($dispute->compensated_at);
+        $this->assertFalse(VoucherDisputeEvent::where('dispute_id', $dispute->id)->where('type', 'compensated')->exists());
+        // Pending refunds still reserve compensation across reports of the same voucher.
+        Sanctum::actingAs($this->anna);
+        $other = $this->postJson('/api/v1/consumer/disputes', ['voucher_id' => $bought->public_id, 'reason' => 'code_invalid', 'description' => 'Another report about this purchase.'])->assertCreated()->json('data.id');
+        $this->asAdmin();
+        $this->postJson("/api/v1/admin/disputes/{$other}/resolve", ['outcome' => 'resolved', 'compensation' => 'wallet_credit', 'amount_minor' => 100, 'note' => 'Must not compensate pending refund twice'])
+            ->assertConflict()->assertJsonPath('error.code', 'voucher_already_compensated');
+
+        $this->mollieRefundStatus = 'failed';
+        $this->assertSame(1, app(CheckoutService::class)->syncRefunds());
+        $this->assertSame('failed', $dispute->fresh()->compensation_status);
+        $this->assertNull($dispute->fresh()->compensated_at);
+        $this->assertSame(0, $checkout->payment->fresh()->refunded_minor);
+        $this->assertSame(0, app(CheckoutService::class)->syncRefunds());
+        // Recover through the same freshly authenticated admin resolve action.
+        $this->postJson("/api/v1/admin/disputes/{$second}/resolve", ['outcome' => 'resolved', 'compensation' => 'refund', 'note' => 'Retry after confirmed provider failure'])
+            ->assertOk()->assertJsonPath('data.resolution.compensation_status', 'pending')->assertJsonPath('data.resolution.compensated_at', null);
+        $keys = collect(Http::recorded())->map(fn ($pair) => $pair[0])->filter(fn (HttpRequest $r) => $r->method() === 'POST')->map(fn (HttpRequest $r) => $r->header('Idempotency-Key')[0])->values();
+        $this->assertCount(2, $keys);
+        $this->assertNotSame($keys[0], $keys[1]);
+        $this->mollieRefundStatus = 'refunded';
+        $this->assertSame(1, app(CheckoutService::class)->syncRefunds());
+        $this->assertSame('completed', $dispute->fresh()->compensation_status);
+        $this->assertNotNull($dispute->fresh()->compensated_at);
+        $this->assertSame(0, app(CheckoutService::class)->syncRefunds());
+        $this->assertSame(1, VoucherDisputeEvent::where('dispute_id', $dispute->id)->where('type', 'compensated')->count());
     }
 
     public function test_a_voucher_is_compensated_once_across_reports(): void
@@ -395,5 +428,52 @@ class VoucherDisputeTest extends TestCase
         $keys = collect(Http::recorded())->map(fn ($pair) => $pair[0])->filter(fn (HttpRequest $r) => $r->method() === 'POST')->map(fn (HttpRequest $r) => $r->header('Idempotency-Key')[0])->values();
         $this->assertCount(2, $keys);
         $this->assertNotSame($keys[0], $keys[1]);
+    }
+
+    public function test_dispute_refund_timeout_preserves_intent_and_replays_the_same_amount_and_key(): void
+    {
+        $checkout = VoucherCheckout::create(['user_id' => $this->anna->id, 'offer_id' => $this->offer->id, 'webshop_id' => $this->shop->id, 'idempotency_key' => 'timeout', 'state' => 'completed',
+            'price_minor' => 2000, 'wallet_part_minor' => 0, 'payment_part_minor' => 2000, 'currency' => 'EUR', 'voucher_id' => $this->issued()->id, 'expires_at' => now()]);
+        VoucherCheckoutPayment::create(['checkout_id' => $checkout->id, 'provider' => 'mollie', 'provider_ref' => 'tr_timeout', 'amount_minor' => 2000, 'currency' => 'EUR', 'status' => 'paid', 'test_mode' => true]);
+        Sanctum::actingAs($this->anna);
+        $id = $this->postJson('/api/v1/consumer/disputes', ['checkout_id' => $checkout->public_id, 'reason' => 'code_invalid', 'description' => 'The code does not work at checkout.'])->assertCreated()->json('data.id');
+        $this->asAdmin();
+        $keys = [];
+        Http::fake(['api.mollie.com/v2/*' => function (HttpRequest $request) use (&$keys) {
+            if ($request->method() === 'GET') {
+                return Http::response(['id' => 're_timeout', 'status' => 'failed', 'amount' => ['currency' => 'EUR', 'value' => '10.00']]);
+            }
+            $keys[] = $request->header('Idempotency-Key')[0];
+            if (count($keys) === 1) {
+                throw new ConnectionException('Synthetic timeout after provider acceptance');
+            }
+
+            return Http::response(['id' => 're_timeout', 'status' => 'pending'], 201);
+        }]);
+        $payload = ['outcome' => 'resolved', 'compensation' => 'refund', 'amount_minor' => 1000, 'note' => 'Refund after invalid code'];
+        $this->postJson("/api/v1/admin/disputes/{$id}/resolve", $payload)->assertStatus(502);
+        $this->getJson("/api/v1/admin/disputes/{$id}")->assertOk()->assertJsonPath('data.resolution.compensation_status', 'requested')->assertJsonPath('data.resolution.compensated_at', null);
+        $this->postJson("/api/v1/admin/disputes/{$id}/resolve", [...$payload, 'amount_minor' => 500])->assertConflict()->assertJsonPath('error.code', 'refund_amount_changed');
+        // Provider accepts, then local persistence fails: request intent must survive.
+        $interrupt = true;
+        VoucherDisputeEvent::creating(function (VoucherDisputeEvent $event) use (&$interrupt) {
+            if ($interrupt && $event->type === 'resolved') {
+                $interrupt = false;
+                throw new \RuntimeException('Synthetic persistence interruption after provider acceptance');
+            }
+        });
+        $this->postJson("/api/v1/admin/disputes/{$id}/resolve", $payload)->assertStatus(500);
+        $this->getJson("/api/v1/admin/disputes/{$id}")->assertOk()->assertJsonPath('data.resolution.compensation_status', 'requested');
+        $this->postJson("/api/v1/admin/disputes/{$id}/resolve", $payload)->assertOk()->assertJsonPath('data.resolution.compensation_status', 'pending');
+        $this->assertCount(3, $keys);
+        $this->assertSame($keys[0], $keys[1]);
+        $this->assertSame($keys[1], $keys[2]);
+        $this->assertSame(1000, $checkout->payment->refunded_minor);
+        $this->mollieRefundStatus = 'failed';
+        app(CheckoutService::class)->syncRefunds();
+        unset($payload['amount_minor']);
+        $this->postJson("/api/v1/admin/disputes/{$id}/resolve", $payload)->assertOk()->assertJsonPath('data.resolution.amount_minor', 1000);
+        $this->assertSame(1000, $checkout->payment->fresh()->refunded_minor);
+        $this->assertNotSame($keys[2], $keys[3]);
     }
 }

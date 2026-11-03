@@ -1,0 +1,129 @@
+{
+    "captured_at": "2026-11-03T04:26:37+00:00",
+    "environment": "Real loopback HTTP / isolated SQLite synthetic fixtures; backend HassanDev parent b92f46a + uncommitted App Store findings follow-up; no live providers",
+    "captures": [
+        {
+            "request": "POST /api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/pause",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6fth5yzyg8sv06gzk51jahb",
+                    "platform": "prestashop",
+                    "method": "private_module",
+                    "status": "setup_required",
+                    "paused_at": "2026-11-03T04:26:33+00:00",
+                    "external_shop_ref": null,
+                    "limitations": [],
+                    "last_event_at": null,
+                    "last_verified_order_at": null,
+                    "connected_at": null,
+                    "disconnected_at": null,
+                    "last_error": null,
+                    "created_at": "2026-11-03T04:26:28+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/pause",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6fth5yzyg8sv06gzk51jahb",
+                    "platform": "prestashop",
+                    "method": "private_module",
+                    "status": "setup_required",
+                    "paused_at": "2026-11-03T04:26:33+00:00",
+                    "external_shop_ref": null,
+                    "limitations": [],
+                    "last_event_at": null,
+                    "last_verified_order_at": null,
+                    "connected_at": null,
+                    "disconnected_at": null,
+                    "last_error": null,
+                    "created_at": "2026-11-03T04:26:28+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/resume",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6fth5yzyg8sv06gzk51jahb",
+                    "platform": "prestashop",
+                    "method": "private_module",
+                    "status": "setup_required",
+                    "paused_at": null,
+                    "external_shop_ref": null,
+                    "limitations": [],
+                    "last_event_at": null,
+                    "last_verified_order_at": null,
+                    "connected_at": null,
+                    "disconnected_at": null,
+                    "last_error": null,
+                    "created_at": "2026-11-03T04:26:28+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/resume",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6fth5yzyg8sv06gzk51jahb",
+                    "platform": "prestashop",
+                    "method": "private_module",
+                    "status": "setup_required",
+                    "paused_at": null,
+                    "external_shop_ref": null,
+                    "limitations": [],
+                    "last_event_at": null,
+                    "last_verified_order_at": null,
+                    "connected_at": null,
+                    "disconnected_at": null,
+                    "last_error": null,
+                    "created_at": "2026-11-03T04:26:28+00:00"
+                }
+            }
+        },
+        {
+            "request": "DELETE /api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6fth5yzyg8sv06gzk51jahb",
+                    "platform": "prestashop",
+                    "method": "private_module",
+                    "status": "disconnected",
+                    "paused_at": null,
+                    "external_shop_ref": null,
+                    "limitations": [],
+                    "last_event_at": null,
+                    "last_verified_order_at": null,
+                    "connected_at": null,
+                    "disconnected_at": "2026-11-03T04:26:36+00:00",
+                    "last_error": null,
+                    "created_at": "2026-11-03T04:26:28+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6fth5ta5ym169ectkt6hdyx/connections/01m6fth5yzyg8sv06gzk51jahb/resume",
+            "authorization": "Bearer <redacted>",
+            "status": 409,
+            "response": {
+                "error": {
+                    "status": 409,
+                    "code": "connection_disconnected",
+                    "message": "This connection is disconnected. Create a new one.",
+                    "request_id": "01a19fa8-ba3b-7165-85dc-0b4b2be1115f"
+                }
+            }
+        }
+    ]
+}

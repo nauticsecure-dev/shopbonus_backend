@@ -1,5 +1,7 @@
 # Live storefront review correction — 2026-10-31
 
+Follow-up, 2026-11-02: owner requested local dummy data. Added an opt-in Shopify native-cart reader and fixed delayed pairing/draft responses after editor disconnect. See [implementation, setup, executed local evidence and remaining acceptance](LOCAL_DUMMY_FOLLOWUP.md). Genuine merchant/provider acceptance remains PARTIAL; the generic contract below still applies to other integrations.
+
 Status: local implementation and focused tests complete; real merchant/provider acceptance remains PARTIAL. Backend HassanDev base 59916e9; frontend HassanDev base 3d0b0ad. Uncommitted alongside existing work; no migration, commit, push or deployment.
 
 The studio center loads the installation's first allowed storefront origin in an iframe. Themes that deny framing can be opened in a separate window using Preview. Neither path substitutes a simulated product/theme/cart canvas. The mobile toggle resizes the actual storefront frame. Popup size/device verification is manual.

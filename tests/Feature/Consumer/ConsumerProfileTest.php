@@ -92,6 +92,19 @@ class ConsumerProfileTest extends TestCase
         $this->getJson('/api/v1/consumer/dashboard')->assertOk()->assertJsonPath('data.wallet.eur_credit.available', 0); // authoritative ledger, empty
     }
 
+    public function test_german_preference_persists_without_changing_identity_or_wallet(): void
+    {
+        Sanctum::actingAs($this->anna);
+        $before = $this->getJson('/api/v1/consumer/dashboard')->assertOk()->json('data.wallet');
+        $this->patchJson('/api/v1/consumer/profile', ['locale' => 'de'])->assertOk()->assertJsonPath('data.locale', 'de');
+        $this->getJson('/api/v1/consumer/profile')->assertOk()->assertJsonPath('data.locale', 'de')
+            ->assertJsonPath('data.email', 'anna@example.nl');
+        $this->assertSame($before, $this->getJson('/api/v1/consumer/dashboard')->assertOk()->json('data.wallet'));
+        $this->assertSame('de', $this->anna->fresh()->preferredLocale());
+        $this->patchJson('/api/v1/consumer/profile', ['locale' => 'fr'])->assertUnprocessable();
+        $this->assertSame('de', $this->anna->fresh()->preferredLocale());
+    }
+
     public function test_card10_e2e2_personal_data_changes_persist_and_invalid_input_changes_nothing(): void
     {
         Sanctum::actingAs($this->anna);

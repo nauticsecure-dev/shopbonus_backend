@@ -10,6 +10,7 @@ use App\Models\Offer;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCheckout;
+use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherDispute;
 use App\Models\VoucherDisputeEvent;
 use App\Services\Audit\AuditLogger;
@@ -166,25 +167,37 @@ class DisputeService
             throw new ApiException('A rejected report gets no compensation.', 422, 'invalid_resolution');
         }
 
+        if ($compensation === 'refund') {
+            // Commit intent before contacting the provider. Timeout/persistence retries
+            // retain the exact amount and provider key, including failed-refund retries.
+            $this->requestRefund($dispute, $amountMinor, $actorUserId);
+        }
+
         return DB::transaction(function () use ($dispute, $outcome, $compensation, $amountMinor, $note, $actorUserId) {
             $d = VoucherDispute::whereKey($dispute->id)->lockForUpdate()->firstOrFail();
-            $this->assertOpen($d);
+            $retry = $d->compensation === 'refund' && $d->compensation_status === 'requested' && $compensation === 'refund';
+            if (! $retry) {
+                $this->assertOpen($d);
+            }
+            if ($d->compensation_status === 'requested' && $compensation !== 'refund') {
+                throw ApiException::conflict('Reconcile the requested refund before changing compensation.', 'refund_pending');
+            }
             if ($compensation !== 'none') {
                 $this->assertVoucherNotCompensated($d);
             }
 
-            [$amount, $ref] = match ($compensation) {
+            [$amount, $ref, $compensationStatus] = match ($compensation) {
                 'wallet_credit' => $this->walletCredit($d, $amountMinor, $note, $actorUserId),
                 'replacement' => $this->replacement($d, $actorUserId),
-                'refund' => $this->refund($d, $amountMinor),
-                default => [null, null],
+                'refund' => $this->refund($d),
+                default => [null, null, null],
             };
 
             $d->forceFill(['status' => $outcome, 'compensation' => $compensation, 'compensation_amount_minor' => $amount, 'compensation_ref' => $ref,
-                'compensated_at' => $compensation === 'none' ? null : now(), 'resolution_note' => $note, 'resolved_by' => $actorUserId, 'resolved_at' => now(), 'open_key' => null])->save();
+                'compensation_status' => $compensationStatus, 'compensated_at' => $compensationStatus === 'completed' ? now() : null, 'resolution_note' => $note, 'resolved_by' => $actorUserId, 'resolved_at' => now(), 'open_key' => null])->save();
             $this->event($d, 'admin', $actorUserId, 'resolved', $outcome.': '.$note);
-            if ($compensation !== 'none') {
-                $this->event($d, 'admin', $actorUserId, 'compensated', $compensation.($amount === null ? '' : ' '.$amount));
+            if ($compensationStatus !== null) {
+                $this->event($d, 'admin', $actorUserId, $compensationStatus === 'completed' ? 'compensated' : 'compensation_'.$compensationStatus, $compensation.($amount === null ? '' : ' '.$amount));
             }
             $this->audit->record('dispute.resolved', category: AuditCategory::Financial, resource: $d, webshopId: $d->webshop_id, actorUserId: $actorUserId,
                 metadata: ['outcome' => $outcome, 'compensation' => $compensation, 'amount' => $amount]);
@@ -218,6 +231,42 @@ class DisputeService
 
     // ------------------------------------------------------------------ compensation
 
+    private function requestRefund(VoucherDispute $dispute, ?int $amount, int $actorUserId): void
+    {
+        DB::transaction(function () use ($dispute, $amount, $actorUserId) {
+            $d = VoucherDispute::whereKey($dispute->id)->lockForUpdate()->firstOrFail();
+            if ($d->compensation_status === 'requested') {
+                if ($d->compensation_request_key === null) {
+                    throw ApiException::conflict('Reconcile the historical refund reference with the provider before retrying.', 'refund_reconciliation_required');
+                }
+                if ($amount !== null && $amount !== $d->compensation_amount_minor) {
+                    throw ApiException::conflict('Retry the original refund amount.', 'refund_amount_changed');
+                }
+
+                return;
+            }
+            if (! ($d->compensation === 'refund' && $d->compensation_status === 'failed')) {
+                $this->assertOpen($d);
+            }
+            $this->assertVoucherNotCompensated($d);
+            $checkout = $d->checkout_id !== null ? VoucherCheckout::find($d->checkout_id) : VoucherCheckout::where('voucher_id', $d->voucher_id)->first();
+            $payment = $checkout === null ? null : VoucherCheckoutPayment::where('checkout_id', $checkout->id)->lockForUpdate()->first();
+            if ($payment === null) {
+                throw new ApiException('There is no card/bank payment to refund for this voucher.', 422, 'refund_not_possible');
+            }
+            if (in_array($payment->refund_status, ['queued', 'pending', 'processing'], true)) {
+                throw ApiException::conflict('A refund is already in progress.', 'refund_pending');
+            }
+            $amount ??= $d->compensation_status === 'failed' ? $d->compensation_amount_minor : $payment->amount_minor - $payment->refunded_minor;
+            if ($amount <= 0 || $amount > $payment->amount_minor - $payment->refunded_minor) {
+                throw new ApiException('The refund exceeds what was paid.', 422, 'refund_exceeds_payment');
+            }
+            $key = 'refund:dispute:'.$d->public_id.($d->compensation_status === 'failed' ? ':after:'.$d->compensation_ref : '');
+            $d->forceFill(['compensation' => 'refund', 'compensation_status' => 'requested', 'compensation_amount_minor' => $amount, 'compensation_request_key' => $key, 'compensated_at' => null])->save();
+            $this->event($d, 'admin', $actorUserId, 'compensation_requested', 'refund '.$amount);
+        });
+    }
+
     /**
      * One compensation per voucher, across consumer and merchant reports. The
      * voucher row lock serializes concurrent resolutions of different reports.
@@ -231,13 +280,13 @@ class DisputeService
         Voucher::whereKey($voucherId)->lockForUpdate()->first();
         $checkouts = VoucherCheckout::where('voucher_id', $voucherId)->select('id');
         $prior = VoucherDispute::where(fn ($q) => $q->where('voucher_id', $voucherId)->orWhereIn('checkout_id', $checkouts))
-            ->whereKeyNot($d->id)->whereNotNull('compensated_at')->first();
+            ->whereKeyNot($d->id)->where(fn ($q) => $q->whereNotNull('compensated_at')->orWhereIn('compensation_status', ['requested', 'pending']))->first();
         if ($prior !== null) {
             throw ApiException::conflict('This voucher was already compensated through another report.', 'voucher_already_compensated', ['dispute_id' => $prior->public_id]);
         }
     }
 
-    /** @return array{0: int, 1: string} */
+    /** @return array{0: int, 1: string, 2: string} */
     private function walletCredit(VoucherDispute $d, ?int $amount, string $note, int $actorUserId): array
     {
         if ($amount === null || $amount <= 0) {
@@ -246,10 +295,10 @@ class DisputeService
         $entry = $this->wallets->adjust($this->wallets->consumerWallet(User::findOrFail($d->user_id), WalletUnit::EurCredit), $amount,
             'dispute:'.$d->public_id, 'Compensation for voucher report: '.mb_substr($note, 0, 180), $actorUserId);
 
-        return [$amount, $entry->public_id];
+        return [$amount, $entry->public_id, 'completed'];
     }
 
-    /** @return array{0: null, 1: string} */
+    /** @return array{0: null, 1: string, 2: string} */
     private function replacement(VoucherDispute $d, int $actorUserId): array
     {
         $original = $d->voucher_id === null ? null : Voucher::find($d->voucher_id);
@@ -262,23 +311,28 @@ class DisputeService
             $voucher = $this->inventory->issue($voucher, User::findOrFail($d->user_id));
         }
 
-        return [null, $voucher->public_id];
+        return [null, $voucher->public_id, 'completed'];
     }
 
-    /** @return array{0: int, 1: string} */
-    private function refund(VoucherDispute $d, ?int $amount): array
+    /** @return array{0: int, 1: string, 2: string} */
+    private function refund(VoucherDispute $d): array
     {
         $checkout = $d->checkout_id !== null ? VoucherCheckout::with('payment')->find($d->checkout_id)
             : VoucherCheckout::with('payment')->where('voucher_id', $d->voucher_id)->first();
-        $payment = $checkout->payment ?? throw new ApiException('There is no card/bank payment to refund for this voucher.', 422, 'refund_not_possible');
-        $amount ??= $payment->amount_minor - $payment->refunded_minor;
-        if ($amount <= 0 || $amount > $payment->amount_minor - $payment->refunded_minor) {
+        $payment = $checkout === null ? null : VoucherCheckoutPayment::where('checkout_id', $checkout->id)->lockForUpdate()->first();
+        $payment ??= throw new ApiException('There is no card/bank payment to refund for this voucher.', 422, 'refund_not_possible');
+        if (in_array($payment->refund_status, ['queued', 'pending', 'processing'], true)) {
+            throw ApiException::conflict('A refund is already in progress.', 'refund_pending');
+        }
+        $amount = $d->compensation_amount_minor;
+        if ($amount === null || $amount <= 0 || $amount > $payment->amount_minor - $payment->refunded_minor) {
             throw new ApiException('The refund exceeds what was paid.', 422, 'refund_exceeds_payment');
         }
-        $refund = $this->mollie->refund($payment->provider_ref, $amount, $payment->currency, 'ShopBonus voucher report '.$d->public_id, 'refund:dispute:'.$d->public_id);
-        $payment->forceFill(['refunded_minor' => $payment->refunded_minor + $amount, 'refund_ref' => $refund['id'], 'refund_status' => $refund['status'], 'refund_amount_minor' => $amount])->save();
+        $refund = $this->mollie->refund($payment->provider_ref, $amount, $payment->currency, 'ShopBonus voucher report '.$d->public_id, $d->compensation_request_key ?? 'refund:dispute:'.$d->public_id);
+        $status = $refund['status'] === 'refunded' ? 'completed' : (in_array($refund['status'], ['failed', 'canceled'], true) ? 'failed' : 'pending');
+        $payment->forceFill(['refunded_minor' => $payment->refunded_minor + ($status === 'failed' ? 0 : $amount), 'refund_ref' => $refund['id'], 'refund_status' => $refund['status'], 'refund_amount_minor' => $amount])->save();
 
-        return [$amount, $refund['id']];
+        return [$amount, $refund['id'], $status];
     }
 
     private function assertOpen(VoucherDispute $d): void

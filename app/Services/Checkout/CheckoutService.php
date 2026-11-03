@@ -18,6 +18,8 @@ use App\Models\Voucher;
 use App\Models\VoucherCheckout;
 use App\Models\VoucherCheckoutPayment;
 use App\Models\VoucherCode;
+use App\Models\VoucherDispute;
+use App\Models\VoucherDisputeEvent;
 use App\Models\Wallet;
 use App\Models\WalletReservation;
 use App\Services\Audit\AuditLogger;
@@ -259,11 +261,21 @@ class CheckoutService
                 if ($remote['status'] === $p->refund_status) {
                     return;
                 }
-                DB::transaction(function () use ($p, $remote) {
+                $updated = DB::transaction(function () use ($p, $remote) {
+                    // Same order as dispute resolution: dispute before payment.
+                    $dispute = VoucherDispute::where('compensation', 'refund')->where('compensation_ref', $p->refund_ref)->lockForUpdate()->first();
                     $payment = VoucherCheckoutPayment::whereKey($p->id)->lockForUpdate()->firstOrFail();
+                    if ($payment->refund_ref !== $p->refund_ref || ! in_array($payment->refund_status, ['queued', 'pending', 'processing'], true) || $payment->refund_status === $remote['status']) {
+                        return false;
+                    }
                     $c = VoucherCheckout::whereKey($payment->checkout_id)->lockForUpdate()->firstOrFail();
                     $failed = in_array($remote['status'], ['failed', 'canceled'], true);
                     $payment->forceFill(['refund_status' => $remote['status']] + ($failed ? ['refunded_minor' => max(0, $payment->refunded_minor - (int) $payment->refund_amount_minor)] : []))->save();
+                    if ($dispute !== null) {
+                        $status = $failed ? 'failed' : ($remote['status'] === 'refunded' ? 'completed' : 'pending');
+                        $dispute->forceFill(['compensation_status' => $status, 'compensated_at' => $status === 'completed' ? now() : null])->save();
+                        VoucherDisputeEvent::create(['dispute_id' => $dispute->id, 'actor_role' => 'system', 'type' => $status === 'completed' ? 'compensated' : 'compensation_'.$status, 'note' => 'Mollie refund '.$remote['status']]);
+                    }
                     if ($c->state === 'refund_pending' && ($remote['status'] === 'refunded' || $failed)) {
                         $c->forceFill(['state' => $failed ? 'paid_unfulfilled' : 'refunded'])->save();
                     }
@@ -272,8 +284,10 @@ class CheckoutService
                     if ($failed) {
                         report(new \RuntimeException("Refund {$payment->refund_ref} for checkout {$c->public_id} {$remote['status']}; refund again."));
                     }
+
+                    return true;
                 });
-                $changed++;
+                $changed += (int) $updated;
             });
 
         return $changed;
