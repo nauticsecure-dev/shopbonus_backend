@@ -1,3 +1,5 @@
+B57 implementation `ffa436d` committed and pushed to draft PR#5. Focused results and four HTTP captures are recorded below; working tree clean before this SHA closeout. Next: inspect current-head CI and perform the documented external provider acceptance after senior configuration.
+
 # B57 — Native connector mapping review (2026-11-03, Codex)
 
 Branch `frank/review-fixes`, parent `8fb782e5513e1b2f9800be4dcb50199c2a028a97`, draft PR#5. B56 inventory implementation is committed8fb782e. B57 implements bounded, order-bound flat Shopware product/Magento simple-root line snapshots with exact row money, explicit provider amount bases and unknown eligibility. Mixed/composite, duplicate, foreign-order, excessive and malformed snapshots fail as a whole. Shopware association is bounded101 to detect over100 and requires order_line_item read permission; denied provider reads stop processing. Existing ingestion last-known fallback remains unchanged.

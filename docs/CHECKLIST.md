@@ -1224,3 +1224,5 @@ B56 implementing commit parentb3016cd: SQLite38/10982, MySQL4/502; static/style/
 - [x] Execute focused SQLite/MySQL tests, capture actual affected order HTTP examples and update API/spec/handoff evidence.
 
 B57 implementing parent8fb782e: SQLite49/343 plus final transport2/16; MySQL17/129 plus final wiring3/13 and transport2/16 (overlapping selections); API5/8261, PHPStan/Pint PASS. Four actual local HTTP serialization captures; live/native acceptance remains NOT RUN. Implementing SHA is recorded in the following checkpoint.
+
+B57 implementing SHA: `ffa436d`; pushed to draft PR#5. External provider/native acceptance remains open.
