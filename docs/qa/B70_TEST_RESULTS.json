@@ -42,5 +42,8 @@
     "responses": 6,
     "transport": "Actual loopback HTTP, isolated private temporary SQLite/storage/key; synthetic native/QA records through real validator/finalizer. No genuine provider acceptance."
   },
-  "limits": "Full pushed-build CI pending. Live study approval, installed storefront/cart/consent propagation, actual Moneybird issuance/delivery/reconciliation and genuine provider acceptance NOT RUN. Protocol state tests explicitly stub proof collection; positive native fixture tests exercise the real validator."
+  "limits": "Full pushed-build matrix results are attached to PR#7 checks, separate from these local results. Live study approval, installed storefront/cart/consent propagation, actual Moneybird issuance/delivery/reconciliation and genuine provider acceptance NOT RUN. Protocol state tests explicitly stub proof collection; positive native fixture tests exercise the real validator.",
+  "implementation_sha": "94e3f87",
+  "source_integration_sha": "d8c9aa994bdc0c6638dd7665b1a3d15f3ea42a68",
+  "ci_checks_url": "https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks"
 }
