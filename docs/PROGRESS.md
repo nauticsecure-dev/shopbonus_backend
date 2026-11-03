@@ -1,3 +1,5 @@
+B59 implementing SHA `f115f44`; focused tests and actual local HTTP/console evidence passed. No migrations; deployment acceptance remains open as detailed below.
+
 # B59 — Consumer trends and explicit acquisition workflow (2026-11-03, Codex)
 
 Branch frank/review-fixes, parentee1f2b6; draft PR#5. Daily new_consumers now uses consumerAccounts, matching consumer intent/staff/test exclusions independently of webshop membership. Current active-account KPI status filtering remains unchanged; trend counts registrations in the selected period.
