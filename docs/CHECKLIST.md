@@ -1461,3 +1461,5 @@ B64 implementing SHA: `8c95e5c`; B63 `25fa46c`. Both pushed to draft PR#5; no li
 - [x] Test provenance isolation/negative cases, exact/unknown money and package claims; capture actual HTTP, update specs/API/handoff and keep genuine provider acceptance NOT RUN.
 
 B65 tests: SQLite191/1773; MySQL191/1775; API35/10983; PHPStan/Pint/diff PASS. Parent `516e9d1`; implementing SHA recorded at closeout. Genuine provider/native publication acceptance remains NOT RUN.
+
+B65 implementing SHA: `f44d759`. All four checked items refer to the tested local backend boundary; genuine provider installation/publication/release acceptance remains open.
