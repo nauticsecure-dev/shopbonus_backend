@@ -121,7 +121,7 @@ class AiSupportController extends Controller
             $query->where('metrics->model', $filters['model']);
         }
         if (isset($filters['outcome'])) {
-            $query->whereIn('id', SupportReview::where('outcome', $filters['outcome'])->select('message_id'));
+            $query->whereIn('id', SupportReview::where('outcome', $filters['outcome'])->whereNotNull('reviewed_at')->select('message_id'));
         }
         if (isset($filters['scope']) || isset($filters['locale'])) {
             $conversations = SupportConversation::query();
@@ -133,18 +133,28 @@ class AiSupportController extends Controller
             }
             $query->whereIn('conversation_id', $conversations->select('id'));
         }
-        $metrics = app(SupportOperations::class)->aggregate($query);
+        $metrics = app(SupportOperations::class)->aggregate($query, $filters['outcome'] ?? null);
         $current = $policy->current();
 
         return response()->json(['data' => $metrics + ['from' => $from->toIso8601String(), 'checked_at' => now()->toIso8601String(), 'to' => $to->toIso8601String(),
             'provider_cost_estimate' => self::costEstimate($metrics['input_tokens'], $metrics['output_tokens']),
-            'cost_notice' => 'Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.',
+            'cost_notice' => 'Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.',
             'open_reviews' => SupportReview::whereNull('outcome')->count(), 'approved_regressions' => SupportRegression::count(),
+            'daily_reserved_micro_eur' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'budget:eur')->value('reserved_micro_eur') ?? 0),
+            'budget_notice' => 'Conservative retained exposure, not billed spend; all provider attempts reserve against the shared lower policy/deployment cap.',
             'daily_requests' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'global')->value('requests') ?? 0),
             'circuit_open' => Cache::has('support-ai:circuit'), 'broadcaster' => config('broadcasting.default'), 'last_successful_broadcast_at' => Cache::get('support-ai:last-broadcast-at'),
             'broadcast_failures_last_24h' => DB::table('audit_events')->where('action', 'support.broadcast_unavailable')->where('occurred_at', '>=', $from)->count(),
             'connectivity' => ['provider_last_success_at' => Cache::get('support-ai:last-provider-success-at'), 'worker_last_execution_at' => Cache::get('support-ai:last-worker-execution-at'), 'queue_connection' => config('queue.default'), 'reverb_live_probe' => 'not_measured', 'broadcast_evidence' => 'dispatch_attempt_only'],
             'model_contract' => ['model' => $current['model'], 'verified' => app(SupportModelContract::class)->verified($current['model']), 'proof_scope' => 'expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality'],
+            'settings_capabilities' => ['renderer' => 'server_owned_evidence_templates',
+                'tone' => ['friendly_professional', 'direct', 'warm'], 'empathy' => ['balanced', 'minimal', 'high'],
+                'answer_detail' => ['concise', 'detailed'], 'target_answer_words' => ['min' => 20, 'max' => 200, 'soft' => true],
+                'max_answer_words' => ['min' => 25, 'max' => 300, 'overflow' => 'human_review_without_truncation'],
+                'response_deadline_ms' => ['min' => 1000, 'max' => 20000], 'daily_cost_limit_eur' => ['min' => 0, 'max' => 1000, 'deployment_cap' => config('support_ai.daily_cost_limit_eur')],
+                'fallback' => 'one_configured_verified_model_transient_failures_only_shared_deadline_and_budget',
+                'optional_model_parameters' => 'reasoning_and_verbosity_omitted_pending_separate_capability_proof',
+                'deployment_models' => collect([config('support_ai.model'), config('support_ai.fallback_model')])->filter(fn ($model) => is_string($model) && $model !== '')->unique()->map(fn ($model) => ['model' => $model, 'verified' => app(SupportModelContract::class)->verified($model)])->values()->all()],
             'policy_version' => $current['version']]], 200, ['Cache-Control' => 'private, no-store']);
     }
 

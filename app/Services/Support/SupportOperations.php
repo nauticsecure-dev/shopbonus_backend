@@ -12,7 +12,7 @@ final class SupportOperations
     /** @param Builder<SupportMessage> $query
      * @return array<string, mixed>
      */
-    public function aggregate(Builder $query): array
+    public function aggregate(Builder $query, ?string $reviewOutcome = null): array
     {
         $query = (clone $query)->where('id', '<=', (clone $query)->max('id') ?? 0);
         $total = $input = $output = $retries = $costed = $latencyCount = 0;
@@ -55,7 +55,7 @@ final class SupportOperations
                 break;
             }
         }
-        $reviews = SupportReview::whereIn('message_id', (clone $query)->select('id'));
+        $reviews = SupportReview::whereIn('message_id', (clone $query)->select('id'))->when($reviewOutcome !== null, fn ($q) => $q->where('outcome', $reviewOutcome));
         $resolved = (clone $reviews)->whereNotNull('reviewed_at')->whereIn('outcome', ['ANSWER_CORRECT', 'CONFIRMED_ERROR', 'NEEDS_INVESTIGATION']);
         $outcomes = (clone $resolved)->selectRaw('outcome, COUNT(*) as aggregate')->groupBy('outcome')->pluck('aggregate', 'outcome')->map(fn ($v) => (int) $v)->all();
         $reviewed = (clone $resolved)->distinct()->count('message_id');

@@ -59,7 +59,7 @@ class SupportAdminTest extends TestCase
                 $second = $message;
             }
         }
-        foreach ([[$oldest, 'ANSWER_CORRECT', 'a'], [$oldest, 'ANSWER_CORRECT', 'b'], [$second, 'CONFIRMED_ERROR', 'a']] as [$message, $outcome, $trigger]) {
+        foreach ([[$oldest, 'ANSWER_CORRECT', 'a'], [$oldest, 'ANSWER_CORRECT', 'b'], [$second, 'CONFIRMED_ERROR', 'a'], [$oldest, 'CONFIRMED_ERROR', 'c']] as [$message, $outcome, $trigger]) {
             SupportReview::create(['message_id' => $message->id, 'trigger' => $trigger, 'outcome' => $outcome, 'reviewed_at' => now()]);
         }
         SupportReview::create(['message_id' => $oldest->id, 'trigger' => 'open']);
@@ -69,8 +69,8 @@ class SupportAdminTest extends TestCase
         $this->assertSame(501, $data['matching_total']);
         $this->assertSame(['UNAVAILABLE' => 500, 'VERIFIED' => 1], $data['statuses']);
         $this->assertEquals(.2, $data['execution_status_percentages']['VERIFIED']);
-        $this->assertEquals(66.67, $data['reviewed_outcome_percentages']['ANSWER_CORRECT']);
-        $this->assertSame(3, $data['resolved_review_total']);
+        $this->assertEquals(50, $data['reviewed_outcome_percentages']['ANSWER_CORRECT']);
+        $this->assertSame(4, $data['resolved_review_total']);
         $this->assertSame(2, $data['reviewed_message_total']);
         $this->assertSame(499, $data['unreviewed_message_total']);
         $this->assertSame(1, $data['matching_open_reviews']);
@@ -82,7 +82,7 @@ class SupportAdminTest extends TestCase
         $this->assertSame(100, $data['latency_p95_ms']);
         $this->assertSame(500, $data['failures']['fixture_failure']);
         $filtered = $this->getJson('/api/v1/admin/ai/operations?outcome=CONFIRMED_ERROR')->assertOk()->json('data');
-        $this->assertSame(1, $filtered['matching_total']);
+        $this->assertSame(2, $filtered['matching_total']);
         $this->assertEquals(100, $filtered['reviewed_outcome_percentages']['CONFIRMED_ERROR']);
         $this->assertSame(0, $filtered['matching_open_reviews']);
         $empty = $this->getJson('/api/v1/admin/ai/operations?locale=nl')->assertOk()->json('data');

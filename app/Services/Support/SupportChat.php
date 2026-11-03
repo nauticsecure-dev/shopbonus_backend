@@ -170,17 +170,17 @@ class SupportChat
             $action = $this->policies->action($p, $plan['intent'], $workspace !== null);
             $metrics['restriction_action'] = $action;
             if ($plan['intent'] === 'escalate' || $action === 'ESCALATE' || $action === 'REVIEW') {
-                $this->finish($m, 'ESCALATED', $c->locale === 'nl' ? 'Een beoordeling door ondersteuning is aangevraagd.' : 'A human support review has been requested.', [], [], $metrics, $started, true);
+                $this->finish($m, 'ESCALATED', $c->locale === 'nl' ? 'Een beoordeling door ondersteuning is aangevraagd.' : 'A human support review has been requested.', [], [], $metrics, $started, true, presentationPolicy: $p);
 
                 return;
             }
             if ($plan['intent'] === 'release_date' && $plan['reference'] === null) {
-                $this->finish($m, 'NEEDS_CLARIFICATION', $c->locale === 'nl' ? 'Er is geen bevestigde vrijgavedatum. Geef uw orderreferentie of vraag ondersteuning.' : 'No release date has been confirmed. Provide your order reference or request human support.', [], [], $metrics, $started);
+                $this->finish($m, 'NEEDS_CLARIFICATION', $c->locale === 'nl' ? 'Er is geen bevestigde vrijgavedatum. Geef uw orderreferentie of vraag ondersteuning.' : 'No release date has been confirmed. Provide your order reference or request human support.', [], [], $metrics, $started, presentationPolicy: $p);
 
                 return;
             }
             if ($plan['intent'] === 'unknown' || $plan['wrong_scope'] || $plan['missing_reference'] || $action === 'BLOCK') {
-                $this->finish($m, 'NEEDS_CLARIFICATION', $this->clarification($plan, $c->locale), [], [], $metrics, $started);
+                $this->finish($m, 'NEEDS_CLARIFICATION', $this->clarification($plan, $c->locale), [], [], $metrics, $started, presentationPolicy: $p);
 
                 return;
             }
@@ -235,10 +235,14 @@ class SupportChat
                 }
                 $evidence[$i] = $fresh;
             }
+            $p['deadline_at'] = $started + $p['response_deadline_ms'] / 1000;
+            if (microtime(true) >= $p['deadline_at']) {
+                throw new ProviderFailure('response_deadline_exceeded');
+            }
             $output = $this->provider->select($evidence, $p);
-            $metrics = array_merge($metrics, $output['usage'], ['model' => $p['model']]);
+            $metrics = array_merge($metrics, $output['usage'], ['model' => $output['usage']['model'] ?? $p['model']]);
             Cache::forget('support-ai:failures');
-            $answer = $this->verifier->verify($actor, $output['selection'], $evidence, $required);
+            $answer = $this->verifier->verify($actor, $output['selection'], $evidence, $required, $p);
             if ($this->policies->current()['fingerprint'] !== $p['fingerprint']) {
                 throw new ProviderFailure('policy_changed');
             }
@@ -248,7 +252,10 @@ class SupportChat
                 $answer['status'] = 'PARTIALLY_VERIFIED';
                 $answer['answer'] .= $c->locale === 'nl' ? ' Het walletsaldo kon niet worden gecontroleerd.' : ' The wallet balance could not be verified.';
             }
-            $this->finish($m, $answer['status'], $answer['answer'], $evidence, $trace, $metrics, $started, false, $answer);
+            if (microtime(true) >= $p['deadline_at']) {
+                throw new ProviderFailure('response_deadline_exceeded');
+            }
+            $this->finish($m, $answer['status'], $answer['answer'], $evidence, $trace, $metrics, $started, false, $answer, $p);
         } catch (Throwable $e) {
             if (! $e instanceof ProviderFailure && ! $e instanceof ApiException) {
                 app(ErrorRecorder::class)->recordJobFailure($e, ProcessSupportMessage::class, null, (string) config('queue.default'), ['phase' => 'support_processing']);
@@ -262,25 +269,34 @@ class SupportChat
             }
             $m->failure_code = $code;
             $status = $code === 'not_found' ? 'NEEDS_CLARIFICATION' : ($code === 'support_evidence_conflict' ? 'ESCALATED' : 'UNAVAILABLE');
-            $this->finish($m, $status, null, $evidence, $trace, $metrics, $started, $code !== 'not_configured');
+            $this->finish($m, $status, null, $evidence, $trace, $metrics, $started, $code !== 'not_configured', presentationPolicy: $p ?? []);
         }
     }
 
     /** @param list<ToolEvidence> $evidence
      * @param  list<array<string, mixed>>  $trace
      * @param  array<string, mixed>  $metrics
+     * @param  array<string, mixed>  $presentationPolicy
      * @param  array<string, mixed>|null  $result
      */
-    private function finish(SupportMessage $m, string $status, ?string $answer, array $evidence, array $trace, array $metrics, float $started, bool $review = false, ?array $result = null): void
+    private function finish(SupportMessage $m, string $status, ?string $answer, array $evidence, array $trace, array $metrics, float $started, bool $review = false, ?array $result = null, array $presentationPolicy = []): void
     {
-        $finished = DB::transaction(function () use ($m, $status, $answer, $evidence, $trace, $metrics, $started, $review, $result) {
+        $result ??= ['status' => $status, 'answer' => $answer, 'evidence_ids' => [], 'checked_at' => now()->toIso8601String(), 'action' => null];
+        $result = app(SupportPresentation::class)->apply($result, $presentationPolicy, SupportConversation::findOrFail($m->conversation_id)->locale);
+        $status = $result['status'];
+        $answer = $result['answer'];
+        if (($result['presentation_reason'] ?? null) === 'answer_word_limit') {
+            $review = true;
+            $m->failure_code = 'answer_word_limit';
+        }
+        $finished = DB::transaction(function () use ($m, $status, $evidence, $trace, $metrics, $started, $review, $result) {
             $locked = SupportMessage::whereKey($m->id)->lockForUpdate()->first();
             if ($locked === null || $locked->completed_at !== null) {
                 return false;
             }
             $m->status = $status;
             $m->evidence = ['snapshots' => array_map(fn (ToolEvidence $e) => ['id' => $e->id, 'tool' => $e->tool, 'arguments' => $e->arguments, 'source' => $e->sourceId, 'facts' => $e->facts, 'checked_at' => $e->retrievedAt->toIso8601String()], $evidence), 'trace' => $trace];
-            $m->result = $result ?? ['status' => $status, 'answer' => $answer, 'evidence_ids' => [], 'checked_at' => now()->toIso8601String(), 'action' => null];
+            $m->result = $result;
             $m->metrics = $metrics + ['latency_ms' => (int) round((microtime(true) - $started) * 1000), 'additional_retrieval_rounds' => $m->retry_used ? 1 : 0];
             $m->completed_at = now();
             $m->save();

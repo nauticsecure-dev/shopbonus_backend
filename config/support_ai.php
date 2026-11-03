@@ -21,6 +21,15 @@ return [
         'output_micro_eur_per_token' => (int) env('SUPPORT_AI_OUTPUT_MICRO_EUR_PER_TOKEN', 0),
         'pricing_reference' => env('SUPPORT_AI_PRICING_REFERENCE', ''),
     ],
+    // Optional second model, same server-held API key. Requires its own successful canary.
+    'fallback_model' => env('SUPPORT_AI_FALLBACK_MODEL', ''),
+    'fallback_contract' => [
+        'context_tokens' => (int) env('SUPPORT_AI_FALLBACK_CONTEXT_TOKENS', 0),
+        'output_tokens' => (int) env('SUPPORT_AI_FALLBACK_OUTPUT_TOKENS', 0),
+        'input_micro_eur_per_token' => (int) env('SUPPORT_AI_FALLBACK_INPUT_MICRO_EUR_PER_TOKEN', 0),
+        'output_micro_eur_per_token' => (int) env('SUPPORT_AI_FALLBACK_OUTPUT_MICRO_EUR_PER_TOKEN', 0),
+        'pricing_reference' => env('SUPPORT_AI_FALLBACK_PRICING_REFERENCE', ''),
+    ],
     'retention_days' => (int) env('SUPPORT_AI_RETENTION_DAYS', 30),
     // Operator-entered model prices (EUR per million tokens) for the cost ESTIMATE in operations.
     // Leave empty when unknown: no price is ever assumed. Billed cost stays at the provider.

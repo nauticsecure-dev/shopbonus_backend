@@ -29,7 +29,23 @@ class SupportProvider
             throw new ProviderFailure('model_contract_unverified');
         }
 
-        return $this->request($evidence, $policy);
+        $policy['deadline_at'] = $policy['deadline_at'] ?? microtime(true) + ($policy['response_deadline_ms'] ?? 12000) / 1000;
+        try {
+            return $this->request($evidence, $policy);
+        } catch (ProviderFailure $failure) {
+            $fallback = $policy['fallback_model'] ?? null;
+            if (! in_array($failure->failureCode, ['provider_unavailable', 'provider_rate_limited'], true)
+                || ! is_string($fallback) || $fallback === $policy['model'] || ! $this->configured($fallback)
+                || $policy['deadline_at'] <= microtime(true)) {
+                throw $failure;
+            }
+            $policy['model'] = $fallback;
+            $result = $this->request($evidence, $policy);
+            $result['usage'] += ['fallback_used' => true, 'provider_attempts' => 2, 'primary_failure_code' => $failure->failureCode,
+                'usage_coverage' => 'successful_response_only_failed_attempt_usage_unknown'];
+
+            return $result;
+        }
     }
 
     /** @param array<string, mixed> $policy */
@@ -50,6 +66,11 @@ class SupportProvider
      */
     private function request(array $evidence, array $policy): array
     {
+        $deadline = $policy['deadline_at'] ?? microtime(true) + ($policy['response_deadline_ms'] ?? 12000) / 1000;
+        $remaining = $deadline - microtime(true);
+        if ($remaining <= 0) {
+            throw new ProviderFailure('response_deadline_exceeded');
+        }
         $ids = array_map(fn (ToolEvidence $e) => $e->id, $evidence);
         if (! is_string(config('support_ai.api_key')) || config('support_ai.api_key') === '' || $ids === []) {
             throw new ProviderFailure('not_configured');
@@ -80,13 +101,27 @@ class SupportProvider
                         'properties' => ['evidence_ids' => ['type' => 'array', 'minItems' => 1, 'maxItems' => 5, 'items' => ['type' => 'string', 'enum' => $ids]]]]]],
             ];
             // Model-specific optional parameters remain omitted until separately verified.
+            $remaining = $deadline - microtime(true);
+            if ($remaining <= 0) {
+                throw new ProviderFailure('response_deadline_exceeded');
+            }
             $response = Http::withToken(config('support_ai.api_key'))->acceptJson()->withOptions(['allow_redirects' => false])
-                ->connectTimeout(5)->timeout($policy['timeout_seconds'])->post('https://api.openai.com/v1/responses', $payload);
+                ->connectTimeout(min(5, $remaining))->timeout(min((float) ($policy['timeout_seconds'] ?? config('support_ai.timeout_seconds')), $remaining))->post('https://api.openai.com/v1/responses', $payload);
+        } catch (ProviderFailure $failure) {
+            throw $failure;
         } catch (Throwable) {
             throw new ProviderFailure('provider_unavailable');
         }
+        if (microtime(true) > $deadline) {
+            throw new ProviderFailure('response_deadline_exceeded');
+        }
         if (! $response->successful()) {
-            throw new ProviderFailure($response->status() === 429 ? 'provider_rate_limited' : 'provider_unavailable');
+            throw new ProviderFailure(match (true) {
+                $response->status() === 429 => 'provider_rate_limited',
+                in_array($response->status(), [401, 403], true) => 'provider_authentication_failed',
+                $response->status() >= 500 || $response->status() === 408 => 'provider_unavailable',
+                default => 'provider_rejected',
+            });
         }
         if (strlen($response->body()) > 65536 || $response->json('status') !== 'completed' || ! is_array($response->json('output'))) {
             throw new ProviderFailure('invalid_provider_output');
@@ -126,7 +161,7 @@ class SupportProvider
             $estimate = (($usage['input_tokens'] - $cached) * $rates['input_per_million'] + $cached * ($rates['cached_input_per_million'] ?? $rates['input_per_million']) + $usage['output_tokens'] * $rates['output_per_million']) / 1000000;
         }
 
-        return ['selection' => $calls[0], 'usage' => ['input_tokens' => is_int($usage['input_tokens'] ?? null) ? max(0, $usage['input_tokens']) : null,
+        return ['selection' => $calls[0], 'usage' => ['model' => $policy['model'], 'input_tokens' => is_int($usage['input_tokens'] ?? null) ? max(0, $usage['input_tokens']) : null,
             'estimated_cost_eur' => $estimate, 'pricing_verified_at' => $estimate === null ? null : $rates['verified_at'],
             'output_tokens' => is_int($usage['output_tokens'] ?? null) ? max(0, $usage['output_tokens']) : null]];
     }

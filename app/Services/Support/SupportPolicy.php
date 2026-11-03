@@ -76,11 +76,11 @@ final class SupportPolicy
             'value.restrictions.*.enabled' => ['required', 'boolean:strict'],
             'value.restrictions.*.scope' => ['sometimes', Rule::in(['ALL', 'CONSUMER', 'WORKSPACE'])],
             'value.default_language' => ['sometimes', Rule::in(['nl'])],
-            'value.tone' => ['sometimes', Rule::in(['friendly_professional'])],
-            'value.empathy' => ['sometimes', Rule::in(['balanced'])],
-            'value.answer_detail' => ['sometimes', Rule::in(['concise'])],
-            'value.target_answer_words' => ['sometimes', Rule::in([45])],
-            'value.max_answer_words' => ['sometimes', Rule::in([120])],
+            'value.tone' => ['sometimes', Rule::in(['friendly_professional', 'direct', 'warm'])],
+            'value.empathy' => ['sometimes', Rule::in(['balanced', 'minimal', 'high'])],
+            'value.answer_detail' => ['sometimes', Rule::in(['concise', 'detailed'])],
+            'value.target_answer_words' => ['sometimes', 'integer:strict', 'between:20,200'],
+            'value.max_answer_words' => ['sometimes', 'integer:strict', 'between:25,300'],
             'value.max_clarification_questions' => ['sometimes', Rule::in([1])],
             'value.show_progress_updates' => ['sometimes', 'boolean:strict'],
             'value.show_verified_badge' => ['sometimes', 'boolean:strict'],
@@ -93,13 +93,36 @@ final class SupportPolicy
             'value.parallel_tool_calls' => ['sometimes', 'boolean:strict', Rule::in([false])],
             'value.store' => ['sometimes', 'boolean:strict', Rule::in([false])],
             'value.stream' => ['sometimes', 'boolean:strict', Rule::in([false])],
-            'value.response_deadline_ms' => ['sometimes', Rule::in([12000])],
+            'value.response_deadline_ms' => ['sometimes', 'integer:strict', 'between:1000,20000'],
             'value.progress_message_delay_ms' => ['sometimes', Rule::in([500])],
             'value.max_research_retries' => ['sometimes', 'integer:strict', 'in:0,1'],
             'value.max_function_rounds' => ['sometimes', Rule::in([3])],
-            'value.daily_cost_limit_eur' => ['sometimes', Rule::in([20])],
-            'value.fallback_model' => ['sometimes', 'prohibited'],
+            'value.daily_cost_limit_eur' => ['sometimes', 'numeric', 'between:0,1000', 'regex:/\A(?:0|[1-9][0-9]{0,3})(?:\.[0-9]{1,6})?\z/D'],
+            'value.fallback_model' => ['sometimes', 'nullable', 'string', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
         ];
+    }
+
+    /** Saving a draft never certifies a model; activation requires current deployment proof.
+     * @param  array<string, mixed>  $value
+     */
+    public function assertPublishable(array $value): void
+    {
+        if (! ($value['enabled'] ?? false)) {
+            return;
+        }
+        $primary = $value['model'] ?? config('support_ai.model');
+        $fallback = $value['fallback_model'] ?? null;
+        if ($fallback !== null && $fallback === $primary) {
+            throw ApiException::conflict('Fallback must be a different configured model.', 'support_fallback_invalid');
+        }
+        foreach (array_merge([$primary], $fallback === null ? [] : [$fallback]) as $model) {
+            if (! is_string($model) || ! app(SupportProvider::class)->configured($model)) {
+                throw ApiException::conflict('Verify each configured model with the budgeted support-model canary before enabling it.', 'support_model_contract_required');
+            }
+            if (($value['max_output_tokens'] ?? 1200) > app(SupportModelContract::class)->profile($model)['output_tokens']) {
+                throw ApiException::conflict('The output limit exceeds a verified model contract.', 'support_model_output_limit');
+            }
+        }
     }
 
     /** @return array<string, mixed> */
@@ -113,6 +136,7 @@ final class SupportPolicy
         $p['daily_request_limit'] = max(0, min((int) config('support_ai.daily_request_limit'), $p['daily_request_limit'], 1000));
         $p['timeout_seconds'] = max(5, min((int) config('support_ai.timeout_seconds'), $p['timeout_seconds'], 20));
         $p['max_retry'] = max(0, min(1, (int) $p['max_retry'], (int) ($p['max_research_retries'] ?? 1)));
+        $p['target_answer_words'] = min($p['target_answer_words'], $p['max_answer_words']);
         $p['version'] = $published['versions']['support.ai'] ?? 'default-disabled';
         $p['fingerprint'] = hash('sha256', json_encode($p, JSON_THROW_ON_ERROR));
 

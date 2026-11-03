@@ -15,8 +15,10 @@ final class SupportModelContract
     /** @return array<string, mixed> */
     public function profile(string $model): array
     {
-        $p = (array) config('support_ai.contract');
-        if (preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D', $model) !== 1 || $model !== config('support_ai.model') || ! is_string($p['pricing_reference'] ?? null) || trim($p['pricing_reference']) === '') {
+        $primary = $model === config('support_ai.model');
+        $fallback = is_string(config('support_ai.fallback_model')) && config('support_ai.fallback_model') !== '' && $model === config('support_ai.fallback_model');
+        $p = (array) config($primary ? 'support_ai.contract' : 'support_ai.fallback_contract');
+        if (preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D', $model) !== 1 || (! $primary && ! $fallback) || ! is_string($p['pricing_reference'] ?? null) || trim($p['pricing_reference']) === '') {
             throw new ProviderFailure('model_contract_unconfigured');
         }
         foreach (['context_tokens' => 10000000, 'output_tokens' => 4000, 'input_micro_eur_per_token' => 1000000, 'output_micro_eur_per_token' => 1000000] as $field => $max) {

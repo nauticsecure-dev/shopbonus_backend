@@ -86,6 +86,25 @@ class SupportChatTest extends TestCase
         $this->assertSame('wallet', $next->research['intent']);
     }
 
+    public function test_bounded_style_and_hard_word_cap_change_real_answers_without_truncating_facts(): void
+    {
+        $this->publish($this->policy + ['tone' => 'warm', 'empathy' => 'high', 'answer_detail' => 'detailed', 'target_answer_words' => 90]);
+        $styled = $this->runMessage($this->send('wallet balance'));
+        $this->assertSame('VERIFIED', $styled->status);
+        $this->assertStringContainsString('Happy to help.', $styled->result['answer']);
+        $this->assertStringContainsString('I understand this is important', $styled->result['answer']);
+        $this->assertStringContainsString('EUR 0.00', $styled->result['answer']);
+        $this->assertSame('detailed', $styled->result['presentation']['detail']);
+        $this->publish($this->policy + ['tone' => 'warm', 'empathy' => 'high', 'target_answer_words' => 20, 'max_answer_words' => 25]);
+        $limited = $this->runMessage($this->send('wallet balance'));
+        $this->assertSame('ESCALATED', $limited->status);
+        $this->assertSame('answer_word_limit', $limited->failure_code);
+        $this->assertSame([], $limited->result['evidence_ids']);
+        $this->assertNull($limited->result['action']);
+        $this->assertLessThanOrEqual(25, $limited->result['presentation']['word_count']);
+        $this->assertDatabaseHas('support_reviews', ['message_id' => $limited->id, 'trigger' => 'automatic']);
+    }
+
     private function publish(array $value): void
     {
         $settings = app(PlatformSettings::class);

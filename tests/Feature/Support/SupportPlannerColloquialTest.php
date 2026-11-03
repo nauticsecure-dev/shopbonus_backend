@@ -35,10 +35,11 @@ class SupportPlannerColloquialTest extends TestCase
     public function test_unsupported_settings_are_rejected_and_supported_display_controls_validate(): void
     {
         $defaults = SupportPolicy::defaults();
-        foreach (['tone' => 'warm', 'empathy' => 'high', 'max_answer_words' => 25, 'fallback_model' => 'another-model', 'daily_cost_limit_eur' => 1, 'stream' => true, 'tool_choice' => 'none'] as $key => $value) {
+        foreach (['tone' => 'invent_facts', 'empathy' => 'unbounded', 'max_answer_words' => 24, 'fallback_model' => 'invalid model name', 'daily_cost_limit_eur' => 1001, 'stream' => true, 'tool_choice' => 'none', 'reasoning_effort' => 'high'] as $key => $value) {
             $validator = Validator::make(['value' => array_replace($defaults, [$key => $value])], SupportPolicy::rules());
             $this->assertTrue($validator->fails(), $key);
         }
+        $this->assertFalse(Validator::make(['value' => array_replace($defaults, ['tone' => 'warm', 'empathy' => 'high', 'max_answer_words' => 25, 'target_answer_words' => 20, 'fallback_model' => 'configured-fallback', 'daily_cost_limit_eur' => '0.01', 'response_deadline_ms' => 2000])], SupportPolicy::rules())->fails());
         $this->assertFalse(Validator::make(['value' => array_replace($defaults, ['show_progress_updates' => false, 'suggest_relevant_actions' => false])], SupportPolicy::rules())->fails());
     }
 

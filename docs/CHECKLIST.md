@@ -1440,3 +1440,13 @@ B62 implementing SHA: `6394e80`.
 - [x] Test over500 messages, review multiplicity/filter isolation, empty/unknown metrics and authorization; capture actual HTTP and update API/handoff.
 
 B63 parent5491f79: SQLite7/112, MySQL7/112; PHPStan/Pint PASS. Four real HTTP captures over501 synthetic messages; external connectivity remains unverified. Implementing SHA recorded next checkpoint.
+
+### B64 — Bounded support controls and model activation proof
+
+- [x] Implement bounded tone/empathy/detail/word limits, execution deadline and monetary limits without unverified prose or truncating safeguards.
+- [x] Allow one explicit configured/probed fallback for transient failures, sharing deadline/budget and retaining all attempt exposure.
+- [x] Gate enabled policy publication on exact primary/fallback contract proof and output limits; expose actionable backend errors and capabilities.
+- [x] Test actual control behavior, rejected activation, expired/changed contracts, fallback failure/budget/deadline and immutable safety guards.
+- [x] Capture real settings/monitoring/message HTTP responses, update API/config/runbook and record external connectivity/quality/frontend gaps.
+
+B63 implementing SHA `25fa46c`. B64 parent25fa46c: Support SQLite180pass+3skip/1470assertions; selected MySQL154/1324; API5/8349; PHPStan/Pint/diff PASS. Eleven real HTTP exchanges with synthetic accounts/local SMTP; live provider/Reverb/quality/frontend acceptance remains OPEN. B64 implementing SHA recorded next closeout.

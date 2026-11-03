@@ -37,7 +37,7 @@ class SupportProviderTest extends TestCase
         $call = ['type' => 'function_call', 'name' => 'verify_support_evidence', 'arguments' => '{"evidence_ids":["FAKE"]}'];
 
         return [
-            [429, ['error' => 'fixture-secret'], 'provider_rate_limited'], [503, [], 'provider_unavailable'], [302, [], 'provider_unavailable'],
+            [429, ['error' => 'fixture-secret'], 'provider_rate_limited'], [503, [], 'provider_unavailable'], [302, [], 'provider_rejected'],
             [200, ['status' => 'incomplete', 'output' => []], 'invalid_provider_output'],
             [200, ['status' => 'completed', 'output' => []], 'invalid_provider_output'],
             [200, ['status' => 'completed', 'output' => [['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'refusal', 'refusal' => 'No']]]]], 'invalid_provider_output'],

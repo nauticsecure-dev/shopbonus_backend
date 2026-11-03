@@ -25581,3 +25581,120 @@ curl -i 'http://127.0.0.1:8797/api/v1/admin/ai/operations?locale=nl' -H 'Accept:
 ```json
 {"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":0,"matching_total":0,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":[],"outcome_percentages":[],"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":[],"reviewed_outcomes":[],"resolved_review_total":0,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":0,"unreviewed_message_total":0,"matching_open_reviews":0,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":[],"failures":[],"retrieval_retries":0,"latency_p95_ms":null,"input_tokens":0,"output_tokens":0,"metric_coverage":{"input_tokens":0,"output_tokens":0,"latency_ms":0},"provider_cost":null,"costed_requests":0,"cost_currency":"EUR","from":"2026-11-02T14:19:28+00:00","checked_at":"2026-11-03T14:19:28+00:00","to":"2026-11-03T14:19:28+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.","open_reviews":0,"approved_regressions":0,"daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"policy_version":"default-disabled"}}
 ```
+
+
+## B64 — Bounded support controls and activation proof (2026-11-03)
+
+[Backend controls/proof runbook](../support/ADVANCED_CONTROLS.md) specifies supported ranges, server-owned NL/EN wording, hard-cap escalation, deadline/shared-cost enforcement, configured verified fallback and immutable safety constraints. Enabled publication requires fresh exact model/key/profile canary proof for both models, independent review and session step-up; synthetic policy regression is not provider proof. No models were activated or called in this capture. No frontend changes.
+
+[Eleven actual HTTP exchanges](../qa/B64_SUPPORT_CONTROLS_HTTP_CAPTURE.json), baseline25fa46c plus B64, isolated SQLite/file sessions. Two synthetic admins authenticated and completed actual password/OTP steps via localhost SMTP. Unverified enablement rejected; only disabled controls were published. Consumer response is a seeded presentation-only word-cap escalation with a review, not model/evidence acceptance. Live connectivity/quality remain unverified.
+
+### draft-unverified-model
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support.ai","value":{"enabled":true,"model":"synthetic-unconfigured","languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000},"reason":"Synthetic unverified model gate"}'
+```
+
+```json
+{"status":201,"body":{"data":{"id":"01m6gxxh9x8hc0v52vdvq4gsbn","key":"support.ai","version":1,"value":{"enabled":true,"model":"synthetic-unconfigured","languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000},"checksum":"936a24985b8171fd4a391bc08904a687c1a96c9fc2aeb13de10a9a88dd3fc631","status":"draft","reason":"Synthetic unverified model gate","created_by":"01m6gxxfj6r55063s9wqc6rffh","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### test-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/ai/settings/01m6gxxh9x8hc0v52vdvq4gsbn/test' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"total":100,"passed":100,"failed":0,"policy_checksum":"936a24985b8171fd4a391bc08904a687c1a96c9fc2aeb13de10a9a88dd3fc631","scope":"server_intent_and_immutable_safety_guards","provider_verified":false}}}
+```
+
+### review-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxh9x8hc0v52vdvq4gsbn/review' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxh9x8hc0v52vdvq4gsbn","key":"support.ai","version":1,"value":{"enabled":true,"model":"synthetic-unconfigured","languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000},"checksum":"936a24985b8171fd4a391bc08904a687c1a96c9fc2aeb13de10a9a88dd3fc631","status":"review","reason":"Synthetic unverified model gate","created_by":"01m6gxxfj6r55063s9wqc6rffh","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### self-publish-denied
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxh9x8hc0v52vdvq4gsbn/publish' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Synthetic self publication"}'
+```
+
+```json
+{"status":403,"body":{"error":{"status":403,"code":"second_admin_required","message":"A different administrator must publish this setting.","request_id":"01a1a1de-c58d-70b0-a4e5-7aa5177e8355"}}}
+```
+
+### unverified-model-denied
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxh9x8hc0v52vdvq4gsbn/publish' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Synthetic independent publication"}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"support_model_contract_required","message":"Verify each configured model with the budgeted support-model canary before enabling it.","request_id":"01a1a1de-c8e4-73b5-a8b6-93e8e05b8109"}}}
+```
+
+### draft-bounded-disabled-controls
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support.ai","value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"reason":"Synthetic disabled configurable controls"}'
+```
+
+```json
+{"status":201,"body":{"data":{"id":"01m6gxxj8af2kq3tdpwe02n8rq","key":"support.ai","version":2,"value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","status":"draft","reason":"Synthetic disabled configurable controls","created_by":"01m6gxxfjmes9k549qayc9ahz1","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### test-disabled-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/ai/settings/01m6gxxj8af2kq3tdpwe02n8rq/test' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"total":100,"passed":100,"failed":0,"policy_checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","scope":"server_intent_and_immutable_safety_guards","provider_verified":false}}}
+```
+
+### review-disabled-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxj8af2kq3tdpwe02n8rq/review' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxj8af2kq3tdpwe02n8rq","key":"support.ai","version":2,"value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","status":"review","reason":"Synthetic disabled configurable controls","created_by":"01m6gxxfjmes9k549qayc9ahz1","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### publish-disabled-controls
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxj8af2kq3tdpwe02n8rq/publish' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Synthetic independently reviewed disabled controls"}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxj8af2kq3tdpwe02n8rq","key":"support.ai","version":2,"value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","status":"published","reason":"Synthetic disabled configurable controls","created_by":"01m6gxxfjmes9k549qayc9ahz1","reviewed_by":"01m6gxxfj6r55063s9wqc6rffh","review_note":"Synthetic independently reviewed disabled controls","published_at":"2026-11-03T14:44:54+00:00","is_current":true,"rollback_of":null}}}
+```
+
+### operations-capabilities
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8798/api/v1/admin/ai/operations' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>'
+```
+
+```json
+{"status":200,"body":{"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":1,"matching_total":1,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":{"ESCALATED":100},"outcome_percentages":{"ESCALATED":100},"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":[],"reviewed_outcomes":[],"resolved_review_total":0,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":0,"unreviewed_message_total":1,"matching_open_reviews":1,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":{"ESCALATED":1},"failures":{"answer_word_limit":1},"retrieval_retries":0,"latency_p95_ms":null,"input_tokens":0,"output_tokens":0,"metric_coverage":{"input_tokens":0,"output_tokens":0,"latency_ms":0},"provider_cost":null,"costed_requests":0,"cost_currency":"EUR","from":"2026-11-02T14:44:54+00:00","checked_at":"2026-11-03T14:44:54+00:00","to":"2026-11-03T14:44:54+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.","open_reviews":1,"approved_regressions":0,"daily_reserved_micro_eur":0,"budget_notice":"Conservative retained exposure, not billed spend; all provider attempts reserve against the shared lower policy/deployment cap.","daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"settings_capabilities":{"renderer":"server_owned_evidence_templates","tone":["friendly_professional","direct","warm"],"empathy":["balanced","minimal","high"],"answer_detail":["concise","detailed"],"target_answer_words":{"min":20,"max":200,"soft":true},"max_answer_words":{"min":25,"max":300,"overflow":"human_review_without_truncation"},"response_deadline_ms":{"min":1000,"max":20000},"daily_cost_limit_eur":{"min":0,"max":1000,"deployment_cap":"20"},"fallback":"one_configured_verified_model_transient_failures_only_shared_deadline_and_budget","optional_model_parameters":"reasoning_and_verbosity_omitted_pending_separate_capability_proof","deployment_models":[]},"policy_version":"01m6gxxj8af2kq3tdpwe02n8rq"}}}
+```
+
+### synthetic-word-cap-projection
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8798/api/v1/ai/messages/01m6gxxfk2zqhw35p0wa634db9' -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxfk2zqhw35p0wa634db9","message_id":"01m6gxxfk2zqhw35p0wa634db9","conversation_id":"01m6gxxfjtk89abbqsmjvp4xp5","question":"Synthetic presentation-only fixture","status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","retry_used":false,"action":null,"checks":{"passed":[],"failed":["POLICY"]},"display":{"show_progress_updates":true,"show_verified_badge":true},"result":{"status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","action":null,"evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","checks":{"passed":[],"failed":["POLICY"]},"presentation_reason":"answer_word_limit","presentation":{"tone":"warm","empathy":"high","detail":"concise","target_words":20,"target_is_soft":true,"max_words":25,"word_count":11}},"created_at":"2026-11-03T14:44:51+00:00","completed_at":"2026-11-03T14:44:51+00:00"}}}
+```
