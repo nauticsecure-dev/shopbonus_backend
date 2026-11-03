@@ -1472,3 +1472,5 @@ B65 implementing SHA: `f44d759`. All four checked items refer to the tested loca
 - [x] Test missing/duplicate mappings, wrong build/environment/reviewer, incomplete/expired/corrupt evidence and synthetic complete gate; record tests and remaining frontend/provider/staging gaps.
 
 B66 local boundary: QA SQLite27/358; acceptance MySQL4/28; API5/8353; PHPStan/targeted Pint/diff PASS. Parent `ced2fd9`; implementing SHA follows in closeout. Actual175-source mapping, independent real staging/provider runs, controlled scheduled runners and frontend/portal delivery remain OPEN.
+
+B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/evidence-gate boundary only; the missing actual source mapping, executions, runner pipeline and frontend/portal are not checked as complete.
