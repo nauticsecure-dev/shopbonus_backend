@@ -3,6 +3,7 @@
 namespace App\Services\Catalog;
 
 use App\Enums\ConnectionStatus;
+use App\Integrations\CapabilityMatrix;
 use App\Integrations\ConnectorRegistry;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
@@ -30,7 +31,9 @@ class ConnectionCapabilities
         $gated = fn () => $connected ? $this->row('AVAILABLE', null, $verified)
             : $this->row('LIMITED', 'The connection has not passed all native verification checks (status '.$connection->status->value.').');
         $catalog = function (string $kind) use ($connector, $connection) {
-            if (! $connector instanceof CatalogReader) {
+            $capability = $kind === 'products' ? 'products' : 'coupons_read';
+            $declared = app(CapabilityMatrix::class)->forPlatform($connection->platform)[$capability] ?? null;
+            if (! $connector instanceof CatalogReader || ($declared['state'] ?? null) === 'UNSUPPORTED') {
                 return $this->row('UNSUPPORTED', 'No native read for this platform is implemented.');
             }
             $done = CatalogSync::where('connection_id', $connection->id)->where('kind', $kind)->where('status', 'completed')
@@ -56,6 +59,9 @@ class ConnectionCapabilities
         ];
         if ($connector === null) {
             $rows = array_map(fn () => $this->row('UNSUPPORTED', 'This platform has no implemented connector.'), $rows);
+        }
+        if ($connection->paused_at !== null) {
+            $rows = array_map(fn ($row) => $row['status'] === 'UNSUPPORTED' ? $row : $this->row('LIMITED', 'connection_paused'), $rows);
         }
 
         return array_map(fn (string $name) => ['capability' => $name] + $rows[$name], self::NAMES);

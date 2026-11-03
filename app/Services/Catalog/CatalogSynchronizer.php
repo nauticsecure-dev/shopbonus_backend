@@ -42,7 +42,10 @@ class CatalogSynchronizer
             throw ApiException::conflict('This platform has no native catalog/coupon reader.', 'capability_unsupported', ['capability' => $kind]);
         }
         // Missing read credentials surface from the native transport as provider_credentials_missing.
-        if (! $connection->status->receivesEvents()) {
+        if ($connection->paused_at !== null) {
+            throw ApiException::conflict('This integration is paused.', 'connection_paused');
+        }
+        if (! $connection->acceptsData()) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
         if (CatalogSync::where('connection_id', $connection->id)->where('kind', $kind)->where('status', 'running')->where('started_at', '>', now()->subMinutes(30))->exists()) {
@@ -68,17 +71,32 @@ class CatalogSynchronizer
         }
         try {
             $connection = WebshopConnection::with('webshop')->findOrFail($sync->connection_id);
+            if ($connection->paused_at !== null) {
+                return $sync;
+            }
             $reader = $this->registry->for($connection->platform);
             if (! $reader instanceof CatalogReader || $connection->credential_generation !== $sync->credential_generation) {
                 return $this->finish($sync, 'failed', 'credentials_changed');
             }
+            $sync->forceFill(['items' => 0, 'pages' => 0, 'removed' => 0])->save();
             $currency = $reader->catalogCurrency($connection);
             $max = max(1, (int) config('integrations.catalog.max_pages', 50));
             $cursor = null;
             $seen = [];
             for ($page = 1; $page <= $max; $page++) {
+                $connection->refresh();
+                if ($connection->paused_at !== null) {
+                    return $sync;
+                }
+                if ($connection->credential_generation !== $sync->credential_generation || ! $connection->status->receivesEvents()) {
+                    return $this->finish($sync, 'failed', 'credentials_changed');
+                }
                 $result = $reader->catalogPage($connection, $sync->kind, $cursor, $currency);
                 if (! $this->store($sync, $result['items'])) {
+                    if (WebshopConnection::find($sync->connection_id)?->paused_at !== null) {
+                        return $sync;
+                    }
+
                     return $this->finish($sync, 'failed', 'credentials_changed');
                 }
                 $sync->forceFill(['pages' => $page])->save();
@@ -108,7 +126,7 @@ class CatalogSynchronizer
     {
         return DB::transaction(function () use ($sync, $items) {
             $c = WebshopConnection::whereKey($sync->connection_id)->lockForUpdate()->first();
-            if ($c === null || $c->credential_generation !== $sync->credential_generation || ! $c->status->receivesEvents()) {
+            if ($c === null || $c->credential_generation !== $sync->credential_generation || ! $c->acceptsData()) {
                 return false;
             }
             $model = $sync->kind === 'products' ? ConnectionProduct::class : ConnectionCoupon::class;
@@ -126,7 +144,10 @@ class CatalogSynchronizer
     {
         return DB::transaction(function () use ($sync) {
             $c = WebshopConnection::whereKey($sync->connection_id)->lockForUpdate()->first();
-            if ($c === null || $c->credential_generation !== $sync->credential_generation) {
+            if ($c?->paused_at !== null) {
+                return $sync;
+            }
+            if ($c === null || $c->credential_generation !== $sync->credential_generation || ! $c->acceptsData()) {
                 return $this->finish($sync, 'failed', 'credentials_changed');
             }
             $model = $sync->kind === 'products' ? ConnectionProduct::class : ConnectionCoupon::class;

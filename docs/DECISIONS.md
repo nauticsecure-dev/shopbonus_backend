@@ -275,3 +275,10 @@ revenue journal, change reward spendability, or adopt any proposed RPO/RTO.
 ### D-109 — Approval plus recorded settlement for new rewards (owner, 2026-11-03)
 
 Owner explicitly chose “Approval plus recorded settlement” after the merged main implementation was compared with D-107. This supersedes approval-alone D-089/D-107 for **new rewards**. Preserve existing immutable timing/rule snapshots and reversal history. Network approval alone does not make new credit spendable; independently recorded settlement evidence is also required. No immediate-credit activation, invented settlement or automatic rewrite of historical obligations. D-105 management allocation reporting remains unchanged.
+### Historical revised affiliate timing — 2026-11-02 (superseded by D-109 for new rewards)
+
+The current owner brief explicitly confirms immediate spendable affiliate credit. This supersedes D-089/D-107 and earlier settlement-gated launch notes for new reward evaluations. Default timing is on_validated_attribution, frozen with the active versioned rule. Trusted attribution, duplicate/currency/review safeguards remain. Later network rejection updates reporting and does not automatically claw back instant consumer credit; 12-month expiry remains. Preserve existing frozen timing and ledger history. The EUR 4.75 scenario uses a 100% earning rule for 475-cent eligible commission; retain the general 70% default.
+
+Retain audited 404 concealment for a non-member workspace request; update scenario 2 acceptance accordingly. Permission denial within an active membership remains 403. ShopBonus contact eligibility/consent/suppression checks are disclosure safeguards; Answer24 owns final outreach decisions and execution. Ecommerce fixtures do not establish live installations. Full disposition and executed evidence: docs/release/REVISED_BRIEF_REVIEW_2026-11-02.md.
+
+Merge clarification: D-109 is the later2026-11-03 owner decision and governs new rewards; immediate-credit brief above is historical. Preserve frozen snapshots and reversal history.

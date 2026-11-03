@@ -109,3 +109,9 @@ Actual screenshots: [desktop](../../../docs/discovery/directory-live-desktop.png
 suite passed 10 tests independently. Full platform journeys remain unverified.
 The temporary API server was stopped after captures; existing frontend left running.
 Post-documentation OpenAPI coverage: 3 passed / 5101 assertions.
+
+## Owner-selected local HTTP follow-up — 2026-11-03
+
+The owner selected local services for further evidence. Actual Laravel HTTP + Next/Chrome checks, isolation, exact scenario coverage and remaining limits are documented in ../../shopbonus_frontend/docs/consumer-platform-local-acceptance.md. Final raw 100-sample measurements are in ../../shopbonus_frontend/docs/consumer-platform-local-results.json: directory discovery-cache cold P95 257.74 ms; repeated directory 106.28 ms; authenticated dashboard 146.01 ms. Runtime: PHP 8.4.25, bundled process-scoped OPcache, Xdebug disabled, isolated SQLite (200 shops, 1001 offers, 2008 codes), database cache, sequential loopback HTTP; browser page activity stopped before timing. Control bootstrap/cache invalidation is outside the timed request; PHP opcode cache is warm.
+
+The local target passes under that configuration. Earlier no-OPcache measurements and a paging/heap-affected interrupted attempt remain retained rather than being relabeled as passes. No global PHP configuration, production API code or historical 431.16 ms HTTP-kernel result was altered. Representative staging, MySQL/Redis/load, deployed cache invalidation, full accessibility and approved visual acceptance remain unverified. Serial ConsumerPlatformE2ETest/PointsCheckoutTest/OpenApiCoverageTest: 21 passed, 8035 assertions; docs/release/consumer-platform-local-tests.junit.xml.

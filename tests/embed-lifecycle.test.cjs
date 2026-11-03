@@ -3,11 +3,14 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/v1.js'), 'utf8');
+const shopifySource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/shopify-cart-v1.js'), 'utf8');
 
-function harness({ allowed = false, observer = false, holdout = false, failEvents = 0, cart = null } = {}) {
+function harness({ allowed = false, observer = false, holdout = false, failEvents = 0, cart = null, shopify = false } = {}) {
   const requests = [], reads = [], writes = [], bridge = [], timers = [], listeners = {}, observers = [], intervals = [], messages = [];
   const elements = [];
   let now = Date.parse('2026-10-31T10:00:00Z'), sequence = 0;
+  let nativeCart = { total_price: 9400, currency: 'EUR' }, nativeFailure = false, nativeHold = null, draftHold = null, pairHold = null;
+  function listen(name, callback) { const previous = listeners[name]; listeners[name] = previous ? (...args) => { previous(...args); callback(...args); } : callback; }
   function element(tag) {
     const el = { tag, children: [], style: {}, classList: { add() {}, contains() { return false; } }, isConnected: true,
       attributes: {}, setAttribute(k, v) { this.attributes[k] = v; }, getAttribute(k) { return this.attributes[k]; }, appendChild(child) { this.children.push(child); this.firstChild = this.children[0]; }, attachShadow() { return element('shadow'); },
@@ -19,20 +22,26 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
   const storage = { getItem(k) { reads.push(k); return store.get(k) ?? null; }, setItem(k, v) { writes.push(k); store.set(k, v); }, removeItem(k) { store.delete(k); } };
   const document = { currentScript: { src: 'https://api.test/embed/v1.js', getAttribute(k) { return k === 'data-shopbonus-key' ? 'pk_test' : null; } },
     readyState: 'complete', visibilityState: 'visible', documentElement: Object.assign(element('html'), { lang: 'nl' }),
-    createElement: element, addEventListener(name, callback) { listeners[name] = callback; } };
+    createElement: element, addEventListener: listen };
   let published = true;
-  const config = { reward: { threshold_minor: 10000, currency: 'EUR' }, campaign: 'campaign', version: 1, config: { template: cart ? 'cart_progress' : 'floating', placement: {}, devices: ['desktop'], content: { cta_label: 'Go', cta_url: 'https://shop.test/reward' } } };
+  const config = { reward: { threshold_minor: 10000, currency: 'EUR' }, campaign: 'campaign', version: 1, config: { template: cart || shopify ? 'cart_progress' : 'floating', placement: {}, devices: ['desktop'], content: { cta_label: 'Go', cta_url: 'https://shop.test/reward' } } };
   const sandbox = { document, URL, Promise, JSON, Object, Math, navigator: { language: 'nl' }, crypto: { randomUUID: () => `00000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}` },
     Date: class extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } },
     location: { origin: 'https://shop.test', pathname: '/collections/all' }, innerWidth: 1200,
-    localStorage: storage, sessionStorage: storage, CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
+    localStorage: storage, sessionStorage: storage, CustomEvent: class { constructor(type, options = {}) { this.type = type; this.detail = options.detail; } },
     ShopBonusConsent: { getConsentId: () => allowed ? 'd9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834' : null }, ShopBonusCart: { setAttribution: (value) => bridge.push(value), getSnapshot: () => cart, subscribe: (callback) => { listeners.cart = callback; } },
     setTimeout(callback, delay) { const t = { callback, delay }; timers.push(t); return t; }, clearTimeout(t) { t.cancelled = true; }, setInterval(callback, delay) { intervals.push({ callback, delay }); },
-    addEventListener(name, callback) { listeners[name] = callback; }, dispatchEvent() {},
+    addEventListener: listen, dispatchEvent(event) { listeners[event.type]?.(event); },
     fetch: async (url, options = {}) => {
       const body = options.body && JSON.parse(options.body); requests.push({ url, body });
-      if (url.includes('/editor/pair')) return { ok: true, json: async () => ({ data: { editor_token: 'editor-secret', expires_in: 1800 } }) };
-      if (url.includes('/editor/campaigns/')) return { ok: true, json: async () => ({ data: { id: 'campaign', draft_config: config.config, draft_revision: 1 } }) };
+      if (url === 'https://shop.test/en/cart.js') {
+        const value = JSON.parse(JSON.stringify(nativeCart));
+        if (nativeHold) await nativeHold;
+        if (nativeFailure) throw new Error('native_cart_offline');
+        return { ok: true, json: async () => value };
+      }
+      if (url.includes('/editor/pair')) { if (pairHold) await pairHold; return { ok: true, json: async () => ({ data: { editor_token: 'editor-secret', expires_in: 1800 } }) }; }
+      if (url.includes('/editor/campaigns/')) { if (draftHold) await draftHold; return { ok: true, json: async () => ({ data: { id: 'campaign', draft_config: config.config, draft_revision: 1 } }) }; }
       if (url.includes('/events')) {
         if (failEvents-- > 0) throw new Error('offline');
         return { ok: true, json: async () => ({ data: { click_ids: Object.fromEntries(body.events.filter((e) => e.type === 'cta_click').map((e) => [e.id, 'bc_click'])) } }) };
@@ -43,12 +52,24 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
   sandbox.window = sandbox;
   sandbox.parent = sandbox;
   sandbox.opener = { postMessage(data, origin) { messages.push({ data, origin }); } };
+  if (shopify) {
+    delete sandbox.ShopBonusCart;
+    sandbox.Shopify = { routes: { root: '/en/' } };
+    sandbox.AbortController = AbortController;
+    vm.runInNewContext(shopifySource, sandbox);
+  }
   if (observer) sandbox.IntersectionObserver = class { constructor(callback) { this.callback = callback; observers.push(this); } observe(el) { this.el = el; } disconnect() {} };
   vm.runInNewContext(source, sandbox);
   return { requests, reads, writes, bridge, timers, elements, observers, sandbox, config, intervals, messages, listeners,
     message(data, options = {}) { listeners.message({ data: { schema: "shopbonus.banner.v1", key: "pk_test", nonce: "test-nonce", ...data }, origin: "https://studio.test", source: sandbox.opener, ...options }); },
     pause() { published = false; },
     setCart(value) { cart = value; listeners.cart(); },
+    nativeCart(value) { nativeCart = value; sandbox.dispatchEvent({ type: 'shopbonus:cart-invalidated' }); },
+    nativeFail(value) { nativeFailure = value; },
+    holdNative(value) { nativeHold = value; },
+    holdDraft(value) { draftHold = value; },
+    holdPair(value) { pairHold = value; },
+    advance(ms) { now += ms; },
     async settle() { for (let i = 0; i < 10; i++) await new Promise(setImmediate); },
     async timer(delay) { const t = timers.find((t) => !t.cancelled && !t.ran && t.delay === delay); assert.ok(t, `timer ${delay}`); t.ran = true; now += delay; t.callback(); await this.settle(); },
     async withdraw() { allowed = false; listeners['shopbonus:consent-changed'](); await this.settle(); } };
@@ -178,4 +199,116 @@ test('authenticated session expiration rejects further preview messages', async 
   h.message({ type: 'editor.apply_config', campaign: 'campaign', config: h.config.config }); await h.settle();
   assert.ok(h.messages.some((m) => m.data.type === 'editor.expired'));
   assert.equal(h.elements.filter((e) => e.sbItem && e.sbItem.version === 0).length, count - 1);
+});
+
+test('Shopify dummy native carts update the actual embed after add, quantity, remove and currency changes', async () => {
+  const h = harness({ shopify: true }); await h.settle();
+  const widget = h.elements.find((e) => e.sbItem), bar = widget.querySelector('.sb-bar');
+  assert.equal(bar.firstChild.style.width, '94%');
+  for (const [total, width] of [[10000, '100%'], [4700, '47%'], [0, '0%']]) {
+    h.nativeCart({ total_price: total, currency: 'EUR' });
+    assert.equal(bar.style.display, 'none');
+    await h.settle(); assert.equal(bar.firstChild.style.width, width); assert.equal(bar.style.display, 'block');
+  }
+  h.nativeCart({ total_price: 9400, currency: 'USD' }); await h.settle();
+  assert.equal(bar.style.display, 'none');
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot().currency, 'USD');
+  h.config.reward.currency = 'USD';
+  h.intervals.find((i) => i.delay === 15000).callback(); await h.settle();
+  assert.equal(h.elements.find((e) => e.isConnected && e.sbItem).querySelector('.sb-bar').style.display, 'block');
+  const nativeRequests = h.requests.filter((r) => r.url.endsWith('/cart.js'));
+  assert.equal(nativeRequests.length, 5);
+});
+
+test('Shopify native errors, unsupported precision and stale observations fail closed and recover', async () => {
+  const h = harness({ shopify: true }); await h.settle();
+  const bar = h.elements.find((e) => e.sbItem).querySelector('.sb-bar');
+  for (const value of [{ total_price: -1, currency: 'EUR' }, { total_price: 94.1, currency: 'EUR' }, { total_price: 9400, currency: 'JPY' }, { total_price: 9400, currency: 'AAA' }]) {
+    h.nativeCart(value); await h.settle(); assert.equal(bar.style.display, 'none'); assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+  }
+  h.nativeFail(true); h.nativeCart({ total_price: 9400, currency: 'EUR' }); await h.settle(); assert.equal(bar.style.display, 'none');
+  h.nativeFail(false); h.intervals.find((i) => i.delay === 10000).callback(); await h.settle(); assert.equal(bar.style.display, 'block');
+  const copy = h.sandbox.ShopBonusCart.getSnapshot(); copy.total_minor = 1;
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400);
+  h.advance(31000); h.intervals.find((i) => i.delay === 4000).callback(); assert.equal(bar.style.display, 'none');
+  h.intervals.find((i) => i.delay === 10000).callback(); await h.settle(); assert.equal(bar.style.display, 'block');
+});
+
+test('Shopify invalidation during a native read discards the old cart and queues one fresh read', async () => {
+  const h = harness({ shopify: true }); await h.settle();
+  let release; h.holdNative(new Promise((resolve) => { release = resolve; }));
+  h.intervals.find((i) => i.delay === 10000).callback();
+  h.nativeCart({ total_price: 1000, currency: 'EUR' });
+  h.nativeCart({ total_price: 2000, currency: 'EUR' });
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+  assert.equal(h.requests.filter((r) => r.url.endsWith('/cart.js')).length, 2);
+  h.holdNative(null); release(); await h.settle();
+  assert.equal(h.requests.filter((r) => r.url.endsWith('/cart.js')).length, 3);
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 2000);
+  assert.equal(h.elements.find((e) => e.sbItem).querySelector('.sb-bar').firstChild.style.width, '20%');
+});
+
+test('Shopify hidden tabs stop native polling and bfcache restore reads a fresh cart', async () => {
+  const h = harness({ shopify: true }); await h.settle();
+  h.sandbox.document.visibilityState = 'hidden'; h.listeners.visibilitychange();
+  h.intervals.find((i) => i.delay === 10000).callback(); await h.settle();
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+  assert.equal(h.requests.filter((r) => r.url.endsWith('/cart.js')).length, 1);
+  h.listeners.pagehide(); h.sandbox.document.visibilityState = 'visible';
+  h.listeners.pageshow(); await h.settle();
+  assert.equal(h.requests.filter((r) => r.url.endsWith('/cart.js')).length, 2);
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400);
+});
+
+test('a draft read completed after editor disconnect cannot restore private editor content', async () => {
+  const h = harness(); await h.settle();
+  let release; h.holdDraft(new Promise((resolve) => { release = resolve; }));
+  h.message({ type: 'editor.handshake' }); h.message({ type: 'editor.pair', pairing_token: 'single-use', campaign: 'campaign' }); await h.settle();
+  h.message({ type: 'editor.disconnect' }); await h.settle();
+  release(); await h.settle();
+  assert.equal(h.elements.filter((e) => e.isConnected && e.sbItem?.version === 0).length, 0);
+  assert.ok(!h.messages.some((m) => m.data.type === 'editor.paired'));
+});
+
+test('disconnect while pairing discards the late permission exchange', async () => {
+  const h = harness(); await h.settle();
+  let release; h.holdPair(new Promise((resolve) => { release = resolve; }));
+  h.message({ type: 'editor.handshake' }); h.message({ type: 'editor.pair', pairing_token: 'single-use', campaign: 'campaign' });
+  h.message({ type: 'editor.disconnect' }); release(); await h.settle();
+  assert.equal(h.requests.filter((r) => r.url.includes('/editor/campaigns/')).length, 0);
+  assert.ok(!h.messages.some((m) => m.data.type === 'editor.paired'));
+});
+
+test('a draft response arriving after expiry never renders a private widget', async () => {
+  const h = harness(); await h.settle();
+  let release; h.holdDraft(new Promise((resolve) => { release = resolve; }));
+  h.message({ type: 'editor.handshake' }); h.message({ type: 'editor.pair', pairing_token: 'single-use', campaign: 'campaign' }); await h.settle();
+  h.advance(1800001); release(); await h.settle();
+  assert.equal(h.elements.filter((e) => e.isConnected && e.sbItem?.version === 0).length, 0);
+  assert.ok(!h.messages.some((m) => m.data.type === 'editor.paired'));
+});
+
+test('Shopify timeout ignores a late response and subscriptions can unsubscribe', async () => {
+  const h = harness({ shopify: true }); await h.settle();
+  let calls = 0; const unsubscribe = h.sandbox.ShopBonusCart.subscribe(() => { calls++; });
+  let release; h.holdNative(new Promise((resolve) => { release = resolve; }));
+  h.intervals.find((i) => i.delay === 10000).callback();
+  await h.timer(5000); assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+  assert.equal(calls, 1); unsubscribe();
+  release(); await h.settle(); assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+  h.holdNative(null); h.intervals.find((i) => i.delay === 10000).callback(); await h.settle();
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400); assert.equal(calls, 1);
+});
+
+test('Shopify adapter preserves an existing bridge and rejects absent or foreign route configuration', () => {
+  for (const routes of [null, { root: 'https://evil.test/' }, { root: '/en/?bad=1' }, { root: '/en/#bad' }, { root: '/en' }]) {
+    const sandbox = { window: null, Shopify: routes ? { routes } : undefined, location: { origin: 'https://shop.test' }, URL, AbortController };
+    sandbox.window = sandbox; vm.runInNewContext(shopifySource, sandbox); assert.equal(sandbox.ShopBonusCart, undefined);
+  }
+  const existing = { getSnapshot() {} }; const sandbox = { window: { ShopBonusCart: existing } };
+  vm.runInNewContext(shopifySource, sandbox); assert.equal(sandbox.window.ShopBonusCart, existing);
+  for (const pathname of ['/en/checkout', '/en/checkouts/private', '/en/account', '/checkout']) {
+    const sandbox = { window: null, Shopify: { routes: { root: '/en/' } }, location: { origin: 'https://shop.test', pathname }, URL, AbortController };
+    sandbox.window = sandbox; vm.runInNewContext(shopifySource, sandbox); assert.equal(sandbox.ShopBonusCart, undefined);
+  }
 });

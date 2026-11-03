@@ -37,7 +37,7 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | Docs | https://shopify.dev/docs/api/admin-graphql · https://shopify.dev/docs/apps/build/webhooks · https://shopify.dev/docs/apps/build/online-store/theme-app-extensions |
 | Orders | `order` / `orders` GraphQL queries |
 | Refunds | `totalRefundedSet` + successful REFUND transactions (no refund mutation) |
-| Products | GraphQL products (bounded); coupons **UNSUPPORTED** |
+| Products / coupon reads | GraphQL products (bounded); `discountNodes` with optional `read_discounts` maps single-code basic/free-shipping discounts. BXGY/app/bulk-code discounts are skipped; coupon writes are unsupported. Default OAuth requests only `read_orders,read_products`; additional scope requires reviewed provider authorization. |
 | Webhooks | `orders/create`, `orders/updated`, `orders/paid`, `orders/cancelled`, `refunds/create`, `app/uninstalled` |
 | Signature | Base64 HMAC-SHA256 over **raw body**; dedupe delivery/event IDs |
 | Banners | Theme App Extension (App Blocks/Embed); not implemented — manual embed LIMITED |
@@ -218,12 +218,12 @@ Redacted sample: `{ "order": { "id": 1623550, "number": "ORD-1001", "email": "[r
 | Item | Value |
 | --- | --- |
 | Version | PS 9 Webservice JSON + Shopbonus module bridge |
-| Install | Signed ZIP module (not shipped in Laravel backend) |
+| Install | Candidate PS9 ZIP: `/downloads/integrations/shopbonus-prestashop9.zip`; signed ID notifications, native read credentials and CLI worker required |
 | Hooks | `actionValidateOrderAfter` + status/refund hooks — validation ≠ settled payment |
 | Auth | Shopbonus HMAC v1; optional webservice Basic key |
 | Docs | https://devdocs.prestashop-project.org/9/modules/introduction/ · hooks · webservice orders |
 | Banners | Display hooks via module |
-| Status | Optional native read **WORKING**; module ZIP **MISSING** |
+| Status | Native read implemented; candidate module shipped; actual installation, theme and uninstall **NOT RUN** |
 
 | Target | Path |
 | --- | --- |
@@ -240,12 +240,12 @@ Redacted sample: `{ "order": { "id": 1623550, "number": "ORD-1001", "email": "[r
 | Item | Value |
 | --- | --- |
 | Version | Shopbonus webhook v1 bridge; OC 3 vs 4 packaging differ |
-| Install | Version-specific extension / `.ocmod.zip` when required |
+| Install | Candidate OpenCart 4.1 default-store `/downloads/integrations/shopbonus.ocmod.zip`; CLI worker required; OpenCart 3/4.0 not claimed |
 | Native API | Core admin order history API **not assumed**; catalog `api/order` is checkout-session oriented |
 | Auth | Shopbonus HMAC v1 |
 | Docs | https://docs.opencart.com/developer-guide/extensions |
 | Banners | Module/events; OCMOD only if events insufficient |
-| Status | Bridge **AVAILABLE**; native read **UNSUPPORTED**; cannot pass seven-gate Connected without native_api evidence |
+| Status | Candidate bridge shipped; payment Unknown, no capture/refund proof; native read **UNSUPPORTED**; cannot pass seven-gate Connected without native_api evidence |
 
 ---
 
@@ -299,8 +299,8 @@ Ecwid reported refund mapping follows [get-order](https://docs.ecwid.com/api-ref
 | 4 | BigCommerce unpaid≠reward; paid update | `BigCommerceConnectorTest` | NOT RUN |
 | 5 | Ecwid token, webhook, lookup, recovery | `EcwidConnectorTest`, `OrderRecoveryTest` | NOT RUN |
 | 6 | Lightspeed plan/API + honest LIMITED money/refund | `LightspeedCConnectorTest`, catalogue profile | NOT RUN |
-| 7 | PrestaShop ZIP, paid update, banner, uninstall | Backend contract + `PrestaShopConnectorTest`; ZIP external | NOT RUN |
-| 8 | OpenCart extension, status event, uninstall | Bridge + profile LIMITED; extension external | NOT RUN |
+| 7 | PrestaShop ZIP, paid update, banner, uninstall | Candidate PS9 ZIP + signer/native mapping checks; installation acceptance outstanding | NOT RUN |
+| 8 | OpenCart extension, status event, uninstall | Candidate OC4.1 ZIP + conservative payload checks; capture/refund proof unsupported | NOT RUN |
 | 9 | Shopware manifest, webhook, order, capabilities | `SelfHostedReadMappingTest`; native app external | NOT RUN |
 | 10 | Adobe async event, refund, no checkout block | `MagentoConnector` + docs policy; live NOT RUN | NOT RUN |
 
@@ -310,5 +310,5 @@ Ecwid reported refund mapping follows [get-order](https://docs.ecwid.com/api-ref
 
 - Coupon **writes** on any platform
 - Native storefront banner auto-publish (all LIMITED / manual)
-- Invented Lightspeed Retail/E-Series or OpenCart admin order REST
+- Invented Lightspeed Retail or OpenCart admin order REST (E-Series uses the documented Ecwid API)
 - Marking `verification: verified` without merchant-authorized evidence

@@ -4,10 +4,33 @@ namespace Tests\Feature\Notifications;
 
 use App\Models\CentralNotification;
 use App\Services\Notifications\NotificationMail;
+use App\Support\FrontendPath;
 use Tests\TestCase;
 
 class NotificationActionLinkTest extends TestCase
 {
+    public function test_default_identity_destinations_render_existing_frontend_routes(): void
+    {
+        $defaults = require base_path('config/shopbonus.php');
+        config(['shopbonus.identity.frontend_paths' => $defaults['identity']['frontend_paths']]);
+        $expected = [
+            'consumer_benefits' => '/mijn-voordelen',
+            'consumer_wallet' => '/mijn-voordelen?tab=transacties',
+            'consumer_vouchers' => '/mijn-voordelen?tab=vouchers',
+            'workspace_home' => '/dashboard?workspace=shop_fixture',
+            'workspace_wallet' => '/dashboard?workspace=shop_fixture',
+            'workspace_offers' => '/dashboard/offers?workspace=shop_fixture',
+            'workspace_banners' => '/dashboard/banners?workspace=shop_fixture',
+            'workspace_integrations' => '/dashboard/app-store?workspace=shop_fixture',
+            'admin_home' => '/admin',
+        ];
+        foreach ($expected as $key => $target) {
+            $path = FrontendPath::to($key, ['workspace' => 'shop_fixture']);
+            $this->assertSame($target, $path);
+            $this->assertStringContainsString('https://shopbonus.example'.$target, $this->render($path)['text']);
+        }
+    }
+
     private function render(string $path, bool $workspace = false): array
     {
         config(['shopbonus.identity.frontend_url' => 'https://shopbonus.example']);

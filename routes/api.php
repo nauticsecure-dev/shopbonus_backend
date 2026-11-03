@@ -609,6 +609,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::post('select', [WorkspaceController::class, 'select'])->name('select');
 
                 // Team (Trello #16 "Team management").
+                Route::get('access-history', [MemberController::class, 'history'])->middleware('workspace.can:team.manage')->name('members.history');
                 Route::get('members', [MemberController::class, 'index'])->middleware('workspace.can:team.view')->name('members.index');
                 Route::delete('membership', [MemberController::class, 'leave'])->name('members.leave');
                 // D-108 ownership transfer: the owner proposes, the member accepts; both freshly password-confirmed.
@@ -659,6 +660,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}/coupons', [CatalogController::class, 'coupons'])->middleware('workspace.can:integrations.manage')->name('connections.coupons');
                 Route::get('connections/{connection}/catalog-syncs', [CatalogController::class, 'syncs'])->middleware('workspace.can:integrations.view')->name('connections.catalog-syncs.index');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
+                    Route::post('connections/{connection}/pause', [ConnectionController::class, 'pause'])->name('connections.pause');
+                    Route::post('connections/{connection}/resume', [ConnectionController::class, 'resume'])->name('connections.resume');
                     Route::post('connections/{connection}/catalog-syncs', [CatalogController::class, 'sync'])->middleware('throttle:commerce-probe')->name('connections.catalog-syncs.store');
                     // Merchant App Store aliases (Hassan FE + Frank handoff) → CatalogSynchronizer.
                     Route::post('connections/{connection}/sync/products', [CatalogController::class, 'syncProducts'])
@@ -703,6 +706,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
                 // Code inventory per offer (Trello #7 §5–7).
                 Route::get('offers/{offer}/codes', [VoucherCodeController::class, 'index'])->middleware('workspace.can:vouchers.view')->name('codes.index');
+                Route::get('offers/{offer}/code-batches', [VoucherCodeController::class, 'batches'])->middleware('workspace.can:vouchers.view')->name('codes.batches');
                 Route::get('offers/{offer}/codes/import-template', [VoucherCodeController::class, 'importTemplate'])->middleware('workspace.can:vouchers.view')->name('codes.import-template');
                 Route::get('offers/{offer}/codes/export', [VoucherCodeController::class, 'export'])
                     ->middleware(['workspace.can:vouchers.export', 'throttle:order-export'])->name('codes.export');

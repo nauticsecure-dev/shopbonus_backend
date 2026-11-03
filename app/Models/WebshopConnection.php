@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $last_verified_order_at
  * @property CarbonImmutable|null $connected_at
  * @property CarbonImmutable|null $disconnected_at
+ * @property CarbonImmutable|null $paused_at
  * @property string|null $last_error_code
  * @property CarbonImmutable|null $last_error_at
  * @property int $created_by
@@ -36,6 +37,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class WebshopConnection extends Model
 {
     use HasUlids;
+
+    private bool $lifecycleProbe = false;
+
+    /** Internal, non-persisted permission to verify an authenticated uninstall against the provider. */
+    public function forLifecycleProbe(): self
+    {
+        $probe = clone $this;
+        $probe->lifecycleProbe = true;
+
+        return $probe;
+    }
+
+    public function isLifecycleProbe(): bool
+    {
+        return $this->lifecycleProbe;
+    }
 
     protected $guarded = ['id'];
 
@@ -56,6 +73,7 @@ class WebshopConnection extends Model
             'last_verified_order_at' => 'immutable_datetime',
             'connected_at' => 'immutable_datetime',
             'disconnected_at' => 'immutable_datetime',
+            'paused_at' => 'immutable_datetime',
             'last_error_at' => 'immutable_datetime',
             'created_at' => 'immutable_datetime',
             'updated_at' => 'immutable_datetime',
@@ -73,6 +91,12 @@ class WebshopConnection extends Model
         $value = $this->credentials[$key] ?? null;
 
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /** Lifecycle notifications remain accepted while business data processing is paused. */
+    public function acceptsData(): bool
+    {
+        return $this->paused_at === null && $this->status->receivesEvents();
     }
 
     /** @return BelongsTo<Webshop, $this> */

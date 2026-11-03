@@ -112,7 +112,7 @@ class MyBenefitsE2ETest extends TestCase
         $this->assertSame('on_network_settlement', config('shopbonus.affiliate.credit_timing'));
     }
 
-    public function test_02_standard_affiliate_cashback_settled_70_30(): void
+    public function test_02_standard_affiliate_cashback_70_30_waits_for_settlement(): void
     {
         $this->seedProgram();
         $ref = $this->click();

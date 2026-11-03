@@ -2,7 +2,6 @@
 
 namespace App\Integrations\Http;
 
-use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
 use App\Http\Resources\ConnectionResource;
 use App\Integrations\ShopifyOAuth;
@@ -263,7 +262,10 @@ class ShopifyApi
      */
     private function query(WebshopConnection $connection, string $query, #[\SensitiveParameter] array $variables = [], bool $allowProtectedFields = false): array
     {
-        if ($connection->status === ConnectionStatus::Disconnected) {
+        if ($connection->paused_at !== null && ! $connection->isLifecycleProbe()) {
+            throw ApiException::conflict('This integration is paused.', 'connection_paused');
+        }
+        if (! $connection->status->receivesEvents()) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
         $host = $connection->external_shop_ref;

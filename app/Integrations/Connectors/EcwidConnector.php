@@ -21,7 +21,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public function platform(): EcommercePlatform
     {

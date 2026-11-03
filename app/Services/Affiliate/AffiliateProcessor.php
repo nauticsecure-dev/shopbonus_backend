@@ -203,7 +203,7 @@ class AffiliateProcessor
                 return; // no rule in force → no reward
             }
             if ($tx->reward_terms_snapshot === null) {
-                $tx->forceFill(['reward_timing' => $tx->reward_timing ?? 'on_network_settlement', 'reward_terms_snapshot' => $rule->evidence()])->save();
+                $tx->forceFill(['reward_timing' => $timing, 'reward_terms_snapshot' => $rule->evidence()])->save();
             }
             if ($this->requiresReview($tx, $rule, $amount, $source, $actorUserId, $skipReview)) {
                 return;
@@ -233,7 +233,7 @@ class AffiliateProcessor
             $instant && $tx->reward_status === 'none' => $this->credited($tx, $this->wallets->credit($wallet, (int) $tx->reward_amount, $creditKey, meta: $meta + ['reason' => 'Affiliate purchase']), $source),
             $instant && in_array($tx->network_status, ['rejected', 'reversed'], true) && $tx->reward_status === 'credited' => $tx->forceFill(['review_reason' => 'network_'.$tx->network_status.'_after_credit'])->save(),
 
-            // Approval alone is insufficient for new rewards.
+            // Preserve historical approval/settlement obligations and their reversal policy.
             ! $instant && ($tx->network_status === 'pending' || ($tx->network_status === 'approved' && ! $settled)) && $tx->reward_status === 'none' => $this->pending($tx, $this->wallets->addPending($wallet, (int) $tx->reward_amount, 'affiliate:'.$tx->public_id, $meta + ['description' => 'Affiliate purchase, awaiting approval and settlement'])),
             ! $instant && $settled && $tx->network_status === 'approved' && in_array($tx->reward_status, ['none', 'pending'], true) => $this->approve($tx, $wallet, $creditKey, $meta, $source, $actorUserId, $skipReview),
             ! $instant && in_array($tx->network_status, ['rejected', 'reversed'], true) && $tx->reward_status === 'pending' => $this->cancelPending($tx),

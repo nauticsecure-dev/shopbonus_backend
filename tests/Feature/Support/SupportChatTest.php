@@ -133,7 +133,7 @@ class SupportChatTest extends TestCase
         $m = $this->runMessage($m);
         $this->assertSame('VERIFIED', $m->status);
         $this->assertStringContainsString('EUR 10.00', $m->result['answer']);
-        $this->assertSame('/app/wallet', $m->result['action']['route']);
+        $this->assertSame(config('shopbonus.identity.frontend_paths.consumer_wallet'), $m->result['action']['route']);
         $this->getJson('/api/v1/ai/messages/'.$m->public_id)->assertOk()->assertJsonPath('data.result.status', 'VERIFIED')->assertDontSee('fixture-support-secret');
         $c = SupportConversation::findOrFail($m->conversation_id);
         $this->getJson('/api/v1/ai/conversations/'.$c->public_id)->assertOk()->assertJsonCount(1, 'data.messages');

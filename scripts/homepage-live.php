@@ -100,7 +100,7 @@ if ($action === 'serve') {
     }
     echo "Real Laravel acceptance database ready; MFA and CSRF enabled.\n";
     flush();
-    $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:8018', '-t', $root.'/public', $root.'/public/index.php'], [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes, $root);
+    $server = proc_open([PHP_BINARY, '-d', 'variables_order=EGPCS', '-S', '127.0.0.1:8018', '-t', $root.'/public', $root.'/public/index.php'], [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes, $root);
     if (! is_resource($server)) {
         throw new RuntimeException('Cannot start real Laravel HTTP server.');
     }

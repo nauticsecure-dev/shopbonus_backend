@@ -180,7 +180,7 @@ class PlatformSettings
             'operations.diagnostics_daily_request_limit' => ['value' => ['required', 'integer:strict', 'min:0', 'max:1000']],
             'public.brand_name' => ['value' => ['required', 'string', 'min:1', 'max:100', 'regex:/^[\pL\pN .&\'-]+$/u']],
             'public.support_email' => ['value' => ['required', 'email:rfc', 'max:254']],
-            'public.languages' => ['value' => ['required', 'array', 'min:1', 'max:2'], 'value.*' => ['required', 'string', 'distinct', Rule::in(User::SUPPORTED_LOCALES)]],
+            'public.languages' => ['value' => ['required', 'array', 'min:1', 'max:'.count(User::SUPPORTED_LOCALES)], 'value.*' => ['required', 'string', 'distinct', Rule::in(User::SUPPORTED_LOCALES)]],
             default => str_starts_with($key, 'notifications.template.') ? NotificationTemplates::rules() : throw new \LogicException('Unexpected validated setting key.'),
         };
         Validator::make(['value' => $value], $rules)->validate();

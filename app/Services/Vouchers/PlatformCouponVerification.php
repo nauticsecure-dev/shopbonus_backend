@@ -9,6 +9,7 @@ use App\Exceptions\ApiException;
 use App\Integrations\Http\WooCommerceApi;
 use App\Models\OfferVersion;
 use App\Models\User;
+use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\VoucherEvent;
 use App\Models\WebshopConnection;
@@ -24,6 +25,8 @@ use Illuminate\Support\Facades\DB;
 class PlatformCouponVerification
 {
     public const VERIFIED = 'verified';
+
+    public const MANUALLY_CONFIRMED = 'manually_confirmed';
 
     public const PENDING = 'verification_pending';
 
@@ -46,7 +49,7 @@ class PlatformCouponVerification
     /**
      * @return array{platform_validation: string, detail: array<string, mixed>}
      */
-    public function verifyAgainstProvider(VoucherCode $code, ?OfferVersion $terms = null): array
+    public function verifyAgainstProvider(VoucherCode $code, ?OfferVersion $terms = null, ?Voucher $voucher = null): array
     {
         $code->loadMissing('offer.currentVersion');
         $terms ??= $code->offer?->currentVersion;
@@ -56,7 +59,7 @@ class PlatformCouponVerification
             return $this->persist($code, self::MERCHANT_REQUIRED, [
                 'reason' => 'no_usable_connection',
                 'message' => 'Connect and verify a webshop integration before automatic coupon checks.',
-            ], 'provider_check');
+            ], 'provider_check', voucher: $voucher);
         }
 
         if (! in_array($connection->platform, self::PROVIDER_SUPPORTED, true)) {
@@ -64,7 +67,7 @@ class PlatformCouponVerification
                 'reason' => 'coupon_api_unsupported',
                 'platform' => $connection->platform->value,
                 'message' => 'This platform has no ShopBonus coupon verification adapter. Confirm the code in your webshop admin, then mark it manually.',
-            ], 'provider_check');
+            ], 'provider_check', voucher: $voucher);
         }
 
         try {
@@ -74,7 +77,7 @@ class PlatformCouponVerification
                     'reason' => 'not_found_on_platform',
                     'platform' => $connection->platform->value,
                     'message' => 'The code was not found in the webshop coupon list. Create it on the platform or mark merchant verification.',
-                ], 'provider_check');
+                ], 'provider_check', voucher: $voucher);
             }
 
             $comparison = $this->compareTerms($coupon, $terms);
@@ -85,13 +88,13 @@ class PlatformCouponVerification
                 'platform' => $connection->platform->value,
                 'provider_coupon' => $comparison['provider'],
                 'differences' => $comparison['differences'],
-            ], 'provider_check');
+            ], 'provider_check', voucher: $voucher);
         } catch (ApiException $e) {
             return $this->persist($code, self::SYNC_ERROR, [
                 'reason' => $e->errorCode,
                 'platform' => $connection->platform->value,
                 'message' => 'Platform coupon check failed. Retry after fixing the integration, or confirm manually.',
-            ], 'provider_check');
+            ], 'provider_check', voucher: $voucher);
         }
     }
 
@@ -100,13 +103,22 @@ class PlatformCouponVerification
      *
      * @return array{platform_validation: string, detail: array<string, mixed>}
      */
-    public function confirmManually(VoucherCode $code, User $actor, string $note): array
+    public function confirmManually(VoucherCode $code, User $actor, string $note, ?Voucher $voucher = null): array
     {
-        return $this->persist($code, self::VERIFIED, [
+        return $this->persist($code, self::MANUALLY_CONFIRMED, [
             'reason' => 'merchant_confirmed',
             'note' => $note,
             'confirmed_by' => $actor->public_id,
-        ], 'manual_confirm', $actor->id);
+        ], 'manual_confirm', $actor->id, $voucher);
+    }
+
+    /** @return array{platform_validation: string, detail: array<string, mixed>} */
+    public function verifyHistoricalVoucher(Voucher $voucher): array
+    {
+        // Frozen snapshot is authoritative, even after later offer-version edits.
+        $terms = (new OfferVersion)->forceFill($voucher->terms_snapshot);
+
+        return $this->verifyAgainstProvider($voucher->code, $terms, $voucher);
     }
 
     private function usableConnection(int $webshopId): ?WebshopConnection
@@ -181,19 +193,24 @@ class PlatformCouponVerification
      * @param  array<string, mixed>  $detail
      * @return array{platform_validation: string, detail: array<string, mixed>}
      */
-    private function persist(VoucherCode $code, string $status, array $detail, string $mode, ?int $actorUserId = null): array
+    private function persist(VoucherCode $code, string $status, array $detail, string $mode, ?int $actorUserId = null, ?Voucher $voucher = null): array
     {
-        return DB::transaction(function () use ($code, $status, $detail, $mode, $actorUserId) {
+        return DB::transaction(function () use ($code, $status, $detail, $mode, $actorUserId, $voucher) {
             $fresh = VoucherCode::whereKey($code->id)->lockForUpdate()->firstOrFail();
             $from = $fresh->platform_validation;
-            $fresh->platform_validation = $status;
-            $fresh->save();
+            $detail['scope'] = $voucher === null ? 'inventory' : 'historical_voucher';
+            $detail['voucher_id'] = $voucher?->public_id;
+            if ($voucher === null) {
+                $fresh->platform_validation = $status;
+                $fresh->save();
+            }
 
             VoucherEvent::create([
                 'webshop_id' => $fresh->webshop_id,
                 'voucher_code_id' => $fresh->id,
+                'voucher_id' => $voucher?->id,
                 'type' => 'platform_validation_'.$mode,
-                'from_status' => $from,
+                'from_status' => $voucher === null ? $from : null,
                 'to_status' => $status,
                 'actor_user_id' => $actorUserId,
                 'summary' => $detail,
@@ -203,6 +220,8 @@ class PlatformCouponVerification
                 'mode' => $mode,
                 'platform_validation' => $status,
                 'reason' => $detail['reason'] ?? null,
+                'scope' => $detail['scope'],
+                'voucher_id' => $voucher?->public_id,
             ]);
 
             return ['platform_validation' => $status, 'detail' => $detail];

@@ -2,9 +2,9 @@
 
 Generated 2026-11-03 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **466**. Method/path operations (HEAD aliases excluded): **467**. Unique paths: **408**.
+Runtime route entries: **470**. Method/path operations (HEAD aliases excluded): **471**. Unique paths: **412**.
 
-Access counts are per operation: admin 227, authenticated 4, integration 4, public 44, verified 188. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 227, authenticated 4, integration 4, public 44, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -358,6 +358,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/workspaces` | verified | - | session_cookie, bearer_token | - | authenticated_user_resource | - | ThrottleRequests:api, ThrottleRequests:workspace-create | security_denials |
 | GET | `/api/v1/workspaces/{workspace}` | verified | - | session_cookie, bearer_token | - | workspace_membership | - | ThrottleRequests:api | security_denials |
 | PATCH | `/api/v1/workspaces/{workspace}` | verified | - | session_cookie, bearer_token | settings.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
+| GET | `/api/v1/workspaces/{workspace}/access-history` | verified | - | session_cookie, bearer_token | team.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/workspaces/{workspace}/agreement` | verified | - | session_cookie, bearer_token | settings.view | workspace_membership | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/agreement/accept` | verified | - | session_cookie | agreements.accept | workspace_membership | recent password, email code | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/workspaces/{workspace}/analytics/attribution/orders` | verified | - | session_cookie, bearer_token | dashboard.view | workspace_membership | - | ThrottleRequests:api | security_denials |
@@ -412,7 +413,9 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/workspaces/{workspace}/connections/{connection}/events` | verified | - | session_cookie, bearer_token | integrations.view | workspace_membership | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry` | verified | - | session_cookie, bearer_token | integrations.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/workspaces/{workspace}/connections/{connection}/health` | verified | - | session_cookie, bearer_token | integrations.view | workspace_membership | - | ThrottleRequests:api | security_denials |
+| POST | `/api/v1/workspaces/{workspace}/connections/{connection}/pause` | verified | - | session_cookie, bearer_token | integrations.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/workspaces/{workspace}/connections/{connection}/products` | verified | - | session_cookie, bearer_token | integrations.view | workspace_membership | - | ThrottleRequests:api | security_denials |
+| POST | `/api/v1/workspaces/{workspace}/connections/{connection}/resume` | verified | - | session_cookie, bearer_token | integrations.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/connections/{connection}/sync/coupons` | verified | - | session_cookie, bearer_token | integrations.manage | workspace_membership | - | ThrottleRequests:api, ThrottleRequests:commerce-probe | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/connections/{connection}/sync/products` | verified | - | session_cookie, bearer_token | integrations.manage | workspace_membership | - | ThrottleRequests:api, ThrottleRequests:commerce-probe | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/connections/{connection}/test-api` | verified | - | session_cookie, bearer_token | integrations.manage | workspace_membership | - | ThrottleRequests:api, ThrottleRequests:commerce-probe | security_denials |
@@ -447,6 +450,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | PATCH | `/api/v1/workspaces/{workspace}/offers/{offer}` | verified | - | session_cookie, bearer_token | offers.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/offers/{offer}/activate` | verified | - | session_cookie, bearer_token | offers.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/offers/{offer}/archive` | verified | - | session_cookie, bearer_token | offers.manage | workspace_membership | - | ThrottleRequests:api | security_denials |
+| GET | `/api/v1/workspaces/{workspace}/offers/{offer}/code-batches` | verified | - | session_cookie, bearer_token | vouchers.view | workspace_membership | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces/{workspace}/offers/{offer}/code-imports` | verified | - | session_cookie, bearer_token | vouchers.manage | workspace_membership | - | ThrottleRequests:api, ThrottleRequests:code-import | security_denials |
 | GET | `/api/v1/workspaces/{workspace}/offers/{offer}/codes` | verified | - | session_cookie, bearer_token | vouchers.view | workspace_membership | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/workspaces/{workspace}/offers/{offer}/codes/export` | verified | - | session_cookie, bearer_token | vouchers.export | workspace_membership | - | ThrottleRequests:api, ThrottleRequests:order-export | security_denials |

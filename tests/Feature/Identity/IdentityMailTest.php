@@ -33,7 +33,7 @@ class IdentityMailTest extends TestCase
 
     public function test_unsupported_locale_falls_back_to_dutch(): void
     {
-        $this->assertSame('nl', User::factory()->make(['locale' => 'de'])->preferredLocale());
+        $this->assertSame('nl', User::factory()->make(['locale' => 'fr'])->preferredLocale());
     }
 
     public function test_every_identity_string_exists_in_both_languages(): void
@@ -42,5 +42,17 @@ class IdentityMailTest extends TestCase
         $nl = require lang_path('nl/identity.php');
 
         $this->assertSame(array_keys($en), array_keys($nl));
+        $this->assertSame(array_keys($en), array_keys(require lang_path('de/identity.php')));
+    }
+
+    public function test_german_account_preference_renders_identity_mail_in_german(): void
+    {
+        $user = User::factory()->create(['locale' => 'de', 'first_name' => 'Anna']);
+        $this->assertSame('de', $user->preferredLocale());
+        app()->setLocale($user->preferredLocale());
+        $mail = (new EmailVerificationCode('123456', 10))->toMail($user);
+        $this->assertSame('Dein Shopbonus-Bestätigungscode', $mail->subject);
+        $this->assertSame('Hallo Anna,', $mail->greeting);
+        $this->assertSame('Dein Shopbonus-Passwort zurücksetzen', (new ResetPasswordLink('t'))->toMail($user)->subject);
     }
 }

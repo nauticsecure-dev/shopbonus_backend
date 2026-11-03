@@ -1,0 +1,151 @@
+{
+    "captured_at": "2026-11-02T10:00:37+00:00",
+    "environment": "Real loopback HTTP server / isolated SQLite synthetic fixtures; no live provider evidence",
+    "rule_share_bps": 10000,
+    "credit_entries": 1,
+    "audited_non_member_denials": 1,
+    "reward_timing": "on_validated_attribution",
+    "settlement_evidence": null,
+    "captures": [
+        {
+            "stage": "after_import_and_replay",
+            "request": "GET /api/v1/consumer/wallet",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "balances": {
+                        "eur_credit": {
+                            "unit": "eur_credit",
+                            "available": 475,
+                            "available_minor": 475,
+                            "reserved": 0,
+                            "total_earned": 475,
+                            "total_earned_minor": 475,
+                            "total_spent": 0,
+                            "total_spent_minor": 0,
+                            "total_expired": 0,
+                            "next_expiry": {
+                                "amount": 475,
+                                "at": "2027-11-02T10:00:34+00:00"
+                            },
+                            "reserved_minor": 0,
+                            "pending": 0,
+                            "pending_cashback_minor": 0
+                        },
+                        "points": {
+                            "unit": "points",
+                            "available": 0,
+                            "available_minor": 0,
+                            "reserved": 0,
+                            "total_earned": 0,
+                            "total_earned_minor": 0,
+                            "total_spent": 0,
+                            "total_spent_minor": 0,
+                            "total_expired": 0,
+                            "next_expiry": null,
+                            "reserved_minor": 0,
+                            "pending": 0,
+                            "pending_cashback_minor": 0
+                        }
+                    },
+                    "available_minor": 475,
+                    "reserved_minor": 0,
+                    "pending_cashback_minor": 0,
+                    "total_earned_minor": 475,
+                    "total_spent_minor": 0,
+                    "currency": "EUR",
+                    "unit": "EUR_REDEMPTION_CREDIT",
+                    "updated_at": "2026-11-02T10:00:36+00:00",
+                    "withdrawable": false,
+                    "notice": "ShopBonus credit and points are not money: they cannot be withdrawn or transferred.",
+                    "savings_goal": null
+                }
+            }
+        },
+        {
+            "stage": "after_rejection",
+            "request": "GET /api/v1/consumer/wallet",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "balances": {
+                        "eur_credit": {
+                            "unit": "eur_credit",
+                            "available": 475,
+                            "available_minor": 475,
+                            "reserved": 0,
+                            "total_earned": 475,
+                            "total_earned_minor": 475,
+                            "total_spent": 0,
+                            "total_spent_minor": 0,
+                            "total_expired": 0,
+                            "next_expiry": {
+                                "amount": 475,
+                                "at": "2027-11-02T10:00:34+00:00"
+                            },
+                            "reserved_minor": 0,
+                            "pending": 0,
+                            "pending_cashback_minor": 0
+                        },
+                        "points": {
+                            "unit": "points",
+                            "available": 0,
+                            "available_minor": 0,
+                            "reserved": 0,
+                            "total_earned": 0,
+                            "total_earned_minor": 0,
+                            "total_spent": 0,
+                            "total_spent_minor": 0,
+                            "total_expired": 0,
+                            "next_expiry": null,
+                            "reserved_minor": 0,
+                            "pending": 0,
+                            "pending_cashback_minor": 0
+                        }
+                    },
+                    "available_minor": 475,
+                    "reserved_minor": 0,
+                    "pending_cashback_minor": 0,
+                    "total_earned_minor": 475,
+                    "total_spent_minor": 0,
+                    "currency": "EUR",
+                    "unit": "EUR_REDEMPTION_CREDIT",
+                    "updated_at": "2026-11-02T10:00:36+00:00",
+                    "withdrawable": false,
+                    "notice": "ShopBonus credit and points are not money: they cannot be withdrawn or transferred.",
+                    "savings_goal": null
+                }
+            }
+        },
+        {
+            "stage": "non_member",
+            "request": "GET /api/v1/workspaces/01m6dv86n66q4b59p50xpzptf7/connections",
+            "authorization": "Bearer <redacted>",
+            "status": 404,
+            "response": {
+                "error": {
+                    "status": 404,
+                    "code": "not_found",
+                    "message": "The requested resource was not found.",
+                    "request_id": "01a19bb4-2696-70cc-9a13-0f350e9a7e04"
+                }
+            }
+        },
+        {
+            "stage": "missing_cover",
+            "request": "GET /api/v1/public/webshops/missing-fixture/cover",
+            "authorization": "Bearer <redacted>",
+            "status": 404,
+            "response": {
+                "error": {
+                    "status": 404,
+                    "code": "not_found",
+                    "message": "Cover not found.",
+                    "request_id": "01a19bb4-28fd-70c7-bf38-d328d7afd830"
+                }
+            }
+        }
+    ]
+}

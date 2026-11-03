@@ -6,6 +6,7 @@ use App\Affiliate\Adapters\DaisyconAdapter;
 use App\Affiliate\NetworkFailure;
 use App\Jobs\SyncDaisyconEvidence;
 use App\Models\AffiliateConnection;
+use App\Models\AffiliateProgram;
 use App\Services\Affiliate\AffiliateSync;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\RequestException;
@@ -66,6 +67,26 @@ class DaisyconCompletenessTest extends TestCase
         $this->expectException(NetworkFailure::class);
         $this->expectExceptionMessage('pagination_limit_reached');
         app(DaisyconAdapter::class)->fetchPrograms($this->connection());
+    }
+
+    public function test_raw_access_permission_snapshot_does_not_enable_cashback_or_create_offers(): void
+    {
+        $connection = $this->connection();
+        $program = AffiliateProgram::create([
+            'connection_id' => $connection->id, 'external_id' => 'P1', 'name' => 'Fixture',
+            'active' => true, 'commission_type' => 'percentage', 'commission_value' => 1000,
+            'currency' => 'EUR', 'cashback_allowed' => false,
+            'tracking_url_template' => 'https://example.com/track',
+        ]);
+        $payload = [['media_type' => 'cashback', 'allowed' => true]];
+        Http::fake(['*/publishers/123/programs/P1/access-rules' => Http::response($payload)]);
+
+        (new SyncDaisyconEvidence($connection->id, 'access-rules', 'P1'))->handle(app(DaisyconAdapter::class));
+
+        $this->assertSame($payload, json_decode(DB::table('affiliate_provider_resources')->sole()->payload, true));
+        $this->assertFalse($program->fresh()->cashback_allowed);
+        $this->assertDatabaseCount('offer_versions', 0);
+        $this->assertDatabaseCount('affiliate_reward_rules', 0);
     }
 
     public function test_separate_resource_snapshots_preserve_previous_complete_data_on_failure(): void

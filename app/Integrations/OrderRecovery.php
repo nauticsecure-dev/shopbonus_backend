@@ -32,7 +32,10 @@ class OrderRecovery
 
         return DB::transaction(function () use ($connection, $orderId, $key, $purpose, $bulkRunId) {
             $c = WebshopConnection::with('webshop')->whereKey($connection->id)->lockForUpdate()->firstOrFail();
-            if ($c->status === ConnectionStatus::Disconnected || ! $c->webshop->isOwnershipVerified()) {
+            if ($c->paused_at !== null) {
+                throw ApiException::conflict('This integration is paused.', 'connection_paused');
+            }
+            if (! $c->acceptsData() || ! $c->webshop->isOwnershipVerified()) {
                 throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
             }
             if (! ($this->registry->entry($c->platform)['profile']['native_read_api_implemented'] ?? false)) {
@@ -98,6 +101,9 @@ class OrderRecovery
             if (in_array($r->status, ['succeeded', 'failed', 'superseded'], true)) {
                 return null;
             }
+            if ($c->paused_at !== null) {
+                return null;
+            }
             if (! $this->matches($r, $c)) {
                 $r->forceFill(['status' => 'superseded', 'last_error_code' => 'connection_changed', 'lease_token' => null, 'leased_until' => null])->save();
 
@@ -153,6 +159,11 @@ class OrderRecovery
                 if ($r->status !== 'reading' || $r->lease_token !== $claimed->lease_token || $r->leased_until === null || $r->leased_until->isPast()) {
                     return;
                 }
+                if ($c->paused_at !== null && $this->matches($r, $c) && $snapshot->hasSameCredentialAuthority($c)) {
+                    $r->forceFill(['status' => 'pending', 'lease_token' => null, 'leased_until' => null])->save();
+
+                    return;
+                }
                 if (! $this->matches($r, $c) || ! $snapshot->hasSameCredentialAuthority($c)) {
                     $r->forceFill(['status' => 'superseded', 'last_error_code' => 'connection_changed', 'lease_token' => null, 'leased_until' => null])->save();
 
@@ -196,6 +207,11 @@ class OrderRecovery
             $c = WebshopConnection::with('webshop')->whereKey($claimed->connection_id)->lockForUpdate()->firstOrFail();
             $r = IntegrationOrderRecovery::whereKey($claimed->id)->lockForUpdate()->firstOrFail();
             if ($r->status !== 'reading' || $r->lease_token !== $claimed->lease_token || $r->leased_until === null || $r->leased_until->isPast()) {
+                return;
+            }
+            if ($c->paused_at !== null && $this->matches($r, $c)) {
+                $r->forceFill(['status' => 'pending', 'lease_token' => null, 'leased_until' => null])->save();
+
                 return;
             }
             $r->forceFill(['status' => $this->matches($r, $c) ? 'failed' : 'superseded', 'last_error_code' => $code,

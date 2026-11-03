@@ -15,12 +15,15 @@ use App\Services\Enrichment\MerchantCoverGenerator;
 use App\Services\Enrichment\SafeUrlFetcher;
 use App\Services\Enrichment\WebsiteResearcher;
 use App\Services\Onboarding\Network\HostResolver;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\Fakes\FakeHostResolver;
 use Tests\TestCase;
@@ -36,6 +39,7 @@ class MerchantEnrichmentE2ETest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake(PublicProfileService::DISK);
         $this->dns = new FakeHostResolver;
         $this->app->instance(HostResolver::class, $this->dns);
         config([
@@ -165,6 +169,50 @@ class MerchantEnrichmentE2ETest extends TestCase
             $this->assertSame('image/webp', $info['mime']);
             $this->assertSame($width, $info[0]);
         }
+    }
+
+    public static function storageFailures(): array
+    {
+        return ['false return' => [false, false], 'write exception' => [true, false], 'cleanup exception' => [true, true]];
+    }
+
+    #[DataProvider('storageFailures')]
+    public function test_storage_failure_cleans_attempted_variants_and_pipeline_keeps_copy(bool $throwWrite, bool $throwCleanup): void
+    {
+        $this->dns->addresses['woonenco.nl'] = ['93.184.216.34'];
+        $this->fakeAi();
+        $disk = Mockery::mock(FilesystemAdapter::class);
+        $attempted = [];
+        $disk->shouldReceive('put')->twice()->andReturnUsing(function (string $path, string $bytes) use (&$attempted, $throwWrite): bool {
+            $this->assertSame('image/webp', getimagesizefromstring($bytes)['mime']);
+            $attempted[] = $path;
+            if (count($attempted) === 2) {
+                if ($throwWrite) {
+                    throw new \RuntimeException('Fixture write failure');
+                }
+
+                return false;
+            }
+
+            return true;
+        });
+        $disk->shouldReceive('delete')->once()->andReturnUsing(function (array $paths) use (&$attempted, $throwCleanup): bool {
+            $this->assertCount(2, $paths);
+            $this->assertSame($attempted, $paths);
+            if ($throwCleanup) {
+                throw new \RuntimeException('Fixture cleanup failure');
+            }
+
+            return true;
+        });
+        Storage::shouldReceive('disk')->with(PublicProfileService::DISK)->andReturn($disk);
+
+        $run = app(EnrichmentPipeline::class)->enqueue($this->eligibleShop(), 'scheduled')->fresh();
+
+        $this->assertSame('awaiting_review', $run->status);
+        $this->assertNotNull($run->proposal);
+        $this->assertNull($run->cover_path);
+        $this->assertSame('cover_storage_unavailable', $run->cover_failure_code);
     }
 
     public function test_research_collects_relevant_same_origin_pages_and_image_candidates(): void

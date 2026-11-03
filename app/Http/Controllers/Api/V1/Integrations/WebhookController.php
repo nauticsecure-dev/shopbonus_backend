@@ -9,6 +9,7 @@ use App\Enums\WebhookEventStatus;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Integrations\ConnectorRegistry;
+use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Jobs\ProcessWebhookEvent;
 use App\Models\WebhookEvent;
@@ -58,6 +59,9 @@ class WebhookController extends Controller
             $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
             if (! $current->status->receivesEvents()) {
                 throw new NotFoundHttpException;
+            }
+            if ($current->paused_at !== null && $event->kind !== VerifiedEvent::KIND_DISCONNECT) {
+                throw new ApiException('This integration is paused. Retry after it resumes.', 503, 'connection_paused', headers: ['Retry-After' => '60']);
             }
             if ($current->credential_generation !== $connection->credential_generation
                 || ! $connection->hasSameCredentialAuthority($current)) {

@@ -7,6 +7,7 @@ use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Enums\WebhookEventStatus;
 use App\Events\OrderEventVerified;
+use App\Integrations\ConnectionManager;
 use App\Models\AuditEvent;
 use App\Models\User;
 use App\Models\WebhookEvent;
@@ -21,6 +22,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\SignsWebhooks;
 use Tests\TestCase;
 
@@ -87,7 +89,7 @@ class ConnectionsAndWebhooksTest extends TestCase
 
     public function test_card1_e2e2_unsupported_platforms_cannot_be_connected(): void
     {
-        foreach (['lightspeed_e', 'mijnwebwinkel'] as $platform) {
+        foreach (['ccv', 'mijnwebwinkel'] as $platform) {
             $this->postJson($this->url('/connections'), ['platform' => $platform])
                 ->assertStatus(409)->assertJsonPath('error.code', 'platform_not_available');
         }
@@ -305,9 +307,18 @@ class ConnectionsAndWebhooksTest extends TestCase
             ->assertJsonPath('error.details.reason', 'payload_too_large');
     }
 
-    public function test_signed_shopify_uninstall_revokes_credentials_and_stale_deliveries_cannot_process(): void
+    public static function uninstallPauseStates(): array
+    {
+        return ['active' => [false], 'paused' => [true]];
+    }
+
+    #[DataProvider('uninstallPauseStates')]
+    public function test_signed_shopify_uninstall_revokes_credentials_and_stale_deliveries_cannot_process(bool $paused): void
     {
         [$c, , $path] = $this->connect('shopify', ['shop_domain' => 'fietsen.myshopify.com', 'signing_secret' => 'shpss_merchant_secret_1', 'access_token' => 'SYNTHETIC_revoked_app_token']);
+        if ($paused) {
+            app(ConnectionManager::class)->setPaused($c, true);
+        }
         $this->app->bind(HostResolver::class, fn () => new class implements HostResolver
         {
             public function addresses(string $h): array
@@ -333,9 +344,13 @@ class ConnectionsAndWebhooksTest extends TestCase
         $this->assertSame(0, WebshopOrder::count());
     }
 
-    public function test_replayed_uninstall_cannot_revoke_a_still_valid_current_grant(): void
+    #[DataProvider('uninstallPauseStates')]
+    public function test_replayed_uninstall_cannot_revoke_a_still_valid_current_grant(bool $paused): void
     {
         [$c, , $path] = $this->connect('shopify', ['shop_domain' => 'fietsen.myshopify.com', 'signing_secret' => 'shpss_merchant_secret_1', 'access_token' => 'SYNTHETIC_current_app_token']);
+        if ($paused) {
+            app(ConnectionManager::class)->setPaused($c, true);
+        }
         $this->shop->forceFill(['verified_domain' => 'fietsen-utrecht.nl', 'ownership_verified_at' => now(), 'ownership_method' => 'dns_txt'])->save();
         $this->app->bind(HostResolver::class, fn () => new class implements HostResolver
         {

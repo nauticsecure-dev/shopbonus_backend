@@ -77,16 +77,16 @@ return [
         // SPA paths used in notification emails, the inbox and support-chat actions (Trello #26, #29).
         // Relative to frontend_url; {workspace} and {conversation} are filled in. Align with the frontend router.
         'frontend_paths' => [
-            'consumer_benefits' => env('FRONTEND_PATH_CONSUMER_BENEFITS', '/app/benefits'),
-            'consumer_wallet' => env('FRONTEND_PATH_CONSUMER_WALLET', '/app/wallet'),
-            'consumer_vouchers' => env('FRONTEND_PATH_CONSUMER_VOUCHERS', '/app/vouchers'),
+            'consumer_benefits' => env('FRONTEND_PATH_CONSUMER_BENEFITS', '/mijn-voordelen'),
+            'consumer_wallet' => env('FRONTEND_PATH_CONSUMER_WALLET', '/mijn-voordelen?tab=transacties'),
+            'consumer_vouchers' => env('FRONTEND_PATH_CONSUMER_VOUCHERS', '/mijn-voordelen?tab=vouchers'),
             'support_conversation' => env('FRONTEND_PATH_SUPPORT_CONVERSATION', '/app/support?conversation={conversation}'),
-            'workspace_home' => env('FRONTEND_PATH_WORKSPACE_HOME', '/app/workspaces?workspace={workspace}'),
-            'workspace_wallet' => env('FRONTEND_PATH_WORKSPACE_WALLET', '/app/workspaces/{workspace}/wallet'),
-            'workspace_offers' => env('FRONTEND_PATH_WORKSPACE_OFFERS', '/app/workspaces/{workspace}/offers'),
-            'workspace_banners' => env('FRONTEND_PATH_WORKSPACE_BANNERS', '/app/workspaces/{workspace}/banners'),
-            'workspace_integrations' => env('FRONTEND_PATH_WORKSPACE_INTEGRATIONS', '/app/workspaces/{workspace}/integrations'),
-            'admin_home' => env('FRONTEND_PATH_ADMIN_HOME', '/app/platform'),
+            'workspace_home' => env('FRONTEND_PATH_WORKSPACE_HOME', '/dashboard?workspace={workspace}'),
+            'workspace_wallet' => env('FRONTEND_PATH_WORKSPACE_WALLET', '/dashboard?workspace={workspace}'),
+            'workspace_offers' => env('FRONTEND_PATH_WORKSPACE_OFFERS', '/dashboard/offers?workspace={workspace}'),
+            'workspace_banners' => env('FRONTEND_PATH_WORKSPACE_BANNERS', '/dashboard/banners?workspace={workspace}'),
+            'workspace_integrations' => env('FRONTEND_PATH_WORKSPACE_INTEGRATIONS', '/dashboard/app-store?workspace={workspace}'),
+            'admin_home' => env('FRONTEND_PATH_ADMIN_HOME', '/admin'),
         ],
 
         'verification' => [
@@ -284,7 +284,7 @@ return [
 
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
-        // New rewards require network approval AND independently recorded settlement.
+        // D-109: new rewards require approval plus independently recorded settlement.
         // Existing reward snapshots retain their historical policy.
         'credit_timing' => 'on_network_settlement',
         // Default consumer share of eligible commission (70% / ShopBonus 30%).

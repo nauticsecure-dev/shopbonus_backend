@@ -262,7 +262,8 @@ class AffiliateCashbackOffersE2ETest extends TestCase
 
     public function test_acceptance_08_tracked_conversion_hundred_ten_yields_seven_pending_and_three_platform_evidence(): void
     {
-        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        // Explicit historical settlement regime; new rewards default to immediate credit.
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importPrograms(['type' => 'percentage', 'value' => '10', 'restricted' => false]);
 
         Sanctum::actingAs($this->anna);
@@ -295,7 +296,8 @@ class AffiliateCashbackOffersE2ETest extends TestCase
 
     public function test_acceptance_09_settlement_approve_then_reversal_via_affiliate_processor(): void
     {
-        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        // Explicit historical settlement regime; new rewards default to immediate credit.
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importPrograms();
         Sanctum::actingAs($this->anna);
         $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery());
@@ -357,7 +359,8 @@ class AffiliateCashbackOffersE2ETest extends TestCase
             ->firstWhere('title', '10% kortingscode');
         $this->assertSame('expired', $expired['availability']);
 
-        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
+        // Explicit historical settlement regime; new rewards default to immediate credit.
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importPrograms();
         app(ProgramSelector::class)->select($this->shop->fresh());
         $this->app['auth']->forgetGuards();

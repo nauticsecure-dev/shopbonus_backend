@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="6" assertions="7789" errors="0" failures="0" skipped="0" time="10.471859">
+    <testsuite name="Tests\Feature\Identity\IdentityMailTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Identity\IdentityMailTest.php" tests="3" assertions="9" errors="0" failures="0" skipped="0" time="4.019692">
+      <testcase name="test_verification_mail_is_rendered_in_the_users_locale" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Identity\IdentityMailTest.php" line="15" class="Tests\Feature\Identity\IdentityMailTest" classname="Tests.Feature.Identity.IdentityMailTest" assertions="7" time="3.746978"/>
+      <testcase name="test_unsupported_locale_falls_back_to_dutch" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Identity\IdentityMailTest.php" line="34" class="Tests\Feature\Identity\IdentityMailTest" classname="Tests.Feature.Identity.IdentityMailTest" assertions="1" time="0.138710"/>
+      <testcase name="test_every_identity_string_exists_in_both_languages" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Identity\IdentityMailTest.php" line="39" class="Tests\Feature\Identity\IdentityMailTest" classname="Tests.Feature.Identity.IdentityMailTest" assertions="1" time="0.134004"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\Api\OpenApiCoverageTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" tests="3" assertions="7780" errors="0" failures="0" skipped="0" time="6.452167">
+      <testcase name="test_spec_is_valid_openapi_31" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" line="65" class="Tests\Feature\Api\OpenApiCoverageTest" classname="Tests.Feature.Api.OpenApiCoverageTest" assertions="2" time="2.979170"/>
+      <testcase name="test_every_route_is_documented_with_examples_and_correct_access" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" line="73" class="Tests\Feature\Api\OpenApiCoverageTest" classname="Tests.Feature.Api.OpenApiCoverageTest" assertions="7348" time="2.680976"/>
+      <testcase name="test_every_authenticated_route_requires_an_active_account" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" line="134" class="Tests\Feature\Api\OpenApiCoverageTest" classname="Tests.Feature.Api.OpenApiCoverageTest" assertions="430" time="0.792021"/>
+    </testsuite>
+  </testsuite>
+</testsuites>

@@ -189,4 +189,35 @@ class BannerExperimentTest extends TestCase
         DB::table('banner_assignments')->where('id', $assignmentId)->update(['expires_at' => now()->subDay()]);
         $this->getJson($this->url)->assertOk()->assertJsonPath('data.arms.'.$a['arm'].'.verified_paid_orders', 0);
     }
+
+    public function test_comparison_counts_visitors_once_and_reacts_to_full_refunds(): void
+    {
+        $this->start(true);
+        $experiment = DB::table('banner_experiments')->sole();
+        $this->postJson("/api/v1/workspaces/{$this->shop->public_id}/connections", ['platform' => 'prestashop'])->assertCreated();
+        $connection = WebshopConnection::sole();
+        foreach (['control' => 10, 'variant' => 20] as $arm => $conversions) {
+            foreach (range(1, 100) as $visitor) {
+                $id = DB::table('banner_assignments')->insertGetId(['experiment_id' => $experiment->id,
+                    'visitor_hash' => hash('sha256', $arm.$visitor), 'token_hash' => hash('sha256', 'token'.$arm.$visitor),
+                    'arm' => $arm, 'created_at' => now()->subDay(), 'expires_at' => now()->addDays(29)]);
+                if ($visitor > $conversions) {
+                    continue;
+                }
+                foreach (range(1, 2) as $repeat) {
+                    WebshopOrder::create(['webshop_id' => $this->shop->id, 'connection_id' => $connection->id, 'platform' => $connection->platform,
+                        'external_order_id' => $arm.$visitor.'-'.$repeat, 'ingestion_status' => 'complete', 'currency' => 'EUR',
+                        'amount_minor' => 10000, 'refunded_minor' => 1000, 'payment_status' => 'partially_refunded', 'paid_at' => now(), 'banner_assignment_id' => $id]);
+                }
+            }
+        }
+        $this->getJson($this->url)->assertOk()->assertJsonPath('data.arms.variant.verified_paid_orders', 40)
+            ->assertJsonPath('data.arms.variant.converted_visitors', 20)->assertJsonPath('data.conversion_comparison.absolute_difference', 0.1)
+            ->assertJsonPath('data.conversion_comparison.status', 'exploratory')->assertJsonPath('data.causal_uplift', null)
+            ->assertJsonPath('data.conversion_comparison.winner', null);
+        WebshopOrder::where('external_order_id', 'like', 'variant%')->update(['payment_status' => 'refunded', 'refunded_minor' => 10000]);
+        $this->getJson($this->url)->assertOk()->assertJsonPath('data.arms.variant.converted_visitors', 0)
+            ->assertJsonPath('data.conversion_comparison.absolute_difference', -0.1)->assertJsonPath('data.conversion_comparison.status', 'insufficient_data')
+            ->assertJsonPath('data.conversion_comparison.statistically_significant', null);
+    }
 }

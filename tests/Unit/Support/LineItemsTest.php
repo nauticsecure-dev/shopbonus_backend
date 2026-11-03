@@ -7,6 +7,17 @@ use PHPUnit\Framework\TestCase;
 
 class LineItemsTest extends TestCase
 {
+    public function test_native_composite_and_negative_rows_cannot_become_flat_product_snapshots(): void
+    {
+        $row = ['item_id' => 1, 'order_id' => 42, 'product_id' => 20, 'product_type' => 'simple', 'qty_ordered' => '2.000', 'row_total_incl_tax' => '19.99'];
+        $this->assertSame(1999, LineItems::magento([$row], 'EUR', 42)[0]['amount_minor']);
+        $this->assertNull(LineItems::magento([$row, [...$row, 'item_id' => 2, 'parent_item_id' => 1]], 'EUR', 42));
+        $this->assertNull(LineItems::magento([[...$row, 'row_total_incl_tax' => '-1']], 'EUR', 42));
+        $line = ['id' => str_repeat('a', 32), 'orderId' => str_repeat('b', 32), 'type' => 'product', 'parentId' => null, 'quantity' => 1, 'totalPrice' => '-2.00'];
+        $this->assertNull(LineItems::shopware([$line], 'EUR', str_repeat('b', 32)));
+        $this->assertSame([], LineItems::shopware([], 'EUR', str_repeat('b', 32)));
+    }
+
     public function test_exact_currency_precision_and_unknown_eligibility(): void
     {
         $rows = [['id' => 1, 'product_id' => 55, 'sku' => 'SYNTHETIC-SKU', 'quantity' => 2, 'total' => '19.9900']];

@@ -64,7 +64,7 @@ class User extends Authenticatable implements HasLocalePreference
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasUlids, Notifiable, TwoFactorAuthenticatable;
 
-    public const SUPPORTED_LOCALES = ['nl', 'en'];
+    public const SUPPORTED_LOCALES = ['nl', 'en', 'de'];
 
     /**
      * @return array<string, string>

@@ -9,6 +9,30 @@ use Tests\TestCase;
 
 class SelfHostedReadMappingTest extends TestCase
 {
+    public function test_native_lines_and_monetary_breakdowns_are_mapped_without_changing_payment_proof(): void
+    {
+        $shopware = (new ShopwareConnector)->normalizeOrder(['shopware_order' => [
+            'id' => str_repeat('b', 32), 'currency' => ['isoCode' => 'EUR'], 'amountTotal' => '24.20', 'price' => ['taxStatus' => 'gross'],
+            'shippingCosts' => ['totalPrice' => '4.20'],
+            'lineItems' => [['id' => str_repeat('a', 32), 'orderId' => str_repeat('b', 32), 'type' => 'product', 'parentId' => null, 'quantity' => 2, 'totalPrice' => '20.00']],
+        ]]);
+        $this->assertSame(2000, $shopware->lineItems[0]['amount_minor']);
+        $this->assertSame(420, $shopware->amountBreakdown['shipping_minor']);
+        $this->assertNull($shopware->amountBreakdown['tax_minor']);
+        $this->assertNull($shopware->refundedMinor);
+        $this->assertNull($shopware->paidAt);
+
+        $magento = (new MagentoConnector)->normalizeOrder(['magento_order' => [
+            'entity_id' => 42, 'order_currency_code' => 'EUR', 'grand_total' => '24.20', 'tax_amount' => '4.20', 'discount_amount' => '-2.00',
+            'items' => [['item_id' => 3, 'order_id' => 42, 'product_type' => 'simple', 'qty_ordered' => 1, 'row_total_incl_tax' => '20.00']],
+        ]]);
+        $this->assertSame(2000, $magento->lineItems[0]['amount_minor']);
+        $this->assertSame(420, $magento->amountBreakdown['tax_minor']);
+        $this->assertSame(200, $magento->amountBreakdown['discount_minor']);
+        $this->assertNull($magento->amountBreakdown['shipping_minor']);
+        $this->assertNull($magento->paidAt);
+    }
+
     public function test_shopware_paid_state_needs_bound_history_not_created_or_updated_time(): void
     {
         $id = str_repeat('a', 32);
