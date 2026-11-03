@@ -20490,3 +20490,137 @@ Captured response 404:
   }
 }
 ```
+
+## Aggregate pending wallet support — B51 (2026-11-03)
+
+Six actual HTTP exchanges on a local Laravel server with isolated SQLite, two synthetic pending entries and no provider calls: [capture archive](../qa/B51_WALLET_SUPPORT_HTTP_CAPTURE.json). These render newly generated server-verified fixture answers, not live-model or conversational-quality evidence. Historical stored answers remain immutable. The message polling contract is unchanged; current EN/NL wallet summaries describe aggregate pending credit and require separate evidence for an individual reward. Owner200, foreign404 and unauthenticated401 were captured in each language.
+
+**en-owner**
+
+```http
+GET /api/v1/ai/messages/01m6g3zx6h2ct01zegk90wf6pw
+Accept: application/json
+Authorization: Bearer <redacted>
+Accept-Language: en
+```
+
+```json
+{
+  "data": {
+    "id": "01m6g3zx6h2ct01zegk90wf6pw",
+    "message_id": "01m6g3zx6h2ct01zegk90wf6pw",
+    "conversation_id": "01m6g3zx5grvghbxj3c38k7wf3",
+    "question": "What is my pending credit?",
+    "status": "VERIFIED",
+    "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+    "evidence_ids": [
+      "01m6g3zx5xjekr1rc3abh0vwz8"
+    ],
+    "checked_at": "2026-11-03T07:11:48+00:00",
+    "retry_used": false,
+    "action": null,
+    "checks": {
+      "passed": [
+        "AUTH",
+        "SOURCE",
+        "FRESHNESS",
+        "COMPLETENESS",
+        "CONSISTENCY",
+        "CLAIMS",
+        "POLICY",
+        "ACTION"
+      ],
+      "failed": []
+    },
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+      "evidence_ids": [
+        "01m6g3zx5xjekr1rc3abh0vwz8"
+      ],
+      "checked_at": "2026-11-03T07:11:48+00:00",
+      "checks": {
+        "passed": [
+          "AUTH",
+          "SOURCE",
+          "FRESHNESS",
+          "COMPLETENESS",
+          "CONSISTENCY",
+          "CLAIMS",
+          "POLICY",
+          "ACTION"
+        ],
+        "failed": []
+      },
+      "action": null
+    },
+    "created_at": "2026-11-03T07:11:48+00:00",
+    "completed_at": "2026-11-03T07:11:48+00:00"
+  }
+}
+```
+
+**nl-owner**
+
+```http
+GET /api/v1/ai/messages/01m6g3zx72b7s7kwqxp2wx1v64
+Accept: application/json
+Authorization: Bearer <redacted>
+Accept-Language: nl
+```
+
+```json
+{
+  "data": {
+    "id": "01m6g3zx72b7s7kwqxp2wx1v64",
+    "message_id": "01m6g3zx72b7s7kwqxp2wx1v64",
+    "conversation_id": "01m6g3zx6j2s3eeqknef8a3t3z",
+    "question": "Wat is mijn tegoed in behandeling?",
+    "status": "VERIFIED",
+    "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+    "evidence_ids": [
+      "01m6g3zx6ss24f6p0sh7hcbfb7"
+    ],
+    "checked_at": "2026-11-03T07:11:48+00:00",
+    "retry_used": false,
+    "action": null,
+    "checks": {
+      "passed": [
+        "AUTH",
+        "SOURCE",
+        "FRESHNESS",
+        "COMPLETENESS",
+        "CONSISTENCY",
+        "CLAIMS",
+        "POLICY",
+        "ACTION"
+      ],
+      "failed": []
+    },
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+      "evidence_ids": [
+        "01m6g3zx6ss24f6p0sh7hcbfb7"
+      ],
+      "checked_at": "2026-11-03T07:11:48+00:00",
+      "checks": {
+        "passed": [
+          "AUTH",
+          "SOURCE",
+          "FRESHNESS",
+          "COMPLETENESS",
+          "CONSISTENCY",
+          "CLAIMS",
+          "POLICY",
+          "ACTION"
+        ],
+        "failed": []
+      },
+      "action": null
+    },
+    "created_at": "2026-11-03T07:11:48+00:00",
+    "completed_at": "2026-11-03T07:11:48+00:00"
+  }
+}
+```

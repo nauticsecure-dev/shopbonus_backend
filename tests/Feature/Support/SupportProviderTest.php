@@ -8,14 +8,18 @@ use App\Services\Support\ToolEvidence;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Http;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ConfiguresSupportModel;
 use Tests\TestCase;
 
 class SupportProviderTest extends TestCase
 {
+    use ConfiguresSupportModel, \Illuminate\Foundation\Testing\RefreshDatabase;
+
     #[DataProvider('invalidOutputs')]
     public function test_model_refusals_malformed_calls_prose_and_redirects_never_publish(int $status, array $body, string $expected): void
     {
         config(['support_ai.api_key' => 'fixture-secret']);
+        $this->configureVerifiedSupportModel();
         Http::fake(['https://api.openai.com/v1/responses' => Http::response($body, $status)]);
         $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available_minor' => 0], CarbonImmutable::now());
         try {
@@ -48,6 +52,7 @@ class SupportProviderTest extends TestCase
     public function test_approved_knowledge_prose_and_contact_data_stay_in_laravel(): void
     {
         config(['support_ai.api_key' => 'fixture-secret']);
+        $this->configureVerifiedSupportModel();
         $e = new ToolEvidence(1, 'get_approved_knowledge', ['document_id' => 'internal-id'], null, 'en', 'private-source',
             ['scope' => 'consumers', 'version' => 1, 'question' => 'Private contact question', 'content' => 'Contact person@example.test phone +31612345678 secret voucher ABCD'], CarbonImmutable::now());
         Http::fake(function ($request) use ($e) {
@@ -65,6 +70,7 @@ class SupportProviderTest extends TestCase
     public function test_timeout_is_safe_with_no_automatic_retry(): void
     {
         config(['support_ai.api_key' => 'fixture-secret']);
+        $this->configureVerifiedSupportModel();
         Http::fake(['https://api.openai.com/v1/responses' => Http::failedConnection()]);
         $e = new ToolEvidence(1, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'en', 'wallet', ['available_minor' => 0], CarbonImmutable::now());
         $this->expectException(ProviderFailure::class);

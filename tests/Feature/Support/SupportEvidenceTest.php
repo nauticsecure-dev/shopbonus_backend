@@ -72,7 +72,8 @@ class SupportEvidenceTest extends TestCase
         $service = app(WalletService::class);
         $wallet = $service->consumerWallet($user);
         $service->credit($wallet, 4000, 'credit');
-        $service->addPending($wallet, 700, 'pending');
+        $service->addPending($wallet, 300, 'pending-one');
+        $service->addPending($wallet, 400, 'pending-two');
         $service->reserve($wallet, 500, 'reserve', 60);
         $service->debit($wallet, 2500, 'spend');
         $service->credit($service->consumerWallet($user, WalletUnit::Points), 123, 'points');
@@ -91,7 +92,12 @@ class SupportEvidenceTest extends TestCase
         $this->assertSame(500, $e->facts['reserved_minor']);
         // Pending (awaiting approval) and reserved (purchase in progress) are separate statements.
         $this->assertSame(700, $e->facts['pending_minor']);
-        $this->assertStringContainsString('A reward of EUR 7.00 is pending and cannot be spent yet.', $result['answer']);
+        $nlEvidence = $this->tools()->retrieve($user, 'get_my_wallet', ['unit' => 'eur_credit'], null, 'nl');
+        $nl = $this->answer($user, [$nlEvidence]);
+        $this->assertStringContainsString('Totaal tegoed in behandeling:', $nl['answer']);
+        $this->assertStringContainsString('meerdere beloningen', $nl['answer']);
+        $this->assertStringNotContainsString('Een beloning van', $nl['answer']);
+        $this->assertStringContainsString('Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet.', $result['answer']);
         $this->assertStringContainsString('EUR 5.00 of your credit is reserved for a purchase in progress.', $result['answer']);
         $this->assertSame(2500, $e->facts['spent_minor']);
         $this->assertSame('EUR_REDEMPTION_CREDIT', $e->facts['unit']);

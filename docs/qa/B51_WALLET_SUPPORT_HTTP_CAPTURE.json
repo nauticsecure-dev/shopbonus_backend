@@ -1,0 +1,232 @@
+{
+  "captured_at": "2026-11-03T07:11:49Z",
+  "environment": "Actual local Laravel HTTP server, isolated SQLite and synthetic two-entry wallet; no provider call or live quality claim",
+  "exchanges": [
+    {
+      "label": "en-owner",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g3zx6h2ct01zegk90wf6pw",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6g3zx6h2ct01zegk90wf6pw",
+            "message_id": "01m6g3zx6h2ct01zegk90wf6pw",
+            "conversation_id": "01m6g3zx5grvghbxj3c38k7wf3",
+            "question": "What is my pending credit?",
+            "status": "VERIFIED",
+            "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+            "evidence_ids": [
+              "01m6g3zx5xjekr1rc3abh0vwz8"
+            ],
+            "checked_at": "2026-11-03T07:11:48+00:00",
+            "retry_used": false,
+            "action": null,
+            "checks": {
+              "passed": [
+                "AUTH",
+                "SOURCE",
+                "FRESHNESS",
+                "COMPLETENESS",
+                "CONSISTENCY",
+                "CLAIMS",
+                "POLICY",
+                "ACTION"
+              ],
+              "failed": []
+            },
+            "result": {
+              "status": "VERIFIED",
+              "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+              "evidence_ids": [
+                "01m6g3zx5xjekr1rc3abh0vwz8"
+              ],
+              "checked_at": "2026-11-03T07:11:48+00:00",
+              "checks": {
+                "passed": [
+                  "AUTH",
+                  "SOURCE",
+                  "FRESHNESS",
+                  "COMPLETENESS",
+                  "CONSISTENCY",
+                  "CLAIMS",
+                  "POLICY",
+                  "ACTION"
+                ],
+                "failed": []
+              },
+              "action": null
+            },
+            "created_at": "2026-11-03T07:11:48+00:00",
+            "completed_at": "2026-11-03T07:11:48+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "en-foreign",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g3zx6h2ct01zegk90wf6pw",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Support message not found.",
+            "request_id": "01a1a03f-f82f-710a-b716-7119fdd7a2d9"
+          }
+        }
+      }
+    },
+    {
+      "label": "en-unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g3zx6h2ct01zegk90wf6pw",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a03f-f84a-7151-a72c-7aa86d89e8b9"
+          }
+        }
+      }
+    },
+    {
+      "label": "nl-owner",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g3zx72b7s7kwqxp2wx1v64",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6g3zx72b7s7kwqxp2wx1v64",
+            "message_id": "01m6g3zx72b7s7kwqxp2wx1v64",
+            "conversation_id": "01m6g3zx6j2s3eeqknef8a3t3z",
+            "question": "Wat is mijn tegoed in behandeling?",
+            "status": "VERIFIED",
+            "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+            "evidence_ids": [
+              "01m6g3zx6ss24f6p0sh7hcbfb7"
+            ],
+            "checked_at": "2026-11-03T07:11:48+00:00",
+            "retry_used": false,
+            "action": null,
+            "checks": {
+              "passed": [
+                "AUTH",
+                "SOURCE",
+                "FRESHNESS",
+                "COMPLETENESS",
+                "CONSISTENCY",
+                "CLAIMS",
+                "POLICY",
+                "ACTION"
+              ],
+              "failed": []
+            },
+            "result": {
+              "status": "VERIFIED",
+              "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+              "evidence_ids": [
+                "01m6g3zx6ss24f6p0sh7hcbfb7"
+              ],
+              "checked_at": "2026-11-03T07:11:48+00:00",
+              "checks": {
+                "passed": [
+                  "AUTH",
+                  "SOURCE",
+                  "FRESHNESS",
+                  "COMPLETENESS",
+                  "CONSISTENCY",
+                  "CLAIMS",
+                  "POLICY",
+                  "ACTION"
+                ],
+                "failed": []
+              },
+              "action": null
+            },
+            "created_at": "2026-11-03T07:11:48+00:00",
+            "completed_at": "2026-11-03T07:11:48+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "nl-foreign",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g3zx72b7s7kwqxp2wx1v64",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Ondersteuningsbericht niet gevonden.",
+            "request_id": "01a1a03f-f88c-7362-b06a-44bbf6572754"
+          }
+        }
+      }
+    },
+    {
+      "label": "nl-unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g3zx72b7s7kwqxp2wx1v64",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Je moet ingelogd zijn.",
+            "request_id": "01a1a03f-f8a9-7042-8a7f-6e294abf87c0"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -147,11 +147,11 @@ final class VerifiedSupportAnswer
         $ledger = $nl
             ? 'Beschikbaar ShopBonus-tegoed: '.$amount($available).'; gereserveerd: '.$amount($reserved).'; in behandeling: '.$amount($pending).'; besteed: '.$amount($spent).'. Geen geldopname of overdracht.'
             : 'Available ShopBonus credit: '.$amount($available).'; reserved: '.$amount($reserved).'; pending: '.$amount($pending).'; spent: '.$amount($spent).'. Cannot be withdrawn or transferred.';
-        // Pending = a reward awaiting approval (not spendable yet); reserved = own credit held for a purchase in progress.
+        // Wallet totals cannot establish an individual reward or order status.
         $lines = [];
         if ($pending > 0) {
-            $lines[] = $nl ? 'Een beloning van '.$amount($pending).' is in behandeling en nog niet te besteden. Na goedkeuring verschijnt het bedrag in je beschikbare tegoed; een datum is niet bevestigd.'
-                : 'A reward of '.$amount($pending).' is pending and cannot be spent yet. Once approved it moves to your available credit; no date has been confirmed.';
+            $lines[] = $nl ? 'Totaal tegoed in behandeling: '.$amount($pending).'; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd.'
+                : 'Total pending credit: '.$amount($pending).'; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed.';
         }
         if ($reserved > 0) {
             $lines[] = $nl ? $amount($reserved).' van je tegoed is gereserveerd voor een aankoop die nog loopt.'

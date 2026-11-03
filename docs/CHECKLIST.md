@@ -960,3 +960,17 @@ B49 evidence: SQLite61/491 and17/7827, MySQL1/12; Pint/diff PASS. Implementing c
 B50 implementing commit parent7027e2c: SQLite14/7660, MySQL operations4/28; PHPStan512MiB/Pint/diff PASS. Checkboxes cover implemented code/runbook only; deployed offsite/key/infrastructure/queue acceptance remains NOT RUN.
 
 Implementation SHAs: B49 `7027e2c`; B50 `fd27a24`. Draft PR#5 contains both; no deployment acceptance promoted.
+
+### B51 — Aggregate wallet support wording (2026-11-03)
+
+- [ ] Render pending credit as an aggregate in EN/NL, without attributing a single reward/order or release promise.
+- [ ] Verify multiple pending entries and order-level evidence boundaries without financial mutations.
+- [ ] Capture actual HTTP output and update API/support docs and checkpoint evidence.
+
+### B52 — Support model contract and execution spending boundary (2026-11-03)
+
+- [ ] Require exact-model verified contract/pricing configuration; omit unverified optional parameters and preserve immutable tools/privacy controls.
+- [ ] Reserve conservative per-attempt monetary exposure atomically before egress, including failures/crashes, with fail-closed missing pricing and daily cap tests.
+- [ ] Verify concurrent spending cannot exceed the configured cap and model changes cannot borrow another model's proof.
+- [ ] Document live-model quality acceptance and template decision D-076 separately from synthetic proof.
+- [ ] Record focused tests, migrations, actual API captures and remaining acceptance blockers.

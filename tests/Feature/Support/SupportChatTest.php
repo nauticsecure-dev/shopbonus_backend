@@ -42,12 +42,14 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ConfiguresSupportModel;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\Support\BannerFixture;
 use Tests\TestCase;
 
 class SupportChatTest extends TestCase
 {
+    use ConfiguresSupportModel;
     use CreatesActiveWebshops, RefreshDatabase;
 
     private User $user;
@@ -60,6 +62,7 @@ class SupportChatTest extends TestCase
         Queue::fake();
         config(['support_ai.enabled' => true, 'support_ai.api_key' => 'fixture-support-secret', 'support_ai.model' => 'fixture-model',
             'support_ai.daily_request_limit' => 100, 'support_ai.user_daily_request_limit' => 20]);
+        $this->configureVerifiedSupportModel();
         $this->user = User::factory()->create();
         $this->policy = ['enabled' => true, 'model' => null, 'languages' => ['en', 'nl'], 'daily_request_limit' => 100, 'timeout_seconds' => 20, 'max_retry' => 1, 'restrictions' => []];
         $this->publish($this->policy);

@@ -1,3 +1,13 @@
+# B51/B52 — Support aggregate wording and execution guards (2026-11-03, Codex)
+
+Branch `frank/review-fixes`, parent9a548d8, draft PR#5. Added aggregate EN/NL pending-credit wording, actual two-entry regression and six actual HTTP owner200/foreign404/unauthenticated401 captures. Implemented exact-model/key/profile/version-bound expiring strict-tool canary via operator CLI and conservative micro-EUR reservation before each provider attempt. Missing contract/prices/proof or exhausted budget blocks egress; retained reservations cover failures/crashes. Immutable store/parallel/tool controls, optional model parameters omitted. New migration2026_11_03_100000 adds spend counter/proof table, preserves rollback/reapply and closes historical unknown-spend days. Main DB NOT migrated. Senior configures limits/rates and runs live canary; no live call made by agent.
+
+Executed before main integration: SQLite support+API171total168pass+3skip/8926assertions; final focused guards/migration/evidence/provider/API46pass/7798assertions. MySQL final guards/evidence/concurrency32pass/162assertions, including4-process monetary race. PHPStan512MiB/Pint/diff PASS. Earlier MySQL suite167pass/1failure was a stale test expectation after failed canary invalidation; corrected focused checks pass. docs/support/SUPPORT_CHAT.md documents setup, conservative exposure semantics, D-076 templates and actual-provider≥95% quality rubric. Actual quality and brief acceptance remain NOT RUN; no free-form generated explanation implemented.
+
+Checkpoint scope B51/B52 implementation; test fixtures explicitly synthetic. Found remote main has newer merged changes and PR#5 DIRTY, preventing CI. Exact next: integrate origin/main preserving newer work, resolve overlaps with guards, rerun affected tests, update PR. This checkpoint is not final integrated/CI acceptance. No deploy/Trello move/external customer message. Decisions D-076/D-077 remain; new monetary guard enforces existing policy cap rather than inventing pricing/model support.
+
+---
+
 # B50 — Recovery cadence and deployment acceptance (2026-11-03, Codex)
 
 B49 acceptance implementation `7027e2c`; B50 recovery implementation `fd27a24`, both pushed. Previous PR#3 is merged; new draft PR#5: https://github.com/nauticsecure-dev/shopbonus_backend/pull/5. Full CI triggered by the new PR; result not yet verified. Working tree clean before this documentation closeout.
