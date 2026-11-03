@@ -1,3 +1,13 @@
+# B53 — Full-CI dashboard contract repair (2026-11-03, Codex)
+
+Branch `frank/review-fixes`; integrated implementation b484cdf (support40e0e0c, main313dfad); draft PR#5 https://github.com/nauticsecure-dev/shopbonus_backend/pull/5. Conflicts resolved, pushed and full CI41596390972 started. Lint/static PASS; SQLite FAILED solely on stale exact MerchantDashboardTest KPI array: merged API legitimately adds reserved_codes/expired_vouchers/expired_offers. SQLite1268total1240pass+27skip+1fail/20972assertions. All support/canary/budget tests passed. Do not label that run green. Failed JUnit remains retained by the existing workflow.
+
+Corrected only the test's exact expected KPI keys/values; no API behavior removed or response example invented. Local SQLite MerchantDashboardTest11pass/85assertions; MySQL11pass/85assertions (46.014s). No runtime changes or new migrations in B53. Pint targeted/diff checks PASS. B51/B52 final integrated focused evidence remains in the previous checkpoint. Clarified current fixed support policy UI value versus lower environment execution cap; no additional monetary activation or pricing assumption.
+
+D-109 owner explicitly requires approval plus recorded settlement for NEW rewards, superseding D-107; historical snapshots remain. Support templates stay D-076; no free-form generation implementation or≥95% live-quality proof. New support guards need senior migration/profile/keys and actual budgeted canary. Main DB NOT migrated. Offsite/key/infrastructure/queue/native-provider acceptance remains NOT RUN/open. Exact next: commit/push this assertion/docs closeout and inspect replacement full CI. No main merge/deploy/customer messages/Trello changes; uncommitted scope B53 test/docs only.
+
+---
+
 # Integrated B51/B52 checkpoint — support guards and D-109 (2026-11-03, Codex)
 
 Branch `frank/review-fixes`; support implementation40e0e0c; integrating main313dfaddba4a622aa4e0675cd8cb6215f4ba21a4 into draft PR#5. Preserved newer merged provider estimates/last-success telemetry, stricter support setting controls, wallet contract, recovery flags and all other main work. Resolved only overlapping implementation/docs/test expectations. Minor Pint normalization of six merged files is formatting only. No frontend implementation authored.

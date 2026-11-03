@@ -85,7 +85,8 @@ class MerchantDashboardTest extends TestCase
         Sanctum::actingAs($this->owner);
         $dash = $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/dashboard")->assertOk();
         $this->assertSame([
-            'active_offers' => 1, 'available_codes' => 5, 'issued_vouchers' => 1, 'claimed_vouchers' => 1, 'redeemed_vouchers' => 1,
+            'active_offers' => 1, 'reserved_codes' => 1, 'expired_vouchers' => 0, 'expired_offers' => 0,
+            'available_codes' => 5, 'issued_vouchers' => 1, 'claimed_vouchers' => 1, 'redeemed_vouchers' => 1,
             'scheduled_offers' => 0, 'paused_offers' => 0, 'open_disputes' => 0,
         ], $dash->json('data.kpis'));
         // "Available codes" equals the inventory page's available filter.

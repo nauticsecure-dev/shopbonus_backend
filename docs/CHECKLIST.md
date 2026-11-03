@@ -1173,3 +1173,11 @@ Implementation SHAs: B49 `7027e2c`; B50 `fd27a24`. Draft PR#5 contains both; no 
 - [ ] Record executed regressions and remaining MySQL/staging/performance evidence.
 
 B51/B52 implementation40e0e0c plus main-integration refinement commit (parent40e0e0c/main313dfad): integrated SQLite252pass+4skip/9737assertions, MySQL214pass/1739; final ceiling guardsSQLite138/8895 andMySQL9/40. Six real post-merge HTTP captures; PHPStan/Pint/diff PASS. Live canary/95% quality/product acceptance remain NOT RUN, not checked as complete.
+
+### B53 — Integrated dashboard KPI CI expectation (2026-11-03)
+
+- [x] Reconcile the stale exact KPI assertion with merged reserved-code/expired-voucher/expired-offer fields without removing API behavior.
+- [x] Execute the dashboard suite on SQLite and MySQL; record failed full CI honestly.
+- [x] Record implementation SHAs, current handoff and exact next CI action.
+
+B53 implementation parentb484cdf: MerchantDashboardTest SQLite11/85 andMySQL11/85 PASS; Pint/diff PASS. Full CI41596390972 SQLite failed only this stale expectation; replacement exact-code CI still required.
