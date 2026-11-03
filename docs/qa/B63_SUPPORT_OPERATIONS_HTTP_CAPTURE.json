@@ -1,0 +1,332 @@
+{
+  "captured_at": "2026-11-03T14:19:28Z",
+  "baseline": "5491f79 plus B63 working tree",
+  "environment": "Actual local Laravel HTTP, isolated SQLite/array cache,501 synthetic messages and one resolved human-review fixture. No real provider/model/Reverb/worker availability or quality acceptance.",
+  "exchanges": [
+    {
+      "label": "?scope=consumer&locale=en&model=synthetic-monitor",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/ai/operations?scope=consumer&locale=en&model=synthetic-monitor",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "aggregation_scope": "full_filtered_dataset",
+            "sample_limit": null,
+            "sample_size": 501,
+            "matching_total": 501,
+            "sample_fields_notice": "Legacy sample_size equals the full observed matching count; no row cap is applied.",
+            "execution_status_percentages": {
+              "UNAVAILABLE": 99.8,
+              "VERIFIED": 0.2
+            },
+            "outcome_percentages": {
+              "UNAVAILABLE": 99.8,
+              "VERIFIED": 0.2
+            },
+            "outcome_percentages_basis": "deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality",
+            "reviewed_outcome_percentages": {
+              "ANSWER_CORRECT": 100
+            },
+            "reviewed_outcomes": {
+              "ANSWER_CORRECT": 1
+            },
+            "resolved_review_total": 1,
+            "reviewed_outcome_denominator": "resolved_review_records",
+            "reviewed_message_total": 1,
+            "unreviewed_message_total": 500,
+            "matching_open_reviews": 0,
+            "quality_notice": "One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.",
+            "statuses": {
+              "UNAVAILABLE": 500,
+              "VERIFIED": 1
+            },
+            "failures": [],
+            "retrieval_retries": 0,
+            "latency_p95_ms": 100,
+            "input_tokens": 1002,
+            "output_tokens": 501,
+            "metric_coverage": {
+              "input_tokens": 501,
+              "output_tokens": 501,
+              "latency_ms": 501
+            },
+            "provider_cost": 0.02,
+            "costed_requests": 1,
+            "cost_currency": "EUR",
+            "from": "2026-11-02T14:19:28+00:00",
+            "checked_at": "2026-11-03T14:19:28+00:00",
+            "to": "2026-11-03T14:19:28+00:00",
+            "provider_cost_estimate": null,
+            "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+            "open_reviews": 0,
+            "approved_regressions": 0,
+            "daily_requests": 0,
+            "circuit_open": false,
+            "broadcaster": null,
+            "last_successful_broadcast_at": null,
+            "broadcast_failures_last_24h": 0,
+            "connectivity": {
+              "provider_last_success_at": null,
+              "worker_last_execution_at": null,
+              "queue_connection": "sync",
+              "reverb_live_probe": "not_measured",
+              "broadcast_evidence": "dispatch_attempt_only"
+            },
+            "model_contract": {
+              "model": "",
+              "verified": false,
+              "proof_scope": "expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"
+            },
+            "policy_version": "default-disabled"
+          }
+        }
+      }
+    },
+    {
+      "label": "?status=VERIFIED&model=synthetic-monitor",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/ai/operations?status=VERIFIED&model=synthetic-monitor",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "aggregation_scope": "full_filtered_dataset",
+            "sample_limit": null,
+            "sample_size": 1,
+            "matching_total": 1,
+            "sample_fields_notice": "Legacy sample_size equals the full observed matching count; no row cap is applied.",
+            "execution_status_percentages": {
+              "VERIFIED": 100
+            },
+            "outcome_percentages": {
+              "VERIFIED": 100
+            },
+            "outcome_percentages_basis": "deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality",
+            "reviewed_outcome_percentages": {
+              "ANSWER_CORRECT": 100
+            },
+            "reviewed_outcomes": {
+              "ANSWER_CORRECT": 1
+            },
+            "resolved_review_total": 1,
+            "reviewed_outcome_denominator": "resolved_review_records",
+            "reviewed_message_total": 1,
+            "unreviewed_message_total": 0,
+            "matching_open_reviews": 0,
+            "quality_notice": "One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.",
+            "statuses": {
+              "VERIFIED": 1
+            },
+            "failures": [],
+            "retrieval_retries": 0,
+            "latency_p95_ms": 100,
+            "input_tokens": 2,
+            "output_tokens": 1,
+            "metric_coverage": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "latency_ms": 1
+            },
+            "provider_cost": 0.02,
+            "costed_requests": 1,
+            "cost_currency": "EUR",
+            "from": "2026-11-02T14:19:28+00:00",
+            "checked_at": "2026-11-03T14:19:28+00:00",
+            "to": "2026-11-03T14:19:28+00:00",
+            "provider_cost_estimate": null,
+            "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+            "open_reviews": 0,
+            "approved_regressions": 0,
+            "daily_requests": 0,
+            "circuit_open": false,
+            "broadcaster": null,
+            "last_successful_broadcast_at": null,
+            "broadcast_failures_last_24h": 0,
+            "connectivity": {
+              "provider_last_success_at": null,
+              "worker_last_execution_at": null,
+              "queue_connection": "sync",
+              "reverb_live_probe": "not_measured",
+              "broadcast_evidence": "dispatch_attempt_only"
+            },
+            "model_contract": {
+              "model": "",
+              "verified": false,
+              "proof_scope": "expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"
+            },
+            "policy_version": "default-disabled"
+          }
+        }
+      }
+    },
+    {
+      "label": "?outcome=ANSWER_CORRECT",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/ai/operations?outcome=ANSWER_CORRECT",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "aggregation_scope": "full_filtered_dataset",
+            "sample_limit": null,
+            "sample_size": 1,
+            "matching_total": 1,
+            "sample_fields_notice": "Legacy sample_size equals the full observed matching count; no row cap is applied.",
+            "execution_status_percentages": {
+              "VERIFIED": 100
+            },
+            "outcome_percentages": {
+              "VERIFIED": 100
+            },
+            "outcome_percentages_basis": "deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality",
+            "reviewed_outcome_percentages": {
+              "ANSWER_CORRECT": 100
+            },
+            "reviewed_outcomes": {
+              "ANSWER_CORRECT": 1
+            },
+            "resolved_review_total": 1,
+            "reviewed_outcome_denominator": "resolved_review_records",
+            "reviewed_message_total": 1,
+            "unreviewed_message_total": 0,
+            "matching_open_reviews": 0,
+            "quality_notice": "One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.",
+            "statuses": {
+              "VERIFIED": 1
+            },
+            "failures": [],
+            "retrieval_retries": 0,
+            "latency_p95_ms": 100,
+            "input_tokens": 2,
+            "output_tokens": 1,
+            "metric_coverage": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "latency_ms": 1
+            },
+            "provider_cost": 0.02,
+            "costed_requests": 1,
+            "cost_currency": "EUR",
+            "from": "2026-11-02T14:19:28+00:00",
+            "checked_at": "2026-11-03T14:19:28+00:00",
+            "to": "2026-11-03T14:19:28+00:00",
+            "provider_cost_estimate": null,
+            "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+            "open_reviews": 0,
+            "approved_regressions": 0,
+            "daily_requests": 0,
+            "circuit_open": false,
+            "broadcaster": null,
+            "last_successful_broadcast_at": null,
+            "broadcast_failures_last_24h": 0,
+            "connectivity": {
+              "provider_last_success_at": null,
+              "worker_last_execution_at": null,
+              "queue_connection": "sync",
+              "reverb_live_probe": "not_measured",
+              "broadcast_evidence": "dispatch_attempt_only"
+            },
+            "model_contract": {
+              "model": "",
+              "verified": false,
+              "proof_scope": "expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"
+            },
+            "policy_version": "default-disabled"
+          }
+        }
+      }
+    },
+    {
+      "label": "?locale=nl",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/ai/operations?locale=nl",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "aggregation_scope": "full_filtered_dataset",
+            "sample_limit": null,
+            "sample_size": 0,
+            "matching_total": 0,
+            "sample_fields_notice": "Legacy sample_size equals the full observed matching count; no row cap is applied.",
+            "execution_status_percentages": [],
+            "outcome_percentages": [],
+            "outcome_percentages_basis": "deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality",
+            "reviewed_outcome_percentages": [],
+            "reviewed_outcomes": [],
+            "resolved_review_total": 0,
+            "reviewed_outcome_denominator": "resolved_review_records",
+            "reviewed_message_total": 0,
+            "unreviewed_message_total": 0,
+            "matching_open_reviews": 0,
+            "quality_notice": "One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.",
+            "statuses": [],
+            "failures": [],
+            "retrieval_retries": 0,
+            "latency_p95_ms": null,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "metric_coverage": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "latency_ms": 0
+            },
+            "provider_cost": null,
+            "costed_requests": 0,
+            "cost_currency": "EUR",
+            "from": "2026-11-02T14:19:28+00:00",
+            "checked_at": "2026-11-03T14:19:28+00:00",
+            "to": "2026-11-03T14:19:28+00:00",
+            "provider_cost_estimate": null,
+            "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+            "open_reviews": 0,
+            "approved_regressions": 0,
+            "daily_requests": 0,
+            "circuit_open": false,
+            "broadcaster": null,
+            "last_successful_broadcast_at": null,
+            "broadcast_failures_last_24h": 0,
+            "connectivity": {
+              "provider_last_success_at": null,
+              "worker_last_execution_at": null,
+              "queue_connection": "sync",
+              "reverb_live_probe": "not_measured",
+              "broadcast_evidence": "dispatch_attempt_only"
+            },
+            "model_contract": {
+              "model": "",
+              "verified": false,
+              "proof_scope": "expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"
+            },
+            "policy_version": "default-disabled"
+          }
+        }
+      }
+    }
+  ]
+}

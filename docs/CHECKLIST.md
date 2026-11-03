@@ -1431,3 +1431,12 @@ B61 implementing merge SHA `be4a3e5`; pushed and GitHub MERGEABLE confirmed. Bac
 B62 parentddc698c: SQLite15/127; MySQL20/153 including five real process races; PHPStan/Pint/diff PASS. Test-only backend boundary; full CI/browser/staging/visual acceptance is not claimed. Implementing SHA recorded in next closeout.
 
 B62 implementing SHA: `6394e80`.
+
+### B63 — Full support monitoring and reviewed outcome separation
+
+- [x] Aggregate the complete filtered message dataset in bounded batches; report exact observed latency, usage and cost coverage without a500-row cap.
+- [x] Add separate execution-status and resolved human-review outcome percentages with explicit denominators; preserve/deprecate legacy alias honestly.
+- [x] Keep unmeasured connectivity explicit and expose available model-contract proof without claiming live availability.
+- [x] Test over500 messages, review multiplicity/filter isolation, empty/unknown metrics and authorization; capture actual HTTP and update API/handoff.
+
+B63 parent5491f79: SQLite7/112, MySQL7/112; PHPStan/Pint PASS. Four real HTTP captures over501 synthetic messages; external connectivity remains unverified. Implementing SHA recorded next checkpoint.

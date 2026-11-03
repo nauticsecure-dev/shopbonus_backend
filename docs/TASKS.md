@@ -1,3 +1,13 @@
+# B63 — Complete support monitoring with separate reviewed outcomes (2026-11-03)
+
+Branch frank/review-fixes, parent5491f79; PR#5. Operations now traverses all matching messages in250-row batches up to an observed ID watermark, selecting no encrypted questions. Counts/tokens/retries/failure/cost coverage and nearest-rank observed latency P95 have no500-row cap. Exact latency histogram avoids retaining full message models. Resolved review outcome percentages use review-record denominator and distinct reviewed/unreviewed message coverage; repeated triggers are not mistaken for separate answers. Existing outcome_percentages remains a deprecated execution-status alias for compatibility with explicit basis; execution_status_percentages and reviewed_outcome_percentages are canonical separate fields. sample_limit=null and legacy sample_size equals full observed count. Global open_reviews/approved_regressions counters remain global; matching_open_reviews is filtered.
+
+Runtime exact-model/key/profile canary proof is surfaced separately from unmeasured Reverb/live availability. No probe is silently triggered by GET or dispatch history; external connectivity/quality acceptance remains NOT RUN. Provider costs are estimated with coverage, not billed cost. Focused SQLite7pass/112assertions and MySQL7pass/112assertions; PHPStan/Pint PASS. New501-message test proves oldest-record inclusion, quality/status separation, multiple review triggers, filters, empty metrics and admin isolation. Four actual local HTTP captures over501 synthetic rows in docs/qa/B63_SUPPORT_OPERATIONS_HTTP_CAPTURE.json; isolated SQLite/storage/keys/tokens/server removed; mainDB/sharedRedis untouched. API README/OpenAPI updated; no routes/migrations/frontend changes.
+
+Status monitoring code boundary verified locally; full-suite/live-model/Reverb/browser acceptance not claimed. Exact next: commit B63, then implement bounded support controls and publication capability gating (B64). Current uncommitted scope B63 operations service/controller/tests/API/capture/checkpoint only. Financial D-109/template D-076 unchanged.
+
+---
+
 B62 implementing SHA `6394e80`; dashboard contract and five real MySQL process races passed locally. No migrations/runtime changes. Full CI and deployed/browser/visual acceptance remain separate as detailed below.
 
 # B62 — Merchant dashboard contract and real MySQL claim races (2026-11-03, Codex)
