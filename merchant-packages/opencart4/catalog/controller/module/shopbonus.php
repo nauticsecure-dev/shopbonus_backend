@@ -1,7 +1,10 @@
 <?php
+
 namespace Opencart\Catalog\Controller\Extension\Shopbonus\Module;
 
-class Shopbonus extends \Opencart\System\Engine\Controller
+use Opencart\System\Engine\Controller;
+
+class Shopbonus extends Controller
 {
     public function created(string &$route, array &$args, mixed &$output): void
     {
@@ -15,7 +18,7 @@ class Shopbonus extends \Opencart\System\Engine\Controller
 
     private function queue(int $id): void
     {
-        if (!$this->config->get('module_shopbonus_status') || (int) $this->config->get('config_store_id') !== 0 || $id < 1) {
+        if (! $this->config->get('module_shopbonus_status') || (int) $this->config->get('config_store_id') !== 0 || $id < 1) {
             return;
         }
         try {
@@ -27,13 +30,13 @@ class Shopbonus extends \Opencart\System\Engine\Controller
 
     public function banner(string &$route, array &$args, mixed &$output): void
     {
-        if (!$this->config->get('module_shopbonus_banner') || (int) $this->config->get('config_store_id') !== 0 || !is_string($output)) {
+        if (! $this->config->get('module_shopbonus_banner') || (int) $this->config->get('config_store_id') !== 0 || ! is_string($output)) {
             return;
         }
         require_once DIR_EXTENSION.'shopbonus/system/library/Delivery.php';
         $origin = \ShopbonusDelivery::origin((string) $this->config->get('module_shopbonus_origin'));
         $key = (string) $this->config->get('module_shopbonus_key');
-        if ($origin === null || !preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key)) {
+        if ($origin === null || ! preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key)) {
             return;
         }
         $script = '<script defer src="'.htmlspecialchars($origin.'/embed/v1.js', ENT_QUOTES, 'UTF-8').'" data-shopbonus-key="'.htmlspecialchars($key, ENT_QUOTES, 'UTF-8').'"></script>';

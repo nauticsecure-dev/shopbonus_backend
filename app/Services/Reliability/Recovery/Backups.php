@@ -208,7 +208,7 @@ class Backups
         $latestRestore = DB::table('recovery_events')->where('kind', 'restore')->latest('id')->first();
         $attempts = DB::table('recovery_events')->where('kind', 'backup')->where('observed_at', '>=', now()->subDays(30))->count();
         $successes = DB::table('recovery_events')->where('kind', 'backup')->where('status', 'succeeded')->where('observed_at', '>=', now()->subDays(30))->count();
-        $overdue = $last !== null && strtotime($last->observed_at) < now()->subMinutes(max(30, (int) config('recovery.overdue_minutes')))->getTimestamp();
+        $overdue = $last !== null && strtotime($last->observed_at) < now()->subMinutes(max(1, (int) config('recovery.overdue_minutes')))->getTimestamp();
 
         return ['status' => ! config('recovery.enabled') ? 'UNKNOWN' : ($last === null || $last->status === 'failed' || $latestRestore?->status === 'failed' || $overdue ? 'CRITICAL' : 'WARNING'),
             'backup_success_percent_30d' => $attempts > 0 ? round(100 * $successes / $attempts, 2) : null,

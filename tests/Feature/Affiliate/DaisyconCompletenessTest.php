@@ -83,7 +83,12 @@ class DaisyconCompletenessTest extends TestCase
 
         (new SyncDaisyconEvidence($connection->id, 'access-rules', 'P1'))->handle(app(DaisyconAdapter::class));
 
-        $this->assertSame($payload, json_decode(DB::table('affiliate_provider_resources')->sole()->payload, true));
+        $stored = json_decode(DB::table('affiliate_provider_resources')->sole()->payload, true, 512, JSON_THROW_ON_ERROR);
+        // MySQL JSON storage normalizes object key order; values and list order remain strict.
+        $this->assertCount(1, $stored);
+        ksort($payload[0]);
+        ksort($stored[0]);
+        $this->assertSame($payload, $stored);
         $this->assertFalse($program->fresh()->cashback_allowed);
         $this->assertDatabaseCount('offer_versions', 0);
         $this->assertDatabaseCount('affiliate_reward_rules', 0);

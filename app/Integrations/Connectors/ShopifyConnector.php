@@ -180,7 +180,7 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
 
     /**
      * Before returns (`total*Set`) and after returns (`currentTotalPriceSet`), per the Admin GraphQL Order object.
-     * Shipping is left out: `totalShippingPriceSet` is documented as shipping returned to the customer.
+     * Original shipping stays unknown; currentShippingPriceSet is reported separately after refunds/discounts.
      *
      * @param  array<string,mixed>  $payload
      * @return array<string,mixed>|null
@@ -191,7 +191,7 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
             ? $payload[$field]['shopMoney']['amount'] : null;
 
         return AmountBreakdown::make($currency, 'shopify_order', ['original_total' => $money('totalPriceSet'), 'current_total' => $money('currentTotalPriceSet'),
-            'tax' => $money('totalTaxSet'), 'discount' => $money('totalDiscountsSet')], is_bool($payload['taxesIncluded'] ?? null) ? $payload['taxesIncluded'] : null);
+            'current_shipping' => $money('currentShippingPriceSet'), 'tax' => $money('totalTaxSet'), 'discount' => $money('totalDiscountsSet')], is_bool($payload['taxesIncluded'] ?? null) ? $payload['taxesIncluded'] : null);
     }
 
     /** @param array<string,mixed> $payload */

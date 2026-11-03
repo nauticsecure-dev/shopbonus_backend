@@ -101,7 +101,7 @@ return [
             'profile' => [
                 'api_version' => 'eCommerce Orders v1 / App Instance v1', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
-                'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
+                'refund_amounts_mapped' => true, 'payment_time_mapped' => false,
                 'native_read_api_implemented' => true, 'auth_method' => 'App RSA-signed JWT webhook + merchant-authorized API token',
                 'scopes' => ['Read Orders', 'Read Order Transactions', 'Manage Your App'],
                 'webhook_topics' => ['wix.ecom.v1.order_created', 'wix.ecom.v1.order_updated', 'wix.ecom.v1.order_paid', 'wix.ecom.v1.order_canceled'],
@@ -139,11 +139,11 @@ return [
             'profile' => [
                 'api_version' => 'v3', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
-                'refund_amounts_mapped' => false, 'payment_time_mapped' => false,
+                'refund_amounts_mapped' => false, 'payment_time_mapped' => false, 'reported_refund_total_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'X-Ecwid-Webhook-Signature (app client_secret) + Bearer store token',
                 'scopes' => ['read_orders', 'read_store_profile'],
                 'webhook_topics' => ['order.created', 'order.updated'],
-                'order_api' => 'GET https://app.ecwid.com/api/v3/{storeId}/orders/{orderId}', 'refund_api' => 'paymentStatus on order; dedicated refund cash totals unsupported',
+                'order_api' => 'GET https://app.ecwid.com/api/v3/{storeId}/orders/{orderId}', 'refund_api' => 'Reported refundedAmount mapped using observed shop currency; processor cash settlement/time unverified',
                 'product_api' => 'GET /api/v3/{storeId}/products', 'coupon_api' => 'GET /api/v3/{storeId}/discount_coupons (read-only)',
                 'banner_method' => 'Documented storefront customization or merchant-approved manual placement',
                 'rate_limit_policy' => 'Notification→native lookup; plan/API feature check; durable updatedFrom discovery; totals use store profile currency.',
@@ -231,7 +231,7 @@ return [
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
                 'refund_amounts_mapped' => false, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Shopbonus HMAC bridge + optional Admin API client_credentials',
-                'scopes' => ['read order, sales-channel-domain, state-machine-history'],
+                'scopes' => ['read order, order_line_item, sales-channel-domain, state-machine-history'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
                 'order_api' => 'POST {installation}/api/search/order', 'refund_api' => 'Partial/refund cash mapping incomplete without history evidence',
                 'product_api' => 'POST /api/search/product (bound sales channel)', 'coupon_api' => 'POST /api/search/promotion (read-only; individual codes skipped)',

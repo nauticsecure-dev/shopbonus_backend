@@ -31,6 +31,7 @@ class BusinessProfileService
     public function update(Webshop $webshop, User $actor, array $data, bool $confirm): BusinessProfile
     {
         return DB::transaction(function () use ($webshop, $actor, $data, $confirm) {
+            $webshop = Webshop::whereKey($webshop->id)->lockForUpdate()->firstOrFail();
             $profile = BusinessProfile::where('webshop_id', $webshop->id)->lockForUpdate()->first() ?? new BusinessProfile;
             $fields = collect($data)->except(['confirm'])->all();
 

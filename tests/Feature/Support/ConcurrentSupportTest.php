@@ -4,8 +4,10 @@ namespace Tests\Feature\Support;
 
 use App\Models\SupportMessage;
 use App\Models\User;
+use App\Services\Admin\Diagnostics\ProviderFailure;
 use App\Services\Admin\PlatformSettings;
 use App\Services\Support\SupportChat;
+use App\Services\Support\SupportModelContract;
 use App\Services\Support\SupportPolicy;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Http\Client\Request;
@@ -13,11 +15,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Tests\Concerns\ConfiguresSupportModel;
 use Tests\Concerns\RacesProcesses;
 use Tests\TestCase;
 
 class ConcurrentSupportTest extends TestCase
 {
+    use ConfiguresSupportModel;
     use DatabaseTruncation, RacesProcesses {
         DatabaseTruncation::truncateDatabaseTables as truncateCommittedTables;
     }
@@ -52,6 +56,7 @@ class ConcurrentSupportTest extends TestCase
         $this->skipUnlessRealDatabase();
         Queue::fake();
         config(['support_ai.enabled' => true, 'support_ai.api_key' => 'fixture', 'support_ai.model' => 'fixture-model', 'support_ai.daily_request_limit' => 1]);
+        $this->configureVerifiedSupportModel();
         $a = User::factory()->create();
         $b = User::factory()->create();
         $settings = app(PlatformSettings::class);
@@ -76,5 +81,25 @@ class ConcurrentSupportTest extends TestCase
         $this->assertSame(['UNAVAILABLE', 'VERIFIED'], $results, implode(', ', $results));
         $this->assertSame(1, DB::table('support_quotas')->where('scope', 'global')->value('requests'));
         $this->assertSame(1, SupportMessage::where('failure_code', 'quota_exceeded')->count());
+    }
+
+    public function test_concurrent_attempts_cannot_exceed_monetary_cap(): void
+    {
+        $this->skipUnlessRealDatabase();
+        config(['support_ai.api_key' => 'fixture']);
+        $this->configureVerifiedSupportModel();
+        config(['support_ai.daily_cost_limit_eur' => '0.010240']);
+        $results = $this->race(4, function ($n) {
+            try {
+                app(SupportModelContract::class)->reserve('fixture-model', 1024, '20');
+
+                return 'reserved';
+            } catch (ProviderFailure $e) {
+                return $e->failureCode;
+            }
+        });
+        $this->assertSame(1, count(array_filter($results, fn ($r) => $r === 'reserved')), json_encode($results));
+        $this->assertSame(3, count(array_filter($results, fn ($r) => $r === 'budget_exceeded')), json_encode($results));
+        $this->assertSame(10240, (int) DB::table('support_quotas')->where('scope', 'budget:eur')->value('reserved_micro_eur'));
     }
 }

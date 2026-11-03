@@ -2,6 +2,11 @@
 
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
 
+B66 (2026-11-03): Quality Center run/result `pass` and totals describe imported execution, not provider acceptance or release approval. The separate [source-mapped acceptance gate](../qa/ACCEPTANCE_GATE.md) requires independently reviewed result-bound proof for all mapped checks and provider subruns. The original175-check source remains UNMAPPED and the gate blocks. No QA API endpoint or response shape changed.
+
+B65 (2026-11-03): platform/connection/capability/health reports include per-feature `evidence_id`, `source_url`, `error_code` and `evidence_scope`. Platform declarations are not observations. Connection evidence is feature/current-credential-specific. GET catalog-syncs/events accepts optional exact ULID `evidence_id` (malformed422, unrelated200/empty, foreign workspace404). [Eleven real local HTTP request/response captures](../qa/B65_FEATURE_PROVENANCE_HTTP_CAPTURE.json) include actual URLs, headers and JSON; isolated synthetic SQLite at `516e9d1` plus B65, no genuine provider acceptance. OpenAPI response examples below are refreshed from those captures. [Evidence and monetary definitions](../integrations/FEATURE_PROVENANCE.md) distinguish Shopify current shipping, Ecwid reported totals and unknown settlement/cash evidence.
+
+
 2026-11-03 adapter follow-up: [real isolated HTTP catalogue and PrestaShop/OpenCart setup responses](ADAPTER_REVIEW_PLATFORMS_HTTP_CAPTURE.json), reproduced with `php scripts/capture-adapter-review.php`. Existing GET platform/connection endpoint shapes are retained. E-Series now resolves through its Ecwid-based connector; Squarespace uses restricted API-key polling. Setup steps link candidate PS9/OC4.1 packages. Signed PS9 ID notifications schedule native recovery; they never trust a payment claim in the notification. Package installation and genuine providers remain unverified; see [implementation and limits](../integrations/ADAPTER_REVIEW_2026-11-03.md).
 
 Current affiliate policy (owner revised brief, 2026-11-02): trusted, validated, attributed conversions earn immediately spendable noncash credit under the active versioned rule. Later rejection changes network reporting without automatically reclaiming this credit. Historical timing snapshots remain unchanged. Earlier pending/settlement captures below describe their original checkpoint. See [revised-brief acceptance and executed evidence](../release/REVISED_BRIEF_REVIEW_2026-11-02.md) and [fresh real HTTP captures](REVISED_BRIEF_HTTP_CAPTURE.json). The EUR 4.75 example explicitly uses a 100% rule; the general default share remains 70%.
@@ -24351,6 +24356,210 @@ Actual 404 response:
 }
 ```
 
+## Aggregate pending wallet support — B51 (2026-11-03)
+
+Six actual HTTP exchanges on a local Laravel server after main integration, isolated SQLite, two synthetic pending entries and no provider calls: [capture archive](../qa/B51_WALLET_SUPPORT_HTTP_CAPTURE.json). These newly generated server-verified fixture answers are not live-model or conversational-quality evidence. Historical stored answers remain immutable. Current EN/NL wallet summaries describe aggregate pending credit and require separate evidence for an individual reward. Owner200, foreign404 and unauthenticated401 were captured in each language.
+
+**en-owner**
+
+```http
+GET /api/v1/ai/messages/01m6g4jw9kh315z4s284gs7vwx
+Accept: application/json
+Authorization: Bearer <redacted>
+Accept-Language: en
+```
+
+```json
+{
+  "data": {
+    "id": "01m6g4jw9kh315z4s284gs7vwx",
+    "message_id": "01m6g4jw9kh315z4s284gs7vwx",
+    "conversation_id": "01m6g4jw8vg7cgp3evnnzdy2b1",
+    "question": "What is my pending credit?",
+    "status": "VERIFIED",
+    "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+    "evidence_ids": [
+      "01m6g4jw95ajv79wgnk4qsx4kk"
+    ],
+    "checked_at": "2026-11-03T07:22:10+00:00",
+    "retry_used": false,
+    "action": null,
+    "checks": {
+      "passed": [
+        "AUTH",
+        "SOURCE",
+        "FRESHNESS",
+        "COMPLETENESS",
+        "CONSISTENCY",
+        "CLAIMS",
+        "POLICY",
+        "ACTION"
+      ],
+      "failed": []
+    },
+    "display": {
+      "show_progress_updates": true,
+      "show_verified_badge": true
+    },
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+      "evidence_ids": [
+        "01m6g4jw95ajv79wgnk4qsx4kk"
+      ],
+      "checked_at": "2026-11-03T07:22:10+00:00",
+      "checks": {
+        "passed": [
+          "AUTH",
+          "SOURCE",
+          "FRESHNESS",
+          "COMPLETENESS",
+          "CONSISTENCY",
+          "CLAIMS",
+          "POLICY",
+          "ACTION"
+        ],
+        "failed": []
+      },
+      "action": null
+    },
+    "created_at": "2026-11-03T07:22:10+00:00",
+    "completed_at": "2026-11-03T07:22:10+00:00"
+  }
+}
+```
+
+**nl-owner**
+
+```http
+GET /api/v1/ai/messages/01m6g4jwa0scvg04xadbndas36
+Accept: application/json
+Authorization: Bearer <redacted>
+Accept-Language: nl
+```
+
+```json
+{
+  "data": {
+    "id": "01m6g4jwa0scvg04xadbndas36",
+    "message_id": "01m6g4jwa0scvg04xadbndas36",
+    "conversation_id": "01m6g4jw9ngk9t5agyyp2tb3mn",
+    "question": "Wat is mijn tegoed in behandeling?",
+    "status": "VERIFIED",
+    "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+    "evidence_ids": [
+      "01m6g4jw9tvr7wz9aftpw687dy"
+    ],
+    "checked_at": "2026-11-03T07:22:10+00:00",
+    "retry_used": false,
+    "action": null,
+    "checks": {
+      "passed": [
+        "AUTH",
+        "SOURCE",
+        "FRESHNESS",
+        "COMPLETENESS",
+        "CONSISTENCY",
+        "CLAIMS",
+        "POLICY",
+        "ACTION"
+      ],
+      "failed": []
+    },
+    "display": {
+      "show_progress_updates": true,
+      "show_verified_badge": true
+    },
+    "result": {
+      "status": "VERIFIED",
+      "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+      "evidence_ids": [
+        "01m6g4jw9tvr7wz9aftpw687dy"
+      ],
+      "checked_at": "2026-11-03T07:22:10+00:00",
+      "checks": {
+        "passed": [
+          "AUTH",
+          "SOURCE",
+          "FRESHNESS",
+          "COMPLETENESS",
+          "CONSISTENCY",
+          "CLAIMS",
+          "POLICY",
+          "ACTION"
+        ],
+        "failed": []
+      },
+      "action": null
+    },
+    "created_at": "2026-11-03T07:22:10+00:00",
+    "completed_at": "2026-11-03T07:22:10+00:00"
+  }
+}
+```
+
+## Admin backend authority, pagination and webshop filters — B54/B55 (2026-11-03)
+
+[Forty-one actual HTTP exchanges](../qa/B54_B55_ADMIN_BACKEND_HTTP_CAPTURE.json) were captured on a local Laravel server with isolated SQLite and synthetic accounts/business records. Authority changes were injected into fixture records to bypass lifecycle hooks deliberately. MFA was disabled for capture only; required-MFA loss is regression-tested separately. No frontend or native-provider acceptance is claimed. Capture servers, private credentials, storage and DB were removed.
+
+Support-token requests revalidate the initiating administrator's current active/verified/Super Admin authority and required MFA without trusting loaded relations. Lost authority closes the session, revokes the token and records an attributed401 denial; restoring authority cannot revive it. Ordinary bearer tokens retain existing behavior. Ownership-transfer writes, including cancellation, are explicitly denied during impersonation. Persisted lifecycle display is separate from live request authorization; invalid authority is closed/audited on token use.
+
+All four admin lists accept positive integer `page`, bounded `per_page`1–100 and return pagination metadata. Webshop pagination links retain search/status filters. Vouchers and activity accept canonical `webshop_id` or alias `webshop` as a public ULID. Both are allowed only for the same shop; conflict/malformed input422, valid unknown shop200empty. Scoping precedes pagination. These are Super Admin endpoints, not consumer/merchant endpoints.
+
+The cockpit already accepts `period=today` in business timezone and exposes detailed `data.kpis`: orders, Answer24 requests/by_status, available inventory, per-unit wallet issuance/spend/outstanding and disputes. `data.cards` remains six headlines. See [backend handoff](../admin/COCKPIT_BACKEND_HANDOFF.md). Client selectors/buttons/filter forwarding remain Hassan's work.
+
+**role-authority-lost**
+
+```http
+GET /api/v1/me
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 401:
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "support_session_ended",
+    "message": "This support session has ended.",
+    "request_id": "01a1a068-6345-7050-9e5a-566d5d0515ab"
+  }
+}
+```
+
+**support-ownership-cancel-denied**
+
+```http
+DELETE /api/v1/workspaces/current/ownership-transfer
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 403:
+
+```json
+{
+  "error": {
+    "status": 403,
+    "code": "blocked_during_impersonation",
+    "message": "This action is not available during a support session.",
+    "request_id": "01a1a068-6229-71d0-8e45-7fa23ba01659"
+  }
+}
+```
+
+**users-page2**
+
+```http
+GET /api/v1/admin/users?search=Pagination&per_page=1&page=2
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
 ## Voucher dispute compensation lifecycle — 2026-11-02
 
 Dispute read/list and admin resolve responses add resolution.compensation_status (requested, pending, failed, completed) and resolution.compensated_at. A resolved report can still have a pending refund. Only provider completion sets compensated_at and emits compensated. Immediate wallet credit and replacement finish synchronously.
@@ -24377,6 +24586,822 @@ Response 200:
 {
   "data": [
     {
+      "id": "01m6g6gqcvk6ybw19g2623f3bs",
+      "first_name": "Pagination 2",
+      "email": "pagination-2@example.test",
+      "email_verified": true,
+      "status": "active",
+      "onboarding_intent": "consumer",
+      "roles": [],
+      "workspaces": [],
+      "two_factor_enabled": false,
+      "registered_at": "2026-11-03T07:55:56+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "per_page": 1,
+    "total": 3,
+    "last_page": 3
+  }
+}
+```
+
+**webshops-page2**
+
+```http
+GET /api/v1/admin/webshops?search=Pagination&per_page=1&page=2
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6g6gqe3y876snn90tecd4dh",
+      "name": "Pagination B",
+      "platform": "squarespace",
+      "status": "approved",
+      "status_reason": null,
+      "review_flags": [],
+      "ownership_verified": true,
+      "ownership_method": "dns_txt",
+      "verified_domain": null,
+      "website_domain": null,
+      "owners": [
+        {
+          "id": "01m6g6gqcb82d3324wfsv302a1",
+          "first_name": "Synthetic Owner",
+          "email": "capture-owner@example.test"
+        }
+      ],
+      "review_requested_at": null,
+      "approved_at": "2026-11-03T07:55:56+00:00",
+      "created_at": "2026-11-03T07:55:56+00:00",
+      "integration_status": "not_connected",
+      "last_activity_at": "2026-11-03T07:55:56+00:00",
+      "active_offers": 1
+    }
+  ],
+  "links": {
+    "first": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+    "last": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3",
+    "prev": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+    "next": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3"
+  },
+  "meta": {
+    "current_page": 2,
+    "from": 2,
+    "last_page": 3,
+    "links": [
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+        "label": "&laquo; Previous",
+        "page": 1,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=1",
+        "label": "1",
+        "page": 1,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=2",
+        "label": "2",
+        "page": 2,
+        "active": true
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3",
+        "label": "3",
+        "page": 3,
+        "active": false
+      },
+      {
+        "url": "http://127.0.0.1:8792/api/v1/admin/webshops?search=Pagination&per_page=1&page=3",
+        "label": "Next &raquo;",
+        "page": 3,
+        "active": false
+      }
+    ],
+    "path": "http://127.0.0.1:8792/api/v1/admin/webshops",
+    "per_page": 1,
+    "to": 2,
+    "total": 3
+  }
+}
+```
+
+**vouchers-webshop_id-page2**
+
+```http
+GET /api/v1/admin/vouchers?webshop_id=01m6g6gqd860dbgjb1swv50vjc&per_page=2&page=2
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6g6gqga20cevz600sth83zd",
+      "status": "issued",
+      "origin": "merchant_reward",
+      "webshop": {
+        "id": "01m6g6gqd860dbgjb1swv50vjc",
+        "name": "Pagination A"
+      },
+      "code_last4": "-1-0",
+      "issued_at": "2026-11-03T07:55:56+00:00",
+      "redeemed_at": null,
+      "expires_at": "2026-12-03T07:55:56+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "per_page": 2,
+    "total": 3,
+    "last_page": 2
+  }
+}
+```
+
+**activity-webshop_id-page2**
+
+```http
+GET /api/v1/admin/activity?webshop_id=01m6g6gqd860dbgjb1swv50vjc&per_page=2&page=2&action=fixture.drilldown
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "3",
+      "occurred_at": "2026-11-03T07:55:56+00:00",
+      "category": "admin",
+      "action": "fixture.drilldown",
+      "outcome": "success",
+      "type": "Systeem",
+      "description": "fixture drilldown",
+      "detail": "Pagination A",
+      "href": "/admin/webshops/01m6g6gqd860dbgjb1swv50vjc",
+      "actor": {
+        "id": "01m6g6gqbytahk52jbj5sqrpxk",
+        "email": "ca***********@example.test",
+        "name": "Synthetic Admin"
+      },
+      "real_actor": null,
+      "webshop": {
+        "id": "01m6g6gqd860dbgjb1swv50vjc",
+        "name": "Pagination A"
+      },
+      "http_status": null,
+      "http_method": null,
+      "route": null,
+      "request_id": null
+    }
+  ],
+  "meta": {
+    "current_page": 2,
+    "per_page": 2,
+    "total": 3,
+    "last_page": 2
+  }
+}
+```
+
+**cockpit-today**
+
+```http
+GET /api/v1/admin/cockpit?period=today
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "generated_at": "2026-11-03T07:56:01+00:00",
+    "cache_seconds": 60,
+    "period": {
+      "from": "2026-11-02T23:00:00+00:00",
+      "to": "2026-11-03T22:59:59+00:00"
+    },
+    "kpis": {
+      "webshops": {
+        "total": 3,
+        "active": 3,
+        "pending": 0,
+        "pending_review": 0,
+        "suspended": 0,
+        "rejected": 0
+      },
+      "consumers": {
+        "registered": 9,
+        "new_in_period": 9,
+        "active_in_period": 0
+      },
+      "offers": {
+        "published": 2
+      },
+      "vouchers": {
+        "issued_in_period": 4,
+        "redeemed_in_period": 0,
+        "outstanding": 4,
+        "available_codes": 2
+      },
+      "orders": {
+        "received_in_period": 1,
+        "confirmed_paid_in_period": 1
+      },
+      "answer24": {
+        "requests_in_period": 1,
+        "by_status": {
+          "pending": 1
+        }
+      },
+      "affiliate_commissions": {
+        "pending": {
+          "count": 0,
+          "by_currency": []
+        },
+        "approved": {
+          "count": 0,
+          "by_currency": []
+        },
+        "rejected": {
+          "count": 0,
+          "by_currency": []
+        },
+        "reversed": {
+          "count": 0,
+          "by_currency": []
+        }
+      },
+      "wallets": {
+        "points": {
+          "issued_in_period": 100,
+          "spent_in_period": 20,
+          "expired_in_period": 0,
+          "available": 80,
+          "reserved": 0,
+          "outstanding": 80,
+          "pending": 0
+        }
+      },
+      "disputes": {
+        "open": 1
+      },
+      "incidents": {
+        "application_errors_in_period": 0,
+        "failed_jobs": 0,
+        "failed_webhooks_in_period": 0,
+        "failed_outbox": 0,
+        "open_reconciliation_flags": 0,
+        "paid_unfulfilled_checkouts": 0,
+        "access_denials_in_period": 18
+      }
+    },
+    "cards": [
+      {
+        "key": "active_webshops",
+        "label": "Actieve webshops",
+        "value": 3,
+        "display": "3",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Goedgekeurde workspaces",
+        "href": "/admin/webshops?status=approved",
+        "tone": "blue",
+        "icon": "store"
+      },
+      {
+        "key": "consumers",
+        "label": "Consumenten",
+        "value": 9,
+        "display": "9",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Actieve consumentenaccounts",
+        "href": "/admin/users?role=consumer&status=active",
+        "tone": "blue",
+        "icon": "users"
+      },
+      {
+        "key": "active_vouchers",
+        "label": "Actieve vouchers",
+        "value": 4,
+        "display": "4",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Uitgegeven en nog bruikbaar",
+        "href": "/admin/vouchers?usable=1",
+        "tone": "blue",
+        "icon": "ticket"
+      },
+      {
+        "key": "affiliate_commission",
+        "label": "Affiliatecommissie",
+        "value": 0,
+        "display": "€ 0,00",
+        "change_percent": 0,
+        "helper": "Bevestigd · pending € 0,00",
+        "status": "confirmed",
+        "breakdown": {
+          "confirmed_minor": 0,
+          "pending_minor": 0,
+          "rejected_minor": 0,
+          "reversed_minor": 0
+        },
+        "href": "/admin/affiliate?tab=transactions&status=approved&from=2026-11-03&to=2026-11-03",
+        "tone": "blue",
+        "icon": "coins"
+      },
+      {
+        "key": "wallet_liability",
+        "label": "Virtueel wallettegoed",
+        "value": 0,
+        "display": "€ 0,00",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Beschikbaar € 0,00 · gereserveerd € 0,00 · geen winst",
+        "breakdown": {
+          "available_minor": 0,
+          "reserved_minor": 0,
+          "pending_minor": 0,
+          "outstanding_minor": 0
+        },
+        "href": "/admin/wallets",
+        "tone": "blue",
+        "icon": "wallet"
+      },
+      {
+        "key": "open_actions",
+        "label": "Openstaande acties",
+        "value": 0,
+        "display": "0",
+        "change_percent": null,
+        "comparison_unavailable_reason": "Historical snapshots are unavailable for this current-state total.",
+        "helper": "Goedkeuringen, syncs en support",
+        "href": "/admin#actions",
+        "tone": "blue",
+        "icon": "list"
+      }
+    ],
+    "trends": {
+      "timezone": "Europe/Amsterdam",
+      "days": [
+        {
+          "date": "2026-11-03",
+          "new_webshops": 3,
+          "new_consumers": 8,
+          "paid_orders": 1,
+          "vouchers_issued": 4,
+          "vouchers_redeemed": 0
+        }
+      ]
+    },
+    "affiliate_channels": {
+      "metric": "vouchers",
+      "metric_label": "Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.",
+      "total": 4,
+      "period": {
+        "from": "2026-11-02T23:00:00+00:00",
+        "to": "2026-11-03T22:59:59+00:00"
+      },
+      "channels": [
+        {
+          "network": "other",
+          "label": "Overig / onbekend",
+          "count": 4,
+          "percent": 100,
+          "href": "/admin/affiliate?tab=vouchers&network=other&from=2026-11-03&to=2026-11-03"
+        }
+      ]
+    },
+    "attention": {
+      "pending_approvals": [],
+      "failed_sync_items": [],
+      "integration_failures": [],
+      "failed_jobs": [],
+      "reconciliation_flags": [],
+      "paid_unfulfilled_checkouts": [],
+      "affiliate_problems": 0,
+      "security_denials_24h": [
+        {
+          "route": "api/v1/me",
+          "http_status": 401,
+          "count": 12
+        },
+        {
+          "route": "api/v1/workspaces/{workspace}/ownership-transfer",
+          "http_status": 403,
+          "count": 2
+        },
+        {
+          "route": "api/v1/admin/activity",
+          "http_status": 403,
+          "count": 1
+        },
+        {
+          "route": "api/v1/admin/users",
+          "http_status": 403,
+          "count": 1
+        },
+        {
+          "route": "api/v1/admin/vouchers",
+          "http_status": 403,
+          "count": 1
+        },
+        {
+          "route": "api/v1/admin/webshops",
+          "http_status": 403,
+          "count": 1
+        }
+      ],
+      "recent_admin_actions": [
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:56:00+00:00"
+        },
+        {
+          "action": "support_session.ended",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:56:00+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:56:00+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:55:59+00:00"
+        },
+        {
+          "action": "support_session.ended",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:59+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:59+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        },
+        {
+          "action": "support_session.ended",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "success",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        },
+        {
+          "action": "support_session.request",
+          "outcome": "denied",
+          "occurred_at": "2026-11-03T07:55:58+00:00"
+        }
+      ],
+      "open_actions": {
+        "pending_approvals": {
+          "count": 0,
+          "severity": "none",
+          "href": "/admin/webshops?status=pending_review",
+          "title": "webshops wachten op goedkeuring",
+          "detail": "Bekijk en keur nieuwe webshops goed."
+        },
+        "failed_syncs": {
+          "count": 0,
+          "severity": "none",
+          "href": "/admin/integrations?attention=1",
+          "title": "mislukte syncs",
+          "detail": "Controleer mislukte imports of connectorfouten."
+        },
+        "open_support": {
+          "count": 0,
+          "severity": "none",
+          "href": "/admin/support?outcome=open",
+          "title": "supportcases",
+          "detail": "Nieuwe of openstaande supportcases."
+        },
+        "total": 0
+      }
+    },
+    "sources": {
+      "webshops": "ok",
+      "consumers": "ok",
+      "vouchers": "ok",
+      "affiliate": "ok",
+      "wallets": "ok",
+      "support": "ok",
+      "integrations": "ok"
+    },
+    "warnings": [],
+    "definitions": {
+      "webshops.active": "Status approved (commercially active workspaces).",
+      "webshops.pending": "Status draft, awaiting_verification, verification_failed or pending_review; pending_review is waiting for an admin.",
+      "consumers.registered": "Active consumer-intent accounts, including webshop members; active platform staff and configured test_account_public_ids excluded.",
+      "consumers.active_in_period": "Active consumers who signed in during the period.",
+      "offers.published": "Offers with status active.",
+      "vouchers.issued_in_period": "Vouchers whose issued_at is in the period (reserved claims are not issued).",
+      "vouchers.outstanding": "Issued, not expired, with an available/issued code that is not invalidated or mismatched.",
+      "vouchers.available_codes": "Codes in inventory that are not reserved, issued, redeemed or invalid.",
+      "orders.confirmed_paid_in_period": "Orders whose paid_at (provider-confirmed payment) is in the period.",
+      "affiliate_commissions": "Network commissions by our status, summed per currency; pending, approved, rejected and reversed are never added together. Headline card shows confirmed (approved) only.",
+      "affiliate_channels": "Issued vouchers grouped by explicit approved non-duplicate acquisition transaction with matching consumer and webshop; absent or invalid evidence is Other/Unknown.",
+      "wallets": "Consumer wallets per unit: credits issued, debits spent and expiries in the period; outstanding = available + reserved now (liability, not profit); pending (not yet credited) is separate.",
+      "open_actions": "Pending webshop reviews, unresolved support reviews and unique webshop connections with errors/failed webhooks plus affiliate connections in error. Incident occurrences and failed jobs are diagnostic, not additive.",
+      "incidents": "Counts of recorded technical faults and failures; access denials are audited 401/403 responses."
+    },
+    "period_name": "today",
+    "timezone": "Europe/Amsterdam"
+  }
+}
+```
+
+
+## B57 native mapping capture (2026-11-03)
+
+Captured from a running local Laravel HTTP server, isolated SQLite, baseline8fb782e plus B57 changes. Synthetic connector-normalized fixtures were saved for serialization; this does not exercise provider installation or ingestion. Full exchanges: [B57 capture](../qa/B57_CONNECTOR_HTTP_CAPTURE.json). No routes or financial qualification rules changed. Shopware requires order_line_item read permission. Flat bounded Shopware/Magento lines retain unknown eligible_amount_minor; Ecwid reported refund totals do not prove cash settlement. Persisted refunded_minor=0 is the existing database default when normalized evidence is absent, not proof of zero cash refunds.
+
+### platforms
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <token>' 'http://127.0.0.1:8793/api/v1/integrations/platforms'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":[{"platform":"woocommerce","name":"WooCommerce","priority":"production","available":true,"method":"webhook","auth":"shared secret (HMAC-SHA256, base64)","reliability":"high","limitations":[],"verification":"unverified","profile":{"api_version":"wc/v3","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":true,"payment_time_mapped":true,"native_read_api_implemented":true,"auth_method":"HTTPS HTTP Basic consumer key/secret; read-only merchant key","scopes":["read"],"webhook_topics":["order.created","order.updated"],"order_api":"GET /wp-json/wc/v3/orders/{id}","refund_api":"GET /wp-json/wc/v3/orders/{id}/refunds","product_api":"GET /wp-json/wc/v3/products","coupon_api":"GET /wp-json/wc/v3/coupons","banner_method":"manual; native WordPress publication/module not implemented","rate_limit_policy":"No redirects/retries;8second reads,1MiB body,100rows/page,5order pages;429cooldown/3failure circuit.","sources":["https://developer.woocommerce.com/docs/apis/rest-api/v3/","https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/","https://developer.woocommerce.com/docs/apis/rest-api/v3/order-refunds/","https://developer.woocommerce.com/docs/best-practices/urls-and-routing/webhooks/"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"refunds":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"manual; native WordPress publication/module not implemented","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"shopify","name":"Shopify","priority":"production","available":true,"method":"webhook","auth":"webhook signing secret (HMAC-SHA256, base64)","reliability":"high","limitations":["customer fields may be redacted without protected customer data access"],"verification":"unverified","profile":{"api_version":"2026-10","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":true,"payment_time_mapped":true,"native_read_api_implemented":true,"auth_method":"Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. optional disabled-by-default browser OAuth and expiring offline token renewal implemented","scopes":["read_orders","read_products (catalog only)"],"order_api":"POST /admin/api/2026-10/graphql.json: order/orders queries","refund_api":"Order.totalRefundedSet and successful REFUND transactions; no refund mutation","product_api":"products query; bounded core catalog metadata only","coupon_api":"UNSUPPORTED in this boundary","rate_limit_policy":"Pinned version,8second/1MiB reads,25orders/page,max5pages; no retries, HTTP200GraphQLerrors checked; throttling pauses reads.","webhook_topics":["orders/create","orders/updated","orders/paid","orders/cancelled","refunds/create","app/uninstalled"],"banner_method":"Theme App Extension requires separate implementation and merchant activation","sources":["https://shopify.dev/docs/api/admin-graphql/2026-10","https://shopify.dev/docs/apps/build/webhooks","https://shopify.dev/docs/apps/build/online-store/theme-app-extensions"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"refunds":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"UNSUPPORTED in this boundary","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Theme App Extension requires separate implementation and merchant activation","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"wix","name":"Wix","priority":"production","available":true,"method":"webhook","auth":"App RSA-signed JWT + merchant-authorized API token lookup","reliability":"unknown","limitations":["No OAuth install/refresh. Backfill uses POST /ecom/v1/orders/search. paid_at is the latest approved transaction createdDate (a creation time, not a settlement time); delayed capture and chargebacks are not mapped. Native banner publish UNSUPPORTED \u2014 label LIMITED/UNSUPPORTED honestly."],"verification":"unverified","profile":{"api_version":"eCommerce Orders v1 / App Instance v1","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":true,"payment_time_mapped":false,"native_read_api_implemented":true,"auth_method":"App RSA-signed JWT webhook + merchant-authorized API token","scopes":["Read Orders","Read Order Transactions","Manage Your App"],"webhook_topics":["wix.ecom.v1.order_created","wix.ecom.v1.order_updated","wix.ecom.v1.order_paid","wix.ecom.v1.order_canceled"],"order_api":"GET https://www.wixapis.com/ecom/v1/orders/{id}","refund_api":"GET https://www.wixapis.com/ecom/v1/payments/orders/{id}","product_api":"Stores Catalog V1/V3 products/query + site-properties currency","coupon_api":"GET /stores/v2/coupons/query (read-only)","banner_method":"Wix app/site extension or Blocks/Velo; silent external HTML publish not assumed","rate_limit_policy":"Pinned HTTPS reads,8second/1MiB; JWT verify before native lookup; no search backfill in this boundary.","sources":["https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/orders/get-order","https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/order-transactions/list-transactions-for-single-order","https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/orders/order-created","https://dev.wix.com/docs/build-apps/develop-your-app/api-integrations/events-and-webhooks/about-webhooks"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"LIMITED","reason":"No settled payment time is mapped; payment status only.","last_verified_at":null},"refunds":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Wix app/site extension or Blocks/Velo; silent external HTML publish not assumed","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"bigcommerce","name":"BigCommerce","priority":"production","available":true,"method":"webhook","auth":"Standard Webhooks app-secret HMAC + restricted API token lookup","reliability":"unknown","limitations":["Multi-storefront refused; display/transaction currency mismatch refused; widget/catalog publication not implemented."],"verification":"unverified","profile":{"api_version":"Orders v2 / Transactions and Refunds v3","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":true,"payment_time_mapped":true,"native_read_api_implemented":true,"auth_method":"Standard Webhooks app-secret HMAC + X-Auth-Token","scopes":["store_v2_orders_read_only","store_v2_transactions_read_only","store_v2_information_read_only"],"webhook_topics":["store/order/created","store/order/updated","store/order/statusUpdated","store/order/refund/created","store/order/transaction/created"],"order_api":"GET https://api.bigcommerce.com/stores/{hash}/v2/orders/{id}","refund_api":"GET .../v3/orders/{id}/payment_actions/refunds","product_api":"GET /v3/catalog/products?include=primary_image","coupon_api":"GET /v2/coupons (read-only)","banner_method":"BigCommerce Widgets API; native publish not implemented","rate_limit_policy":"No redirects/retries;8second/1MiB; webhook timestamp\u00b1300s; unpaid created orders imported but not rewarded until capture proof.","sources":["https://docs.bigcommerce.com/developer/docs/integrations/webhooks/overview","https://docs.bigcommerce.com/developer/docs/integrations/webhooks/event-reference/events","https://docs.bigcommerce.com/developer/docs/admin/widgets-and-scripts/overview","https://docs.bigcommerce.com/developer/api-reference/rest/admin/management/orders/get-order"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"refunds":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"BigCommerce Widgets API; native publish not implemented","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"ecwid","name":"Ecwid","priority":"production","available":true,"method":"webhook","auth":"app client-secret HMAC notification + store API token lookup","reliability":"limited","limitations":["Order has no per-order currency; totals use verified store profile currency. paid_at unavailable from reviewed fields. Dedicated refund cash totals unsupported. Live verification pending."],"verification":"unverified","profile":{"api_version":"v3","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":false,"payment_time_mapped":false,"reported_refund_total_mapped":true,"native_read_api_implemented":true,"auth_method":"X-Ecwid-Webhook-Signature (app client_secret) + Bearer store token","scopes":["read_orders","read_store_profile"],"webhook_topics":["order.created","order.updated"],"order_api":"GET https://app.ecwid.com/api/v3/{storeId}/orders/{orderId}","refund_api":"Reported refundedAmount mapped using observed shop currency; processor cash settlement/time unverified","product_api":"GET /api/v3/{storeId}/products","coupon_api":"GET /api/v3/{storeId}/discount_coupons (read-only)","banner_method":"Documented storefront customization or merchant-approved manual placement","rate_limit_policy":"Notification\u2192native lookup; plan/API feature check; durable updatedFrom discovery; totals use store profile currency.","sources":["https://docs.ecwid.com/","https://docs.ecwid.com/api-reference/rest-api/orders/get-order","https://docs.ecwid.com/api-reference/rest-api/store-profile/get-store-profile","https://github.com/Ecwid/ecwid-api-docs/blob/master/includes/_webhooks.md"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"LIMITED","reason":"No settled payment time is mapped; payment status only.","last_verified_at":null},"refunds":{"state":"LIMITED","reason":"Reported refund totals are mapped; processor cash settlement remains unverified.","last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Documented storefront customization or merchant-approved manual placement","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"lightspeed_c","name":"Lightspeed C-Series","priority":"production","available":true,"method":"webhook","auth":"HTTP Basic API key/secret + app webhook md5 signature","reliability":"limited","limitations":["Advanced/Professional plan required for API access.","Order resource has no per-order currency; amounts use verified shop main currency at read time.","paymentStatus has no refunded value; refund_minor stays null until returns cash mapping is verified.","paid_at is unavailable from documented order fields.","Retail/E-Series and confirmation-page tracking are not substituted."],"verification":"unverified","profile":{"api_version":"Lightspeed eCom C-Series REST","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":false,"payment_time_mapped":false,"native_read_api_implemented":true,"auth_method":"HTTP Basic api_key:api_secret; app webhook x-signature=md5(body+api_secret)","scopes":["store API key on Advanced/Professional plan"],"webhook_topics":["orders/created","orders/updated","orders/paid","orders/deleted","invoices/created","invoices/updated","returns/created","returns/updated"],"order_api":"GET https://{cluster}/{lang}/orders/{id}.json","refund_api":"paymentStatus only; returns cash mapping UNSUPPORTED in this boundary","product_api":"GET /products.json available upstream; catalog sync UNSUPPORTED in this boundary","coupon_api":"UNSUPPORTED in this boundary","banner_method":"Theme/script placement; Shop/scripts resource exists upstream; automatic publish not implemented","rate_limit_policy":"Cluster eu1|us1 only;8second/1MiB reads; require x-signature (app webhooks); Retail/E-Series refused; confirmation-page tracking not used.","sources":["https://ecom-support.lightspeedhq.com/hc/en-us/articles/220320568-API-documentation","https://developers.lightspeedhq.com/ecom/introduction/authentication/","https://developers.lightspeedhq.com/ecom/endpoints/order/","https://developers.lightspeedhq.com/ecom/endpoints/shop/","https://developers.lightspeedhq.com/ecom/tutorials/webhooks/"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"LIMITED","reason":"No settled payment time is mapped; payment status only.","last_verified_at":null},"refunds":{"state":"LIMITED","reason":"Refund amounts are not mapped: paymentStatus only; returns cash mapping UNSUPPORTED in this boundary","last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Product catalogue sync is not implemented for this platform boundary.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"UNSUPPORTED in this boundary","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Theme/script placement; Shop/scripts resource exists upstream; automatic publish not implemented","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"marketplace"},{"platform":"lightspeed_e","name":"Lightspeed E-Series","priority":"additional","available":false,"method":"API/confirmation (to be determined)","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Supported API method not yet verified.","capabilities":{"orders":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"payments":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"refunds":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"banner_embed":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"webhooks":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null},"backfill":{"state":"UNSUPPORTED","reason":"Supported API method not yet verified.","last_verified_at":null}},"category":"marketplace"},{"platform":"prestashop","name":"PrestaShop","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private ZIP module must be installed","actionValidateOrderAfter is not settled-payment proof"],"verification":"unverified","profile":{"api_version":"PrestaShop9 Webservice JSON","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":false,"payment_time_mapped":true,"native_read_api_implemented":true,"auth_method":"Shopbonus HMAC module bridge + optional HTTPS Basic webservice key","scopes":["GET shop_urls,orders,customers,addresses,currencies,order_payments,order_slip"],"webhook_topics":["order.created","order.updated","order.paid","order.cancelled","order.refunded","ping"],"order_api":"GET {installation}/api/orders/{id}?output_format=JSON","refund_api":"order_slip observed but not settled-cash; Unknown when slip-only","product_api":"GET products (webservice JSON)","coupon_api":"GET cart_rules (read-only; codeless skipped)","banner_method":"Storefront display hooks via private ZIP module; module not shipped in this backend","rate_limit_policy":"id_shop scope; ambiguous DST rejected; module ZIP outside Laravel scope.","sources":["https://devdocs.prestashop-project.org/9/modules/introduction/","https://devdocs.prestashop-project.org/9/modules/concepts/hooks/list-of-hooks/actionvalidateorderafter/","https://devdocs.prestashop-project.org/9/webservice/resources/orders/"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"refunds":{"state":"LIMITED","reason":"Refund amounts are not mapped: order_slip observed but not settled-cash; Unknown when slip-only","last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Storefront display hooks via private ZIP module; module not shipped in this backend","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"opencart","name":"OpenCart","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private OCMOD/extension must be installed","native order API not assumed; seven-gate Connected requires native_api evidence"],"verification":"unverified","profile":{"api_version":"Shopbonus webhook v1 bridge (OpenCart 3/4 extension required)","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":true,"payment_time_mapped":true,"native_read_api_implemented":false,"auth_method":"Shopbonus HMAC-SHA256 signed webhook v1","scopes":["merchant extension pairing secret"],"webhook_topics":["order.created","order.updated","order.paid","order.cancelled","order.refunded","ping"],"order_api":"UNSUPPORTED native admin order read; OpenCart catalog API is checkout-session oriented, not authoritative order history","refund_api":"Via module payload fields only","product_api":"UNSUPPORTED in this boundary","coupon_api":"UNSUPPORTED in this boundary","banner_method":"OpenCart 4 module/events or OCMOD when hooks insufficient; extension not shipped in this backend","rate_limit_policy":"Module must deliver server-to-server signed events; OC3 vs OC4 packaging differs; no invented REST admin orders API.","sources":["https://docs.opencart.com/developer-guide/extensions","https://docs.opencart.com/admin-interface/system/users/api"]},"blocked_reason":null,"capabilities":{"orders":{"state":"LIMITED","reason":"Webhook/module orders only; native read incomplete.","last_verified_at":null},"payments":{"state":"LIMITED","reason":"No settled payment time is mapped; payment status only.","last_verified_at":null},"refunds":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Product catalogue sync is not implemented for this platform boundary.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"UNSUPPORTED in this boundary","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"OpenCart 4 module/events or OCMOD when hooks insufficient; extension not shipped in this backend","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"UNSUPPORTED","reason":"Durable discovery requires a native paged reader.","last_verified_at":null}},"category":"webshop"},{"platform":"shopware6","name":"Shopware 6","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (extension not yet built)","limitations":["private extension must be installed","native Shopware app registration/signatures/lifecycle separate"],"verification":"unverified","profile":{"api_version":"Shopware6 Admin API","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":false,"payment_time_mapped":true,"native_read_api_implemented":true,"auth_method":"Shopbonus HMAC bridge + optional Admin API client_credentials","scopes":["read order, order_line_item, sales-channel-domain, state-machine-history"],"webhook_topics":["order.created","order.updated","order.paid","order.cancelled","order.refunded","ping"],"order_api":"POST {installation}/api/search/order","refund_api":"Partial/refund cash mapping incomplete without history evidence","product_api":"POST /api/search/product (bound sales channel)","coupon_api":"POST /api/search/promotion (read-only; individual codes skipped)","banner_method":"Shopware CMS/app extension; native app manifest webhooks not the Shopbonus HMAC bridge","rate_limit_policy":"Existing Shopbonus signed-module contract is explicit, not native Shopware app-signature lifecycle.","sources":["https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html","https://developer.shopware.com/docs/guides/plugins/apps/lifecycle/webhook.html","https://developer.shopware.com/docs/resources/references/app-reference/manifest-reference.html"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"refunds":{"state":"LIMITED","reason":"Refund amounts are not mapped: Partial/refund cash mapping incomplete without history evidence","last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Shopware CMS/app extension; native app manifest webhooks not the Shopbonus HMAC bridge","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"magento","name":"Magento / Adobe Commerce","priority":"additional","available":true,"method":"private_module","auth":"Shopbonus signed webhook v1","reliability":"high (module not yet built)","limitations":["private module must be installed","SaaS vs PaaS/on-prem differences unverified live"],"verification":"unverified","profile":{"api_version":"Magento/Adobe Commerce2.4 self-hosted/PaaS REST","reviewed_at":"2026-10-30","last_live_verified_at":null,"refund_amounts_mapped":true,"payment_time_mapped":true,"native_read_api_implemented":true,"auth_method":"Shopbonus HMAC bridge + optional REST integration bearer token","scopes":["orders, invoices, transactions, creditmemos read"],"webhook_topics":["order.created","order.updated","order.paid","order.cancelled","order.refunded","ping"],"order_api":"GET {installation}/rest/{store_code}/V1/orders/{id}","refund_api":"creditmemos + refund transactions required for refund qualification","product_api":"GET /V1/products","coupon_api":"GET salesRules/search + coupons/search (SPECIFIC_COUPON read-only)","banner_method":"Approved Commerce module/storefront component; architecture-dependent","rate_limit_policy":"Prefer Adobe I/O Events async; do not use synchronous Commerce Webhooks for slow ingestion. SaaS tenant auth not substituted.","sources":["https://developer.adobe.com/commerce/extensibility/events/","https://developer.adobe.com/commerce/extensibility/webhooks/","https://developer.adobe.com/commerce/webapi/rest/attributes/","https://github.com/magento/magento2"]},"blocked_reason":null,"capabilities":{"orders":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"payments":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"refunds":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"products":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"categories":{"state":"LIMITED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Approved Commerce module/storefront component; architecture-dependent","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"AVAILABLE","reason":null,"last_verified_at":null}},"category":"webshop"},{"platform":"squarespace","name":"Squarespace","priority":"additional","available":false,"method":"polling (read-only Orders API)","auth":"API key","reliability":"polling delay","limitations":["polling"],"verification":"unverified","profile":null,"blocked_reason":"Polling adapter not built; requires API key.","capabilities":{"orders":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"payments":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"refunds":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"banner_embed":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"webhooks":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null},"backfill":{"state":"UNSUPPORTED","reason":"Polling adapter not built; requires API key.","last_verified_at":null}},"category":"webshop"},{"platform":"mijnwebwinkel","name":"Mijnwebwinkel","priority":"additional","available":false,"method":"partner API","auth":"partner authorisation","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Partner/API authorisation pending.","capabilities":{"orders":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"payments":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"refunds":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"banner_embed":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"webhooks":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null},"backfill":{"state":"UNSUPPORTED","reason":"Partner/API authorisation pending.","last_verified_at":null}},"category":"webshop"},{"platform":"ccv","name":"CCV Shop","priority":"additional","available":false,"method":"to be investigated","auth":"to be determined","reliability":"unknown","limitations":[],"verification":"unverified","profile":null,"blocked_reason":"Merchant-accessible API options not yet investigated.","capabilities":{"orders":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"payments":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"refunds":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"banner_embed":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"webhooks":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null},"backfill":{"state":"UNSUPPORTED","reason":"Merchant-accessible API options not yet investigated.","last_verified_at":null}},"category":"webshop"},{"platform":"other","name":"Other / custom shop","priority":"additional","available":true,"method":"webhook","auth":"Shopbonus signed webhook v1","reliability":"depends on the custom integration","limitations":[],"verification":"unverified","profile":null,"blocked_reason":null,"capabilities":{"orders":{"state":"LIMITED","reason":"Webhook/module orders only; native read incomplete.","last_verified_at":null},"payments":{"state":"LIMITED","reason":"No settled payment time is mapped; payment status only.","last_verified_at":null},"refunds":{"state":"LIMITED","reason":"Refund amounts are not mapped.","last_verified_at":null},"products":{"state":"UNSUPPORTED","reason":"Product catalogue sync is not implemented for this platform boundary.","last_verified_at":null},"categories":{"state":"UNSUPPORTED","reason":"Category sync is best-effort where products are available.","last_verified_at":null},"coupons_read":{"state":"UNSUPPORTED","reason":"Coupon read is not available for this platform boundary.","last_verified_at":null},"coupons_write":{"state":"UNSUPPORTED","reason":"Coupon writes are out of scope for this boundary.","last_verified_at":null},"banner_embed":{"state":"LIMITED","reason":"Manual embed / platform extension required.","last_verified_at":null},"webhooks":{"state":"AVAILABLE","reason":null,"last_verified_at":null},"backfill":{"state":"UNSUPPORTED","reason":"Durable discovery requires a native paged reader.","last_verified_at":null}},"category":"webshop"}]}
+```
+
+### shopware6
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <token>' 'http://127.0.0.1:8793/api/v1/workspaces/01m6gsa0a8kx046fssxehs05wn/orders/01m6gsa0b5rbc6a8zaa1848vs2'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":{"id":"01m6gsa0b5rbc6a8zaa1848vs2","reference":"SYNTHETIC-shopware6","external_order_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","platform":"shopware6","customer":{"first_name":null,"email":null,"phone":null},"amount_minor":1999,"refunded_minor":0,"currency":"EUR","line_items":[{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","product_id":null,"sku":null,"quantity":2,"amount_minor":1999,"amount_basis":"provider_calculated_line_total","currency":"EUR","eligible_amount_minor":null}],"amount_breakdown":null,"payment_status":"pending","provider_status":null,"ingestion_status":"incomplete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","eligibility_reasons":[],"contact_status":"not_evaluated","placed_at":null,"paid_at":null,"cancelled_at":null,"refunded_at":null,"updated_at":"2026-11-03T13:24:19+00:00"},"history":[]}
+```
+
+### magento
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <token>' 'http://127.0.0.1:8793/api/v1/workspaces/01m6gsa0a8kx046fssxehs05wn/orders/01m6gsa0b94xsyvfk48d45aed4'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":{"id":"01m6gsa0b94xsyvfk48d45aed4","reference":"SYNTHETIC-magento","external_order_id":"42","platform":"magento","customer":{"first_name":null,"email":null,"phone":null},"amount_minor":1999,"refunded_minor":0,"currency":"EUR","line_items":[{"id":"1","product_id":null,"sku":null,"quantity":2,"amount_minor":1999,"amount_basis":"provider_row_total_including_tax","currency":"EUR","eligible_amount_minor":null}],"amount_breakdown":null,"payment_status":"pending","provider_status":null,"ingestion_status":"incomplete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","eligibility_reasons":[],"contact_status":"not_evaluated","placed_at":null,"paid_at":null,"cancelled_at":null,"refunded_at":null,"updated_at":"2026-11-03T13:24:19+00:00"},"history":[]}
+```
+
+### ecwid
+
+```bash
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <token>' 'http://127.0.0.1:8793/api/v1/workspaces/01m6gsa0a8kx046fssxehs05wn/orders/01m6gsa0bd0sc2jf9zz34ned1c'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":{"id":"01m6gsa0bd0sc2jf9zz34ned1c","reference":"SYNTHETIC-ecwid","external_order_id":"4711","platform":"ecwid","customer":{"first_name":null,"email":null,"phone":null},"amount_minor":1000,"refunded_minor":250,"currency":"EUR","line_items":null,"amount_breakdown":null,"payment_status":"partially_refunded","provider_status":null,"ingestion_status":"incomplete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","eligibility_reasons":[],"contact_status":"not_evaluated","placed_at":null,"paid_at":null,"cancelled_at":null,"refunded_at":null,"updated_at":"2026-11-03T13:24:19+00:00"},"history":[]}
+```
+
+
+## B58 — About publication concurrency (2026-11-03)
+
+Both About publication aliases require a positive integer `revision` from the reviewed draft. Omission/null/invalid values return422; a changed draft returns409 `draft_changed`. The comparison runs under the existing row lock. Existing callers must submit their reviewed revision rather than reread and automatically retry publication.
+
+[Actual HTTP capture](../qa/B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json): isolated local SQLite/file session, baselinef57e6e6 plus B58 changes; synthetic Super Admin signed in through login and confirmed password. MFA disabled for capture only. Fourteen real-service exchanges cover edit/save/preview/publish/restore and missing/stale rejection on both aliases. This is backend evidence, not approved company content, browser/design fidelity or deployed scheduler execution.
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{}'
+```
+
+```json
+{"status":422,"body":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1a1a2-becc-7110-93bd-9900e59b45c5","fields":{"revision":["The revision field is required."]}}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 11}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bef1-7349-99cc-ca063b38b928"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{}'
+```
+
+```json
+{"status":422,"body":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1a1a2-bf0e-73af-b10c-8bcc29c5092f","fields":{"revision":["The revision field is required."]}}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 11}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bf2a-713f-b084-34cd434c266f"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 1}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gt5ftec9kfdp3syvsvwke1","locale":"nl","number":1,"restored_from":null,"published_by":"Lot","published_at":"2026-11-03T13:39:20+00:00"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 1}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bfa0-7036-87fb-f005a434eee9"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 2}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gt5fyyrjkcvvpqzaxec0g2","locale":"nl","number":2,"restored_from":null,"published_by":"Lot","published_at":"2026-11-03T13:39:20+00:00"}}}
+```
+
+
+## B59 — Consumer trends and explicit acquisition workflow (2026-11-03)
+
+Consumer trend registrations now use the shared consumerAccounts scope, including consumer-intent webshop members and excluding staff/configured test accounts. Current active-account KPI status filters remain explicit. No route was added. [Operational console procedure](../admin/ACQUISITION_RECONCILIATION.md) connects independently reviewed acquisition evidence to the existing immutable voucher link; no network is inferred from wallet spending.
+
+Actual local Laravel HTTP, isolated SQLite, baselineee1f2b6 plus B59 changes. Synthetic consumer/member, merchant-only account, voucher and approved transaction; real console command executed between captures. These fixtures do not establish genuine acquisition or deployed browser acceptance. [Full exchanges](../qa/B59_COCKPIT_HTTP_CAPTURE.json).
+
+### before-reconciliation
+
+```bash
+curl -i 'http://127.0.0.1:8795/api/v1/admin/cockpit?period=custom&from=2026-11-03&to=2026-11-03' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":{"generated_at":"2026-11-03T13:45:27+00:00","cache_seconds":60,"period":{"from":"2026-11-02T23:00:00+00:00","to":"2026-11-03T22:59:59+00:00"},"kpis":{"webshops":{"total":1,"active":1,"pending":0,"pending_review":0,"suspended":0,"rejected":0},"consumers":{"registered":1,"new_in_period":1,"active_in_period":0},"offers":{"published":1},"vouchers":{"issued_in_period":1,"redeemed_in_period":0,"outstanding":1,"available_codes":0},"orders":{"received_in_period":0,"confirmed_paid_in_period":0},"answer24":{"requests_in_period":0,"by_status":[]},"affiliate_commissions":{"pending":{"count":0,"by_currency":[]},"approved":{"count":1,"by_currency":{"EUR":1000}},"rejected":{"count":0,"by_currency":[]},"reversed":{"count":0,"by_currency":[]}},"wallets":[],"disputes":{"open":0},"incidents":{"application_errors_in_period":0,"failed_jobs":0,"failed_webhooks_in_period":0,"failed_outbox":0,"open_reconciliation_flags":0,"paid_unfulfilled_checkouts":0,"access_denials_in_period":0}},"cards":[{"key":"active_webshops","label":"Actieve webshops","value":1,"display":"1","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Goedgekeurde workspaces","href":"/admin/webshops?status=approved","tone":"blue","icon":"store"},{"key":"consumers","label":"Consumenten","value":1,"display":"1","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Actieve consumentenaccounts","href":"/admin/users?role=consumer&status=active","tone":"blue","icon":"users"},{"key":"active_vouchers","label":"Actieve vouchers","value":1,"display":"1","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Uitgegeven en nog bruikbaar","href":"/admin/vouchers?usable=1","tone":"blue","icon":"ticket"},{"key":"affiliate_commission","label":"Affiliatecommissie","value":1000,"display":"\u20ac 10,00","change_percent":null,"helper":"Bevestigd \u00b7 pending \u20ac 0,00","status":"confirmed","breakdown":{"confirmed_minor":1000,"pending_minor":0,"rejected_minor":0,"reversed_minor":0},"href":"/admin/affiliate?tab=transactions&status=approved&from=2026-11-03&to=2026-11-03","tone":"blue","icon":"coins"},{"key":"wallet_liability","label":"Virtueel wallettegoed","value":0,"display":"\u20ac 0,00","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Beschikbaar \u20ac 0,00 \u00b7 gereserveerd \u20ac 0,00 \u00b7 geen winst","breakdown":{"available_minor":0,"reserved_minor":0,"pending_minor":0,"outstanding_minor":0},"href":"/admin/wallets","tone":"blue","icon":"wallet"},{"key":"open_actions","label":"Openstaande acties","value":0,"display":"0","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Goedkeuringen, syncs en support","href":"/admin#actions","tone":"blue","icon":"list"}],"trends":{"timezone":"Europe/Amsterdam","days":[{"date":"2026-11-03","new_webshops":1,"new_consumers":1,"paid_orders":0,"vouchers_issued":1,"vouchers_redeemed":0}]},"affiliate_channels":{"metric":"vouchers","metric_label":"Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.","total":1,"period":{"from":"2026-11-02T23:00:00+00:00","to":"2026-11-03T22:59:59+00:00"},"channels":[{"network":"other","label":"Overig / onbekend","count":1,"percent":100,"href":"/admin/affiliate?tab=vouchers&network=other&from=2026-11-03&to=2026-11-03"}]},"attention":{"pending_approvals":[],"failed_sync_items":[],"integration_failures":[],"failed_jobs":[],"reconciliation_flags":[],"paid_unfulfilled_checkouts":[],"affiliate_problems":0,"security_denials_24h":[],"recent_admin_actions":[],"open_actions":{"pending_approvals":{"count":0,"severity":"none","href":"/admin/webshops?status=pending_review","title":"webshops wachten op goedkeuring","detail":"Bekijk en keur nieuwe webshops goed."},"failed_syncs":{"count":0,"severity":"none","href":"/admin/integrations?attention=1","title":"mislukte syncs","detail":"Controleer mislukte imports of connectorfouten."},"open_support":{"count":0,"severity":"none","href":"/admin/support?outcome=open","title":"supportcases","detail":"Nieuwe of openstaande supportcases."},"total":0}},"sources":{"webshops":"ok","consumers":"ok","vouchers":"ok","affiliate":"ok","wallets":"ok","support":"ok","integrations":"ok"},"warnings":[],"definitions":{"webshops.active":"Status approved (commercially active workspaces).","webshops.pending":"Status draft, awaiting_verification, verification_failed or pending_review; pending_review is waiting for an admin.","consumers.registered":"Active consumer-intent accounts, including webshop members; active platform staff and configured test_account_public_ids excluded.","consumers.active_in_period":"Active consumers who signed in during the period.","offers.published":"Offers with status active.","vouchers.issued_in_period":"Vouchers whose issued_at is in the period (reserved claims are not issued).","vouchers.outstanding":"Issued, not expired, with an available/issued code that is not invalidated or mismatched.","vouchers.available_codes":"Codes in inventory that are not reserved, issued, redeemed or invalid.","orders.confirmed_paid_in_period":"Orders whose paid_at (provider-confirmed payment) is in the period.","affiliate_commissions":"Network commissions by our status, summed per currency; pending, approved, rejected and reversed are never added together. Headline card shows confirmed (approved) only.","affiliate_channels":"Issued vouchers grouped by explicit approved non-duplicate acquisition transaction with matching consumer and webshop; absent or invalid evidence is Other/Unknown.","wallets":"Consumer wallets per unit: credits issued, debits spent and expiries in the period; outstanding = available + reserved now (liability, not profit); pending (not yet credited) is separate.","open_actions":"Pending webshop reviews, unresolved support reviews and unique webshop connections with errors/failed webhooks plus affiliate connections in error. Incident occurrences and failed jobs are diagnostic, not additive.","incidents":"Counts of recorded technical faults and failures; access denials are audited 401/403 responses."},"period_name":"custom","timezone":"Europe/Amsterdam"}}
+```
+
+### after-reconciliation
+
+```bash
+curl -i 'http://127.0.0.1:8795/api/v1/admin/cockpit?period=custom&from=2026-11-03&to=2026-11-03' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":{"generated_at":"2026-11-03T13:45:27+00:00","cache_seconds":60,"period":{"from":"2026-11-02T23:00:00+00:00","to":"2026-11-03T22:59:59+00:00"},"kpis":{"webshops":{"total":1,"active":1,"pending":0,"pending_review":0,"suspended":0,"rejected":0},"consumers":{"registered":1,"new_in_period":1,"active_in_period":0},"offers":{"published":1},"vouchers":{"issued_in_period":1,"redeemed_in_period":0,"outstanding":1,"available_codes":0},"orders":{"received_in_period":0,"confirmed_paid_in_period":0},"answer24":{"requests_in_period":0,"by_status":[]},"affiliate_commissions":{"pending":{"count":0,"by_currency":[]},"approved":{"count":1,"by_currency":{"EUR":1000}},"rejected":{"count":0,"by_currency":[]},"reversed":{"count":0,"by_currency":[]}},"wallets":[],"disputes":{"open":0},"incidents":{"application_errors_in_period":0,"failed_jobs":0,"failed_webhooks_in_period":0,"failed_outbox":0,"open_reconciliation_flags":0,"paid_unfulfilled_checkouts":0,"access_denials_in_period":0}},"cards":[{"key":"active_webshops","label":"Actieve webshops","value":1,"display":"1","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Goedgekeurde workspaces","href":"/admin/webshops?status=approved","tone":"blue","icon":"store"},{"key":"consumers","label":"Consumenten","value":1,"display":"1","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Actieve consumentenaccounts","href":"/admin/users?role=consumer&status=active","tone":"blue","icon":"users"},{"key":"active_vouchers","label":"Actieve vouchers","value":1,"display":"1","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Uitgegeven en nog bruikbaar","href":"/admin/vouchers?usable=1","tone":"blue","icon":"ticket"},{"key":"affiliate_commission","label":"Affiliatecommissie","value":1000,"display":"\u20ac 10,00","change_percent":null,"helper":"Bevestigd \u00b7 pending \u20ac 0,00","status":"confirmed","breakdown":{"confirmed_minor":1000,"pending_minor":0,"rejected_minor":0,"reversed_minor":0},"href":"/admin/affiliate?tab=transactions&status=approved&from=2026-11-03&to=2026-11-03","tone":"blue","icon":"coins"},{"key":"wallet_liability","label":"Virtueel wallettegoed","value":0,"display":"\u20ac 0,00","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Beschikbaar \u20ac 0,00 \u00b7 gereserveerd \u20ac 0,00 \u00b7 geen winst","breakdown":{"available_minor":0,"reserved_minor":0,"pending_minor":0,"outstanding_minor":0},"href":"/admin/wallets","tone":"blue","icon":"wallet"},{"key":"open_actions","label":"Openstaande acties","value":0,"display":"0","change_percent":null,"comparison_unavailable_reason":"Historical snapshots are unavailable for this current-state total.","helper":"Goedkeuringen, syncs en support","href":"/admin#actions","tone":"blue","icon":"list"}],"trends":{"timezone":"Europe/Amsterdam","days":[{"date":"2026-11-03","new_webshops":1,"new_consumers":1,"paid_orders":0,"vouchers_issued":1,"vouchers_redeemed":0}]},"affiliate_channels":{"metric":"vouchers","metric_label":"Uitgegeven vouchers per geverifieerde acquisitiebron; ontbrekend bewijs staat bij Overig / onbekend.","total":1,"period":{"from":"2026-11-02T23:00:00+00:00","to":"2026-11-03T22:59:59+00:00"},"channels":[{"network":"daisycon","label":"Daisycon","count":1,"percent":100,"href":"/admin/affiliate?tab=vouchers&network=daisycon&from=2026-11-03&to=2026-11-03"}]},"attention":{"pending_approvals":[],"failed_sync_items":[],"integration_failures":[],"failed_jobs":[],"reconciliation_flags":[],"paid_unfulfilled_checkouts":[],"affiliate_problems":0,"security_denials_24h":[],"recent_admin_actions":[],"open_actions":{"pending_approvals":{"count":0,"severity":"none","href":"/admin/webshops?status=pending_review","title":"webshops wachten op goedkeuring","detail":"Bekijk en keur nieuwe webshops goed."},"failed_syncs":{"count":0,"severity":"none","href":"/admin/integrations?attention=1","title":"mislukte syncs","detail":"Controleer mislukte imports of connectorfouten."},"open_support":{"count":0,"severity":"none","href":"/admin/support?outcome=open","title":"supportcases","detail":"Nieuwe of openstaande supportcases."},"total":0}},"sources":{"webshops":"ok","consumers":"ok","vouchers":"ok","affiliate":"ok","wallets":"ok","support":"ok","integrations":"ok"},"warnings":[],"definitions":{"webshops.active":"Status approved (commercially active workspaces).","webshops.pending":"Status draft, awaiting_verification, verification_failed or pending_review; pending_review is waiting for an admin.","consumers.registered":"Active consumer-intent accounts, including webshop members; active platform staff and configured test_account_public_ids excluded.","consumers.active_in_period":"Active consumers who signed in during the period.","offers.published":"Offers with status active.","vouchers.issued_in_period":"Vouchers whose issued_at is in the period (reserved claims are not issued).","vouchers.outstanding":"Issued, not expired, with an available/issued code that is not invalidated or mismatched.","vouchers.available_codes":"Codes in inventory that are not reserved, issued, redeemed or invalid.","orders.confirmed_paid_in_period":"Orders whose paid_at (provider-confirmed payment) is in the period.","affiliate_commissions":"Network commissions by our status, summed per currency; pending, approved, rejected and reversed are never added together. Headline card shows confirmed (approved) only.","affiliate_channels":"Issued vouchers grouped by explicit approved non-duplicate acquisition transaction with matching consumer and webshop; absent or invalid evidence is Other/Unknown.","wallets":"Consumer wallets per unit: credits issued, debits spent and expiries in the period; outstanding = available + reserved now (liability, not profit); pending (not yet credited) is separate.","open_actions":"Pending webshop reviews, unresolved support reviews and unique webshop connections with errors/failed webhooks plus affiliate connections in error. Incident occurrences and failed jobs are diagnostic, not additive.","incidents":"Counts of recorded technical faults and failures; access denials are audited 401/403 responses."},"period_name":"custom","timezone":"Europe/Amsterdam"}}
+```
+
+### verified-drilldown
+
+```bash
+curl -i 'http://127.0.0.1:8795/api/v1/admin/vouchers?acquisition_network=daisycon&from=2026-11-03&to=2026-11-03' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"data":[{"id":"01m6gtgnrqqsv1wp94p4h11476","status":"issued","origin":"merchant_reward","webshop":{"id":"01m6gtgnq2ajrkxyjf00q1pbvx","name":"Synthetic acquisition"},"code_last4":"CODE","issued_at":"2026-11-03T13:45:26+00:00","redeemed_at":null,"expires_at":"2026-12-03T13:45:26+00:00"}],"meta":{"current_page":1,"per_page":25,"total":1,"last_page":1}}
+```
+
+
+## B60 — Verified-domain change workflow (2026-11-03)
+
+Normal profile edits retain409 domain_locked. The [privileged console reset procedure](../admin/DOMAIN_CHANGE.md) requires explicit expected-domain and authorized change case; it clears current proof/confirmation/approval and disconnects old integration generations. New-domain ownership and fresh integrations must be verified. No API route or coupon-write capability was added. Foreign workspace access remains audited404.
+
+[Actual HTTP evidence](../qa/B60_DOMAIN_CHANGE_HTTP_CAPTURE.json): isolated local Laravel/SQLite, synthetic merchant/profile/connection, baseline0a9ac29 plus B60 source, actual console reset between requests. MFA/owner step-up disabled locally for capture only. Not deployed/browser/worker/provider evidence.
+
+### before-reset
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":200,"body":{"data":{"legal_name":null,"trading_name":null,"website_url":"https://old-store.nl","website_domain":"old-store.nl","kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-11-03T13:54:01+00:00","missing_fields":["legal_name","contact_email","address_line","postal_code","city","kvk_number"],"domain_locked":true}}}
+```
+
+### ordinary-change-denied
+
+```bash
+curl -i -X PUT 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"website_url": "https://new-store.nl"}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"domain_locked","message":"The website domain is locked after ownership verification.","request_id":"01a1a1b0-34dc-71ba-a017-592a7628f44c"}}}
+```
+
+### foreign-concealed
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":404,"body":{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1a1b0-3508-7091-8e98-47262dc3dc57"}}}
+```
+
+### after-reset
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":200,"body":{"data":{"legal_name":null,"trading_name":null,"website_url":"https://new-store.nl","website_domain":"new-store.nl","kvk_number":null,"vat_number":null,"contact_email":null,"contact_phone":null,"main_contact_name":null,"address_line":null,"postal_code":null,"city":null,"country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":false,"confirmed_at":null,"missing_fields":["legal_name","contact_email","address_line","postal_code","city","kvk_number"],"domain_locked":false}}}
+```
+
+### connections-reset
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/connections' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"status":200,"body":{"data":[{"id":"01m6gv0cd22s84sg4tgazfjqaf","platform":"woocommerce","method":"webhook","status":"disconnected","external_shop_ref":null,"limitations":[],"last_event_at":null,"last_verified_order_at":null,"connected_at":null,"disconnected_at":"2026-11-03T13:54:02+00:00","last_error":null,"created_at":"2026-11-03T13:54:01+00:00"}]}}
+```
+
+### old-challenge-rejected
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications/01m6gv0cddj2q3mz9vh6a368mt/check' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"verification_not_pending","message":"This verification is no longer open.","request_id":"01a1a1b0-3690-7364-803c-537f7fa19e54"}}}
+```
+
+### confirmation-required
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"method": "dns_txt"}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"business_details_incomplete","message":"Confirm the business details first.","request_id":"01a1a1b0-36af-71b9-95a8-a4b8282ebe41"}}}
+```
+
+### reconfirmed
+
+```bash
+curl -i -X PUT 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/business-profile' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"legal_name": "Synthetic Shop B.V.", "website_url": "https://new-store.nl", "kvk_number": "12345678", "contact_email": "synthetic-owner@example.test", "contact_phone": "+31301234567", "main_contact_name": "Synthetic Owner", "address_line": "Syntheticstraat 1", "postal_code": "1234 AB", "city": "Utrecht", "country_code": "NL", "confirm": true}'
+```
+
+```json
+{"status":200,"body":{"data":{"legal_name":"Synthetic Shop B.V.","trading_name":null,"website_url":"https://new-store.nl","website_domain":"new-store.nl","kvk_number":"12345678","vat_number":null,"contact_email":"synthetic-owner@example.test","contact_phone":"+31301234567","main_contact_name":"Synthetic Owner","address_line":"Syntheticstraat 1","postal_code":"1234 AB","city":"Utrecht","country_code":"NL","preferred_language":"nl","google_place_id":null,"business_category":null,"source":"manual","confirmed":true,"confirmed_at":"2026-11-03T13:54:02+00:00","missing_fields":[],"domain_locked":false}}}
+```
+
+### new-challenge
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8796/api/v1/workspaces/01m6gv0cc33gxyfejqfsa44859/ownership/verifications' -H 'Accept: application/json' -H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' --data '{"method": "dns_txt"}'
+```
+
+```json
+{"status":201,"body":{"data":{"id":"01m6gv0dr97h1nyvr2gjjq2x3b","method":"dns_txt","status":"pending","domain":"new-store.nl","instructions":{"record_type":"TXT","record_name":"_shopbonus-verification.new-store.nl","record_value":"shopbonus-verification=d091e9b2c7edae467354f8d95fb0579e"},"attempt_count":0,"expires_at":"2026-11-10T13:54:02+00:00","verified_at":null,"failure_reason":null,"created_at":"2026-11-03T13:54:02+00:00"}}}
+```
       "action": "team.member_updated",
       "occurred_at": "2026-11-02T19:28:30+00:00",
       "outcome": "success"
@@ -24522,3 +25547,159 @@ Real cookie-authenticated homepage publication responses (200, 409, 422, plus CS
 Super Admin GET /api/v1/admin/content/voor-webshops/versions accepts optional include_content=1, also on the /content/pages/voor-webshops alias. Default responses retain metadata only. With the flag, each revision includes its immutable stored content; editing the current draft does not change earlier snapshots. Locale filtering and existing authentication/MFA gates apply.
 
 Real authenticated HTTP request/response: [MERCHANT_HISTORY_HTTP_CAPTURE.json](MERCHANT_HISTORY_HTTP_CAPTURE.json), using the isolated SQLite/filesystem runtime in scripts/merchant-review.php. The capture includes synthetic publications and a successful real media upload, not provider or staging evidence. Reproduce: start php scripts/merchant-review.php serve (or resume for its existing isolated database), then run npx playwright test --config playwright.merchant-http.config.ts from the sibling frontend. The browser suite is separately available via playwright.merchant-live.config.ts.
+
+
+## B63 — Complete support monitoring (2026-11-03)
+
+Operations metrics now cover the full filtered dataset in250-row batches, with a fixed observed ID watermark. Metric coverage, exact observed latency P95 and review denominators are explicit. `execution_status_percentages` counts message execution. `reviewed_outcome_percentages` counts resolved human review records; multiple review triggers can exist per message. Distinct reviewed/unreviewed message counts prevent treating reviews as coverage of all answers. `outcome_percentages` remains a deprecated status alias for existing clients, labelled by `outcome_percentages_basis`; migrate quality views to the reviewed field. Legacy sample fields now report full counts/null limit. Connectivity/model proof is not current end-to-end availability or live quality.
+
+[Actual HTTP capture](../qa/B63_SUPPORT_OPERATIONS_HTTP_CAPTURE.json): baseline5491f79 plus B63, isolated SQLite,501 synthetic messages and one resolved review; no provider/Reverb/worker evidence.
+
+```bash
+curl -i 'http://127.0.0.1:8797/api/v1/admin/ai/operations?scope=consumer&locale=en&model=synthetic-monitor' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":501,"matching_total":501,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":{"UNAVAILABLE":99.8,"VERIFIED":0.2},"outcome_percentages":{"UNAVAILABLE":99.8,"VERIFIED":0.2},"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":{"ANSWER_CORRECT":100},"reviewed_outcomes":{"ANSWER_CORRECT":1},"resolved_review_total":1,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":1,"unreviewed_message_total":500,"matching_open_reviews":0,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":{"UNAVAILABLE":500,"VERIFIED":1},"failures":[],"retrieval_retries":0,"latency_p95_ms":100,"input_tokens":1002,"output_tokens":501,"metric_coverage":{"input_tokens":501,"output_tokens":501,"latency_ms":501},"provider_cost":0.02,"costed_requests":1,"cost_currency":"EUR","from":"2026-11-02T14:19:28+00:00","checked_at":"2026-11-03T14:19:28+00:00","to":"2026-11-03T14:19:28+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.","open_reviews":0,"approved_regressions":0,"daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"policy_version":"default-disabled"}}
+```
+
+```bash
+curl -i 'http://127.0.0.1:8797/api/v1/admin/ai/operations?status=VERIFIED&model=synthetic-monitor' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":1,"matching_total":1,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":{"VERIFIED":100},"outcome_percentages":{"VERIFIED":100},"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":{"ANSWER_CORRECT":100},"reviewed_outcomes":{"ANSWER_CORRECT":1},"resolved_review_total":1,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":1,"unreviewed_message_total":0,"matching_open_reviews":0,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":{"VERIFIED":1},"failures":[],"retrieval_retries":0,"latency_p95_ms":100,"input_tokens":2,"output_tokens":1,"metric_coverage":{"input_tokens":1,"output_tokens":1,"latency_ms":1},"provider_cost":0.02,"costed_requests":1,"cost_currency":"EUR","from":"2026-11-02T14:19:28+00:00","checked_at":"2026-11-03T14:19:28+00:00","to":"2026-11-03T14:19:28+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.","open_reviews":0,"approved_regressions":0,"daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"policy_version":"default-disabled"}}
+```
+
+```bash
+curl -i 'http://127.0.0.1:8797/api/v1/admin/ai/operations?outcome=ANSWER_CORRECT' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":1,"matching_total":1,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":{"VERIFIED":100},"outcome_percentages":{"VERIFIED":100},"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":{"ANSWER_CORRECT":100},"reviewed_outcomes":{"ANSWER_CORRECT":1},"resolved_review_total":1,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":1,"unreviewed_message_total":0,"matching_open_reviews":0,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":{"VERIFIED":1},"failures":[],"retrieval_retries":0,"latency_p95_ms":100,"input_tokens":2,"output_tokens":1,"metric_coverage":{"input_tokens":1,"output_tokens":1,"latency_ms":1},"provider_cost":0.02,"costed_requests":1,"cost_currency":"EUR","from":"2026-11-02T14:19:28+00:00","checked_at":"2026-11-03T14:19:28+00:00","to":"2026-11-03T14:19:28+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.","open_reviews":0,"approved_regressions":0,"daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"policy_version":"default-disabled"}}
+```
+
+```bash
+curl -i 'http://127.0.0.1:8797/api/v1/admin/ai/operations?locale=nl' -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
+```
+
+```json
+{"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":0,"matching_total":0,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":[],"outcome_percentages":[],"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":[],"reviewed_outcomes":[],"resolved_review_total":0,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":0,"unreviewed_message_total":0,"matching_open_reviews":0,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":[],"failures":[],"retrieval_retries":0,"latency_p95_ms":null,"input_tokens":0,"output_tokens":0,"metric_coverage":{"input_tokens":0,"output_tokens":0,"latency_ms":0},"provider_cost":null,"costed_requests":0,"cost_currency":"EUR","from":"2026-11-02T14:19:28+00:00","checked_at":"2026-11-03T14:19:28+00:00","to":"2026-11-03T14:19:28+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.","open_reviews":0,"approved_regressions":0,"daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"policy_version":"default-disabled"}}
+```
+
+
+## B64 — Bounded support controls and activation proof (2026-11-03)
+
+[Backend controls/proof runbook](../support/ADVANCED_CONTROLS.md) specifies supported ranges, server-owned NL/EN wording, hard-cap escalation, deadline/shared-cost enforcement, configured verified fallback and immutable safety constraints. Enabled publication requires fresh exact model/key/profile canary proof for both models, independent review and session step-up; synthetic policy regression is not provider proof. No models were activated or called in this capture. No frontend changes.
+
+[Eleven actual HTTP exchanges](../qa/B64_SUPPORT_CONTROLS_HTTP_CAPTURE.json), baseline25fa46c plus B64, isolated SQLite/file sessions. Two synthetic admins authenticated and completed actual password/OTP steps via localhost SMTP. Unverified enablement rejected; only disabled controls were published. Consumer response is a seeded presentation-only word-cap escalation with a review, not model/evidence acceptance. Live connectivity/quality remain unverified.
+
+### draft-unverified-model
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support.ai","value":{"enabled":true,"model":"synthetic-unconfigured","languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000},"reason":"Synthetic unverified model gate"}'
+```
+
+```json
+{"status":201,"body":{"data":{"id":"01m6gxxh9x8hc0v52vdvq4gsbn","key":"support.ai","version":1,"value":{"enabled":true,"model":"synthetic-unconfigured","languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000},"checksum":"936a24985b8171fd4a391bc08904a687c1a96c9fc2aeb13de10a9a88dd3fc631","status":"draft","reason":"Synthetic unverified model gate","created_by":"01m6gxxfj6r55063s9wqc6rffh","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### test-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/ai/settings/01m6gxxh9x8hc0v52vdvq4gsbn/test' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"total":100,"passed":100,"failed":0,"policy_checksum":"936a24985b8171fd4a391bc08904a687c1a96c9fc2aeb13de10a9a88dd3fc631","scope":"server_intent_and_immutable_safety_guards","provider_verified":false}}}
+```
+
+### review-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxh9x8hc0v52vdvq4gsbn/review' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxh9x8hc0v52vdvq4gsbn","key":"support.ai","version":1,"value":{"enabled":true,"model":"synthetic-unconfigured","languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000},"checksum":"936a24985b8171fd4a391bc08904a687c1a96c9fc2aeb13de10a9a88dd3fc631","status":"review","reason":"Synthetic unverified model gate","created_by":"01m6gxxfj6r55063s9wqc6rffh","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### self-publish-denied
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxh9x8hc0v52vdvq4gsbn/publish' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Synthetic self publication"}'
+```
+
+```json
+{"status":403,"body":{"error":{"status":403,"code":"second_admin_required","message":"A different administrator must publish this setting.","request_id":"01a1a1de-c58d-70b0-a4e5-7aa5177e8355"}}}
+```
+
+### unverified-model-denied
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxh9x8hc0v52vdvq4gsbn/publish' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Synthetic independent publication"}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"support_model_contract_required","message":"Verify each configured model with the budgeted support-model canary before enabling it.","request_id":"01a1a1de-c8e4-73b5-a8b6-93e8e05b8109"}}}
+```
+
+### draft-bounded-disabled-controls
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"key":"support.ai","value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"reason":"Synthetic disabled configurable controls"}'
+```
+
+```json
+{"status":201,"body":{"data":{"id":"01m6gxxj8af2kq3tdpwe02n8rq","key":"support.ai","version":2,"value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","status":"draft","reason":"Synthetic disabled configurable controls","created_by":"01m6gxxfjmes9k549qayc9ahz1","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### test-disabled-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/ai/settings/01m6gxxj8af2kq3tdpwe02n8rq/test' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"total":100,"passed":100,"failed":0,"policy_checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","scope":"server_intent_and_immutable_safety_guards","provider_verified":false}}}
+```
+
+### review-disabled-policy
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxj8af2kq3tdpwe02n8rq/review' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxj8af2kq3tdpwe02n8rq","key":"support.ai","version":2,"value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","status":"review","reason":"Synthetic disabled configurable controls","created_by":"01m6gxxfjmes9k549qayc9ahz1","reviewed_by":null,"review_note":null,"published_at":null,"is_current":false,"rollback_of":null}}}
+```
+
+### publish-disabled-controls
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8798/api/v1/admin/platform-settings/01m6gxxj8af2kq3tdpwe02n8rq/publish' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' -H 'Content-Type: application/json' --data '{"note":"Synthetic independently reviewed disabled controls"}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxj8af2kq3tdpwe02n8rq","key":"support.ai","version":2,"value":{"enabled":false,"model":null,"languages":["en","nl"],"daily_request_limit":10,"timeout_seconds":10,"max_retry":1,"restrictions":[],"tone":"warm","empathy":"high","answer_detail":"detailed","target_answer_words":20,"max_answer_words":35,"daily_cost_limit_eur":"0.25","response_deadline_ms":2000,"fallback_model":null},"checksum":"5f6fcbc7094879c45eee78204968b97ac8ab633812290f232e680baee73a86c1","status":"published","reason":"Synthetic disabled configurable controls","created_by":"01m6gxxfjmes9k549qayc9ahz1","reviewed_by":"01m6gxxfj6r55063s9wqc6rffh","review_note":"Synthetic independently reviewed disabled controls","published_at":"2026-11-03T14:44:54+00:00","is_current":true,"rollback_of":null}}}
+```
+
+### operations-capabilities
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8798/api/v1/admin/ai/operations' -H 'Accept: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>'
+```
+
+```json
+{"status":200,"body":{"data":{"aggregation_scope":"full_filtered_dataset","sample_limit":null,"sample_size":1,"matching_total":1,"sample_fields_notice":"Legacy sample_size equals the full observed matching count; no row cap is applied.","execution_status_percentages":{"ESCALATED":100},"outcome_percentages":{"ESCALATED":100},"outcome_percentages_basis":"deprecated_execution_status_alias_use_reviewed_outcome_percentages_for_quality","reviewed_outcome_percentages":[],"reviewed_outcomes":[],"resolved_review_total":0,"reviewed_outcome_denominator":"resolved_review_records","reviewed_message_total":0,"unreviewed_message_total":1,"matching_open_reviews":1,"quality_notice":"One message can have several review triggers. Percentages count resolved review records, not all answers or a representative live-quality evaluation.","statuses":{"ESCALATED":1},"failures":{"answer_word_limit":1},"retrieval_retries":0,"latency_p95_ms":null,"input_tokens":0,"output_tokens":0,"metric_coverage":{"input_tokens":0,"output_tokens":0,"latency_ms":0},"provider_cost":null,"costed_requests":0,"cost_currency":"EUR","from":"2026-11-02T14:44:54+00:00","checked_at":"2026-11-03T14:44:54+00:00","to":"2026-11-03T14:44:54+00:00","provider_cost_estimate":null,"cost_notice":"Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.","open_reviews":1,"approved_regressions":0,"daily_reserved_micro_eur":0,"budget_notice":"Conservative retained exposure, not billed spend; all provider attempts reserve against the shared lower policy/deployment cap.","daily_requests":0,"circuit_open":false,"broadcaster":null,"last_successful_broadcast_at":null,"broadcast_failures_last_24h":0,"connectivity":{"provider_last_success_at":null,"worker_last_execution_at":null,"queue_connection":"sync","reverb_live_probe":"not_measured","broadcast_evidence":"dispatch_attempt_only"},"model_contract":{"model":"","verified":false,"proof_scope":"expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality"},"settings_capabilities":{"renderer":"server_owned_evidence_templates","tone":["friendly_professional","direct","warm"],"empathy":["balanced","minimal","high"],"answer_detail":["concise","detailed"],"target_answer_words":{"min":20,"max":200,"soft":true},"max_answer_words":{"min":25,"max":300,"overflow":"human_review_without_truncation"},"response_deadline_ms":{"min":1000,"max":20000},"daily_cost_limit_eur":{"min":0,"max":1000,"deployment_cap":"20"},"fallback":"one_configured_verified_model_transient_failures_only_shared_deadline_and_budget","optional_model_parameters":"reasoning_and_verbosity_omitted_pending_separate_capability_proof","deployment_models":[]},"policy_version":"01m6gxxj8af2kq3tdpwe02n8rq"}}}
+```
+
+### synthetic-word-cap-projection
+
+```bash
+curl -i -X GET 'http://127.0.0.1:8798/api/v1/ai/messages/01m6gxxfk2zqhw35p0wa634db9' -H 'Accept: application/json' -H 'Authorization: Bearer <CONSUMER_TOKEN>'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gxxfk2zqhw35p0wa634db9","message_id":"01m6gxxfk2zqhw35p0wa634db9","conversation_id":"01m6gxxfjtk89abbqsmjvp4xp5","question":"Synthetic presentation-only fixture","status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","retry_used":false,"action":null,"checks":{"passed":[],"failed":["POLICY"]},"display":{"show_progress_updates":true,"show_verified_badge":true},"result":{"status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","action":null,"evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","checks":{"passed":[],"failed":["POLICY"]},"presentation_reason":"answer_word_limit","presentation":{"tone":"warm","empathy":"high","detail":"concise","target_words":20,"target_is_soft":true,"max_words":25,"word_count":11}},"created_at":"2026-11-03T14:44:51+00:00","completed_at":"2026-11-03T14:44:51+00:00"}}}
+```

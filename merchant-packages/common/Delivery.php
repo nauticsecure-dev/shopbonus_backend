@@ -6,9 +6,9 @@ final class ShopbonusDelivery
     public static function origin(string $value): ?string
     {
         $parts = parse_url($value);
-        if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https'
+        if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'https'
             || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || isset($parts['query']) || isset($parts['fragment'])
-            || !preg_match('/\A[a-z0-9.-]+\.[a-z]{2,}\z/D', $parts['host'] ?? '') || !in_array($parts['path'] ?? '', ['', '/'], true)) {
+            || ! preg_match('/\A[a-z0-9.-]+\.[a-z]{2,}\z/D', $parts['host'] ?? '') || ! in_array($parts['path'] ?? '', ['', '/'], true)) {
             return null;
         }
 
@@ -20,8 +20,8 @@ final class ShopbonusDelivery
         $parts = parse_url($url);
 
         return is_array($parts) && self::origin('https://'.($parts['host'] ?? '')) !== null
-            && ($parts['scheme'] ?? '') === 'https' && !isset($parts['user']) && !isset($parts['pass'])
-            && !isset($parts['port']) && !isset($parts['query']) && !isset($parts['fragment'])
+            && ($parts['scheme'] ?? '') === 'https' && ! isset($parts['user']) && ! isset($parts['pass'])
+            && ! isset($parts['port']) && ! isset($parts['query']) && ! isset($parts['fragment'])
             && preg_match('~\A/api/v1/webhooks/'.preg_quote($platform, '~').'/[A-Za-z0-9]{40}\z~D', $parts['path'] ?? '') === 1;
     }
 
@@ -33,7 +33,7 @@ final class ShopbonusDelivery
 
     public static function send(string $url, string $platform, string $secret, string $eventId, array $payload): bool
     {
-        if (!self::endpoint($url, $platform) || strlen($secret) < 32 || !preg_match('/\A[a-f0-9]{32}\z/D', $eventId) || !extension_loaded('curl')) {
+        if (! self::endpoint($url, $platform) || strlen($secret) < 32 || ! preg_match('/\A[a-f0-9]{32}\z/D', $eventId) || ! extension_loaded('curl')) {
             return false;
         }
         $host = parse_url($url, PHP_URL_HOST);
@@ -41,14 +41,14 @@ final class ShopbonusDelivery
         $addresses = [];
         foreach ($records ?: [] as $record) {
             $ip = $record['ip'] ?? $record['ipv6'] ?? '';
-            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
-                || (str_contains($ip, ':') && !preg_match('/\A[23]/', $ip))
-                || (!str_contains($ip, ':') && (ip2long($ip) & 0xffc00000) === ip2long('100.64.0.0'))) {
+            if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)
+                || (str_contains($ip, ':') && ! preg_match('/\A[23]/', $ip))
+                || (! str_contains($ip, ':') && (ip2long($ip) & 0xFFC00000) === ip2long('100.64.0.0'))) {
                 return false;
             }
             $addresses[] = $ip;
         }
-        if (!$addresses) {
+        if (! $addresses) {
             return false;
         }
         $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);

@@ -200,9 +200,12 @@ class Cockpit
      *
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function vouchers(?string $status, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $publicId, int $perPage = 25, bool $usable = false, ?string $network = null): array
+    public function vouchers(?string $status, ?CarbonImmutable $from, ?CarbonImmutable $to, ?string $publicId, int $perPage = 25, bool $usable = false, ?string $network = null, ?string $webshop = null): array
     {
         $query = Voucher::query()->with(['webshop:id,public_id,name', 'code:id,public_id,code_last4']);
+        if ($webshop !== null) {
+            $query->where('webshop_id', Webshop::where('public_id', strtolower($webshop))->value('id') ?? 0);
+        }
         if ($usable) {
             $query->usable();
         }
@@ -439,7 +442,7 @@ class Cockpit
         $bucket = fn (Collection $rows) => $rows->countBy(fn ($ts) => CarbonImmutable::parse($ts, 'UTC')->setTimezone($tz)->format('Y-m-d'));
         $series = [
             'new_webshops' => $bucket(Webshop::whereBetween('created_at', [$from, $to])->pluck('created_at')),
-            'new_consumers' => $bucket(User::query()->consumers()->whereBetween('created_at', [$from, $to])->pluck('created_at')),
+            'new_consumers' => $bucket(User::query()->consumerAccounts()->whereBetween('created_at', [$from, $to])->pluck('created_at')),
             'paid_orders' => $bucket(WebshopOrder::whereBetween('paid_at', [$from, $to])->pluck('paid_at')),
             'vouchers_issued' => $bucket(Voucher::whereBetween('issued_at', [$from, $to])->pluck('issued_at')),
             'vouchers_redeemed' => $bucket(Voucher::whereBetween('redeemed_at', [$from, $to])->pluck('redeemed_at')),

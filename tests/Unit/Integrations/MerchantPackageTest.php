@@ -102,18 +102,29 @@ class MerchantPackageTest extends TestCase
     public function test_shipped_archives_match_the_manifest_and_platform_entrypoints(): void
     {
         $manifest = json_decode(file_get_contents(public_path('downloads/integrations/manifest.json')), true, flags: JSON_THROW_ON_ERROR);
+        $directories = ['shopbonus-prestashop9.zip' => 'prestashop', 'shopbonus.ocmod.zip' => 'opencart4',
+            'shopbonus-woocommerce-banner.zip' => 'woocommerce', 'shopbonus-shopify-theme-source.zip' => 'shopify'];
         foreach (['shopbonus-prestashop9.zip' => 'shopbonus/shopbonus.php', 'shopbonus.ocmod.zip' => 'install.json',
             'shopbonus-woocommerce-banner.zip' => 'shopbonus-banner/shopbonus-banner.php',
             'shopbonus-shopify-theme-source.zip' => 'extensions/shopbonus-banner/shopify.extension.toml'] as $filename => $entrypoint) {
             $path = public_path('downloads/integrations/'.$filename);
             $this->assertSame($manifest[$filename]['sha256'], hash_file('sha256', $path));
             $this->assertFalse($manifest[$filename]['live_verified']);
+            $this->assertSame($manifest[$filename]['bytes'], filesize($path));
             $zip = new \ZipArchive;
             $this->assertTrue($zip->open($path));
             $this->assertNotFalse($zip->locateName($entrypoint));
             $this->assertNotFalse($zip->locateName('INSTALL.md'));
             for ($index = 0; $index < $zip->numFiles; $index++) {
                 $this->assertDoesNotMatchRegularExpression('~(?:^|/)(?:\.env|\.git|config\.php|config\.inc\.php)(?:$|/)~', $zip->getNameIndex($index));
+                $name = $zip->getNameIndex($index);
+                $source = match ($name) {
+                    'INSTALL.md' => base_path('merchant-packages/INSTALL.md'),
+                    'shopbonus/Delivery.php', 'system/library/Delivery.php' => base_path('merchant-packages/common/Delivery.php'),
+                    default => base_path('merchant-packages/'.$directories[$filename].'/'.$name),
+                };
+                $this->assertFileExists($source);
+                $this->assertSame(file_get_contents($source), $zip->getFromIndex($index), $filename.': '.$name.' differs from reviewed source; rebuild packages.');
             }
             $zip->close();
         }

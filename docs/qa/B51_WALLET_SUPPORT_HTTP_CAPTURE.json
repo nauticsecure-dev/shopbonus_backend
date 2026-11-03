@@ -1,0 +1,240 @@
+{
+  "captured_at": "2026-11-03T07:22:11Z",
+  "environment": "Actual local Laravel HTTP server, isolated SQLite and synthetic two-entry wallet; no provider call or live quality claim",
+  "exchanges": [
+    {
+      "label": "en-owner",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g4jw9kh315z4s284gs7vwx",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6g4jw9kh315z4s284gs7vwx",
+            "message_id": "01m6g4jw9kh315z4s284gs7vwx",
+            "conversation_id": "01m6g4jw8vg7cgp3evnnzdy2b1",
+            "question": "What is my pending credit?",
+            "status": "VERIFIED",
+            "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+            "evidence_ids": [
+              "01m6g4jw95ajv79wgnk4qsx4kk"
+            ],
+            "checked_at": "2026-11-03T07:22:10+00:00",
+            "retry_used": false,
+            "action": null,
+            "checks": {
+              "passed": [
+                "AUTH",
+                "SOURCE",
+                "FRESHNESS",
+                "COMPLETENESS",
+                "CONSISTENCY",
+                "CLAIMS",
+                "POLICY",
+                "ACTION"
+              ],
+              "failed": []
+            },
+            "display": {
+              "show_progress_updates": true,
+              "show_verified_badge": true
+            },
+            "result": {
+              "status": "VERIFIED",
+              "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
+              "evidence_ids": [
+                "01m6g4jw95ajv79wgnk4qsx4kk"
+              ],
+              "checked_at": "2026-11-03T07:22:10+00:00",
+              "checks": {
+                "passed": [
+                  "AUTH",
+                  "SOURCE",
+                  "FRESHNESS",
+                  "COMPLETENESS",
+                  "CONSISTENCY",
+                  "CLAIMS",
+                  "POLICY",
+                  "ACTION"
+                ],
+                "failed": []
+              },
+              "action": null
+            },
+            "created_at": "2026-11-03T07:22:10+00:00",
+            "completed_at": "2026-11-03T07:22:10+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "en-foreign",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g4jw9kh315z4s284gs7vwx",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Support message not found.",
+            "request_id": "01a1a049-758a-727e-865b-e9627fa68643"
+          }
+        }
+      }
+    },
+    {
+      "label": "en-unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g4jw9kh315z4s284gs7vwx",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a049-75a4-7259-a13f-93e8f735a23b"
+          }
+        }
+      }
+    },
+    {
+      "label": "nl-owner",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g4jwa0scvg04xadbndas36",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6g4jwa0scvg04xadbndas36",
+            "message_id": "01m6g4jwa0scvg04xadbndas36",
+            "conversation_id": "01m6g4jw9ngk9t5agyyp2tb3mn",
+            "question": "Wat is mijn tegoed in behandeling?",
+            "status": "VERIFIED",
+            "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+            "evidence_ids": [
+              "01m6g4jw9tvr7wz9aftpw687dy"
+            ],
+            "checked_at": "2026-11-03T07:22:10+00:00",
+            "retry_used": false,
+            "action": null,
+            "checks": {
+              "passed": [
+                "AUTH",
+                "SOURCE",
+                "FRESHNESS",
+                "COMPLETENESS",
+                "CONSISTENCY",
+                "CLAIMS",
+                "POLICY",
+                "ACTION"
+              ],
+              "failed": []
+            },
+            "display": {
+              "show_progress_updates": true,
+              "show_verified_badge": true
+            },
+            "result": {
+              "status": "VERIFIED",
+              "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
+              "evidence_ids": [
+                "01m6g4jw9tvr7wz9aftpw687dy"
+              ],
+              "checked_at": "2026-11-03T07:22:10+00:00",
+              "checks": {
+                "passed": [
+                  "AUTH",
+                  "SOURCE",
+                  "FRESHNESS",
+                  "COMPLETENESS",
+                  "CONSISTENCY",
+                  "CLAIMS",
+                  "POLICY",
+                  "ACTION"
+                ],
+                "failed": []
+              },
+              "action": null
+            },
+            "created_at": "2026-11-03T07:22:10+00:00",
+            "completed_at": "2026-11-03T07:22:10+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "nl-foreign",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g4jwa0scvg04xadbndas36",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <redacted>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Ondersteuningsbericht niet gevonden.",
+            "request_id": "01a1a049-75e0-7012-a9a7-90a174e8f68f"
+          }
+        }
+      }
+    },
+    {
+      "label": "nl-unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/ai/messages/01m6g4jwa0scvg04xadbndas36",
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Je moet ingelogd zijn.",
+            "request_id": "01a1a049-75fa-73a3-8cea-3aa88db38ff5"
+          }
+        }
+      }
+    }
+  ]
+}

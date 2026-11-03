@@ -42,12 +42,14 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Concerns\ConfiguresSupportModel;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\Support\BannerFixture;
 use Tests\TestCase;
 
 class SupportChatTest extends TestCase
 {
+    use ConfiguresSupportModel;
     use CreatesActiveWebshops, RefreshDatabase;
 
     private User $user;
@@ -60,6 +62,7 @@ class SupportChatTest extends TestCase
         Queue::fake();
         config(['support_ai.enabled' => true, 'support_ai.api_key' => 'fixture-support-secret', 'support_ai.model' => 'fixture-model',
             'support_ai.daily_request_limit' => 100, 'support_ai.user_daily_request_limit' => 20]);
+        $this->configureVerifiedSupportModel();
         $this->user = User::factory()->create();
         $this->policy = ['enabled' => true, 'model' => null, 'languages' => ['en', 'nl'], 'daily_request_limit' => 100, 'timeout_seconds' => 20, 'max_retry' => 1, 'restrictions' => []];
         $this->publish($this->policy);
@@ -81,6 +84,25 @@ class SupportChatTest extends TestCase
         $this->assertFalse($shown['display']['show_verified_badge']);
         $next = $this->send('And its status?', ['conversation_id' => SupportConversation::findOrFail($message->conversation_id)->public_id]);
         $this->assertSame('wallet', $next->research['intent']);
+    }
+
+    public function test_bounded_style_and_hard_word_cap_change_real_answers_without_truncating_facts(): void
+    {
+        $this->publish($this->policy + ['tone' => 'warm', 'empathy' => 'high', 'answer_detail' => 'detailed', 'target_answer_words' => 90]);
+        $styled = $this->runMessage($this->send('wallet balance'));
+        $this->assertSame('VERIFIED', $styled->status);
+        $this->assertStringContainsString('Happy to help.', $styled->result['answer']);
+        $this->assertStringContainsString('I understand this is important', $styled->result['answer']);
+        $this->assertStringContainsString('EUR 0.00', $styled->result['answer']);
+        $this->assertSame('detailed', $styled->result['presentation']['detail']);
+        $this->publish($this->policy + ['tone' => 'warm', 'empathy' => 'high', 'target_answer_words' => 20, 'max_answer_words' => 25]);
+        $limited = $this->runMessage($this->send('wallet balance'));
+        $this->assertSame('ESCALATED', $limited->status);
+        $this->assertSame('answer_word_limit', $limited->failure_code);
+        $this->assertSame([], $limited->result['evidence_ids']);
+        $this->assertNull($limited->result['action']);
+        $this->assertLessThanOrEqual(25, $limited->result['presentation']['word_count']);
+        $this->assertDatabaseHas('support_reviews', ['message_id' => $limited->id, 'trigger' => 'automatic']);
     }
 
     private function publish(array $value): void
@@ -130,7 +152,7 @@ class SupportChatTest extends TestCase
         $m = $this->runMessage($m);
         $this->assertSame('VERIFIED', $m->status);
         $this->assertStringContainsString('EUR 10.00', $m->result['answer']);
-        $this->assertSame('/app/wallet', $m->result['action']['route']);
+        $this->assertSame(config('shopbonus.identity.frontend_paths.consumer_wallet'), $m->result['action']['route']);
         $this->getJson('/api/v1/ai/messages/'.$m->public_id)->assertOk()->assertJsonPath('data.result.status', 'VERIFIED')->assertDontSee('fixture-support-secret');
         $c = SupportConversation::findOrFail($m->conversation_id);
         $this->getJson('/api/v1/ai/conversations/'.$c->public_id)->assertOk()->assertJsonCount(1, 'data.messages');

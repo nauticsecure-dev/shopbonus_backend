@@ -60,7 +60,7 @@ Critical findings require evidence + regression (existing B22-F* pattern).
 | --- | --- |
 | Enable | `BACKUPS_ENABLED=true` + `BACKUP_ENCRYPTION_KEY` (independent 32-byte base64) |
 | Schedule | Hourly backup; weekly `verify-latest-backup` when enabled |
-| Proposed targets (unapproved) | Financial RPO ≤15m needs PITR/binlog; logical hourly dump does not meet that. RTO ≤4h needs drill on target host |
+| Proposed targets (unapproved) | Five-minute logical backup attempts now leave headroom but do not prove financial RPO ≤15m; measure independently durable cutoffs and deploy PITR/binlog if necessary. RTO ≤4h needs drill on target host |
 | Proof | `docs/reliability/B22_MYSQL_RECOVERY_PROOF.json` + `tests/Feature/Reliability/RecoveryTest.php` |
 | Secrets | Never in archives; recover via credential escrow |
 
@@ -111,3 +111,5 @@ php artisan shopbonus:restore-isolated <ARCHIVE_ULID>
 php artisan shopbonus:audit-verify
 php artisan test --filter=PlatformReliabilityE2ETest
 ```
+
+B50 deployment acceptance follow-up: [archive/key/infrastructure and per-queue proof](DEPLOYMENT_RECOVERY_ACCEPTANCE.md). Proposed targets stay unapproved; no live drill or offsite proof is implied by scheduling.

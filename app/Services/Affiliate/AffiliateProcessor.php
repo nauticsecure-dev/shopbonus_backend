@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  *   webshop, inside the attribution window. Otherwise: unmatched (review).
  * - Repeated purchase references are disputed; distinct orders may share a click.
  * - Postbacks are untrusted: they only record "tracked"; rewards need sync/import.
- * - New validated conversions credit immediately under the configured reward rule.
+ * - New rewards remain pending until approved and backed by settlement evidence.
  * - Historical reward timing snapshots retain their original behavior.
  */
 class AffiliateProcessor
@@ -193,7 +193,7 @@ class AffiliateProcessor
 
         $rule = $tx->reward_terms_snapshot === null ? app(AffiliateRewardPolicy::class)->rule($tx->transaction_at, $tx->webshop_id, $tx->program_id)
             : AffiliateRewardRule::fromEvidence($tx->reward_terms_snapshot);
-        $timing = $tx->reward_timing ?? (string) config('shopbonus.affiliate.credit_timing', 'on_validated_attribution');
+        $timing = $tx->reward_timing ?? 'on_network_settlement';
         $instant = $timing === 'on_validated_attribution';
         $settled = $timing === 'on_network_approval' || $this->hasSettlement($tx);
 

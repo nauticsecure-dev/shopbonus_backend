@@ -23,10 +23,11 @@ final class VerifiedSupportAnswer
      *
      * @param  array<string, mixed>  $selection
      * @param  list<ToolEvidence>  $evidence
+     * @param  array<string, mixed>  $policy
      * @param  list<string>  $requiredTools
      * @return array<string, mixed>
      */
-    public function verify(User $actor, array $selection, array $evidence, array $requiredTools): array
+    public function verify(User $actor, array $selection, array $evidence, array $requiredTools, array $policy = []): array
     {
         $ids = $selection['evidence_ids'] ?? null;
         if (array_keys($selection) !== ['evidence_ids'] || ! is_array($ids) || ! array_is_list($ids)
@@ -75,7 +76,7 @@ final class VerifiedSupportAnswer
             return ['status' => 'NEEDS_CLARIFICATION', 'answer' => null, 'evidence_ids' => [], 'checked_at' => CarbonImmutable::now()->toIso8601String(), 'action' => null];
         }
         // One conversation locale; caller supplies that locale through the trusted context.
-        $parts = array_map(fn (ToolEvidence $item) => $this->render($item), array_values($selected));
+        $parts = array_map(fn (ToolEvidence $item) => $this->render($item, $policy), array_values($selected));
         $partial = count(array_filter($selected, fn (ToolEvidence $item) => $item->tool === 'get_offer_cost' && ! ($item->facts['cost_available'] ?? false))) > 0;
         $checks = SupportAnswerChecks::report(['AUTH', 'SOURCE', 'FRESHNESS', 'COMPLETENESS', 'CONSISTENCY', 'CLAIMS', 'POLICY', 'ACTION']);
 
@@ -89,7 +90,8 @@ final class VerifiedSupportAnswer
             'action' => null];
     }
 
-    private function render(ToolEvidence $e): string
+    /** @param array<string, mixed> $policy */
+    private function render(ToolEvidence $e, array $policy = []): string
     {
         $f = $e->facts;
         $nl = $e->locale === 'nl';
@@ -113,7 +115,7 @@ final class VerifiedSupportAnswer
             'get_voucher_quote' => ($nl ? 'Actuele prijsopgave in ' : 'Current quote in ').$f['currency'].($nl ? ': prijs ' : ': price ').$f['price_minor'].$minor.'; wallet '.$f['wallet_usable_minor'].$minor.'; Mollie '.$f['mollie_due_minor'].$minor.($nl ? '; voorraad ' : '; stock ').($f['stock_available'] ? ($nl ? 'beschikbaar' : 'available') : ($nl ? 'niet beschikbaar' : 'unavailable')).($nl ? '; te koop ' : '; purchasable ').($f['purchasable'] ? ($nl ? 'ja' : 'yes') : ($nl ? 'nee' : 'no')).'. '.($nl ? 'Er is niets betaald of uitgegeven.' : 'No payment or voucher issuance has occurred.'),
             'get_campaign_performance' => ($nl ? 'Campagne van ' : 'Campaign from ').$f['from'].($nl ? ' tot ' : ' to ').$f['to'].': '.$f['impressions'].($nl ? ' zichtbare vertoningen; ' : ' viewable impressions; ').$f['clicks'].($nl ? ' klikken; ' : ' clicks; ').$f['attributed_paid_orders'].($nl ? ' toegeschreven betaalde orders. Gestarte bestellingen zijn niet beschikbaar; attributie bewijst geen oorzakelijke omzetstijging.' : ' attributed paid orders. Tracked order starts are unavailable; attribution does not establish causal uplift.'),
             'get_integration_health' => ($nl ? 'Integratie ' : 'Integration ').$f['platform'].': '.$f['status'].'; '.($nl ? 'laatste ontvangen event: ' : 'last received event: ').($f['last_sync_at'] ?? ($nl ? 'onbekend' : 'unknown')).($nl ? '; fout ' : '; error ').$errorText.($nl ? '. Mogelijkheden: ' : '. Capabilities: ').$capabilities.'.',
-            'get_my_wallet' => $this->renderWallet($f, $nl, $amount),
+            'get_my_wallet' => $this->renderWallet($f, $nl, $amount, ($policy['answer_detail'] ?? 'concise') === 'concise' && ($policy['target_answer_words'] ?? 45) < 45),
             'get_workspace_wallet' => $nl
                 ? 'Beschikbare webshopfinanciering: '.$amount((int) $f['available_minor']).'; gereserveerd: '.$amount((int) $f['reserved_minor']).'.'
                 : 'Available merchant funding: '.$amount((int) $f['available_minor']).'; reserved: '.$amount((int) $f['reserved_minor']).'.',
@@ -138,7 +140,7 @@ final class VerifiedSupportAnswer
     /** @param  array<string, mixed>  $f
      * @param  callable(int): string  $amount
      */
-    private function renderWallet(array $f, bool $nl, callable $amount): string
+    private function renderWallet(array $f, bool $nl, callable $amount, bool $compact = false): string
     {
         $reserved = (int) ($f['reserved_minor'] ?? $f['reserved'] ?? 0);
         $pending = (int) ($f['pending_minor'] ?? $f['pending'] ?? 0);
@@ -147,11 +149,14 @@ final class VerifiedSupportAnswer
         $ledger = $nl
             ? 'Beschikbaar ShopBonus-tegoed: '.$amount($available).'; gereserveerd: '.$amount($reserved).'; in behandeling: '.$amount($pending).'; besteed: '.$amount($spent).'. Geen geldopname of overdracht.'
             : 'Available ShopBonus credit: '.$amount($available).'; reserved: '.$amount($reserved).'; pending: '.$amount($pending).'; spent: '.$amount($spent).'. Cannot be withdrawn or transferred.';
-        // Pending = a reward awaiting approval (not spendable yet); reserved = own credit held for a purchase in progress.
+        if ($compact) {
+            return $ledger.($pending > 0 ? ($nl ? ' Totaal tegoed in behandeling kan meerdere beloningen bevatten, is niet besteedbaar en bevestigt geen afzonderlijke status of vrijgavedatum.' : ' Total pending credit may include multiple rewards, is not spendable and confirms no individual status or release date.') : '');
+        }
+        // Wallet totals cannot establish an individual reward or order status.
         $lines = [];
         if ($pending > 0) {
-            $lines[] = $nl ? 'Een beloning van '.$amount($pending).' is in behandeling en nog niet te besteden. Vrijgave vereist bevestigde voorwaarden; een datum is niet bevestigd.'
-                : 'A reward of '.$amount($pending).' is pending and cannot be spent yet. Release requires verified eligibility; no date has been confirmed.';
+            $lines[] = $nl ? 'Totaal tegoed in behandeling: '.$amount($pending).'; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd.'
+                : 'Total pending credit: '.$amount($pending).'; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed.';
         }
         if ($reserved > 0) {
             $lines[] = $nl ? $amount($reserved).' van je tegoed is gereserveerd voor een aankoop die nog loopt.'

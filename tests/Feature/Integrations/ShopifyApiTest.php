@@ -100,7 +100,7 @@ class ShopifyApiTest extends TestCase
     public function test_order_keeps_provider_original_current_tax_and_discount_beside_the_canonical_amount(): void
     {
         $c = $this->connection();
-        $order = $this->order() + ['totalTaxSet' => ['shopMoney' => ['amount' => '10.40', 'currencyCode' => 'EUR']],
+        $order = $this->order() + ['currentShippingPriceSet' => ['shopMoney' => ['amount' => '3.50', 'currencyCode' => 'EUR']], 'totalTaxSet' => ['shopMoney' => ['amount' => '10.40', 'currencyCode' => 'EUR']],
             'totalDiscountsSet' => ['shopMoney' => ['amount' => '5.00', 'currencyCode' => 'EUR']], 'taxesIncluded' => true];
         Http::fake(function (Request $r) use ($order) {
             if (str_contains($r['query'], 'ShopbonusOrder')) {
@@ -115,12 +115,16 @@ class ShopifyApiTest extends TestCase
         // The canonical amount stays the original total; refunds remain separate (no double subtraction).
         $this->assertSame([5995, 1000], [$normalized->amountMinor, $normalized->refundedMinor]);
         $this->assertSame(['source' => 'shopify_order', 'currency' => 'EUR', 'tax_included' => true, 'original_total_minor' => 5995, 'current_total_minor' => 4995,
-            'tax_minor' => 1040, 'shipping_minor' => null, 'discount_minor' => 500], $normalized->amountBreakdown);
+            'tax_minor' => 1040, 'shipping_minor' => null, 'discount_minor' => 500, 'current_shipping_minor' => 350], $normalized->amountBreakdown);
 
         // An amount in another currency is not mixed in.
         $foreign = $order;
         $foreign['totalTaxSet']['shopMoney']['currencyCode'] = 'USD';
         $this->assertNull($connector->normalizeOrder($foreign)->amountBreakdown['tax_minor']);
+        $foreign['currentShippingPriceSet']['shopMoney']['currencyCode'] = 'USD';
+        $this->assertNull($connector->normalizeOrder($foreign)->amountBreakdown['current_shipping_minor']);
+        $foreign['currentShippingPriceSet']['shopMoney'] = ['amount' => '0.001', 'currencyCode' => 'EUR'];
+        $this->assertNull($connector->normalizeOrder($foreign)->amountBreakdown['current_shipping_minor']);
     }
 
     public function test_foreign_store_identity_stops_before_any_order_read(): void

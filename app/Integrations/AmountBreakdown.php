@@ -13,7 +13,7 @@ use App\Support\Money;
 final class AmountBreakdown
 {
     /**
-     * @param  array<string, string|null>  $amounts  original_total, current_total, tax, shipping, discount as provider decimal strings
+     * @param  array<string, string|null>  $amounts  original_total, current_total, tax, shipping, discount, optional current_shipping as provider decimal strings
      * @return array<string, mixed>|null
      */
     public static function make(?string $currency, string $source, array $amounts, ?bool $taxIncluded = null): ?array
@@ -26,7 +26,11 @@ final class AmountBreakdown
             $out["{$part}_minor"] = self::minor($amounts[$part] ?? null, $currency);
         }
 
-        return $out['original_total_minor'] === null && $out['current_total_minor'] === null && $out['tax_minor'] === null
+        if (array_key_exists('current_shipping', $amounts)) {
+            $out['current_shipping_minor'] = self::minor($amounts['current_shipping'], $currency);
+        }
+
+        return ($out['current_shipping_minor'] ?? null) === null && $out['original_total_minor'] === null && $out['current_total_minor'] === null && $out['tax_minor'] === null
             && $out['shipping_minor'] === null && $out['discount_minor'] === null ? null : $out;
     }
 

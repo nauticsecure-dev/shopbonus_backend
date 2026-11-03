@@ -43,6 +43,57 @@ class SupportAdminTest extends TestCase
         $this->getJson('/api/v1/admin/ai/operations?status=MADE_UP')->assertUnprocessable();
     }
 
+    public function test_operations_aggregates_beyond_500_and_separates_resolved_reviews_from_execution(): void
+    {
+        $this->asAdmin($this->admin());
+        $consumer = User::factory()->create();
+        $conversation = SupportConversation::create(['user_id' => $consumer->id, 'locale' => 'en', 'expires_at' => now()->addDay()]);
+        $oldest = null;
+        $second = null;
+        for ($i = 0; $i < 501; $i++) {
+            $message = SupportMessage::create(['conversation_id' => $conversation->id, 'user_id' => $consumer->id, 'request_key' => (string) Str::uuid(), 'request_hash' => str_repeat('a', 64), 'question' => 'Synthetic monitoring', 'research' => [],
+                'status' => $i === 0 ? 'VERIFIED' : 'UNAVAILABLE', 'failure_code' => $i === 0 ? null : 'fixture_failure', 'retry_used' => $i === 0,
+                'metrics' => ['model' => 'full-model', 'input_tokens' => 2, 'output_tokens' => 1, 'latency_ms' => $i === 0 ? 10000 : 100, 'estimated_cost_eur' => $i === 0 ? '.02' : null], 'completed_at' => now()]);
+            $oldest ??= $message;
+            if ($i === 1) {
+                $second = $message;
+            }
+        }
+        foreach ([[$oldest, 'ANSWER_CORRECT', 'a'], [$oldest, 'ANSWER_CORRECT', 'b'], [$second, 'CONFIRMED_ERROR', 'a'], [$oldest, 'CONFIRMED_ERROR', 'c']] as [$message, $outcome, $trigger]) {
+            SupportReview::create(['message_id' => $message->id, 'trigger' => $trigger, 'outcome' => $outcome, 'reviewed_at' => now()]);
+        }
+        SupportReview::create(['message_id' => $oldest->id, 'trigger' => 'open']);
+        $data = $this->getJson('/api/v1/admin/ai/operations?scope=consumer&locale=en&model=full-model')->assertOk()->json('data');
+        $this->assertSame('full_filtered_dataset', $data['aggregation_scope']);
+        $this->assertNull($data['sample_limit']);
+        $this->assertSame(501, $data['matching_total']);
+        $this->assertSame(['UNAVAILABLE' => 500, 'VERIFIED' => 1], $data['statuses']);
+        $this->assertEquals(.2, $data['execution_status_percentages']['VERIFIED']);
+        $this->assertEquals(50, $data['reviewed_outcome_percentages']['ANSWER_CORRECT']);
+        $this->assertSame(4, $data['resolved_review_total']);
+        $this->assertSame(2, $data['reviewed_message_total']);
+        $this->assertSame(499, $data['unreviewed_message_total']);
+        $this->assertSame(1, $data['matching_open_reviews']);
+        $this->assertSame(1002, $data['input_tokens']);
+        $this->assertSame(501, $data['output_tokens']);
+        $this->assertEquals(.02, $data['provider_cost']);
+        $this->assertSame(1, $data['costed_requests']);
+        $this->assertSame(1, $data['retrieval_retries']);
+        $this->assertSame(100, $data['latency_p95_ms']);
+        $this->assertSame(500, $data['failures']['fixture_failure']);
+        $filtered = $this->getJson('/api/v1/admin/ai/operations?outcome=CONFIRMED_ERROR')->assertOk()->json('data');
+        $this->assertSame(2, $filtered['matching_total']);
+        $this->assertEquals(100, $filtered['reviewed_outcome_percentages']['CONFIRMED_ERROR']);
+        $this->assertSame(0, $filtered['matching_open_reviews']);
+        $empty = $this->getJson('/api/v1/admin/ai/operations?locale=nl')->assertOk()->json('data');
+        $this->assertSame(0, $empty['matching_total']);
+        $this->assertNull($empty['latency_p95_ms']);
+        $this->assertNull($empty['provider_cost']);
+        $this->assertSame([], $empty['reviewed_outcome_percentages']);
+        Sanctum::actingAs($consumer);
+        $this->getJson('/api/v1/admin/ai/operations')->assertForbidden();
+    }
+
     private function admin(): User
     {
         $u = User::factory()->create();

@@ -7,29 +7,15 @@ use PHPUnit\Framework\TestCase;
 
 class LineItemsTest extends TestCase
 {
-    public function test_native_snapshots_preserve_parentage_precision_and_unknowns(): void
+    public function test_native_composite_and_negative_rows_cannot_become_flat_product_snapshots(): void
     {
-        $row = ['item_id' => 1, 'product_id' => 20, 'qty_ordered' => '2.000', 'row_total' => '19.99'];
-        $rows = [$row, [...$row, 'item_id' => 2, 'parent_item_id' => 1, 'row_total' => '0']];
-        $mapped = LineItems::magento($rows, 'EUR');
-        $this->assertSame(1999, $mapped[0]['amount_minor']);
-        $this->assertSame('1', $mapped[1]['parent_id']);
-        $this->assertNull($mapped[0]['eligible_amount_minor']);
-        $this->assertNull(LineItems::magento([[$row][0], $row], 'EUR'));
-        $this->assertNull(LineItems::magento([[...$row, 'qty_ordered' => '1.5']], 'EUR'));
-        $this->assertNull(LineItems::magento([[...$row, 'row_total' => '1.001']], 'EUR'));
-        $this->assertNull(LineItems::magento(null, 'EUR'));
-        $this->assertSame([], LineItems::magento([], 'EUR'));
-
-        $line = ['id' => str_repeat('a', 32), 'quantity' => 1, 'totalPrice' => '-2.00'];
-        $mapped = LineItems::shopware([$line], 'EUR', 'gross');
-        $this->assertSame(-200, $mapped[0]['amount_minor']);
-        $this->assertSame('provider_total_inc_tax', $mapped[0]['amount_basis']);
-        $this->assertNull($mapped[0]['eligible_amount_minor']);
-        $this->assertNull(LineItems::shopware([$line, $line], 'EUR', 'gross'));
-        $this->assertNull(LineItems::shopware(array_fill(0, 101, $line), 'EUR', 'gross'));
-        $this->assertNull(LineItems::shopware(null, 'EUR', null));
-        $this->assertSame([], LineItems::shopware([], 'EUR', null));
+        $row = ['item_id' => 1, 'order_id' => 42, 'product_id' => 20, 'product_type' => 'simple', 'qty_ordered' => '2.000', 'row_total_incl_tax' => '19.99'];
+        $this->assertSame(1999, LineItems::magento([$row], 'EUR', 42)[0]['amount_minor']);
+        $this->assertNull(LineItems::magento([$row, [...$row, 'item_id' => 2, 'parent_item_id' => 1]], 'EUR', 42));
+        $this->assertNull(LineItems::magento([[...$row, 'row_total_incl_tax' => '-1']], 'EUR', 42));
+        $line = ['id' => str_repeat('a', 32), 'orderId' => str_repeat('b', 32), 'type' => 'product', 'parentId' => null, 'quantity' => 1, 'totalPrice' => '-2.00'];
+        $this->assertNull(LineItems::shopware([$line], 'EUR', str_repeat('b', 32)));
+        $this->assertSame([], LineItems::shopware([], 'EUR', str_repeat('b', 32)));
     }
 
     public function test_exact_currency_precision_and_unknown_eligibility(): void
@@ -52,5 +38,29 @@ class LineItemsTest extends TestCase
         $this->assertSame(1200, LineItems::shopify($p, 'EUR')[0]['amount_minor']);
         $p['nodes'][0]['discountedTotalSet']['shopMoney']['currencyCode'] = 'USD';
         $this->assertNull(LineItems::shopify($p, 'EUR'));
+    }
+
+    public function test_native_flat_lines_are_exact_bound_and_never_infer_eligibility(): void
+    {
+        $order = str_repeat('a', 32);
+        $row = ['id' => str_repeat('b', 32), 'orderId' => $order, 'parentId' => null, 'type' => 'product', 'quantity' => 2, 'totalPrice' => '19.99'];
+        $lines = LineItems::shopware([$row], 'EUR', $order);
+        $this->assertSame(1999, $lines[0]['amount_minor']);
+        $this->assertNull($lines[0]['eligible_amount_minor']);
+        $this->assertNull(LineItems::shopware([$row, $row], 'EUR', $order));
+        foreach (['orderId' => str_repeat('c', 32), 'type' => 'promotion', 'parentId' => str_repeat('c', 32), 'totalPrice' => '19.999'] as $key => $value) {
+            $this->assertNull(LineItems::shopware([array_replace($row, [$key => $value])], 'EUR', $order));
+        }
+        $this->assertNull(LineItems::shopware(array_fill(0, 101, $row), 'EUR', $order));
+        $item = ['item_id' => 1, 'order_id' => 42, 'product_type' => 'simple', 'qty_ordered' => '2.0000', 'row_total_incl_tax' => '19.99'];
+        $lines = LineItems::magento([$item], 'EUR', 42);
+        $this->assertSame(1999, $lines[0]['amount_minor']);
+        $this->assertSame(2, $lines[0]['quantity']);
+        $this->assertNull($lines[0]['eligible_amount_minor']);
+        $this->assertNull(LineItems::magento([$item, $item], 'EUR', 42));
+        foreach (['order_id' => 43, 'product_type' => 'configurable', 'parent_item_id' => 2, 'qty_ordered' => '1.5', 'row_total_incl_tax' => '19.999'] as $key => $value) {
+            $this->assertNull(LineItems::magento([array_replace($item, [$key => $value])], 'EUR', 42));
+        }
+        $this->assertNull(LineItems::magento(array_fill(0, 101, $item), 'EUR', 42));
     }
 }

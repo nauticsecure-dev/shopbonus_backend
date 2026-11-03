@@ -10,9 +10,12 @@ use App\Enums\PlatformRole;
 use App\Enums\UserStatus;
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
+use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
 use App\Exceptions\ApiException;
 use App\Models\AffiliateTransaction;
+use App\Models\AuditEvent;
+use App\Models\ContactOpportunity;
 use App\Models\Offer;
 use App\Models\SupportConversation;
 use App\Models\SupportMessage;
@@ -20,6 +23,8 @@ use App\Models\SupportReview;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCode;
+use App\Models\VoucherDispute;
+use App\Models\VoucherEvent;
 use App\Models\WebhookEvent;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
@@ -62,14 +67,15 @@ class CockpitTest extends TestCase
         Cache::flush();
     }
 
-    private function offerWithCodes(int $codes): Offer
+    private function offerWithCodes(int $codes, ?Webshop $shop = null): Offer
     {
+        $shop ??= $this->shop;
         $offers = app(OfferService::class);
-        $offer = $offers->transition($offers->create($this->shop->memberships()->sole()->setRelation('webshop', $this->shop), OfferAcquisition::MerchantReward,
+        $offer = $offers->transition($offers->create($shop->memberships()->sole()->setRelation('webshop', $shop), OfferAcquisition::MerchantReward,
             ['name' => 'Korting', 'discount_type' => 'fixed', 'discount_value' => 1000, 'min_order_minor' => 5000, 'redemption_validity_days' => 30]), OfferStatus::Active);
         for ($i = 1; $i <= $codes; $i++) {
             $value = "C{$i}-".Str::upper(Str::random(4));
-            VoucherCode::create(['webshop_id' => $this->shop->id, 'offer_id' => $offer->id, 'code' => $value, 'code_hash' => VoucherCode::hashFor($this->shop->id, $value), 'code_last4' => substr($value, -4)]);
+            VoucherCode::create(['webshop_id' => $shop->id, 'offer_id' => $offer->id, 'code' => $value, 'code_hash' => VoucherCode::hashFor($shop->id, $value), 'code_last4' => substr($value, -4)]);
         }
 
         return $offer;
@@ -150,6 +156,21 @@ class CockpitTest extends TestCase
         $this->getJson('/api/v1/admin/webshops?status=approved')->assertOk()->assertJsonPath('meta.total', 2);
         // The card and the list it links to use the same consumer definition.
         $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk()->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_consumer_trend_uses_account_intent_and_exclusions_independent_of_membership(): void
+    {
+        $member = User::factory()->create(['onboarding_intent' => 'consumer']);
+        $this->activeWebshop($member);
+        User::factory()->create(['onboarding_intent' => 'merchant']);
+        $test = User::factory()->create(['onboarding_intent' => 'consumer']);
+        config(['shopbonus.admin.test_account_public_ids' => [$test->public_id]]);
+        User::factory()->create(['onboarding_intent' => 'consumer', 'created_at' => now()->subDays(40)]);
+        Sanctum::actingAs($this->admin);
+        $data = $this->getJson('/api/v1/admin/cockpit?period=7d')->assertOk()->json('data');
+        $this->assertSame(1, collect($data['trends']['days'])->sum('new_consumers'));
+        $this->assertSame(1, collect($data['trends']['days'])->firstWhere('date', '2026-10-24')['new_consumers']);
+        $this->assertSame(2, $data['kpis']['consumers']['registered']);
     }
 
     public function test_current_consumer_total_has_no_invented_historical_change(): void
@@ -248,7 +269,7 @@ class CockpitTest extends TestCase
         $inventory->issue($inventory->reserve($offer, VoucherOrigin::MerchantReward, 'p2'), $consumer);
 
         Sanctum::actingAs($this->admin);
-        foreach (['7d' => 7, '30d' => 30, '90d' => 90] as $period => $days) {
+        foreach (['today' => 1, '7d' => 7, '30d' => 30, '90d' => 90] as $period => $days) {
             Cache::flush();
             $data = $this->getJson("/api/v1/admin/cockpit?period={$period}")->assertOk()->json('data');
             $this->assertCount($days, $data['trends']['days']);
@@ -277,7 +298,7 @@ class CockpitTest extends TestCase
             $this->insertAffiliate($network, 'approved', 10, 'CHANNEL-'.$i);
             $t = AffiliateTransaction::where('external_id', 'CHANNEL-'.$i)->sole();
             $t->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
-            $inventory->recordAcquisition($issued[$i], $t);
+            $inventory->recordAcquisition($issued[$i], $t, $this->admin, 'SYNTHETIC-CASE-'.$i);
         }
         $this->insertAffiliate('tradetracker', 'approved', 999, 'NO-VOUCHER');
         Sanctum::actingAs($this->admin);
@@ -295,11 +316,56 @@ class CockpitTest extends TestCase
         $this->getJson('/api/v1/admin/vouchers?acquisition_network=other')->assertOk()->assertJsonPath('meta.total', 1);
         $t->forceFill(['user_id' => $this->owner->id])->save();
         try {
-            $inventory->recordAcquisition($issued[3], $t);
+            $inventory->recordAcquisition($issued[3], $t, $this->admin, 'SYNTHETIC-CASE');
             $this->fail('Mismatched consumer evidence accepted');
         } catch (ApiException $e) {
             $this->assertSame(409, $e->status);
         }
+    }
+
+    public function test_console_acquisition_workflow_requires_review_and_preserves_immutable_audited_links(): void
+    {
+        $consumer = User::factory()->create();
+        $inventory = app(VoucherInventory::class);
+        $voucher = $inventory->issue($inventory->reserve($this->offerWithCodes(1), VoucherOrigin::MerchantReward, 'console-evidence'), $consumer);
+        $this->insertAffiliate('daisycon', 'approved', 10, 'CONSOLE-ACQUISITION');
+        $transaction = AffiliateTransaction::where('external_id', 'CONSOLE-ACQUISITION')->sole();
+        $transaction->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
+        $args = ['voucher' => $voucher->public_id, 'transaction' => $transaction->public_id, '--actor' => $this->admin->public_id, '--reference' => 'SYNTHETIC-RECONCILIATION-42'];
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+        $args['--verified-link'] = true;
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['--reference' => '']))->assertFailed();
+        $verifiedAt = $this->admin->email_verified_at;
+        $this->admin->forceFill(['email_verified_at' => null])->save();
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+        $this->admin->forceFill(['email_verified_at' => $verifiedAt])->save();
+        $this->admin->platformRoles()->update(['revoked_at' => now()]);
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+        $this->admin->platformRoles()->update(['revoked_at' => null]);
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['--actor' => $consumer->public_id]))->assertFailed();
+        foreach (['status' => 'pending', 'user_id' => $this->owner->id, 'webshop_id' => $this->activeWebshop($this->owner)->id, 'duplicate_of_id' => $transaction->id, 'transaction_at' => now()->addMinute()] as $key => $invalid) {
+            $original = $transaction->getRawOriginal($key);
+            $transaction->forceFill([$key => $invalid])->save();
+            $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+            $transaction->forceFill([$key => $original])->save();
+        }
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['--reference' => "bad\nreference"]))->assertFailed();
+        $this->assertNull($voucher->fresh()->acquisition_transaction_id);
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertSuccessful();
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertSuccessful();
+        $this->assertSame($transaction->id, $voucher->fresh()->acquisition_transaction_id);
+        $this->assertSame(1, VoucherEvent::where('voucher_id', $voucher->id)->where('type', 'acquisition_verified')->count());
+        $event = VoucherEvent::where('voucher_id', $voucher->id)->where('type', 'acquisition_verified')->sole();
+        $this->assertSame($this->admin->id, $event->actor_user_id);
+        $this->assertSame('SYNTHETIC-RECONCILIATION-42', $event->summary['reference']);
+        $this->assertSame(1, AuditEvent::where('action', 'voucher.acquisition_verified')->where('actor_user_id', $this->admin->id)->count());
+        $this->insertAffiliate('tradetracker', 'approved', 10, 'DIFFERENT-SOURCE');
+        $other = AffiliateTransaction::where('external_id', 'DIFFERENT-SOURCE')->sole();
+        $other->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['transaction' => $other->public_id]))->assertFailed();
+        $this->assertSame($transaction->id, $voucher->fresh()->acquisition_transaction_id);
+        $this->admin->forceFill(['status' => UserStatus::Suspended])->save();
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
     }
 
     /** E2E 8 — Recent activity */
@@ -539,5 +605,85 @@ class CockpitTest extends TestCase
         Sanctum::actingAs($this->admin);
         $cards = collect($this->getJson('/api/v1/admin/cockpit?period=30d')->assertOk()->json('data.cards'))->keyBy('key');
         $this->assertEquals(0, $cards['affiliate_commission']['change_percent']);
+    }
+
+    public function test_voucher_and_activity_drilldowns_keep_webshop_scope_across_pages(): void
+    {
+        $other = $this->activeWebshop($this->owner, ['name' => 'Other shop']);
+        $offer = $this->offerWithCodes(4);
+        $otherOffer = $this->offerWithCodes(2, $other);
+        $inventory = app(VoucherInventory::class);
+        $consumer = User::factory()->create();
+        for ($i = 0; $i < 3; $i++) {
+            $inventory->issue($inventory->reserve($offer, VoucherOrigin::MerchantReward, 'scoped-'.$i), $consumer);
+            app(AuditLogger::class)->record('fixture.drilldown', category: AuditCategory::Admin, webshopId: $this->shop->id);
+        }
+        $inventory->issue($inventory->reserve($otherOffer, VoucherOrigin::MerchantReward, 'other-scoped'), $consumer);
+        app(AuditLogger::class)->record('fixture.drilldown', category: AuditCategory::Admin, webshopId: $other->id);
+        Sanctum::actingAs($this->admin);
+        foreach (['vouchers', 'activity'] as $list) {
+            $extra = $list === 'activity' ? '&action=fixture.drilldown' : '';
+            foreach (['webshop', 'webshop_id'] as $filter) {
+                $first = $this->getJson('/api/v1/admin/'.$list.'?'.$filter.'='.$this->shop->public_id.'&per_page=2'.$extra)->assertOk();
+                $second = $this->getJson('/api/v1/admin/'.$list.'?'.$filter.'='.strtoupper($this->shop->public_id).'&per_page=2&page=2'.$extra)->assertOk();
+                $first->assertJsonPath('meta.total', 3)->assertJsonPath('meta.last_page', 2)->assertJsonCount(2, 'data');
+                $second->assertJsonPath('meta.total', 3)->assertJsonPath('meta.current_page', 2)->assertJsonCount(1, 'data');
+                $this->assertSame([$this->shop->public_id], array_values(array_unique(array_column(array_column($second->json('data'), 'webshop'), 'id'))));
+                $this->assertNotContains($second->json('data.0.id'), array_column($first->json('data'), 'id'));
+            }
+            $this->getJson('/api/v1/admin/'.$list.'?webshop='.strtolower((string) Str::ulid()).$extra)->assertOk()->assertJsonPath('meta.total', 0);
+            $this->getJson('/api/v1/admin/'.$list.'?webshop=invalid')->assertUnprocessable();
+            $this->getJson('/api/v1/admin/'.$list.'?webshop='.$this->shop->public_id.'&webshop_id='.$other->public_id)->assertUnprocessable();
+            $this->getJson('/api/v1/admin/'.$list.'?webshop='.$this->shop->public_id.'&webshop_id='.strtoupper($this->shop->public_id).$extra)->assertOk()->assertJsonPath('meta.total', 3);
+        }
+        Sanctum::actingAs($this->owner);
+        $this->getJson('/api/v1/admin/vouchers?webshop='.$other->public_id)->assertForbidden();
+        $this->getJson('/api/v1/admin/activity?webshop='.$other->public_id)->assertForbidden();
+    }
+
+    public function test_admin_lists_expose_page_two_and_validate_page_inputs(): void
+    {
+        User::factory()->count(3)->create(['first_name' => 'Pagination fixture']);
+        $this->activeWebshop($this->owner, ['name' => 'Pagination one']);
+        $this->activeWebshop($this->owner, ['name' => 'Pagination two']);
+        Sanctum::actingAs($this->admin);
+        foreach (['users' => 'search=Pagination', 'webshops' => 'search=Pagination'] as $list => $filter) {
+            $first = $this->getJson('/api/v1/admin/'.$list.'?per_page=1&'.$filter)->assertOk();
+            $second = $this->getJson('/api/v1/admin/'.$list.'?per_page=1&page=2&'.$filter)->assertOk()->assertJsonPath('meta.current_page', 2)->assertJsonCount(1, 'data');
+            $this->assertNotSame($first->json('data.0.id'), $second->json('data.0.id'));
+            if ($list === 'webshops') {
+                $this->assertStringContainsString('search=Pagination', $second->json('links.next') ?? $second->json('links.prev'));
+            }
+        }
+        foreach (['users', 'webshops', 'vouchers', 'activity'] as $list) {
+            foreach (['page=0', 'page=-1', 'page[]=1', 'page=abc', 'per_page=101'] as $bad) {
+                $this->getJson('/api/v1/admin/'.$list.'?'.$bad)->assertUnprocessable();
+            }
+        }
+    }
+
+    public function test_today_exposes_full_business_metrics_from_records_without_client_cards(): void
+    {
+        $consumer = User::factory()->create();
+        $wallets = app(WalletService::class);
+        $points = $wallets->consumerWallet($consumer, WalletUnit::Points);
+        $wallets->credit($points, 100, 'fixture-points-issued');
+        $wallets->debit($points, 20, 'fixture-points-spent');
+        $this->offerWithCodes(2);
+        $connection = WebshopConnection::create(['webshop_id' => $this->shop->id, 'platform' => 'prestashop',
+            'method' => 'private_module', 'status' => 'limited', 'webhook_token' => 'synthetic', 'created_by' => $this->owner->id]);
+        WebshopOrder::create(['webshop_id' => $this->shop->id, 'connection_id' => $connection->id, 'platform' => 'prestashop',
+            'external_order_id' => 'fixture-paid', 'reference' => 'fixture-paid', 'amount_minor' => 1000, 'currency' => 'EUR',
+            'payment_status' => 'paid', 'ingestion_status' => 'complete', 'paid_at' => now()]);
+        ContactOpportunity::create(['webshop_id' => $this->shop->id, 'customer_key' => str_repeat('a', 64),
+            'status' => 'pending', 'lawful_basis' => 'consent_at_checkout', 'window_ends_at' => now()->addHour(), 'idempotency_key' => 'fixture-contact']);
+        VoucherDispute::create(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id,
+            'reason' => 'other', 'description' => 'Synthetic dashboard count', 'status' => 'open']);
+        Sanctum::actingAs($this->admin);
+        $this->getJson('/api/v1/admin/cockpit?period=today')->assertOk()->assertJsonPath('data.period_name', 'today')
+            ->assertJsonPath('data.kpis.orders.confirmed_paid_in_period', 1)->assertJsonPath('data.kpis.answer24.requests_in_period', 1)
+            ->assertJsonPath('data.kpis.answer24.by_status.pending', 1)->assertJsonPath('data.kpis.vouchers.available_codes', 2)
+            ->assertJsonPath('data.kpis.wallets.points.issued_in_period', 100)->assertJsonPath('data.kpis.wallets.points.spent_in_period', 20)
+            ->assertJsonPath('data.kpis.wallets.points.outstanding', 80)->assertJsonPath('data.kpis.disputes.open', 1);
     }
 }

@@ -12,6 +12,7 @@ use App\Services\Qa\QaRuns;
 use App\Services\Reliability\Recovery\Backups;
 use App\Services\Reliability\Recovery\EncryptedArchive;
 use App\Services\Wallet\WalletService;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
@@ -52,6 +53,37 @@ class RecoveryTest extends TestCase
         unlink($this->database);
         File::deleteDirectory($this->media);
         parent::tearDown();
+    }
+
+    public function test_backup_schedule_attempts_every_five_minutes_and_stays_opt_in(): void
+    {
+        Artisan::call('schedule:list', ['--json' => true]);
+        $events = app(Schedule::class)->events();
+        $backups = array_values(array_filter($events, fn ($event) => str_contains($event->command ?? '', 'shopbonus:backup')));
+        $this->assertCount(1, $backups);
+        $event = $backups[0];
+        $this->assertSame('*/5 * * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
+        config(['recovery.enabled' => false]);
+        $this->assertFalse($event->filtersPass($this->app));
+        config(['recovery.enabled' => true]);
+        $this->assertTrue($event->filtersPass($this->app));
+    }
+
+    public function test_fifteen_minute_overdue_threshold_is_not_clamped_to_thirty(): void
+    {
+        config(['recovery.overdue_minutes' => 15]);
+        $backups = app(Backups::class);
+        $this->assertSame('CRITICAL', $backups->status()['status']);
+        $this->freezeTime();
+        $backups->create();
+        $this->travel(14)->minutes();
+        $status = $backups->status();
+        $this->assertSame('WARNING', $status['status']);
+        $this->assertFalse($status['offsite_verified']);
+        $this->travel(2)->minutes();
+        $this->assertSame('CRITICAL', $backups->status()['status']);
+        $this->travelBack();
     }
 
     public function test_every_private_upload_directory_is_a_backup_root(): void

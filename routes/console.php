@@ -58,7 +58,9 @@ Schedule::command('shopbonus:reconcile-financials')->everyMinute()->withoutOverl
 
 Schedule::command('shopbonus:observe-operations')->everyMinute()->withoutOverlapping();
 
-Schedule::command('shopbonus:backup')->hourly()->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);
+// Five-minute attempts leave headroom for a proposed15-minute financial RPO.
+// Completion, independent durability and deployed recovery still require measured evidence.
+Schedule::command('shopbonus:backup')->everyFiveMinutes()->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);
 
 Schedule::command('shopbonus:verify-latest-backup')->weeklyOn(0, '05:00')->when(fn () => (bool) config('recovery.enabled'))->withoutOverlapping(60);
 

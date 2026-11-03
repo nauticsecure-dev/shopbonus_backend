@@ -1,5 +1,7 @@
 # Top 10 commerce platform API & webhook specifications
 
+B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
+
 Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `OrderIngestion` / catalogue capabilities. No parallel integration architecture.
 
 **Capability registry:** each platform `profile` in `config/integrations.php` holds `api_version`, `auth_method`, `scopes`, `webhook_topics`, `order_api`, `refund_api`, `product_api`, `coupon_api`, `banner_method`, `rate_limit_policy`, `reviewed_at`, `last_live_verified_at`, `sources`.
@@ -40,7 +42,7 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | Products / coupon reads | GraphQL products (bounded); `discountNodes` with optional `read_discounts` maps single-code basic/free-shipping discounts. BXGY/app/bulk-code discounts are skipped; coupon writes are unsupported. Default OAuth requests only `read_orders,read_products`; additional scope requires reviewed provider authorization. |
 | Webhooks | `orders/create`, `orders/updated`, `orders/paid`, `orders/cancelled`, `refunds/create`, `app/uninstalled` |
 | Signature | Base64 HMAC-SHA256 over **raw body**; dedupe delivery/event IDs |
-| Banners | Theme App Extension (App Blocks/Embed); not implemented — manual embed LIMITED |
+| Banners | Candidate Theme App Extension source present; native publication/activation/uninstall acceptance NOT RUN — manual embed LIMITED |
 | Status | Adapter **PARTIAL**; live **NOT RUN** |
 
 **Field mapping (GraphQL order)**
@@ -56,7 +58,7 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | total_minor | `totalPriceSet.shopMoney` | Shop-money basis |
 | payment_status | displayFinancialStatus + transactions | |
 | refund_minor | successful refunds | |
-| amount_breakdown | `totalPriceSet` (original), `currentTotalPriceSet` (after returns), `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded` | Same shop currency only; shipping null (`totalShippingPriceSet` is documented as shipping returned to the customer). Verified against the Admin GraphQL Order reference 2026-10-31 |
+| amount_breakdown | `totalPriceSet` (original), `currentTotalPriceSet` (after returns), `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded` | Same shop currency only; original shipping null. `currentShippingPriceSet` maps distinct `current_shipping_minor` after refunds/discounts; never reuse returned/refunded shipping as original. Admin GraphQL Order reference reviewed 2026-11-03 |
 | products[] | `lineItems(first: 100)` `discountedTotalSet(withCodeDiscounts: true)` | |
 | source_event_id | `X-Shopify-Event-Id` | |
 | event_created_at | `updatedAt` / webhook | |
@@ -106,7 +108,7 @@ Redacted sample: `{ "id": "gid://shopify/Order/1", "name": "#1001", "email": "[r
 | Orders | `GET https://www.wixapis.com/ecom/v1/orders/{uuid}` |
 | Transactions | `GET .../ecom/v1/payments/orders/{uuid}` |
 | Banners | App/Blocks/Velo only; no silent HTML |
-| Status | Native lookup **WORKING**; backfill via `POST /ecom/v1/orders/search`; `paid_at` null by design |
+| Status | Native lookup implemented; live acceptance NOT RUN. Backfill via `POST /ecom/v1/orders/search`; `paid_at` null by design. Approved transaction `createdDate` may inform status, never settlement time |
 
 Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`.
 
@@ -161,7 +163,7 @@ Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`
 | Topics | `order.created`, `order.updated` |
 | Flow | notification → authenticated order lookup → normalize |
 | Docs | https://docs.ecwid.com/ · webhook automations · get-order |
-| Money | **LIMITED** — no immutable order currency / settlement time; amounts stay null |
+| Money | **LIMITED** — total uses authenticated profile currency observed at read time; immutable order currency and settlement time remain unverified |
 | Banners | Storefront customization or manual placement |
 
 | Target | Path |
@@ -171,7 +173,9 @@ Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`
 | order_reference | `vendorOrderNumber` / `orderNumber` |
 | customer_* | `billingPerson` / `email` |
 | payment_status | `paymentStatus` enum map |
-| total_minor / currency | **null** (unavailable) |
+| total_minor / currency | Exact `total` with authenticated profile `formatsAndUnits.currency`; null when unavailable/invalid; not original-order currency proof |
+| refunded_minor | Explicit `refundedAmount`, exact and bounded by total/status; missing stays null; reported total is not processor cash settlement |
+| paid_at / refunded_at | null; creation/update/refund-event dates are not settlement evidence |
 | source_event_id | `eventId` |
 
 ---
@@ -278,6 +282,14 @@ Example manifest webhook shape (upstream):
 | Status | Optional native read **WORKING**; async app delivery / SaaS **PENDING** |
 
 ---
+
+## Conservative native line snapshots (B57)
+
+Shopware requests at most101 associated lineItems (position/id ordering); snapshots accept at most100 flat product rows bound to the order, with explicit null parentId. Credentials require `order_line_item:read` alongside existing permissions; authorization failures remain fail-closed. Exact totalPrice maps once to `provider_calculated_line_total`; no inferred SKU or eligibility. Reviewed [official definition](https://github.com/shopware/shopware/blob/trunk/src/Core/Checkout/Order/Aggregate/OrderLineItem/OrderLineItemDefinition.php); trunk review is not installed-version certification.
+
+Magento accepts at most100 unique simple root items bound by order_id, integral qty_ordered and exact row_total_incl_tax (`provider_row_total_including_tax`). No inferred discount/refund allocation or eligibility. Composite, duplicate, foreign-order, fractional-quantity and malformed snapshots return null as a whole. See [official2.4.8 interface](https://github.com/magento/magento2/blob/2.4.8/app/code/Magento/Sales/Api/Data/OrderItemInterface.php). Existing last-known ingestion values may remain; null is not new evidence of zero.
+
+Ecwid reported refund mapping follows [get-order](https://docs.ecwid.com/api-reference/rest-api/orders/get-order); current shop currency does not certify historical currency. Lightspeed C cash refund totals and settlement time remain unknown: credit invoices/returns do not prove processor reimbursement. Native installation/storefront packages and real provider journeys remain outside this completed mapping claim.
 
 ## Ten E2E targets vs evidence
 

@@ -112,6 +112,7 @@ class PlatformCouponVerification
         ], 'manual_confirm', $actor->id, $voucher);
     }
 
+    /** @return array{platform_validation: string, detail: array<string, mixed>} */
     public function verifyHistoricalVoucher(Voucher $voucher): array
     {
         // Frozen snapshot is authoritative, even after later offer-version edits.

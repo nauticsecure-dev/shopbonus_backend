@@ -57,4 +57,35 @@ class NativeStoreBindingTest extends TestCase
         }
         Http::assertNotSent(fn ($r) => str_contains($r->url(), '/orders/') || str_contains($r->url(), '/api/search/order') || str_contains($r->url(), '/api/orders/'));
     }
+
+    public function test_shopware_line_association_is_bounded_and_permission_failure_is_not_ignored(): void
+    {
+        $user = User::factory()->create();
+        $shop = Webshop::factory()->withMember($user)->create(['created_by' => $user->id, 'verified_domain' => 'fietsen-utrecht.nl', 'ownership_verified_at' => now(), 'ownership_method' => 'dns_txt']);
+        $this->app->bind(HostResolver::class, fn () => new class implements HostResolver
+        {
+            public function addresses(string $host): array
+            {
+                return ['93.184.216.34'];
+            }
+
+            public function txtRecords(string $host): array
+            {
+                return [];
+            }
+        });
+        $channel = str_repeat('a', 32);
+        [$connection] = app(ConnectionManager::class)->create($shop->memberships()->sole(), EcommercePlatform::Shopware6, ['store_url' => 'https://fietsen-utrecht.nl', 'client_id' => 'SYNTHETIC_shopware_client', 'client_secret' => 'SYNTHETIC_shopware_secret', 'sales_channel_id' => $channel]);
+        Http::fake(fn ($request) => Http::response(str_contains($request->url(), '/oauth/token')
+            ? ['token_type' => 'Bearer', 'expires_in' => 600, 'access_token' => 'SYNTHETIC_shopware_token']
+            : (str_contains($request->url(), 'sales-channel-domain') ? ['data' => [['salesChannelId' => $channel, 'url' => 'https://fietsen-utrecht.nl']]] : []), str_ends_with($request->url(), '/search/order') ? 403 : 200));
+        try {
+            app(ConnectorRegistry::class)->for(EcommercePlatform::Shopware6)->fetchOrder($connection, str_repeat('b', 32));
+            $this->fail('Provider permission failure was ignored.');
+        } catch (ApiException $exception) {
+            $this->assertSame('provider_authentication_failed', $exception->errorCode);
+        }
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/search/order') && $request['associations']['lineItems']['limit'] === 101 && count($request['associations']['lineItems']['sort']) === 2);
+        Http::assertSentCount(3);
+    }
 }

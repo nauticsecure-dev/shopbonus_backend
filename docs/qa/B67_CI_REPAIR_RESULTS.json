@@ -1,0 +1,76 @@
+{
+  "failed_run": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41662047329",
+  "failures": {
+    "lint": "10 Pint violations in merchant-packages and scripts/capture-workspace-access.php",
+    "mysql": "DaisyconCompletenessTest raw permission snapshot compares JSON object insertion order with assertSame; MySQL reorders allowed/media_type keys."
+  },
+  "changes": [
+    "Apply existing Pint rules; no exclusions or disabled checks.",
+    "Normalize object keys before strict snapshot comparison; no-activation assertions unchanged.",
+    "Regenerate archives/manifest and assert exact ZIP entry/source parity."
+  ],
+  "checks": {
+    "focused_sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 10,
+      "passed": 10,
+      "assertions": 127,
+      "duration_ms": 1243
+    },
+    "focused_mysql": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 10,
+      "passed": 10,
+      "assertions": 85,
+      "duration_ms": 22067
+    },
+    "pint": {
+      "tool": "pint",
+      "result": "passed"
+    },
+    "phpstan": {
+      "tool": "phpstan",
+      "result": "passed",
+      "errors": 0
+    },
+    "composer_audit": {
+      "advisories": [],
+      "abandoned": []
+    }
+  },
+  "limits": "All three GitHub CI jobs passed for36c9029. This verifies backend regression/quality checks, not genuine provider installation or staging acceptance. No API/migration/financial behavior changes.",
+  "verified_github_ci": {
+    "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931",
+    "head_sha": "36c902997dc794f9fdefe392bf2c523226cf63a1",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Lint & static analysis",
+        "conclusion": "success",
+        "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931/job/126019815359"
+      },
+      {
+        "name": "Tests (PHP 8.4, mysql)",
+        "conclusion": "success",
+        "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931/job/126019815672"
+      },
+      {
+        "name": "Tests (PHP 8.4, sqlite)",
+        "conclusion": "success",
+        "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41665566931/job/126019815678"
+      }
+    ],
+    "mysql": {
+      "passed": 1364,
+      "skipped": 4,
+      "assertions": 23124
+    },
+    "sqlite": {
+      "passed": 1339,
+      "skipped": 29,
+      "assertions": 23023
+    }
+  }
+}

@@ -124,6 +124,7 @@ class PlatformSettings
                     || ($report['corpus_fingerprint'] ?? null) !== SupportPolicy::regressionFingerprint()) {
                     throw ApiException::conflict('Test the support policy before publication.', 'support_policy_test_required');
                 }
+                app(SupportPolicy::class)->assertPublishable($version->value);
             }
             if (str_starts_with($setting->key, 'notifications.template.')) {
                 $test = DB::table('notification_template_tests')->where('version_id', $version->id)->where('checksum', $version->checksum)->first();

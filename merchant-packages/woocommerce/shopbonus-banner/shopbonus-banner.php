@@ -1,11 +1,12 @@
 <?php
+
 /**
  * Plugin Name: Shopbonus Banner
  * Description: Merchant-controlled placement of the Shopbonus public banner. Order delivery uses WooCommerce's native webhooks.
  * Version: 0.1.0
  * Requires PHP: 8.1
  */
-if (!defined('ABSPATH')) {
+if (! defined('ABSPATH')) {
     exit;
 }
 
@@ -13,7 +14,7 @@ function shopbonus_banner_sanitize($input)
 {
     $origin = esc_url_raw((string) ($input['origin'] ?? ''), ['https']);
     $parts = wp_parse_url($origin);
-    if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || isset($parts['query']) || isset($parts['fragment']) || !in_array($parts['path'] ?? '', ['', '/'], true)) {
+    if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || isset($parts['query']) || isset($parts['fragment']) || ! in_array($parts['path'] ?? '', ['', '/'], true)) {
         $origin = '';
     }
     $key = (string) ($input['key'] ?? '');
@@ -26,7 +27,7 @@ add_action('admin_init', static function () {
 });
 add_action('admin_menu', static function () {
     add_options_page('Shopbonus Banner', 'Shopbonus Banner', 'manage_options', 'shopbonus-banner', static function () {
-        if (!current_user_can('manage_options')) {
+        if (! current_user_can('manage_options')) {
             return;
         }
         $settings = shopbonus_banner_sanitize(get_option('shopbonus_banner', []));
@@ -42,7 +43,7 @@ add_action('admin_menu', static function () {
 });
 add_action('wp_footer', static function () {
     $settings = shopbonus_banner_sanitize(get_option('shopbonus_banner', []));
-    if (!$settings['enabled'] || $settings['origin'] === '' || $settings['key'] === '') {
+    if (! $settings['enabled'] || $settings['origin'] === '' || $settings['key'] === '') {
         return;
     }
     echo '<script defer src="'.esc_url($settings['origin'].'/embed/v1.js').'" data-shopbonus-key="'.esc_attr($settings['key']).'"></script>';

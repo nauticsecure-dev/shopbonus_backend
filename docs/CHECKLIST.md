@@ -1130,6 +1130,41 @@ B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual H
 
 B38 checked against executed evidence in this implementation commit (parent130fd24); resulting SHA recorded in the next checkpoint. SQLite65pass+1skip/7959assertions, MySQL62pass+1skip/446assertions; static/style PASS;16 real HTTP captures.
 
+### B49 — Review acceptance alignment (2026-11-03)
+
+- [x] Document approval-based timing under D-089/D-107, separately from cash settlement; preserve historical reversal rules.
+- [x] Prove the explicit versioned 100% share awards475minor once after approval, preserves its snapshot and leaves the70% default unchanged.
+- [x] Verify existing foreign-workspace404/audit and Answer24 consent/suppression tests; document responsibilities.
+- [x] Keep provider installation/native/live gaps explicitly open with delivery ownership and evidence gates.
+- [x] Record executed focused tests, API compatibility and branch/SHA/next action in checkpoint docs.
+
+B49 evidence: SQLite61/491 and17/7827, MySQL1/12; Pint/diff PASS. Implementing commit has parent e3b25c8; provider delivery remains OPEN.
+
+### B50 — Recovery scheduling and deployment acceptance gaps (2026-11-03)
+
+- [x] Replace hourly backup scheduling with five-minute attempts while preserving opt-in and overlap protection; verify actual scheduled event.
+- [x] Tighten overdue detection to15minutes by default and test healthy/failure/stale boundaries without asserting RPO proof.
+- [x] Document independent archive/key recovery and timed infrastructure drill evidence; retain unverified flags until real proof.
+- [x] Define production queue inventory and safe per-queue backlog/failure acceptance evidence.
+- [x] Run focused recovery/operations/API checks and record results and deployment blockers.
+
+B50 implementing commit parent7027e2c: SQLite14/7660, MySQL operations4/28; PHPStan512MiB/Pint/diff PASS. Checkboxes cover implemented code/runbook only; deployed offsite/key/infrastructure/queue acceptance remains NOT RUN.
+
+Implementation SHAs: B49 `7027e2c`; B50 `fd27a24`. Draft PR#5 contains both; no deployment acceptance promoted.
+
+### B51 — Aggregate wallet support wording (2026-11-03)
+
+- [x] Render pending credit as an aggregate in EN/NL, without attributing a single reward/order or release promise.
+- [x] Verify multiple pending entries and order-level evidence boundaries without financial mutations.
+- [x] Capture actual HTTP output and update API/support docs and checkpoint evidence.
+
+### B52 — Support model contract and execution spending boundary (2026-11-03)
+
+- [x] Require exact-model verified contract/pricing configuration; omit unverified optional parameters and preserve immutable tools/privacy controls.
+- [x] Reserve conservative per-attempt monetary exposure atomically before egress, including failures/crashes, with fail-closed missing pricing and daily cap tests.
+- [x] Verify concurrent spending cannot exceed the configured cap and model changes cannot borrow another model's proof.
+- [x] Document live-model quality acceptance and template decision D-076 separately from synthetic proof.
+- [x] Record focused tests, migrations, actual API captures and remaining acceptance blockers.
 ## Backend merge completion — 2026-11-02
 - [x] Verify pending main -> HassanDev merge has no unresolved entries or conflict markers and preserves HEAD's application tree (parents 0e0a6da / 313dfad; completion commit contains this checkpoint).
 - [x] Execute focused affiliate, benefits, dispute, business journey and OpenAPI regressions (70 passed, 1 skipped; 8480 assertions; PHP 8.4.15).
@@ -1164,6 +1199,93 @@ B38 checked against executed evidence in this implementation commit (parent130fd
 - [ ] Verify read-only checkout quote versus explicit payment start; preserve D-106 no per-consumer cap.
 - [ ] Record executed regressions and remaining MySQL/staging/performance evidence.
 
+B51/B52 implementation40e0e0c plus main-integration refinement commit (parent40e0e0c/main313dfad): integrated SQLite252pass+4skip/9737assertions, MySQL214pass/1739; final ceiling guardsSQLite138/8895 andMySQL9/40. Six real post-merge HTTP captures; PHPStan/Pint/diff PASS. Live canary/95% quality/product acceptance remain NOT RUN, not checked as complete.
+
+### B53 — Integrated dashboard KPI CI expectation (2026-11-03)
+
+- [x] Reconcile the stale exact KPI assertion with merged reserved-code/expired-voucher/expired-offer fields without removing API behavior.
+- [x] Execute the dashboard suite on SQLite and MySQL; record failed full CI honestly.
+- [x] Record implementation SHAs, current handoff and exact next CI action.
+
+B53 implementation parentb484cdf: MerchantDashboardTest SQLite11/85 andMySQL11/85 PASS; Pint/diff PASS. Full CI41596390972 SQLite failed only this stale expectation; replacement exact-code CI still required.
+
+### B54 — Request-time impersonation authority (backend only, 2026-11-03)
+
+- [x] Revalidate the initiating administrator's active/verified/Super Admin authority and required MFA from current records on every support-token request.
+- [x] Close/revoke invalid sessions, reject stale model relations and token binding mismatches, and keep audit attribution without reviving ended tokens.
+- [x] Enforce initiating authority inside the existing start transaction; preserve target restrictions and expiry behavior.
+- [x] Block the ownership-transfer write route family during impersonation, including cancellation.
+- [x] Test direct status/role/verification/MFA changes bypassing lifecycle hooks, normal tokens, audit and replay; capture actual HTTP evidence.
+- [x] Update API/security docs and checkpoint evidence after executed checks.
+
+### B55 — Cockpit API filtering and pagination contract (backend only, 2026-11-03)
+
+- [x] Verify existing detailed KPI and Today behavior without implementing client screens.
+- [x] Add voucher webshop scoping and activity webshop alias; reject conflicting/malformed filters without silently broadening results.
+- [x] Validate page parameters for all four lists and preserve webshop list filters in pagination links.
+- [x] Prove page2/scoped results, unknown shops, authorization and invalid inputs; capture real HTTP examples and document frontend handoff.
+- [x] Record focused verification and implementation SHAs.
+
+B54/B55 implementation parent5a84660: SQLite46/8417; MySQL43/637; final principal/race refinement15/299 on each driver; API3/7780. PHPStan/Pint/diff PASS.41 real HTTP captures plus database assertions; no frontend changes. Implementing SHA recorded in the following closeout. Full new CI pending.
+
+B54/B55 implementing SHA: `29c02b2`. Checkbox evidence is in that implementation commit; subsequent docs note records the resolved SHA. New full CI pending.
+
+### B56 — Backend release inventory and evidence alignment (2026-11-03)
+
+- [x] Regenerate runtime route-entry, method/path operation and access/role inventory with explicit HEAD/multi-method counting.
+- [x] Provide a repeatable CLI Markdown renderer and fail on runtime/OpenAPI drift; test checked-in inventory consistency.
+- [x] Align release acceptance and business-journey wording with D-109 approval plus recorded settlement, preserving historical evidence.
+- [x] Record current-build backend CI provenance and separate it from independent E2E/provider/staging acceptance.
+- [x] Document missing native install/storefront artifacts and original-PDF/evidence package blockers without inventing mappings or runs.
+- [x] Execute focused route/access/journey checks and record test results and exact next actions.
+
+B56 implementing commit parentb3016cd: SQLite38/10982, MySQL4/502; static/style/audit PASS. These checkboxes cover inventory and honest release alignment, not independent/native/staging acceptance.
+
+### B57 — Shared native order mappings and integration specifications (2026-11-03)
+
+- [x] Audit official contracts and current Wix/Ecwid behavior; distinguish record creation/current shop currency from immutable settlement evidence.
+- [x] Normalize bounded, order-bound flat product lines for Shopware/Magento with exact money, explicit amount basis and unknown eligibility; refuse mixed/composite/duplicate/invalid shapes.
+- [x] Request bounded Shopware line-item association and document its read permission; keep failures fail-closed and provider qualification unchanged.
+- [x] Map Ecwid's explicit reported refundedAmount without assuming missing=zero, settlement time or original-order currency; test contradictions/precision/bounds.
+- [x] Retain Lightspeed cash refund/settlement and native package/live acceptance gaps where source proof is unavailable.
+- [x] Execute focused SQLite/MySQL tests, capture actual affected order HTTP examples and update API/spec/handoff evidence.
+
+B57 implementing parent8fb782e: SQLite49/343 plus final transport2/16; MySQL17/129 plus final wiring3/13 and transport2/16 (overlapping selections); API5/8261, PHPStan/Pint PASS. Four actual local HTTP serialization captures; live/native acceptance remains NOT RUN. Implementing SHA is recorded in the following checkpoint.
+
+B57 implementing SHA: `ffa436d`; pushed to draft PR#5. External provider/native acceptance remains open.
+
+### B58 — About publication reviewed revision enforcement (2026-11-03)
+
+- [x] Require revision on both About publication aliases and retain locked stale-draft comparison.
+- [x] Test missing/null/invalid/stale rejection without publication/audit side effects and successful reviewed publication.
+- [x] Capture authenticated actual HTTP save/publish/restore and rejected revision responses; update API contract.
+- [x] Run focused CMS/API checks and record remaining approved-content/frontend/deployed scheduler acceptance gaps.
+
+B58 parentf57e6e6: SQLite CMS/API71/8904, MySQL About15/135, static/style/diff PASS;14 real local authenticated HTTP exchanges. Checklist covers backend enforcement/evidence only; deployment/content/frontend/design acceptance stays open. Implementing SHA recorded in the subsequent closeout.
+
+B58 implementing SHA: `6ed1395`.
+
+### B59 — Consistent consumer trends and acquisition reconciliation (2026-11-03)
+
+- [x] Use consumerAccounts for daily trend; test memberships, intent, test-account exclusions and period boundaries.
+- [x] Connect explicit acquisition recording to privileged console reconciliation, requiring current authorized actor, verified-link attestation and evidence reference.
+- [x] Preserve immutable/idempotent links, audit actor/reference and reject mismatched/unapproved/duplicate/future sources; never infer from wallet spending.
+- [x] Capture real cockpit HTTP contract, run focused checks and document operational procedure and remaining deployed/client acceptance.
+
+B59 implementing parentee1f2b6: SQLite28/8546 plus final API5/8269; MySQL23/277; PHPStan/Pint/diff PASS. Three real local HTTP exchanges and actual synthetic console reconciliation. Deployed/client/genuine-provider acceptance remains open. SHA recorded in following closeout.
+
+B59 implementing SHA: `f115f44`.
+
+### B60 — Verified domain change and Step2 backend acceptance (2026-11-03)
+
+- [x] Add authorized explicit domain-change reconciliation with expected-domain guard and reason; keep ordinary saves locked.
+- [x] Reset ownership/business confirmation/approval, supersede open challenges and disconnect current integration credentials/generations atomically.
+- [x] Guard stale profile/challenge races; test authorization, status, concurrency and old/new connection evidence.
+- [x] Capture actual HTTP onboarding reset evidence, run focused checks and document coupon-write/deployed/client limitations and foreign-workspace404 policy.
+
+B60 implementing parent0a9ac29: SQLite48/894, MySQL34/305, API5/8269; PHPStan/Pint/diff PASS. Nine actual local HTTP exchanges and console reset. These checks complete domain reset only; coupon-write capability and external/frontend acceptance remain OPEN. Implementing SHA recorded in subsequent closeout.
+
+B60 implementing SHA: `5cf9707`.
 ## Revised platform brief review — 2026-11-02
 - [ ] Verify OTP secrecy, PHP 8.5 SOAP loading and cover OpenAPI coverage.
 - [ ] Make new validated affiliate conversions immediately spendable; verify explicit 100% EUR 4.75 rule, replay, rejection and expiry; preserve frozen historical timing.
@@ -1287,3 +1409,78 @@ Boxes remain unticked until a tested implementation commit SHA exists. Live acce
 - [ ] Run ConsumerPlatformE2ETest, PointsCheckoutTest and OpenApiCoverageTest serially after browser cleanup.
 - [ ] Confirm temporary database/process cleanup and preserve the configured application database and unrelated working-tree changes.
 - [ ] Obtain full accessibility, approved-reference, external delivery and staging evidence before full release acceptance; fresh npm audit requires separate external-metadata approval.
+
+### B61 — Merge current main into review branch (2026-11-03)
+
+- [x] Preserve new main features plus review fixes; resolve code/docs/API conflicts and retain latest owner D-109.
+- [x] Verify combined connector breakdowns/order binding, financial policy and current route inventory.
+- [x] Run combined regression and static checks, recording local codec failures separately.
+- [x] Record merge parents/evidence, push review branch and confirm PR mergeability.
+
+B61 parent15e58dc + mainb04ea65: repaired SQLite162/2001, merged focused68/8445, MySQL99/883; PHPStan PASS. Initial broad run failed; local GD failures remain documented. Remote mergeability verification follows push.
+
+B61 implementing merge SHA `be4a3e5`; pushed and GitHub MERGEABLE confirmed. Backend Pint/PHPStan/diff PASS; CI41650765241 pending.
+
+### B62 — Merchant dashboard contract and claim concurrency evidence
+
+- [x] Verify exact current KPI contract and nonzero reserved/expired counters with webshop isolation.
+- [x] Assert audited foreign-workspace404 and active-member permission403 without weakening concealment.
+- [x] Execute actual MySQL concurrent promotional claims and inventory races; separate correctness from staging latency.
+- [x] Record focused SQLite/MySQL results and remaining real browser/visual/staging acceptance; do not claim full suite green.
+
+B62 parentddc698c: SQLite15/127; MySQL20/153 including five real process races; PHPStan/Pint/diff PASS. Test-only backend boundary; full CI/browser/staging/visual acceptance is not claimed. Implementing SHA recorded in next closeout.
+
+B62 implementing SHA: `6394e80`.
+
+### B63 — Full support monitoring and reviewed outcome separation
+
+- [x] Aggregate the complete filtered message dataset in bounded batches; report exact observed latency, usage and cost coverage without a500-row cap.
+- [x] Add separate execution-status and resolved human-review outcome percentages with explicit denominators; preserve/deprecate legacy alias honestly.
+- [x] Keep unmeasured connectivity explicit and expose available model-contract proof without claiming live availability.
+- [x] Test over500 messages, review multiplicity/filter isolation, empty/unknown metrics and authorization; capture actual HTTP and update API/handoff.
+
+B63 parent5491f79: SQLite7/112, MySQL7/112; PHPStan/Pint PASS. Four real HTTP captures over501 synthetic messages; external connectivity remains unverified. Implementing SHA recorded next checkpoint.
+
+### B64 — Bounded support controls and model activation proof
+
+- [x] Implement bounded tone/empathy/detail/word limits, execution deadline and monetary limits without unverified prose or truncating safeguards.
+- [x] Allow one explicit configured/probed fallback for transient failures, sharing deadline/budget and retaining all attempt exposure.
+- [x] Gate enabled policy publication on exact primary/fallback contract proof and output limits; expose actionable backend errors and capabilities.
+- [x] Test actual control behavior, rejected activation, expired/changed contracts, fallback failure/budget/deadline and immutable safety guards.
+- [x] Capture real settings/monitoring/message HTTP responses, update API/config/runbook and record external connectivity/quality/frontend gaps.
+
+B63 implementing SHA `25fa46c`. B64 parent25fa46c: Support SQLite180pass+3skip/1470assertions; selected MySQL154/1324; API5/8349; PHPStan/Pint/diff PASS. Eleven real HTTP exchanges with synthetic accounts/local SMTP; live provider/Reverb/quality/frontend acceptance remains OPEN. B64 implementing SHA recorded next closeout.
+
+B64 implementing SHA: `8c95e5c`; B63 `25fa46c`. Both pushed to draft PR#5; no live-provider or whole-suite green claim.
+
+### B65 — Integration per-feature provenance and supported monetary detail
+
+- [x] Expose evidence ID/source URL/error code with explicit declaration versus observed scope; never inherit platform-wide verification into unrelated features.
+- [x] Bind connection evidence to workspace, current credential generation/domain/store and feature-specific events/syncs; retain failures and deny stale/paused/disconnected evidence.
+- [x] Preserve existing native mappings, add documented Ecwid/Lightspeed totals and unambiguous Shopify current shipping without refund subtraction or invented timestamps.
+- [x] Test provenance isolation/negative cases, exact/unknown money and package claims; capture actual HTTP, update specs/API/handoff and keep genuine provider acceptance NOT RUN.
+
+B65 tests: SQLite191/1773; MySQL191/1775; API35/10983; PHPStan/Pint/diff PASS. Parent `516e9d1`; implementing SHA recorded at closeout. Genuine provider/native publication acceptance remains NOT RUN.
+
+B65 implementing SHA: `f44d759`. All four checked items refer to the tested local backend boundary; genuine provider installation/publication/release acceptance remains open.
+
+### B66 — Executable acceptance manifest and fail-closed deployment gate
+
+- [x] Define source-hashed unique 175-check mapping contracts with assertions, executor, environment, instructions and separately identified required provider subruns; leave unavailable source UNMAPPED.
+- [x] Evaluate exact staging-build approved unmocked results and result-bound checksum-valid evidence of each required kind, with independent authorized review; raw JUnit is not acceptance.
+- [x] Add a console deployment gate with nonzero blocked exit, safe artifact handling and documented deploy integration; never execute AI-generated commands or claim scheduled staging journeys ran.
+- [x] Test missing/duplicate mappings, wrong build/environment/reviewer, incomplete/expired/corrupt evidence and synthetic complete gate; record tests and remaining frontend/provider/staging gaps.
+
+B66 local boundary: QA SQLite27/358; acceptance MySQL4/28; API5/8353; PHPStan/targeted Pint/diff PASS. Parent `ced2fd9`; implementing SHA follows in closeout. Actual175-source mapping, independent real staging/provider runs, controlled scheduled runners and frontend/portal delivery remain OPEN.
+
+B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/evidence-gate boundary only; the missing actual source mapping, executions, runner pipeline and frontend/portal are not checked as complete.
+
+### B67 — Repair recurring CI failures
+
+- [x] Identify failures from actual GitHub Actions logs and reproduce lint/MySQL failures locally.
+- [x] Make the Daisycon raw-permission snapshot assertion independent of JSON object key order while preserving strict values and no-activation guards.
+- [x] Fix reported formatting violations and regenerate deterministic merchant archives/manifests without changing native behavior or weakening lint.
+- [x] Run focused database/package checks, full lint/static checks and dependency audit.
+- [x] Verify the pushed revision's complete GitHub CI jobs and record results/SHA.
+
+B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL1364pass+4skip/23124assertions, SQLite1339pass+29skip/23023assertions. Local fullPint/PHPStan/Composer audit PASS; docs/qa/B67_CI_REPAIR_RESULTS.json records actual results.

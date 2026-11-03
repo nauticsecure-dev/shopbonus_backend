@@ -109,10 +109,10 @@ class MyBenefitsE2ETest extends TestCase
         $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()
             ->assertJsonPath('data', [])
             ->assertJsonPath('meta.total', 0);
-        $this->assertSame('on_validated_attribution', config('shopbonus.affiliate.credit_timing'));
+        $this->assertSame('on_network_settlement', config('shopbonus.affiliate.credit_timing'));
     }
 
-    public function test_02_standard_affiliate_cashback_immediate_70_30(): void
+    public function test_02_standard_affiliate_cashback_70_30_waits_for_settlement(): void
     {
         $this->seedProgram();
         $ref = $this->click();
@@ -123,8 +123,8 @@ class MyBenefitsE2ETest extends TestCase
         ]], $this->admin->id);
 
         $tx = AffiliateTransaction::where('external_id', 'E2E-2')->sole();
-        $this->assertSame('credited', $tx->reward_status);
-        $this->assertSame(700, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
+        $this->assertSame('pending', $tx->reward_status);
+        $this->assertSame(0, app(WalletService::class)->consumerWallet($this->anna)->fresh()->available);
         app(SettlementRecorder::class)->record($tx, $this->admin, 'fixture-remittance-E2E-2', now()->toImmutable()->subMinute());
         $tx->refresh();
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);

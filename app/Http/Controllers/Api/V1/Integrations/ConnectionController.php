@@ -88,9 +88,10 @@ class ConnectionController extends Controller
     }
 
     /** Sanitised event history: no payloads, no PII. */
-    public function events(CurrentWorkspace $current, string $connection): JsonResponse
+    public function events(Request $request, CurrentWorkspace $current, string $connection): JsonResponse
     {
-        $events = $this->find($current, $connection)->events()->latest('id')->limit(50)->get()->map(fn ($e) => [
+        $data = $request->validate(['evidence_id' => ['sometimes', 'ulid']]);
+        $events = $this->find($current, $connection)->events()->when(isset($data['evidence_id']), fn ($q) => $q->where('public_id', strtolower($data['evidence_id'])))->latest('id')->limit(50)->get()->map(fn ($e) => [
             'id' => $e->public_id,
             'topic' => $e->topic,
             'status' => $e->status->value,

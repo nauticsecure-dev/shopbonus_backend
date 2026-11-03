@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AmountBreakdown;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
@@ -181,7 +182,30 @@ class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNot
             $currency = null;
         }
 
+        // This is the provider-reported order refund total, not processor cash settlement.
+        $refunded = null;
+        if (array_key_exists('refundedAmount', $p)) {
+            try {
+                $rawRefund = $p['refundedAmount'];
+                if ($currency === null || $amount === null || (! is_string($rawRefund) && ! is_int($rawRefund))) {
+                    throw new \InvalidArgumentException;
+                }
+                $refunded = Money::toMinor($rawRefund, $currency);
+                if ($refunded < 0 || $refunded > $amount
+                    || ($status === PaymentStatus::Paid && $refunded > 0)
+                    || ($status === PaymentStatus::Refunded && $refunded !== $amount)
+                    || ($status === PaymentStatus::PartiallyRefunded && ($refunded <= 0 || $refunded >= $amount))) {
+                    throw new \InvalidArgumentException;
+                }
+            } catch (\InvalidArgumentException) {
+                $refunded = null;
+                $status = PaymentStatus::Unknown;
+            }
+        }
+
         // paid_at stays null: reviewed Ecwid order API has no immutable settlement timestamp.
+        $decimal = static fn (mixed $value): ?string => is_string($value) || is_int($value) ? (string) $value : null;
+
         return new NormalizedOrder(
             externalId: $this->str($p['internalId'] ?? null),
             reference: $this->str($p['vendorOrderNumber'] ?? $p['orderNumber'] ?? null),
@@ -196,7 +220,9 @@ class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNot
             paidAt: null,
             cancelledAt: null,
             refundedAt: null,
+            refundedMinor: $refunded,
             providerUpdatedAt: $this->date($p['updateDate'] ?? null),
+            amountBreakdown: AmountBreakdown::make($currency, 'ecwid_order', ['current_total' => $decimal($p['total'] ?? null), 'tax' => $decimal($p['tax'] ?? null), 'shipping' => $decimal($p['shippingOption']['shippingRate'] ?? null), 'discount' => $decimal($p['discount'] ?? null)], is_bool($p['pricesIncludeTax'] ?? null) ? $p['pricesIncludeTax'] : null),
         );
     }
 

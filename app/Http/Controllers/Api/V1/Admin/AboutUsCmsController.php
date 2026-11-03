@@ -87,9 +87,9 @@ class AboutUsCmsController extends Controller
     public function publish(Request $request): JsonResponse
     {
         $locale = $this->locale($request);
-        $data = $request->validate(['revision' => ['sometimes', 'integer', 'min:1']]);
+        $data = $request->validate(['revision' => ['required', 'integer', 'min:1']]);
         $page = $this->aboutUs->page();
-        $revision = $this->cms->publish($page, $locale, $request->user()->id, [], isset($data['revision']) ? (int) $data['revision'] : null);
+        $revision = $this->cms->publish($page, $locale, $request->user()->id, [], (int) $data['revision']);
 
         return response()->json(['data' => $this->revision($revision)]);
     }

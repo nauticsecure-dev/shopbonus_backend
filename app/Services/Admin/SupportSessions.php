@@ -31,21 +31,27 @@ class SupportSessions
      */
     public function start(User $admin, User $target, string $reason): array
     {
-        if ($target->id === $admin->id) {
-            throw new ApiException('You cannot start a support session for yourself.', 422, 'support_session_self');
-        }
-
-        if (! $target->isActive()) {
-            throw new ApiException('Support sessions are only possible for active accounts.', 422, 'support_session_target_inactive');
-        }
-
-        if ($target->platformRoles()->whereNull('revoked_at')->exists()) {
-            throw new ApiException('Support sessions cannot target platform administrators.', 422, 'support_session_target_admin');
-        }
-
         $expiresAt = now()->addMinutes((int) config('shopbonus.admin.support_session_minutes'));
 
         [$session, $plain] = DB::transaction(function () use ($admin, $target, $reason, $expiresAt) {
+            $admin = User::whereKey($admin->id)->lockForUpdate()->firstOrFail();
+            if (! $admin->isActive() || ! $admin->hasVerifiedEmail() || ! $admin->isSuperAdmin()
+                || (config('shopbonus.admin.mfa_required') && ! $admin->hasEnabledTwoFactorAuthentication())) {
+                throw new ApiException('This action requires an active platform administrator.', 403, 'platform_role_required');
+            }
+            // Authorize before inspecting the target, then re-read its current restrictions.
+            $target = User::whereKey($target->id)->lockForUpdate()->firstOrFail();
+            if ($target->id === $admin->id) {
+                throw new ApiException('You cannot start a support session for yourself.', 422, 'support_session_self');
+            }
+
+            if (! $target->isActive()) {
+                throw new ApiException('Support sessions are only possible for active accounts.', 422, 'support_session_target_inactive');
+            }
+
+            if ($target->platformRoles()->whereNull('revoked_at')->exists()) {
+                throw new ApiException('Support sessions cannot target platform administrators.', 422, 'support_session_target_admin');
+            }
             // One support session per admin at a time.
             ImpersonationSession::where('admin_user_id', $admin->id)->whereNull('ended_at')->lockForUpdate()->get()
                 ->each(fn (ImpersonationSession $s) => $this->close($s, 'replaced'));
@@ -91,7 +97,7 @@ class SupportSessions
 
     /**
      * The session a support token belongs to, or null if it is not one.
-     * An expired session is closed here, on first use after expiry.
+     * An expired session or one whose administrator lost authority is closed on use.
      */
     public function forToken(PersonalAccessToken $token): ?ImpersonationSession
     {
@@ -101,8 +107,17 @@ class SupportSessions
 
         $session = ImpersonationSession::where('token_id', $token->getKey())->first();
 
-        if ($session !== null && $session->ended_at === null && $session->expires_at->isPast()) {
-            $this->end($session, 'expired');
+        if ($session !== null && $session->ended_at === null) {
+            $reason = match (true) {
+                ! $session->expires_at->isFuture() => 'expired',
+                ! $session->hasActiveAdministrator() => 'admin_authority_lost',
+                (string) $token->tokenable_id !== (string) $session->target_user_id
+                    || $token->tokenable_type !== (new User)->getMorphClass() => 'invalid_token_binding',
+                default => null,
+            };
+            if ($reason !== null) {
+                $session = $this->end($session, $reason);
+            }
         }
 
         return $session;

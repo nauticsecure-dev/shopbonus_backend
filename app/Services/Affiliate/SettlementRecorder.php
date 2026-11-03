@@ -2,8 +2,10 @@
 
 namespace App\Services\Affiliate;
 
+use App\Affiliate\Data\AffiliateTransactionData;
 use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
+use App\Models\AffiliateConnection;
 use App\Models\AffiliateTransaction;
 use App\Models\User;
 use App\Services\Audit\AuditLogger;
@@ -39,13 +41,13 @@ class SettlementRecorder
                 metadata: ['reference' => trim($reference), 'settled_at' => $settledAt->toIso8601String()]);
 
             // Settlement recording does not waive fraud/threshold review.
-            return $this->processor->ingest(\App\Models\AffiliateConnection::findOrFail($tx->connection_id), $this->data($tx), 'admin', $actor->id);
+            return $this->processor->ingest(AffiliateConnection::findOrFail($tx->connection_id), $this->data($tx), 'admin', $actor->id);
         });
     }
 
-    private function data(AffiliateTransaction $tx): \App\Affiliate\Data\AffiliateTransactionData
+    private function data(AffiliateTransaction $tx): AffiliateTransactionData
     {
-        return new \App\Affiliate\Data\AffiliateTransactionData($tx->external_id, '', null, null,
+        return new AffiliateTransactionData($tx->external_id, '', null, null,
             $tx->order_amount_minor, $tx->currency, $tx->commission_minor, $tx->network_status, $tx->transaction_at, $tx->network_updated_at);
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 final class ShopbonusOpenCartOrder
 {
     public static function payload(array $order, string $timezone): array
@@ -20,11 +21,11 @@ final class ShopbonusOpenCartOrder
 
     private static function date(string $value, string $timezone): ?string
     {
-        if (!in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
+        if (! in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
             return null;
         }
         $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value, new DateTimeZone($timezone));
-        if (!$date || $date->format('Y-m-d H:i:s') !== $value) {
+        if (! $date || $date->format('Y-m-d H:i:s') !== $value) {
             return null;
         }
         $wall = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $value, new DateTimeZone('UTC'))->getTimestamp();

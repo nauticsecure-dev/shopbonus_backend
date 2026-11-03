@@ -38,6 +38,7 @@ foreach ($entries as $entry) {
     if (isset($existing['paths'][$path][$method])) {
         // Documented but access/permission mismatch — leave body, caller should fix x-access manually.
         $fixedAccess++;
+
         continue;
     }
 
@@ -108,7 +109,7 @@ foreach ($entries as $entry) {
         'x-access' => $access,
         'x-codeSamples' => [[
             'lang' => 'curl',
-            'source' => "curl -i -X ".strtoupper($method)." 'http://localhost:8000{$path}' -H 'Accept: application/json'",
+            'source' => 'curl -i -X '.strtoupper($method)." 'http://localhost:8000{$path}' -H 'Accept: application/json'",
         ]],
         'responses' => $responses,
     ];
@@ -144,6 +145,7 @@ foreach ($mergeMethods as $path => $methods) {
     if ($pos === false) {
         // Fall back: treat as new path.
         $newPaths[$path] = ($newPaths[$path] ?? []) + $methods;
+
         continue;
     }
     $insertAt = $pos + strlen($pathLine);

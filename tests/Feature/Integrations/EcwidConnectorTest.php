@@ -5,6 +5,8 @@ namespace Tests\Feature\Integrations;
 use App\Enums\EcommercePlatform;
 use App\Integrations\ConnectionManager;
 use App\Integrations\ConnectorRegistry;
+use App\Integrations\Connectors\EcwidConnector;
+use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Jobs\ProcessWebhookEvent;
@@ -122,5 +124,27 @@ class EcwidConnectorTest extends TestCase
         $this->assertNull($o->amountMinor);
         $this->assertNull($o->currency);
         $this->assertNull($o->paidAt);
+    }
+
+    public function test_reported_refunds_are_exact_and_do_not_prove_settlement(): void
+    {
+        $adapter = app(EcwidConnector::class);
+        $payload = ['shop_currency' => 'EUR', 'native_order' => ['internalId' => 4711, 'total' => '10.00', 'paymentStatus' => 'PARTIALLY_REFUNDED', 'refundedAmount' => '2.50', 'updateDate' => '2026-10-28 10:00:00 +0000']];
+        $order = $adapter->normalizeOrder($payload);
+        $this->assertSame(250, $order->refundedMinor);
+        $this->assertSame(1000, $order->amountMinor);
+        $this->assertNull($order->paidAt);
+        $this->assertNull($order->refundedAt);
+        foreach (['-1', '10.01', '2.501', '0', '10.00'] as $invalid) {
+            $payload['native_order']['refundedAmount'] = $invalid;
+            $order = $adapter->normalizeOrder($payload);
+            $this->assertNull($order->refundedMinor);
+            $this->assertSame(PaymentStatus::Unknown, $order->paymentStatus);
+        }
+        unset($payload['native_order']['refundedAmount']);
+        $this->assertNull($adapter->normalizeOrder($payload)->refundedMinor);
+        $payload['native_order']['refundedAmount'] = '2.50';
+        unset($payload['shop_currency']);
+        $this->assertNull($adapter->normalizeOrder($payload)->refundedMinor);
     }
 }

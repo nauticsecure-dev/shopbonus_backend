@@ -38,6 +38,7 @@ class WebshopController extends Controller
             'status' => ['sometimes', Rule::enum(WebshopStatus::class)],
             'search' => ['sometimes', 'string', 'max:100'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
         $search = isset($filters['search']) ? '%'.addcslashes($filters['search'], '%_\\').'%' : null;
 
@@ -49,7 +50,7 @@ class WebshopController extends Controller
                 ->orWhereHas('memberships.user', fn ($u) => $u->where('email', 'like', $search))))
             ->orderByRaw("case status when 'pending_review' then 0 else 1 end")
             ->latest('id')
-            ->paginate($filters['per_page'] ?? 25);
+            ->paginate($filters['per_page'] ?? 25)->withQueryString();
 
         return AdminWebshopResource::collection($webshops);
     }

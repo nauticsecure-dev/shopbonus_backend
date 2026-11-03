@@ -204,8 +204,8 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e4_and_e2e6_import_normalises_pending_is_not_spendable_and_approval_credits_once(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
-        config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
+        // Historical approval-only fixture; D-109 governs new rewards.
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
@@ -226,7 +226,7 @@ class AffiliateTest extends TestCase
         $this->assertCount(1, $bad['rejected']);
     }
 
-    public function test_verified_conversion_with_reconciled_funds_credits_authoritative_70_percent_rule(): void
+    public function test_network_approved_conversion_credits_with_explicit_70_percent_split(): void
     {
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
@@ -238,6 +238,39 @@ class AffiliateTest extends TestCase
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame([700, 0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
+    }
+
+    public function test_475_commission_scenario_requires_explicit_full_share_and_recorded_settlement(): void
+    {
+        $this->assertSame('on_network_settlement', config('shopbonus.affiliate.credit_timing'));
+        $this->assertSame(7000, config('shopbonus.affiliate.default_consumer_share_bps'));
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 10000,
+            'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $import = fn (array $programs = [], array $transactions = []) => app(AffiliateSync::class)->import($this->daisycon, $programs, $transactions, $this->admin->id);
+        $import([$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+        $import([], [$this->daisyconTx('FULL-475', $ref, 'pending', commission: 4.75)]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame([0, 475], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        $this->assertSame(10000, $tx->reward_terms_snapshot['share_bps']);
+
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 3, 'unit' => 'eur_credit', 'share_bps' => 7000,
+            'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $approved = $this->daisyconTx('FULL-475', $ref, 'approved', '2026-10-24T09:00:00Z', 4.75);
+        $import([], [$approved]);
+        $import([], [$approved]);
+        $this->assertSame([0, 475], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        app(SettlementRecorder::class)->record($tx->fresh(), $this->admin, 'synthetic-full-475-remittance', CarbonImmutable::now()->subMinute());
+        $import([], [$approved]);
+        $this->assertSame([475, 0, 475], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
+        $evidence = $tx->fresh()->credit_evidence;
+        $this->assertSame(10000, $evidence['rule_terms']['share_bps']);
+        $this->assertSame(0, $evidence['allocation']['platform_unrecognized_minor']);
+        $this->assertTrue($evidence['allocation']['cash_settlement_verified']);
+        $this->assertSame(7000, config('shopbonus.affiliate.default_consumer_share_bps'));
+        $this->assertSame([], app(WalletService::class)->reconcile());
     }
 
     public function test_order_already_credited_as_direct_merchant_conversion_is_never_credited_again(): void
@@ -304,7 +337,7 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e7_rejection_cancels_pending_and_reversal_never_reclaims_spent_credit(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref1 = $this->annaClicks();
@@ -329,7 +362,7 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e9_postbacks_cannot_approve_and_stale_updates_are_ignored(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
@@ -349,9 +382,9 @@ class AffiliateTest extends TestCase
         $this->assertSame(['rejected', 0], [AffiliateTransaction::sole()->status, $this->wallet()->fresh()->available]);
     }
 
-    public function test_default_immediate_credit_with_explicit_full_share_credits_475_once_and_rejection_does_not_reverse(): void
+    public function test_full_share_settlement_credits_475_once_and_rejection_reverses(): void
     {
-        $this->assertSame('on_validated_attribution', config('shopbonus.affiliate.credit_timing'));
+        $this->assertSame('on_network_settlement', config('shopbonus.affiliate.credit_timing'));
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
 
@@ -359,17 +392,20 @@ class AffiliateTest extends TestCase
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 10000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
         $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 4.75)]);
         $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'pending', commission: 4.75)]); // replay
-        $this->assertSame([475, 0], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]); // €4.75 immediately
+        $this->assertSame([0, 475], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]); // D-109: approval plus settlement required
         $tx = AffiliateTransaction::sole();
-        $this->assertSame('on_validated_attribution', $tx->reward_timing);
+        $this->assertSame('on_network_settlement', $tx->reward_timing);
         $this->assertNull($tx->settlement_evidence);
-        $this->assertFalse($tx->credit_evidence['allocation']['cash_settlement_verified']);
+        $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'approved', '2026-10-24T08:00:00Z', commission: 4.75)]);
+        $tx->refresh();
+        $this->assertSame(475, $this->wallet()->fresh()->available);
+        $this->assertTrue($tx->credit_evidence['allocation']['cash_settlement_verified']);
         $this->assertSame(1, WalletLedgerEntry::where('source_ref', $tx->public_id)->where('type', 'credit')->count());
 
         $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-1', $ref, 'disapproved', '2026-10-24T09:00:00Z', commission: 4.75)]);
         $tx = AffiliateTransaction::sole();
-        $this->assertSame(['rejected', 'credited', 'network_rejected_after_credit'], [$tx->status, $tx->reward_status, $tx->review_reason]);
-        $this->assertSame(475, $this->wallet()->fresh()->available);
+        $this->assertSame(['rejected', 'reversed'], [$tx->status, $tx->reward_status]);
+        $this->assertSame(0, $this->wallet()->fresh()->available);
         $this->assertSame('matched', app(FinancialSources::class)->inspect($tx)['status']);
         $lotExpiry = DB::table('wallet_credit_lots')->where('wallet_id', $this->wallet()->id)->value('expires_at');
         $this->assertEqualsWithDelta(now()->addMonths(12)->getTimestamp(), strtotime((string) $lotExpiry), 86400); // 12-month validity
@@ -430,7 +466,7 @@ class AffiliateTest extends TestCase
 
     public function test_admin_connection_setup_rules_and_consumer_activity(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         Http::fake(['services.daisycon.com/*' => Http::response(['error' => 'invalid_token'], 401)]);
         $this->asAdminWithStepUp();
@@ -462,7 +498,7 @@ class AffiliateTest extends TestCase
 
     public function test_approved_credit_uses_frozen_rule_and_timing_while_new_conversions_use_new_rates(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
@@ -487,7 +523,7 @@ class AffiliateTest extends TestCase
         $this->assertSame('matched', $sourceCheck['status'], json_encode($sourceCheck));
         $this->assertSame(['consumer_minor' => 700, 'platform_allocation_minor' => 300, 'unrecognized_residual_minor' => 300], $sourceCheck['evidence']['snapshot']['calculated_split']);
         $original = $tx->credit_evidence;
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('D-2', $this->annaClicks(), 'approved', commission: 10, order: 'HIST-2')]);
         $this->assertSame(900, AffiliateTransaction::where('external_id', 'D-2')->sole()->reward_amount);
@@ -504,7 +540,7 @@ class AffiliateTest extends TestCase
 
     public function test_increased_approved_commission_requires_review_again_before_becoming_spendable(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'review_above_minor' => 800, 'active' => true, 'created_by' => $this->admin->id]);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
@@ -523,7 +559,7 @@ class AffiliateTest extends TestCase
 
     public function test_foreign_commission_currency_cannot_silently_become_eur_wallet_credit(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $data = $this->daisyconTx('D-USD', $this->annaClicks(), 'approved', commission: 10);
@@ -565,7 +601,7 @@ class AffiliateTest extends TestCase
 
     public function test_zero_approved_commission_closes_the_original_pending_reward_without_a_credit(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $click = $this->annaClicks();
@@ -579,7 +615,7 @@ class AffiliateTest extends TestCase
 
     public function test_pending_source_reconciliation_rejects_another_consumers_wallet_link(): void
     {
-        // Explicit historical settlement regime; new rewards default to immediate credit.
+        // Explicit settlement fixture; D-109 also requires this for new rewards.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->importAndReconcileApprovedFunds($this->daisycon, [$this->daisyconProgram()]);
         $this->importAndReconcileApprovedFunds($this->daisycon, [], [$this->daisyconTx('PENDING-OWNER', $this->annaClicks(), 'pending')]);

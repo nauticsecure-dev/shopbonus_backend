@@ -15,6 +15,7 @@ use App\Models\VoucherCheckout;
 use App\Models\Wallet;
 use App\Models\WalletCreditLot;
 use App\Models\WalletLedgerEntry;
+use App\Models\WalletPendingCredit;
 use App\Models\Webshop;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -56,7 +57,7 @@ class WalletController extends Controller
         $filter = $data['filter'] ?? 'all';
 
         if ($filter === 'pending') {
-            $query = \App\Models\WalletPendingCredit::whereIn('wallet_id', $wallets->keys())->where('status', 'pending')->orderByDesc('id');
+            $query = WalletPendingCredit::whereIn('wallet_id', $wallets->keys())->where('status', 'pending')->orderByDesc('id');
             if (! empty($data['q'])) {
                 $query->where('description', 'like', '%'.str_replace(['%', '_'], ['\\%', '\\_'], $data['q']).'%');
             }

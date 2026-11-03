@@ -17,6 +17,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Super Admin cockpit overview and platform activity (Trello #21 "Cockpit overview").
@@ -54,15 +55,18 @@ class CockpitController extends Controller
             'category' => ['sometimes', Rule::enum(AuditCategory::class)],
             'outcome' => ['sometimes', Rule::enum(AuditOutcome::class)],
             'action' => ['sometimes', 'string', 'max:64'],
-            'webshop_id' => ['sometimes', 'string', 'max:26'],
+            'webshop_id' => ['sometimes', 'ulid'],
+            'webshop' => ['sometimes', 'ulid'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
+        $webshop = $this->webshopFilter($data);
         $page = AuditEvent::query()
             ->when($data['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
             ->when($data['outcome'] ?? null, fn ($q, $o) => $q->where('outcome', $o))
             ->when($data['action'] ?? null, fn ($q, $a) => $q->where('action', 'like', addcslashes($a, '%_\\').'%'))
-            ->when($data['webshop_id'] ?? null, fn ($q, $w) => $q->where('webshop_id', Webshop::where('public_id', $w)->value('id') ?? 0))
+            ->when($webshop, fn ($q, $w) => $q->where('webshop_id', Webshop::where('public_id', $w)->value('id') ?? 0))
             ->orderByDesc('id')->paginate($data['per_page'] ?? 25);
 
         $users = User::whereIn('id', $page->getCollection()->flatMap(fn (AuditEvent $e) => [$e->actor_user_id, $e->real_actor_user_id])->filter()->unique())
@@ -124,6 +128,8 @@ class CockpitController extends Controller
     {
         $data = $request->validate([
             'status' => ['sometimes', Rule::enum(VoucherStatus::class)],
+            'webshop_id' => ['sometimes', 'ulid'],
+            'webshop' => ['sometimes', 'ulid'],
             'id' => ['sometimes', 'string', 'max:26'],
             'usable' => ['sometimes', 'boolean'],
             'acquisition_network' => ['sometimes', 'string', 'max:32', 'regex:/^[a-z0-9_-]+$/D'],
@@ -131,6 +137,7 @@ class CockpitController extends Controller
             'from' => ['sometimes', 'date_format:Y-m-d'],
             'to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'page' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         $tz = (string) config('shopbonus.business_timezone');
@@ -152,7 +159,22 @@ class CockpitController extends Controller
             $data['per_page'] ?? 25,
             (bool) ($data['usable'] ?? false),
             $data['acquisition_network'] ?? null,
+            $this->webshopFilter($data),
         ));
+    }
+
+    /** @param array<string, mixed> $data */
+    private function webshopFilter(array $data): ?string
+    {
+        $canonical = isset($data['webshop_id']) ? strtolower($data['webshop_id']) : null;
+        $alias = isset($data['webshop']) ? strtolower($data['webshop']) : null;
+        if ($canonical !== null && $alias !== null && $canonical !== $alias) {
+            throw ValidationException::withMessages([
+                'webshop' => [__('The webshop filters must refer to the same webshop.')],
+            ]);
+        }
+
+        return $canonical ?? $alias;
     }
 
     /**

@@ -1,5 +1,7 @@
 # Provider verification checklist
 
+B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
+
 2026-11-03 App Store follow-up: [local changes, executed evidence and remaining engineering/acceptance gaps](APP_STORE_FINDINGS_2026-11-03.md). [Exact server environment and workspace credential keys](ENVIRONMENT.md). Pause/resume has local evidence only; no provider row below is promoted.
 
 Every platform in `config/integrations.php` stays `verification: unverified` until someone with real store or sandbox access runs this checklist and records the evidence below. Adapters were written against the providers' published documentation and are tested with realistic fixtures. That proves the logic, **not** the live provider behaviour. Never mark a platform verified from fixtures (Trello #1 / #31).
@@ -25,9 +27,9 @@ Full API/webhook/mapping contracts: [PLATFORM_API_SPECS.md](PLATFORM_API_SPECS.m
 | --- | --- | --- | --- | --- | --- | --- |
 | Shopify | — | — | NOT RUN | Theme extension source shipped; authorized app deploy/activation and protected customer data acceptance pending | — | — |
 | WooCommerce | — | — | NOT RUN | Candidate WP banner plugin shipped; native installation/theme/editor acceptance pending | — | — |
-| Wix | — | — | NOT RUN | Backfill via orders/search; paid_at = latest approved transaction createdDate (not settlement time) | — | — |
+| Wix | — | — | NOT RUN | Backfill via orders/search; paid_at null; transaction createdDate is not settlement evidence | — | — |
 | BigCommerce | — | — | NOT RUN | Native catalog reads implemented locally; provider import and Widgets placement/publication remain unverified/incomplete | — | — |
-| Ecwid | — | — | NOT RUN | Currency/settlement time unavailable | — | — |
+| Ecwid | — | — | NOT RUN | Total/refundedAmount use observed authenticated shop currency; historical currency/cash settlement/time unverified | — | — |
 | Lightspeed C-Series | — | — | NOT RUN | Plan-gated API; refund cash unmapped; paid_at null | — | — |
 | Lightspeed E-Series | — | — | NOT RUN | Shared authenticated Ecwid API contract; paid_at/refund cash unavailable | — | — |
 | Squarespace | — | — | NOT RUN | API-key polling implemented; no settlement timestamp, donation/POS/test-mode import or native banner publisher | — | — |
@@ -59,3 +61,9 @@ Neither adapter has been run against a live account. Before enabling production 
 | Sandbox | `https://services-sandbox.daisycon.com` (15 req/min/IP) | Account-issued SOAP endpoint |
 
 B10b implementation/configuration handoff: [TRADETRACKER.md](TRADETRACKER.md). Owner explicitly assigned credentials to the senior developer. Main transport is fixture-tested; live verification remains NOT RUN and is not a prerequisite for writing the adapter code.
+
+## Review delivery and acceptance boundary (2026-11-03)
+
+See [review acceptance alignment](../qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) for the explicit open installation/native-connector deliverables and responsibility split. No internal fixture pass promotes a provider row to live-verified. PrestaShop/OpenCart artifacts and pending native storefront deliverables remain OPEN; the four unsupported connectors remain unsupported. This is separate from the owner-approved affiliate timing and audited workspace concealment policy.
+
+Release gating (2026-11-03): [independent acceptance register](../release/INDEPENDENT_ACCEPTANCE.md) separates missing native artifacts, original-PDF mapping and actual install/order/refund subruns. All NOT RUN rows above remain unchanged. Green backend CI or a regenerated route inventory does not promote provider verification.

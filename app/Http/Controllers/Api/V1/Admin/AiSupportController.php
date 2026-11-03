@@ -15,6 +15,8 @@ use App\Models\SupportRegression;
 use App\Models\SupportReview;
 use App\Services\Audit\AuditLogger;
 use App\Services\Support\SupportKnowledge;
+use App\Services\Support\SupportModelContract;
+use App\Services\Support\SupportOperations;
 use App\Services\Support\SupportPlanner;
 use App\Services\Support\SupportPolicy;
 use App\Services\Support\SupportReviews;
@@ -119,7 +121,7 @@ class AiSupportController extends Controller
             $query->where('metrics->model', $filters['model']);
         }
         if (isset($filters['outcome'])) {
-            $query->whereIn('id', SupportReview::where('outcome', $filters['outcome'])->select('message_id'));
+            $query->whereIn('id', SupportReview::where('outcome', $filters['outcome'])->whereNotNull('reviewed_at')->select('message_id'));
         }
         if (isset($filters['scope']) || isset($filters['locale'])) {
             $conversations = SupportConversation::query();
@@ -131,24 +133,29 @@ class AiSupportController extends Controller
             }
             $query->whereIn('conversation_id', $conversations->select('id'));
         }
-        $total = (clone $query)->count();
-        $rows = $query->latest('id')->limit(500)->get();
-        $percentages = $rows->countBy('status')->map(fn ($count) => round($count * 100 / max(1, $rows->count()), 2))->all();
-        $costed = $rows->filter(fn ($row) => is_numeric($row->metrics['estimated_cost_eur'] ?? null));
-        $latency = $rows->pluck('metrics.latency_ms')->filter(fn ($v) => is_int($v))->sort()->values();
+        $metrics = app(SupportOperations::class)->aggregate($query, $filters['outcome'] ?? null);
+        $current = $policy->current();
 
-        return response()->json(['data' => ['from' => $from->toIso8601String(), 'checked_at' => now()->toIso8601String(), 'sample_limit' => 500, 'sample_size' => $rows->count(), 'matching_total' => $total, 'to' => $to->toIso8601String(), 'outcome_percentages' => $percentages,
-            'statuses' => $rows->countBy('status')->all(), 'failures' => $rows->whereNotNull('failure_code')->countBy('failure_code')->all(),
-            'retrieval_retries' => $rows->where('retry_used', true)->count(), 'latency_p95_ms' => $latency->isEmpty() ? null : $latency[(int) ceil($latency->count() * .95) - 1],
-            'input_tokens' => $rows->sum('metrics.input_tokens'), 'output_tokens' => $rows->sum('metrics.output_tokens'), 'provider_cost' => $costed->isEmpty() ? null : round($costed->sum('metrics.estimated_cost_eur'), 8), 'costed_requests' => $costed->count(), 'cost_currency' => 'EUR',
-            'provider_cost_estimate' => self::costEstimate((int) $rows->sum('metrics.input_tokens'), (int) $rows->sum('metrics.output_tokens')),
-            'cost_notice' => 'Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.',
+        return response()->json(['data' => $metrics + ['from' => $from->toIso8601String(), 'checked_at' => now()->toIso8601String(), 'to' => $to->toIso8601String(),
+            'provider_cost_estimate' => self::costEstimate($metrics['input_tokens'], $metrics['output_tokens']),
+            'cost_notice' => 'Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.',
             'open_reviews' => SupportReview::whereNull('outcome')->count(), 'approved_regressions' => SupportRegression::count(),
+            'daily_reserved_micro_eur' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'budget:eur')->value('reserved_micro_eur') ?? 0),
+            'budget_notice' => 'Conservative retained exposure, not billed spend; all provider attempts reserve against the shared lower policy/deployment cap.',
             'daily_requests' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'global')->value('requests') ?? 0),
             'circuit_open' => Cache::has('support-ai:circuit'), 'broadcaster' => config('broadcasting.default'), 'last_successful_broadcast_at' => Cache::get('support-ai:last-broadcast-at'),
             'broadcast_failures_last_24h' => DB::table('audit_events')->where('action', 'support.broadcast_unavailable')->where('occurred_at', '>=', $from)->count(),
             'connectivity' => ['provider_last_success_at' => Cache::get('support-ai:last-provider-success-at'), 'worker_last_execution_at' => Cache::get('support-ai:last-worker-execution-at'), 'queue_connection' => config('queue.default'), 'reverb_live_probe' => 'not_measured', 'broadcast_evidence' => 'dispatch_attempt_only'],
-            'policy_version' => $policy->current()['version']]], 200, ['Cache-Control' => 'private, no-store']);
+            'model_contract' => ['model' => $current['model'], 'verified' => app(SupportModelContract::class)->verified($current['model']), 'proof_scope' => 'expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality'],
+            'settings_capabilities' => ['renderer' => 'server_owned_evidence_templates',
+                'tone' => ['friendly_professional', 'direct', 'warm'], 'empathy' => ['balanced', 'minimal', 'high'],
+                'answer_detail' => ['concise', 'detailed'], 'target_answer_words' => ['min' => 20, 'max' => 200, 'soft' => true],
+                'max_answer_words' => ['min' => 25, 'max' => 300, 'overflow' => 'human_review_without_truncation'],
+                'response_deadline_ms' => ['min' => 1000, 'max' => 20000], 'daily_cost_limit_eur' => ['min' => 0, 'max' => 1000, 'deployment_cap' => config('support_ai.daily_cost_limit_eur')],
+                'fallback' => 'one_configured_verified_model_transient_failures_only_shared_deadline_and_budget',
+                'optional_model_parameters' => 'reasoning_and_verbosity_omitted_pending_separate_capability_proof',
+                'deployment_models' => collect([config('support_ai.model'), config('support_ai.fallback_model')])->filter(fn ($model) => is_string($model) && $model !== '')->unique()->map(fn ($model) => ['model' => $model, 'verified' => app(SupportModelContract::class)->verified($model)])->values()->all()],
+            'policy_version' => $current['version']]], 200, ['Cache-Control' => 'private, no-store']);
     }
 
     public function knowledgeVersions(string $document): JsonResponse

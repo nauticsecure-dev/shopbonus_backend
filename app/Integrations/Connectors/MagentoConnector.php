@@ -224,7 +224,7 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         };
 
         return new NormalizedOrder(externalId: $this->str($o['entity_id'] ?? null), reference: $this->str($o['increment_id'] ?? null), firstName: $this->str($o['customer_firstname'] ?? $o['billing_address']['firstname'] ?? null), email: $this->str($o['customer_email'] ?? null), phone: $this->str($o['billing_address']['telephone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['status'] ?? null), placedAt: $this->utc($o['created_at'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->utc($o['updated_at'] ?? null),
-            lineItems: LineItems::magento($o['items'] ?? null, $currency),
+            lineItems: LineItems::magento($o['items'] ?? null, $currency, $o['entity_id'] ?? null),
             amountBreakdown: AmountBreakdown::make($currency, 'magento_rest_order', ['original_total' => isset($o['grand_total']) ? (string) $o['grand_total'] : null, 'tax' => isset($o['tax_amount']) ? (string) $o['tax_amount'] : null, 'shipping' => isset($o['shipping_amount']) ? (string) $o['shipping_amount'] : null, 'discount' => isset($o['discount_amount']) && is_numeric($o['discount_amount']) && $o['discount_amount'] <= 0 ? ltrim((string) $o['discount_amount'], '-') : null]));
     }
 

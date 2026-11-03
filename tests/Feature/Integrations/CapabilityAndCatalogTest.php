@@ -90,6 +90,8 @@ class CapabilityAndCatalogTest extends TestCase
 
         // Native reads without a settled payment time are not payment evidence.
         $this->assertSame(['LIMITED', 'LIMITED', 'AVAILABLE'], [$caps['ecwid']['payments'], $caps['lightspeed_c']['payments'], $caps['shopware6']['payments']]);
+        $this->assertSame('LIMITED', $caps['wix']['payments']);
+        $this->assertStringContainsString('processor cash settlement', (string) collect($this->getJson('/api/v1/integrations/platforms')->json('data'))->firstWhere('platform', 'ecwid')['capabilities']['refunds']['reason']);
         // Backfill only where a native paged reader exists; OpenCart is module-only.
         $this->assertSame(['AVAILABLE', 'UNSUPPORTED'], [$caps['wix']['backfill'], $caps['opencart']['backfill']]);
     }

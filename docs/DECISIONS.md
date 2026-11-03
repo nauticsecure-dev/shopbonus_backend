@@ -4,7 +4,7 @@ All items below are OPEN unless supported by existing owner-approved implementat
 
 | ID | State | Question / Evidence needed | Conservative interim handling |
 | --- | --- | --- | --- |
-| OPEN-AFFILIATE-CREDIT-TIMING | RESOLVED for new rewards (owner2026-10-27: after network approval, D-089) | Trello #19/#22: pending, not spendable until approved. #23: instantly approved/spendable on valid attribution despite future network rejection. Which has priority and what fraud/abuse policy applies? | Do not change live spendable balances on ambiguous events; implement status data model and independent tests first. |
+| OPEN-AFFILIATE-CREDIT-TIMING | RESOLVED for new rewards (owner2026-11-03: approval plus recorded settlement, D-109; supersedes D-089/D-107) | Trello #19/#22: pending, not spendable until approved. #23: instantly approved/spendable on valid attribution despite future network rejection. Which has priority and what fraud/abuse policy applies? | Do not change live spendable balances on ambiguous events; implement status data model and independent tests first. |
 | OPEN-REWARD-UNITS | OPEN (owner 2026-10-23: proceed with the safe default) | Are EUR redemption credits and integer points the same unit? Conversion rate and per-program rules? | Store explicit unit and integer quantity; no implicit conversion. |
 | OPEN-FINANCIAL-LEGAL | OPEN | Seller of record, VAT, invoice obligations, refund/chargeback ownership, merchant settlement arrangements. | Sandbox-only payments / no production enablement until owner/legal decision. |
 | OPEN-MARKETING-CONSENT | OPEN | Document lawful basis and scope for Answer24 phone outreach and voucher-reminder communications in NL/EU. | No unsolicited outbound contact; eligibility engine records blocked reason. |
@@ -272,8 +272,13 @@ allocation using the existing frozen evidence. Label the accounting basis and
 keep recognized revenue explicitly unverified. This does not authorize a new
 revenue journal, change reward spendability, or adopt any proposed RPO/RTO.
 
-### Revised affiliate timing and platform acceptance — owner, 2026-11-02
+### D-109 — Approval plus recorded settlement for new rewards (owner, 2026-11-03)
+
+Owner explicitly chose “Approval plus recorded settlement” after the merged main implementation was compared with D-107. This supersedes approval-alone D-089/D-107 for **new rewards**. Preserve existing immutable timing/rule snapshots and reversal history. Network approval alone does not make new credit spendable; independently recorded settlement evidence is also required. No immediate-credit activation, invented settlement or automatic rewrite of historical obligations. D-105 management allocation reporting remains unchanged.
+### Historical revised affiliate timing — 2026-11-02 (superseded by D-109 for new rewards)
 
 The current owner brief explicitly confirms immediate spendable affiliate credit. This supersedes D-089/D-107 and earlier settlement-gated launch notes for new reward evaluations. Default timing is on_validated_attribution, frozen with the active versioned rule. Trusted attribution, duplicate/currency/review safeguards remain. Later network rejection updates reporting and does not automatically claw back instant consumer credit; 12-month expiry remains. Preserve existing frozen timing and ledger history. The EUR 4.75 scenario uses a 100% earning rule for 475-cent eligible commission; retain the general 70% default.
 
 Retain audited 404 concealment for a non-member workspace request; update scenario 2 acceptance accordingly. Permission denial within an active membership remains 403. ShopBonus contact eligibility/consent/suppression checks are disclosure safeguards; Answer24 owns final outreach decisions and execution. Ecommerce fixtures do not establish live installations. Full disposition and executed evidence: docs/release/REVISED_BRIEF_REVIEW_2026-11-02.md.
+
+Merge clarification: D-109 is the later2026-11-03 owner decision and governs new rewards; immediate-credit brief above is historical. Preserve frozen snapshots and reversal history.

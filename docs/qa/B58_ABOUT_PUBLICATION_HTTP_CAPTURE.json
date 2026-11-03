@@ -1,0 +1,1492 @@
+{
+  "captured_at": "2026-11-03T13:39:20Z",
+  "baseline": "f57e6e6 plus B58 working tree",
+  "environment": "Real local Laravel HTTP, isolated SQLite/file session; authenticated synthetic Super Admin, MFA disabled for local capture only. No approved content/design, deployed scheduler or browser acceptance.",
+  "exchanges": [
+    {
+      "label": "edit",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/content/over-ons",
+        "body": null,
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6gt5fmrtmz9by78k7yr5m41",
+            "key": "over-ons",
+            "type": "landing",
+            "locale": "nl",
+            "slug": "over-ons",
+            "draft_revision": 1,
+            "draft": {
+              "title": "Over ShopBonus",
+              "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+              "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+              "seo_image_asset_id": null,
+              "body": {
+                "type": "doc",
+                "content": []
+              },
+              "section_visibility": {
+                "hero": true,
+                "story": true,
+                "revenue_model": true,
+                "values": true,
+                "team": true,
+                "contact": true,
+                "bottom_cta": true
+              },
+              "nav": {
+                "logo_alt": "ShopBonus",
+                "login_label": "Inloggen",
+                "login_href": "/account?mode=login",
+                "cta_label": "Account aanmaken",
+                "cta_href": "/account?mode=register",
+                "links": [
+                  {
+                    "label": "Webshops",
+                    "href": "/webshops"
+                  },
+                  {
+                    "label": "Cashback",
+                    "href": "/webshops?has_offers=1"
+                  },
+                  {
+                    "label": "Kortingscodes",
+                    "href": "/kortingscodes"
+                  },
+                  {
+                    "label": "Over ons",
+                    "href": "/over-ons"
+                  },
+                  {
+                    "label": "Voor webshops",
+                    "href": "/voor-webshops"
+                  }
+                ]
+              },
+              "hero": {
+                "eyebrow": "OVER SHOPBONUS",
+                "heading": "Samen maken we online shoppen",
+                "heading_accent": "voordeliger.",
+                "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+                "cta_label": "Ontdek ons verhaal",
+                "cta_href": "#verhaal",
+                "float_title": "Eerlijk voordeel",
+                "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+                "image_asset_id": null
+              },
+              "story": {
+                "eyebrow": "ONS VERHAAL",
+                "heading": "Een goed idee verdient",
+                "heading_accent": "meer dan korting.",
+                "image_asset_id": null,
+                "paragraphs": [
+                  "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                  "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                  "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+                ]
+              },
+              "revenue_model": {
+                "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+                "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+                "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+                "consumer_label": "voor de consument",
+                "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+                "platform_label": "voor ShopBonus",
+                "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+                "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+                "consumer_percent": 70,
+                "platform_percent": 30
+              },
+              "values": {
+                "eyebrow": "WAAR WIJ IN GELOVEN",
+                "heading": "Meer dan alleen kortingen.",
+                "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+                "items": [
+                  {
+                    "icon": "tag",
+                    "title": "Eerlijk voordeel",
+                    "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                  },
+                  {
+                    "icon": "shop",
+                    "title": "Vrijheid voor webshops",
+                    "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                  },
+                  {
+                    "icon": "users",
+                    "title": "Eenvoud voor iedereen",
+                    "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                  }
+                ]
+              },
+              "team": {
+                "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+                "heading": "Een betrokken team met een duidelijke missie.",
+                "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+                "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+                "image_asset_id": null,
+                "show_profiles": false,
+                "profiles": [],
+                "placeholder_label": "Foto oprichter\ntoevoegen"
+              },
+              "contact": {
+                "heading": "Contact met ShopBonus",
+                "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+                "legal_name": "",
+                "address": "",
+                "kvk": "",
+                "email": "",
+                "links": [
+                  {
+                    "label": "Contact",
+                    "href": "/support"
+                  },
+                  {
+                    "label": "Privacy",
+                    "href": "/pagina/privacy"
+                  },
+                  {
+                    "label": "Voorwaarden",
+                    "href": "/pagina/voorwaarden"
+                  },
+                  {
+                    "label": "Bedrijfsgegevens",
+                    "href": "/over-ons#contact"
+                  }
+                ]
+              },
+              "bottom_cta": {
+                "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+                "heading": "Samen maken we shoppen",
+                "heading_accent": "slimmer.",
+                "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+                "consumer_cta": {
+                  "label": "Ontdek aanbiedingen",
+                  "href": "/webshops"
+                },
+                "merchant_cta": {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              },
+              "footer": {
+                "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+              },
+              "section_order": [
+                "hero",
+                "story",
+                "revenue_model",
+                "values",
+                "team",
+                "contact",
+                "bottom_cta"
+              ]
+            },
+            "published": null,
+            "published_revision": null,
+            "published_at": null,
+            "draft_updated_at": "2026-11-03T13:39:19+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "missing",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/publish",
+        "body": {},
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a1a2-becc-7110-93bd-9900e59b45c5",
+            "fields": {
+              "revision": [
+                "The revision field is required."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "stale",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/publish",
+        "body": {
+          "revision": 11
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "draft_changed",
+            "message": "The draft changed after review. Preview it again before publishing.",
+            "request_id": "01a1a1a2-bef1-7349-99cc-ca063b38b928"
+          }
+        }
+      }
+    },
+    {
+      "label": "missing",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/pages/over-ons/publish",
+        "body": {},
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a1a2-bf0e-73af-b10c-8bcc29c5092f",
+            "fields": {
+              "revision": [
+                "The revision field is required."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "stale",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/pages/over-ons/publish",
+        "body": {
+          "revision": 11
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "draft_changed",
+            "message": "The draft changed after review. Preview it again before publishing.",
+            "request_id": "01a1a1a2-bf2a-713f-b084-34cd434c266f"
+          }
+        }
+      }
+    },
+    {
+      "label": "publish",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/publish",
+        "body": {
+          "revision": 1
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6gt5ftec9kfdp3syvsvwke1",
+            "locale": "nl",
+            "number": 1,
+            "restored_from": null,
+            "published_by": "Lot",
+            "published_at": "2026-11-03T13:39:20+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "read",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/content/over-ons",
+        "body": null,
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6gt5fmrtmz9by78k7yr5m41",
+            "key": "over-ons",
+            "type": "landing",
+            "locale": "nl",
+            "slug": "over-ons",
+            "draft_revision": 1,
+            "draft": {
+              "title": "Over ShopBonus",
+              "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+              "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+              "seo_image_asset_id": null,
+              "body": {
+                "type": "doc",
+                "content": []
+              },
+              "section_visibility": {
+                "hero": true,
+                "story": true,
+                "revenue_model": true,
+                "values": true,
+                "team": true,
+                "contact": true,
+                "bottom_cta": true
+              },
+              "nav": {
+                "logo_alt": "ShopBonus",
+                "login_label": "Inloggen",
+                "login_href": "/account?mode=login",
+                "cta_label": "Account aanmaken",
+                "cta_href": "/account?mode=register",
+                "links": [
+                  {
+                    "label": "Webshops",
+                    "href": "/webshops"
+                  },
+                  {
+                    "label": "Cashback",
+                    "href": "/webshops?has_offers=1"
+                  },
+                  {
+                    "label": "Kortingscodes",
+                    "href": "/kortingscodes"
+                  },
+                  {
+                    "label": "Over ons",
+                    "href": "/over-ons"
+                  },
+                  {
+                    "label": "Voor webshops",
+                    "href": "/voor-webshops"
+                  }
+                ]
+              },
+              "hero": {
+                "eyebrow": "OVER SHOPBONUS",
+                "heading": "Synthetic reviewed backend capture",
+                "heading_accent": "voordeliger.",
+                "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+                "cta_label": "Ontdek ons verhaal",
+                "cta_href": "#verhaal",
+                "float_title": "Eerlijk voordeel",
+                "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+                "image_asset_id": null
+              },
+              "story": {
+                "eyebrow": "ONS VERHAAL",
+                "heading": "Een goed idee verdient",
+                "heading_accent": "meer dan korting.",
+                "image_asset_id": null,
+                "paragraphs": [
+                  "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                  "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                  "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+                ]
+              },
+              "revenue_model": {
+                "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+                "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+                "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+                "consumer_label": "voor de consument",
+                "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+                "platform_label": "voor ShopBonus",
+                "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+                "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+                "consumer_percent": 70,
+                "platform_percent": 30
+              },
+              "values": {
+                "eyebrow": "WAAR WIJ IN GELOVEN",
+                "heading": "Meer dan alleen kortingen.",
+                "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+                "items": [
+                  {
+                    "icon": "tag",
+                    "title": "Eerlijk voordeel",
+                    "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                  },
+                  {
+                    "icon": "shop",
+                    "title": "Vrijheid voor webshops",
+                    "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                  },
+                  {
+                    "icon": "users",
+                    "title": "Eenvoud voor iedereen",
+                    "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                  }
+                ]
+              },
+              "team": {
+                "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+                "heading": "Een betrokken team met een duidelijke missie.",
+                "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+                "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+                "image_asset_id": null,
+                "show_profiles": false,
+                "profiles": [],
+                "placeholder_label": "Foto oprichter\ntoevoegen"
+              },
+              "contact": {
+                "heading": "Contact met ShopBonus",
+                "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+                "legal_name": "",
+                "address": "",
+                "kvk": "",
+                "email": "",
+                "links": [
+                  {
+                    "label": "Contact",
+                    "href": "/support"
+                  },
+                  {
+                    "label": "Privacy",
+                    "href": "/pagina/privacy"
+                  },
+                  {
+                    "label": "Voorwaarden",
+                    "href": "/pagina/voorwaarden"
+                  },
+                  {
+                    "label": "Bedrijfsgegevens",
+                    "href": "/over-ons#contact"
+                  }
+                ]
+              },
+              "bottom_cta": {
+                "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+                "heading": "Samen maken we shoppen",
+                "heading_accent": "slimmer.",
+                "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+                "consumer_cta": {
+                  "label": "Ontdek aanbiedingen",
+                  "href": "/webshops"
+                },
+                "merchant_cta": {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              },
+              "footer": {
+                "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+              },
+              "section_order": [
+                "hero",
+                "story",
+                "revenue_model",
+                "values",
+                "team",
+                "contact",
+                "bottom_cta"
+              ]
+            },
+            "published": {
+              "title": "Over ShopBonus",
+              "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+              "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+              "seo_image_asset_id": null,
+              "body": {
+                "type": "doc",
+                "content": []
+              },
+              "section_visibility": {
+                "hero": true,
+                "story": true,
+                "revenue_model": true,
+                "values": true,
+                "team": true,
+                "contact": true,
+                "bottom_cta": true
+              },
+              "nav": {
+                "logo_alt": "ShopBonus",
+                "login_label": "Inloggen",
+                "login_href": "/account?mode=login",
+                "cta_label": "Account aanmaken",
+                "cta_href": "/account?mode=register",
+                "links": [
+                  {
+                    "label": "Webshops",
+                    "href": "/webshops"
+                  },
+                  {
+                    "label": "Cashback",
+                    "href": "/webshops?has_offers=1"
+                  },
+                  {
+                    "label": "Kortingscodes",
+                    "href": "/kortingscodes"
+                  },
+                  {
+                    "label": "Over ons",
+                    "href": "/over-ons"
+                  },
+                  {
+                    "label": "Voor webshops",
+                    "href": "/voor-webshops"
+                  }
+                ]
+              },
+              "hero": {
+                "eyebrow": "OVER SHOPBONUS",
+                "heading": "Samen maken we online shoppen",
+                "heading_accent": "voordeliger.",
+                "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+                "cta_label": "Ontdek ons verhaal",
+                "cta_href": "#verhaal",
+                "float_title": "Eerlijk voordeel",
+                "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+                "image_asset_id": null
+              },
+              "story": {
+                "eyebrow": "ONS VERHAAL",
+                "heading": "Een goed idee verdient",
+                "heading_accent": "meer dan korting.",
+                "image_asset_id": null,
+                "paragraphs": [
+                  "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                  "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                  "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+                ]
+              },
+              "revenue_model": {
+                "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+                "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+                "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+                "consumer_label": "voor de consument",
+                "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+                "platform_label": "voor ShopBonus",
+                "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+                "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+                "consumer_percent": 70,
+                "platform_percent": 30
+              },
+              "values": {
+                "eyebrow": "WAAR WIJ IN GELOVEN",
+                "heading": "Meer dan alleen kortingen.",
+                "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+                "items": [
+                  {
+                    "icon": "tag",
+                    "title": "Eerlijk voordeel",
+                    "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                  },
+                  {
+                    "icon": "shop",
+                    "title": "Vrijheid voor webshops",
+                    "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                  },
+                  {
+                    "icon": "users",
+                    "title": "Eenvoud voor iedereen",
+                    "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                  }
+                ]
+              },
+              "team": {
+                "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+                "heading": "Een betrokken team met een duidelijke missie.",
+                "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+                "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+                "image_asset_id": null,
+                "show_profiles": false,
+                "profiles": [],
+                "placeholder_label": "Foto oprichter\ntoevoegen"
+              },
+              "contact": {
+                "heading": "Contact met ShopBonus",
+                "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+                "legal_name": "",
+                "address": "",
+                "kvk": "",
+                "email": "",
+                "links": [
+                  {
+                    "label": "Contact",
+                    "href": "/support"
+                  },
+                  {
+                    "label": "Privacy",
+                    "href": "/pagina/privacy"
+                  },
+                  {
+                    "label": "Voorwaarden",
+                    "href": "/pagina/voorwaarden"
+                  },
+                  {
+                    "label": "Bedrijfsgegevens",
+                    "href": "/over-ons#contact"
+                  }
+                ]
+              },
+              "bottom_cta": {
+                "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+                "heading": "Samen maken we shoppen",
+                "heading_accent": "slimmer.",
+                "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+                "consumer_cta": {
+                  "label": "Ontdek aanbiedingen",
+                  "href": "/webshops"
+                },
+                "merchant_cta": {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              },
+              "footer": {
+                "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+              },
+              "section_order": [
+                "hero",
+                "story",
+                "revenue_model",
+                "values",
+                "team",
+                "contact",
+                "bottom_cta"
+              ]
+            },
+            "published_revision": 1,
+            "published_at": "2026-11-03T13:39:20+00:00",
+            "draft_updated_at": "2026-11-03T13:39:19+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "save",
+      "request": {
+        "method": "PUT",
+        "path": "/api/v1/admin/content/over-ons",
+        "body": {
+          "revision": 1,
+          "content": {
+            "title": "Over ShopBonus",
+            "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+            "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+            "seo_image_asset_id": null,
+            "body": {
+              "type": "doc",
+              "content": []
+            },
+            "section_visibility": {
+              "hero": true,
+              "story": true,
+              "revenue_model": true,
+              "values": true,
+              "team": true,
+              "contact": true,
+              "bottom_cta": true
+            },
+            "nav": {
+              "logo_alt": "ShopBonus",
+              "login_label": "Inloggen",
+              "login_href": "/account?mode=login",
+              "cta_label": "Account aanmaken",
+              "cta_href": "/account?mode=register",
+              "links": [
+                {
+                  "label": "Webshops",
+                  "href": "/webshops"
+                },
+                {
+                  "label": "Cashback",
+                  "href": "/webshops?has_offers=1"
+                },
+                {
+                  "label": "Kortingscodes",
+                  "href": "/kortingscodes"
+                },
+                {
+                  "label": "Over ons",
+                  "href": "/over-ons"
+                },
+                {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              ]
+            },
+            "hero": {
+              "eyebrow": "OVER SHOPBONUS",
+              "heading": "Synthetic reviewed backend capture",
+              "heading_accent": "voordeliger.",
+              "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+              "cta_label": "Ontdek ons verhaal",
+              "cta_href": "#verhaal",
+              "float_title": "Eerlijk voordeel",
+              "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+              "image_asset_id": null
+            },
+            "story": {
+              "eyebrow": "ONS VERHAAL",
+              "heading": "Een goed idee verdient",
+              "heading_accent": "meer dan korting.",
+              "image_asset_id": null,
+              "paragraphs": [
+                "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+              ]
+            },
+            "revenue_model": {
+              "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+              "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+              "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+              "consumer_label": "voor de consument",
+              "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+              "platform_label": "voor ShopBonus",
+              "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+              "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+              "consumer_percent": 70,
+              "platform_percent": 30
+            },
+            "values": {
+              "eyebrow": "WAAR WIJ IN GELOVEN",
+              "heading": "Meer dan alleen kortingen.",
+              "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+              "items": [
+                {
+                  "icon": "tag",
+                  "title": "Eerlijk voordeel",
+                  "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                },
+                {
+                  "icon": "shop",
+                  "title": "Vrijheid voor webshops",
+                  "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                },
+                {
+                  "icon": "users",
+                  "title": "Eenvoud voor iedereen",
+                  "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                }
+              ]
+            },
+            "team": {
+              "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+              "heading": "Een betrokken team met een duidelijke missie.",
+              "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+              "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+              "image_asset_id": null,
+              "show_profiles": false,
+              "profiles": [],
+              "placeholder_label": "Foto oprichter\ntoevoegen"
+            },
+            "contact": {
+              "heading": "Contact met ShopBonus",
+              "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+              "legal_name": "",
+              "address": "",
+              "kvk": "",
+              "email": "",
+              "links": [
+                {
+                  "label": "Contact",
+                  "href": "/support"
+                },
+                {
+                  "label": "Privacy",
+                  "href": "/pagina/privacy"
+                },
+                {
+                  "label": "Voorwaarden",
+                  "href": "/pagina/voorwaarden"
+                },
+                {
+                  "label": "Bedrijfsgegevens",
+                  "href": "/over-ons#contact"
+                }
+              ]
+            },
+            "bottom_cta": {
+              "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+              "heading": "Samen maken we shoppen",
+              "heading_accent": "slimmer.",
+              "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+              "consumer_cta": {
+                "label": "Ontdek aanbiedingen",
+                "href": "/webshops"
+              },
+              "merchant_cta": {
+                "label": "Voor webshops",
+                "href": "/voor-webshops"
+              }
+            },
+            "footer": {
+              "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+            },
+            "section_order": [
+              "hero",
+              "story",
+              "revenue_model",
+              "values",
+              "team",
+              "contact",
+              "bottom_cta"
+            ]
+          }
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "locale": "nl",
+            "slug": "over-ons",
+            "draft_revision": 2
+          }
+        }
+      }
+    },
+    {
+      "label": "stale-after-save",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/publish",
+        "body": {
+          "revision": 1
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "draft_changed",
+            "message": "The draft changed after review. Preview it again before publishing.",
+            "request_id": "01a1a1a2-bfa0-7036-87fb-f005a434eee9"
+          }
+        }
+      }
+    },
+    {
+      "label": "preview",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/preview",
+        "body": {},
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "locale": "nl",
+            "slug": "over-ons",
+            "content": {
+              "title": "Over ShopBonus",
+              "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+              "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+              "seo_image_asset_id": null,
+              "body": {
+                "type": "doc",
+                "content": []
+              },
+              "section_visibility": {
+                "hero": true,
+                "story": true,
+                "revenue_model": true,
+                "values": true,
+                "team": true,
+                "contact": true,
+                "bottom_cta": true
+              },
+              "nav": {
+                "logo_alt": "ShopBonus",
+                "login_label": "Inloggen",
+                "login_href": "/account?mode=login",
+                "cta_label": "Account aanmaken",
+                "cta_href": "/account?mode=register",
+                "links": [
+                  {
+                    "label": "Webshops",
+                    "href": "/webshops"
+                  },
+                  {
+                    "label": "Cashback",
+                    "href": "/webshops?has_offers=1"
+                  },
+                  {
+                    "label": "Kortingscodes",
+                    "href": "/kortingscodes"
+                  },
+                  {
+                    "label": "Over ons",
+                    "href": "/over-ons"
+                  },
+                  {
+                    "label": "Voor webshops",
+                    "href": "/voor-webshops"
+                  }
+                ]
+              },
+              "hero": {
+                "eyebrow": "OVER SHOPBONUS",
+                "heading": "Synthetic reviewed backend capture",
+                "heading_accent": "voordeliger.",
+                "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+                "cta_label": "Ontdek ons verhaal",
+                "cta_href": "#verhaal",
+                "float_title": "Eerlijk voordeel",
+                "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+                "image_asset_id": null
+              },
+              "story": {
+                "eyebrow": "ONS VERHAAL",
+                "heading": "Een goed idee verdient",
+                "heading_accent": "meer dan korting.",
+                "image_asset_id": null,
+                "paragraphs": [
+                  "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                  "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                  "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+                ]
+              },
+              "revenue_model": {
+                "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+                "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+                "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+                "consumer_label": "voor de consument",
+                "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+                "platform_label": "voor ShopBonus",
+                "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+                "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+                "consumer_percent": 70,
+                "platform_percent": 30
+              },
+              "values": {
+                "eyebrow": "WAAR WIJ IN GELOVEN",
+                "heading": "Meer dan alleen kortingen.",
+                "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+                "items": [
+                  {
+                    "icon": "tag",
+                    "title": "Eerlijk voordeel",
+                    "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                  },
+                  {
+                    "icon": "shop",
+                    "title": "Vrijheid voor webshops",
+                    "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                  },
+                  {
+                    "icon": "users",
+                    "title": "Eenvoud voor iedereen",
+                    "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                  }
+                ]
+              },
+              "team": {
+                "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+                "heading": "Een betrokken team met een duidelijke missie.",
+                "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+                "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+                "image_asset_id": null,
+                "show_profiles": false,
+                "profiles": [],
+                "placeholder_label": "Foto oprichter\ntoevoegen"
+              },
+              "contact": {
+                "heading": "Contact met ShopBonus",
+                "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+                "legal_name": null,
+                "address": null,
+                "kvk": null,
+                "email": null,
+                "links": [
+                  {
+                    "label": "Contact",
+                    "href": "/support"
+                  },
+                  {
+                    "label": "Privacy",
+                    "href": "/pagina/privacy"
+                  },
+                  {
+                    "label": "Voorwaarden",
+                    "href": "/pagina/voorwaarden"
+                  },
+                  {
+                    "label": "Bedrijfsgegevens",
+                    "href": "/over-ons#contact"
+                  }
+                ]
+              },
+              "bottom_cta": {
+                "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+                "heading": "Samen maken we shoppen",
+                "heading_accent": "slimmer.",
+                "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+                "consumer_cta": {
+                  "label": "Ontdek aanbiedingen",
+                  "href": "/webshops"
+                },
+                "merchant_cta": {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              },
+              "footer": {
+                "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+              },
+              "section_order": [
+                "hero",
+                "story",
+                "revenue_model",
+                "values",
+                "team",
+                "contact",
+                "bottom_cta"
+              ]
+            },
+            "preview": true
+          }
+        }
+      }
+    },
+    {
+      "label": "publish-alias",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/pages/over-ons/publish",
+        "body": {
+          "revision": 2
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6gt5fyyrjkcvvpqzaxec0g2",
+            "locale": "nl",
+            "number": 2,
+            "restored_from": null,
+            "published_by": "Lot",
+            "published_at": "2026-11-03T13:39:20+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "public",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/content/over-ons",
+        "body": null,
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "key": "over-ons",
+            "type": "landing",
+            "locale": "nl",
+            "slug": "over-ons",
+            "content": {
+              "title": "Over ShopBonus",
+              "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+              "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+              "seo_image_asset_id": null,
+              "body": {
+                "type": "doc",
+                "content": []
+              },
+              "section_visibility": {
+                "hero": true,
+                "story": true,
+                "revenue_model": true,
+                "values": true,
+                "team": true,
+                "contact": true,
+                "bottom_cta": true
+              },
+              "nav": {
+                "logo_alt": "ShopBonus",
+                "login_label": "Inloggen",
+                "login_href": "/account?mode=login",
+                "cta_label": "Account aanmaken",
+                "cta_href": "/account?mode=register",
+                "links": [
+                  {
+                    "label": "Webshops",
+                    "href": "/webshops"
+                  },
+                  {
+                    "label": "Cashback",
+                    "href": "/webshops?has_offers=1"
+                  },
+                  {
+                    "label": "Kortingscodes",
+                    "href": "/kortingscodes"
+                  },
+                  {
+                    "label": "Over ons",
+                    "href": "/over-ons"
+                  },
+                  {
+                    "label": "Voor webshops",
+                    "href": "/voor-webshops"
+                  }
+                ]
+              },
+              "hero": {
+                "eyebrow": "OVER SHOPBONUS",
+                "heading": "Synthetic reviewed backend capture",
+                "heading_accent": "voordeliger.",
+                "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+                "cta_label": "Ontdek ons verhaal",
+                "cta_href": "#verhaal",
+                "float_title": "Eerlijk voordeel",
+                "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+                "image_asset_id": null
+              },
+              "story": {
+                "eyebrow": "ONS VERHAAL",
+                "heading": "Een goed idee verdient",
+                "heading_accent": "meer dan korting.",
+                "image_asset_id": null,
+                "paragraphs": [
+                  "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                  "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                  "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+                ]
+              },
+              "revenue_model": {
+                "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+                "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+                "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+                "consumer_label": "voor de consument",
+                "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+                "platform_label": "voor ShopBonus",
+                "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+                "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+                "consumer_percent": 70,
+                "platform_percent": 30
+              },
+              "values": {
+                "eyebrow": "WAAR WIJ IN GELOVEN",
+                "heading": "Meer dan alleen kortingen.",
+                "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+                "items": [
+                  {
+                    "icon": "tag",
+                    "title": "Eerlijk voordeel",
+                    "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                  },
+                  {
+                    "icon": "shop",
+                    "title": "Vrijheid voor webshops",
+                    "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                  },
+                  {
+                    "icon": "users",
+                    "title": "Eenvoud voor iedereen",
+                    "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                  }
+                ]
+              },
+              "team": {
+                "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+                "heading": "Een betrokken team met een duidelijke missie.",
+                "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+                "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+                "image_asset_id": null,
+                "show_profiles": false,
+                "profiles": [],
+                "placeholder_label": "Foto oprichter\ntoevoegen"
+              },
+              "contact": {
+                "heading": "Contact met ShopBonus",
+                "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+                "legal_name": null,
+                "address": null,
+                "kvk": null,
+                "email": null,
+                "links": [
+                  {
+                    "label": "Contact",
+                    "href": "/support"
+                  },
+                  {
+                    "label": "Privacy",
+                    "href": "/pagina/privacy"
+                  },
+                  {
+                    "label": "Voorwaarden",
+                    "href": "/pagina/voorwaarden"
+                  },
+                  {
+                    "label": "Bedrijfsgegevens",
+                    "href": "/over-ons#contact"
+                  }
+                ]
+              },
+              "bottom_cta": {
+                "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+                "heading": "Samen maken we shoppen",
+                "heading_accent": "slimmer.",
+                "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+                "consumer_cta": {
+                  "label": "Ontdek aanbiedingen",
+                  "href": "/webshops"
+                },
+                "merchant_cta": {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              },
+              "footer": {
+                "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+              },
+              "section_order": [
+                "hero",
+                "story",
+                "revenue_model",
+                "values",
+                "team",
+                "contact",
+                "bottom_cta"
+              ]
+            },
+            "revision": 2,
+            "published_at": "2026-11-03T13:39:20+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "restore",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/restore",
+        "body": {
+          "revision_id": "01m6gt5ftec9kfdp3syvsvwke1"
+        },
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6gt5g0qajxttm7qe0r5k6gk",
+            "locale": "nl",
+            "number": 3,
+            "restored_from": 1,
+            "published_by": "Lot",
+            "published_at": "2026-11-03T13:39:20+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "restored-public",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/content/over-ons",
+        "body": null,
+        "authentication": "synthetic signed-in Super Admin session, recent password confirmed; cookies/CSRF redacted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "key": "over-ons",
+            "type": "landing",
+            "locale": "nl",
+            "slug": "over-ons",
+            "content": {
+              "title": "Over ShopBonus",
+              "seo_title": "Over ShopBonus \u2014 cashback, vouchers en eerlijk voordeel",
+              "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+              "seo_image_asset_id": null,
+              "body": {
+                "type": "doc",
+                "content": []
+              },
+              "section_visibility": {
+                "hero": true,
+                "story": true,
+                "revenue_model": true,
+                "values": true,
+                "team": true,
+                "contact": true,
+                "bottom_cta": true
+              },
+              "nav": {
+                "logo_alt": "ShopBonus",
+                "login_label": "Inloggen",
+                "login_href": "/account?mode=login",
+                "cta_label": "Account aanmaken",
+                "cta_href": "/account?mode=register",
+                "links": [
+                  {
+                    "label": "Webshops",
+                    "href": "/webshops"
+                  },
+                  {
+                    "label": "Cashback",
+                    "href": "/webshops?has_offers=1"
+                  },
+                  {
+                    "label": "Kortingscodes",
+                    "href": "/kortingscodes"
+                  },
+                  {
+                    "label": "Over ons",
+                    "href": "/over-ons"
+                  },
+                  {
+                    "label": "Voor webshops",
+                    "href": "/voor-webshops"
+                  }
+                ]
+              },
+              "hero": {
+                "eyebrow": "OVER SHOPBONUS",
+                "heading": "Samen maken we online shoppen",
+                "heading_accent": "voordeliger.",
+                "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+                "cta_label": "Ontdek ons verhaal",
+                "cta_href": "#verhaal",
+                "float_title": "Eerlijk voordeel",
+                "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+                "image_asset_id": null
+              },
+              "story": {
+                "eyebrow": "ONS VERHAAL",
+                "heading": "Een goed idee verdient",
+                "heading_accent": "meer dan korting.",
+                "image_asset_id": null,
+                "paragraphs": [
+                  "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+                  "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+                  "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+                ]
+              },
+              "revenue_model": {
+                "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+                "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+                "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+                "consumer_label": "voor de consument",
+                "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+                "platform_label": "voor ShopBonus",
+                "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+                "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+                "consumer_percent": 70,
+                "platform_percent": 30
+              },
+              "values": {
+                "eyebrow": "WAAR WIJ IN GELOVEN",
+                "heading": "Meer dan alleen kortingen.",
+                "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+                "items": [
+                  {
+                    "icon": "tag",
+                    "title": "Eerlijk voordeel",
+                    "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+                  },
+                  {
+                    "icon": "shop",
+                    "title": "Vrijheid voor webshops",
+                    "description": "Webshops bepalen hun commerci\u00eble afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+                  },
+                  {
+                    "icon": "users",
+                    "title": "Eenvoud voor iedereen",
+                    "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+                  }
+                ]
+              },
+              "team": {
+                "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+                "heading": "Een betrokken team met een duidelijke missie.",
+                "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+                "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+                "image_asset_id": null,
+                "show_profiles": false,
+                "profiles": [],
+                "placeholder_label": "Foto oprichter\ntoevoegen"
+              },
+              "contact": {
+                "heading": "Contact met ShopBonus",
+                "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+                "legal_name": "",
+                "address": "",
+                "kvk": "",
+                "email": "",
+                "links": [
+                  {
+                    "label": "Contact",
+                    "href": "/support"
+                  },
+                  {
+                    "label": "Privacy",
+                    "href": "/pagina/privacy"
+                  },
+                  {
+                    "label": "Voorwaarden",
+                    "href": "/pagina/voorwaarden"
+                  },
+                  {
+                    "label": "Bedrijfsgegevens",
+                    "href": "/over-ons#contact"
+                  }
+                ]
+              },
+              "bottom_cta": {
+                "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+                "heading": "Samen maken we shoppen",
+                "heading_accent": "slimmer.",
+                "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+                "consumer_cta": {
+                  "label": "Ontdek aanbiedingen",
+                  "href": "/webshops"
+                },
+                "merchant_cta": {
+                  "label": "Voor webshops",
+                  "href": "/voor-webshops"
+                }
+              },
+              "footer": {
+                "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers \u2014 nooit voor contant geld."
+              },
+              "section_order": [
+                "hero",
+                "story",
+                "revenue_model",
+                "values",
+                "team",
+                "contact",
+                "bottom_cta"
+              ]
+            },
+            "revision": 3,
+            "published_at": "2026-11-03T13:39:20+00:00"
+          }
+        }
+      }
+    }
+  ]
+}

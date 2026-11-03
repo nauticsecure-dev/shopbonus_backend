@@ -3,8 +3,10 @@
 // Real HTTP evidence with an isolated SQLite fixture; never uses the application database.
 require dirname(__DIR__).'/vendor/autoload.php';
 
+use App\Enums\AuditCategory;
 use App\Models\User;
 use App\Models\Webshop;
+use App\Services\Audit\AuditLogger;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Concerns\CreatesActiveWebshops;
@@ -49,7 +51,7 @@ try {
         }
     };
     $shop = $helper->create($owner);
-    app(\App\Services\Audit\AuditLogger::class)->record('team.member_updated', category: \App\Enums\AuditCategory::Workspace, webshopId: $shop->id);
+    app(AuditLogger::class)->record('team.member_updated', category: AuditCategory::Workspace, webshopId: $shop->id);
     $token = $owner->createToken('isolated-access-capture')->plainTextToken;
     $server = proc_open([PHP_BINARY, '-d', 'xdebug.mode=off', '-S', $address, '-t', $root.'/public', $root.'/public/index.php'],
         [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']], $pipes, $root);

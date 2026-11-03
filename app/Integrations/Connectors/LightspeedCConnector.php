@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AmountBreakdown;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -276,6 +277,8 @@ final class LightspeedCConnector extends WebhookConnector implements OrderNotifi
 
         $first = $this->str($p['firstname'] ?? $p['firstName'] ?? null);
 
+        $decimal = static fn (mixed $value): ?string => is_string($value) || is_int($value) ? (string) $value : null;
+
         return new NormalizedOrder(
             externalId: $this->str($p['id'] ?? null),
             reference: $this->str($p['number'] ?? null),
@@ -292,6 +295,7 @@ final class LightspeedCConnector extends WebhookConnector implements OrderNotifi
             refundedAt: null,
             refundedMinor: null,
             providerUpdatedAt: $this->date($p['updatedAt'] ?? null),
+            amountBreakdown: AmountBreakdown::make($currency, 'lightspeedc_order', ['original_total' => $decimal($p['priceIncl'] ?? null)], true),
         );
     }
 
