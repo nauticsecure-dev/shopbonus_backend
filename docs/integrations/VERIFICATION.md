@@ -1,5 +1,7 @@
 # Provider verification checklist
 
+B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
+
 2026-11-03 App Store follow-up: [local changes, executed evidence and remaining engineering/acceptance gaps](APP_STORE_FINDINGS_2026-11-03.md). [Exact server environment and workspace credential keys](ENVIRONMENT.md). Pause/resume has local evidence only; no provider row below is promoted.
 
 Every platform in `config/integrations.php` stays `verification: unverified` until someone with real store or sandbox access runs this checklist and records the evidence below. Adapters were written against the providers' published documentation and are tested with realistic fixtures. That proves the logic, **not** the live provider behaviour. Never mark a platform verified from fixtures (Trello #1 / #31).

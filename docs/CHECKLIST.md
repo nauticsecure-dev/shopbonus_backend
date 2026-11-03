@@ -1452,3 +1452,12 @@ B63 parent5491f79: SQLite7/112, MySQL7/112; PHPStan/Pint PASS. Four real HTTP ca
 B63 implementing SHA `25fa46c`. B64 parent25fa46c: Support SQLite180pass+3skip/1470assertions; selected MySQL154/1324; API5/8349; PHPStan/Pint/diff PASS. Eleven real HTTP exchanges with synthetic accounts/local SMTP; live provider/Reverb/quality/frontend acceptance remains OPEN. B64 implementing SHA recorded next closeout.
 
 B64 implementing SHA: `8c95e5c`; B63 `25fa46c`. Both pushed to draft PR#5; no live-provider or whole-suite green claim.
+
+### B65 — Integration per-feature provenance and supported monetary detail
+
+- [x] Expose evidence ID/source URL/error code with explicit declaration versus observed scope; never inherit platform-wide verification into unrelated features.
+- [x] Bind connection evidence to workspace, current credential generation/domain/store and feature-specific events/syncs; retain failures and deny stale/paused/disconnected evidence.
+- [x] Preserve existing native mappings, add documented Ecwid/Lightspeed totals and unambiguous Shopify current shipping without refund subtraction or invented timestamps.
+- [x] Test provenance isolation/negative cases, exact/unknown money and package claims; capture actual HTTP, update specs/API/handoff and keep genuine provider acceptance NOT RUN.
+
+B65 tests: SQLite191/1773; MySQL191/1775; API35/10983; PHPStan/Pint/diff PASS. Parent `516e9d1`; implementing SHA recorded at closeout. Genuine provider/native publication acceptance remains NOT RUN.

@@ -1,5 +1,7 @@
 # Top 10 commerce platform API & webhook specifications
 
+B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
+
 Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `OrderIngestion` / catalogue capabilities. No parallel integration architecture.
 
 **Capability registry:** each platform `profile` in `config/integrations.php` holds `api_version`, `auth_method`, `scopes`, `webhook_topics`, `order_api`, `refund_api`, `product_api`, `coupon_api`, `banner_method`, `rate_limit_policy`, `reviewed_at`, `last_live_verified_at`, `sources`.
@@ -40,7 +42,7 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | Products / coupon reads | GraphQL products (bounded); `discountNodes` with optional `read_discounts` maps single-code basic/free-shipping discounts. BXGY/app/bulk-code discounts are skipped; coupon writes are unsupported. Default OAuth requests only `read_orders,read_products`; additional scope requires reviewed provider authorization. |
 | Webhooks | `orders/create`, `orders/updated`, `orders/paid`, `orders/cancelled`, `refunds/create`, `app/uninstalled` |
 | Signature | Base64 HMAC-SHA256 over **raw body**; dedupe delivery/event IDs |
-| Banners | Theme App Extension (App Blocks/Embed); not implemented — manual embed LIMITED |
+| Banners | Candidate Theme App Extension source present; native publication/activation/uninstall acceptance NOT RUN — manual embed LIMITED |
 | Status | Adapter **PARTIAL**; live **NOT RUN** |
 
 **Field mapping (GraphQL order)**
@@ -56,7 +58,7 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | total_minor | `totalPriceSet.shopMoney` | Shop-money basis |
 | payment_status | displayFinancialStatus + transactions | |
 | refund_minor | successful refunds | |
-| amount_breakdown | `totalPriceSet` (original), `currentTotalPriceSet` (after returns), `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded` | Same shop currency only; shipping null (`totalShippingPriceSet` is documented as shipping returned to the customer). Verified against the Admin GraphQL Order reference 2026-10-31 |
+| amount_breakdown | `totalPriceSet` (original), `currentTotalPriceSet` (after returns), `totalTaxSet`, `totalDiscountsSet`, `taxesIncluded` | Same shop currency only; original shipping null. `currentShippingPriceSet` maps distinct `current_shipping_minor` after refunds/discounts; never reuse returned/refunded shipping as original. Admin GraphQL Order reference reviewed 2026-11-03 |
 | products[] | `lineItems(first: 100)` `discountedTotalSet(withCodeDiscounts: true)` | |
 | source_event_id | `X-Shopify-Event-Id` | |
 | event_created_at | `updatedAt` / webhook | |

@@ -1,0 +1,31 @@
+{
+  "sqlite": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 191,
+    "passed": 191,
+    "assertions": 1773,
+    "duration_ms": 15314
+  },
+  "mysql": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 191,
+    "passed": 191,
+    "assertions": 1775,
+    "duration_ms": 94783
+  },
+  "api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 35,
+    "passed": 35,
+    "assertions": 10983,
+    "duration_ms": 31852
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  }
+}

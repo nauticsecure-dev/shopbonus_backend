@@ -159,6 +159,7 @@ class ProcessWebhookEvent implements ShouldQueue
                         [PaymentStatus::Paid, PaymentStatus::PartiallyRefunded, PaymentStatus::Refunded], true),
                     'native_change_recovered' => $changed,
                     // A refund specifically, not any financial change (a payment alone proves nothing about refunds).
+                    'native_refund_cash_evidence' => $order->refundedMinor !== null && $order->refundedMinor > 0 && $order->refundedAt !== null,
                     'native_refund_recovered' => $changed && $this->refundObserved($before, $this->financialSnapshot($after)),
                 ]])->save();
                 IntegrationOrderRecovery::where('webhook_event_id', $event->id)->where('credential_generation', $connection->credential_generation)

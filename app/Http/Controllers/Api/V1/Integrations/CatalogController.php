@@ -44,11 +44,7 @@ class CatalogController extends Controller
             ->where('credential_generation', $c->credential_generation)->latest('id')->first();
         $caps = [];
         foreach ($capabilities->report($c) as $row) {
-            $caps[$row['capability']] = [
-                'state' => $row['status'],
-                'reason' => $row['reason'],
-                'last_verified_at' => $row['last_verified_at'],
-            ];
+            $caps[$row['capability']] = ['state' => $row['status']] + array_diff_key($row, array_flip(['capability', 'status']));
         }
 
         return response()->json(['data' => [
@@ -104,9 +100,12 @@ class CatalogController extends Controller
         return response()->json(['data' => self::presentSync($sync->fresh() ?? $sync)], 202);
     }
 
-    public function syncs(CurrentWorkspace $current, string $connection): JsonResponse
+    public function syncs(Request $request, CurrentWorkspace $current, string $connection): JsonResponse
     {
-        return response()->json(['data' => CatalogSync::where('connection_id', $this->find($current, $connection)->id)->latest('id')->limit(20)->get()
+        $data = $request->validate(['evidence_id' => ['sometimes', 'ulid']]);
+
+        return response()->json(['data' => CatalogSync::where('connection_id', $this->find($current, $connection)->id)
+            ->when(isset($data['evidence_id']), fn ($q) => $q->where('public_id', strtolower($data['evidence_id'])))->latest('id')->limit(20)->get()
             ->map(fn (CatalogSync $s) => self::presentSync($s))->all()]);
     }
 

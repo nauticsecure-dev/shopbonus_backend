@@ -3,10 +3,10 @@
 namespace App\Integrations;
 
 use App\Enums\EcommercePlatform;
-use App\Integrations\Contracts\CatalogCapable;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\CapabilityState;
 use App\Models\WebshopConnection;
+use App\Services\Catalog\ConnectionCapabilities;
 
 /**
  * Honest capability reporting for the platform catalogue and connection detail.
@@ -22,7 +22,7 @@ class CapabilityMatrix
     public function __construct(private readonly ConnectorRegistry $registry) {}
 
     /**
-     * @return array<string, array{state: string, reason: ?string, last_verified_at: ?string}>
+     * @return array<string, array{state: string, reason: ?string, last_verified_at: ?string, evidence_id: ?string, source_url: ?string, error_code: ?string, evidence_scope: string}>
      */
     public function forPlatform(EcommercePlatform $platform): array
     {
@@ -32,8 +32,8 @@ class CapabilityMatrix
         }
 
         $profile = is_array($entry['profile'] ?? null) ? $entry['profile'] : [];
-        $verifiedAt = isset($profile['last_live_verified_at']) && is_string($profile['last_live_verified_at'])
-            ? $profile['last_live_verified_at'] : null;
+        // Platform-wide timestamps cannot prove any individual feature.
+        $verifiedAt = null;
         $native = (bool) ($profile['native_read_api_implemented'] ?? false);
         // Each capability from what the mapping fills, never from an API merely being documented.
         $payments = $native && ($profile['payment_time_mapped'] ?? false) === true;
@@ -58,30 +58,36 @@ class CapabilityMatrix
             'backfill' => $this->cap($backfill ? CapabilityState::Available : CapabilityState::Unsupported, $backfill ? null : 'Durable discovery requires a native paged reader.', $verifiedAt),
         ];
 
+        foreach ($map as $key => &$capability) {
+            $sources = $profile['sources'] ?? [];
+            foreach ($sources as $source) {
+                if (is_string($source) && filter_var($source, FILTER_VALIDATE_URL) && str_starts_with($source, 'https://')
+                    && parse_url($source, PHP_URL_USER) === null && parse_url($source, PHP_URL_PASS) === null && parse_url($source, PHP_URL_QUERY) === null) {
+                    $capability['source_url'] = $source;
+                    break;
+                }
+            }
+        }
+        unset($capability);
+
         return $map;
     }
 
     /**
-     * @return array<string, array{state: string, reason: ?string, last_verified_at: ?string}>
+     * @return array<string, array{state: string, reason: ?string, last_verified_at: ?string, evidence_id: ?string, source_url: ?string, error_code: ?string, evidence_scope: string}>
      */
     public function forConnection(WebshopConnection $connection): array
     {
-        $base = $this->forPlatform($connection->platform);
-        if (! $this->registry->isAvailable($connection->platform)) {
-            return $base;
+        $map = [];
+        foreach (app(ConnectionCapabilities::class)->report($connection) as $row) {
+            $key = $row['capability'];
+            unset($row['capability']);
+            $row['state'] = $row['status'];
+            unset($row['status']);
+            $map[$key] = $row;
         }
 
-        $connector = $this->registry->for($connection->platform);
-        if ($connector instanceof CatalogCapable) {
-            foreach ($connector->getCapabilities($connection) as $key => $cap) {
-                if (! in_array($key, self::KEYS, true)) {
-                    continue;
-                }
-                $base[$key] = ['state' => $cap['state']->value, 'reason' => $cap['reason'], 'last_verified_at' => $cap['last_verified_at']];
-            }
-        }
-
-        return $base;
+        return $map;
     }
 
     /**
@@ -139,15 +145,17 @@ class CapabilityMatrix
     }
 
     /**
-     * @return array{state: string, reason: ?string, last_verified_at: ?string}
+     * @return array{state: string, reason: ?string, last_verified_at: ?string, evidence_id: ?string, source_url: ?string, error_code: ?string, evidence_scope: string}
      */
     private function cap(CapabilityState $state, ?string $reason, ?string $verifiedAt): array
     {
-        return ['state' => $state->value, 'reason' => $reason, 'last_verified_at' => $verifiedAt];
+        return ['state' => $state->value, 'reason' => $reason, 'last_verified_at' => $verifiedAt,
+            'evidence_id' => null, 'source_url' => null, 'error_code' => $state === CapabilityState::Unsupported ? 'capability_unsupported' : 'feature_not_live_verified',
+            'evidence_scope' => 'implementation_declaration_not_provider_acceptance'];
     }
 
     /**
-     * @return array<string, array{state: string, reason: ?string, last_verified_at: ?string}>
+     * @return array<string, array{state: string, reason: ?string, last_verified_at: ?string, evidence_id: ?string, source_url: ?string, error_code: ?string, evidence_scope: string}>
      */
     private function all(CapabilityState $state, ?string $reason): array
     {
