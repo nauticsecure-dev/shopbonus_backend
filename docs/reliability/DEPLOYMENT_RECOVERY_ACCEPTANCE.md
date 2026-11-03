@@ -20,7 +20,7 @@ Required acceptance evidence, retained privately with a redacted reference in th
 4. On the recovery host, obtain both encryption keys through the documented restricted recovery process without relying on the lost host or its environment. An archive-only decrypt test using the original host's resident key is insufficient. Demonstrate failure with a wrong/missing key without exposing secret values.
 5. Configure a separate isolated restore target with no customer/provider delivery. Restore the selected archive with `php artisan shopbonus:restore-isolated <archive-public-reference>` on the reviewed release. Compare immutable financial/ownership/source records, voucher state and private-media hashes. Delete private verification output after evidence capture. Confirm the target is not the primary application database.
 
-`offsite_verified` remains false in backend status; this patch does not manufacture a verification flag from configured disk writes. Key/infrastructure verification has no automated positive attestation in the current status payload. Missing fields must not be treated as verified.
+`offsite_verified` remains false in backend status; this patch does not manufacture a verification flag from configured disk writes. Merged main also explicitly reports key_recovery_verified=false and infrastructure_drill_verified=false. These remain unverified; no configured path or local test promotes them to true.
 
 ## Timed infrastructure drill
 

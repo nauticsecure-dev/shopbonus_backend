@@ -25,7 +25,14 @@ class BannerAiProvider
         if (! $this->configured()) {
             throw new ProviderFailure('not_configured');
         }
+        $layer = ['type' => 'object', 'additionalProperties' => false, 'required' => ['type', 'visible', 'align', 'font_size', 'width_pct'], 'properties' => [
+            'type' => ['type' => 'string', 'enum' => ['text', 'image', 'cta']], 'visible' => ['type' => 'boolean'],
+            'align' => ['type' => 'string', 'enum' => ['left', 'center', 'right']],
+            'font_size' => ['type' => 'integer', 'minimum' => 10, 'maximum' => 40],
+            'width_pct' => ['type' => 'integer', 'minimum' => 20, 'maximum' => 100],
+        ]];
         $properties = [
+            'layers' => ['type' => 'array', 'minItems' => 3, 'maxItems' => 3, 'items' => $layer],
             'anchor' => ['type' => 'string', 'enum' => BannerConfig::ANCHORS],
             'background' => ['type' => 'string'], 'text' => ['type' => 'string'],
             'font' => ['type' => 'string', 'enum' => BannerConfig::FONTS],
@@ -37,7 +44,7 @@ class BannerAiProvider
             $response = Http::withToken(config('banner_ai.api_key'))->withOptions(['allow_redirects' => false])->acceptJson()->connectTimeout(5)->timeout(20)
                 ->post('https://api.openai.com/v1/responses', [
                     'model' => $model, 'store' => false, 'max_output_tokens' => max(256, min(4000, (int) config('banner_ai.max_output_tokens'))),
-                    'instructions' => 'Propose exactly three editable banner layout/test hypotheses from the supplied evidence. Only supplied aggregate facts may be referenced. Do not invent measured uplift, actions, customer data, offer terms or prices. No publishing or tools. All proposals require human review. For design requests keep delay zero and cart threshold null; insights may propose location, timing or threshold tests. Plain text hypotheses only.',
+                    'instructions' => 'Propose exactly three editable banner layout/test hypotheses from the supplied evidence. Only supplied aggregate facts may be referenced. Do not invent measured uplift, actions, customer data, offer terms or prices. No publishing or tools. All proposals require human review. For design requests keep delay zero and cart threshold null; insights may propose location, timing or threshold tests. Return exactly one text, image and CTA layer, ordered for each design. Use only supplied merchant copy and imagery; layer properties control presentation and remain individually editable. Plain text hypotheses only.',
                     'input' => json_encode($context, JSON_THROW_ON_ERROR),
                     'text' => ['format' => ['type' => 'json_schema', 'name' => 'banner_proposals', 'strict' => true, 'schema' => [
                         'type' => 'object', 'additionalProperties' => false, 'required' => ['proposals'], 'properties' => [
@@ -78,6 +85,13 @@ class BannerAiProvider
         $rules = [
             'proposals' => ['required', 'array', 'list', 'size:3'],
             'proposals.*' => ['required', 'array:'.implode(',', array_keys($properties))],
+            'proposals.*.layers' => ['required', 'array', 'list', 'size:3'],
+            'proposals.*.layers.*' => ['required', 'array:type,visible,align,font_size,width_pct'],
+            'proposals.*.layers.*.type' => ['required', Rule::in(['text', 'image', 'cta'])],
+            'proposals.*.layers.*.visible' => ['required', 'boolean'],
+            'proposals.*.layers.*.align' => ['required', Rule::in(['left', 'center', 'right'])],
+            'proposals.*.layers.*.font_size' => ['required', 'integer:strict', 'between:10,40'],
+            'proposals.*.layers.*.width_pct' => ['required', 'integer:strict', 'between:20,100'],
             'proposals.*.anchor' => ['required', Rule::in(BannerConfig::ANCHORS)],
             'proposals.*.background' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/D'],
             'proposals.*.text' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/D'],
@@ -92,13 +106,16 @@ class BannerAiProvider
         }
         $signatures = [];
         foreach ($result['proposals'] as &$proposal) {
+            if (count(array_unique(array_column($proposal['layers'], 'type'))) !== 3) {
+                throw new ProviderFailure('invalid_provider_output');
+            }
             if ($context['kind'] === 'designs') {
                 $proposal['delay_seconds'] = 0;
                 $proposal['cart_threshold_minor'] = null;
             } elseif (array_intersect($proposal['evidence_refs'], ['E3', 'E4']) === []) {
                 throw new ProviderFailure('invalid_provider_output');
             }
-            $signatures[] = json_encode(array_intersect_key($proposal, array_flip(['anchor', 'background', 'text', 'font', 'delay_seconds', 'cart_threshold_minor'])), JSON_THROW_ON_ERROR);
+            $signatures[] = json_encode(array_intersect_key($proposal, array_flip(['anchor', 'background', 'text', 'font', 'delay_seconds', 'cart_threshold_minor', 'layers'])), JSON_THROW_ON_ERROR);
             // Human-readable hypotheses are rendered from allowed fields, never unverifiable AI claims.
             $proposal['hypothesis'] = $context['kind'] === 'designs'
                 ? 'Test placement '.$proposal['anchor'].' and style. Existing timing and eligibility stay unchanged. No measured uplift is established.'

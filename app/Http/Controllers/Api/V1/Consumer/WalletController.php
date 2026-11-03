@@ -27,7 +27,8 @@ use Illuminate\Validation\Rule;
  * Read-only: balances change only through WalletService. There is no
  * transfer, withdrawal or cash-out endpoint.
  *
- * Pending affiliate cashback is visible but never spendable.
+ * Consumer presentation uses available / earned / spent. Checkout reservations stay on reserved.
+ * Pending cashback remains unavailable until approval and settlement.
  */
 class WalletController extends Controller
 {
@@ -57,10 +58,18 @@ class WalletController extends Controller
 
         if ($filter === 'pending') {
             $query = WalletPendingCredit::whereIn('wallet_id', $wallets->keys())->where('status', 'pending')->orderByDesc('id');
-            $page = $query->paginate($data['per_page'] ?? 25)->withQueryString();
+            if (! empty($data['q'])) {
+                $query->where('description', 'like', '%'.str_replace(['%', '_'], ['\\%', '\\_'], $data['q']).'%');
+            }
+            $page = $query->paginate($data['per_page'] ?? 25);
 
             return response()->json([
-                'data' => collect($page->items())->map(fn (WalletPendingCredit $p) => self::pendingEntry($p, $wallets[$p->wallet_id]))->all(),
+                'data' => collect($page->items())->map(fn ($p) => [
+                    'id' => $p->public_id, 'status' => 'pending', 'type' => 'cashback_pending',
+                    'amount' => $p->amount, 'amount_minor' => $p->amount,
+                    'unit' => $wallets[$p->wallet_id]->unit->value, 'currency' => $wallets[$p->wallet_id]->unit === WalletUnit::EurCredit ? 'EUR' : null,
+                    'title' => $p->description, 'created_at' => $p->created_at->toIso8601String(),
+                ])->all(),
                 'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
             ]);
         }
@@ -97,7 +106,8 @@ class WalletController extends Controller
 
     /**
      * Wallet summary per unit, for the wallet page, header and dashboard.
-     * Pending cashback is reported separately and is never spendable.
+     * Authoritative consumer KPIs: available / total earned / total spent.
+     * reserved_minor is checkout holds only (not pending cashback).
      *
      * @return array<string, mixed>
      */
@@ -139,30 +149,6 @@ class WalletController extends Controller
             'withdrawable' => false,
             'notice' => 'ShopBonus credit and points are not money: they cannot be withdrawn or transferred.',
             'savings_goal' => null,
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private static function pendingEntry(WalletPendingCredit $p, Wallet $w): array
-    {
-        return [
-            'id' => $p->public_id,
-            'type' => 'cashback_pending',
-            'ledger_type' => 'pending',
-            'amount' => $p->amount,
-            'amount_minor' => $p->amount,
-            'currency' => $w->unit === WalletUnit::EurCredit ? 'EUR' : null,
-            'unit' => $w->unit->value,
-            'status' => 'pending',
-            'available_after' => null,
-            'source' => ['type' => $p->source_type, 'ref' => $p->source_ref],
-            'description' => $p->description,
-            'title' => 'ShopBonus onderweg',
-            'subtitle' => $p->description,
-            'merchant_name' => null,
-            'sign' => 'credit',
-            'expires_at' => null,
-            'created_at' => $p->created_at->toIso8601String(),
         ];
     }
 

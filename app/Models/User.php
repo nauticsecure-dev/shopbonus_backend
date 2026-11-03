@@ -187,6 +187,18 @@ class User extends Authenticatable implements HasLocalePreference
     }
 
     /**
+     * Consumer identity is independent of webshop memberships.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeConsumerAccounts(Builder $query): void
+    {
+        $query->where('onboarding_intent', 'consumer')
+            ->whereDoesntHave('platformRoles', fn ($q) => $q->whereNull('revoked_at'))
+            ->whereNotIn('public_id', config('shopbonus.admin.test_account_public_ids', []));
+    }
+
+    /**
      * Resolved primary role for the SPA and post-login routing.
      * Super Admin wins; otherwise the signup intent (merchant/consumer).
      * Workspace membership never overrides a consumer intent into merchant

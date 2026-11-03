@@ -57,6 +57,7 @@ class SaveOfferRequest extends FormRequest
             'products' => ['sometimes', 'nullable', 'array', 'max:200'],
             'products.*' => ['string', 'max:100'],
             'combinable' => ['sometimes', 'boolean'],
+            'cashback_permission' => ['prohibited'],
             'code_mode' => ['sometimes', Rule::in(['unique', 'reusable'])],
             'allocation_limit' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000000'],
         ];

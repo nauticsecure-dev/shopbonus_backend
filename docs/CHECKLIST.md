@@ -1,4 +1,65 @@
+## Affiliate detail review — 2026-10-31 (uncommitted)
+
+- [ ] Gate new rewards on approval and settlement evidence; preserve historical credits.
+- [ ] Share authoritative reward policy for display and processing.
+- [ ] Require trusted advertiser permission for combined promotions.
+- [ ] Verify bounded Daisycon pagination and recoverable sync watermark.
+- [ ] Repair PHP 8.5 SOAP transport.
+- [ ] Expand safe research and published refresh eligibility.
+- [ ] Validate/transcode covers and generate responsive variants.
+- [ ] Complete localized reveal/shop actions and browser verification.
+- [ ] Record provider gaps and executed validation.
+
+2026-11-01 continuation: 80 passed / 1 skipped on PHP 8.5, 5721 assertions;
+3 Chromium fixtures pass; TypeScript/ESLint/Pint/PHPStan pass. Evidence:
+[review](discovery/AFFILIATE_DETAIL_REVIEW.md). Boxes remain unchecked until a
+commit records its SHA, per AGENTS.md.
+
+- [ ] Audited Super Admin permission command creates a new offer version with account/program/reference/terms/expiry.
+- [ ] Consumer permission forgery is forbidden; expiry fails closed; merchant edits and duplicates clear permission.
+- [ ] Missing homepage metadata never causes evidence-ID collisions or overwritten linked-page research.
+- [ ] Real local HTTP captures and cleanup recorded; cover width parameter documented.
+- [ ] Normalize and verify provider promotion/exclusion mappings with authorized accounts; complete staging and reference-image acceptance.
+
+## Homepage real-service acceptance — 2026-10-31 (uncommitted)
+
+- [ ] Exercise actual cookie login, CSRF, Super Admin MFA and recent-password gates in local Laravel.
+- [ ] Run all ten homepage fixes through real backend/browser journeys, including genuine wallet 500/recovery, failed-save publication blocking, public NL/EN, uploads, ordering and selected history restore.
+- [ ] Fix observed application defects, run affected checks and capture redacted HTTP/test evidence.
+- [ ] Verify wallet reconciliation and isolated-runtime cleanup; record limitations and exact final results.
+
+## Homepage review corrections — 2026-10-31 (uncommitted)
+
+- [ ] Validate current frontend homepage sections, responsive hero image references and optional copy; reject unsafe links and unknown assets.
+- [ ] Verify draft/publish/restore/cache and media behavior with focused CMS tests.
+- [ ] Record actual verification and remaining acceptance gaps; no completion/SHA until committed.
+
 # Implementation Checklist
+
+## Sales attribution review follow-up — 2026-10-31
+
+Local checks: PHP 53 passed / 2 skipped / 5638 assertions; embed 8 passed; Chromium fixtures 2 passed; typecheck passed. Base backend 59916e9 / frontend 3d0b0ad on HassanDev; uncommitted. Boxes stay unchecked until committed with evidence/SHA. Live storefront, Moneybird and staging acceptance remain open.
+
+- [ ] Connect analytics UI to scoped reporting APIs and real drill-downs.
+- [ ] Gate embed storage, measurement and assignment on current recorded consent; handle withdrawal.
+- [ ] Match encrypted voucher codes by per-shop hash; freeze first evidence atomically.
+- [ ] Report refunded network amounts from authoritative orders and separate financial units.
+- [ ] Propagate experiment assignments through the cart bridge, including holdout.
+- [ ] Retry event UUIDs within bounded delivery; unsupported viewability remains unknown.
+- [ ] Execute focused regression tests and document provider acceptance limits.
+- [ ] Moneybird issued-invoice delivery/reconciliation verified against provider (external acceptance).
+
+## Consumer profile review follow-up — 2026-10-31
+
+Verification checkpoint on `HassanDev`, base `59916e9`; uncommitted. Keep these
+unchecked until committed with the associated evidence/SHA (rule 12).
+
+- [ ] Verification OTP absent from logs/audit; retain challenge/expiry/delivery metadata. Verified by EmailVerificationCodeTest.
+- [ ] Authenticated password changes reject absent and mismatched confirmation before mutation; registration/reset retain D-014 single-password compatibility. Verified by ConsumerProfileTest and Identity tests.
+- [ ] Focused backend integration run: 136 tests, 133 passed, 3 skipped, 6125 assertions (SQLite). Includes ConsumerProfile, Identity, Answer24Channel, Notifications and OpenApiCoverage.
+- [ ] Acceptance clarification: journey 4 uses the established six-digit code (D-050); raw Trello export remains historical.
+- [ ] Release evidence: ten complete browser journeys using real APIs/email, approved screenshot comparison, real wallet changes and reminder transport. Browser mocks plus backend tests alone do not complete this item.
+
 
 ## Windows local installation — 2026-10-27
 
@@ -646,6 +707,13 @@ Owner reports ~/Downloads/BACKEND_API_ISSUES.md and authorizes opt-in local inte
 
 ## B22 — Trello #30 reliability (started 2026-10-27)
 
+### Reliability review follow-up — 2026-11-02 (uncommitted)
+- [ ] Reverify code secrecy, PHP 8.4/8.5 SOAP transport and complete OpenAPI coverage.
+- [ ] Restore encrypted dispute and QA attachment bytes with their database references intact.
+- [ ] Monitor configured connection/queue pairs and worker-loop observations without treating absent evidence as healthy.
+- [ ] Connect the existing operations API to the admin cockpit with loading, failure and UNKNOWN states.
+- [ ] Record owner-approved management allocation scope; keep formal revenue recognition and infrastructure RPO/RTO acceptance open.
+
 ### B22a — observed API monitoring and threshold incidents
 - [x] Inventory/reuse existing audit, incidents, readiness, queue failures, ledger reconciliation, scheduler and dependency tooling; preserve unresolved affiliate timing and do not activate financial flows. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
 - [x] Opt-in metadata-only request observations with monotonic processing time, DB query timing, privacy-safe route templates, bounded retention and fail-open writes; record rendered error responses without payloads/SQL/credentials/identity. (`c7e8789`; CI40580008502 SUCCESS all three jobs, evidence in PROGRESS.)
@@ -855,6 +923,109 @@ Implementation SHA: `74608718c15afd96a045c5ee2017a85556548381` (base78642de), co
 - [x] `PinnedJsonReader` opt-in `allowEmpty` for 204 list pages (BigCommerce v2).
 - [x] PlatformCatalogTest: one products + coupons pass per platform, unsupported shape skipped, codes encrypted, no write methods; real-server capture B27_PLATFORM_CATALOG_HTTP_CAPTURE.json; OpenAPI + README.
 - [ ] Lightspeed C/E, CCV, OpenCart, Squarespace, Mijnwebwinkel: no native read connector (UNSUPPORTED). Live installed-store runs for all platforms NOT RUN. Storefront banner publication NOT BUILT (merchant-side plugin/app scope).
+# Merchant overview review follow-up — 2026-10-31
+
+- [ ] Wire overview pagination and effective lifecycle filters.
+- [ ] Open date-filtered claim records from KPI/chart/notifications.
+- [ ] Resolve recovered inventory alerts across dashboard and central inbox.
+- [ ] Show unavailable states, polling and freshness; retain four primary KPIs.
+- [ ] Aggregate lifecycle timestamps in SQL with timezone/DST coverage and volume evidence.
+- [ ] Verify notification coverage and browser interactions; record remaining acceptance limits.
+
+
+
+### B08 discovery integration accuracy review — 2026-10-31 (uncommitted)
+
+- [x] Verify boolean transport and cover without a logo; preserve existing fixes.
+- [x] Align obtainable counters/filter/sort; test unavailable and limit boundaries.
+- [x] Batch card enrichment and test query count independent of page size.
+- [x] Define <=30s cache age, scheduled expiry, inventory/import/allocation and after-commit invalidation.
+- [x] Shared complete voucher collection/loading/error and lifecycle-derived count.
+- [x] Browser Back/Forward, direct page, filters, retry, image fallbacks and desktop/mobile checks: 10 fixture journeys passed.
+- [x] Repeatable representative local P95 measurement, recorded separately from staging.
+- [x] Typecheck, targeted ESLint/Pint and Discovery/Vouchers/OpenAPI checks passed; actual HTTP list example recaptured.
+- [ ] Supplied design reference and pixel-close comparison (reference absent).
+- [ ] All ten platform browser journeys against real services.
+- [ ] MySQL/Redis staging P95 <300ms; local cold HTTP-kernel P95 was 431.16ms.
+
+Evidence and limitations: [review](discovery/INTEGRATION_ACCURACY_REVIEW.md).
+No commit SHA yet; base 59916e9, existing unrelated dirty files preserved.
+
+Merchant follow-up evidence: 70 backend tests (67 passed, 3 skipped), targeted Pint/PHPStan pass, frontend typecheck/ESLint and 10 browser contract journeys pass. Items above are implemented/verified but remain unchecked pending a commit SHA; reference screenshot, real-service E2E and concurrent staging load acceptance remain open. See docs/analytics/MERCHANT_OVERVIEW_BENCHMARK.json and sibling frontend docs/merchant-overview-acceptance.md.
+
+
+## Cockpit reporting correction — 2026-10-31
+
+- [ ] Omit unsupported historical comparisons; test period commission comparisons.
+- [ ] Count vouchers using explicit verified acquisition evidence; retain Unknown.
+- [ ] Exact normalized hash search, shared usable voucher rules and aligned consumer scope.
+- [ ] Preserve destination dates and tabs; deduplicate failed operational sources.
+- [ ] Custom period, visible-tab refresh, API captures and focused regression evidence.
+
+Boxes remain unchecked until an implementation commit records the executed evidence and SHA.
+
+## Merchant landing conversion / inline CMS review — 2026-10-31
+
+- [ ] Separate published/draft state; stop publish on failed save; preserve preview edits; autosave and revision conflict coverage.
+- [ ] Public NL/EN content and metadata; fresh approved publication only.
+- [ ] Platform selection retained through onboarding and integration catalogue.
+- [ ] On-page section order/visibility, structured collections, navigation/footer, schedule, version picker and media controls.
+- [ ] Approved image slots, cropping and mobile variants, reusable media library.
+- [ ] Diagnose onboarding contract; execute focused backend/frontend tests and record results.
+- [ ] Capture changed API contracts from running server; document remaining acceptance limits.
+
+
+## AI support repair — 2026-10-31 (HassanDev, base 59916e9, uncommitted)
+
+Items remain unchecked until a commit records its SHA per AGENTS.md; executed local evidence is recorded in TASKS/PROGRESS/HANDOFF and the root repair report.
+
+- [ ] Neutral verified wallet categories in NL/EN; loading/error/verified-empty browser coverage.
+- [ ] Typo normalization, bounded conversation subject/reference/unit recovery; natural order reference research and scope negatives.
+- [ ] Supported policy controls execute; unsupported API/UI controls locked; immutable verification and financial workflows preserved.
+- [ ] Refresh, focus, reconnect catch-up and human reply recovery; transport availability distinguished from service health.
+- [ ] Workspace destination mapping and authorized selection gate; unauthorized selection blocked.
+- [ ] Five settings tabs; filtered bounded monitoring, percentages, cost coverage and explicit connectivity evidence limits.
+- [ ] Locale-consistent shared chat and voucher support panel.
+- [ ] Real local HTTP contract captures, OpenAPI coverage, Support tests, PHPStan/Pint, typecheck/ESLint and controlled browser tests.
+- [ ] Ten real-service acceptance journeys, live provider/model/worker/Reverb evidence and verified deployment pricing.
+# About Us inline CMS follow-up — 2026-10-31 (uncommitted)
+
+- [x] Validate responsive hero/story/team asset references and alt text. AboutUsCmsTest passed; uncommitted on base 59916e9.
+- [x] Resolve draft/profile assets and expose selected revision content for comparison. Integration test passed; uncommitted.
+- [x] Reject cross-locale restores; verify publication revision conflicts and schedule boundaries without stale public caching. Integration tests passed; uncommitted.
+- [x] Run AboutUsCmsTest (including queued scheduler execution) and API contract coverage: 17 tests passed, 5207 assertions; uncommitted.
+- [x] Capture changed API examples from an isolated running fixture server: five responses in ABOUT_HTTP_CAPTURE.json; uncommitted.
+
+
+## Live storefront studio review correction — 2026-10-31 / 2026-11-01
+
+Uncommitted checkpoint; boxes stay unchecked until an implementation SHA is recorded.
+
+- [ ] Actual merchant storefront frame and verified opener fallback; no simulated storefront acceptance.
+- [ ] Origin/source/key/schema/nonce/campaign/pairing/expiry checks and listener/timer cleanup.
+- [ ] Save failure/conflict and edits-during-save stop Publish.
+- [ ] Native cart snapshot schema, currency/freshness validation, subscriptions and stale-display expiry.
+- [ ] Bounded published-version refresh with pause/rollback and preserved unchanged widget measurements.
+- [ ] Functional resize handles, bounded persisted sizes, corner snapping and inline missing-target recovery.
+- [ ] Unsupported viewability explicitly unknown, never an impression.
+- [ ] AI ordered editable text/image/CTA layers, validation and private draft acceptance.
+- [ ] Focused PHP/JS/browser/TypeScript/lint/static checks plus real HTTP API captures.
+- [ ] Real merchant themes, native cart provider adapters and genuine AI/human acceptance.
+## Multilingual CMS review repairs — 2026-11-02
+- [ ] Preserve the allowed rich document tree while editing, including nested lists, marks and media.
+- [ ] Require the reviewed draft revision for manual publish; reject stale/missing revisions.
+- [ ] Resolve request locale consistently and follow localized page alternates.
+- [ ] Distinguish explicit language selection from automatic/account hydration.
+- [ ] Translate dashboard chrome, notification management and checkout statuses.
+- [ ] Bypass downstream caching for mutable public CMS/FAQ/consent configuration.
+- [ ] Shut down loaded optional trackers and clear controlled cookies/storage on withdrawal.
+- [ ] Record focused regression results and API contract evidence. Leave unchecked until an implementation commit exists.
+
+## Notification email links and template UI — 2026-11-02
+- [ ] Map legacy email actions to real frontend pages and reject unsafe configuration.
+- [ ] Add template editing and readable synthetic previews using existing APIs.
+- [ ] Run focused checks and record Hassan's remaining destination confirmation. Leave unchecked until committed.
+
 
 ### B32 — Resume Frank review branch / CI repair (2026-10-31)
 
@@ -963,14 +1134,42 @@ Implementation SHAs: B49 `7027e2c`; B50 `fd27a24`. Draft PR#5 contains both; no 
 
 ### B51 — Aggregate wallet support wording (2026-11-03)
 
-- [ ] Render pending credit as an aggregate in EN/NL, without attributing a single reward/order or release promise.
-- [ ] Verify multiple pending entries and order-level evidence boundaries without financial mutations.
-- [ ] Capture actual HTTP output and update API/support docs and checkpoint evidence.
+- [x] Render pending credit as an aggregate in EN/NL, without attributing a single reward/order or release promise.
+- [x] Verify multiple pending entries and order-level evidence boundaries without financial mutations.
+- [x] Capture actual HTTP output and update API/support docs and checkpoint evidence.
 
 ### B52 — Support model contract and execution spending boundary (2026-11-03)
 
-- [ ] Require exact-model verified contract/pricing configuration; omit unverified optional parameters and preserve immutable tools/privacy controls.
-- [ ] Reserve conservative per-attempt monetary exposure atomically before egress, including failures/crashes, with fail-closed missing pricing and daily cap tests.
-- [ ] Verify concurrent spending cannot exceed the configured cap and model changes cannot borrow another model's proof.
-- [ ] Document live-model quality acceptance and template decision D-076 separately from synthetic proof.
-- [ ] Record focused tests, migrations, actual API captures and remaining acceptance blockers.
+- [x] Require exact-model verified contract/pricing configuration; omit unverified optional parameters and preserve immutable tools/privacy controls.
+- [x] Reserve conservative per-attempt monetary exposure atomically before egress, including failures/crashes, with fail-closed missing pricing and daily cap tests.
+- [x] Verify concurrent spending cannot exceed the configured cap and model changes cannot borrow another model's proof.
+- [x] Document live-model quality acceptance and template decision D-076 separately from synthetic proof.
+- [x] Record focused tests, migrations, actual API captures and remaining acceptance blockers.
+
+## Backend merge conflict resolution — 2026-11-02
+- [ ] Reconcile all 33 conflicted files, preserve independent API paths and captured examples.
+- [ ] Verify syntax, notification, support, affiliate, discovery, reporting and integration regressions.
+- [ ] Stage resolved files and record remaining validation limitations; no merge commit without request.
+
+## One CMS NL/EN/DE translation quality — 2026-11-02
+- [ ] Reuse existing suggestions/revisions; queue bounded provider calls and deduplicate unchanged source/target requests.
+- [ ] Enforce source freshness, protected tokens/facts/negation/noncash meaning, legal exclusion and draft-only application.
+- [ ] Validate strict Responses identity/hash/locale/segment contract and retain token/model audit metadata.
+- [ ] Accept German CMS drafts without seeding English fallback as German; reject other locales.
+- [ ] Execute focused regressions and real HTTP captures; document outstanding T01–T23 staging evidence.
+
+## Platform launch acceptance follow-up — 2026-11-02
+- [ ] Verify pending affiliate credit remains unavailable and approval requires settlement in the business journey.
+- [ ] Re-run API coverage, merchant reporting and financial regressions.
+- [ ] Retire frontend sample financial endpoints and verify real HTTP 410 responses.
+- [ ] Verify API-driven analytics in Chrome and record local results and outstanding launch blockers.
+
+## Merchant dashboard and voucher review — 2026-11-02
+- [ ] Verify existing reusable redemption, dispute pagination, historical labels and protected queued exports.
+- [ ] Expose prices, campaign dates, issuance limit and code mode through the existing editor.
+- [ ] Track asynchronous import/export completion and connect dispute pages and voucher references.
+- [ ] Show reserved codes / expired vouchers and compare adjacent lifecycle periods using existing aggregates.
+- [ ] Verify read-only checkout quote versus explicit payment start; preserve D-106 no per-consumer cap.
+- [ ] Record executed regressions and remaining MySQL/staging/performance evidence.
+
+B51/B52 implementation40e0e0c plus main-integration refinement commit (parent40e0e0c/main313dfad): integrated SQLite252pass+4skip/9737assertions, MySQL214pass/1739; final ceiling guardsSQLite138/8895 andMySQL9/40. Six real post-merge HTTP captures; PHPStan/Pint/diff PASS. Live canary/95% quality/product acceptance remain NOT RUN, not checked as complete.

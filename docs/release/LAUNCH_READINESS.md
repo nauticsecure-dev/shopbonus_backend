@@ -1,5 +1,13 @@
 # Launch readiness — backend (Trello #22)
 
+2026-11-02 follow-up: production remains NO-GO. New affiliate rewards require
+network approval **and recorded settlement**; the business journey now verifies
+both gates before credit/checkout. Focused SQLite regressions: 109 PASS / 8,767
+assertions. Frontend analytics/retired-endpoint evidence and outstanding release
+steps: sibling `shopbonus_frontend/docs/platform-launch-acceptance.md`.
+Sanitized local configuration check: [LAUNCH_CHECK_2026-11-02.json](LAUNCH_CHECK_2026-11-02.json)
+(9 PASS, 12 FAIL, 4 WARN, 2 MANUAL); this is not a check of a production host.
+
 Card: https://trello.com/c/SxfIv4Ir. This file covers what the Laravel backend can prove itself, how to deploy and roll back, and what still needs people, live providers or the frontend. **The card is not Done:** the frontend/design QA, the live provider runs and the deployment itself happen outside this repository.
 
 ## 1. Evidence in the repository

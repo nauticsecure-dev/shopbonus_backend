@@ -58,7 +58,8 @@ class UserAdministrationTest extends TestCase
         $this->asAdmin();
 
         $emails = fn (string $query) => array_column($this->getJson('/api/v1/admin/users'.$query)->assertOk()->json('data'), 'email');
-        $this->assertSame(['anna@example.nl'], $emails('?role=consumer'));
+        // Consumer signup intent persists when the user also joins a workspace.
+        $this->assertEqualsCanonicalizing(['anna@example.nl', 'medewerker@woon.nl'], $emails('?role=consumer'));
         $this->assertEqualsCanonicalizing(['eigenaar@woon.nl', 'medewerker@woon.nl'], $emails('?role=merchant'));
         $this->assertSame(['medewerker@woon.nl'], $emails('?role=employee'));
         $this->assertSame(['admin@shopbonus.test'], $emails('?role=super_admin'));

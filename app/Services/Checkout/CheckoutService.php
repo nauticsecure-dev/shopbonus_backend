@@ -110,6 +110,7 @@ class CheckoutService
         ];
     }
 
+    /** Explicit purchase/payment-start action. Viewing checkout must use the read-only quote(). */
     public function start(User $user, Offer $offer, string $key, bool $useWallet = true, WalletUnit $unit = WalletUnit::EurCredit): VoucherCheckout
     {
         if (($existing = $this->byKey($user, $key)) !== null) {

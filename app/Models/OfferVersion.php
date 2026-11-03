@@ -30,6 +30,7 @@ use LogicException;
  * @property list<string>|null $categories
  * @property list<string>|null $products
  * @property bool $combinable
+ * @property array<string, mixed>|null $cashback_permission
  * @property string $code_mode
  * @property int|null $allocation_limit
  * @property CarbonImmutable|null $locked_at
@@ -40,7 +41,7 @@ class OfferVersion extends Model
     public const TERM_FIELDS = [
         'name', 'public_description', 'discount_type', 'discount_value', 'currency', 'min_order_minor', 'max_discount_minor',
         'price_minor', 'price_points', 'starts_at', 'ends_at', 'claim_validity_days', 'redemption_validity_days', 'categories', 'products',
-        'combinable', 'code_mode', 'allocation_limit',
+        'combinable', 'cashback_permission', 'code_mode', 'allocation_limit',
     ];
 
     protected $guarded = ['id'];
@@ -61,6 +62,7 @@ class OfferVersion extends Model
             'categories' => 'array',
             'products' => 'array',
             'combinable' => 'boolean',
+            'cashback_permission' => 'array',
             'allocation_limit' => 'integer',
             'locked_at' => 'immutable_datetime',
         ];
@@ -76,6 +78,26 @@ class OfferVersion extends Model
             }
         });
         static::deleting(fn () => throw new LogicException('Offer versions cannot be deleted.'));
+    }
+
+    /** Permission is written only by a trusted provider/admin workflow, never a merchant boolean. */
+    public function cashbackCombinationPermitted(?AffiliateProgram $program): bool
+    {
+        $p = $this->cashback_permission;
+        if (! $this->combinable || $program === null || ! is_array($p)) {
+            return false;
+        }
+
+        return ($p['cashback_preserved'] ?? false) === true
+            && ($p['network'] ?? null) === $program->getRelationValue('connection')?->network
+            && ($p['connection_public_id'] ?? null) === $program->getRelationValue('connection')?->public_id
+            && ($p['program_external_id'] ?? null) === $program->external_id
+            && is_string($p['reference'] ?? null) && trim($p['reference']) !== ''
+            && is_string($p['terms'] ?? null) && trim($p['terms']) !== ''
+            && is_string($p['verified_by'] ?? null) && trim($p['verified_by']) !== ''
+            && is_string($p['verified_at'] ?? null) && is_string($p['valid_until'] ?? null)
+            && strtotime($p['verified_at']) !== false && strtotime($p['verified_at']) <= now()->getTimestamp()
+            && strtotime($p['valid_until']) !== false && strtotime($p['valid_until']) > now()->getTimestamp();
     }
 
     public function isLocked(): bool

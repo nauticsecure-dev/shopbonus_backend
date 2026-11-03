@@ -11335,20 +11335,6 @@ Content-Type: application/json
 {"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-support"}}
 ```
 
-
-### `POST /api/broadcasting/user-auth` — realtime user sign-in (Trello #16)
-
-Not a live capture; behaviour from `tests/Feature/Workspaces/RealtimeRevocationTest.php`. Same auth as `/api/broadcasting/auth` (Sanctum cookie or token, active account). The Pusher/Reverb client calls it once per connection (Laravel Echo: `pusher.signin()` / user authentication enabled) so the server knows whose sockets they are. The signed user identity is the **public** user ID. Support (impersonation) sessions get 403; unauthenticated 401.
-
-When a member is removed or suspended, or loses `orders.view`, Shopbonus calls Reverb `terminate_connections` for that user after the change commits: every open socket of that user closes, the client reconnects, and channel auth then refuses what was withdrawn. A client that never signs in cannot be found by user and keeps an already-open subscription until it reconnects.
-
-```http
-HTTP/1.1 200
-Content-Type: application/json
-
-{"auth":"<REDACTED_EPHEMERAL_USER_AUTH>","user_data":"{\"id\":\"<user public_id>\"}"}
-```
-
 ### `GET /api/v1/notifications` — rate-limit
 
 ```bash
@@ -16966,6 +16952,3685 @@ X-Request-Id: 01a188d8-da28-711e-98fd-0b2c482f6ee6
 {"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
 ```
 
+
+### Discovery accuracy update — 2026-10-31
+
+Public list booleans use query values 1/0. Counters, has_offers=1 and sort=most_offers
+use currently obtainable offers: active/public, started, not ended, stock present,
+allocation limit not reached. most_offers is a supported sort. Cover URLs work
+without a logo. Cache age is capped at 30 seconds with earlier scheduled start/end
+expiry and inventory/import/allocation invalidation after commits.
+
+The earlier directory captures above are historical. Current real HTTP example
+(local artisan serve, existing demo data, dirty HassanDev based on 59916e9):
+
+GET http://127.0.0.1:8018/api/v1/public/webshops?has_offers=1&sort=most_offers&per_page=2
+
+Response: HTTP 200. Full captured response and timestamp:
+[directory-http-capture.json](../discovery/directory-http-capture.json).
+OpenAPI's list example has been replaced with that captured response.
+See [review](../discovery/INTEGRATION_ACCURACY_REVIEW.md) for validation and freshness.
+
+
+## Merchant overview review — 2026-10-31
+
+Captured from a real `php artisan serve` server at 127.0.0.1:8018 using an isolated SQLite database, synthetic merchant/voucher fixtures, current HassanDev working tree (base 59916e9). No production data or provider calls. Full requests and actual 200 responses: [MERCHANT_OVERVIEW_CAPTURE.json](MERCHANT_OVERVIEW_CAPTURE.json).
+
+Overview accepts `status`, `page` and `per_page` (1–50, default 10). Filters apply before pagination. Effective lifecycle matches offer rows, including dates, sold out and allocation limits. `generated_at` is displayed by the client; visible dashboards refresh every 30 seconds and on focus.
+
+`GET /api/v1/workspaces/{workspace}/vouchers?claimed=1&from=2026-10-31&to=2026-10-31` and `/vouchers/export` filter accepted claims by local business day, including subsequently redeemed vouchers. List responses add `claimed_at`; codes stay masked and consumer details are excluded. Without `claimed`, existing issuance-date filters retain their prior semantics.
+
+Unauthorized nonmembers receive 404 to conceal workspace existence; authorized members without the required permission receive 403. This follows the platform policy instead of changing all workspace lookups for a single dashboard. Resolved stock alerts are preserved for history/deduplication and excluded from overview, workspace notification list and central inbox counts. Notification generation remains on the existing 15-minute schedule.
+
+### `GET /api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/dashboard?status=active&page=1&per_page=10`
+
+```sh
+curl -i "http://127.0.0.1:8018/api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/dashboard?status=active&page=1&per_page=10" -H "Accept: application/json" -H "Authorization: Bearer <LOCAL_CAPTURE_TOKEN>"
+```
+
+Captured HTTP 200:
+
+```json
+{
+  "data": {
+    "webshop": {
+      "id": "01m6906wgknk9djzc49c7x5vsn",
+      "name": "Review Webshop",
+      "status": "approved"
+    },
+    "greeting": "good_afternoon",
+    "kpis": {
+      "active_offers": 1,
+      "available_codes": 2,
+      "issued_vouchers": 1,
+      "claimed_vouchers": 1,
+      "redeemed_vouchers": 0,
+      "scheduled_offers": 0,
+      "paused_offers": 0,
+      "open_disputes": 0
+    },
+    "connection_health": {
+      "status": "none",
+      "total": 0,
+      "connected": 0,
+      "attention": 0,
+      "last_error_at": null
+    },
+    "recent_activity": [
+      {
+        "action": "offer.status_changed",
+        "at": "2026-10-31T17:51:01+05:00",
+        "resource_type": "App\\Models\\Offer"
+      },
+      {
+        "action": "offer.created",
+        "at": "2026-10-31T17:51:01+05:00",
+        "resource_type": "App\\Models\\Offer"
+      }
+    ],
+    "quick_actions": [
+      {
+        "key": "create_offer",
+        "available": true
+      },
+      {
+        "key": "import_codes",
+        "available": true
+      },
+      {
+        "key": "connect_store",
+        "available": true
+      },
+      {
+        "key": "top_up_funding",
+        "available": false
+      },
+      {
+        "key": "review_vouchers",
+        "available": true
+      }
+    ],
+    "empty": false,
+    "definitions": {
+      "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+      "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+      "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+      "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+      "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+      "scheduled_offers": "Offers with status scheduled (not yet opened).",
+      "paused_offers": "Offers with status paused.",
+      "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+    },
+    "offers": [
+      {
+        "id": "01m6906wk5czd32xamr3pgkjgp",
+        "name": "Review offer",
+        "summary": "€5.00 from €50.00",
+        "type": "fixed",
+        "acquisition": "merchant_reward",
+        "min_order_minor": 5000,
+        "available_codes": 2,
+        "issued": 1,
+        "status": "active",
+        "lifecycle_status": "active",
+        "attention": [
+          "low_inventory"
+        ]
+      }
+    ],
+    "offers_meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 10,
+      "total": 1
+    },
+    "notifications": {
+      "unread": 0,
+      "latest": []
+    },
+    "funding": {
+      "available_minor": 999350,
+      "reserved_minor": 650
+    },
+    "generated_at": "2026-10-31T17:51:38+05:00"
+  }
+}
+```
+
+### `GET /api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/vouchers?claimed=1&from=2026-10-31&to=2026-10-31`
+
+```sh
+curl -i "http://127.0.0.1:8018/api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/vouchers?claimed=1&from=2026-10-31&to=2026-10-31" -H "Accept: application/json" -H "Authorization: Bearer <LOCAL_CAPTURE_TOKEN>"
+```
+
+Captured HTTP 200:
+
+```json
+{
+  "data": [
+    {
+      "id": "01m6906wptgb0mwabb6qqnarfz",
+      "status": "issued",
+      "origin": "answer24_claim",
+      "code": "****0001",
+      "offer_id": "01m6906wk5czd32xamr3pgkjgp",
+      "offer_name": "Review offer",
+      "issued_at": "2026-10-31T17:51:02+05:00",
+      "expires_at": "2026-11-30T17:51:02+05:00",
+      "redeemed_at": null,
+      "reserved_at": "2026-10-31T17:51:01+05:00",
+      "claimed_at": "2026-10-31T17:51:02+05:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 1
+  }
+}
+```
+
+### `GET /api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/analytics/claims?days=7`
+
+```sh
+curl -i "http://127.0.0.1:8018/api/v1/workspaces/01m6906wgknk9djzc49c7x5vsn/analytics/claims?days=7" -H "Accept: application/json" -H "Authorization: Bearer <LOCAL_CAPTURE_TOKEN>"
+```
+
+Captured HTTP 200:
+
+```json
+{
+  "data": {
+    "timezone": "Europe/Amsterdam",
+    "from": "2026-10-25",
+    "to": "2026-10-31",
+    "days": [
+      {
+        "date": "2026-10-25",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-26",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-27",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-28",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-29",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-30",
+        "claims": 0,
+        "issued": 0,
+        "redeemed": 0
+      },
+      {
+        "date": "2026-10-31",
+        "claims": 1,
+        "issued": 1,
+        "redeemed": 0
+      }
+    ],
+    "totals": {
+      "claims": 1,
+      "issued": 1,
+      "redeemed": 0
+    }
+  }
+}
+```
+
+## Merchant landing inline editor follow-up — 2026-10-31
+
+GET /api/v1/admin/content/voor-webshops/assets and GET /api/v1/admin/content/pages/voor-webshops/assets list shared reusable CMS images, 24 per page (page >= 1). Super Admin and the existing recent-password session are required. No credential or storage path is exposed. Request example: `curl -H 'Accept: application/json' -b '<SESSION_COOKIE>' 'http://localhost:8013/api/v1/admin/content/voor-webshops/assets?page=1'`.
+
+Actual local PHP 8.4 HTTP server responses (isolated in-memory SQLite, synthetic actor/recent-password context attached by a temporary capture router): [MERCHANT_LANDING_CAPTURE.json](MERCHANT_LANDING_CAPTURE.json). Both aliases return 200; page=0 returns 422. Authentication is verified separately by feature tests, not claimed by this capture fixture.
+
+The existing draft PUT now accepts optional media slots hero_background, hero, benefits and offers, each with desktop_asset_id/mobile_asset_id and plain-text alt. IDs must refer to uploaded CMS assets. The public response resolves desktop_url/mobile_url. Footer links use the same safe-link rules as navigation; platform descriptions are plain text (max 400). The captured public GET includes actual resolved media and footer links. Public merchant HTML/API fetches bypass HTTP caches; backend publication cache remains versioned and schedule boundaries are checked on each request.
+
+
+## Support repair HTTP captures — 2026-10-31
+
+Actual local PHP server on port 8137, isolated SQLite with synthetic user/conversation; no live OpenAI or Reverb call. [Captured requests and responses](SUPPORT_REPAIR_HTTP_CAPTURE.json). Existing authorization gates remain in place; admin MFA disabled only in the isolated capture harness.
+
+Chat submission and message/history projection include `display.show_progress_updates` and `display.show_verified_badge`. Published action suggestions are enforced before result persistence. Monitoring accepts `from`, `to`, `scope`, `locale`, `status`, `model`, `retry_used`, `outcome`, validates inputs and returns matching total, bounded sample percentages, cost coverage and timestamped connectivity evidence. Cost is an estimate only when deployment supplies exact-model verified EUR rates; absent rates produce null. Broadcast dispatch is not a live connectivity probe.
+
+### GET /api/v1/admin/ai/operations?scope=consumer&locale=en (200)
+
+```json
+{
+  "request": null,
+  "response": {
+    "data": {
+      "from": "2026-10-30T13:38:10+00:00",
+      "checked_at": "2026-10-31T13:38:10+00:00",
+      "sample_limit": 500,
+      "sample_size": 1,
+      "matching_total": 1,
+      "to": "2026-10-31T13:38:10+00:00",
+      "outcome_percentages": {
+        "NEEDS_CLARIFICATION": 100
+      },
+      "statuses": {
+        "NEEDS_CLARIFICATION": 1
+      },
+      "failures": [],
+      "retrieval_retries": 0,
+      "latency_p95_ms": null,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "provider_cost": null,
+      "costed_requests": 0,
+      "cost_currency": "EUR",
+      "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+      "open_reviews": 0,
+      "approved_regressions": 0,
+      "daily_requests": 0,
+      "circuit_open": false,
+      "broadcaster": "null",
+      "last_successful_broadcast_at": null,
+      "broadcast_failures_last_24h": 0,
+      "connectivity": {
+        "provider_last_success_at": null,
+        "worker_last_execution_at": null,
+        "queue_connection": "database",
+        "reverb_live_probe": "not_measured",
+        "broadcast_evidence": "dispatch_attempt_only"
+      },
+      "policy_version": "default-disabled"
+    }
+  }
+}
+```
+
+### GET /api/v1/admin/ai/operations?status=INVALID (422)
+
+```json
+{
+  "request": null,
+  "response": {
+    "error": {
+      "status": 422,
+      "code": "validation_failed",
+      "message": "The given data was invalid.",
+      "request_id": "01a1922e-a354-70b5-a734-e42f37af64ec",
+      "fields": {
+        "status": [
+          "The selected status is invalid."
+        ]
+      }
+    }
+  }
+}
+```
+
+### GET /api/v1/ai/messages/01m692t1s6as7ahfzywnwxt6h1 (200)
+
+```json
+{
+  "request": null,
+  "response": {
+    "data": {
+      "id": "01m692t1s6as7ahfzywnwxt6h1",
+      "message_id": "01m692t1s6as7ahfzywnwxt6h1",
+      "conversation_id": "01m692t1n811tw8fspcm9a5gxd",
+      "question": "Order status FS-20482",
+      "status": "NEEDS_CLARIFICATION",
+      "answer": "Provide the order reference to check its recorded status.",
+      "evidence_ids": [],
+      "checked_at": null,
+      "retry_used": false,
+      "action": null,
+      "checks": null,
+      "display": {
+        "show_progress_updates": true,
+        "show_verified_badge": true
+      },
+      "result": {
+        "answer": "Provide the order reference to check its recorded status.",
+        "action": null
+      },
+      "created_at": "2026-10-31T13:36:26+00:00",
+      "completed_at": "2026-10-31T13:36:26+00:00"
+    }
+  }
+}
+```
+
+### GET /api/v1/ai/conversations/01m692t1n811tw8fspcm9a5gxd (200)
+
+```json
+{
+  "request": null,
+  "response": {
+    "data": {
+      "id": "01m692t1n811tw8fspcm9a5gxd",
+      "messages": [
+        {
+          "id": "01m692t1s6as7ahfzywnwxt6h1",
+          "message_id": "01m692t1s6as7ahfzywnwxt6h1",
+          "conversation_id": "01m692t1n811tw8fspcm9a5gxd",
+          "question": "Order status FS-20482",
+          "status": "NEEDS_CLARIFICATION",
+          "answer": "Provide the order reference to check its recorded status.",
+          "evidence_ids": [],
+          "checked_at": null,
+          "retry_used": false,
+          "action": null,
+          "checks": null,
+          "display": {
+            "show_progress_updates": true,
+            "show_verified_badge": true
+          },
+          "result": {
+            "answer": "Provide the order reference to check its recorded status.",
+            "action": null
+          },
+          "created_at": "2026-10-31T13:36:26+00:00",
+          "completed_at": "2026-10-31T13:36:26+00:00"
+        }
+      ],
+      "replies": [],
+      "next_before": "01m692t1s6as7ahfzywnwxt6h1"
+    }
+  }
+}
+```
+
+### POST /api/v1/ai/chat (202)
+
+```json
+{
+  "request": {
+    "message": "What is my order status FS-20482?",
+    "locale": "en"
+  },
+  "response": {
+    "data": {
+      "id": "01m692xg9g05b7pxhwm4xcdwqm",
+      "conversation_id": "01m692xg7qa19ys58n0xx3wv1d",
+      "status": "PENDING",
+      "display": {
+        "show_progress_updates": true,
+        "show_verified_badge": true
+      }
+    }
+  }
+}
+```
+
+
+
+## Cockpit reporting correction — 2026-10-31
+
+The cockpit omits current-state percentage comparisons (webshops, consumers, usable vouchers, wallets and actions) because no historical snapshots exist. Commission comparisons use equal transaction-date periods and the current approved status. Stock totals remain current regardless of the reporting range.
+
+The donut counts issued vouchers. An explicit acquisition_transaction_id links an approved, nonduplicate affiliate transaction to the same consumer and webshop. VoucherInventory::recordAcquisition validates and records immutable evidence; no public endpoint accepts this field. Existing vouchers are not backfilled from wallet spending, consumer membership or a webshop network selection. Missing/invalid evidence stays Other/Unknown, including direct vouchers; this makes the unknown population explicit. Additional evidenced networks appear automatically. No current affiliate conversion flow issues vouchers, so trusted callers must have real acquisition evidence before recording a link.
+
+Consumer identity is consumer onboarding intent, independent of webshop memberships, excluding active platform staff. ADMIN_TEST_ACCOUNT_PUBLIC_IDS is an explicit comma-separated fixture identity exclusion list; empty by default. No email-domain/name guesses. The cockpit, search, trend and role=consumer list share this scope.
+
+Usability requires issued, unexpired vouchers with an issued code (or reusable available code), no invalidated_at and no known provider mismatch. Manual/unverified provider status is not proof of acceptance and is not itself an invalidation. The card opens usable=1; consumer code-copy eligibility uses the same rule.
+
+Failed synchronization items are unique webshop connections in error or having failed webhook imports, plus affiliate connections in error/reauthentication_required/auth_failed/rate_limited/unavailable. Multiple webhook failures and a connection error count once. Diagnostic incident records, occurrences and failed jobs are not added to these source items. Resolved source states disappear after the existing cache TTL (60 seconds) and automatic visible-tab refresh; focus also refreshes. The attention=1 operations destination includes webhook-only failures and links to affiliate failures.
+
+GET /admin/affiliate/transactions accepts paired from/to YYYY-MM-DD dates (business timezone, inclusive local days), status and network; rows and totals use identical filters. One missing boundary returns 422. Cockpit commission links open tab=transactions; channel links open tab=vouchers with acquisition_network, from and to forwarded to GET /admin/vouchers. That endpoint also accepts usable=1. Integrations and failed-events accept connection public IDs, filtered server-side before pagination.
+
+Actual HTTP requests/responses, including 200/401/403/422, are captured in [COCKPIT_HTTP_CAPTURE.json](COCKPIT_HTTP_CAPTURE.json), generated by scripts/capture-cockpit.php against an isolated SQLite database and a real local PHP HTTP server. These fixtures do not prove external-provider behavior. Existing local MySQL aggregates are separately reconciled in [COCKPIT_LOCAL_MYSQL.json](COCKPIT_LOCAL_MYSQL.json). The task migration was applied only to local MySQL; no production migration or deployment.
+
+Publication POST accepts optional integer revision (the just-saved draft_revision). The inline editor always sends it. CmsService checks it under the existing row lock; another administrator saving between Save and Publish returns 409 instead of publishing a different draft. Legacy callers omitting revision remain compatible. Actual POST {"locale":"nl","revision":1} returned 409 and revision=2 returned 200 in MERCHANT_LANDING_CAPTURE.json.
+
+
+## Sales attribution reporting and embed consent — 2026-10-31
+
+Local PHP 8.4 HTTP server with a fresh in-memory SQLite fixture per request. No live provider. Full captures: [SALES_ATTRIBUTION_CAPTURE.json](SALES_ATTRIBUTION_CAPTURE.json). The temporary loopback fixture router used X-Fixture-Actor for test authentication; normal clients require the documented workspace/admin authorization.
+
+Consent=true requires consent_id from the latest recorded CMP decision with analytics and marketing enabled and no required policy renewal. Missing/withdrawn/renewal-required records reject assignment (403 tracking_consent_required) and reject consented events per item (202 with rejected count). Config accepts consent_id and returns tracking_allowed with private/no-store caching. Ordinary anonymous legacy event requests remain anonymous; the public embed itself emits no events without consent.
+
+Overview accepts days=7|30|90, with explicit from/to taking precedence, capped at 366 days. sales_series contains zero-filled business-calendar days and currency-separated paid-order/net-sales values; generated_at records report freshness. Attribution links freeze first evidence. Network net values read current order refunds. by_currency is authoritative; mixed-currency legacy scalars are null. wallet_liabilities groups kind/unit, separates pending, and includes available+reserved as outstanding; deprecated wallet_liabilities_reserved_minor is null. invoice_reconciliation explicitly reports provider_not_verified. See [review and storefront bridge contract](../analytics/SALES_ATTRIBUTION_REVIEW.md).
+
+### `GET /api/v1/banners/config`
+
+Actual fixture request:
+
+```http
+GET /api/v1/banners/config?key=pk_attribution_fixture&consent_id=d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834
+Accept: application/json
+Origin: https://example.test
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "campaigns": [
+      {
+        "campaign": "01K00000000000000000000001",
+        "version": 1,
+        "config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "top"
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      }
+    ],
+    "tracking_allowed": true
+  }
+}
+```
+
+### `POST /api/v1/banners/events`
+
+Actual fixture request:
+
+```http
+POST /api/v1/banners/events
+Accept: application/json
+Origin: https://example.test
+Content-Type: application/json
+
+{"key":"pk_attribution_fixture","events":[{"id":"1c557cc8-d03c-47e6-bfb6-ec9c867bb1eb","campaign":"01K00000000000000000000001","version":1,"type":"cta_click","occurred_at":"2026-10-31T13:37:59.348Z","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"}]}
+```
+
+Actual response 202:
+
+```json
+{
+  "data": {
+    "accepted": 1,
+    "duplicates": 0,
+    "rejected": 0,
+    "bots": 0,
+    "click_ids": {
+      "1c557cc8-d03c-47e6-bfb6-ec9c867bb1eb": "bc_83a7ac3409c4daeb5b94c686"
+    }
+  }
+}
+```
+
+### `POST /api/v1/banners/assignments`
+
+Actual fixture request:
+
+```http
+POST /api/v1/banners/assignments
+Accept: application/json
+Origin: https://example.test
+Content-Type: application/json
+
+{"key":"pk_attribution_fixture","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"}
+```
+
+Actual response 200:
+
+```json
+{
+  "data": []
+}
+```
+
+### `GET /api/v1/workspaces/{workspace}/analytics/overview`
+
+Actual fixture request:
+
+```http
+GET /api/v1/workspaces/01k00000000000000000000000/analytics/overview?days=7
+Accept: application/json
+Origin: https://example.test
+X-Fixture-Actor: owner
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "from": "2026-10-24T22:00:00+00:00",
+    "to": "2026-10-31T22:59:59+00:00",
+    "orders": [],
+    "sales_series": [
+      {
+        "date": "2026-10-25",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-26",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-27",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-28",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-29",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-30",
+        "paid_orders": 0,
+        "orders": []
+      },
+      {
+        "date": "2026-10-31",
+        "paid_orders": 0,
+        "orders": []
+      }
+    ],
+    "vouchers": {
+      "reserved": 0,
+      "issued": 0,
+      "redeemed": 0,
+      "redemption_rate": null
+    },
+    "reward_cost": {
+      "currency": "EUR",
+      "reward_minor": 0,
+      "fee_minor": 0,
+      "total_minor": 0
+    },
+    "answer24": {
+      "opportunities": [],
+      "claims": 0
+    },
+    "funding": {
+      "available_minor": 1000000,
+      "reserved_minor": 0
+    },
+    "banner_metrics": {
+      "status": "available",
+      "eligible": 0,
+      "viewable_impressions": 0,
+      "cta_clicks": 0,
+      "dismissals": 0,
+      "ctr": null
+    },
+    "attribution": {
+      "click": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "voucher": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "view": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "unattributed": {
+        "orders": 0,
+        "net_revenue_minor": 0,
+        "by_currency": []
+      },
+      "confidence_note": "click > voucher > view > unattributed; success-page visits never count as paid."
+    },
+    "repeats": {
+      "repeat_paid_orders": 0,
+      "definition": "Paid orders whose customer_key already had an earlier paid order in this shop."
+    },
+    "network": {
+      "status": "available",
+      "as_referrer": {
+        "journeys": 0,
+        "currency": null,
+        "network_gmv_minor": 0,
+        "by_currency": []
+      },
+      "as_receiver": {
+        "journeys": 0,
+        "currency": null,
+        "network_gmv_minor": 0,
+        "by_currency": []
+      },
+      "settlement_note": "Cross-shop journeys are recorded for agreed settlement only; ShopBonus never silently deducts the receiving shop Wallet.",
+      "definitions": {
+        "as_referrer": "Paid orders at other shops carrying a consented click ID from this shop.",
+        "as_receiver": "Paid orders at this shop carrying a consented click ID from another shop."
+      }
+    },
+    "attribution_priority": [
+      "click",
+      "voucher",
+      "view",
+      "unattributed"
+    ],
+    "note": "Attributed revenue is association evidence, not incremental lift. Use A/B + holdout for lift.",
+    "timezone": "Europe/Amsterdam",
+    "generated_at": "2026-10-31T13:44:19+00:00"
+  }
+}
+```
+
+### `GET /api/v1/admin/network`
+
+Actual fixture request:
+
+```http
+GET /api/v1/admin/network
+Accept: application/json
+Origin: https://example.test
+X-Fixture-Actor: owner
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": {
+    "generated_at": "2026-10-31T13:39:52+00:00",
+    "from": "2026-10-01T22:00:00+00:00",
+    "to": "2026-10-31T22:59:59+00:00",
+    "shops": 1,
+    "viewable_exposure": 0,
+    "unique_verified_members": 2,
+    "verified_gmv": {
+      "paid_orders": 0,
+      "currency": null,
+      "net_minor": 0,
+      "by_currency": []
+    },
+    "vouchers": {
+      "earned": 0,
+      "spent": 0
+    },
+    "external_affiliate": {
+      "currency": null,
+      "confirmed_commission_minor": 0,
+      "pending_commission_minor": 0,
+      "reversed_commission_minor": 0,
+      "net_commission_minor": 0,
+      "by_currency": [],
+      "note": "Network contracts differ from the direct 30% merchant fee; gross ≠ profit."
+    },
+    "direct_fees": {
+      "currency": "EUR",
+      "fee_rate_bps": 3000,
+      "settled_fee_minor": 0,
+      "settled_reward_minor": 0
+    },
+    "wallet_liabilities_reserved_minor": null,
+    "wallet_liabilities": [
+      {
+        "kind": "merchant_funding",
+        "unit": "eur_credit",
+        "available": 1000000,
+        "reserved": 0,
+        "pending": 0,
+        "outstanding": 1000000
+      }
+    ],
+    "invoice_reconciliation": {
+      "status": "provider_not_verified",
+      "provider_issued_verified": false,
+      "internal_drafts": 0,
+      "externally_referenced": 0,
+      "note": "An internal draft or external reference is not proof of provider issuance, delivery or payment reconciliation."
+    },
+    "network_journeys": {
+      "count": 0,
+      "currency": null,
+      "gmv_minor": 0,
+      "by_currency": [],
+      "top_referring": [],
+      "top_receiving": []
+    },
+    "unmatched_paid_orders": 0,
+    "limitations": {
+      "moneybird": "Invoice drafts only until Moneybird credentials are configured.",
+      "cross_shop_settlement": "Journeys are recorded; Wallet deduction between shops requires an agreed settlement model.",
+      "live_affiliates": "Daisycon/TradeTracker adapters are fixture-verified; live network accounts NOT VERIFIED."
+    },
+    "period_name": "30d",
+    "timezone": "Europe/Amsterdam"
+  }
+}
+```
+
+### `GET /api/v1/workspaces/{workspace}/analytics/attribution/orders`
+
+Actual fixture request:
+
+```http
+GET /api/v1/workspaces/01k00000000000000000000000/analytics/attribution/orders?type=click
+Accept: application/json
+Origin: https://example.test
+X-Fixture-Actor: owner
+
+```
+
+Actual response 200:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 0
+  },
+  "timezone": "Europe/Amsterdam",
+  "generated_at": "2026-10-31T13:44:34+00:00"
+}
+```
+
+The inline editor also calls the existing generic CMS page schedules endpoint with action=publish, locale, revision and due_at. This queues the reviewed draft while retaining the existing publication until execution. Schedule cancellation uses existing Content Studio. Further draft changes make the queued revision stale.
+
+
+## Homepage CMS review correction — 2026-10-31
+
+Real requests/responses: [HOMEPAGE_HTTP_CAPTURE.json](HOMEPAGE_HTTP_CAPTURE.json), produced by `php scripts/capture-homepage.php` against an isolated SQLite database and a running local PHP HTTP server. Synthetic actors only; temporary tokens/database/server are removed. Captured GET public English homepage, public coupons, admin history (200/401/403). No production credentials or provider calls.
+
+Homepage/coupon HTTP responses now use `Cache-Control: no-store`; Next.js and client public reads also bypass their data caches. Homepage schedule eligibility is evaluated on every read, including the first read after expiry.
+
+Existing PUT `/api/v1/admin/content/homepage` accepts the rendered optional `benefits`, `cta_band`, `faq_teaser` sections with validated plain text and safe CTAs. Section order/visibility accepts those keys. Hero accepts optional `background_mobile_asset_id` and `background_alt`; both desktop/mobile assets must exist. Public content resolves `background_mobile_url`; draft clients strip resolved URLs before saving. POST `/api/v1/admin/content/homepage/assets` remains the existing authenticated, Super Admin image upload (PNG/JPEG/WebP, 4 MB).
+
+GET `/api/v1/admin/content/homepage/versions?locale=en` now includes each immutable revision's resolved `content` for inspection before selecting and confirming restoration. Publish/restore permissions, CSRF, revision-conflict behavior and audit paths are retained. No new endpoint or migration.
+
+
+## About Us inline CMS follow-up — 2026-10-31
+
+Real HTTP evidence: [ABOUT_HTTP_CAPTURE.json](ABOUT_HTTP_CAPTURE.json), generated by `scripts/capture-about.php` on a local PHP server with an isolated SQLite fixture database. No application database or external providers used.
+
+The existing About Us draft contract accepts optional `media.hero`, `media.story` and `media.team` objects containing `desktop_asset_id`, `mobile_asset_id` and required plain-text `alt`. Both IDs must reference uploaded CMS images. Resolved URLs are response-only and must be omitted from draft writes. Existing `/assets` upload supports browser-cropped PNG/JPEG/WebP images.
+
+Admin state resolves media/profile/SEO URLs. Versions now include `content` for explicit comparison before restoration. Restore accepts `locale` (default nl) and rejects a revision from another locale with 404. These are additive response changes; no new endpoint or migration. Public About Us and admin versions use `Cache-Control: no-store, private`. Visibility windows are evaluated on every public request.
+
+Publish accepts optional integer `revision`; the inline editor sends the successfully saved draft revision. A later draft change returns 409 rather than publishing edits that were not reviewed. Existing callers without this optional field remain compatible.
+
+Delayed publication uses the existing generic CMS schedules endpoint with `{action: publish, locale, revision, due_at}`. It pins the successfully saved revision and keeps the current publication until execution. Later saves make pending schedules stale. Scheduler operation remains a deployment requirement.
+
+### `GET /api/v1/content/over-ons?locale=nl` — HTTP 200
+
+```http
+GET /api/v1/content/over-ons?locale=nl
+Accept: application/json
+```
+
+```json
+{
+  "data": {
+    "key": "over-ons",
+    "type": "landing",
+    "locale": "nl",
+    "slug": "over-ons",
+    "content": {
+      "media": {
+        "hero": {
+          "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "alt": "Approved fixture photography",
+          "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+          "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+        }
+      },
+      "title": "Over ShopBonus",
+      "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+      "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+      "seo_image_asset_id": null,
+      "body": {
+        "type": "doc",
+        "content": []
+      },
+      "section_visibility": {
+        "hero": true,
+        "story": true,
+        "revenue_model": true,
+        "values": true,
+        "team": true,
+        "contact": true,
+        "bottom_cta": true
+      },
+      "nav": {
+        "logo_alt": "ShopBonus",
+        "login_label": "Inloggen",
+        "login_href": "/account?mode=login",
+        "cta_label": "Account aanmaken",
+        "cta_href": "/account?mode=register",
+        "links": [
+          {
+            "label": "Webshops",
+            "href": "/webshops"
+          },
+          {
+            "label": "Cashback",
+            "href": "/webshops?has_offers=1"
+          },
+          {
+            "label": "Kortingscodes",
+            "href": "/kortingscodes"
+          },
+          {
+            "label": "Over ons",
+            "href": "/over-ons"
+          },
+          {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        ]
+      },
+      "hero": {
+        "eyebrow": "OVER SHOPBONUS",
+        "heading": "Samen maken we online shoppen",
+        "heading_accent": "voordeliger.",
+        "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+        "cta_label": "Ontdek ons verhaal",
+        "cta_href": "#verhaal",
+        "float_title": "Eerlijk voordeel",
+        "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+        "image_asset_id": null
+      },
+      "story": {
+        "eyebrow": "ONS VERHAAL",
+        "heading": "Een goed idee verdient",
+        "heading_accent": "meer dan korting.",
+        "image_asset_id": null,
+        "paragraphs": [
+          "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+          "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+          "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+        ]
+      },
+      "revenue_model": {
+        "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+        "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+        "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+        "consumer_label": "voor de consument",
+        "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+        "platform_label": "voor ShopBonus",
+        "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+        "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+        "consumer_percent": 70,
+        "platform_percent": 30
+      },
+      "values": {
+        "eyebrow": "WAAR WIJ IN GELOVEN",
+        "heading": "Meer dan alleen kortingen.",
+        "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+        "items": [
+          {
+            "icon": "tag",
+            "title": "Eerlijk voordeel",
+            "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+          },
+          {
+            "icon": "shop",
+            "title": "Vrijheid voor webshops",
+            "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+          },
+          {
+            "icon": "users",
+            "title": "Eenvoud voor iedereen",
+            "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+          }
+        ]
+      },
+      "team": {
+        "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+        "heading": "Een betrokken team met een duidelijke missie.",
+        "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+        "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+        "image_asset_id": null,
+        "show_profiles": false,
+        "profiles": [],
+        "placeholder_label": "Foto oprichter\ntoevoegen"
+      },
+      "contact": {
+        "heading": "Contact met ShopBonus",
+        "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+        "legal_name": "",
+        "address": "",
+        "kvk": "",
+        "email": "",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "/support"
+          },
+          {
+            "label": "Privacy",
+            "href": "/pagina/privacy"
+          },
+          {
+            "label": "Voorwaarden",
+            "href": "/pagina/voorwaarden"
+          },
+          {
+            "label": "Bedrijfsgegevens",
+            "href": "/over-ons#contact"
+          }
+        ]
+      },
+      "bottom_cta": {
+        "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+        "heading": "Samen maken we shoppen",
+        "heading_accent": "slimmer.",
+        "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+        "consumer_cta": {
+          "label": "Ontdek aanbiedingen",
+          "href": "/webshops"
+        },
+        "merchant_cta": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+        }
+      },
+      "footer": {
+        "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+      },
+      "section_order": [
+        "hero",
+        "story",
+        "revenue_model",
+        "values",
+        "team",
+        "contact",
+        "bottom_cta"
+      ]
+    },
+    "revision": 1,
+    "published_at": "2026-10-31T14:12:25+00:00"
+  }
+}
+```
+
+### `GET /api/v1/content/over-ons?locale=en` — HTTP 404
+
+```http
+GET /api/v1/content/over-ons?locale=en
+Accept: application/json
+```
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "About Us page not found.",
+    "request_id": "01a1924e-167f-7165-a315-687e76a3852a"
+  }
+}
+```
+
+### `GET /api/v1/admin/content/over-ons?locale=nl` — HTTP 200
+
+```http
+GET /api/v1/admin/content/over-ons?locale=nl
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+```json
+{
+  "data": {
+    "id": "01m694vws5ez83b71frwyhy414",
+    "key": "over-ons",
+    "type": "landing",
+    "locale": "nl",
+    "slug": "over-ons",
+    "draft_revision": 2,
+    "draft": {
+      "media": {
+        "hero": {
+          "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "alt": "Approved fixture photography",
+          "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+          "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+        }
+      },
+      "title": "Over ShopBonus",
+      "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+      "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+      "seo_image_asset_id": null,
+      "body": {
+        "type": "doc",
+        "content": []
+      },
+      "section_visibility": {
+        "hero": true,
+        "story": true,
+        "revenue_model": true,
+        "values": true,
+        "team": true,
+        "contact": true,
+        "bottom_cta": true
+      },
+      "nav": {
+        "logo_alt": "ShopBonus",
+        "login_label": "Inloggen",
+        "login_href": "/account?mode=login",
+        "cta_label": "Account aanmaken",
+        "cta_href": "/account?mode=register",
+        "links": [
+          {
+            "label": "Webshops",
+            "href": "/webshops"
+          },
+          {
+            "label": "Cashback",
+            "href": "/webshops?has_offers=1"
+          },
+          {
+            "label": "Kortingscodes",
+            "href": "/kortingscodes"
+          },
+          {
+            "label": "Over ons",
+            "href": "/over-ons"
+          },
+          {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        ]
+      },
+      "hero": {
+        "eyebrow": "OVER SHOPBONUS",
+        "heading": "Samen maken we online shoppen",
+        "heading_accent": "voordeliger.",
+        "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+        "cta_label": "Ontdek ons verhaal",
+        "cta_href": "#verhaal",
+        "float_title": "Eerlijk voordeel",
+        "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+        "image_asset_id": null
+      },
+      "story": {
+        "eyebrow": "ONS VERHAAL",
+        "heading": "Een goed idee verdient",
+        "heading_accent": "meer dan korting.",
+        "image_asset_id": null,
+        "paragraphs": [
+          "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+          "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+          "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+        ]
+      },
+      "revenue_model": {
+        "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+        "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+        "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+        "consumer_label": "voor de consument",
+        "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+        "platform_label": "voor ShopBonus",
+        "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+        "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+        "consumer_percent": 70,
+        "platform_percent": 30
+      },
+      "values": {
+        "eyebrow": "WAAR WIJ IN GELOVEN",
+        "heading": "Meer dan alleen kortingen.",
+        "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+        "items": [
+          {
+            "icon": "tag",
+            "title": "Eerlijk voordeel",
+            "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+          },
+          {
+            "icon": "shop",
+            "title": "Vrijheid voor webshops",
+            "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+          },
+          {
+            "icon": "users",
+            "title": "Eenvoud voor iedereen",
+            "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+          }
+        ]
+      },
+      "team": {
+        "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+        "heading": "Een betrokken team met een duidelijke missie.",
+        "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+        "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+        "image_asset_id": null,
+        "show_profiles": false,
+        "profiles": [],
+        "placeholder_label": "Foto oprichter\ntoevoegen"
+      },
+      "contact": {
+        "heading": "Contact met ShopBonus",
+        "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+        "legal_name": "",
+        "address": "",
+        "kvk": "",
+        "email": "",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "/support"
+          },
+          {
+            "label": "Privacy",
+            "href": "/pagina/privacy"
+          },
+          {
+            "label": "Voorwaarden",
+            "href": "/pagina/voorwaarden"
+          },
+          {
+            "label": "Bedrijfsgegevens",
+            "href": "/over-ons#contact"
+          }
+        ]
+      },
+      "bottom_cta": {
+        "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+        "heading": "Samen maken we shoppen",
+        "heading_accent": "slimmer.",
+        "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+        "consumer_cta": {
+          "label": "Ontdek aanbiedingen",
+          "href": "/webshops"
+        },
+        "merchant_cta": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+        }
+      },
+      "footer": {
+        "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+      },
+      "section_order": [
+        "hero",
+        "story",
+        "revenue_model",
+        "values",
+        "team",
+        "contact",
+        "bottom_cta"
+      ]
+    },
+    "published": {
+      "media": {
+        "hero": {
+          "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+          "alt": "Approved fixture photography",
+          "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+          "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+        }
+      },
+      "title": "Over ShopBonus",
+      "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+      "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+      "seo_image_asset_id": null,
+      "body": {
+        "type": "doc",
+        "content": []
+      },
+      "section_visibility": {
+        "hero": true,
+        "story": true,
+        "revenue_model": true,
+        "values": true,
+        "team": true,
+        "contact": true,
+        "bottom_cta": true
+      },
+      "nav": {
+        "logo_alt": "ShopBonus",
+        "login_label": "Inloggen",
+        "login_href": "/account?mode=login",
+        "cta_label": "Account aanmaken",
+        "cta_href": "/account?mode=register",
+        "links": [
+          {
+            "label": "Webshops",
+            "href": "/webshops"
+          },
+          {
+            "label": "Cashback",
+            "href": "/webshops?has_offers=1"
+          },
+          {
+            "label": "Kortingscodes",
+            "href": "/kortingscodes"
+          },
+          {
+            "label": "Over ons",
+            "href": "/over-ons"
+          },
+          {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        ]
+      },
+      "hero": {
+        "eyebrow": "OVER SHOPBONUS",
+        "heading": "Samen maken we online shoppen",
+        "heading_accent": "voordeliger.",
+        "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+        "cta_label": "Ontdek ons verhaal",
+        "cta_href": "#verhaal",
+        "float_title": "Eerlijk voordeel",
+        "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+        "image_asset_id": null
+      },
+      "story": {
+        "eyebrow": "ONS VERHAAL",
+        "heading": "Een goed idee verdient",
+        "heading_accent": "meer dan korting.",
+        "image_asset_id": null,
+        "paragraphs": [
+          "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+          "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+          "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+        ]
+      },
+      "revenue_model": {
+        "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+        "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+        "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+        "consumer_label": "voor de consument",
+        "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+        "platform_label": "voor ShopBonus",
+        "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+        "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden.",
+        "consumer_percent": 70,
+        "platform_percent": 30
+      },
+      "values": {
+        "eyebrow": "WAAR WIJ IN GELOVEN",
+        "heading": "Meer dan alleen kortingen.",
+        "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+        "items": [
+          {
+            "icon": "tag",
+            "title": "Eerlijk voordeel",
+            "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+          },
+          {
+            "icon": "shop",
+            "title": "Vrijheid voor webshops",
+            "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+          },
+          {
+            "icon": "users",
+            "title": "Eenvoud voor iedereen",
+            "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+          }
+        ]
+      },
+      "team": {
+        "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+        "heading": "Een betrokken team met een duidelijke missie.",
+        "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+        "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+        "image_asset_id": null,
+        "show_profiles": false,
+        "profiles": [],
+        "placeholder_label": "Foto oprichter\ntoevoegen"
+      },
+      "contact": {
+        "heading": "Contact met ShopBonus",
+        "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+        "legal_name": "",
+        "address": "",
+        "kvk": "",
+        "email": "",
+        "links": [
+          {
+            "label": "Contact",
+            "href": "/support"
+          },
+          {
+            "label": "Privacy",
+            "href": "/pagina/privacy"
+          },
+          {
+            "label": "Voorwaarden",
+            "href": "/pagina/voorwaarden"
+          },
+          {
+            "label": "Bedrijfsgegevens",
+            "href": "/over-ons#contact"
+          }
+        ]
+      },
+      "bottom_cta": {
+        "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+        "heading": "Samen maken we shoppen",
+        "heading_accent": "slimmer.",
+        "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+        "consumer_cta": {
+          "label": "Ontdek aanbiedingen",
+          "href": "/webshops"
+        },
+        "merchant_cta": {
+          "label": "Voor webshops",
+          "href": "/voor-webshops"
+        }
+      },
+      "footer": {
+        "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+      },
+      "section_order": [
+        "hero",
+        "story",
+        "revenue_model",
+        "values",
+        "team",
+        "contact",
+        "bottom_cta"
+      ]
+    },
+    "published_revision": 1,
+    "published_at": "2026-10-31T14:12:25+00:00",
+    "draft_updated_at": "2026-10-31T14:12:25+00:00"
+  }
+}
+```
+
+### `GET /api/v1/admin/content/over-ons/versions?locale=nl` — HTTP 200
+
+```http
+GET /api/v1/admin/content/over-ons/versions?locale=nl
+Accept: application/json
+Authorization: Bearer <redacted>
+```
+
+```json
+{
+  "data": [
+    {
+      "id": "01m694vxbb3pn6890a64qzw2kt",
+      "locale": "nl",
+      "number": 1,
+      "restored_from": null,
+      "published_by": "Lisa",
+      "published_at": "2026-10-31T14:12:25+00:00",
+      "content": {
+        "media": {
+          "hero": {
+            "desktop_asset_id": "01m694vx73bat4ezgfhqdsark4",
+            "mobile_asset_id": "01m694vx73bat4ezgfhqdsark4",
+            "alt": "Approved fixture photography",
+            "desktop_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4",
+            "mobile_url": "http://127.0.0.1:57253/api/v1/public/content-assets/01m694vx73bat4ezgfhqdsark4"
+          }
+        },
+        "title": "Over ShopBonus",
+        "seo_title": "Over ShopBonus — cashback, vouchers en eerlijk voordeel",
+        "seo_description": "Leer hoe ShopBonus consumenten en webshops verbindt met aantrekkelijke aanbiedingen, cashback en vouchers.",
+        "seo_image_asset_id": null,
+        "body": {
+          "type": "doc",
+          "content": []
+        },
+        "section_visibility": {
+          "hero": true,
+          "story": true,
+          "revenue_model": true,
+          "values": true,
+          "team": true,
+          "contact": true,
+          "bottom_cta": true
+        },
+        "nav": {
+          "logo_alt": "ShopBonus",
+          "login_label": "Inloggen",
+          "login_href": "/account?mode=login",
+          "cta_label": "Account aanmaken",
+          "cta_href": "/account?mode=register",
+          "links": [
+            {
+              "label": "Webshops",
+              "href": "/webshops"
+            },
+            {
+              "label": "Cashback",
+              "href": "/webshops?has_offers=1"
+            },
+            {
+              "label": "Kortingscodes",
+              "href": "/kortingscodes"
+            },
+            {
+              "label": "Over ons",
+              "href": "/over-ons"
+            },
+            {
+              "label": "Voor webshops",
+              "href": "/voor-webshops"
+            }
+          ]
+        },
+        "hero": {
+          "eyebrow": "OVER SHOPBONUS",
+          "heading": "Samen maken we online shoppen",
+          "heading_accent": "voordeliger.",
+          "subtitle": "Wij verbinden consumenten en webshops met aantrekkelijke aanbiedingen, cashback en vouchers. Eenvoudig, transparant en voor beide kanten waardevol.",
+          "cta_label": "Ontdek ons verhaal",
+          "cta_href": "#verhaal",
+          "float_title": "Eerlijk voordeel",
+          "float_text": "Aantrekkelijke deals en cashback, altijd transparant.",
+          "image_asset_id": null
+        },
+        "story": {
+          "eyebrow": "ONS VERHAAL",
+          "heading": "Een goed idee verdient",
+          "heading_accent": "meer dan korting.",
+          "image_asset_id": null,
+          "paragraphs": [
+            "ShopBonus is ontstaan vanuit de overtuiging dat online shoppen eenvoudiger, aantrekkelijker en voordeliger kan.",
+            "Wij brengen consumenten en webshops dichter bij elkaar. Consumenten ontdekken aanbiedingen en sparen via cashback voor vouchers. Webshops krijgen een extra mogelijkheid om hun producten en acties onder de aandacht te brengen.",
+            "Zo bouwen we aan een platform waar beide kanten voordeel van kunnen hebben."
+          ]
+        },
+        "revenue_model": {
+          "eyebrow": "TRANSPARANT OVER ONS VERDIENMODEL",
+          "heading": "Eerlijk verdeeld. Meer waarde voor iedereen.",
+          "explanation": "Wanneer een consument via ShopBonus een geldige aankoop doet bij een deelnemende webshop, kan ShopBonus daarvoor een commissie ontvangen. Die commissie verdelen we volgens de afgesproken voorwaarden.",
+          "consumer_label": "voor de consument",
+          "consumer_description": "Het standaardaandeel van de toepasselijke commissie dat als cashback kan worden toegekend.",
+          "platform_label": "voor ShopBonus",
+          "platform_description": "Het standaardaandeel waarmee we het platform onderhouden en verder ontwikkelen.",
+          "footnote": "De standaardverdeling is 70/30. Afwijkende afspraken zijn mogelijk. De berekening is afhankelijk van de geldige commissiegrondslag en actievoorwaarden."
+        },
+        "values": {
+          "eyebrow": "WAAR WIJ IN GELOVEN",
+          "heading": "Meer dan alleen kortingen.",
+          "introduction": "Wij willen online shoppen duidelijker, aantrekkelijker en toegankelijker maken. Dat vormt de basis van ShopBonus.",
+          "items": [
+            {
+              "icon": "tag",
+              "title": "Eerlijk voordeel",
+              "description": "Aantrekkelijke aanbiedingen met duidelijke voorwaarden, zodat consumenten begrijpen welk voordeel ze kunnen ontvangen."
+            },
+            {
+              "icon": "shop",
+              "title": "Vrijheid voor webshops",
+              "description": "Webshops bepalen hun commerciële afspraken en welke aanbiedingen zij beschikbaar willen stellen."
+            },
+            {
+              "icon": "users",
+              "title": "Eenvoud voor iedereen",
+              "description": "Een gebruiksvriendelijk platform waar consumenten eenvoudig aanbiedingen ontdekken en sparen voor vouchers."
+            }
+          ]
+        },
+        "team": {
+          "eyebrow": "DE MENSEN ACHTER SHOPBONUS",
+          "heading": "Een betrokken team met een duidelijke missie.",
+          "body": "Achter ShopBonus werken mensen aan een platform dat online winkelen voor consumenten en ondernemers aantrekkelijker maakt. We combineren commercieel inzicht met slimme technologie en duidelijke afspraken.",
+          "quote": "We geloven in een online wereld waarin consumenten en webshops samen meer bereiken.",
+          "image_asset_id": null,
+          "show_profiles": false,
+          "profiles": [],
+          "placeholder_label": "Foto oprichter\ntoevoegen"
+        },
+        "contact": {
+          "heading": "Contact met ShopBonus",
+          "intro": "Heb je een vraag over ShopBonus, cashback, vouchers of samenwerken met ons? We helpen je graag verder.",
+          "legal_name": "",
+          "address": "",
+          "kvk": "",
+          "email": "",
+          "links": [
+            {
+              "label": "Contact",
+              "href": "/support"
+            },
+            {
+              "label": "Privacy",
+              "href": "/pagina/privacy"
+            },
+            {
+              "label": "Voorwaarden",
+              "href": "/pagina/voorwaarden"
+            },
+            {
+              "label": "Bedrijfsgegevens",
+              "href": "/over-ons#contact"
+            }
+          ]
+        },
+        "bottom_cta": {
+          "eyebrow": "SAMEN NAAR EEN SLIMMERE TOEKOMST",
+          "heading": "Samen maken we shoppen",
+          "heading_accent": "slimmer.",
+          "description": "Of je nu op zoek bent naar de beste aanbiedingen of als webshop wilt groeien: we doen het samen. Ontdek wat ShopBonus voor jou kan betekenen.",
+          "consumer_cta": {
+            "label": "Ontdek aanbiedingen",
+            "href": "/webshops"
+          },
+          "merchant_cta": {
+            "label": "Voor webshops",
+            "href": "/voor-webshops"
+          }
+        },
+        "footer": {
+          "blurb": "ShopBonus verbindt consumenten en webshops met cashback, kortingscodes en vouchers. Wallet-saldo wissel je in voor vouchers — nooit voor contant geld."
+        },
+        "section_order": [
+          "hero",
+          "story",
+          "revenue_model",
+          "values",
+          "team",
+          "contact",
+          "bottom_cta"
+        ]
+      }
+    }
+  ]
+}
+```
+
+### `GET /api/v1/admin/content/over-ons/versions?locale=nl` — HTTP 401
+
+```http
+GET /api/v1/admin/content/over-ons/versions?locale=nl
+Accept: application/json
+```
+
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a1924e-2e94-71ea-b7d0-456c56ae0dd4"
+  }
+}
+```
+
+
+
+### Live storefront editor correction — 2026-10-31
+
+GET /api/v1/banners/config now includes editor_origin from FRONTEND_URL and per-campaign reward {threshold_minor,currency} from scoped linked offer terms (null when absent). The embed trusts no message until this origin is loaded. GET /api/v1/banners/editor/campaigns/{banner} returns the same reward metadata alongside the private draft. Bounded 15-second revalidation refreshes published versions, pause and rollback on visible storefronts.
+
+Draft create/save/editor-save configs accept optional placement.width (160–720 px), placement.height (80–800 px), and ordered layers: exactly one each of text/image/cta; visible boolean, align left/center/right, font_size 10–40 and width_pct 20–100. Existing configs remain valid. AI proposals generate these layers; acceptance still creates a private test draft and requires manual publishing.
+
+Real local HTTP examples (isolated SQLite, synthetic fixtures, backend base 59916e9 plus uncommitted patch) are in [BANNER_STUDIO_HTTP_CAPTURE.json](BANNER_STUDIO_HTTP_CAPTURE.json). Reproduce with php scripts/capture-banner-studio.php. No production credentials or provider acceptance implied.
+
+Captured requests/responses:
+
+The AI GET/index captures use a synthetic provider response generated through Http::fake, not a live model. Returned layer layouts are from the real running API.
+
+Request: `GET /api/v1/banners/config?key=pk_mszh1ylgmkocxqx3rdnnb4cw` with `Origin: https://banner-fixture.test`
+
+HTTP 200
+```json
+{
+  "data": {
+    "editor_origin": "http://localhost:3000",
+    "campaigns": [
+      {
+        "campaign": "01m6by27yyr6tcfp454xztxk8a",
+        "version": 1,
+        "config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "top",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        "reward": {
+          "threshold_minor": 10000,
+          "currency": "EUR"
+        }
+      }
+    ]
+  }
+}
+```
+
+Request: `GET /api/v1/banners/editor/campaigns/01m6by27yyr6tcfp454xztxk8a` with `Origin: https://banner-fixture.test` and `X-Banner-Editor-Token: <isolated-fixture>`
+
+HTTP 200
+```json
+{
+  "data": {
+    "id": "01m6by27yyr6tcfp454xztxk8a",
+    "name": "Isolated studio fixture",
+    "draft_revision": 1,
+    "draft_config": {
+      "template": "ribbon",
+      "placement": {
+        "anchor": "top",
+        "width": 360,
+        "height": 180
+      },
+      "content": {
+        "heading": "Next-purchase reward",
+        "subtitle": "Approved offer terms apply",
+        "cta_label": "View offer",
+        "cta_url": "https://example.nl/rewards",
+        "terms": "Original terms"
+      },
+      "style": {
+        "background": "#123456",
+        "text": "#FFFFFF",
+        "font": "inter",
+        "animation": "none"
+      },
+      "frequency": {
+        "per_session": 1,
+        "hide_after_dismiss": true
+      },
+      "triggers": {
+        "all": [
+          {
+            "type": "url_match",
+            "value": "/collections/*"
+          }
+        ]
+      },
+      "layers": [
+        {
+          "type": "text",
+          "visible": true,
+          "align": "left",
+          "font_size": 16,
+          "width_pct": 100
+        },
+        {
+          "type": "image",
+          "visible": true,
+          "align": "left",
+          "font_size": 16,
+          "width_pct": 100
+        },
+        {
+          "type": "cta",
+          "visible": true,
+          "align": "left",
+          "font_size": 16,
+          "width_pct": 100
+        }
+      ],
+      "devices": [
+        "desktop",
+        "mobile"
+      ]
+    },
+    "reward": {
+      "threshold_minor": 10000,
+      "currency": "EUR"
+    }
+  }
+}
+```
+
+Request: `GET /api/v1/banners/editor/campaigns/01m6by27yyr6tcfp454xztxk8a` with `Origin: https://banner-fixture.test`
+
+HTTP 401
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "editor_token_invalid",
+    "message": "Editor session expired or not valid for this site.",
+    "request_id": "01a197e1-2c0f-720f-84b1-085c48e5e33b"
+  }
+}
+```
+
+Request: `GET /api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests/01m6by282tesf9vb3wcm5mdypf` with `Origin: https://banner-fixture.test` and `Bearer <isolated-fixture>`
+
+HTTP 200
+```json
+{
+  "data": {
+    "id": "01m6by282tesf9vb3wcm5mdypf",
+    "kind": "designs",
+    "status": "completed",
+    "failure_code": null,
+    "source_revision": 1,
+    "evidence": {
+      "E1": {
+        "template": "ribbon",
+        "anchor": "top",
+        "style": {
+          "background": "#123456",
+          "text": "#FFFFFF",
+          "font": "inter"
+        }
+      },
+      "E2": {
+        "reward_minor": 1000,
+        "fee_minor": 300,
+        "total_minor": 1300,
+        "basis": "fixed",
+        "min_order_minor": 10000,
+        "currency": "EUR"
+      }
+    },
+    "proposals": [
+      {
+        "index": 0,
+        "hypothesis": "Test placement bottom and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+        "evidence_refs": [
+          "E1"
+        ],
+        "editable_config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "bottom",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      },
+      {
+        "index": 1,
+        "hypothesis": "Test placement top and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+        "evidence_refs": [
+          "E1"
+        ],
+        "editable_config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "top",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      },
+      {
+        "index": 2,
+        "hypothesis": "Test placement bottom_right and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+        "evidence_refs": [
+          "E1"
+        ],
+        "editable_config": {
+          "template": "ribbon",
+          "placement": {
+            "anchor": "bottom_right",
+            "width": 360,
+            "height": 180
+          },
+          "content": {
+            "heading": "Next-purchase reward",
+            "subtitle": "Approved offer terms apply",
+            "cta_label": "View offer",
+            "cta_url": "https://example.nl/rewards",
+            "terms": "Original terms"
+          },
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter",
+            "animation": "none"
+          },
+          "frequency": {
+            "per_session": 1,
+            "hide_after_dismiss": true
+          },
+          "triggers": {
+            "all": [
+              {
+                "type": "url_match",
+                "value": "/collections/*"
+              }
+            ]
+          },
+          "layers": [
+            {
+              "type": "text",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "image",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            },
+            {
+              "type": "cta",
+              "visible": true,
+              "align": "left",
+              "font_size": 16,
+              "width_pct": 100
+            }
+          ],
+          "devices": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      }
+    ],
+    "review": null,
+    "human_review_required": true,
+    "measured_uplift": null
+  }
+}
+```
+
+Request: `GET /api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests` with `Origin: https://banner-fixture.test` and `Bearer <isolated-fixture>`
+
+HTTP 200
+```json
+{
+  "current_page": 1,
+  "data": [
+    {
+      "id": "01m6by282tesf9vb3wcm5mdypf",
+      "kind": "designs",
+      "status": "completed",
+      "failure_code": null,
+      "source_revision": 1,
+      "evidence": {
+        "E1": {
+          "template": "ribbon",
+          "anchor": "top",
+          "style": {
+            "background": "#123456",
+            "text": "#FFFFFF",
+            "font": "inter"
+          }
+        },
+        "E2": {
+          "reward_minor": 1000,
+          "fee_minor": 300,
+          "total_minor": 1300,
+          "basis": "fixed",
+          "min_order_minor": 10000,
+          "currency": "EUR"
+        }
+      },
+      "proposals": [
+        {
+          "index": 0,
+          "hypothesis": "Test placement bottom and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+          "evidence_refs": [
+            "E1"
+          ],
+          "editable_config": {
+            "template": "ribbon",
+            "placement": {
+              "anchor": "bottom",
+              "width": 360,
+              "height": 180
+            },
+            "content": {
+              "heading": "Next-purchase reward",
+              "subtitle": "Approved offer terms apply",
+              "cta_label": "View offer",
+              "cta_url": "https://example.nl/rewards",
+              "terms": "Original terms"
+            },
+            "style": {
+              "background": "#123456",
+              "text": "#FFFFFF",
+              "font": "inter",
+              "animation": "none"
+            },
+            "frequency": {
+              "per_session": 1,
+              "hide_after_dismiss": true
+            },
+            "triggers": {
+              "all": [
+                {
+                  "type": "url_match",
+                  "value": "/collections/*"
+                }
+              ]
+            },
+            "layers": [
+              {
+                "type": "text",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "image",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "cta",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              }
+            ],
+            "devices": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        },
+        {
+          "index": 1,
+          "hypothesis": "Test placement top and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+          "evidence_refs": [
+            "E1"
+          ],
+          "editable_config": {
+            "template": "ribbon",
+            "placement": {
+              "anchor": "top",
+              "width": 360,
+              "height": 180
+            },
+            "content": {
+              "heading": "Next-purchase reward",
+              "subtitle": "Approved offer terms apply",
+              "cta_label": "View offer",
+              "cta_url": "https://example.nl/rewards",
+              "terms": "Original terms"
+            },
+            "style": {
+              "background": "#123456",
+              "text": "#FFFFFF",
+              "font": "inter",
+              "animation": "none"
+            },
+            "frequency": {
+              "per_session": 1,
+              "hide_after_dismiss": true
+            },
+            "triggers": {
+              "all": [
+                {
+                  "type": "url_match",
+                  "value": "/collections/*"
+                }
+              ]
+            },
+            "layers": [
+              {
+                "type": "text",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "image",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "cta",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              }
+            ],
+            "devices": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        },
+        {
+          "index": 2,
+          "hypothesis": "Test placement bottom_right and style. Existing timing and eligibility stay unchanged. No measured uplift is established.",
+          "evidence_refs": [
+            "E1"
+          ],
+          "editable_config": {
+            "template": "ribbon",
+            "placement": {
+              "anchor": "bottom_right",
+              "width": 360,
+              "height": 180
+            },
+            "content": {
+              "heading": "Next-purchase reward",
+              "subtitle": "Approved offer terms apply",
+              "cta_label": "View offer",
+              "cta_url": "https://example.nl/rewards",
+              "terms": "Original terms"
+            },
+            "style": {
+              "background": "#123456",
+              "text": "#FFFFFF",
+              "font": "inter",
+              "animation": "none"
+            },
+            "frequency": {
+              "per_session": 1,
+              "hide_after_dismiss": true
+            },
+            "triggers": {
+              "all": [
+                {
+                  "type": "url_match",
+                  "value": "/collections/*"
+                }
+              ]
+            },
+            "layers": [
+              {
+                "type": "text",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "image",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              },
+              {
+                "type": "cta",
+                "visible": true,
+                "align": "left",
+                "font_size": 16,
+                "width_pct": 100
+              }
+            ],
+            "devices": [
+              "desktop",
+              "mobile"
+            ]
+          }
+        }
+      ],
+      "review": null,
+      "human_review_required": true,
+      "measured_uplift": null
+    }
+  ],
+  "first_page_url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+  "from": 1,
+  "last_page": 1,
+  "last_page_url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+  "links": [
+    {
+      "url": null,
+      "label": "&laquo; Previous",
+      "page": null,
+      "active": false
+    },
+    {
+      "url": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests?page=1",
+      "label": "1",
+      "page": 1,
+      "active": true
+    },
+    {
+      "url": null,
+      "label": "Next &raquo;",
+      "page": null,
+      "active": false
+    }
+  ],
+  "next_page_url": null,
+  "path": "http://127.0.0.1:63060/api/v1/workspaces/01m6by27pv3bz2mehgvjv6d0eq/banners/01m6by27yyr6tcfp454xztxk8a/ai-requests",
+  "per_page": 20,
+  "prev_page_url": null,
+  "to": 1,
+  "total": 1
+}
+```
+
+## Affiliate detail correction — 2026-11-01
+
+Captured from a real local PHP 8.5 HTTP server with an isolated SQLite database and synthetic actors. Source: [AFFILIATE_DETAIL_HTTP_CAPTURE.json](AFFILIATE_DETAIL_HTTP_CAPTURE.json), reproducible with scripts/capture-affiliate-detail.php. Earlier examples are historical.
+
+New affiliate rewards require network approval plus independently recorded receipt of network funds. Approval is not settlement. Pending wallet rows remain unavailable. Combined promotions require reviewed advertiser permission for the selected network/account/program and unexpired terms; a merchant combinable boolean alone does not grant permission. Generated covers accept width=640, 960 or 1536, falling back to the original when no variant exists.
+
+### GET /api/v1/public/webshops/affiliate-fixture
+
+Request: GET /api/v1/public/webshops/affiliate-fixture (public)
+
+Response: HTTP 200
+
+```json
+{
+  "data": {
+    "slug": "affiliate-fixture",
+    "name": "Affiliate capture fixture",
+    "short_description": null,
+    "logo_url": null,
+    "cover_url": null,
+    "categories": [],
+    "badge_label": null,
+    "cashback_label": null,
+    "description": null,
+    "website_url": null,
+    "benefits": [],
+    "offers": []
+  }
+}
+```
+
+### GET /api/v1/consumer/wallet/transactions?filter=pending
+
+Request: GET /api/v1/consumer/wallet/transactions?filter=pending with Authorization: Bearer <redacted>
+
+Response: HTTP 200
+
+```json
+{
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 0
+  }
+}
+```
+
+### GET /api/v1/consumer/affiliate-activity?locale=en
+
+Request: GET /api/v1/consumer/affiliate-activity?locale=en with Authorization: Bearer <redacted>
+
+Response: HTTP 200
+
+```json
+{
+  "data": [],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 0
+  },
+  "notice": "Cashback becomes available after approval and receipt of the network payment. Checkout reservations are separate."
+}
+```
+
+### GET /api/v1/public/webshops/affiliate-fixture/cover?width=640
+
+Request: GET /api/v1/public/webshops/affiliate-fixture/cover?width=640 (public)
+
+Response: HTTP 404
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Cover not found.",
+    "request_id": "01a197e5-86b9-73e9-b2c6-672475d708da"
+  }
+}
+```
+
+## CMS reviewed publication repair — 2026-11-02
+
+Manual publication requires `revision` (integer >= 1) from the draft/preview being reviewed. Preview now returns `draft_revision`. Save/restore increments the draft revision; a stale Publish returns 409 `draft_changed` without a new public revision. Missing revision returns 422. All CMS publishers must send this field, including legal publication with version, date and approval. Public page/index/FAQ/cookie-policy responses use no-store; existing Laravel versioned caching remains.
+
+Real local HTTP server + isolated SQLite fixture and synthetic signed-in session; no production data. Captures: [CMS_REVIEW_HTTP_CAPTURE.json](CMS_REVIEW_HTTP_CAPTURE.json).
+
+`GET /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/preview`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"locale":"nl","slug":"review-http","content":{"title":"Reviewed legal text","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}},"draft_revision":1,"preview":true}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish`
+
+Request body: `{"legal_version":"review-2026.11","effective_date":"2026-11-02","approve":true}`
+
+HTTP 422 captured response:
+
+```json
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a19aa9-a880-73d3-a604-eeb2dcccc188","fields":{"revision":["The revision field is required."]}}}
+```
+
+`PUT /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl`
+
+Request body: `{"revision":1,"content":{"title":"New unreviewed draft","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}}}`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"locale":"nl","slug":"review-http","draft_revision":2}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish`
+
+Request body: `{"legal_version":"review-2026.11","effective_date":"2026-11-02","approve":true,"revision":1}`
+
+HTTP 409 captured response:
+
+```json
+{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a19aa9-ad5a-7171-8ffd-492186505283"}}
+```
+
+`GET /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/preview`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"locale":"nl","slug":"review-http","content":{"title":"New unreviewed draft","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}},"draft_revision":2,"preview":true}}
+```
+
+`POST /api/v1/admin/cms/pages/01m6dak8ddyn8x3wbdz2jxhp8t/locales/nl/publish`
+
+Request body: `{"legal_version":"review-2026.11","effective_date":"2026-11-02","approve":true,"revision":2}`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"id":"01m6dakckbmy9asbrdhaayp2jf","locale":"nl","number":1,"legal_version":"review-2026.11","effective_date":"2026-11-02","approved_by":"Olaf","published_by":"Olaf","restored_from":null,"published_at":"2026-11-02T05:09:34+00:00"}}
+```
+
+`GET /api/v1/public/pages/nl/review-http`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"key":"review-http","type":"terms","locale":"nl","slug":"review-http","content":{"title":"New unreviewed draft","seo_title":"Legal","seo_description":"Fixture","body":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Reviewed content"}]}]}},"legal":{"version":"review-2026.11","effective_date":"2026-11-02"},"revision":1,"published_at":"2026-11-02T05:09:34+00:00","alternates":{"nl":"review-http"}}}
+```
+
+`GET /api/v1/public/faq?locale=en`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":[]}
+```
+
+`GET /api/v1/public/cookie-policy?locale=en`
+
+Request body: `null`
+
+HTTP 200 captured response:
+
+```json
+{"data":{"version":null,"categories":[{"key":"necessary","required":true,"trackers":[]}],"texts":null,"requires_reconsent":false}}
+```
+
+
+<!-- Incoming review captures retained intact during merge. -->
+
+## #29 central notifications — B20a support-reply inbox
+
+2026-10-26 local actual Laravel HTTP server, isolated SQLite/database sessions/queue; main base d2fb5ed plus B20a working tree; synthetic users/reply and local Reverb auth configuration; actual owner200/other403/support403 channel authorization, no live mail/model/deployed WebSocket claim. All examples below were captured via actual HTTP. Email delivery, the remaining event catalogue, reminders and AI templates are not implemented in this slice. [Client contract and limits](../notifications/NOTIFICATIONS.md).
+
+### `GET /api/v1/notifications?filter=unread&page=1&per_page=20` — inbox
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=unread&page=1&per_page=20' -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-inbox' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-Request-Id: b20-capture-inbox
+
+{"data":[{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":null,"created_at":"2026-10-26T20:45:48+00:00"},{"id":"c615ff79-9256-4ec5-bce9-f5ae9b83776c","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":null,"created_at":"2026-10-26T20:45:48+00:00"}],"meta":{"unread_count":2,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `GET /api/v1/notification-preferences` — preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-preferences' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 98
+X-Request-Id: b20-capture-preferences
+
+{"data":{"locale":"nl","email_enabled":true,"preferences":{"support_reply":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false}},"email_delivery_available":false}}
+```
+
+### `PUT /api/v1/notification-preferences` — update-preferences
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-update-preferences' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"email":false,"in_app":true}}}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 97
+X-Request-Id: b20-capture-update-preferences
+
+{"data":{"locale":"en","email_enabled":false,"preferences":{"support_reply":{"in_app":true,"email":false},"workspace_support_reply":{"in_app":true,"email":false}},"email_delivery_available":false}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — mark-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mark-read' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 96
+X-Request-Id: b20-capture-mark-read
+
+{"data":{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — mark-read-idempotent
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mark-read-idempotent' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-Request-Id: b20-capture-mark-read-idempotent
+
+{"data":{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}}
+```
+
+### `POST /api/v1/notifications/read-all` — read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-read-all' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 94
+X-Request-Id: b20-capture-read-all
+
+{"data":{"marked_read":1}}
+```
+
+### `GET /api/v1/notifications` — reconnect
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-reconnect' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 93
+X-Request-Id: b20-capture-reconnect
+
+{"data":[{"id":"d87ef802-14ee-41ab-b06e-b1c49992df63","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"},{"id":"c615ff79-9256-4ec5-bce9-f5ae9b83776c","type":"support_reply","recipient_type":"consumer","title":"Nieuw antwoord van support","body":"Er staat een antwoord voor je klaar in je supportgesprek.","locale":"nl","action_label":"Bekijk gesprek","action_route":"/app/support?conversation=01m5wzcmpx0wspgkpzxxazqc8r","template_version":"support-reply-v1","delivery_channels":{"database":"delivered","email":"not_implemented"},"read_at":"2026-10-26T20:45:50+00:00","created_at":"2026-10-26T20:45:48+00:00"}],"meta":{"unread_count":0,"current_page":1,"per_page":20,"total":2}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — foreign-notification
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-foreign-notification' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 404
+X-Request-Id: b20-capture-foreign-notification
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+
+{"error":{"status":404,"code":"not_found","message":"Notification not found.","request_id":"b20-capture-foreign-notification"}}
+```
+
+### `GET /api/v1/notifications?filter=invalid` — invalid-filter
+
+```bash
+curl -i -X GET 'http://localhost:8079/api/v1/notifications?filter=invalid' -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-invalid-filter' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-invalid-filter
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 92
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-invalid-filter","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+### `PUT /api/v1/notification-preferences` — mandatory-in-app
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-mandatory-in-app' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"support_reply":{"in_app":false}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-mandatory-in-app
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 91
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-mandatory-in-app","fields":{"preferences.support_reply.in_app":["The preferences.support_reply.in_app field must be accepted."]}}}
+```
+
+### `PUT /api/v1/notification-preferences` — unknown-event
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unknown-event' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"preferences":{"unknown":{"email":true}}}'
+```
+
+```http
+HTTP/1.1 422
+X-Request-Id: b20-capture-unknown-event
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 90
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"b20-capture-unknown-event","fields":{"preferences":["The preferences field must be an array."]}}}
+```
+
+### `GET /api/v1/notifications` — unauthorized-inbox
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-inbox'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-inbox
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-inbox"}}
+```
+
+### `PATCH /api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read` — unauthorized-read
+
+```bash
+curl -i -X PATCH http://localhost:8079/api/v1/notifications/d87ef802-14ee-41ab-b06e-b1c49992df63/read -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-read' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-read
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-read"}}
+```
+
+### `POST /api/v1/notifications/read-all` — unauthorized-read-all
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-read-all' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-read-all
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-read-all"}}
+```
+
+### `GET /api/v1/notification-preferences` — unauthorized-preferences
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-preferences'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-preferences
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-preferences"}}
+```
+
+### `PUT /api/v1/notification-preferences` — unauthorized-update
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-unauthorized-update' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 401
+X-Request-Id: b20-capture-unauthorized-update
+Content-Type: application/json
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"b20-capture-unauthorized-update"}}
+```
+
+### `GET /api/v1/notifications` — support-denied
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-support-denied' -H 'Authorization: Bearer <SUPPORT_TOKEN>'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-support-denied
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 89
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"b20-capture-support-denied"}}
+```
+
+### `PUT /api/v1/notification-preferences` — support-preferences-denied
+
+```bash
+curl -i -X PUT http://localhost:8079/api/v1/notification-preferences -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-support-preferences-denied' -H 'Authorization: Bearer <SUPPORT_TOKEN>' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-support-preferences-denied
+Content-Type: application/json
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 88
+
+{"error":{"status":403,"code":"blocked_during_impersonation","message":"This action is not available during a support session.","request_id":"b20-capture-support-preferences-denied"}}
+```
+
+### `POST /api/v1/notifications/read-all` — browser-csrf
+
+```bash
+curl -i -X POST http://localhost:8079/api/v1/notifications/read-all -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-browser-csrf' -H 'Origin: http://localhost:3000' -H 'Referer: http://localhost:3000/' -H 'Content-Type: application/json' --data '{}'
+```
+
+```http
+HTTP/1.1 419
+X-Request-Id: b20-capture-browser-csrf
+Content-Type: application/json
+
+{"error":{"status":419,"code":"csrf_token_mismatch","message":"The session or CSRF token has expired. Refresh and try again.","request_id":"b20-capture-browser-csrf"}}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-owner
+
+Ephemeral channel authorization signature redacted.
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-owner' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+X-Request-Id: b20-capture-broadcast-owner
+
+{"auth":"<REDACTED_EPHEMERAL_CHANNEL_AUTH>"}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-other
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-other' -H 'Authorization: Bearer <API_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-broadcast-other
+Content-Type: application/json
+
+{"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-other"}}
+```
+
+### `POST /api/broadcasting/auth` — broadcast-support
+
+```bash
+curl -i -X POST http://localhost:8079/api/broadcasting/auth -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-broadcast-support' -H 'Authorization: Bearer <SUPPORT_TOKEN>' -H 'Content-Type: application/json' --data '{"channel_name":"private-shopbonus.user.01m5wzcmpay9hef4sb3m4kadbq.notifications","socket_id":"123.456"}'
+```
+
+```http
+HTTP/1.1 403
+X-Request-Id: b20-capture-broadcast-support
+Content-Type: application/json
+
+{"error":{"status":403,"code":"forbidden","message":"You are not allowed to perform this action.","request_id":"b20-capture-broadcast-support"}}
+```
+
+
+### `POST /api/broadcasting/user-auth` — realtime user sign-in (Trello #16)
+
+Not a live capture; behaviour from `tests/Feature/Workspaces/RealtimeRevocationTest.php`. Same auth as `/api/broadcasting/auth` (Sanctum cookie or token, active account). The Pusher/Reverb client calls it once per connection (Laravel Echo: `pusher.signin()` / user authentication enabled) so the server knows whose sockets they are. The signed user identity is the **public** user ID. Support (impersonation) sessions get 403; unauthenticated 401.
+
+When a member is removed or suspended, or loses `orders.view`, Shopbonus calls Reverb `terminate_connections` for that user after the change commits: every open socket of that user closes, the client reconnects, and channel auth then refuses what was withdrawn. A client that never signs in cannot be found by user and keeps an already-open subscription until it reconnects.
+
+```http
+HTTP/1.1 200
+Content-Type: application/json
+
+{"auth":"<REDACTED_EPHEMERAL_USER_AUTH>","user_data":"{\"id\":\"<user public_id>\"}"}
+```
+
+### `GET /api/v1/notifications` — rate-limit
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-rate-limit' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 429
+X-RateLimit-Limit: 1
+X-RateLimit-Remaining: 0
+Retry-After: 57
+X-Request-Id: b20-capture-rate-limit
+Content-Type: application/json
+
+{"error":{"status":429,"code":"too_many_requests","message":"Too many requests. Please slow down.","request_id":"b20-capture-rate-limit"}}
+```
+
+### `GET /api/v1/notifications` — storage-failure
+
+Temporary local router injects a storage-service failure through the actual Laravel kernel; router is not shipped.
+
+```bash
+curl -i -X GET http://localhost:8079/api/v1/notifications -H 'Accept: application/json' -H 'X-Request-Id: b20-capture-storage-failure' -H 'Authorization: Bearer <API_TOKEN>'
+```
+
+```http
+HTTP/1.1 500
+X-Request-Id: b20-capture-storage-failure
+Content-Type: application/json
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 987
+
+{"error":{"status":500,"code":"server_error","message":"An unexpected error occurred.","request_id":"b20-capture-storage-failure"}}
+```
+
+
+
+## Quality Center backend (B30, Trello #37)
+
+Captured on a real local PHP HTTP server (Laravel kernel), isolated synthetic SQLite, real `/login` + 2FA (TOTP for the first user, recovery codes after that, because Fortify refuses a reused TOTP code) + password confirmation. The imported report is a real PHPUnit 12 JUnit log of `tests/Feature/Qa`; the probe ran through `php artisan shopbonus:qa-probe`. Only the OpenAI Responses endpoint is a synthetic deterministic stub (no real model was called). Binary downloads are recorded as size and SHA-256. Full capture: `docs/qa/B30_QUALITY_CENTER_HTTP_CAPTURE.json`.
+
+Roles: Super Admin (everything; only role that manages schedules), `qa_tester` (inventory, runs, coverage approval, evidence, findings, retests, AI analysis) and `developer` (only findings assigned to them, their evidence, fix commits). Grant with `php artisan shopbonus:qa-role <email> qa_tester|developer [--revoke]`. All need confirmed 2FA; mutations need a recent password. Status rules: PASS only with executed assertions; FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS; only approved tests count; mocked passes stay labelled. CI imports with `php artisan shopbonus:qa-import <junit.xml> --suite=full --environment=staging --sha=<sha> [--coverage=map.json]`; after each deploy run `php artisan shopbonus:qa-discover --sha=<sha>`.
+
+`GET /api/v1/admin/qa/summary    (no session)` — summary_401
+
+```http
+HTTP/1.1 401 Unauthorized
+X-Request-Id: 01a188d8-b776-73a4-b658-89f0560b35b3
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a188d8-b776-73a4-b658-89f0560b35b3"}}
+```
+
+`GET /api/v1/admin/qa/openapi.json    (session)` — openapi_403_consumer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-baf3-7302-867a-2ddd8c648780
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-baf3-7302-867a-2ddd8c648780"}}
+```
+
+`GET /api/v1/admin/qa/summary    (session)` — summary_403_developer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-c345-7276-aca7-2001da20ce28
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-c345-7276-aca7-2001da20ce28"}}
+```
+
+`POST /api/v1/admin/qa/inventory/scan  {"git_sha":"not-a-sha"}    (session)` — scan_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-c371-73f1-96c8-d574c933452b
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-c371-73f1-96c8-d574c933452b","fields":{"git_sha":["The git sha field format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/inventory/scan  {"git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5"}    (session)` — scan_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-c39d-713b-b9ec-77fb318ae776
+
+{"data":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}}
+```
+
+`GET /api/v1/admin/qa/snapshots?per_page=1    (session)` — snapshots_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ca68-727b-a1ca-fc1aa3b94c38
+
+{"data":[{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","totals":{"endpoints":362,"components":141,"undocumented":0,"command":33,"connector":21,"event":6,"job":10,"listener":5,"migration":66},"diff":{"endpoints":{"added":["DELETE /api/v1/ai/conversations/{conversation}","DELETE /api/v1/consumer/email-change","DELETE /api/v1/consumer/favorites/{slug}","DELETE /api/v1/consumer/profile/avatar","DELETE /api/v1/notifications/{notification}","DELETE /api/v1/support-session","DELETE /api/v1/workspaces/{workspace}/connections/{connection}","DELETE /api/v1/workspaces/{workspace}/invitations/{invitation}","DELETE /api/v1/workspaces/{workspace}/members/{member}","DELETE /api/v1/workspaces/{workspace}/membership","DELETE /api/v1/workspaces/{workspace}/public-profile/logo","GET /api/v1/admin/activity","GET /api/v1/admin/affiliate/connections","GET /api/v1/admin/affiliate/programs","GET /api/v1/admin/affiliate/reward-rules","GET /api/v1/admin/affiliate/transactions","GET /api/v1/admin/affiliate/transactions/{transaction}","GET /api/v1/admin/affiliate/webshops/{webshop}/selections","GET /api/v1/admin/agreement-templates","GET /api/v1/admin/ai/knowledge/{document}/versions","GET /api/v1/admin/ai/operations","GET /api/v1/admin/ai/reviews","GET /api/v1/admin/ai/reviews/{review}","GET /api/v1/admin/answer24","GET /api/v1/admin/api-routes","GET /api/v1/admin/checkouts","GET /api/v1/admin/cms/cookie-consents/stats","GET /api/v1/admin/cms/cookie-policies","GET /api/v1/admin/cms/faq","GET /api/v1/admin/cms/pages","GET /api/v1/admin/cms/pages/{page}","GET /api/v1/admin/cms/pages/{page}/locales/{locale}/preview","GET /api/v1/admin/cms/pages/{page}/revisions","GET /api/v1/admin/cms/pages/{page}/suggestions","GET /api/v1/admin/cms/schedules","GET /api/v1/admin/cms/suggestions/{suggestion}","GET /api/v1/admin/cms/translations","GET /api/v1/admin/cockpit","GET /api/v1/admin/disputes","GET /api/v1/admin/disputes/{dispute}","GET /api/v1/admin/disputes/{dispute}/evidence/{file}","GET /api/v1/admin/financial-oversight","GET /api/v1/admin/incident-diagnostics/{diagnostic}","GET /api/v1/admin/incidents","GET /api/v1/admin/incidents/{incident}","GET /api/v1/admin/incidents/{incident}/diagnostics","GET /api/v1/admin/integrations","GET /api/v1/admin/integrations/failed-events","GET /api/v1/admin/monitoring","GET /api/v1/admin/operations-overview","GET /api/v1/admin/platform-settings","GET /api/v1/admin/qa/components","GET /api/v1/admin/qa/endpoints","GET /api/v1/admin/qa/endpoints/{endpoint}","GET /api/v1/admin/qa/evidence/{evidence}","GET /api/v1/admin/qa/findings","GET /api/v1/admin/qa/findings/{finding}","GET /api/v1/admin/qa/openapi.json","GET /api/v1/admin/qa/runs","GET /api/v1/admin/qa/runs/{run}","GET /api/v1/admin/qa/runs/{run}/export","GET /api/v1/admin/qa/schedules","GET /api/v1/admin/qa/snapshots","GET /api/v1/admin/qa/summary","GET /api/v1/admin/qa/test-cases","GET /api/v1/admin/reconciliation","GET /api/v1/admin/reconciliation/{run}","GET /api/v1/admin/support-sessions","GET /api/v1/admin/support-sessions/{session}","GET /api/v1/admin/users","GET /api/v1/admin/users/{user}","GET /api/v1/admin/wallet-adjustments","GET /api/v1/admin/wallet-reconciliation-flags","GET /api/v1/admin/wallets","GET /api/v1/admin/wallets/{wallet}/ledger","GET /api/v1/admin/webshops","GET /api/v1/admin/webshops/{webshop}","GET /api/v1/admin/webshops/{webshop}/evidence/{file}","GET /api/v1/affiliate/postback/{token}","GET /api/v1/ai/conversations","GET /api/v1/ai/conversations/{conversation}","GET /api/v1/ai/messages/{message}","GET /api/v1/banners/assets/{id}","GET /api/v1/banners/config","GET /api/v1/banners/editor/campaigns/{banner}","GET /api/v1/business-directory/places/{placeId}","GET /api/v1/business-directory/search","GET /api/v1/consumer/affiliate-activity","GET /api/v1/consumer/checkouts/{id}","GET /api/v1/consumer/dashboard","GET /api/v1/consumer/disputes","GET /api/v1/consumer/disputes/{id}","GET /api/v1/consumer/favorites","GET /api/v1/consumer/preferences","GET /api/v1/consumer/privacy/export","GET /api/v1/consumer/privacy/requests","GET /api/v1/consumer/profile","GET /api/v1/consumer/profile/avatar","GET /api/v1/consumer/vouchers","GET /api/v1/consumer/vouchers/{id}","GET /api/v1/consumer/wallet","GET /api/v1/consumer/wallet/transactions","GET /api/v1/consumer/wallet/transactions/{id}","GET /api/v1/health","GET /api/v1/health/ready","GET /api/v1/integrations/answer24/claims/{claim}","GET /api/v1/integrations/platforms","GET /api/v1/integrations/shopify/oauth/callback","GET /api/v1/integrations/shopware/app/registration","GET /api/v1/me","GET /api/v1/notification-preferences","GET /api/v1/notifications","GET /api/v1/owner/dashboard","GET /api/v1/platform/notifications/deliveries","GET /api/v1/platform/notifications/events","GET /api/v1/platform/notifications/settings","GET /api/v1/platform/notifications/templates","GET /api/v1/platform/notifications/templates/{template}","GET /api/v1/public/categories","GET /api/v1/public/content-assets/{id}","GET /api/v1/public/cookie-consents/{consentId}","GET /api/v1/public/cookie-policy","GET /api/v1/public/faq","GET /api/v1/public/legal-requirements","GET /api/v1/public/offers","GET /api/v1/public/offers/{slug}","GET /api/v1/public/pages","GET /api/v1/public/pages/{locale}/{slug}","GET /api/v1/public/settings","GET /api/v1/public/webshops","GET /api/v1/public/webshops/{slug}","GET /api/v1/public/webshops/{slug}/logo","GET /api/v1/public/webshops/{slug}/visit","GET /api/v1/workspaces","GET /api/v1/workspaces/{workspace}","GET /api/v1/workspaces/{workspace}/agreement","GET /api/v1/workspaces/{workspace}/analytics/claims","GET /api/v1/workspaces/{workspace}/analytics/overview","GET /api/v1/workspaces/{workspace}/answer24/opportunities","GET /api/v1/workspaces/{workspace}/answer24/settings","GET /api/v1/workspaces/{workspace}/banners","GET /api/v1/workspaces/{workspace}/banners/installation","GET /api/v1/workspaces/{workspace}/banners/{banner}","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","GET /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}","GET /api/v1/workspaces/{workspace}/banners/{banner}/experiment","GET /api/v1/workspaces/{workspace}/banners/{banner}/results","GET /api/v1/workspaces/{workspace}/banners/{banner}/versions","GET /api/v1/workspaces/{workspace}/business-profile","GET /api/v1/workspaces/{workspace}/code-imports/{batch}","GET /api/v1/workspaces/{workspace}/codes/{code}/history","GET /api/v1/workspaces/{workspace}/connections","GET /api/v1/workspaces/{workspace}/connections/{connection}","GET /api/v1/workspaces/{workspace}/connections/{connection}/capabilities","GET /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","GET /api/v1/workspaces/{workspace}/connections/{connection}/coupons","GET /api/v1/workspaces/{workspace}/connections/{connection}/events","GET /api/v1/workspaces/{workspace}/connections/{connection}/products","GET /api/v1/workspaces/{workspace}/dashboard","GET /api/v1/workspaces/{workspace}/disputes","GET /api/v1/workspaces/{workspace}/funding","GET /api/v1/workspaces/{workspace}/funding/obligations","GET /api/v1/workspaces/{workspace}/funding/top-ups/{topUp}","GET /api/v1/workspaces/{workspace}/funding/transactions","GET /api/v1/workspaces/{workspace}/invitations","GET /api/v1/workspaces/{workspace}/invoices","GET /api/v1/workspaces/{workspace}/members","GET /api/v1/workspaces/{workspace}/notifications","GET /api/v1/workspaces/{workspace}/offers","GET /api/v1/workspaces/{workspace}/offers/{offer}","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes","GET /api/v1/workspaces/{workspace}/offers/{offer}/codes/export","GET /api/v1/workspaces/{workspace}/onboarding","GET /api/v1/workspaces/{workspace}/orders","GET /api/v1/workspaces/{workspace}/orders/export","GET /api/v1/workspaces/{workspace}/orders/{order}","GET /api/v1/workspaces/{workspace}/ownership/verifications","GET /api/v1/workspaces/{workspace}/public-profile","PATCH /api/v1/admin/affiliate/programs/{program}","PATCH /api/v1/admin/agreement-templates/{template}","PATCH /api/v1/admin/incidents/{incident}","PATCH /api/v1/admin/qa/schedules/{schedule}","PATCH /api/v1/consumer/profile","PATCH /api/v1/notifications/{notification}/read","PATCH /api/v1/workspaces/{workspace}","PATCH /api/v1/workspaces/{workspace}/members/{member}","PATCH /api/v1/workspaces/{workspace}/offers/{offer}","POST /api/v1/admin/affiliate/connections","POST /api/v1/admin/affiliate/connections/{connection}/disable","POST /api/v1/admin/affiliate/connections/{connection}/import","POST /api/v1/admin/affiliate/connections/{connection}/sync","POST /api/v1/admin/affiliate/connections/{connection}/test","POST /api/v1/admin/affiliate/reward-rules","POST /api/v1/admin/affiliate/reward-rules/{version}/deactivate","POST /api/v1/admin/affiliate/transactions/{transaction}/resolve","POST /api/v1/admin/affiliate/webshops/{webshop}/selections","POST /api/v1/admin/agreement-templates","POST /api/v1/admin/agreement-templates/{template}/publish","POST /api/v1/admin/ai/conversations/{conversation}/reply","POST /api/v1/admin/ai/knowledge/{document}/rollback","POST /api/v1/admin/ai/reviews/{review}/resolve","POST /api/v1/admin/ai/settings/{version}/test","POST /api/v1/admin/answer24/messages/{message}/retry","POST /api/v1/admin/audit/export","POST /api/v1/admin/checkouts/{checkout}/refund","POST /api/v1/admin/cms/assets","POST /api/v1/admin/cms/cookie-policies","POST /api/v1/admin/cms/cookie-policies/{policy}/publish","POST /api/v1/admin/cms/faq/categories","POST /api/v1/admin/cms/faq/items","POST /api/v1/admin/cms/faq/reorder","POST /api/v1/admin/cms/pages","POST /api/v1/admin/cms/pages/{page}/archive","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/publish","POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions","POST /api/v1/admin/cms/pages/{page}/revisions/{revision}/restore","POST /api/v1/admin/cms/pages/{page}/schedules","POST /api/v1/admin/cms/schedules/{schedule}/cancel","POST /api/v1/admin/cms/suggestions/{suggestion}/apply","POST /api/v1/admin/cms/suggestions/{suggestion}/reject","POST /api/v1/admin/disputes/{dispute}/resolve","POST /api/v1/admin/disputes/{dispute}/status","POST /api/v1/admin/incident-diagnostics/{diagnostic}/review","POST /api/v1/admin/incidents/{incident}/diagnostics","POST /api/v1/admin/integrations/events/{event}/retry","POST /api/v1/admin/platform-settings","POST /api/v1/admin/platform-settings/{version}/publish","POST /api/v1/admin/platform-settings/{version}/review","POST /api/v1/admin/platform-settings/{version}/rollback","POST /api/v1/admin/qa/coverage","POST /api/v1/admin/qa/findings","POST /api/v1/admin/qa/findings/{finding}/analyze","POST /api/v1/admin/qa/findings/{finding}/fix","POST /api/v1/admin/qa/findings/{finding}/retest","POST /api/v1/admin/qa/frontend-usage","POST /api/v1/admin/qa/inventory/scan","POST /api/v1/admin/qa/runs","POST /api/v1/admin/qa/runs/{run}/evidence","POST /api/v1/admin/qa/schedules","POST /api/v1/admin/qa/test-cases","POST /api/v1/admin/qa/test-cases/approve","POST /api/v1/admin/reconciliation","POST /api/v1/admin/reconciliation/{run}/resume","POST /api/v1/admin/step-up/code","POST /api/v1/admin/step-up/verify","POST /api/v1/admin/support-sessions","POST /api/v1/admin/support-sessions/{session}/end","POST /api/v1/admin/users/{user}/reactivate","POST /api/v1/admin/users/{user}/reset-security","POST /api/v1/admin/users/{user}/revoke-super-admin","POST /api/v1/admin/users/{user}/suspend","POST /api/v1/admin/wallet-adjustments","POST /api/v1/admin/wallet-adjustments/{approval}/review","POST /api/v1/admin/wallet-reconciliation-flags/{flag}/resolve","POST /api/v1/admin/webshops/{webshop}/approve","POST /api/v1/admin/webshops/{webshop}/members/{user}/revoke","POST /api/v1/admin/webshops/{webshop}/reject","POST /api/v1/admin/webshops/{webshop}/request-information","POST /api/v1/admin/webshops/{webshop}/suspend","POST /api/v1/admin/webshops/{webshop}/unsuspend","POST /api/v1/affiliate/postback/{token}","POST /api/v1/ai/chat","POST /api/v1/ai/knowledge/search","POST /api/v1/ai/messages/{message}/escalate","POST /api/v1/ai/messages/{message}/feedback","POST /api/v1/auth/email/resend-code","POST /api/v1/auth/email/verify-code","POST /api/v1/banners/assignments","POST /api/v1/banners/editor/pair","POST /api/v1/banners/events","POST /api/v1/claims/accept","POST /api/v1/claims/preview","POST /api/v1/consumer/checkouts","POST /api/v1/consumer/checkouts/quote","POST /api/v1/consumer/disputes","POST /api/v1/consumer/email-change","POST /api/v1/consumer/email-change/confirm","POST /api/v1/consumer/offers/{slug}/claim","POST /api/v1/consumer/privacy/deletion-request","POST /api/v1/consumer/profile/avatar","POST /api/v1/integrations/answer24/claims/{claim}/reminders","POST /api/v1/integrations/answer24/contact-results","POST /api/v1/integrations/answer24/handoffs","POST /api/v1/integrations/shopify/compliance","POST /api/v1/integrations/shopware/app/registration/confirm","POST /api/v1/integrations/shopware/app/webhook","POST /api/v1/invitations/accept","POST /api/v1/invitations/preview","POST /api/v1/notifications/read-all","POST /api/v1/payments/mollie/webhook","POST /api/v1/platform/notifications/deliveries/{delivery}/resolve","POST /api/v1/platform/notifications/deliveries/{delivery}/retry","POST /api/v1/platform/notifications/events/{event}/retry","POST /api/v1/platform/notifications/templates","POST /api/v1/platform/notifications/templates/generate","POST /api/v1/platform/notifications/templates/{template}/publish","POST /api/v1/platform/notifications/templates/{template}/rollback","POST /api/v1/platform/notifications/templates/{template}/test","POST /api/v1/public/cookie-consents","POST /api/v1/webhooks/{platform}/{token}","POST /api/v1/workspaces","POST /api/v1/workspaces/{workspace}/agreement/accept","POST /api/v1/workspaces/{workspace}/answer24/suppressions","POST /api/v1/workspaces/{workspace}/banners","POST /api/v1/workspaces/{workspace}/banners/assets","POST /api/v1/workspaces/{workspace}/banners/pairing","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests","POST /api/v1/workspaces/{workspace}/banners/{banner}/ai-requests/{run}/review","POST /api/v1/workspaces/{workspace}/banners/{banner}/duplicate","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment","POST /api/v1/workspaces/{workspace}/banners/{banner}/experiment/stop","POST /api/v1/workspaces/{workspace}/banners/{banner}/pause","POST /api/v1/workspaces/{workspace}/banners/{banner}/publish","POST /api/v1/workspaces/{workspace}/banners/{banner}/resume","POST /api/v1/workspaces/{workspace}/banners/{banner}/rollback","POST /api/v1/workspaces/{workspace}/banners/{banner}/schedule","POST /api/v1/workspaces/{workspace}/banners/{banner}/simulate","POST /api/v1/workspaces/{workspace}/code-imports/{batch}/commit","POST /api/v1/workspaces/{workspace}/codes/{code}/invalidate","POST /api/v1/workspaces/{workspace}/codes/{code}/reveal","POST /api/v1/workspaces/{workspace}/connections","POST /api/v1/workspaces/{workspace}/connections/{connection}/catalog-syncs","POST /api/v1/workspaces/{workspace}/connections/{connection}/credentials","POST /api/v1/workspaces/{workspace}/connections/{connection}/events/{event}/retry","POST /api/v1/workspaces/{workspace}/connections/{connection}/test-api","POST /api/v1/workspaces/{workspace}/connections/{connection}/verify","POST /api/v1/workspaces/{workspace}/disputes/{dispute}/respond","POST /api/v1/workspaces/{workspace}/funding/top-ups","POST /api/v1/workspaces/{workspace}/integrations/shopify/oauth","POST /api/v1/workspaces/{workspace}/invitations","POST /api/v1/workspaces/{workspace}/invitations/{invitation}/resend","POST /api/v1/workspaces/{workspace}/members/{member}/reactivate","POST /api/v1/workspaces/{workspace}/members/{member}/suspend","POST /api/v1/workspaces/{workspace}/notifications/read-all","POST /api/v1/workspaces/{workspace}/notifications/{notification}/read","POST /api/v1/workspaces/{workspace}/offers","POST /api/v1/workspaces/{workspace}/offers/{offer}/activate","POST /api/v1/workspaces/{workspace}/offers/{offer}/code-imports","POST /api/v1/workspaces/{workspace}/offers/{offer}/end","POST /api/v1/workspaces/{workspace}/offers/{offer}/pause","POST /api/v1/workspaces/{workspace}/ownership/review","POST /api/v1/workspaces/{workspace}/ownership/verifications","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/check","POST /api/v1/workspaces/{workspace}/ownership/verifications/{verification}/confirm-code","POST /api/v1/workspaces/{workspace}/public-profile/logo","POST /api/v1/workspaces/{workspace}/select","POST /api/v1/workspaces/{workspace}/vouchers/redeem","PUT /api/v1/admin/cms/cookie-policies/{policy}","PUT /api/v1/admin/cms/faq/items/{item}","PUT /api/v1/admin/cms/pages/{page}/locales/{locale}","PUT /api/v1/admin/qa/test-cases/{testCase}/coverage","PUT /api/v1/banners/editor/campaigns/{banner}","PUT /api/v1/consumer/favorites/{slug}","PUT /api/v1/consumer/preferences","PUT /api/v1/notification-preferences","PUT /api/v1/platform/notifications/settings","PUT /api/v1/platform/notifications/templates/{template}","PUT /api/v1/workspaces/{workspace}/answer24/settings","PUT /api/v1/workspaces/{workspace}/banners/installation","PUT /api/v1/workspaces/{workspace}/banners/{banner}","PUT /api/v1/workspaces/{workspace}/business-profile","PUT /api/v1/workspaces/{workspace}/public-profile"],"changed":[],"removed":[]},"components":{"added":["command:app/Console/Commands/ApiRoutes","command:app/Console/Commands/CloseContactWindows","command:app/Console/Commands/CreateBackup","command:app/Console/Commands/CreateIntegrationClient","command:app/Console/Commands/DispatchNotifications","command:app/Console/Commands/DispatchOutbox","command:app/Console/Commands/ExpireCheckouts","command:app/Console/Commands/ExpireVouchers","command:app/Console/Commands/GenerateMerchantNotifications","command:app/Console/Commands/GrantQaRole","command:app/Console/Commands/GrantSuperAdmin","command:app/Console/Commands/LaunchCheck","command:app/Console/Commands/MonitorApi","command:app/Console/Commands/ObserveOperations","command:app/Console/Commands/PrepareInvoices","command:app/Console/Commands/ProvisionShopifyWebhooks","command:app/Console/Commands/PruneSupport","command:app/Console/Commands/PruneWebhookPayloads","command:app/Console/Commands/PublishScheduledBanners","command:app/Console/Commands/PublishScheduledContent","command:app/Console/Commands/QaDiscover","command:app/Console/Commands/QaImportRun","command:app/Console/Commands/QaProbeRun","command:app/Console/Commands/ReconcileFinancials","command:app/Console/Commands/RecoverIntegrationOrder","command:app/Console/Commands/SetupLocalIntegration","command:app/Console/Commands/ShopifyComplianceRequests","command:app/Console/Commands/SynchronizeIntegrationOrders","command:app/Console/Commands/TestRestore","command:app/Console/Commands/VerifyAudit","command:app/Console/Commands/VerifyLatestBackup","command:app/Console/Commands/WalletHousekeeping","command:app/Console/Commands/WalletReconcile","connector:app/Integrations/Connectors/BigCommerceCatalog","connector:app/Integrations/Connectors/BigCommerceConnector","connector:app/Integrations/Connectors/CatalogValues","connector:app/Integrations/Connectors/EcwidCatalog","connector:app/Integrations/Connectors/EcwidConnector","connector:app/Integrations/Connectors/GenericSignedWebhookConnector","connector:app/Integrations/Connectors/MagentoCatalog","connector:app/Integrations/Connectors/MagentoConnector","connector:app/Integrations/Connectors/PrestaShopCatalog","connector:app/Integrations/Connectors/PrestaShopConnector","connector:app/Integrations/Connectors/ShopifyCatalog","connector:app/Integrations/Connectors/ShopifyConnector","connector:app/Integrations/Connectors/ShopwareCatalog","connector:app/Integrations/Connectors/ShopwareConnector","connector:app/Integrations/Connectors/WebhookConnector","connector:app/Integrations/Connectors/WixCatalog","connector:app/Integrations/Connectors/WixConnector","connector:app/Integrations/Connectors/WooCommerceCatalog","connector:app/Integrations/Connectors/WooCommerceConnector","connector:app/Services/Answer24/Answer24Client","connector:app/Services/Checkout/MollieClient","event:app/Events/ApplicationErrorRecorded","event:app/Events/NotificationInboxChanged","event:app/Events/OrderEventVerified","event:app/Events/OrderSheetUpdated","event:app/Events/RefundEventVerified","event:app/Events/SupportProgress","job:app/Jobs/AnalyzeIncident","job:app/Jobs/CommitCodeBatch","job:app/Jobs/DeliverNotificationMail","job:app/Jobs/GenerateBannerProposals","job:app/Jobs/ProcessSupportMessage","job:app/Jobs/ProcessWebhookEvent","job:app/Jobs/ProvisionShopifyWebhook","job:app/Jobs/RecoverProviderOrder","job:app/Jobs/SyncConnectionCatalog","job:app/Jobs/SynchronizeProviderOrders","listener:app/Listeners/AuditIdentityEvents","listener:app/Listeners/IngestOrderEvents","listener:app/Listeners/RecordFailedJob","listener:app/Listeners/RecordTechnicalIncident","listener:app/Listeners/SendVerificationCodeOnRegistration","migration:0001_01_01_000000_create_users_table","migration:0001_01_01_000001_create_cache_table","migration:0001_01_01_000002_create_jobs_table","migration:2026_10_23_122113_create_personal_access_tokens_table","migration:2026_10_23_130000_create_audit_events_table","migration:2026_10_23_130100_create_application_errors_table","migration:2026_10_23_140000_add_identity_columns_to_users_table","migration:2026_10_23_140100_create_email_verification_challenges_table","migration:2026_10_23_140200_create_legal_acceptances_table","migration:2026_10_23_140300_create_consent_records_table","migration:2026_10_23_150000_create_webshops_table","migration:2026_10_23_160000_create_webshop_invitations_table","migration:2026_10_23_170000_create_onboarding_tables","migration:2026_10_23_180000_create_agreement_tables","migration:2026_10_23_190000_create_integration_tables","migration:2026_10_23_200000_create_order_tables","migration:2026_10_23_210000_create_offer_tables","migration:2026_10_23_220000_create_voucher_tables","migration:2026_10_23_230000_create_contact_tables","migration:2026_10_23_240000_create_answer24_channel_tables","migration:2026_10_23_250000_create_public_discovery_tables","migration:2026_10_23_260000_create_consumer_profile_tables","migration:2026_10_23_270000_create_wallet_tables","migration:2026_10_23_280000_create_affiliate_tables","migration:2026_10_24_100000_create_checkout_tables","migration:2026_10_24_110000_create_voucher_dispute_tables","migration:2026_10_24_120000_create_funding_tables","migration:2026_10_24_130000_create_merchant_notifications_table","migration:2026_10_24_140000_create_banner_tables","migration:2026_10_24_150000_create_cms_tables","migration:2026_10_24_160000_create_cookie_consent_tables","migration:2026_10_24_170000_create_admin_security_tables","migration:2026_10_25_100000_add_reconciliation_flag_review","migration:2026_10_25_110000_create_admin_approval_requests","migration:2026_10_25_120000_create_security_incidents","migration:2026_10_25_130000_create_audit_integrity_chain","migration:2026_10_25_140000_create_platform_setting_versions","migration:2026_10_25_150000_create_incident_diagnostics","migration:2026_10_26_100000_create_banner_ai_requests","migration:2026_10_26_110000_create_banner_experiments","migration:2026_10_26_120000_create_support_chat","migration:2026_10_26_130000_create_support_knowledge_versions","migration:2026_10_26_140000_create_central_notifications","migration:2026_10_26_150000_create_notification_outbox","migration:2026_10_26_160000_create_notification_deliveries","migration:2026_10_26_170000_create_notification_template_tests","migration:2026_10_27_100000_add_funding_request_identity","migration:2026_10_27_110000_create_api_observations","migration:2026_10_27_120000_add_financial_evidence_snapshots","migration:2026_10_28_100000_create_financial_reconciliation_runs","migration:2026_10_28_110000_extend_reconciliation_source_scope","migration:2026_10_28_120000_create_operational_observations","migration:2026_10_28_130000_create_recovery_events","migration:2026_10_28_140000_index_reconciliation_report_pages","migration:2026_10_28_150000_bind_webhooks_to_credential_generation","migration:2026_10_28_160000_create_integration_order_recoveries","migration:2026_10_28_170000_bind_recoveries_to_provider_store","migration:2026_10_28_180000_create_shopify_authorizations","migration:2026_10_28_190000_create_integration_sync_runs","migration:2026_10_28_200000_add_encrypted_order_line_snapshots","migration:2026_10_29_100000_create_shopify_compliance_requests","migration:2026_10_29_110000_create_shopware_app_shops","migration:2026_10_29_120000_add_evidence_to_voucher_disputes","migration:2026_10_29_130000_create_catalog_sync_tables","migration:2026_10_29_140000_create_cms_schedules_and_suggestions","migration:2026_10_29_150000_create_qa_tables"],"changed":[],"removed":[]},"undocumented":[]},"created_at":"2026-10-29T18:07:50+00:00"}],"meta":{"current_page":1,"total":1,"per_page":1,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/endpoints?q=consumer/wallet&per_page=2    (session)` — endpoints_200_search
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ca8f-70ab-8d53-c56c41e56dce
+
+{"data":[{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj8jd81wgas3et77mkty","method":"GET","path":"/api/v1/consumer/wallet/transactions","name":"api.v1.consumer.wallet.transactions.index","handler":"Api\\V1\\Consumer\\WalletController@transactions","summary":"My wallet history","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":3,"per_page":2,"last_page":2}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=untested&per_page=2    (session)` — endpoints_200_untested
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cab8-709a-baa2-8289851e7b0d
+
+{"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":null,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":362,"per_page":2,"last_page":181}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=bogus    (session)` — endpoints_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-caf0-7182-b687-efee22183308
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-caf0-7182-b687-efee22183308","fields":{"filter":["The selected filter is invalid."]}}}
+```
+
+`GET /api/v1/admin/qa/components?kind=schedule&per_page=3    (session)` — components_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cb1c-7261-a603-7298a7065f20
+
+{"data":[],"meta":{"current_page":1,"total":0,"per_page":3,"last_page":1}}
+```
+
+`POST /api/v1/admin/qa/frontend-usage  {"routes":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile","GET /api/v1/not-a-route"]}    (session)` — frontend_usage_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cb39-73d9-9777-5761f4d13404
+
+{"data":{"referenced":2,"unknown_routes":1,"unreferenced_review":339,"external_clients":21}}
+```
+
+`POST /api/v1/admin/qa/frontend-usage  {"routes":["rm -rf /"]}    (session)` — frontend_usage_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cc1f-7138-ad54-28af76854e25
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc1f-7138-ad54-28af76854e25","fields":{"routes.0":["The routes.0 field format is invalid."]}}}
+```
+
+`GET /api/v1/admin/qa/endpoints?filter=unreferenced&per_page=2    (session)` — endpoints_200_unreferenced
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cc41-7397-ad42-4b564956af51
+
+{"data":[{"id":"01m64dhj6sx0wwcbxvpnc4744c","method":"GET","path":"/api/v1/admin/activity","name":"api.v1.admin.activity","handler":"Api\\V1\\Admin\\CockpitController@activity","summary":"Recent platform activity (audit log)","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null},{"id":"01m64dhj6sx0wwcbxvpnc4744d","method":"GET","path":"/api/v1/admin/affiliate/connections","name":"api.v1.admin.affiliate.connections.index","handler":"Api\\V1\\Admin\\AffiliateController@connections","summary":"Affiliate network connections","access":"admin","permission":null,"scope":"platform","documented":true,"status":"untested","mocked":false,"tests":0,"last_run_at":null,"frontend_referenced":false,"external_client":false,"review":"UNREFERENCED — REVIEW","first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null}],"meta":{"current_page":1,"total":339,"per_page":2,"last_page":170}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"not-junit.json","mime":"application/json","bytes":42,"sha256":"b16d06647e037937c7af7fbbf64002a45feb15dee41ff2552fbce275a43eab49"}}    (session)` — runs_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cc7a-7147-9957-2badb51d4dba
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cc7a-7147-9957-2badb51d4dba","fields":{"report":["The report field must be a file of type: application/xml, text/xml, text/plain."]}}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"junit.xml","mime":"application/xml","bytes":3274,"sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e"}}    (session)` — runs_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ccaf-7361-8b5f-e79d8b18574f
+
+{"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","report":{"file":"junit.xml","mime":"application/xml","bytes":3274,"sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e"}}    (session)` — runs_store_409_duplicate
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-ccee-7209-aee4-ca481a7d7baf
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"run_duplicate","message":"This report was already imported.","request_id":"01a188d8-ccee-7209-aee4-ca481a7d7baf","details":{"run":"01m64dhk68zrrb9fkghmzzeax9"}}}
+```
+
+`POST /api/v1/admin/qa/coverage  {"map":{"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence":["GET /api/v1/consumer/wallet","GET /api/v1/consumer/profile","GET /api/v1/unknown"]}}    (session)` — coverage_import_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd14-71e1-b193-6b6bb399bd8b
+
+{"data":{"linked":2,"unknown_tests":[],"unknown_targets":["GET /api/v1/unknown"]}}
+```
+
+`GET /api/v1/admin/qa/test-cases?status=draft&per_page=2    (session)` — test_cases_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd49-7066-bb15-ec38ba9f0471
+
+{"data":[{"id":"01m64dhk651fbkwbk32r8tgv32","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","title":"test_ai_analysis_is_advisory_and_grounded_in_the_input","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null},{"id":"01m64dhk6659bjk76pc3ba9z28","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","title":"test_cli_import_for_ci_runners","scenario":null,"source":"phpunit","status":"draft","version":1,"approved_at":null}],"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+```
+
+`POST /api/v1/admin/qa/test-cases  {"key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual"}    (session)` — test_case_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cd67-7394-88b9-a1581b8d68b4
+
+{"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"draft","version":null,"approved_at":null}}
+```
+
+`POST /api/v1/admin/qa/test-cases  {"key":"E2E-07-shopify-install","title":"dup","source":"manual"}    (session)` — test_case_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cd8d-7118-9b1f-2a6a5ea12d4f","fields":{"key":["The key has already been taken."]}}}
+```
+
+`POST /api/v1/admin/qa/test-cases/approve  {"keys":["Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","E2E-07-shopify-install","missing-key"]}    (session)` — test_cases_approve_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdb2-721b-acaa-55c28ca182b0
+
+{"data":{"approved":2,"skipped":1}}
+```
+
+`PUT /api/v1/admin/qa/test-cases/01m64dhkbp425gdzkkn1w8bvfh/coverage  {"endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}    (session)` — test_case_coverage_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdd7-7397-8fbb-dc1e395dd6cc
+
+{"data":{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","endpoints":["01m64dhj8hp0rnvqhfymfx7j55"],"components":[]}}
+```
+
+`GET /api/v1/admin/qa/endpoints/01m64dhj8hp0rnvqhfymfx7j55    (session)` — endpoint_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cdfb-7048-81f5-be33454d2164
+
+{"data":{"id":"01m64dhj8hp0rnvqhfymfx7j55","method":"GET","path":"/api/v1/consumer/wallet","name":"api.v1.consumer.wallet.show","handler":"Api\\V1\\Consumer\\WalletController@show","summary":"My wallet balances","access":"verified","permission":null,"scope":"authenticated_user_resource","documented":true,"status":"untested","mocked":false,"tests":2,"last_run_at":"2026-10-29T18:07:52+00:00","frontend_referenced":true,"external_client":false,"review":null,"first_seen_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","changed_at":"2026-10-29T18:07:50+00:00","removed_at":null,"test_cases":[{"id":"01m64dhkbp425gdzkkn1w8bvfh","key":"E2E-07-shopify-install","title":"Shopify installation on a staging store","scenario":"E2E-07","source":"manual","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":null},{"id":"01m64dhk63b1mhxrct5veq7ett","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","title":"test_status_comes_only_from_approved_executed_evidence","scenario":null,"source":"phpunit","status":"approved","version":1,"approved_at":"2026-10-29T18:07:52+00:00","latest_result":{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null,"run_id":"01m64dhk68zrrb9fkghmzzeax9","created_at":"2026-10-29T18:07:52+00:00"}}]}}
+```
+
+`GET /api/v1/admin/qa/endpoints/01m6400000000000000000zzzz    (session)` — endpoint_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-ce19-7336-978d-dfb83a1a4f67
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a188d8-ce19-7336-978d-dfb83a1a4f67"}}
+```
+
+`GET /api/v1/admin/qa/runs?per_page=2    (session)` — runs_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ce37-73b4-ad7d-3e58b7bc43ee
+
+{"data":[{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},{"id":"01m64dhcezejjx7h5wmxnsfzh6","suite":"safe","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"probe","totals":{"total":3,"assertions":3,"pass":3,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":7,"report_sha256":"ae1336016d6bb54c7ecd8a2505ef978d4f2fc542104565d455c8a0df1f069981","created_at":"2026-10-29T18:07:45+00:00"}],"meta":{"current_page":1,"total":2,"per_page":2,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9?status=pass&per_page=2    (session)` — run_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-ce53-71b4-adf3-5756e94ff266
+
+{"data":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00","results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null}],"evidence":[]},"meta":{"current_page":1,"total":10,"per_page":2,"last_page":5}}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=json    (session)` — export_json_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.json"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ce73-7060-8675-74182acc7962
+
+{"run":{"id":"01m64dhk68zrrb9fkghmzzeax9","suite":"changed","environment":"staging","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","source":"junit","totals":{"total":10,"assertions":231,"pass":10,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":15049,"report_sha256":"d8dcb77ada54d8a2be78624a75ac329e5ad378f1bcf9a07ac70e53245c8d6a2e","created_at":"2026-10-29T18:07:52+00:00"},"results":[{"id":"01m64dhk68zrrb9fkghmzzeaxa","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated","status":"pass","assertions":13,"mocked":false,"duration_ms":1161,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxb","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_discovery_finds_new_changed_removed_and_undocumented_routes","status":"pass","assertions":31,"mocked":false,"duration_ms":5285,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxc","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_status_comes_only_from_approved_executed_evidence","status":"pass","assertions":42,"mocked":false,"duration_ms":1346,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxd","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_exports_are_escaped_private_downloads","status":"pass","assertions":13,"mocked":false,"duration_ms":53,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxe","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_evidence_is_encrypted_deduplicated_and_scoped","status":"pass","assertions":16,"mocked":false,"duration_ms":83,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxf","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_finding_workflow_needs_an_independent_evidence_based_retest","status":"pass","assertions":46,"mocked":false,"duration_ms":1842,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxg","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_ai_analysis_is_advisory_and_grounded_in_the_input","status":"pass","assertions":20,"mocked":false,"duration_ms":1693,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxh","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_schedules_probe_frontend_usage_and_openapi","status":"pass","assertions":34,"mocked":false,"duration_ms":2167,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxj","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_role_command_grants_and_revokes","status":"pass","assertions":7,"mocked":false,"duration_ms":40,"message":null},{"id":"01m64dhk68zrrb9fkghmzzeaxk","key":"Tests\\Feature\\Qa\\QualityCenterTest::test_cli_import_for_ci_runners","status":"pass","assertions":9,"mocked":false,"duration_ms":1379,"message":null}]}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=junit    (session)` — export_junit_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/xml; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.xml"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ce95-70e2-a725-8c6dd76c4682
+
+{"body_excerpt":"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites><testsuite name=\"changed@staging\" tests=\"10\" failures=\"0\" skipped=\"0\" assertions=\"231\" time=\"15.049\">\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_roles_are_separated\" assertions=\"13\" time=\"1.161\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_discovery_finds_new_changed_removed_and_undocumented_routes\" assertions=\"31\" time=\"5.285\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_status_comes_only_from_approved_executed_evidence\" assertions=\"42\" time=\"1.346\"></testcase>\n<testcase classname=\"Tests\\Feature\\Qa\\QualityCenterTest\" name=\"test_exports_are_escaped","body_bytes":1701,"body_sha256":"f80ca0929ad6a5e09baa4ca2c3838f5e3ae5ce11bac579ec3ebe4d7fb9cf278b"}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=html    (session)` — export_html_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Disposition: attachment; filename="qa-run-01m64dhk68zrrb9fkghmzzeax9.html"
+Cache-Control: no-store, private
+X-Content-Type-Options: nosniff
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-ceb7-7006-bafe-6e44c35ef953
+
+{"body_excerpt":"<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"robots\" content=\"noindex\"><title>QA run 01m64dhk68zrrb9fkghmzzeax9</title></head><body><h1>QA run 01m64dhk68zrrb9fkghmzzeax9</h1><p>Suite changed · environment staging · Git 2276fe6b9241893fe092b011e59bb0f027cc72a5 · 2026-10-29T18:07:52+00:00</p><p>total: 10 · assertions: 231 · pass: 10 · fail: 0 · blocked: 0 · not_implemented: 0 · skipped: 0 · mocked: 0</p><table><thead><tr><th>Test</th><th>Status</th><th>Assertions</th><th>Message (redacted)</th></tr></thead><tbody>\n<tr><td>Tests\\Feature\\Qa\\QualityCenterTest::test_roles_are_separated</td><td>PASS</td><td>13</td><td></td></tr>\n<tr><td>Tests\\Feature\\Qa\\QualityCenterTest:","body_bytes":1929,"body_sha256":"9336a6f593067263fadfcca7b5a0021ccc7c33e3479676a5564072e9e4055fc8"}
+```
+
+`GET /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/export?format=pdf    (session)` — export_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cedc-72d5-b301-50fb3611cbec
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cedc-72d5-b301-50fb3611cbec","fields":{"format":["The selected format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"request_id":"req-capture-1","file":{"file":"proof.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf04-715d-a261-6e4c3e66499f
+
+{"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"file":{"file":"proof-again.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_200_dedupe
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf39-733f-8ff9-a39c66f581cd
+
+{"data":{"id":"01m64dhks0pvr9vjkeaxt1s89t","name":"proof.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-1","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhk68zrrb9fkghmzzeax9/evidence  {"file":{"file":"page.html","mime":"text/html","bytes":38,"sha256":"1e88fe5a73e9700a27597a02ed7ec3c4cc1eb8e0d6ca580cd4473a5e7e6dc194"}}    (session)` — evidence_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cf58-71e0-87ff-9b10e12f3259
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"This file type is not accepted as evidence.","request_id":"01a188d8-cf58-71e0-87ff-9b10e12f3259","details":{"errors":{"file":["Upload PNG, JPEG, WebP, PDF, JSON, XML or plain text."]}}}}
+```
+
+`GET /api/v1/admin/qa/evidence/01m64dhks0pvr9vjkeaxt1s89t    (session)` — evidence_404_developer_unassigned
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-cf7b-717d-9233-4017670c8a9a
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"Evidence not found.","request_id":"01a188d8-cf7b-717d-9233-4017670c8a9a"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"full","environment":"staging","git_sha":"2276fe6","report":{"file":"junit.xml","mime":"application/xml","bytes":447,"sha256":"4e9ad14c24c8aeb1de220ef779ed76476b2ad242ca91aacf8e5f8caa21fc9dc4"}}    (session)` — runs_store_201_failing
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cf9b-70f2-8738-74c0a16b96c7
+
+{"data":{"id":"01m64dhkxbgzdchpfxs6rk36as","suite":"full","environment":"staging","git_sha":"2276fe6","source":"junit","totals":{"total":1,"assertions":6,"pass":0,"fail":1,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":410,"report_sha256":"4e9ad14c24c8aeb1de220ef779ed76476b2ad242ca91aacf8e5f8caa21fc9dc4","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/runs/01m64dhkxbgzdchpfxs6rk36as/evidence  {"request_id":"req-capture-2","file":{"file":"claim.png","mime":"image/png","bytes":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}}    (session)` — evidence_store_201_failing_run
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-cfc2-73e3-8817-a4b64089d86f
+
+{"data":{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"x","severity":"p9"}    (session)` — finding_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-cfe8-7376-9409-6ce2cd6d4cf4
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-cfe8-7376-9409-6ce2cd6d4cf4","fields":{"severity":["The selected severity is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"reproduction":"Two parallel claims on the last code."}    (session)` — finding_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d00c-7030-a3d2-0c1106503b5e
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null}}
+```
+
+`POST /api/v1/admin/qa/findings  {"title":"Last code issued twice under parallel claims","severity":"p0","run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"reproduction":"Two parallel claims on the last code."}    (session)` — finding_store_409_exists
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d03d-7342-a1ea-38dd94e2f0df
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"finding_exists","message":"An unresolved finding already covers these routes and tests.","request_id":"01a188d8-d03d-7342-a1ea-38dd94e2f0df","details":{"finding":"01m64dhm15zxb1f002y6wq5zex"}}}
+```
+
+`GET /api/v1/admin/qa/findings    (session)` — findings_200_developer
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d066-7032-8612-010c19f63ac2
+
+{"data":[{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00"}],"meta":{"current_page":1,"total":1,"per_page":25,"last_page":1}}
+```
+
+`GET /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex    (session)` — finding_show_200_developer
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d085-71ad-b23b-c70fbb5efc1a
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":null,"created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:52+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":null,"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/analyze    (session)` — finding_analyze_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d0ce-736f-b4b0-4f0bb455b422
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"open","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":null,"fixed_by":null,"fixed_at":null,"retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhkxbgzdchpfxs6rk36as"}    (session)` — finding_retest_409_not_fixed
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d143-707d-87c6-2d01a92e8d73
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"finding_not_fixed","message":"Only fixed findings can be retested.","request_id":"01a188d8-d143-707d-87c6-2d01a92e8d73","details":{"status":"open"}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"abcdef1"}    (session)` — finding_fix_403_tester
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d167-72cc-b69c-60f643660a50
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d167-72cc-b69c-60f643660a50"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"not hex"}    (session)` — finding_fix_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-d196-70ef-b273-3285c087f582
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a188d8-d196-70ef-b273-3285c087f582","fields":{"fix_commit":["The fix commit field format is invalid."]}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/fix  {"fix_commit":"9f1c2ab"}    (session)` — finding_fix_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d1bd-71e3-9bd2-8b6359cece40
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"fixed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":null,"retested_by":null,"ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:53+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhkxbgzdchpfxs6rk36as"}    (session)` — finding_retest_409_outdated
+
+```http
+HTTP/1.1 409 Conflict
+X-Request-Id: 01a188d8-d1e2-7319-91c2-787497ea8ee5
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":409,"code":"retest_run_outdated","message":"Use a run imported after the fix was recorded.","request_id":"01a188d8-d1e2-7319-91c2-787497ea8ee5"}}
+```
+
+`POST /api/v1/admin/qa/runs  {"suite":"full","environment":"staging","git_sha":"9f1c2ab","report":{"file":"junit.xml","mime":"application/xml","bytes":287,"sha256":"6fc86c97b47a2cd67c971de111cf58402fc074bed00d190f301d313966c54caf"}}    (session)` — runs_store_201_retest
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d5ee-731f-a037-b4cc8fa26dbf
+
+{"data":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","source":"junit","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"duration_ms":390,"report_sha256":"6fc86c97b47a2cd67c971de111cf58402fc074bed00d190f301d313966c54caf","created_at":"2026-10-29T18:07:54+00:00"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhnfxhezvjk35nrnekvre"}    (session)` — finding_retest_403_developer
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d61a-72c9-a85d-869f76b2adc4
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d61a-72c9-a85d-869f76b2adc4"}}
+```
+
+`POST /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex/retest  {"run_id":"01m64dhnfxhezvjk35nrnekvre"}    (session)` — finding_retest_200_passed
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d688-72dc-9846-5b134162eac0
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true}}}
+```
+
+`GET /api/v1/admin/qa/findings/01m64dhm15zxb1f002y6wq5zex    (session)` — finding_show_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d6ae-71c1-aab4-51af8a8dbb21
+
+{"data":{"id":"01m64dhm15zxb1f002y6wq5zex","title":"Last code issued twice under parallel claims","severity":"p0","status":"retest_passed","affected_routes":["POST /api/v1/claims/accept"],"test_keys":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"run_id":"01m64dhkxbgzdchpfxs6rk36as","owner_id":"01m64dhbrz72ajm4pqrp83nf68","fix_commit":"9f1c2ab","fixed_by":"01m64dhbrz72ajm4pqrp83nf68","fixed_at":"2026-10-29T18:07:53+00:00","retest_run_id":"01m64dhnfxhezvjk35nrnekvre","retested_by":"01m64dhbgvjk4tzmv6hpt0br4b","ai_status":"proposed","created_at":"2026-10-29T18:07:52+00:00","updated_at":"2026-10-29T18:07:54+00:00","reproduction":"Two parallel claims on the last code.","ai_analysis":{"affected_routes":["POST /api/v1/claims/accept"],"test_ids":["Tests\\Feature\\Claims\\LastCodeTest::test_last_code_is_issued_once"],"severity":"p1","evidence_ids":["01m64dhkyhf8etaknhddaheyrf"],"expected":"Exactly one voucher per claimed code.","actual":"The imported run reports a failed assertion for the last-code claim.","hypothesis":"Synthetic capture analysis: the claim path may lack a row lock.","proposed_tests":["Two parallel claims on the last code issue exactly one voucher"],"confidence":0.6,"needs_review":true,"model":"gpt-capture","created_at":"2026-10-29T18:07:53+00:00","advisory":true},"evidence":[{"id":"01m64dhkyhf8etaknhddaheyrf","name":"claim.png","mime":"image/png","size":90,"sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22","request_id":"req-capture-2","retain_until":"2027-10-29T18:07:52+00:00","created_at":"2026-10-29T18:07:52+00:00"}],"regression":[]}}
+```
+
+`GET /api/v1/admin/qa/evidence/01m64dhks0pvr9vjkeaxt1s89t    (session)` — evidence_download_200
+
+```http
+HTTP/1.1 200 OK
+Content-Type: image/png
+Content-Disposition: attachment; filename="proof.png"
+X-Content-Type-Options: nosniff
+Cache-Control: no-store, private
+X-Robots-Tag: noindex, nofollow
+Content-Security-Policy: default-src 'none'
+X-Request-Id: 01a188d8-d6eb-71ed-b5e5-07e7c04bb130
+
+{"body_binary":true,"body_bytes":90,"body_sha256":"3e81f2e5c9059bfd270a880303a47b34feddfe8a3fe85ebf66dec3b4e60ecb22"}
+```
+
+`GET /api/v1/admin/qa/findings/01m6400000000000000000zzzz    (session)` — finding_404
+
+```http
+HTTP/1.1 404 Not Found
+X-Request-Id: 01a188d8-d716-736d-98a1-975ec94e1066
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":404,"code":"not_found","message":"Finding not found.","request_id":"01a188d8-d716-736d-98a1-975ec94e1066"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly"}    (session)` — schedule_store_403_tester
+
+```http
+HTTP/1.1 403 Forbidden
+X-Request-Id: 01a188d8-d736-72bf-8130-0a1c9034a560
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a188d8-d736-72bf-8130-0a1c9034a560"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Production full","suite":"full","environment":"production","trigger":"nightly"}    (session)` — schedule_store_422
+
+```http
+HTTP/1.1 422 Unprocessable Content
+X-Request-Id: 01a188d8-d760-706a-84cb-c935020ad7a8
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+
+{"error":{"status":422,"code":"validation_failed","message":"Production schedules can only run the read-only safe suite.","request_id":"01a188d8-d760-706a-84cb-c935020ad7a8","details":{"errors":{"suite":["Production schedules can only run the read-only safe suite."]}}}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2}    (session)` — schedule_store_201
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d789-7345-bdb2-39e322fd66df
+
+{"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":2,"active":null,"last_run_at":null,"executed_by":"scheduler"}}
+```
+
+`POST /api/v1/admin/qa/schedules  {"name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120}    (session)` — schedule_store_201_staging
+
+```http
+HTTP/1.1 201 Created
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d7b1-7304-85fb-67d9d0b8ce75
+
+{"data":{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":null,"last_run_at":null,"executed_by":"ci_runner"}}
+```
+
+`PATCH /api/v1/admin/qa/schedules/01m64dhnwqxgeq2wfn7hvxb8am  {"timeout_minutes":3}    (session)` — schedule_update_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d7dd-708f-86ff-b587fe236278
+
+{"data":{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}}
+```
+
+`GET /api/v1/admin/qa/schedules    (session)` — schedules_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d806-73b5-af97-78ff8eb5ff9f
+
+{"data":[{"id":"01m64dhnxzb9az1stz62a6q6hr","name":"Nightly staging","suite":"full","environment":"staging","trigger":"nightly","timeout_minutes":120,"active":true,"last_run_at":null,"executed_by":"ci_runner"},{"id":"01m64dhnwqxgeq2wfn7hvxb8am","name":"Production health","suite":"safe","environment":"production","trigger":"every_5_minutes","timeout_minutes":3,"active":true,"last_run_at":null,"executed_by":"scheduler"}]}
+```
+
+`GET /api/v1/admin/qa/openapi.json    (session)` — openapi_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-store, private
+X-Robots-Tag: noindex, nofollow
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-d825-7176-94b6-20af1827b395
+
+{"openapi":"3.1.0","info_title":"Shopbonus API","paths":328,"body_bytes":1077026}
+```
+
+`GET /api/v1/admin/qa/summary    (session)` — summary_200
+
+```http
+HTTP/1.1 200 OK
+Cache-Control: no-cache, private
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+X-Request-Id: 01a188d8-da28-711e-98fd-0b2c482f6ee6
+
+{"data":{"endpoints":362,"tested":1,"coverage_percent":0.3,"pass":1,"pass_mocked":0,"fail":0,"blocked":0,"not_implemented":0,"stale":0,"untested":361,"undocumented":0,"unreferenced":339,"open_findings":{"p0":0,"p1":0,"p2":0,"p3":0},"last_run":{"id":"01m64dhnfxhezvjk35nrnekvre","suite":"full","environment":"staging","git_sha":"9f1c2ab","totals":{"total":1,"assertions":6,"pass":1,"fail":0,"blocked":0,"not_implemented":0,"skipped":0,"mocked":0},"created_at":"2026-10-29T18:07:54+00:00"},"next_run_at":"2026-10-29T18:10:00+00:00","last_probe":{"id":"01m64dhcezejjx7h5wmxnsfzh6","healthy":true,"created_at":"2026-10-29T18:07:45+00:00"},"last_scan":{"id":"01m64dhjj9pz588srth49zxbg0","git_sha":"2276fe6b9241893fe092b011e59bb0f027cc72a5","created_at":"2026-10-29T18:07:50+00:00"}}}
+```
+
+
+
 ## Restored HassanDev endpoints with re-captured examples (B31)
 
 Merge `9f927ef` kept main's `openapi.yaml` and dropped the 92 operations documented on the HassanDev branch. B31 restored their paths, parameters and request schemas, and replaced every example with a capture from a real local PHP HTTP server: isolated SQLite, demo seed plus capture fixtures, real `/login` + password confirmation and the emailed step-up flow (the synthetic code was set in the capture DB). Admin 2FA was disabled and the API rate limit raised for the capture only. Not captured: AI suggest 200 (needs a live OpenAI key; 503 `*_ai_not_configured` captured) and enrichment retry 202 (503 `enrichment_not_configured` captured). Activation tokens and voucher codes are redacted. Full capture: `docs/qa/B31_MERGE_RECOVERY_HTTP_CAPTURE.json`.
@@ -18499,6 +22164,8 @@ Content-Type: application/json
 ```
 
 
+
+
 ## Separate points prices — D-103, 2026-10-31
 
 Merchants may set `price_points` (1–100000000, or null to disable) through the existing offer POST/PATCH APIs. Wallet-purchase activation requires `price_minor` or `price_points`. Offer versions and issued terms preserve the price. Public offers expose `price_points`. This is independent of the EUR discount value.
@@ -19144,6 +22811,8 @@ Response 404:
 ```
 
 
+
+
 ## Affiliate consent and purchase identity — 2026-10-31
 
 `GET /api/v1/public/webshops/{slug}/visit` accepts optional `consent_id`. A published policy and current explicit marketing opt-in are required even locally. Missing/unknown/stale/withdrawn consent yields a direct merchant redirect and creates no click. Valid consent permits the network redirect; signed-in verified active consumers may be attributed. Network selection reflects current eligibility/rates, including newly available programs after an empty decision. Repeated unchanged reads do not append identical decisions. Different credible purchase references on one click are separate purchases; repeated purchase references and ambiguous legacy click-only reports remain protected against duplicate reward. D-089 is unchanged.
@@ -19233,6 +22902,8 @@ Location: https://merchant.example.test
     </body>
 </html>
 ```
+
+
 
 
 ## Quality Center CI provenance and complete backend source inventory — 2026-10-31
@@ -19458,6 +23129,8 @@ Captured response 200:
   }
 }
 ```
+
+
 
 
 ## Independent retest proof — 2026-10-31
@@ -19701,6 +23374,8 @@ Captured response 200:
 ```
 
 
+
+
 ## Validation language with NL fallback — 2026-10-31
 
 English requests now use English field labels even when APP_FALLBACK_LOCALE=nl. Each request restores the configured default locale afterward, so unsupported/missing preferences cannot inherit another visitor’s language. [Actual local HTTP captures](../qa/B37_LOCALE_HTTP_CAPTURE.json), isolated SQLite/storage with NL defaults:
@@ -19788,6 +23463,8 @@ Request: `POST /api/v1/public/cookie-consents`, body `{}`, no Accept-Language he
   }
 }
 ```
+
+
 
 
 ## Explicit program points earning — D-104, 2026-10-31
@@ -20491,14 +24168,185 @@ Captured response 404:
 }
 ```
 
+## CMS translation queue and NL master provenance — 2026-11-02
+
+Existing routes only; no second translation API. `POST /api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions` returns a private queued record (201); duplicate unchanged work returns 200. Poll `GET /api/v1/admin/cms/suggestions/{suggestion}` for proposed/failed. Human apply/publish remain separate. Legal content is excluded. CMS/FAQ records accept NL/EN/DE, while frontend application locale support remains NL/EN. `GET /api/v1/admin/cms/translations` now reports DE and `stale` from immutable NL master revision provenance; historical unknown references are stale.
+
+Real HTTP examples: [TRANSLATION_HTTP_CAPTURE.json](../cms/TRANSLATION_HTTP_CAPTURE.json), eleven loopback PHP 8.4.25/isolated SQLite exchanges on backend HassanDev base 926ab34 plus uncommitted patch. Synthetic Sanctum actors and recent-password sessions were injected by a temporary fixture router; this is not browser authentication/CSRF/staging proof. Full implementation limits, pending migration, queue settings, tests and unexecuted T01–T23: [acceptance report](../cms/ONE_CMS_ACCEPTANCE.md). No live OpenAI call or production mutation.
+
+Request (synthetic actor fixture; actual browser clients use existing cookies/CSRF): POST `/api/v1/admin/cms/pages/<page>/locales/nl/suggestions`, JSON `{"kind":"translate","target_locale":"de","idempotency_key":"capture-1"}`. The exact returned 201 and deduplicated 200 bodies are capture entries 0 and 1 and the OpenAPI response examples. GET `/api/v1/admin/cms/translations` after the NL edit is capture entry 10; its `stale` EN and `missing` DE rows are the current OpenAPI example. Capture entries 3–5 retain actual 403/401/422 envelopes.
+
+## Merchant dashboard voucher summaries — 2026-11-02
+
+The existing dashboard response adds `kpis.reserved_codes`, `kpis.expired_vouchers`, `kpis.expired_offers` and corresponding definitions. These are current-state counts, scoped to the selected workspace. Compare historical issuance/claims/redemptions through the existing `GET /api/v1/workspaces/{workspace}/analytics/claims?from=YYYY-MM-DD&to=YYYY-MM-DD`; do not infer past inventory from current counters.
+
+Captured from a real local PHP 8.5 HTTP server with isolated SQLite fixtures (synthetic bearer-auth merchant, no production data). Reproduce with `php scripts/capture-voucher-dashboard.php`. Full 200/401/422 captures: [VOUCHER_DASHBOARD_HTTP_CAPTURE.json](VOUCHER_DASHBOARD_HTTP_CAPTURE.json).
+
+Example request: `GET /api/v1/workspaces/01m6dnsztvn9rwf327nbfstbky/dashboard` with `Authorization: Bearer <token>` and `Accept: application/json`.
+
+Captured 200 response:
+
+```json
+{
+  "data": {
+    "webshop": {
+      "id": "01m6dnsztvn9rwf327nbfstbky",
+      "name": "Dashboard fixture",
+      "status": "approved"
+    },
+    "greeting": "good_morning",
+    "kpis": {
+      "active_offers": 0,
+      "reserved_codes": 0,
+      "expired_vouchers": 0,
+      "expired_offers": 0,
+      "available_codes": 0,
+      "issued_vouchers": 0,
+      "claimed_vouchers": 0,
+      "redeemed_vouchers": 0,
+      "scheduled_offers": 0,
+      "paused_offers": 0,
+      "open_disputes": 0
+    },
+    "connection_health": {
+      "status": "none",
+      "total": 0,
+      "connected": 0,
+      "attention": 0,
+      "last_error_at": null
+    },
+    "recent_activity": [],
+    "quick_actions": [
+      {
+        "key": "create_offer",
+        "available": true
+      },
+      {
+        "key": "import_codes",
+        "available": false
+      },
+      {
+        "key": "connect_store",
+        "available": true
+      },
+      {
+        "key": "top_up_funding",
+        "available": false
+      },
+      {
+        "key": "review_vouchers",
+        "available": false
+      }
+    ],
+    "empty": true,
+    "definitions": {
+      "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+      "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+      "expired_vouchers": "Vouchers with current status expired.",
+      "expired_offers": "Offers with effective lifecycle expired.",
+      "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+      "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+      "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+      "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+      "scheduled_offers": "Offers with status scheduled (not yet opened).",
+      "paused_offers": "Offers with status paused.",
+      "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+    },
+    "offers": [],
+    "offers_meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 10,
+      "total": 0
+    },
+    "notifications": {
+      "unread": 0,
+      "latest": []
+    },
+    "funding": {
+      "available_minor": 1000000,
+      "reserved_minor": 0
+    },
+    "generated_at": "2026-11-02T08:25:27+00:00"
+  }
+}
+```
+
+Checkout policy confirmed by owner in this review: viewing an offer/opening checkout obtains only a read-only quote (`POST /api/v1/consumer/checkouts/quote`); the explicit Confirm/Pay action calls `POST /api/v1/consumer/checkouts`, starts provider payment and makes bounded reservations. Wallet-only issuance remains atomic. No new endpoint/state machine is introduced.
+
+## Reliability review HTTP refresh — 2026-11-02
+
+Captured on a real local PHP 8.4.25 HTTP server, isolated synthetic SQLite,
+backend HassanDev base `926ab34068e18cca081b7b168cc2ed6f7622fe29` plus uncommitted
+review changes. Synthetic Super Admin bearer token; capture-only admin MFA
+disabled. No production/provider data. Full responses and exact requests:
+[RELIABILITY_REVIEW_HTTP_CAPTURE.json](RELIABILITY_REVIEW_HTTP_CAPTURE.json).
+Reproduce with `php scripts/capture-reliability-review.php` (temporary server,
+fixture DB and log removed afterward).
+
+`GET /api/v1/admin/operations-overview`: active verified Super Admin, normal
+admin MFA/support-session restrictions; read-only, no-store, no mutation or
+idempotency key. Existing 401/403/429/500 contracts remain. Added connection
+reports and worker polling observations; missing evidence stays UNKNOWN.
+Configure `RELIABILITY_MONITORED_CONNECTIONS` as a JSON map of connection names
+to queue names, alongside `RELIABILITY_MONITORED_QUEUES`. Redis enqueue age must
+not be interpreted as ready wait. Scope: management allocation reporting;
+recognized revenue remains unverified. Recovery targets remain UNAPPROVED.
+
+```sh
+curl -i -H 'Accept: application/json' -H 'Authorization: Bearer <ADMIN_TOKEN>' http://localhost:8000/api/v1/admin/operations-overview
+```
+
+Actual 200 response excerpt (`data.components.backups`, copied from capture):
+
+```json
+{
+  "status": "UNKNOWN",
+  "backup_success_percent_30d": null,
+  "enabled": false,
+  "last_backup_at": null,
+  "last_backup_result": null,
+  "last_verified_restore_at": null,
+  "offsite_verified": false,
+  "key_recovery_verified": false,
+  "infrastructure_drill_verified": false,
+  "recovery_targets": {
+    "status": "UNAPPROVED",
+    "financial_rpo_minutes": 15,
+    "service_rto_minutes": 240
+  },
+  "definition": "Successful configured-disk write is not independent offsite durability or RPO/RTO proof."
+}
+```
+
+The cover route was already documented in the current OpenAPI. Its binary 200
+contract is unchanged. Fresh missing-cover evidence:
+
+```sh
+curl -i -H 'Accept: application/json' http://localhost:8000/api/v1/public/webshops/missing-fixture/cover
+```
+
+Actual 404 response:
+
+```json
+{
+  "error": {
+    "status": 404,
+    "code": "not_found",
+    "message": "Cover not found.",
+    "request_id": "01a19b93-ac6b-73c6-a342-bef0299e3fba"
+  }
+}
+```
+
 ## Aggregate pending wallet support — B51 (2026-11-03)
 
-Six actual HTTP exchanges on a local Laravel server with isolated SQLite, two synthetic pending entries and no provider calls: [capture archive](../qa/B51_WALLET_SUPPORT_HTTP_CAPTURE.json). These render newly generated server-verified fixture answers, not live-model or conversational-quality evidence. Historical stored answers remain immutable. The message polling contract is unchanged; current EN/NL wallet summaries describe aggregate pending credit and require separate evidence for an individual reward. Owner200, foreign404 and unauthenticated401 were captured in each language.
+Six actual HTTP exchanges on a local Laravel server after main integration, isolated SQLite, two synthetic pending entries and no provider calls: [capture archive](../qa/B51_WALLET_SUPPORT_HTTP_CAPTURE.json). These newly generated server-verified fixture answers are not live-model or conversational-quality evidence. Historical stored answers remain immutable. Current EN/NL wallet summaries describe aggregate pending credit and require separate evidence for an individual reward. Owner200, foreign404 and unauthenticated401 were captured in each language.
 
 **en-owner**
 
 ```http
-GET /api/v1/ai/messages/01m6g3zx6h2ct01zegk90wf6pw
+GET /api/v1/ai/messages/01m6g4jw9kh315z4s284gs7vwx
 Accept: application/json
 Authorization: Bearer <redacted>
 Accept-Language: en
@@ -20507,16 +24355,16 @@ Accept-Language: en
 ```json
 {
   "data": {
-    "id": "01m6g3zx6h2ct01zegk90wf6pw",
-    "message_id": "01m6g3zx6h2ct01zegk90wf6pw",
-    "conversation_id": "01m6g3zx5grvghbxj3c38k7wf3",
+    "id": "01m6g4jw9kh315z4s284gs7vwx",
+    "message_id": "01m6g4jw9kh315z4s284gs7vwx",
+    "conversation_id": "01m6g4jw8vg7cgp3evnnzdy2b1",
     "question": "What is my pending credit?",
     "status": "VERIFIED",
     "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
     "evidence_ids": [
-      "01m6g3zx5xjekr1rc3abh0vwz8"
+      "01m6g4jw95ajv79wgnk4qsx4kk"
     ],
-    "checked_at": "2026-11-03T07:11:48+00:00",
+    "checked_at": "2026-11-03T07:22:10+00:00",
     "retry_used": false,
     "action": null,
     "checks": {
@@ -20532,13 +24380,17 @@ Accept-Language: en
       ],
       "failed": []
     },
+    "display": {
+      "show_progress_updates": true,
+      "show_verified_badge": true
+    },
     "result": {
       "status": "VERIFIED",
       "answer": "Total pending credit: EUR 7.00; this may include multiple rewards and cannot be spent yet. An individual reward status requires separate evidence; no release date has been confirmed. Available ShopBonus credit: EUR 0.00; reserved: EUR 0.00; pending: EUR 7.00; spent: EUR 0.00. Cannot be withdrawn or transferred.",
       "evidence_ids": [
-        "01m6g3zx5xjekr1rc3abh0vwz8"
+        "01m6g4jw95ajv79wgnk4qsx4kk"
       ],
-      "checked_at": "2026-11-03T07:11:48+00:00",
+      "checked_at": "2026-11-03T07:22:10+00:00",
       "checks": {
         "passed": [
           "AUTH",
@@ -20554,8 +24406,8 @@ Accept-Language: en
       },
       "action": null
     },
-    "created_at": "2026-11-03T07:11:48+00:00",
-    "completed_at": "2026-11-03T07:11:48+00:00"
+    "created_at": "2026-11-03T07:22:10+00:00",
+    "completed_at": "2026-11-03T07:22:10+00:00"
   }
 }
 ```
@@ -20563,7 +24415,7 @@ Accept-Language: en
 **nl-owner**
 
 ```http
-GET /api/v1/ai/messages/01m6g3zx72b7s7kwqxp2wx1v64
+GET /api/v1/ai/messages/01m6g4jwa0scvg04xadbndas36
 Accept: application/json
 Authorization: Bearer <redacted>
 Accept-Language: nl
@@ -20572,16 +24424,16 @@ Accept-Language: nl
 ```json
 {
   "data": {
-    "id": "01m6g3zx72b7s7kwqxp2wx1v64",
-    "message_id": "01m6g3zx72b7s7kwqxp2wx1v64",
-    "conversation_id": "01m6g3zx6j2s3eeqknef8a3t3z",
+    "id": "01m6g4jwa0scvg04xadbndas36",
+    "message_id": "01m6g4jwa0scvg04xadbndas36",
+    "conversation_id": "01m6g4jw9ngk9t5agyyp2tb3mn",
     "question": "Wat is mijn tegoed in behandeling?",
     "status": "VERIFIED",
     "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
     "evidence_ids": [
-      "01m6g3zx6ss24f6p0sh7hcbfb7"
+      "01m6g4jw9tvr7wz9aftpw687dy"
     ],
-    "checked_at": "2026-11-03T07:11:48+00:00",
+    "checked_at": "2026-11-03T07:22:10+00:00",
     "retry_used": false,
     "action": null,
     "checks": {
@@ -20597,13 +24449,17 @@ Accept-Language: nl
       ],
       "failed": []
     },
+    "display": {
+      "show_progress_updates": true,
+      "show_verified_badge": true
+    },
     "result": {
       "status": "VERIFIED",
       "answer": "Totaal tegoed in behandeling: EUR 7.00; dit kan uit meerdere beloningen bestaan en is nog niet te besteden. De status van een afzonderlijke beloning vereist apart bewijs; er is geen vrijgavedatum bevestigd. Beschikbaar ShopBonus-tegoed: EUR 0.00; gereserveerd: EUR 0.00; in behandeling: EUR 7.00; besteed: EUR 0.00. Geen geldopname of overdracht.",
       "evidence_ids": [
-        "01m6g3zx6ss24f6p0sh7hcbfb7"
+        "01m6g4jw9tvr7wz9aftpw687dy"
       ],
-      "checked_at": "2026-11-03T07:11:48+00:00",
+      "checked_at": "2026-11-03T07:22:10+00:00",
       "checks": {
         "passed": [
           "AUTH",
@@ -20619,8 +24475,8 @@ Accept-Language: nl
       },
       "action": null
     },
-    "created_at": "2026-11-03T07:11:48+00:00",
-    "completed_at": "2026-11-03T07:11:48+00:00"
+    "created_at": "2026-11-03T07:22:10+00:00",
+    "completed_at": "2026-11-03T07:22:10+00:00"
   }
 }
 ```

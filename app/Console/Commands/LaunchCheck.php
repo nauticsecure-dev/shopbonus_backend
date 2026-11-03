@@ -37,6 +37,8 @@ class LaunchCheck extends Command
             ['security.hsts', (int) config('shopbonus.security.hsts_max_age') >= 15552000, 'FAIL', 'HSTS_MAX_AGE must be at least 180 days.'],
             ['security.trusted_proxies', filled(config('shopbonus.security.trusted_proxies')), 'WARN', 'Set TRUSTED_PROXIES when TLS ends at a proxy/load balancer.'],
             ['admin.mfa_required', config('shopbonus.admin.mfa_required') === true, 'FAIL', 'ADMIN_MFA_REQUIRED must be true.'],
+            ['workspace.mfa_required_for_sensitive', config('shopbonus.workspace.mfa_required_for_sensitive') === true, 'FAIL', 'OWNER_MFA_REQUIRED must be true.'],
+            ['workspace.step_up_for_sensitive', config('shopbonus.workspace.step_up_for_sensitive') === true, 'FAIL', 'OWNER_STEP_UP_REQUIRED must be true.'],
             ['queue.async', ! in_array(config('queue.default'), ['sync', 'null'], true), 'FAIL', 'QUEUE_CONNECTION must be a real queue with a running worker.'],
             ['cache.shared', ! in_array(config('cache.default'), ['array', 'null'], true), 'FAIL', 'CACHE_STORE must be shared (locks, rate limits).'],
             ['mail.delivering', ! in_array(config('mail.default'), ['log', 'array'], true), 'FAIL', 'MAIL_MAILER must deliver mail.'],

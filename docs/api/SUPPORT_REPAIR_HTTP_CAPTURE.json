@@ -1,0 +1,159 @@
+{
+  "environment": "Local PHP HTTP server, isolated SQLite, synthetic actor/order question, no provider call; 2026-10-31",
+  "captured": [
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ai/operations?scope=consumer&locale=en",
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "from": "2026-10-30T13:38:10+00:00",
+          "checked_at": "2026-10-31T13:38:10+00:00",
+          "sample_limit": 500,
+          "sample_size": 1,
+          "matching_total": 1,
+          "to": "2026-10-31T13:38:10+00:00",
+          "outcome_percentages": {
+            "NEEDS_CLARIFICATION": 100
+          },
+          "statuses": {
+            "NEEDS_CLARIFICATION": 1
+          },
+          "failures": [],
+          "retrieval_retries": 0,
+          "latency_p95_ms": null,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "provider_cost": null,
+          "costed_requests": 0,
+          "cost_currency": "EUR",
+          "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero.",
+          "open_reviews": 0,
+          "approved_regressions": 0,
+          "daily_requests": 0,
+          "circuit_open": false,
+          "broadcaster": "null",
+          "last_successful_broadcast_at": null,
+          "broadcast_failures_last_24h": 0,
+          "connectivity": {
+            "provider_last_success_at": null,
+            "worker_last_execution_at": null,
+            "queue_connection": "database",
+            "reverb_live_probe": "not_measured",
+            "broadcast_evidence": "dispatch_attempt_only"
+          },
+          "policy_version": "default-disabled"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/admin/ai/operations?status=INVALID",
+      "request": null,
+      "status": 422,
+      "response": {
+        "error": {
+          "status": 422,
+          "code": "validation_failed",
+          "message": "The given data was invalid.",
+          "request_id": "01a1922e-a354-70b5-a734-e42f37af64ec",
+          "fields": {
+            "status": [
+              "The selected status is invalid."
+            ]
+          }
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/messages/01m692t1s6as7ahfzywnwxt6h1",
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m692t1s6as7ahfzywnwxt6h1",
+          "message_id": "01m692t1s6as7ahfzywnwxt6h1",
+          "conversation_id": "01m692t1n811tw8fspcm9a5gxd",
+          "question": "Order status FS-20482",
+          "status": "NEEDS_CLARIFICATION",
+          "answer": "Provide the order reference to check its recorded status.",
+          "evidence_ids": [],
+          "checked_at": null,
+          "retry_used": false,
+          "action": null,
+          "checks": null,
+          "display": {
+            "show_progress_updates": true,
+            "show_verified_badge": true
+          },
+          "result": {
+            "answer": "Provide the order reference to check its recorded status.",
+            "action": null
+          },
+          "created_at": "2026-10-31T13:36:26+00:00",
+          "completed_at": "2026-10-31T13:36:26+00:00"
+        }
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai/conversations/01m692t1n811tw8fspcm9a5gxd",
+      "request": null,
+      "status": 200,
+      "response": {
+        "data": {
+          "id": "01m692t1n811tw8fspcm9a5gxd",
+          "messages": [
+            {
+              "id": "01m692t1s6as7ahfzywnwxt6h1",
+              "message_id": "01m692t1s6as7ahfzywnwxt6h1",
+              "conversation_id": "01m692t1n811tw8fspcm9a5gxd",
+              "question": "Order status FS-20482",
+              "status": "NEEDS_CLARIFICATION",
+              "answer": "Provide the order reference to check its recorded status.",
+              "evidence_ids": [],
+              "checked_at": null,
+              "retry_used": false,
+              "action": null,
+              "checks": null,
+              "display": {
+                "show_progress_updates": true,
+                "show_verified_badge": true
+              },
+              "result": {
+                "answer": "Provide the order reference to check its recorded status.",
+                "action": null
+              },
+              "created_at": "2026-10-31T13:36:26+00:00",
+              "completed_at": "2026-10-31T13:36:26+00:00"
+            }
+          ],
+          "replies": [],
+          "next_before": "01m692t1s6as7ahfzywnwxt6h1"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/ai/chat",
+      "request": {
+        "message": "What is my order status FS-20482?",
+        "locale": "en"
+      },
+      "status": 202,
+      "response": {
+        "data": {
+          "id": "01m692xg9g05b7pxhwm4xcdwqm",
+          "conversation_id": "01m692xg7qa19ys58n0xx3wv1d",
+          "status": "PENDING",
+          "display": {
+            "show_progress_updates": true,
+            "show_verified_badge": true
+          }
+        }
+      }
+    }
+  ]
+}

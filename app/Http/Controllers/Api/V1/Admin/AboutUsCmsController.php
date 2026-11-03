@@ -87,8 +87,9 @@ class AboutUsCmsController extends Controller
     public function publish(Request $request): JsonResponse
     {
         $locale = $this->locale($request);
+        $data = $request->validate(['revision' => ['sometimes', 'integer', 'min:1']]);
         $page = $this->aboutUs->page();
-        $revision = $this->cms->publish($page, $locale, $request->user()->id);
+        $revision = $this->cms->publish($page, $locale, $request->user()->id, [], isset($data['revision']) ? (int) $data['revision'] : null);
 
         return response()->json(['data' => $this->revision($revision)]);
     }
@@ -102,14 +103,15 @@ class AboutUsCmsController extends Controller
             $q->where('locale', $locale);
         }
 
-        return response()->json(['data' => $q->get()->map(fn (CmsRevision $r) => $this->revision($r))->all()]);
+        return response()->json(['data' => $q->get()->map(fn (CmsRevision $r) => $this->revision($r) + ['content' => $this->aboutUs->resolveAssets($r->content)])->all()], 200, ['Cache-Control' => 'private, no-store']);
     }
 
     public function restore(Request $request): JsonResponse
     {
+        $locale = $this->locale($request);
         $data = $request->validate(['revision_id' => ['required', 'string', 'max:40']]);
         $page = $this->aboutUs->page();
-        $r = CmsRevision::where('public_id', $data['revision_id'])->where('page_id', $page->id)->first()
+        $r = CmsRevision::where('public_id', $data['revision_id'])->where('page_id', $page->id)->where('locale', $locale)->first()
             ?? throw new ApiException('Revision not found.', 404, 'not_found');
 
         return response()->json(['data' => $this->revision($this->cms->restore($page, $r, $request->user()->id))]);

@@ -13,7 +13,7 @@ class EnrichMerchants extends Command
 
     public function handle(EnrichmentPipeline $pipeline): int
     {
-        if (! $pipeline->configured()) {
+        if (! config('enrichment.enabled')) {
             $this->warn('Merchant enrichment is disabled or not configured.');
 
             return self::SUCCESS;

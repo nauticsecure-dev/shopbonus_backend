@@ -8,13 +8,18 @@ use App\Models\MerchantEnrichmentRun;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Models\WebshopPublicProfile;
+use App\Services\Admin\Diagnostics\ProviderFailure;
+use App\Services\Discovery\PublicProfileService;
 use App\Services\Enrichment\EnrichmentPipeline;
+use App\Services\Enrichment\MerchantCoverGenerator;
 use App\Services\Enrichment\SafeUrlFetcher;
+use App\Services\Enrichment\WebsiteResearcher;
 use App\Services\Onboarding\Network\HostResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\Fakes\FakeHostResolver;
@@ -82,9 +87,20 @@ class MerchantEnrichmentE2ETest extends TestCase
                 'usage' => ['input_tokens' => 120, 'output_tokens' => 80],
             ]),
             'https://api.openai.com/v1/images/generations' => $imageOk
-                ? Http::response(['data' => [['b64_json' => base64_encode('fake-webp-bytes')]]])
+                ? Http::response(['data' => [['b64_json' => base64_encode($this->coverBytes())]]])
                 : Http::response(['error' => 'rate limit'], 429),
         ]);
+    }
+
+    private function coverBytes(): string
+    {
+        $image = imagecreatetruecolor(1536, 1024);
+        ob_start();
+        imagepng($image);
+        $bytes = ob_get_clean();
+        imagedestroy($image);
+
+        return $bytes;
     }
 
     private function eligibleShop(): Webshop
@@ -127,6 +143,61 @@ class MerchantEnrichmentE2ETest extends TestCase
         $profile = WebshopPublicProfile::where('webshop_id', $shop->id)->firstOrFail();
         $this->assertSame('Stijlvolle woonartikelen en accessoires online.', $profile->short_description);
         $this->assertSame(['home_garden'], $profile->categories());
+    }
+
+    public function test_invalid_cover_bytes_are_rejected_and_png_is_transcoded_to_responsive_webp(): void
+    {
+        Storage::fake(PublicProfileService::DISK);
+        Http::fakeSequence()->push(['data' => [['b64_json' => base64_encode('not-an-image')]]])
+            ->push(['data' => [['b64_json' => base64_encode($this->coverBytes())]]]);
+        $generator = app(MerchantCoverGenerator::class);
+        try {
+            $generator->generate('fixture', 'Fixture', [], 'fixture-enrichment-image');
+            $this->fail('Arbitrary bytes must never be published as WebP.');
+        } catch (ProviderFailure $e) {
+            $this->assertSame('invalid_cover_output', $e->failureCode);
+        }
+        $cover = $generator->generate('fixture', 'Fixture', [], 'fixture-enrichment-image');
+        $disk = Storage::disk(PublicProfileService::DISK);
+        foreach ([640, 960, 1536] as $width) {
+            $path = $width === 1536 ? $cover['path'] : substr($cover['path'], 0, -5).'-'.$width.'.webp';
+            $info = getimagesizefromstring($disk->get($path));
+            $this->assertSame('image/webp', $info['mime']);
+            $this->assertSame($width, $info[0]);
+        }
+    }
+
+    public function test_research_collects_relevant_same_origin_pages_and_image_candidates(): void
+    {
+        $this->dns->addresses['woonenco.nl'] = ['93.184.216.34'];
+        Http::fake([
+            'https://woonenco.nl/' => Http::response('<title>Woon</title><a href="/over-ons">Over ons</a><a href="/contact">Contact</a><a href="/categories">Categories</a><a href="https://evil.example/contact">Contact</a><img src="/logo.png" alt="Logo"><script>SECRET_SCRIPT_TEXT</script>'),
+            'https://woonenco.nl/over-ons' => Http::response('<p>Home accessories since 2010</p>'),
+            'https://woonenco.nl/contact' => Http::response('<p>Customer service available</p>'),
+            'https://woonenco.nl/categories' => Http::response('<p>Furniture and gifts</p><img src="/gift.png" alt="Gift">'),
+        ]);
+        $research = app(WebsiteResearcher::class)->research('https://woonenco.nl/', 65536);
+        $json = json_encode($research);
+        $this->assertStringContainsString('Home accessories since 2010', $json);
+        $this->assertStringContainsString('logo_candidate', $json);
+        $this->assertStringContainsString('image_candidate', $json);
+        $this->assertStringNotContainsString('SECRET_SCRIPT_TEXT', $json);
+        Http::assertSentCount(4);
+    }
+
+    public function test_published_profiles_are_refreshable_and_research_is_retained_without_ai_credentials(): void
+    {
+        $this->dns->addresses['woonenco.nl'] = ['93.184.216.34'];
+        $this->fakeAi();
+        $shop = $this->eligibleShop();
+        WebshopPublicProfile::create(['webshop_id' => $shop->id, 'slug' => 'woon-refresh', 'display_name' => 'Woon', 'published' => true]);
+        config(['enrichment.api_key' => null]);
+        $pipeline = app(EnrichmentPipeline::class);
+        $this->assertContains($shop->id, array_map(fn ($s) => $s->id, $pipeline->eligibleWebshops(25)));
+        $run = $pipeline->enqueue($shop)->fresh();
+        $this->assertNotEmpty($run->research['evidence']);
+        $this->assertSame('not_configured', $run->failure_code);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.openai.com'));
     }
 
     public function test_image_failure_falls_back_without_failing_enrichment(): void

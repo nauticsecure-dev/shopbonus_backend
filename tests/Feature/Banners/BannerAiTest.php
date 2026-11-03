@@ -70,6 +70,7 @@ class BannerAiTest extends TestCase
         $draft = BannerCampaign::where('public_id', $draftId)->firstOrFail();
         $this->assertSame('draft', $draft->status);
         $this->assertEquals($this->campaign->draft_config['content'], $draft->draft_config['content']);
+        $this->assertSame(['text', 'image', 'cta'], array_column($draft->draft_config['layers'], 'type'));
         $this->assertNull($draft->published_version_id);
         $this->assertSame(1, $this->campaign->fresh()->draft_revision);
         $this->assertDatabaseCount('banner_versions', 0);

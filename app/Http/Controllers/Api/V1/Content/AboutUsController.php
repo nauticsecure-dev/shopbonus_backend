@@ -23,7 +23,7 @@ class AboutUsController extends Controller
         return response()->json(
             ['data' => $data ?? throw new ApiException('About Us page not found.', 404, 'not_found')],
             200,
-            ['Cache-Control' => 'public, max-age=60'],
+            ['Cache-Control' => 'no-store, private'],
         );
     }
 }

@@ -13,6 +13,9 @@ use Symfony\Component\HttpFoundation\Response;
  * `workspace.can:<permission>`: the resolved membership must hold the
  * permission. Members (who already know the workspace exists) get 403,
  * which AuditAccessDenials records with the webshop in context.
+ *
+ * Owner-only permissions additionally require confirmed Fortify TOTP when
+ * `shopbonus.workspace.mfa_required_for_sensitive` is enabled (Trello #4).
  */
 class RequireWorkspacePermission
 {
@@ -27,6 +30,19 @@ class RequireWorkspacePermission
                 'You do not have permission to do this in this workspace.',
                 403,
                 'workspace_permission_denied',
+                ['required_permission' => $required->value],
+            );
+        }
+
+        if (
+            $required->isOwnerOnly()
+            && config('shopbonus.workspace.mfa_required_for_sensitive')
+            && ! $request->user()?->hasEnabledTwoFactorAuthentication()
+        ) {
+            throw new ApiException(
+                'Enable two-factor authentication to use this workspace action.',
+                403,
+                'mfa_required',
                 ['required_permission' => $required->value],
             );
         }

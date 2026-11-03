@@ -99,7 +99,7 @@ class CmsController extends Controller
         $this->locale($locale);
         $l = CmsPageLocale::where('page_id', $this->find($page)->id)->where('locale', $locale)->first() ?? throw new ApiException('This translation does not exist.', 404, 'not_found');
 
-        return response()->json(['data' => ['locale' => $locale, 'slug' => $l->slug, 'content' => $l->draft_content, 'preview' => true]], 200,
+        return response()->json(['data' => ['locale' => $locale, 'slug' => $l->slug, 'content' => $l->draft_content, 'draft_revision' => $l->draft_revision, 'preview' => true]], 200,
             ['Cache-Control' => 'private, no-store', 'X-Robots-Tag' => 'noindex, nofollow']);
     }
 
@@ -107,8 +107,8 @@ class CmsController extends Controller
     {
         $this->locale($locale);
         $data = $request->validate(['legal_version' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9._-]+$/'], 'effective_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
-            'approve' => ['sometimes', 'boolean']]);
-        $revision = $this->cms->publish($this->find($page), $locale, $request->user()->id, $data);
+            'approve' => ['sometimes', 'boolean'], 'revision' => ['required', 'integer', 'min:1']]);
+        $revision = $this->cms->publish($this->find($page), $locale, $request->user()->id, $data, (int) $data['revision']);
 
         return response()->json(['data' => $this->revision($revision)]);
     }
@@ -144,6 +144,7 @@ class CmsController extends Controller
                 $status = match (true) {
                     $l === null => 'missing',
                     $published === null => 'unpublished',
+                    $locale !== 'nl' && ($published->source_master_revision === null || $published->source_master_revision !== $p->locales->firstWhere('locale', 'nl')?->draft_revision) => 'stale',
                     $l->draft_content !== $published->content => 'draft_differs',
                     default => 'published',
                 };
@@ -262,7 +263,7 @@ class CmsController extends Controller
 
     public function storeFaqCategory(Request $request): JsonResponse
     {
-        $data = $request->validate(['key' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')], 'names' => ['required', 'array:nl,en'],
+        $data = $request->validate(['key' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')], 'names' => ['required', 'array:'.implode(',', CmsService::LOCALES)],
             'names.nl' => ['required', 'string', 'max:80', 'not_regex:/[<>]/'], 'names.en' => ['required', 'string', 'max:80', 'not_regex:/[<>]/']]);
         $c = FaqCategory::create($data + ['position' => (int) FaqCategory::max('position') + 1]);
         CmsCache::flush();
@@ -317,7 +318,7 @@ class CmsController extends Controller
             'revision' => [$creating ? 'prohibited' : 'required', 'integer', 'min:1'],
             'audience' => ['sometimes', Rule::in(FaqItem::AUDIENCES)],
             'published' => ['sometimes', 'boolean'],
-            'translations' => [$creating ? 'required' : 'sometimes', 'array:nl,en', 'min:1'],
+            'translations' => [$creating ? 'required' : 'sometimes', 'array:'.implode(',', CmsService::LOCALES), 'min:1'],
             'translations.*.question' => ['required', 'string', 'max:200', 'not_regex:/[<>]/'],
             'translations.*.answer' => ['required', 'array'],
         ]);

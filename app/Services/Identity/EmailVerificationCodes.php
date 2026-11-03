@@ -56,6 +56,8 @@ class EmailVerificationCodes
             ]);
         });
 
+        // Plain code must never be written to logs or audit metadata — only the
+        // encrypted mail notification carries it (see test_code_never_appears_in_logs_or_audit_trail).
         $user->notify(new EmailVerificationCode($code, $ttl));
 
         $this->audit->recordSafely(
@@ -63,6 +65,11 @@ class EmailVerificationCodes
             category: AuditCategory::Identity,
             resource: $user,
             actorUserId: $user->id,
+            metadata: [
+                'challenge_id' => $challenge->id,
+                'expires_at' => $challenge->expires_at->toIso8601String(),
+                'delivery' => 'queued_mail',
+            ],
         );
 
         return $challenge;

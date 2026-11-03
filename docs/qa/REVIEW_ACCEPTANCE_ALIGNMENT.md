@@ -4,17 +4,17 @@ Applies to the five reported reward, provider, workspace and Answer24 findings. 
 
 ## Affiliate credit timing
 
-D-089 and the owner's later reaffirmation D-107 govern new rewards: default `on_network_approval` in `config/shopbonus.php`. Valid attributed pending conversions create a visible, non-spendable pending balance. Network approval makes an eligible reward spendable once, subject to existing review checks. Cash settlement is a separate fact; approval does not prove network cash receipt. The current default is not `on_network_settlement`.
+D-109 (owner2026-11-03) supersedes D-089/D-107 for new rewards: current default `on_network_settlement` requires both network approval and independently recorded settlement. Pending and approved-but-unsettled conversions remain non-spendable. Approval never proves cash receipt. Historical timing snapshots retain their terms. This addendum was initially verified against an older checkout; D-109 aligns it with newly merged main and the owner’s explicit decision.
 
-Acceptance must assert pending available=0, approval credits once and replay does not duplicate it. Preserve each transaction's frozen timing/rule and existing rejection/reversal behavior; do not switch pending obligations to instant credit. A brief requiring immediate spendability conflicts with the recorded owner policy and is not satisfied by hiding pending amounts. Immediate credit and its loss/reversal policy require a replacement owner decision before activation.
+Acceptance must assert pending available=0, approval alone remains pending, recorded settlement credits once and replay does not duplicate it. Preserve each transaction's frozen timing/rule and existing rejection/reversal behavior; do not switch pending obligations to instant credit. A brief requiring immediate spendability conflicts with the recorded owner policy and is not satisfied by hiding pending amounts. Immediate credit and its loss/reversal policy require a replacement owner decision before activation.
 
 ## Explicit €4.75 fixture
 
-Use EUR wallet credit, commission475minor, versioned `share_bps=10000`, `min_commission_minor=0`, no cap or review threshold that blocks this amount, and a verified eligible attributed program/conversion. The fixture is test-local, not a production configuration change. A pending event produces pending475/available0; approval produces pending0/available475; replay leaves475. Changing the active rule later does not change this transaction's frozen100% rule. Allocation remainder is0, with `cash_settlement_verified=false`.
+Use EUR wallet credit, commission475minor, versioned `share_bps=10000`, `min_commission_minor=0`, no cap or review threshold that blocks this amount, and a verified eligible attributed program/conversion. The fixture is test-local, not a production configuration change. A pending event produces pending475/available0; approval alone leaves pending475/available0; verified settlement produces pending0/available475; replay leaves475. Changing the active rule later does not change this transaction's frozen100% rule. Allocation remainder is0, with `cash_settlement_verified=true` only after independently recorded settlement.
 
 The platform default remains7000bps (70%). A100% reward must never be inferred from the commission amount alone. Points earning/pricing is separate from this EUR scenario. The remainder remains allocation reporting under D-105, not formal revenue posting.
 
-Executable regression: `AffiliateTest::test_475_commission_scenario_requires_explicit_full_share_and_waits_for_approval`. Existing affiliate tests cover rejection, reversal, review thresholds and frozen timing.
+Executable regression: `AffiliateTest::test_475_commission_scenario_requires_explicit_full_share_and_recorded_settlement`. Existing affiliate tests cover rejection, reversal, review thresholds and frozen timing.
 
 ## Workspace status expectations
 

@@ -52,4 +52,8 @@ No withdraw / transfer / cash-out routes exist.
 
 ## E2E coverage
 
-`tests/Feature/Benefits/MyBenefitsE2ETest.php` — 10 scenarios (wallet KPIs, 70/30 affiliate credit, direct 10.8% cashback, click≠credit, duplicate idempotency, voucher statuses/copy, redemption debit, reversal audit, AI voucher context, Reverb channel isolation).
+`tests/Feature/Benefits/MyBenefitsE2ETest.php` — 10 **API** scenarios (wallet KPIs available/earned/spent, 70/30 affiliate immediate credit, direct 10.8% cashback, click≠credit, duplicate idempotency, voucher statuses/copy, redemption debit, reversal audit, AI voucher context, Reverb channel/contract isolation).
+
+**Not covered by those ten tests (browser journeys):** desktop/mobile layout, clipboard permissions, live Reverb reconnect recovery in a focused tab, or end-to-end AI troubleshooting UI. Frontend recovers missed wallet events via Echo `state_change` reconnect + HTTP refetch of wallet, vouchers, ledger, affiliate activity and dashboard.
+
+**Policy evidence:** default `AFFILIATE_CREDIT_TIMING=on_validated_attribution` (config/shopbonus.php). Direct merchant cashback always immediate. Legacy `on_network_approval` remains for compatibility tests only — consumers do not see a pending-cashback balance or `filter=pending` rows.

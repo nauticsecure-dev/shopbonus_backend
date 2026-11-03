@@ -1,0 +1,366 @@
+{
+  "environment": "Local PHP 8.4 HTTP server, isolated in-memory SQLite fixture per request; no live provider calls. X-Fixture-Actor exists only in temporary loopback router.",
+  "captured_at": "2026-10-31T13:40:24.491Z",
+  "captures": [
+    {
+      "request": {
+        "name": "config",
+        "method": "GET",
+        "path": "/api/v1/banners/config?key=pk_attribution_fixture&consent_id=d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"
+      },
+      "status": 200,
+      "response": {
+        "data": {
+          "campaigns": [
+            {
+              "campaign": "01K00000000000000000000001",
+              "version": 1,
+              "config": {
+                "template": "ribbon",
+                "placement": {
+                  "anchor": "top"
+                },
+                "content": {
+                  "heading": "Next-purchase reward",
+                  "subtitle": "Approved offer terms apply",
+                  "cta_label": "View offer",
+                  "cta_url": "https://example.nl/rewards",
+                  "terms": "Original terms"
+                },
+                "style": {
+                  "background": "#123456",
+                  "text": "#FFFFFF",
+                  "font": "inter",
+                  "animation": "none"
+                },
+                "frequency": {
+                  "per_session": 1,
+                  "hide_after_dismiss": true
+                },
+                "triggers": {
+                  "all": [
+                    {
+                      "type": "url_match",
+                      "value": "/collections/*"
+                    }
+                  ]
+                },
+                "devices": [
+                  "desktop",
+                  "mobile"
+                ]
+              }
+            }
+          ],
+          "tracking_allowed": true
+        }
+      }
+    },
+    {
+      "request": {
+        "name": "assignments",
+        "method": "POST",
+        "path": "/api/v1/banners/assignments",
+        "body": {
+          "key": "pk_attribution_fixture",
+          "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+          "consent": true,
+          "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"
+        }
+      },
+      "status": 200,
+      "response": {
+        "data": []
+      }
+    },
+    {
+      "request": {
+        "name": "missing_consent",
+        "method": "POST",
+        "path": "/api/v1/banners/assignments",
+        "body": {
+          "key": "pk_attribution_fixture",
+          "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+          "consent": true
+        }
+      },
+      "status": 403,
+      "response": {
+        "error": {
+          "status": 403,
+          "code": "tracking_consent_required",
+          "message": "Current tracking consent is required.",
+          "request_id": "01a1922f-024a-73e4-949a-1874c79514d6"
+        }
+      }
+    },
+    {
+      "request": {
+        "name": "events",
+        "method": "POST",
+        "path": "/api/v1/banners/events",
+        "body": {
+          "key": "pk_attribution_fixture",
+          "events": [
+            {
+              "id": "1c557cc8-d03c-47e6-bfb6-ec9c867bb1eb",
+              "campaign": "01K00000000000000000000001",
+              "version": 1,
+              "type": "cta_click",
+              "occurred_at": "2026-10-31T13:37:59.348Z",
+              "consent": true,
+              "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"
+            }
+          ]
+        }
+      },
+      "status": 202,
+      "response": {
+        "data": {
+          "accepted": 1,
+          "duplicates": 0,
+          "rejected": 0,
+          "bots": 0,
+          "click_ids": {
+            "1c557cc8-d03c-47e6-bfb6-ec9c867bb1eb": "bc_83a7ac3409c4daeb5b94c686"
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "name": "overview",
+        "method": "GET",
+        "path": "/api/v1/workspaces/01k00000000000000000000000/analytics/overview?days=7",
+        "actor": "owner"
+      },
+      "status": 200,
+      "response": {
+        "data": {
+          "from": "2026-10-24T22:00:00+00:00",
+          "to": "2026-10-31T22:59:59+00:00",
+          "orders": [],
+          "sales_series": [
+            {
+              "date": "2026-10-25",
+              "paid_orders": 0,
+              "orders": []
+            },
+            {
+              "date": "2026-10-26",
+              "paid_orders": 0,
+              "orders": []
+            },
+            {
+              "date": "2026-10-27",
+              "paid_orders": 0,
+              "orders": []
+            },
+            {
+              "date": "2026-10-28",
+              "paid_orders": 0,
+              "orders": []
+            },
+            {
+              "date": "2026-10-29",
+              "paid_orders": 0,
+              "orders": []
+            },
+            {
+              "date": "2026-10-30",
+              "paid_orders": 0,
+              "orders": []
+            },
+            {
+              "date": "2026-10-31",
+              "paid_orders": 0,
+              "orders": []
+            }
+          ],
+          "vouchers": {
+            "reserved": 0,
+            "issued": 0,
+            "redeemed": 0,
+            "redemption_rate": null
+          },
+          "reward_cost": {
+            "currency": "EUR",
+            "reward_minor": 0,
+            "fee_minor": 0,
+            "total_minor": 0
+          },
+          "answer24": {
+            "opportunities": [],
+            "claims": 0
+          },
+          "funding": {
+            "available_minor": 1000000,
+            "reserved_minor": 0
+          },
+          "banner_metrics": {
+            "status": "available",
+            "eligible": 0,
+            "viewable_impressions": 0,
+            "cta_clicks": 0,
+            "dismissals": 0,
+            "ctr": null
+          },
+          "attribution": {
+            "click": {
+              "orders": 0,
+              "net_revenue_minor": 0,
+              "by_currency": []
+            },
+            "voucher": {
+              "orders": 0,
+              "net_revenue_minor": 0,
+              "by_currency": []
+            },
+            "view": {
+              "orders": 0,
+              "net_revenue_minor": 0,
+              "by_currency": []
+            },
+            "unattributed": {
+              "orders": 0,
+              "net_revenue_minor": 0,
+              "by_currency": []
+            },
+            "confidence_note": "click > voucher > view > unattributed; success-page visits never count as paid."
+          },
+          "repeats": {
+            "repeat_paid_orders": 0,
+            "definition": "Paid orders whose customer_key already had an earlier paid order in this shop."
+          },
+          "network": {
+            "status": "available",
+            "as_referrer": {
+              "journeys": 0,
+              "currency": null,
+              "network_gmv_minor": 0,
+              "by_currency": []
+            },
+            "as_receiver": {
+              "journeys": 0,
+              "currency": null,
+              "network_gmv_minor": 0,
+              "by_currency": []
+            },
+            "settlement_note": "Cross-shop journeys are recorded for agreed settlement only; ShopBonus never silently deducts the receiving shop Wallet.",
+            "definitions": {
+              "as_referrer": "Paid orders at other shops carrying a consented click ID from this shop.",
+              "as_receiver": "Paid orders at this shop carrying a consented click ID from another shop."
+            }
+          },
+          "attribution_priority": [
+            "click",
+            "voucher",
+            "view",
+            "unattributed"
+          ],
+          "note": "Attributed revenue is association evidence, not incremental lift. Use A/B + holdout for lift.",
+          "timezone": "Europe/Amsterdam",
+          "generated_at": "2026-10-31T13:44:19+00:00"
+        }
+      }
+    },
+    {
+      "request": {
+        "name": "network",
+        "method": "GET",
+        "path": "/api/v1/admin/network",
+        "actor": "owner"
+      },
+      "status": 200,
+      "response": {
+        "data": {
+          "generated_at": "2026-10-31T13:39:52+00:00",
+          "from": "2026-10-01T22:00:00+00:00",
+          "to": "2026-10-31T22:59:59+00:00",
+          "shops": 1,
+          "viewable_exposure": 0,
+          "unique_verified_members": 2,
+          "verified_gmv": {
+            "paid_orders": 0,
+            "currency": null,
+            "net_minor": 0,
+            "by_currency": []
+          },
+          "vouchers": {
+            "earned": 0,
+            "spent": 0
+          },
+          "external_affiliate": {
+            "currency": null,
+            "confirmed_commission_minor": 0,
+            "pending_commission_minor": 0,
+            "reversed_commission_minor": 0,
+            "net_commission_minor": 0,
+            "by_currency": [],
+            "note": "Network contracts differ from the direct 30% merchant fee; gross ≠ profit."
+          },
+          "direct_fees": {
+            "currency": "EUR",
+            "fee_rate_bps": 3000,
+            "settled_fee_minor": 0,
+            "settled_reward_minor": 0
+          },
+          "wallet_liabilities_reserved_minor": null,
+          "wallet_liabilities": [
+            {
+              "kind": "merchant_funding",
+              "unit": "eur_credit",
+              "available": 1000000,
+              "reserved": 0,
+              "pending": 0,
+              "outstanding": 1000000
+            }
+          ],
+          "invoice_reconciliation": {
+            "status": "provider_not_verified",
+            "provider_issued_verified": false,
+            "internal_drafts": 0,
+            "externally_referenced": 0,
+            "note": "An internal draft or external reference is not proof of provider issuance, delivery or payment reconciliation."
+          },
+          "network_journeys": {
+            "count": 0,
+            "currency": null,
+            "gmv_minor": 0,
+            "by_currency": [],
+            "top_referring": [],
+            "top_receiving": []
+          },
+          "unmatched_paid_orders": 0,
+          "limitations": {
+            "moneybird": "Invoice drafts only until Moneybird credentials are configured.",
+            "cross_shop_settlement": "Journeys are recorded; Wallet deduction between shops requires an agreed settlement model.",
+            "live_affiliates": "Daisycon/TradeTracker adapters are fixture-verified; live network accounts NOT VERIFIED."
+          },
+          "period_name": "30d",
+          "timezone": "Europe/Amsterdam"
+        }
+      }
+    },
+    {
+      "request": {
+        "name": "orders",
+        "method": "GET",
+        "path": "/api/v1/workspaces/01k00000000000000000000000/analytics/attribution/orders?type=click",
+        "actor": "owner"
+      },
+      "status": 200,
+      "response": {
+        "data": [],
+        "meta": {
+          "current_page": 1,
+          "last_page": 1,
+          "per_page": 25,
+          "total": 0
+        },
+        "timezone": "Europe/Amsterdam",
+        "generated_at": "2026-10-31T13:44:34+00:00"
+      }
+    }
+  ]
+}

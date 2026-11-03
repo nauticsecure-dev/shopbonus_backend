@@ -1,0 +1,139 @@
+{
+ "data": [
+ {
+ "check": "app.environment",
+ "result": "FAIL",
+ "action": "APP_ENV must be production."
+ },
+ {
+ "check": "app.debug_disabled",
+ "result": "FAIL",
+ "action": "APP_DEBUG must be false."
+ },
+ {
+ "check": "app.key_set",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "app.url_https",
+ "result": "FAIL",
+ "action": "APP_URL must be https."
+ },
+ {
+ "check": "session.secure_cookie",
+ "result": "FAIL",
+ "action": "SESSION_SECURE_COOKIE must be true."
+ },
+ {
+ "check": "session.http_only",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "session.same_site",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "session.driver_shared",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "cors.explicit_https_origins",
+ "result": "FAIL",
+ "action": "CORS_ALLOWED_ORIGINS must list only https frontends."
+ },
+ {
+ "check": "sanctum.stateful_domains",
+ "result": "FAIL",
+ "action": "SANCTUM_STATEFUL_DOMAINS must list only the production frontends."
+ },
+ {
+ "check": "security.hsts",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "security.trusted_proxies",
+ "result": "WARN",
+ "action": "Set TRUSTED_PROXIES when TLS ends at a proxy\/load balancer."
+ },
+ {
+ "check": "admin.mfa_required",
+ "result": "FAIL",
+ "action": "ADMIN_MFA_REQUIRED must be true."
+ },
+ {
+ "check": "workspace.mfa_required_for_sensitive",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "workspace.step_up_for_sensitive",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "queue.async",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "cache.shared",
+ "result": "PASS",
+ "action": null
+ },
+ {
+ "check": "mail.delivering",
+ "result": "FAIL",
+ "action": "MAIL_MAILER must deliver mail."
+ },
+ {
+ "check": "payments.mollie_key",
+ "result": "FAIL",
+ "action": "MOLLIE_API_KEY must be configured."
+ },
+ {
+ "check": "payments.mollie_live",
+ "result": "WARN",
+ "action": "Live Mollie payments are off or the key is not a live key."
+ },
+ {
+ "check": "answer24.signing_secret",
+ "result": "FAIL",
+ "action": "ANSWER24_BASE_URL (https) and ANSWER24_SIGNING_SECRET must be configured."
+ },
+ {
+ "check": "answer24.dispatch_enabled",
+ "result": "WARN",
+ "action": "Answer24 contact dispatch is off (requires the confirmed contract and lawful basis)."
+ },
+ {
+ "check": "backups.enabled",
+ "result": "FAIL",
+ "action": "BACKUPS_ENABLED and BACKUP_ENCRYPTION_KEY must be set."
+ },
+ {
+ "check": "backups.restore_target",
+ "result": "WARN",
+ "action": "Configure BACKUP_RESTORE_CONNECTION to verify restores."
+ },
+ {
+ "check": "database.migrations_applied",
+ "result": "FAIL",
+ "action": "Run php artisan migrate --force."
+ },
+ {
+ "check": "manual.provider_live_runs",
+ "result": "MANUAL",
+ "action": "Live store, Mollie and Answer24 acceptance runs are recorded outside configuration."
+ },
+ {
+ "check": "manual.legal_decisions",
+ "result": "MANUAL",
+ "action": "Open legal\/business decisions (e.g. affiliate credit timing) need owner sign-off."
+ }
+ ]
+}

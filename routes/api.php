@@ -225,6 +225,12 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         // Authenticated + verified: all further private endpoints go here.
         Route::middleware('verified')->group(function () {
+            // Shared step-up for owner-sensitive workspace mutations (and admin reuse).
+            Route::middleware('password.recent')->prefix('auth/step-up')->name('auth.step-up.')->group(function () {
+                Route::post('code', [AdminStepUpController::class, 'code'])->middleware('throttle:admin-step-up')->name('code');
+                Route::post('verify', [AdminStepUpController::class, 'verify'])->middleware('throttle:identity-verify-code')->name('verify');
+            });
+
             Route::get('me/wallet', [MeWalletController::class, 'show'])->name('me.wallet.show');
             Route::get('me/orders/{reference}/reward', [ToolAliasController::class, 'orderReward'])->name('me.orders.reward');
             Route::get('me/vouchers', [ToolAliasController::class, 'vouchers'])->name('me.vouchers.index');
@@ -466,6 +472,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('restore', [AdminMerchantLandingCmsController::class, 'restore'])->name('restore');
                         Route::post('schedule', [AdminMerchantLandingCmsController::class, 'schedule'])->name('schedule');
                         Route::post('ai-suggest', [AdminMerchantLandingCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::get('assets', [AdminMerchantLandingCmsController::class, 'assets'])->name('assets.index');
                         Route::post('assets', [AdminMerchantLandingCmsController::class, 'uploadAsset'])->name('assets.store');
                     });
                     Route::prefix('content/pages/voor-webshops')->name('content.pages.voor-webshops.')->group(function () {
@@ -476,6 +483,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('restore', [AdminMerchantLandingCmsController::class, 'restore'])->name('restore');
                         Route::post('schedule', [AdminMerchantLandingCmsController::class, 'schedule'])->name('schedule');
                         Route::post('ai-suggest', [AdminMerchantLandingCmsController::class, 'aiSuggest'])->name('ai-suggest');
+                        Route::get('assets', [AdminMerchantLandingCmsController::class, 'assets'])->name('assets.index');
                         Route::post('assets', [AdminMerchantLandingCmsController::class, 'uploadAsset'])->name('assets.store');
                     });
                     Route::prefix('content/over-ons')->name('content.over-ons.')->group(function () {
@@ -630,13 +638,15 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     ->middleware('workspace.can:settings.manage')->name('business-profile.update');
                 Route::middleware('workspace.can:ownership.manage')->prefix('ownership')->name('ownership.')->group(function () {
                     Route::get('verifications', [OwnershipVerificationController::class, 'index'])->name('verifications.index');
-                    Route::post('verifications', [OwnershipVerificationController::class, 'store'])
-                        ->middleware('throttle:ownership-check')->name('verifications.store');
-                    Route::post('verifications/{verification}/check', [OwnershipVerificationController::class, 'check'])
-                        ->middleware('throttle:ownership-check')->name('verifications.check');
-                    Route::post('verifications/{verification}/confirm-code', [OwnershipVerificationController::class, 'confirmCode'])
-                        ->middleware('throttle:ownership-check')->name('verifications.confirm-code');
-                    Route::post('review', [OwnershipVerificationController::class, 'review'])->name('review');
+                    Route::middleware('workspace.sensitive')->group(function () {
+                        Route::post('verifications', [OwnershipVerificationController::class, 'store'])
+                            ->middleware('throttle:ownership-check')->name('verifications.store');
+                        Route::post('verifications/{verification}/check', [OwnershipVerificationController::class, 'check'])
+                            ->middleware('throttle:ownership-check')->name('verifications.check');
+                        Route::post('verifications/{verification}/confirm-code', [OwnershipVerificationController::class, 'confirmCode'])
+                            ->middleware('throttle:ownership-check')->name('verifications.confirm-code');
+                        Route::post('review', [OwnershipVerificationController::class, 'review'])->name('review');
+                    });
                 });
                 // Ecommerce connections (Trello #1).
                 Route::get('connections', [ConnectionController::class, 'index'])->middleware('workspace.can:integrations.view')->name('connections.index');
@@ -644,11 +654,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('connections/{connection}/events', [ConnectionController::class, 'events'])->middleware('workspace.can:integrations.view')->name('connections.events');
                 Route::post('connections/{connection}/verify', [ConnectionController::class, 'verify'])->middleware('workspace.can:integrations.view')->name('connections.verify');
                 Route::get('connections/{connection}/capabilities', [CatalogController::class, 'capabilities'])->middleware('workspace.can:integrations.view')->name('connections.capabilities');
+                Route::get('connections/{connection}/health', [CatalogController::class, 'health'])->middleware('workspace.can:integrations.view')->name('connections.health');
                 Route::get('connections/{connection}/products', [CatalogController::class, 'products'])->middleware('workspace.can:integrations.view')->name('connections.products');
                 Route::get('connections/{connection}/coupons', [CatalogController::class, 'coupons'])->middleware('workspace.can:integrations.manage')->name('connections.coupons');
                 Route::get('connections/{connection}/catalog-syncs', [CatalogController::class, 'syncs'])->middleware('workspace.can:integrations.view')->name('connections.catalog-syncs.index');
                 Route::middleware('workspace.can:integrations.manage')->group(function () {
                     Route::post('connections/{connection}/catalog-syncs', [CatalogController::class, 'sync'])->middleware('throttle:commerce-probe')->name('connections.catalog-syncs.store');
+                    // Merchant App Store aliases (Hassan FE + Frank handoff) → CatalogSynchronizer.
+                    Route::post('connections/{connection}/sync/products', [CatalogController::class, 'syncProducts'])
+                        ->middleware('throttle:commerce-probe')->name('connections.sync.products');
+                    Route::post('connections/{connection}/sync/coupons', [CatalogController::class, 'syncCoupons'])
+                        ->middleware('throttle:commerce-probe')->name('connections.sync.coupons');
                     Route::post('connections/{connection}/test-api', ConnectionApiTestController::class)->middleware('throttle:commerce-probe')->name('connections.test-api');
                     Route::post('connections', [ConnectionController::class, 'store'])->name('connections.store');
                     Route::post('integrations/shopify/oauth', [ShopifyOAuthController::class, 'start'])->middleware('throttle:commerce-probe')->name('connections.shopify-oauth.start');
@@ -714,7 +730,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
                 // Answer24 contact (Trello #1, #23): owner attestation, suppressions, opportunity queue.
                 Route::get('answer24/settings', [ContactSettingsController::class, 'show'])->middleware('workspace.can:settings.view')->name('answer24.settings.show');
-                Route::put('answer24/settings', [ContactSettingsController::class, 'update'])->middleware('workspace.can:agreements.accept')->name('answer24.settings.update');
+                Route::put('answer24/settings', [ContactSettingsController::class, 'update'])
+                    ->middleware(['workspace.can:agreements.accept', 'workspace.sensitive'])->name('answer24.settings.update');
                 Route::post('answer24/suppressions', [ContactSettingsController::class, 'suppress'])->middleware('workspace.can:settings.manage')->name('answer24.suppressions.store');
                 Route::get('answer24/opportunities', [ContactSettingsController::class, 'opportunities'])->middleware('workspace.can:orders.view')->name('answer24.opportunities.index');
 
@@ -776,11 +793,11 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('invoices', [FundingController::class, 'invoices'])->name('invoices.index');
                 });
                 Route::post('funding/top-ups', [FundingController::class, 'topUp'])
-                    ->middleware(['workspace.can:finance.manage', 'workspace.commercial', 'throttle:checkout'])->name('funding.top-ups.store');
+                    ->middleware(['workspace.can:finance.manage', 'workspace.sensitive', 'workspace.commercial', 'throttle:checkout'])->name('funding.top-ups.store');
 
                 Route::get('agreement', [AgreementController::class, 'show'])->middleware('workspace.can:settings.view')->name('agreement.show');
                 Route::post('agreement/accept', [AgreementController::class, 'accept'])
-                    ->middleware('workspace.can:agreements.accept')->name('agreement.accept');
+                    ->middleware(['workspace.can:agreements.accept', 'workspace.sensitive'])->name('agreement.accept');
             });
         });
     });

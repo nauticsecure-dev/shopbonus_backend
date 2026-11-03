@@ -22,6 +22,53 @@ class ProgramSelector
     {
         $candidates = AffiliateProgram::with('connection')->where('webshop_id', $webshop->id)->where('active', true)->where('cashback_allowed', true)
             ->whereHas('connection', fn ($q) => $q->whereIn('status', ['connected', 'limited']))->orderBy('id')->get();
+
+        $pending = null;
+        $latest = $onlyIfChanged ? DB::table('affiliate_program_selections')->where('webshop_id', $webshop->id)->latest('id')->first() : null;
+
+        return $this->recordSelection($webshop->id, $candidates, $pending, $latest);
+    }
+
+    /** Resolve a directory page with bounded queries, including first-time selections.
+     * @param  list<int>  $webshopIds
+     * @return array<int, AffiliateProgram|null>
+     */
+    public function currentMany(array $webshopIds): array
+    {
+        if ($webshopIds === []) {
+            return [];
+        }
+        $latest = DB::table('affiliate_program_selections')->whereIn('id',
+            DB::table('affiliate_program_selections')->selectRaw('MAX(id)')->whereIn('webshop_id', $webshopIds)->groupBy('webshop_id')
+        )->get()->keyBy('webshop_id');
+        $programs = AffiliateProgram::with('connection')->whereIn('webshop_id', $webshopIds)->orderBy('id')->get();
+        $byShop = $programs->groupBy('webshop_id');
+        $result = [];
+        $pending = [];
+        foreach ($webshopIds as $id) {
+            $decision = $latest->get($id);
+            $candidates = ($byShop->get($id) ?? collect())->filter(fn (AffiliateProgram $p) => $this->eligible($p))->values();
+            $result[$id] = $this->recordSelection($id, $candidates, $pending, $decision)['program'];
+        }
+        if ($pending !== []) {
+            DB::table('affiliate_program_selections')->insert($pending);
+        }
+
+        return $result;
+    }
+
+    private function eligible(AffiliateProgram $program): bool
+    {
+        return $program->active && $program->cashback_allowed && in_array($program->connection->status, ['connected', 'limited'], true);
+    }
+
+    /**
+     * @param  Collection<int, AffiliateProgram>  $candidates
+     * @param  list<array<string, mixed>>|null  $pending
+     * @return array{program: AffiliateProgram|null, method: string, limitation: string|null}
+     */
+    private function recordSelection(int $webshopId, Collection $candidates, ?array &$pending = null, ?object $latest = null): array
+    {
         $basket = (int) config('shopbonus.affiliate.reference_basket_minor', 5000);
 
         $rows = $candidates->map(fn (AffiliateProgram $p) => [
@@ -38,7 +85,6 @@ class ProgramSelector
             default => [$candidates->sortByDesc(fn (AffiliateProgram $p) => [$p->commission_type === 'percentage' ? intdiv($basket * $p->commission_value, 10_000) : $p->commission_value, -$p->id])->first(), 'best_comparable', null],
         };
 
-        $latest = $onlyIfChanged ? DB::table('affiliate_program_selections')->where('webshop_id', $webshop->id)->latest('id')->first() : null;
         if ($latest !== null && (string) $latest->program_id === (string) $program?->id
             && $latest->method === $method && $latest->limitation === $limitation
             && $latest->rule_version === (string) config('shopbonus.affiliate.selection_rule_version')
@@ -46,10 +92,15 @@ class ProgramSelector
             return ['program' => $program, 'method' => $method, 'limitation' => $limitation];
         }
 
-        DB::table('affiliate_program_selections')->insert([
-            'webshop_id' => $webshop->id, 'program_id' => $program?->id, 'method' => $method, 'candidates' => json_encode($rows),
+        $row = [
+            'webshop_id' => $webshopId, 'program_id' => $program?->id, 'method' => $method, 'candidates' => json_encode($rows),
             'limitation' => $limitation, 'rule_version' => (string) config('shopbonus.affiliate.selection_rule_version'), 'created_at' => now(),
-        ]);
+        ];
+        if ($pending === null) {
+            DB::table('affiliate_program_selections')->insert($row);
+        } else {
+            $pending[] = $row;
+        }
 
         return ['program' => $program, 'method' => $method, 'limitation' => $limitation];
     }

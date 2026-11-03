@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\CreatesActiveWebshops;
+use Tests\Support\BannerFixture;
 use Tests\TestCase;
 
 /**
@@ -97,7 +98,21 @@ class BannerTest extends TestCase
     private function event(string $campaign, string $type, bool $consent = true, string $device = 'desktop'): array
     {
         return ['id' => (string) Str::uuid(), 'campaign' => $campaign, 'version' => 1, 'type' => $type, 'occurred_at' => now()->toIso8601String(), 'device' => $device,
-            'path' => '/collections/sale?utm=x', 'category' => 'fashion', 'consent' => $consent];
+            'path' => '/collections/sale?utm=x', 'category' => 'fashion', 'consent_id' => BannerFixture::consentId(), 'consent' => $consent];
+    }
+
+    public function test_layer_and_size_validation_and_public_cart_metadata(): void
+    {
+        $layers = array_map(fn ($type) => ['type' => $type, 'visible' => true, 'align' => 'center', 'font_size' => 18, 'width_pct' => 100], ['text', 'image', 'cta']);
+        $id = $this->create(['layers' => $layers, 'placement' => ['width' => 400, 'height' => 180]]);
+        $this->postJson($this->url("/{$id}/publish"))->assertOk();
+        $public = $this->publicConfig()->assertOk()->assertJsonPath('data.editor_origin', config('shopbonus.identity.frontend_url'));
+        $public->assertJsonPath('data.campaigns.0.reward.threshold_minor', 10000)->assertJsonPath('data.campaigns.0.reward.currency', 'EUR')
+            ->assertJsonPath('data.campaigns.0.config.layers.2.type', 'cta')->assertJsonPath('data.campaigns.0.config.placement.width', 400);
+        Sanctum::actingAs($this->owner);
+        foreach ([['placement' => ['width' => 721]], ['placement' => ['height' => 79]], ['layers' => [$layers[0], $layers[0], $layers[2]]], ['layers' => [array_replace($layers[0], ['font_size' => 41]), $layers[1], $layers[2]]]] as $invalid) {
+            $this->putJson($this->url("/{$id}"), ['revision' => 1, 'config' => $this->config($invalid)])->assertUnprocessable();
+        }
     }
 
     public function test_card25_e2e3_drafts_stay_private_until_published(): void

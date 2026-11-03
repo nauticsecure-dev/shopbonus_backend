@@ -49,7 +49,6 @@ class EnrichmentPipeline
         return Webshop::query()
             ->where('status', WebshopStatus::Approved)
             ->whereNotNull('verified_domain')
-            ->whereDoesntHave('publicProfile', fn ($q) => $q->where('published', true))
             ->whereNotIn('id', $blocked)
             ->orderBy('id')
             ->limit($limit)
@@ -59,8 +58,8 @@ class EnrichmentPipeline
 
     public function enqueue(Webshop $webshop, string $trigger = 'scheduled'): MerchantEnrichmentRun
     {
-        if (! $this->configured()) {
-            throw new ApiException('Merchant enrichment is not configured.', 503, 'enrichment_not_configured');
+        if (! config('enrichment.enabled')) {
+            throw new ApiException('Merchant enrichment is disabled.', 503, 'enrichment_not_configured');
         }
         if ($webshop->status !== WebshopStatus::Approved || $webshop->verified_domain === null) {
             throw ApiException::conflict('This webshop is not eligible for enrichment.', 'enrichment_not_eligible');

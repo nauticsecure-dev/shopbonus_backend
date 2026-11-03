@@ -176,6 +176,26 @@ class CheckoutTest extends TestCase
         $this->assertSame([5500, 0], [$wallet->fresh()->available, $wallet->fresh()->reserved]);
     }
 
+    public function test_opening_checkout_quotes_does_not_reserve_before_explicit_payment_start(): void
+    {
+        $wallet = $this->fund(1000);
+        Sanctum::actingAs($this->anna);
+        for ($i = 0; $i < 3; $i++) {
+            $this->postJson('/api/v1/consumer/checkouts/quote', ['offer' => $this->offer->slug])
+                ->assertOk()->assertJsonPath('data.payment_part_minor', 1000);
+        }
+        $this->assertSame(0, VoucherCheckout::count());
+        $this->assertSame(0, Voucher::count());
+        $this->assertSame(2, VoucherCode::where('status', VoucherCodeStatus::Available)->count());
+        $this->assertSame([1000, 0], [$wallet->fresh()->available, $wallet->fresh()->reserved]);
+        Http::assertNothingSent();
+
+        // POST checkouts is the explicit purchase/payment-start action, not page opening.
+        $this->buy()->assertCreated()->assertJsonPath('data.state', 'pending_payment');
+        $this->assertSame(1, VoucherCode::where('status', VoucherCodeStatus::Reserved)->count());
+        $this->assertSame([0, 1000], [$wallet->fresh()->available, $wallet->fresh()->reserved]);
+    }
+
     public function test_card20_e2e5_and_card23_test8_mixed_checkout_finalises_only_on_verified_payment(): void
     {
         $wallet = $this->fund(1000);

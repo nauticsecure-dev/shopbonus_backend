@@ -5,6 +5,10 @@ return [
     'queue_stall_seconds' => (int) env('QUEUE_STALL_SECONDS', 300),
     // Every queue a worker must drain (affiliate syncs use their own queue).
     'monitored_queues' => array_values(array_filter(explode(',', (string) env('RELIABILITY_MONITORED_QUEUES', 'default,affiliate')))),
+    // Optional JSON map, e.g. {"database":["default"],"redis":["financial","notifications"]}.
+    // Null retains the default connection + monitored_queues contract.
+    'monitored_connections' => env('RELIABILITY_MONITORED_CONNECTIONS') === null ? null
+        : json_decode((string) env('RELIABILITY_MONITORED_CONNECTIONS'), true, 16, JSON_THROW_ON_ERROR),
     'enabled' => (bool) env('API_MONITORING_ENABLED', false),
     'sample_limit' => (int) env('API_MONITORING_SAMPLE_LIMIT', 50000),
     'retention_hours' => (int) env('API_MONITORING_RETENTION_HOURS', 24),

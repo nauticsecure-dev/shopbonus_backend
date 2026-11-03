@@ -105,7 +105,7 @@ class HomepageCmsController extends Controller
             $q->where('locale', $locale);
         }
 
-        return response()->json(['data' => $q->get()->map(fn (CmsRevision $r) => $this->revision($r))->all()]);
+        return response()->json(['data' => $q->get()->map(fn (CmsRevision $r) => [...$this->revision($r), 'content' => $this->homepage->resolveAssets($r->content)])->all()]);
     }
 
     public function restore(Request $request): JsonResponse

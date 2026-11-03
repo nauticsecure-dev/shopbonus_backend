@@ -72,11 +72,20 @@ class PublicDiscoveryController extends Controller
         ], 'inline');
     }
 
-    public function cover(string $slug): Response
+    public function cover(Request $request, string $slug): Response
     {
         $profile = $this->catalog->cover($slug) ?? throw new ApiException('Cover not found.', 404, 'not_found');
 
-        return Storage::disk(PublicProfileService::DISK)->response($profile->cover_path, 'cover', [
+        $data = $request->validate(['width' => ['sometimes', 'integer', Rule::in([640, 960, 1536])]]);
+        $path = $profile->cover_path;
+        if (isset($data['width']) && $data['width'] !== 1536 && str_ends_with($path, '.webp')) {
+            $variant = substr($path, 0, -5).'-'.$data['width'].'.webp';
+            if (Storage::disk(PublicProfileService::DISK)->exists($variant)) {
+                $path = $variant;
+            }
+        }
+
+        return Storage::disk(PublicProfileService::DISK)->response($path, 'cover', [
             'Content-Type' => (string) ($profile->cover_mime ?? 'image/webp'),
             'Cache-Control' => 'public, max-age=86400',
             'X-Content-Type-Options' => 'nosniff',

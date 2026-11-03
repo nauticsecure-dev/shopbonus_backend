@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Deployment-owned rates in EUR per million tokens, keyed by exact model ID.
+    // Leave empty until prices/exchange conversion are verified; no invented default prices.
+    'verified_eur_rates' => [],
     'enabled' => env('SUPPORT_AI_ENABLED', false),
     'api_key' => env('OPENAI_API_KEY'),
     'model' => env('SUPPORT_AI_MODEL', ''),
@@ -13,6 +16,7 @@ return [
     // Exact configured model's verified context and worst-case billing rates, not estimates.
     'contract' => [
         'context_tokens' => (int) env('SUPPORT_AI_CONTEXT_TOKENS', 0),
+        'output_tokens' => (int) env('SUPPORT_AI_CONTRACT_OUTPUT_TOKENS', 0),
         'input_micro_eur_per_token' => (int) env('SUPPORT_AI_INPUT_MICRO_EUR_PER_TOKEN', 0),
         'output_micro_eur_per_token' => (int) env('SUPPORT_AI_OUTPUT_MICRO_EUR_PER_TOKEN', 0),
         'pricing_reference' => env('SUPPORT_AI_PRICING_REFERENCE', ''),

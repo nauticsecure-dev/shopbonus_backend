@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\VoucherCodeStatus;
+use App\Services\Discovery\DiscoveryCache;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,17 @@ class VoucherCode extends Model
     protected $hidden = ['id', 'webshop_id', 'offer_id', 'batch_id', 'code', 'code_hash'];
 
     protected $attributes = ['status' => 'available', 'platform_validation' => 'merchant_verification_required', 'uses_count' => 0, 'reusable' => false];
+
+    protected static function booted(): void
+    {
+        // Stock / status changes must invalidate directory offer counts immediately.
+        static::saved(function (self $code) {
+            if ($code->wasRecentlyCreated || $code->wasChanged('status')) {
+                DiscoveryCache::flush();
+            }
+        });
+        static::deleted(fn () => DiscoveryCache::flush());
+    }
 
     protected function casts(): array
     {

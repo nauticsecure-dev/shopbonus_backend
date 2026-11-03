@@ -2,7 +2,7 @@
 
 Source: Trello Shopbonus board export, 2026-10-23. This is a synthesis of a **requirements snapshot**, not an audit of existing source. Full verbatim descriptions: `requirements/TRELLO_CARDS.md`.
 
-Current acceptance clarifications: [review alignment](qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) governs approval-based credit (D-089/D-107), explicit reward-share fixtures, audited foreign-workspace404 and Answer24 responsibilities. Historical card wording does not override those decisions.
+Current acceptance clarifications: [review alignment](qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) governs approval-plus-recorded-settlement credit (D-109; historical snapshots preserved), explicit reward-share fixtures, audited foreign-workspace404 and Answer24 responsibilities. Historical card wording does not override those decisions.
 
 ## Goal and ownership
 

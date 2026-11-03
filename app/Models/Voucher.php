@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\VoucherOrigin;
 use App\Enums\VoucherStatus;
+use App\Services\Discovery\DiscoveryCache;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * terms shown to the consumer at reservation; `offer_version_id` points at
  * the exact contractual version.
  *
+ * @property int|null $acquisition_transaction_id
  * @property int $id
  * @property string $public_id
  * @property int $webshop_id
@@ -44,9 +47,19 @@ class Voucher extends Model
 {
     use HasUlids;
 
-    protected $guarded = ['id'];
+    protected $guarded = ['id', 'acquisition_transaction_id'];
 
-    protected $hidden = ['id', 'webshop_id', 'offer_id', 'offer_version_id', 'voucher_code_id', 'consumer_user_id', 'source_order_id', 'redeemed_order_id', 'idempotency_key'];
+    protected $hidden = ['id', 'acquisition_transaction_id', 'webshop_id', 'offer_id', 'offer_version_id', 'voucher_code_id', 'consumer_user_id', 'source_order_id', 'redeemed_order_id', 'idempotency_key'];
+
+    protected static function booted(): void
+    {
+        static::saved(function (self $voucher) {
+            if ($voucher->wasRecentlyCreated || $voucher->wasChanged(['status', 'offer_id'])) {
+                DiscoveryCache::flush();
+            }
+        });
+        static::deleted(fn () => DiscoveryCache::flush());
+    }
 
     protected function casts(): array
     {
@@ -69,6 +82,51 @@ class Voucher extends Model
     public function uniqueIds(): array
     {
         return ['public_id'];
+    }
+
+    /**
+     * Current consumer usability; reusable available codes remain valid.
+     *
+     * @param  Builder<Voucher>  $query
+     */
+    public function scopeUsable(Builder $query): void
+    {
+        $query->where('status', VoucherStatus::Issued)
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->whereHas('code', fn ($q) => $q->where(fn ($c) => $c->where('status', 'issued')->orWhere(fn ($r) => $r->where('reusable', true)->where('status', 'available')))
+                ->whereNull('invalidated_at')->where('platform_validation', '!=', 'mismatch'));
+    }
+
+    public function isUsable(): bool
+    {
+        $code = $this->code;
+
+        return $this->status === VoucherStatus::Issued && ($this->expires_at === null || $this->expires_at->isFuture())
+            && ($code->status->value === 'issued' || ($code->reusable && $code->status->value === 'available'))
+            && $code->invalidated_at === null && $code->platform_validation !== 'mismatch';
+    }
+
+    /**
+     * Only explicit, approved, non-duplicate acquisition evidence qualifies.
+     *
+     * @param  Builder<Voucher>  $query
+     */
+    public function scopeAcquisitionNetwork(Builder $query, string $network): void
+    {
+        $evidence = fn ($q) => $q->where('status', 'approved')->whereNull('duplicate_of_id')
+            ->whereNotNull('user_id')->whereColumn('affiliate_transactions.user_id', 'vouchers.consumer_user_id')
+            ->whereColumn('affiliate_transactions.webshop_id', 'vouchers.webshop_id');
+        if ($network === 'other') {
+            $query->whereDoesntHave('acquisitionTransaction', fn ($q) => $evidence($q));
+        } else {
+            $query->whereHas('acquisitionTransaction', fn ($q) => $evidence($q)->where('network', $network));
+        }
+    }
+
+    /** @return BelongsTo<AffiliateTransaction, $this> */
+    public function acquisitionTransaction(): BelongsTo
+    {
+        return $this->belongsTo(AffiliateTransaction::class, 'acquisition_transaction_id');
     }
 
     /** @return BelongsTo<VoucherCode, $this> */

@@ -108,6 +108,17 @@ class SupportExecutionGuardTest extends TestCase
         $this->assertFalse($provider->configured('fixture-model'));
     }
 
+    public function test_policy_cannot_exceed_the_output_limit_covered_by_the_canary(): void
+    {
+        config(['support_ai.contract.output_tokens' => 1000]);
+        $contract = app(SupportModelContract::class);
+        $contract->record('fixture-model', $contract->fingerprint('fixture-model'));
+        $this->failure('model_contract_output_limit', fn () => app(SupportProvider::class)->select([$this->evidence()], [
+            'model' => 'fixture-model', 'max_output_tokens' => 1200,
+        ]));
+        Http::assertNothingSent();
+    }
+
     public function test_operator_command_uses_budget_and_migration_reapply_cannot_reset_exposure(): void
     {
         config(['support_ai.daily_cost_limit_eur' => '0']);

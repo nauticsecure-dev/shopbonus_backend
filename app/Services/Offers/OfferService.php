@@ -69,6 +69,11 @@ class OfferService
         return DB::transaction(function () use ($actor, $offer, $changes) {
             $current = OfferVersion::whereKey($offer->current_version_id)->lockForUpdate()->firstOrFail();
             $terms = Arr::only($changes, OfferVersion::TERM_FIELDS);
+            // Advertiser approval covers the reviewed terms only. Any merchant
+            // edit requires fresh permission; never carry approval into new terms.
+            if ($terms !== [] && ! array_key_exists('cashback_permission', $terms)) {
+                $terms['cashback_permission'] = null;
+            }
 
             if (! $current->isLocked()) {
                 $current->update($terms);
@@ -167,6 +172,7 @@ class OfferService
         return DB::transaction(function () use ($actor, $offer, $source) {
             $copy = $this->create($actor, $offer->acquisition, [
                 ...$source->only(OfferVersion::TERM_FIELDS),
+                'cashback_permission' => null,
                 'name' => self::copyName($source->name),
             ]);
             $this->audit->record('offer.duplicated', category: AuditCategory::Voucher, resource: $copy, webshopId: $copy->webshop_id,

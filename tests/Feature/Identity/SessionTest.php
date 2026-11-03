@@ -128,6 +128,7 @@ class SessionTest extends TestCase
         $this->spa('PUT', '/user/password', [
             'current_password' => 'Sterk-wachtwoord-2026',
             'password' => 'Nieuw-wachtwoord-2027',
+            'password_confirmation' => 'Nieuw-wachtwoord-2027',
         ])->assertOk();
 
         $this->assertSame(0, $user->tokens()->count());
@@ -141,6 +142,7 @@ class SessionTest extends TestCase
         $this->spa('PUT', '/user/password', [
             'current_password' => 'wrong',
             'password' => 'Nieuw-wachtwoord-2028',
+            'password_confirmation' => 'Nieuw-wachtwoord-2028',
         ])->assertStatus(422)->assertJsonStructure(['error' => ['fields' => ['current_password']]]);
     }
 

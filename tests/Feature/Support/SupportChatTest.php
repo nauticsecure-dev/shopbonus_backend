@@ -70,6 +70,22 @@ class SupportChatTest extends TestCase
         Sanctum::actingAs($this->user);
     }
 
+    public function test_display_settings_and_action_suppression_control_real_messages(): void
+    {
+        $historical = $this->runMessage($this->send('wallet balance'));
+        $this->assertNotNull($historical->result['action']);
+        $this->publish($this->policy + ['show_progress_updates' => false, 'show_verified_badge' => false, 'suggest_relevant_actions' => false]);
+        $this->assertNull(app(SupportChat::class)->present($this->user, $historical)['result']['action']);
+        $message = $this->runMessage($this->send('wallet balance'));
+        $this->assertSame('VERIFIED', $message->status);
+        $shown = app(SupportChat::class)->present($this->user, $message);
+        $this->assertNull($shown['action']);
+        $this->assertFalse($shown['display']['show_progress_updates']);
+        $this->assertFalse($shown['display']['show_verified_badge']);
+        $next = $this->send('And its status?', ['conversation_id' => SupportConversation::findOrFail($message->conversation_id)->public_id]);
+        $this->assertSame('wallet', $next->research['intent']);
+    }
+
     private function publish(array $value): void
     {
         $settings = app(PlatformSettings::class);
@@ -192,7 +208,7 @@ class SupportChatTest extends TestCase
         $inventory = app(VoucherInventory::class);
         $v = $inventory->reserve($offer, VoucherOrigin::MerchantReward, 'support-order', $order);
         $inventory->issue($v, $this->user);
-        $m = $this->runMessage($this->send('Where is my reward?', ['reference' => 'FS-20482']));
+        $m = $this->runMessage($this->send('Where is my reward for FS-20482?'));
         $this->assertSame('VERIFIED', $m->status);
         $this->assertTrue($m->retry_used);
         $this->assertCount(2, $m->evidence['trace']);

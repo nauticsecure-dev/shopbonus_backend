@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 final class HomepageSchema
 {
     public const SECTION_KEYS = [
-        'hero', 'search', 'popular_webshops', 'how_it_works', 'discount_codes', 'wallet_preview',
+        'hero', 'search', 'popular_webshops', 'how_it_works', 'discount_codes', 'wallet_preview', 'benefits', 'cta_band', 'faq_teaser',
     ];
 
     private const BANNED = '/\b(uitbetalen|opnemen|withdraw|cash\s*out)\b/iu';
@@ -29,7 +29,7 @@ final class HomepageSchema
             'title', 'seo_title', 'seo_description', 'seo_image_asset_id', 'body',
             'section_order', 'section_visibility', 'nav', 'hero', 'search',
             'popular_webshops', 'how_it_works', 'discount_codes', 'wallet_preview',
-            'footer', 'schedule',
+            'footer', 'schedule', 'benefits', 'cta_band', 'faq_teaser',
         ];
         if (array_diff(array_keys($content), $allowed) !== []) {
             throw ValidationException::withMessages(['content' => 'Unknown content fields.']);
@@ -52,6 +52,9 @@ final class HomepageSchema
             'discount_codes' => ['sometimes', 'array'],
             'wallet_preview' => ['sometimes', 'array'],
             'footer' => ['sometimes', 'array'],
+            'benefits' => ['sometimes', 'array'],
+            'cta_band' => ['sometimes', 'array'],
+            'faq_teaser' => ['sometimes', 'array'],
             'schedule' => ['sometimes', 'nullable', 'array'],
             'schedule.publish_at' => ['sometimes', 'nullable', 'date'],
             'schedule.unpublish_at' => ['sometimes', 'nullable', 'date', 'after:schedule.publish_at'],
@@ -74,6 +77,12 @@ final class HomepageSchema
                 $vis[$key] = $on;
             }
             $data['section_visibility'] = $vis;
+        }
+
+        foreach (['benefits', 'cta_band', 'faq_teaser'] as $section) {
+            if (isset($data[$section])) {
+                $data[$section] = $this->additionalSection($section, $data[$section]);
+            }
         }
 
         if (isset($data['nav'])) {
@@ -237,9 +246,11 @@ final class HomepageSchema
             'promo_balance_example' => ['sometimes', 'nullable', 'string', 'max:40', 'not_regex:/[<>]/'],
             'promo_voucher_example' => ['sometimes', 'nullable', 'string', 'max:40', 'not_regex:/[<>]/'],
             'background_asset_id' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'background_mobile_asset_id' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'background_alt' => ['sometimes', 'string', 'max:160', 'not_regex:/[<>]/'],
         ])->validate();
 
-        foreach (['heading', 'subtitle', 'artwork_note', 'promo_balance_example', 'promo_voucher_example'] as $f) {
+        foreach (['heading', 'subtitle', 'artwork_note', 'promo_balance_example', 'promo_voucher_example', 'background_alt'] as $f) {
             if (isset($data[$f])) {
                 $this->rejectBanned((string) $data[$f], "content.hero.{$f}");
             }
@@ -255,6 +266,10 @@ final class HomepageSchema
         }
         if (! empty($data['background_asset_id'])) {
             $this->assertAsset($data['background_asset_id'], 'content.hero.background_asset_id');
+        }
+
+        if (! empty($data['background_mobile_asset_id'])) {
+            $this->assertAsset($data['background_mobile_asset_id'], 'content.hero.background_mobile_asset_id');
         }
 
         return $data;
@@ -391,6 +406,51 @@ final class HomepageSchema
         if (isset($data['blurb'])) {
             $this->rejectBanned($data['blurb'], 'content.footer.blurb');
         }
+
+        return $data;
+    }
+
+    /** @param array<string, mixed> $section
+     * @return array<string, mixed>
+     */
+    private function additionalSection(string $key, array $section): array
+    {
+        $text = ['required', 'string', 'max:300', 'not_regex:/[<>]/'];
+        $rules = ['heading' => $text];
+        if ($key === 'benefits') {
+            foreach (['consumer', 'merchant'] as $audience) {
+                $rules[$audience.'_title'] = $text;
+                $rules[$audience.'_items'] = ['required', 'array', 'max:12'];
+                $rules[$audience.'_items.*'] = $text;
+            }
+        } else {
+            $rules['subtitle'] = $text;
+            if ($key === 'cta_band') {
+                foreach (['consumer_cta', 'merchant_cta'] as $cta) {
+                    $rules[$cta] = ['required', 'array'];
+                    $rules[$cta.'.label'] = ['required', 'string', 'max:40', 'not_regex:/[<>]/'];
+                    $rules[$cta.'.href'] = ['required', 'string', 'max:500'];
+                }
+            } else {
+                $rules['cta_label'] = $text;
+                $rules['cta_href'] = ['required', 'string', 'max:500'];
+            }
+        }
+        $data = Validator::make($section, $rules)->validate();
+        $walk = function (array $values, string $path) use (&$walk): void {
+            foreach ($values as $field => $value) {
+                if (is_array($value)) {
+                    $walk($value, $path.'.'.$field);
+                } elseif (is_string($value)) {
+                    if ($field === 'href' || $field === 'cta_href') {
+                        $this->assertHref($value, $path.'.'.$field);
+                    } else {
+                        $this->rejectBanned($value, $path.'.'.$field);
+                    }
+                }
+            }
+        };
+        $walk($data, 'content.'.$key);
 
         return $data;
     }

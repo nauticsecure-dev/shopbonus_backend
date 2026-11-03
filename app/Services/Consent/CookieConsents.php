@@ -19,6 +19,17 @@ use Illuminate\Validation\Rule;
  */
 class CookieConsents
 {
+    /** Attribution requires both measurement and marketing opt-in under a valid policy. */
+    public function trackingAllowed(?string $consentId): bool
+    {
+        $policy = CookiePolicy::current();
+        $record = $consentId === null ? null : CookieConsent::where('consent_id', $consentId)->latest('id')->first();
+
+        return $policy !== null && $record !== null
+            && ($record->policy_version === $policy->version || ! $policy->requires_reconsent)
+            && ! empty($record->choices['analytics']) && ! empty($record->choices['marketing']);
+    }
+
     public function __construct(private readonly AuditLogger $audit) {}
 
     /**

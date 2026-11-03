@@ -94,16 +94,30 @@ class EcwidConnectorTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_native_identity_and_plan_gate_precede_order_read_and_currency_is_never_invented(): void
+    public function test_native_identity_and_plan_gate_precede_order_read_and_shop_currency_maps_total(): void
     {
-        Http::fake(fn ($r) => Http::response(str_contains($r->url(), '/profile') ? ['generalInfo' => ['storeId' => 1003, 'storeUrl' => 'https://fietsen-utrecht.nl'], 'account' => ['suspended' => false, 'availableFeatures' => ['API']]] : ['id' => 'K8XTQ', 'internalId' => 4711, 'paymentStatus' => 'PAID', 'total' => '10.00', 'vendorOrderNumber' => 'K8XTQ', 'createDate' => '2026-10-28 10:00:00 +0000']));
+        Http::fake(fn ($r) => Http::response(str_contains($r->url(), '/profile')
+            ? ['generalInfo' => ['storeId' => 1003, 'storeUrl' => 'https://fietsen-utrecht.nl'], 'account' => ['suspended' => false, 'availableFeatures' => ['API']], 'formatsAndUnits' => ['currency' => 'EUR']]
+            : ['id' => 'K8XTQ', 'internalId' => 4711, 'paymentStatus' => 'PAID', 'total' => '10.00', 'vendorOrderNumber' => 'K8XTQ', 'email' => 'buyer@example.com', 'billingPerson' => ['firstName' => 'Ada'], 'createDate' => '2026-10-28 10:00:00 +0000']));
         $a = app(EcwidConnector::class);
         $o = $a->normalizeOrder($a->fetchOrder($this->c, '4711'));
         $this->assertSame('4711', $o->externalId);
+        $this->assertSame(1000, $o->amountMinor);
+        $this->assertSame('EUR', $o->currency);
+        $this->assertNull($o->paidAt);
+        $this->assertTrue($o->isComplete());
+        // identity profile + order + currency profile
+        Http::assertSentCount(3);
+    }
+
+    public function test_missing_shop_currency_keeps_amount_null(): void
+    {
+        Http::fake(fn ($r) => Http::response(str_contains($r->url(), '/profile')
+            ? ['generalInfo' => ['storeId' => 1003, 'storeUrl' => 'https://fietsen-utrecht.nl'], 'account' => ['suspended' => false, 'availableFeatures' => ['API']]]
+            : ['id' => 'K8XTQ', 'internalId' => 4711, 'paymentStatus' => 'PAID', 'total' => '10.00', 'vendorOrderNumber' => 'K8XTQ', 'createDate' => '2026-10-28 10:00:00 +0000']));
+        $o = app(EcwidConnector::class)->normalizeOrder(app(EcwidConnector::class)->fetchOrder($this->c, '4711'));
         $this->assertNull($o->amountMinor);
         $this->assertNull($o->currency);
         $this->assertNull($o->paidAt);
-        $this->assertFalse($o->isComplete());
-        Http::assertSentCount(2);
     }
 }

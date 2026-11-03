@@ -26,7 +26,7 @@ use Tests\Concerns\CreatesActiveWebshops;
 use Tests\TestCase;
 
 /**
- * Exactly 10 E2E scenarios for Trello #8 Merchant Overview Dashboard.
+ * Ten backend integration scenarios for Trello #8; not browser E2E evidence.
  * Hits authoritative workspace APIs the live frontend consumes.
  */
 class MerchantOverviewE2ETest extends TestCase
@@ -97,6 +97,26 @@ class MerchantOverviewE2ETest extends TestCase
         return '/api/v1/workspaces/'.($shop ?? $this->woon)->public_id.'/dashboard';
     }
 
+    public function test_reserved_and_expired_summaries_are_scoped_to_the_workspace(): void
+    {
+        $offer = $this->createOffer($this->woon, codes: 3);
+        $foreign = $this->createOffer($this->fiets, codes: 3);
+        $inventory = app(VoucherInventory::class);
+        $consumer = User::factory()->create();
+        foreach ([$offer, $foreign] as $o) {
+            $inventory->reserve($o, VoucherOrigin::WalletPurchase, 'reserved-summary:'.$o->id);
+            $expired = $inventory->issue($inventory->reserve($o, VoucherOrigin::WalletPurchase, 'expired-summary:'.$o->id), $consumer);
+            $expired->forceFill(['status' => 'expired', 'expires_at' => now()->subDay()])->save();
+        }
+        $this->createOffer($this->woon, status: 'ended');
+        $this->createOffer($this->fiets, status: 'ended');
+        Sanctum::actingAs($this->owner);
+        $this->getJson($this->dash())->assertOk()
+            ->assertJsonPath('data.kpis.reserved_codes', 1)
+            ->assertJsonPath('data.kpis.expired_vouchers', 1)
+            ->assertJsonPath('data.kpis.expired_offers', 1);
+    }
+
     /** E2E 1 — Merchant login and dashboard */
     public function test_e2e_01_merchant_dashboard_loads_real_backend_payload_for_woon_and_co(): void
     {
@@ -135,9 +155,9 @@ class MerchantOverviewE2ETest extends TestCase
     /** E2E 2 — Active offer counting */
     public function test_e2e_02_active_offers_kpi_excludes_paused_and_ended_but_filters_remain(): void
     {
-        $this->createOffer($this->woon, ['name' => 'Actief A']);
-        $this->createOffer($this->woon, ['name' => 'Actief B']);
-        $this->createOffer($this->woon, ['name' => 'Actief C']);
+        $this->createOffer($this->woon, ['name' => 'Actief A'], codes: 1);
+        $this->createOffer($this->woon, ['name' => 'Actief B'], codes: 1);
+        $this->createOffer($this->woon, ['name' => 'Actief C'], codes: 1);
         $this->createOffer($this->woon, ['name' => 'Gepauzeerd'], status: 'paused');
         $this->createOffer($this->woon, ['name' => 'Verlopen'], status: 'ended');
 
@@ -289,7 +309,7 @@ class MerchantOverviewE2ETest extends TestCase
             User::factory()->create(['email_verified_at' => now()])
         );
 
-        $this->assertSame(1, $this->getJson($this->dash())->json('data.kpis.active_offers'));
+        $this->assertSame(0, $this->getJson($this->dash())->json('data.kpis.active_offers')); // Last code issued: effective lifecycle is sold_out.
         $this->postJson('/api/v1/workspaces/'.$this->woon->public_id.'/offers/'.$created['id'].'/pause')->assertOk();
         $this->assertSame(0, $this->getJson($this->dash())->json('data.kpis.active_offers'));
         $this->assertSame(1, $this->getJson($this->dash())->json('data.kpis.issued_vouchers'));
@@ -326,7 +346,10 @@ class MerchantOverviewE2ETest extends TestCase
             ]);
         }
         $this->assertSame(0, app(MerchantNotifications::class)->forWebshop($this->woon, CarbonImmutable::now()));
-        $this->assertSame($before, MerchantNotification::where('webshop_id', $this->woon->id)->where('type', 'low_inventory')->count());
+        $this->assertSame($before, MerchantNotification::withoutGlobalScope('unresolved')->where('webshop_id', $this->woon->id)->where('type', 'low_inventory')->count());
+        $resolved = $this->getJson($this->dash())->assertOk();
+        $resolved->assertJsonPath('data.notifications.unread', 0)->assertJsonPath('data.notifications.latest', []);
+        $this->getJson('/api/v1/workspaces/'.$this->woon->public_id.'/notifications')->assertOk()->assertJsonPath('data', []);
         $this->assertGreaterThanOrEqual(15, VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->count());
     }
 
@@ -425,7 +448,7 @@ class MerchantOverviewE2ETest extends TestCase
         $this->assertSame(250, $dash['kpis']['available_codes']);
         $this->assertLessThan(2000, $elapsedMs, 'Dashboard aggregate should stay fast with large inventory');
 
-        // Concurrent claim: two successful claims must not double in totals.
+        // Sequential claim integrity; true concurrency is covered separately by inventory locking tests.
         $inventory = app(VoucherInventory::class);
         $v1 = $inventory->issue($inventory->reserve($offer, VoucherOrigin::Answer24Claim, 'perf-1'), User::factory()->create(['email_verified_at' => now()]));
         $v2 = $inventory->issue($inventory->reserve($offer, VoucherOrigin::Answer24Claim, 'perf-2'), User::factory()->create(['email_verified_at' => now()]));

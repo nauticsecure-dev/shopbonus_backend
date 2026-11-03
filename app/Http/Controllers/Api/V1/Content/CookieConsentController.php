@@ -27,7 +27,7 @@ class CookieConsentController extends Controller
 
         return response()->json(['data' => $policy === null
             ? ['version' => null, 'categories' => [['key' => 'necessary', 'required' => true, 'trackers' => []]], 'texts' => null, 'requires_reconsent' => false]
-            : self::present($policy, $locale)], 200, ['Cache-Control' => 'public, max-age=60']);
+            : self::present($policy, $locale)], 200, ['Cache-Control' => 'no-store']);
     }
 
     public function store(Request $request, CookieConsents $consents, AuditLogger $audit): JsonResponse
