@@ -64,9 +64,17 @@ class VoucherInventory
     }
 
     /** Attach explicit acquisition evidence; wallet spending alone is not attribution. */
-    public function recordAcquisition(Voucher $voucher, AffiliateTransaction $transaction): void
+    public function recordAcquisition(Voucher $voucher, AffiliateTransaction $transaction, User $actor, string $reference): void
     {
-        DB::transaction(function () use ($voucher, $transaction) {
+        DB::transaction(function () use ($voucher, $transaction, $actor, $reference) {
+            $admin = User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
+            if (! $admin->isActive() || $admin->email_verified_at === null || ! $admin->isSuperAdmin()) {
+                throw new ApiException('Verified active Super Admin access required.', 403, 'forbidden');
+            }
+            $reference = trim($reference);
+            if ($reference === '' || strlen($reference) > 200 || preg_match('/[\x00-\x1f\x7f]/', $reference)) {
+                throw new ApiException('A bounded evidence case reference is required.', 422, 'invalid_acquisition_reference');
+            }
             $v = Voucher::whereKey($voucher->id)->lockForUpdate()->firstOrFail();
             $t = AffiliateTransaction::whereKey($transaction->id)->lockForUpdate()->firstOrFail();
             if ($t->status !== 'approved' || $t->duplicate_of_id !== null || $t->user_id === null
@@ -79,7 +87,8 @@ class VoucherInventory
             }
             if ($v->acquisition_transaction_id === null) {
                 $v->forceFill(['acquisition_transaction_id' => $t->id])->save();
-                $this->event($v, 'acquisition_verified', $v->status, $v->status, null, ['transaction_id' => $t->public_id]);
+                $this->event($v, 'acquisition_verified', $v->status, $v->status, $admin->id, ['transaction_id' => $t->public_id, 'reference' => $reference]);
+                $this->audit->record('voucher.acquisition_verified', category: AuditCategory::Voucher, resource: $v, webshopId: $v->webshop_id, actorUserId: $admin->id, metadata: ['transaction_id' => $t->public_id, 'reference' => $reference, 'via' => 'console_reconciliation']);
             }
         });
     }

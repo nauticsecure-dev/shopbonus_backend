@@ -442,7 +442,7 @@ class Cockpit
         $bucket = fn (Collection $rows) => $rows->countBy(fn ($ts) => CarbonImmutable::parse($ts, 'UTC')->setTimezone($tz)->format('Y-m-d'));
         $series = [
             'new_webshops' => $bucket(Webshop::whereBetween('created_at', [$from, $to])->pluck('created_at')),
-            'new_consumers' => $bucket(User::query()->consumers()->whereBetween('created_at', [$from, $to])->pluck('created_at')),
+            'new_consumers' => $bucket(User::query()->consumerAccounts()->whereBetween('created_at', [$from, $to])->pluck('created_at')),
             'paid_orders' => $bucket(WebshopOrder::whereBetween('paid_at', [$from, $to])->pluck('paid_at')),
             'vouchers_issued' => $bucket(Voucher::whereBetween('issued_at', [$from, $to])->pluck('issued_at')),
             'vouchers_redeemed' => $bucket(Voucher::whereBetween('redeemed_at', [$from, $to])->pluck('redeemed_at')),

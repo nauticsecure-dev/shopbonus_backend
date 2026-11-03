@@ -1237,3 +1237,12 @@ B57 implementing SHA: `ffa436d`; pushed to draft PR#5. External provider/native 
 B58 parentf57e6e6: SQLite CMS/API71/8904, MySQL About15/135, static/style/diff PASS;14 real local authenticated HTTP exchanges. Checklist covers backend enforcement/evidence only; deployment/content/frontend/design acceptance stays open. Implementing SHA recorded in the subsequent closeout.
 
 B58 implementing SHA: `6ed1395`.
+
+### B59 — Consistent consumer trends and acquisition reconciliation (2026-11-03)
+
+- [x] Use consumerAccounts for daily trend; test memberships, intent, test-account exclusions and period boundaries.
+- [x] Connect explicit acquisition recording to privileged console reconciliation, requiring current authorized actor, verified-link attestation and evidence reference.
+- [x] Preserve immutable/idempotent links, audit actor/reference and reject mismatched/unapproved/duplicate/future sources; never infer from wallet spending.
+- [x] Capture real cockpit HTTP contract, run focused checks and document operational procedure and remaining deployed/client acceptance.
+
+B59 implementing parentee1f2b6: SQLite28/8546 plus final API5/8269; MySQL23/277; PHPStan/Pint/diff PASS. Three real local HTTP exchanges and actual synthetic console reconciliation. Deployed/client/genuine-provider acceptance remains open. SHA recorded in following closeout.

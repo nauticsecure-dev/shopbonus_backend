@@ -14,6 +14,7 @@ use App\Enums\WalletUnit;
 use App\Enums\WebshopStatus;
 use App\Exceptions\ApiException;
 use App\Models\AffiliateTransaction;
+use App\Models\AuditEvent;
 use App\Models\ContactOpportunity;
 use App\Models\Offer;
 use App\Models\SupportConversation;
@@ -23,6 +24,7 @@ use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\VoucherDispute;
+use App\Models\VoucherEvent;
 use App\Models\WebhookEvent;
 use App\Models\Webshop;
 use App\Models\WebshopConnection;
@@ -156,6 +158,21 @@ class CockpitTest extends TestCase
         $this->getJson('/api/v1/admin/users?role=consumer&status=active')->assertOk()->assertJsonPath('meta.total', 3);
     }
 
+    public function test_consumer_trend_uses_account_intent_and_exclusions_independent_of_membership(): void
+    {
+        $member = User::factory()->create(['onboarding_intent' => 'consumer']);
+        $this->activeWebshop($member);
+        User::factory()->create(['onboarding_intent' => 'merchant']);
+        $test = User::factory()->create(['onboarding_intent' => 'consumer']);
+        config(['shopbonus.admin.test_account_public_ids' => [$test->public_id]]);
+        User::factory()->create(['onboarding_intent' => 'consumer', 'created_at' => now()->subDays(40)]);
+        Sanctum::actingAs($this->admin);
+        $data = $this->getJson('/api/v1/admin/cockpit?period=7d')->assertOk()->json('data');
+        $this->assertSame(1, collect($data['trends']['days'])->sum('new_consumers'));
+        $this->assertSame(1, collect($data['trends']['days'])->firstWhere('date', '2026-10-24')['new_consumers']);
+        $this->assertSame(2, $data['kpis']['consumers']['registered']);
+    }
+
     public function test_current_consumer_total_has_no_invented_historical_change(): void
     {
         foreach (range(1, 2) as $i) {
@@ -281,7 +298,7 @@ class CockpitTest extends TestCase
             $this->insertAffiliate($network, 'approved', 10, 'CHANNEL-'.$i);
             $t = AffiliateTransaction::where('external_id', 'CHANNEL-'.$i)->sole();
             $t->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
-            $inventory->recordAcquisition($issued[$i], $t);
+            $inventory->recordAcquisition($issued[$i], $t, $this->admin, 'SYNTHETIC-CASE-'.$i);
         }
         $this->insertAffiliate('tradetracker', 'approved', 999, 'NO-VOUCHER');
         Sanctum::actingAs($this->admin);
@@ -299,11 +316,56 @@ class CockpitTest extends TestCase
         $this->getJson('/api/v1/admin/vouchers?acquisition_network=other')->assertOk()->assertJsonPath('meta.total', 1);
         $t->forceFill(['user_id' => $this->owner->id])->save();
         try {
-            $inventory->recordAcquisition($issued[3], $t);
+            $inventory->recordAcquisition($issued[3], $t, $this->admin, 'SYNTHETIC-CASE');
             $this->fail('Mismatched consumer evidence accepted');
         } catch (ApiException $e) {
             $this->assertSame(409, $e->status);
         }
+    }
+
+    public function test_console_acquisition_workflow_requires_review_and_preserves_immutable_audited_links(): void
+    {
+        $consumer = User::factory()->create();
+        $inventory = app(VoucherInventory::class);
+        $voucher = $inventory->issue($inventory->reserve($this->offerWithCodes(1), VoucherOrigin::MerchantReward, 'console-evidence'), $consumer);
+        $this->insertAffiliate('daisycon', 'approved', 10, 'CONSOLE-ACQUISITION');
+        $transaction = AffiliateTransaction::where('external_id', 'CONSOLE-ACQUISITION')->sole();
+        $transaction->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
+        $args = ['voucher' => $voucher->public_id, 'transaction' => $transaction->public_id, '--actor' => $this->admin->public_id, '--reference' => 'SYNTHETIC-RECONCILIATION-42'];
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+        $args['--verified-link'] = true;
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['--reference' => '']))->assertFailed();
+        $verifiedAt = $this->admin->email_verified_at;
+        $this->admin->forceFill(['email_verified_at' => null])->save();
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+        $this->admin->forceFill(['email_verified_at' => $verifiedAt])->save();
+        $this->admin->platformRoles()->update(['revoked_at' => now()]);
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+        $this->admin->platformRoles()->update(['revoked_at' => null]);
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['--actor' => $consumer->public_id]))->assertFailed();
+        foreach (['status' => 'pending', 'user_id' => $this->owner->id, 'webshop_id' => $this->activeWebshop($this->owner)->id, 'duplicate_of_id' => $transaction->id, 'transaction_at' => now()->addMinute()] as $key => $invalid) {
+            $original = $transaction->getRawOriginal($key);
+            $transaction->forceFill([$key => $invalid])->save();
+            $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
+            $transaction->forceFill([$key => $original])->save();
+        }
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['--reference' => "bad\nreference"]))->assertFailed();
+        $this->assertNull($voucher->fresh()->acquisition_transaction_id);
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertSuccessful();
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertSuccessful();
+        $this->assertSame($transaction->id, $voucher->fresh()->acquisition_transaction_id);
+        $this->assertSame(1, VoucherEvent::where('voucher_id', $voucher->id)->where('type', 'acquisition_verified')->count());
+        $event = VoucherEvent::where('voucher_id', $voucher->id)->where('type', 'acquisition_verified')->sole();
+        $this->assertSame($this->admin->id, $event->actor_user_id);
+        $this->assertSame('SYNTHETIC-RECONCILIATION-42', $event->summary['reference']);
+        $this->assertSame(1, AuditEvent::where('action', 'voucher.acquisition_verified')->where('actor_user_id', $this->admin->id)->count());
+        $this->insertAffiliate('tradetracker', 'approved', 10, 'DIFFERENT-SOURCE');
+        $other = AffiliateTransaction::where('external_id', 'DIFFERENT-SOURCE')->sole();
+        $other->forceFill(['user_id' => $consumer->id, 'webshop_id' => $this->shop->id])->save();
+        $this->artisan('shopbonus:voucher-acquisition', array_replace($args, ['transaction' => $other->public_id]))->assertFailed();
+        $this->assertSame($transaction->id, $voucher->fresh()->acquisition_transaction_id);
+        $this->admin->forceFill(['status' => UserStatus::Suspended])->save();
+        $this->artisan('shopbonus:voucher-acquisition', $args)->assertFailed();
     }
 
     /** E2E 8 — Recent activity */

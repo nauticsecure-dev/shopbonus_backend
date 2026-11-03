@@ -1,3 +1,17 @@
+# B59 — Consumer trends and explicit acquisition workflow (2026-11-03, Codex)
+
+Branch frank/review-fixes, parentee1f2b6; draft PR#5. Daily new_consumers now uses consumerAccounts, matching consumer intent/staff/test exclusions independently of webshop membership. Current active-account KPI status filtering remains unchanged; trend counts registrations in the selected period.
+
+Added privileged deployment-console `shopbonus:voucher-acquisition` workflow, reusing VoucherInventory.recordAcquisition. Requires voucher/transaction public IDs, independently reviewed case reference, explicit verified-link attestation and verified active Super Admin actor. Service freshly reads/locks actor, voucher and transaction; approved/nonduplicate/same consumer/same webshop/pre-issuance checks remain enforced. Link stays immutable/idempotent; one append-only acquisition event and audit capture actor/source/reference atomically. No wallet-spend inference, provider lookup, financial ledger/spendability/settlement change, API route, migration or frontend implementation. Console access remains required; actor is attribution, not console authentication. Evidence references are case IDs only; actual source must independently demonstrate the exact acquisition link.
+
+Executed SQLite cockpit/API/inventory28pass/8546assertions; final API coverage/inventory5pass/8269assertions after capture update. MySQL cockpit23pass/277assertions. PHPStan512MiB/Pint/diff PASS. Tests include member consumer inclusion, merchant/test exclusion and out-of-period registration, missing attestation/reference, unverified/revoked/suspended/nonadmin actor, pending/duplicate/future/foreign sources, invalid reference, immutable conflicting link, idempotent event/audit. No full current-head suite run.
+
+Three actual HTTP exchanges in docs/qa/B59_COCKPIT_HTTP_CAPTURE.json: isolated local SQLite/array cache, synthetic consumer with active shop membership plus merchant-only account; custom period before/after actual console command and acquisition-network voucher drill-down. Source is synthetic, not genuine provider evidence. Authenticated real local backend only; deployment/browser/custom-period acceptance, resolved actions and automatic refresh remain NOT RUN. Existing60-second cockpit cache preserved; never flush sharedRedis. Local fixture DB/storage/keys/tokens/server removed; mainDB/sharedRedis untouched.
+
+Procedure docs/admin/ACQUISITION_RECONCILIATION.md and actual API README/OpenAPI examples updated. Status backend fixes complete after focused evidence; deployment acceptance still OPEN. Exact next: commit/push this boundary, inspect CI, and senior runs the documented reconciliation only where independently verified evidence exists; otherwise leave Other/Unknown. Client/deployment owner verifies configured real-service periods/drill-down/actions/refresh. No main merge/deploy/Trello updates. Uncommitted checkpoint scope B59 source/command/tests/API/capture/docs only.
+
+---
+
 B58 implementing SHA `6ed1395`; focused checks and14 authenticated local HTTP exchanges passed. No migrations. Remaining external acceptance and exact next action are recorded below.
 
 # B58 — Require the reviewed About publication revision (2026-11-03, Codex)
