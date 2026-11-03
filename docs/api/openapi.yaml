@@ -7763,32 +7763,7 @@ paths:
         '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
         '404': { $ref: '#/components/responses/WorkspaceNotFound' }
 
-  /api/v1/workspaces/{workspace}/invoices:
-    parameters:
-      - $ref: '#/components/parameters/Workspace'
-    get:
-      tags: [Funding]
-      operationId: fundingInvoices
-      summary: "Monthly statements"
-      description: |
-        Monthly drafts of settled rewards and fees (`shopbonus:prepare-invoices`, 1st of the month). Moneybird is not connected yet (`moneybird: not_connected`; OPEN-FINANCIAL-LEGAL), so these are statements, not sent invoices.
-      x-access: verified
-      x-permission: finance.view
-      x-codeSamples:
-        - lang: curl
-          source: |
-            curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/invoices' \
-              -H 'Accept: application/json' -H 'Authorization: Bearer <token>'
-      responses:
-        '200':
-          description: "Statements."
-          content:
-            application/json:
-              example: {"data":[{"id":"01m5pefqrwgqpck880316vxzs9","period":"2026-10","reward_minor":1000,"fee_minor":300,"total_minor":1300,"lines":1,"status":"draft","moneybird":"not_connected"}]}
-        '401': { $ref: '#/components/responses/Unauthenticated' }
-        '403': { $ref: '#/components/responses/WorkspacePermissionDenied' }
-        '404': { $ref: '#/components/responses/WorkspaceNotFound' }
-
+  /api/v1/workspaces/{workspace}/invoices: {"parameters":[{"$ref":"#/components/parameters/Workspace"}],"get":{"tags":["Funding"],"operationId":"fundingInvoices","summary":"Monthly statements","description":"Monthly statements from settled merchant funding obligations. Explicit active-Super-Admin Moneybird console operations can freeze a closed statement, create a provider draft, request Email delivery and reconcile exact provider state. Disabled until actual reviewed administration/seller/contact/workflow/tax/ledger mappings exist. A provider draft may have a Moneybird ID while local status remains draft; sent means provider-issued, not confirmed recipient delivery or a new payment request. Existing wallet liabilities are unchanged. See docs/funding/MONEYBIRD.md.","x-access":"verified","x-permission":"finance.view","x-codeSamples":[{"lang":"curl","source":"curl -i -X GET 'http://localhost:8000/api/v1/workspaces/current/invoices' \\\n  -H 'Accept: application/json' -H 'Authorization: Bearer <token>'\n"}],"responses":{"200":{"description":"Actual local B68 HTTP with synthetic funding/export fixtures, not genuine Moneybird acceptance.","content":{"application/json":{"examples":{"b68_issued_statement":{"value":{"data":[{"id":"01m6hnyjf0sqzcfyjnmrfv1tmw","period":"2026-10","reward_minor":1000,"fee_minor":300,"total_minor":1300,"lines":1,"status":"sent","moneybird":"777"}]}}}}}},"401":{"description":"Actual local B68 HTTP with synthetic funding/export fixtures, not genuine Moneybird acceptance.","content":{"application/json":{"examples":{"b68_unauthenticated":{"value":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a1a35f-4d7e-717a-a96a-3ddb4cd456ba"}}}}}}},"403":{"$ref":"#/components/responses/WorkspacePermissionDenied"},"404":{"description":"Actual local B68 HTTP with synthetic funding/export fixtures, not genuine Moneybird acceptance.","content":{"application/json":{"examples":{"b68_foreign_workspace":{"value":{"error":{"status":404,"code":"not_found","message":"The requested resource was not found.","request_id":"01a1a35f-4d58-7128-bd9e-a2e373e93bc2"}}}}}}}}}}
   /api/v1/workspaces/{workspace}/dashboard:
     parameters:
       - $ref: '#/components/parameters/Workspace'

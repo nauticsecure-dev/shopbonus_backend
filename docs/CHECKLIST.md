@@ -1484,3 +1484,12 @@ B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/
 - [x] Verify the pushed revision's complete GitHub CI jobs and record results/SHA.
 
 B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL1364pass+4skip/23124assertions, SQLite1339pass+29skip/23023assertions. Local fullPint/PHPStan/Composer audit PASS; docs/qa/B67_CI_REPAIR_RESULTS.json records actual results.
+
+### B68 — Moneybird funding invoice lifecycle
+
+- [x] Record owner-delegated technical defaults; require actual administration/seller/contact/tax/ledger mappings before egress, with creation/delivery disabled by default.
+- [x] Freeze statement/export snapshots and implement bounded create, explicit delivery, read reconciliation and uncertain-result recovery without automatic duplicate writes or wallet postings.
+- [x] Enforce active Super Admin authority, immutable cross-shop/provider bindings, exact cents and lifecycle/audit guards; test failures, replay and concurrency boundaries.
+- [x] Document configuration/operations, capture actual invoice API serialization, run relevant SQLite/MySQL/static/API checks and record migration/SHA/remaining provider acceptance.
+
+B68 implementing SHA follows at closeout. Parent `92adc46`: Funding SQLite19PASS+2skip/150, MySQL21PASS/156; API5/8353; PHPStan/Pint/diff PASS. Actual Moneybird/legal/provider delivery acceptance remains unverified; defaults OFF.

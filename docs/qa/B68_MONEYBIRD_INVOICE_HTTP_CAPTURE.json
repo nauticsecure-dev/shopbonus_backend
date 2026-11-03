@@ -1,0 +1,78 @@
+{
+  "captured_at": "2026-11-03T21:44:54Z",
+  "baseline": "92adc46 plus B68 working tree",
+  "environment": "Actual local Laravel HTTP server; isolated SQLite. Synthetic Moneybird transport fixtures exercised through real funding/export services, then actual HTTP invoice serialization. No genuine Moneybird or legal/provider acceptance.",
+  "exchanges": [
+    {
+      "label": "issued_statement",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6hnyjbtygss0mekcdn8mp9f/invoices",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "id": "01m6hnyjf0sqzcfyjnmrfv1tmw",
+              "period": "2026-10",
+              "reward_minor": 1000,
+              "fee_minor": 300,
+              "total_minor": 1300,
+              "lines": 1,
+              "status": "sent",
+              "moneybird": "777"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "foreign_workspace",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6hnyjbtygss0mekcdn8mp9f/invoices",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "The requested resource was not found.",
+            "request_id": "01a1a35f-4d58-7128-bd9e-a2e373e93bc2"
+          }
+        }
+      }
+    },
+    {
+      "label": "unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6hnyjbtygss0mekcdn8mp9f/invoices",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a35f-4d7e-717a-a96a-3ddb4cd456ba"
+          }
+        }
+      }
+    }
+  ]
+}
