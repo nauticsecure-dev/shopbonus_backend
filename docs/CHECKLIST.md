@@ -1200,3 +1200,5 @@ B53 implementation parentb484cdf: MerchantDashboardTest SQLite11/85 andMySQL11/8
 - [x] Record focused verification and implementation SHAs.
 
 B54/B55 implementation parent5a84660: SQLite46/8417; MySQL43/637; final principal/race refinement15/299 on each driver; API3/7780. PHPStan/Pint/diff PASS.41 real HTTP captures plus database assertions; no frontend changes. Implementing SHA recorded in the following closeout. Full new CI pending.
+
+B54/B55 implementing SHA: `29c02b2`. Checkbox evidence is in that implementation commit; subsequent docs note records the resolved SHA. New full CI pending.

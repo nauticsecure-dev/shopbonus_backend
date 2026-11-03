@@ -1,5 +1,7 @@
 # B54/B55 — Backend impersonation and cockpit drill-down (2026-11-03, Codex)
 
+B54/B55 implementation `29c02b2` committed/pushed to draft PR#5. Focused checks and41 real HTTP captures passed; no frontend files or migrations changed. Full new CI remains pending. Exact next: inspect PR#5 CI and use docs/admin/COCKPIT_BACKEND_HANDOFF.md for client integration. Working tree was clean before this documentation closeout.
+
 Branch `frank/review-fixes`, base5a84660 (full CI41597287992 SUCCESS all3jobs); draft PR#5. User explicitly restricts work to backend. No frontend files changed.
 
 B54: current initiator active/verified/Super Admin/required-MFA authority is re-read on every support-token request; cached model relations cannot grant access. Invalid authority closes the session/token with generic401 and attributed denied-request audit; restored authority cannot revive it. Target/token binding checked; start re-reads/locks and authorizes initiator before target inspection/token creation. Existing target restrictions/expiry preserved. Ownership-transfer write family (including cancellation) added to impersonation denylist. Model lifecycle status remains distinct from live authorization; invalid authority closes/audits on use.
