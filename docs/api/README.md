@@ -25157,3 +25157,66 @@ Content-Type: application/json
 
 {"data":{"id":"01m6gsa0bd0sc2jf9zz34ned1c","reference":"SYNTHETIC-ecwid","external_order_id":"4711","platform":"ecwid","customer":{"first_name":null,"email":null,"phone":null},"amount_minor":1000,"refunded_minor":250,"currency":"EUR","line_items":null,"amount_breakdown":null,"payment_status":"partially_refunded","provider_status":null,"ingestion_status":"incomplete","missing_fields":[],"callable":false,"eligibility_status":"not_evaluated","eligibility_reasons":[],"contact_status":"not_evaluated","placed_at":null,"paid_at":null,"cancelled_at":null,"refunded_at":null,"updated_at":"2026-11-03T13:24:19+00:00"},"history":[]}
 ```
+
+
+## B58 — About publication concurrency (2026-11-03)
+
+Both About publication aliases require a positive integer `revision` from the reviewed draft. Omission/null/invalid values return422; a changed draft returns409 `draft_changed`. The comparison runs under the existing row lock. Existing callers must submit their reviewed revision rather than reread and automatically retry publication.
+
+[Actual HTTP capture](../qa/B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json): isolated local SQLite/file session, baselinef57e6e6 plus B58 changes; synthetic Super Admin signed in through login and confirmed password. MFA disabled for capture only. Fourteen real-service exchanges cover edit/save/preview/publish/restore and missing/stale rejection on both aliases. This is backend evidence, not approved company content, browser/design fidelity or deployed scheduler execution.
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{}'
+```
+
+```json
+{"status":422,"body":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1a1a2-becc-7110-93bd-9900e59b45c5","fields":{"revision":["The revision field is required."]}}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 11}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bef1-7349-99cc-ca063b38b928"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{}'
+```
+
+```json
+{"status":422,"body":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1a1a2-bf0e-73af-b10c-8bcc29c5092f","fields":{"revision":["The revision field is required."]}}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 11}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bf2a-713f-b084-34cd434c266f"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 1}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gt5ftec9kfdp3syvsvwke1","locale":"nl","number":1,"restored_from":null,"published_by":"Lot","published_at":"2026-11-03T13:39:20+00:00"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 1}'
+```
+
+```json
+{"status":409,"body":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bfa0-7036-87fb-f005a434eee9"}}}
+```
+
+```bash
+curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{"revision": 2}'
+```
+
+```json
+{"status":200,"body":{"data":{"id":"01m6gt5fyyrjkcvvpqzaxec0g2","locale":"nl","number":2,"restored_from":null,"published_by":"Lot","published_at":"2026-11-03T13:39:20+00:00"}}}
+```

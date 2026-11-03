@@ -1226,3 +1226,12 @@ B56 implementing commit parentb3016cd: SQLite38/10982, MySQL4/502; static/style/
 B57 implementing parent8fb782e: SQLite49/343 plus final transport2/16; MySQL17/129 plus final wiring3/13 and transport2/16 (overlapping selections); API5/8261, PHPStan/Pint PASS. Four actual local HTTP serialization captures; live/native acceptance remains NOT RUN. Implementing SHA is recorded in the following checkpoint.
 
 B57 implementing SHA: `ffa436d`; pushed to draft PR#5. External provider/native acceptance remains open.
+
+### B58 — About publication reviewed revision enforcement (2026-11-03)
+
+- [x] Require revision on both About publication aliases and retain locked stale-draft comparison.
+- [x] Test missing/null/invalid/stale rejection without publication/audit side effects and successful reviewed publication.
+- [x] Capture authenticated actual HTTP save/publish/restore and rejected revision responses; update API contract.
+- [x] Run focused CMS/API checks and record remaining approved-content/frontend/deployed scheduler acceptance gaps.
+
+B58 parentf57e6e6: SQLite CMS/API71/8904, MySQL About15/135, static/style/diff PASS;14 real local authenticated HTTP exchanges. Checklist covers backend enforcement/evidence only; deployment/content/frontend/design acceptance stays open. Implementing SHA recorded in the subsequent closeout.

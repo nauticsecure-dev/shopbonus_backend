@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Cms\CmsScheduler;
 use App\Services\Cms\CmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\InteractsWithIdentity;
 use Tests\TestCase;
@@ -34,6 +35,29 @@ class AboutUsCmsTest extends TestCase
             ->withSession(['auth.password_confirmed_at' => time()]);
     }
 
+    private function publishReviewed(string $base = '/api/v1/admin/content/over-ons'): TestResponse
+    {
+        $revision = $this->getJson($base.'?locale=nl')->assertOk()->json('data.draft_revision');
+
+        return $this->postJson($base.'/publish?locale=nl', ['revision' => $revision]);
+    }
+
+    public function test_both_publish_aliases_require_a_valid_reviewed_revision_without_side_effects(): void
+    {
+        $this->asAdmin();
+        $state = $this->getJson('/api/v1/admin/content/over-ons?locale=nl')->assertOk()->json('data');
+        foreach (['/api/v1/admin/content/over-ons', '/api/v1/admin/content/pages/over-ons'] as $base) {
+            foreach ([[], ['revision' => null], ['revision' => 0], ['revision' => 'invalid']] as $payload) {
+                $this->postJson($base.'/publish?locale=nl', $payload)->assertUnprocessable()->assertJsonStructure(['error' => ['fields' => ['revision']]]);
+            }
+            $this->postJson($base.'/publish?locale=nl', ['revision' => $state['draft_revision'] + 1])->assertConflict()->assertJsonPath('error.code', 'draft_changed');
+        }
+        $this->assertDatabaseCount('cms_revisions', 0);
+        $this->assertDatabaseMissing('audit_events', ['action' => 'cms.published']);
+        $this->getJson('/api/v1/content/over-ons?locale=nl')->assertNotFound();
+        $this->publishReviewed()->assertOk()->assertJsonPath('data.number', 1);
+    }
+
     public function test_public_published_landing_and_draft_invisible(): void
     {
         $this->asAdmin();
@@ -52,7 +76,7 @@ class AboutUsCmsTest extends TestCase
         $this->getJson('/api/v1/content/over-ons?locale=nl')->assertNotFound();
 
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk()->assertJsonPath('data.number', 1);
+        $this->publishReviewed()->assertOk()->assertJsonPath('data.number', 1);
 
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/over-ons?locale=nl')
@@ -67,7 +91,7 @@ class AboutUsCmsTest extends TestCase
     public function test_alias_content_pages_route_works(): void
     {
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/pages/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed('/api/v1/admin/content/pages/over-ons')->assertOk();
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/pages/over-ons?locale=nl')->assertOk();
     }
@@ -93,7 +117,7 @@ class AboutUsCmsTest extends TestCase
             ->assertJsonPath('data.preview', true)
             ->assertJsonPath('data.content.hero.heading', 'Nieuwe hero over ons');
 
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed()->assertOk();
         $this->app['auth']->forgetGuards();
         $this->getJson('/api/v1/content/over-ons?locale=nl')
             ->assertJsonPath('data.content.hero.heading', 'Nieuwe hero over ons');
@@ -229,7 +253,7 @@ class AboutUsCmsTest extends TestCase
         $this->putJson('/api/v1/admin/content/over-ons?locale=nl', ['revision' => $state['draft_revision'], 'content' => $content])->assertOk();
         $url = route('api.v1.public.content-assets.show', ['id' => $asset->public_id]);
         $this->getJson('/api/v1/admin/content/over-ons?locale=nl')->assertJsonPath('data.draft.media.hero.mobile_url', $url)->assertJsonPath('data.draft.team.profiles.0.photo_url', $url);
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed()->assertOk();
         $this->getJson('/api/v1/content/over-ons?locale=nl')->assertOk()->assertJsonPath('data.content.media.hero.desktop_url', $url)->assertJsonPath('data.content.team.profiles.0.photo_url', $url);
         $versions = $this->getJson('/api/v1/admin/content/over-ons/versions?locale=nl')->assertOk()->assertHeader('Cache-Control', 'no-store, private')->json('data');
         $this->assertSame($url, $versions[0]['content']['media']['hero']['mobile_url']);
@@ -239,7 +263,7 @@ class AboutUsCmsTest extends TestCase
     public function test_invalid_media_reference_and_revision_conflict_do_not_replace_publication(): void
     {
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed()->assertOk();
         $state = $this->getJson('/api/v1/admin/content/over-ons?locale=nl')->json('data');
         $content = $state['draft'];
         $content['media'] = ['hero' => ['desktop_asset_id' => 'missing', 'alt' => 'Image']];
@@ -255,7 +279,7 @@ class AboutUsCmsTest extends TestCase
         $content = $state['draft'];
         $content['schedule'] = ['publish_at' => now()->addMinute()->toIso8601String(), 'unpublish_at' => now()->addMinutes(3)->toIso8601String()];
         $this->putJson('/api/v1/admin/content/over-ons', ['locale' => 'nl', 'revision' => $state['draft_revision'], 'content' => $content])->assertOk();
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed()->assertOk();
         $this->getJson('/api/v1/content/over-ons?locale=nl')->assertNotFound();
         $this->travel(2)->minutes();
         $this->getJson('/api/v1/content/over-ons?locale=nl')->assertOk();
@@ -266,7 +290,7 @@ class AboutUsCmsTest extends TestCase
     public function test_queued_about_publication_retains_previous_publication_until_due(): void
     {
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed()->assertOk();
         $state = $this->getJson('/api/v1/admin/content/over-ons?locale=nl')->json('data');
         $content = $state['draft'];
         $content['hero']['heading'] = 'Scheduled approved heading';
@@ -284,7 +308,7 @@ class AboutUsCmsTest extends TestCase
     public function test_publish_rejects_a_draft_changed_after_the_reviewed_save(): void
     {
         $this->asAdmin();
-        $this->postJson('/api/v1/admin/content/over-ons/publish?locale=nl')->assertOk();
+        $this->publishReviewed()->assertOk();
         $state = $this->getJson('/api/v1/admin/content/over-ons?locale=nl')->json('data');
         $content = $state['draft'];
         $content['hero']['heading'] = 'Another administrator changed this';

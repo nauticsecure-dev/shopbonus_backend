@@ -1,3 +1,15 @@
+# B58 — Require the reviewed About publication revision (2026-11-03, Codex)
+
+Branch frank/review-fixes, parentf57e6e6; draft PR#5. Both About publication aliases now require a positive integer revision and always pass it to CmsService's existing transactional locked comparison. Missing/null/invalid422, stale409 draft_changed. No auto-reread/retry or change to restore/scheduler semantics. Generic CMS publication already required revision and remains unchanged.
+
+Tests now submit the draft revision actually reviewed. New negative coverage checks both aliases, missing/null/zero/noninteger/future revisions, no publication revision/audit side effects and successful reviewed publication. Existing stale-after-save public-content preservation remains covered. SQLite full CMS plus API/inventory71pass/8904assertions; MySQL About15pass/135assertions; PHPStan512MiB/Pint/diff PASS. Full current-head CI NOT RUN.
+
+Fourteen real HTTP exchanges in docs/qa/B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json: actual local Laravel server, isolated SQLite/file session, synthetic Super Admin login/password confirmation, edit/save/preview/publish/restore, missing/stale rejection on both aliases. MFA disabled locally for capture only; no auth middleware bypass. API README/OpenAPI publish schemas require revision and include actual200/409/422 responses. Private fixtures, sessions, keys and local server removed; mainDB/sharedRedis untouched. No migrations/config/frontend changes.
+
+Status: backend revision bypass FIXED. Approved authentic imagery/company records, untranslated frontend controls, approved-design comparison, complete browser acceptance and deployed scheduler execution remain OPEN/NOT RUN. Synthetic content is not approved company evidence. Local real-service requests do not establish deployment acceptance. Exact next: commit/push this boundary and inspect CI; senior/client owner supplies approved content and runs browser/scheduler acceptance against configured deployment. No main merge/deploy/Trello updates. Uncommitted checkpoint scope: B58 controller/tests/API/capture/checklist/handoff only.
+
+---
+
 B57 implementation `ffa436d` committed and pushed to draft PR#5. Focused results and four HTTP captures are recorded below; working tree clean before this SHA closeout. Next: inspect current-head CI and perform the documented external provider acceptance after senior configuration.
 
 # B57 — Native connector mapping review (2026-11-03, Codex)

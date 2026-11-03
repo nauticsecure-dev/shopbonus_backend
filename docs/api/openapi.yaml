@@ -25560,51 +25560,7 @@ paths:
         -
           sessionCookie: {}
   /api/v1/admin/content/over-ons/publish:
-    post:
-      tags:
-        - Admin
-      operationId: postApiV1AdminContentOverOnsPublish
-      summary: api.v1.admin.content.over-ons.publish
-      description: 'Documented for access-registry coverage. Replace placeholder examples with captured responses.'
-      x-access: admin
-      x-codeSamples:
-        -
-          lang: curl
-          source: "curl -i -X POST 'http://localhost:8000/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json'"
-      responses:
-        200:
-          description: 'Successful response (placeholder; capture a live example when available).'
-          content:
-            application/json:
-              example:
-                data:
-                  ok: true
-        401:
-          description: 'Authentication is required.'
-          content:
-            application/json:
-              example:
-                error:
-                  status: 401
-                  code: unauthenticated
-                  message: 'Authentication is required.'
-                  request_id: 01a16918-650f-721a-b787-30280f4825eb
-          $ref: '#/components/responses/Unauthenticated'
-        403:
-          description: 'This action is unauthorized.'
-          content:
-            application/json:
-              example:
-                error:
-                  status: 403
-                  code: forbidden
-                  message: 'This action is unauthorized.'
-                  request_id: 01a16918-650f-721a-b787-30280f4825eb
-        419:
-          $ref: '#/components/responses/CsrfMismatch'
-      security:
-        -
-          sessionCookie: {}
+    post: {"tags":["Admin"],"operationId":"postApiV1AdminContentOverOnsPublish","summary":"api.v1.admin.content.over-ons.publish","description":"Publish exactly the reviewed draft revision. Required positive integer revision; missing/invalid422, stale409 draft_changed. Locked comparison prevents overwriting a newer draft. Real local HTTP examples use an authenticated synthetic Super Admin session; deployment acceptance remains unverified.","x-access":"admin","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{\"revision\":1}'"}],"responses":{"200":{"description":"Actual local authenticated HTTP capture; see B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json.","content":{"application/json":{"example":{"data":{"id":"01m6gt5ftec9kfdp3syvsvwke1","locale":"nl","number":1,"restored_from":null,"published_by":"Lot","published_at":"2026-11-03T13:39:20+00:00"}}}}},"401":{"description":"Authentication is required.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16918-650f-721a-b787-30280f4825eb"}}}},"$ref":"#/components/responses/Unauthenticated"},"403":{"description":"This action is unauthorized.","content":{"application/json":{"example":{"error":{"status":403,"code":"forbidden","message":"This action is unauthorized.","request_id":"01a16918-650f-721a-b787-30280f4825eb"}}}}},"419":{"$ref":"#/components/responses/CsrfMismatch"},"422":{"description":"Actual local authenticated HTTP capture; see B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1a1a2-becc-7110-93bd-9900e59b45c5","fields":{"revision":["The revision field is required."]}}}}}},"409":{"description":"Actual local authenticated HTTP capture; see B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json.","content":{"application/json":{"example":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bfa0-7036-87fb-f005a434eee9"}}}}}},"security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["revision"],"properties":{"revision":{"type":"integer","minimum":1},"locale":{"type":"string","enum":["nl","en"]}}}}}}}
   /api/v1/admin/content/over-ons/restore:
     post:
       tags:
@@ -25976,51 +25932,7 @@ paths:
         -
           sessionCookie: {}
   /api/v1/admin/content/pages/over-ons/publish:
-    post:
-      tags:
-        - Admin
-      operationId: postApiV1AdminContentPagesOverOnsPublish
-      summary: api.v1.admin.content.pages.over-ons.publish
-      description: 'Documented for access-registry coverage. Replace placeholder examples with captured responses.'
-      x-access: admin
-      x-codeSamples:
-        -
-          lang: curl
-          source: "curl -i -X POST 'http://localhost:8000/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json'"
-      responses:
-        200:
-          description: 'Successful response (placeholder; capture a live example when available).'
-          content:
-            application/json:
-              example:
-                data:
-                  ok: true
-        401:
-          description: 'Authentication is required.'
-          content:
-            application/json:
-              example:
-                error:
-                  status: 401
-                  code: unauthenticated
-                  message: 'Authentication is required.'
-                  request_id: 01a16918-650f-721a-b787-30280f4825eb
-          $ref: '#/components/responses/Unauthenticated'
-        403:
-          description: 'This action is unauthorized.'
-          content:
-            application/json:
-              example:
-                error:
-                  status: 403
-                  code: forbidden
-                  message: 'This action is unauthorized.'
-                  request_id: 01a16918-650f-721a-b787-30280f4825eb
-        419:
-          $ref: '#/components/responses/CsrfMismatch'
-      security:
-        -
-          sessionCookie: {}
+    post: {"tags":["Admin"],"operationId":"postApiV1AdminContentPagesOverOnsPublish","summary":"api.v1.admin.content.pages.over-ons.publish","description":"Publish exactly the reviewed draft revision. Required positive integer revision; missing/invalid422, stale409 draft_changed. Locked comparison prevents overwriting a newer draft. Real local HTTP examples use an authenticated synthetic Super Admin session; deployment acceptance remains unverified.","x-access":"admin","x-codeSamples":[{"lang":"curl","source":"curl -i -X POST 'http://127.0.0.1:8794/api/v1/admin/content/pages/over-ons/publish' -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Cookie: <SESSION_COOKIE>' -H 'X-XSRF-TOKEN: <CSRF_TOKEN>' --data '{\"revision\":1}'"}],"responses":{"200":{"description":"Actual local authenticated HTTP capture; see B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json.","content":{"application/json":{"example":{"data":{"id":"01m6gt5fyyrjkcvvpqzaxec0g2","locale":"nl","number":2,"restored_from":null,"published_by":"Lot","published_at":"2026-11-03T13:39:20+00:00"}}}}},"401":{"description":"Authentication is required.","content":{"application/json":{"example":{"error":{"status":401,"code":"unauthenticated","message":"Authentication is required.","request_id":"01a16918-650f-721a-b787-30280f4825eb"}}}},"$ref":"#/components/responses/Unauthenticated"},"403":{"description":"This action is unauthorized.","content":{"application/json":{"example":{"error":{"status":403,"code":"forbidden","message":"This action is unauthorized.","request_id":"01a16918-650f-721a-b787-30280f4825eb"}}}}},"419":{"$ref":"#/components/responses/CsrfMismatch"},"422":{"description":"Actual local authenticated HTTP capture; see B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json.","content":{"application/json":{"example":{"error":{"status":422,"code":"validation_failed","message":"The given data was invalid.","request_id":"01a1a1a2-bf0e-73af-b10c-8bcc29c5092f","fields":{"revision":["The revision field is required."]}}}}}},"409":{"description":"Actual local authenticated HTTP capture; see B58_ABOUT_PUBLICATION_HTTP_CAPTURE.json.","content":{"application/json":{"example":{"error":{"status":409,"code":"draft_changed","message":"The draft changed after review. Preview it again before publishing.","request_id":"01a1a1a2-bf2a-713f-b084-34cd434c266f"}}}}}},"security":[{"sessionCookie":[]}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","required":["revision"],"properties":{"revision":{"type":"integer","minimum":1},"locale":{"type":"string","enum":["nl","en"]}}}}}}}
   /api/v1/admin/content/pages/over-ons/restore:
     post:
       tags:
