@@ -6,6 +6,7 @@ use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
@@ -328,6 +329,7 @@ final class WixConnector extends WebhookConnector implements CatalogReader, Orde
         $paidAt = $refundAt = null;
 
         return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['number'] ?? null), firstName: $this->str($p['billingInfo']['contactDetails']['firstName'] ?? null), email: $this->str($p['buyerInfo']['email'] ?? null), phone: $this->str($p['billingInfo']['contactDetails']['phone'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['createdDate'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['updatedDate'] ?? null),
+            bannerAssignmentToken: AssignmentMetadata::fromRows($p['customFields'] ?? null, 'title'),
             lineItems: LineItems::wix($p['lineItems'] ?? null, $currency),
             amountBreakdown: AmountBreakdown::make($currency, 'wix_price_summary', ['original_total' => $p['priceSummary']['total']['amount'] ?? null,
                 'tax' => $p['priceSummary']['tax']['amount'] ?? null, 'shipping' => $p['priceSummary']['shipping']['amount'] ?? null, 'discount' => $p['priceSummary']['discount']['amount'] ?? null]));

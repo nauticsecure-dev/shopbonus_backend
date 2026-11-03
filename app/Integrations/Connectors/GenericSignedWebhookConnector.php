@@ -4,6 +4,7 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
@@ -122,7 +123,7 @@ class GenericSignedWebhookConnector extends WebhookConnector
 
     public static function assignmentToken(mixed $value): ?string
     {
-        return is_string($value) && preg_match('/^bx_[a-f0-9]{64}$/D', $value) === 1 ? $value : null;
+        return AssignmentMetadata::token($value);
     }
 
     public function normalizeOrder(array $payload): NormalizedOrder

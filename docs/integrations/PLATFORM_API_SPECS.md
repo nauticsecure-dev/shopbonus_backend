@@ -1,5 +1,7 @@
 # Top 10 commerce platform API & webhook specifications
 
+B69 follow-up: [assignment bridge contract](../banners/ASSIGNMENT_BRIDGES.md) adds Shopware/Magento/Ecwid/E-Series/Wix custom metadata extraction and opt-in BigCommerce order metafield reads; Woo/Shopify repeatable fields now reject duplicate tokens. Supported parsing does not establish installed cart persistence, payment evidence or causal measurement. Unverified native fields remain null.
+
 B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
 
 Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `OrderIngestion` / catalogue capabilities. No parallel integration architecture.

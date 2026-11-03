@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
@@ -162,7 +163,16 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
             throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
         }
 
-        return ['order' => $p, 'transactions' => $this->collection($c, '/v3/orders/'.$id.'/transactions'), 'refunds' => $this->collection($c, '/v3/orders/'.$id.'/payment_actions/refunds')];
+        $payload = ['order' => $p, 'transactions' => $this->collection($c, '/v3/orders/'.$id.'/transactions'), 'refunds' => $this->collection($c, '/v3/orders/'.$id.'/payment_actions/refunds')];
+        if (config('integrations.assignment_metadata.bigcommerce')) {
+            $metadata = $this->read($c, '/v3/orders/'.$id.'/metafields', ['namespace' => 'shopbonus', 'key' => 'assignment_token', 'limit' => 2, 'page' => 1]);
+            if (! is_array($metadata['data'] ?? null) || ! array_is_list($metadata['data']) || count($metadata['data']) > 2 || ($metadata['meta']['pagination']['total_pages'] ?? 1) > 1) {
+                throw new ApiException('Order assignment metadata is ambiguous or incomplete.', 502, 'provider_assignment_metadata_invalid');
+            }
+            $payload['assignment_metafields'] = $metadata['data'];
+        }
+
+        return $payload;
     }
 
     public function discoverOrders(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
@@ -240,7 +250,7 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
             $total === null => PaymentStatus::Unknown,($p['status_id'] ?? null) === 5 => PaymentStatus::Cancelled,$paidAt !== null && $captured >= $total && $refund === $total && $total > 0 => PaymentStatus::Refunded,$paidAt !== null && $captured >= $total && $refund > 0 => PaymentStatus::PartiallyRefunded,$paidAt !== null && $captured >= $total => PaymentStatus::Paid,default => PaymentStatus::Pending
         };
 
-        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null), bannerAssignmentToken: AssignmentMetadata::bigCommerce($payload['assignment_metafields'] ?? null, $p['id'] ?? null));
     }
 
     public function catalogCurrency(WebshopConnection $c): string

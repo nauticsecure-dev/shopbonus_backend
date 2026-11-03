@@ -1493,3 +1493,12 @@ B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL13
 - [x] Document configuration/operations, capture actual invoice API serialization, run relevant SQLite/MySQL/static/API checks and record migration/SHA/remaining provider acceptance.
 
 B68 implementing SHA follows at closeout. Parent `92adc46`: Funding SQLite19PASS+2skip/150, MySQL21PASS/156; API5/8353; PHPStan/Pint/diff PASS. Actual Moneybird/legal/provider delivery acceptance remains unverified; defaults OFF.
+
+### B69 — Additional experiment assignment metadata mappings
+
+- [x] Reuse one strict token parser and reject duplicate/conflicting fields; preserve missing metadata as unknown.
+- [x] Map documented native custom-field/extension metadata where available, with an explicit optional BigCommerce read path and no invented native fields for unsupported bridges.
+- [x] Verify malformed/foreign-source/ambiguity behavior and existing order-assignment isolation/payment semantics on SQLite/MySQL; record exact propagation limits.
+- [x] Update provider/bridge contracts, real API evidence if contracts change, tests and checkpoint SHA without claiming installed storefront persistence.
+
+B69 parent `5861751`: SQLite203/1905; MySQL14/148; PHPStan/Pint/diff PASS. B68 implementing SHA `5861751`. B69 implementing SHA follows next checkpoint. Installed cart/storefront and genuine provider evidence remain NOT RUN.

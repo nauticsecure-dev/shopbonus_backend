@@ -28,6 +28,9 @@ use App\Integrations\Connectors\WooCommerceConnector;
 
 return [
 
+    // Explicit read capability after the cart/order bridge and provider permissions are configured.
+    'assignment_metadata' => ['bigcommerce' => (bool) env('BIGCOMMERCE_ASSIGNMENT_METADATA_ENABLED', false)],
+
     'sync' => ['enabled' => (bool) env('INTEGRATION_SYNC_ENABLED', false), 'connections' => array_values(array_filter(explode(',', (string) env('INTEGRATION_SYNC_CONNECTIONS', ''))))],
 
     'shopify_webhooks' => ['enabled' => (bool) env('SHOPIFY_WEBHOOK_SETUP_ENABLED', false)],

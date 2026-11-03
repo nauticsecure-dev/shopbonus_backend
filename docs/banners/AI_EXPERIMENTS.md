@@ -1,5 +1,7 @@
 # #25 backend handoff: AI proposals and experiments
 
+B69 follow-up: [assignment bridge contract](../banners/ASSIGNMENT_BRIDGES.md) adds Shopware/Magento/Ecwid/E-Series/Wix custom metadata extraction and opt-in BigCommerce order metafield reads; Woo/Shopify repeatable fields now reject duplicate tokens. Supported parsing does not establish installed cart persistence, payment evidence or causal measurement. Unverified native fields remain null.
+
 This extends the existing banner config, lifecycle, assets, pairing, event ledger and reporting. The public embed (`/embed/v1.js`) and Live Editor UI are deployed as client assets; cart totals still require a storefront `ShopBonusCart` bridge. AI Create/Insights remain queue-gated with human review only (never auto-publish).
 
 ## Senior developer setup

@@ -1,0 +1,34 @@
+# Assignment metadata bridge contract — B69, 2026-11-03
+
+The backend now reads additional documented order metadata containers. A mapping is an extraction capability, not proof that an installed cart/storefront bridge persists the value. No source ID, email, order comment or payment status is used to guess an assignment. Missing, malformed or conflicting metadata remains null; it does not establish zero conversions or payment success.
+
+| Adapter | Exact ShopBonus-defined metadata contract | Remaining requirement |
+| --- | --- | --- |
+| Generic signed v1 / OpenCart generic bridge | `order.attribution.assignment_token` | Installed bridge must persist it through cart/order creation and sign the payload; unknown native payment proof stays unknown |
+| WooCommerce | One `meta_data` row, key `_shopbonus_assignment_token`, string value | Consented cart/session-to-order bridge |
+| Shopify REST / GraphQL | One `note_attributes` row named `shopbonus_assignment_token` / one `customAttributes` row with that key | Installed cart attribute persistence, including holdout; native query already requests attributes |
+| Shopware6 | `shopware_order.customFields.shopbonus_assignment_token` | Register/persist the custom field on the order via the native bridge; never assume it exists on an unconfigured shop |
+| Magento self-hosted/PaaS | `magento_order.extension_attributes.shopbonus_assignment_token` | A native module must declare a string extension attribute on OrderInterface, persist cart-to-order and expose it through authorized order reads; not a built-in core field or SaaS claim |
+| Ecwid / Lightspeed E-Series | `native_order.extraFields.shopbonus_assignment_token`; optional descriptive `orderExtraFields` row id `shopbonus_assignment_token`, string value | Native hidden checkout/order field setup and consented persistence; matching mirrors are accepted, conflicting/invalid/duplicate values refused |
+| Wix eCommerce | One `order.customFields` row with exact title `shopbonus_assignment_token`, string value | Native app must persist the reserved field without showing implementation details or a tracking-token input to the customer; translated labels are not identifier fallbacks |
+| BigCommerce | Order metafield namespace `shopbonus`, key `assignment_token`, value string, resource_type `order`, resource_id exact order ID | Explicit bridge and authorized read scope; enable the optional server read only after setup |
+| Lightspeed C / native PrestaShop XML / Squarespace | No verified custom assignment container mapped in this boundary | Supported installed bridge contract still needed; do not put tokens in customer names/comments or invent native fields |
+| Mijnwebwinkel / CCV | No verified connector/assignment contract | Remains unsupported/unverified |
+
+All values must be exactly `bx_` plus64 lowercase hex characters. No trimming, coercion or truncated token is accepted. Repeatable metadata lists require exactly one matching row; duplicate values are refused even when identical. Ecwid map/description mirrors must agree. BigCommerce also refuses a foreign resource ID/type/namespace and ambiguous pages.
+
+The normalized token continues through the existing OrderIngestion → BannerExperiments.orderAssignment path. Only an actual server-known assignment belonging to the same webshop can link an order. Existing signature/identity/credential-generation/completeness/payment/consent/time-window rules still apply; metadata cannot promote unpaid/unknown orders or unverified timestamps. Existing assignments are not replaced by a later conflicting token. Parser success does not certify customer identity or causal measurement.
+
+## Optional BigCommerce read
+
+`BIGCOMMERCE_ASSIGNMENT_METADATA_ENABLED=false` preserves the existing native-read footprint. When explicitly enabled, the authenticated fixed-origin reader performs:
+
+`GET /stores/{store_hash}/v3/orders/{order_id}/metafields?namespace=shopbonus&key=assignment_token&limit=2&page=1`
+
+Store/domain identity and exact order are checked first. Pagination beyond one filtered page or malformed metadata fails the opted-in recovery rather than claiming complete tracking. Provider authentication/rate-limit/read errors remain observable through the existing bounded recovery workflow. No client may supply the destination URL, token or order identity. A provider response with no matching value remains unattributed. Use the appropriate provider/client metadata permissions; fixture extraction does not prove installation or access.
+
+## Verification
+
+Tests cover new native containers, Ecwid mirrors, malformed/duplicate tokens, foreign BigCommerce IDs/types/namespaces and the actual pinned read/query under synthetic HTTP. Existing BannerExperiment tests retain same-shop, consent, payment, replay and assignment-window behavior. Genuine cart/storefront persistence, installation, holdout propagation, withdrawal and downstream native-order acceptance remain NOT RUN. No new HTTP API route/response field or native storefront code is introduced here.
+
+Primary container contracts reviewed: [Shopware custom fields](https://developer.shopware.com/docs/guides/plugins/plugins/framework/custom-field/), [Adobe extension attributes](https://developer.adobe.com/commerce/php/development/components/attributes), [Ecwid orders](https://docs.ecwid.com/api-reference/rest-api/orders/get-order), [Wix order object](https://dev.wix.com/docs/api-reference/business-solutions/e-commerce/orders/orders/get-order), [BigCommerce official Orders V3 specification](https://github.com/bigcommerce/api-specs/blob/main/reference/orders.v3.yml). ShopBonus-specific key names above are our bridge contract, not a claim that each platform installs them automatically.

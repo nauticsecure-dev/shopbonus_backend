@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -291,8 +292,7 @@ class WooCommerceConnector extends WebhookConnector implements CatalogReader, Pa
             // NOT VERIFIED: the storefront embed is expected to store order meta "_shopbonus_click_id".
             attributionClickId: GenericSignedWebhookConnector::clickId(collect(is_array($payload['meta_data'] ?? null) ? $payload['meta_data'] : [])
                 ->first(fn ($m) => is_array($m) && ($m['key'] ?? null) === '_shopbonus_click_id')['value'] ?? null),
-            bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect(is_array($payload['meta_data'] ?? null) ? $payload['meta_data'] : [])
-                ->first(fn ($m) => is_array($m) && ($m['key'] ?? null) === '_shopbonus_assignment_token')['value'] ?? null),
+            bannerAssignmentToken: AssignmentMetadata::fromRows($payload['meta_data'] ?? null, 'key', '_shopbonus_assignment_token'),
             providerUpdatedAt: $this->date($payload['date_modified_gmt'] ?? null),
             lineItems: LineItems::woo($payload['line_items'] ?? null, $currency),
         );
