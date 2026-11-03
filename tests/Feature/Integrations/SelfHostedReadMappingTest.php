@@ -35,4 +35,17 @@ class SelfHostedReadMappingTest extends TestCase
         $p['invoices'][0]['state'] = 1;
         $this->assertSame(PaymentStatus::Pending, $a->normalizeOrder($p)->paymentStatus);
     }
+
+    public function test_native_normalizers_expose_only_bound_flat_lines(): void
+    {
+        $id = str_repeat('a', 32);
+        $payload = ['shopware_order' => ['id' => $id, 'currency' => ['isoCode' => 'EUR'], 'amountTotal' => '19.99', 'lineItems' => [['id' => str_repeat('b', 32), 'orderId' => $id, 'parentId' => null, 'type' => 'product', 'quantity' => 2, 'totalPrice' => '19.99']]]];
+        $this->assertSame(1999, (new ShopwareConnector)->normalizeOrder($payload)->lineItems[0]['amount_minor']);
+        $payload['shopware_order']['lineItems'][0]['orderId'] = str_repeat('c', 32);
+        $this->assertNull((new ShopwareConnector)->normalizeOrder($payload)->lineItems);
+        $payload = ['magento_order' => ['entity_id' => 42, 'order_currency_code' => 'EUR', 'grand_total' => '19.99', 'items' => [['item_id' => 1, 'order_id' => 42, 'product_type' => 'simple', 'qty_ordered' => '2.0000', 'row_total_incl_tax' => '19.99']]]];
+        $this->assertSame(1999, (new MagentoConnector)->normalizeOrder($payload)->lineItems[0]['amount_minor']);
+        $payload['magento_order']['items'][0]['order_id'] = 43;
+        $this->assertNull((new MagentoConnector)->normalizeOrder($payload)->lineItems);
+    }
 }

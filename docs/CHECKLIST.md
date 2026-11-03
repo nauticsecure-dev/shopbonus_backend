@@ -1213,3 +1213,14 @@ B54/B55 implementing SHA: `29c02b2`. Checkbox evidence is in that implementation
 - [x] Execute focused route/access/journey checks and record test results and exact next actions.
 
 B56 implementing commit parentb3016cd: SQLite38/10982, MySQL4/502; static/style/audit PASS. These checkboxes cover inventory and honest release alignment, not independent/native/staging acceptance.
+
+### B57 — Shared native order mappings and integration specifications (2026-11-03)
+
+- [x] Audit official contracts and current Wix/Ecwid behavior; distinguish record creation/current shop currency from immutable settlement evidence.
+- [x] Normalize bounded, order-bound flat product lines for Shopware/Magento with exact money, explicit amount basis and unknown eligibility; refuse mixed/composite/duplicate/invalid shapes.
+- [x] Request bounded Shopware line-item association and document its read permission; keep failures fail-closed and provider qualification unchanged.
+- [x] Map Ecwid's explicit reported refundedAmount without assuming missing=zero, settlement time or original-order currency; test contradictions/precision/bounds.
+- [x] Retain Lightspeed cash refund/settlement and native package/live acceptance gaps where source proof is unavailable.
+- [x] Execute focused SQLite/MySQL tests, capture actual affected order HTTP examples and update API/spec/handoff evidence.
+
+B57 implementing parent8fb782e: SQLite49/343 plus final transport2/16; MySQL17/129 plus final wiring3/13 and transport2/16 (overlapping selections); API5/8261, PHPStan/Pint PASS. Four actual local HTTP serialization captures; live/native acceptance remains NOT RUN. Implementing SHA is recorded in the following checkpoint.

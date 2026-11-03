@@ -11,6 +11,7 @@ use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\WooCommerceApi;
+use App\Integrations\LineItems;
 use App\Integrations\ProviderOrderId;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
@@ -47,7 +48,7 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements C
 
     public function setupInstructions(WebshopConnection $c, string $url): array
     {
-        return parent::setupInstructions($c, $url) + ['native_version' => 'Shopware6 Admin API', 'native_read_configured' => $c->credential('client_id') !== null, 'native_notice' => 'Restricted integration client credentials enable fixed Admin API reads. Declare order, order_customer, order_address, currency, order_transaction, state_machine_history and sales_channel_domain read permissions. App registration/native app webhooks and CMS publication are separate from the existing Shopbonus signed module bridge. Partial/refunded states lack exact settled-refund evidence and stay unqualified.'];
+        return parent::setupInstructions($c, $url) + ['native_version' => 'Shopware6 Admin API', 'native_read_configured' => $c->credential('client_id') !== null, 'native_notice' => 'Restricted integration client credentials enable fixed Admin API reads. Declare order, order_line_item, order_customer, order_address, currency, order_transaction, state_machine_history and sales_channel_domain read permissions. App registration/native app webhooks and CMS publication are separate from the existing Shopbonus signed module bridge. Partial/refunded states lack exact settled-refund evidence and stay unqualified.'];
     }
 
     private function base(WebshopConnection $c): string
@@ -124,7 +125,7 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements C
         $id = ProviderOrderId::validate($this->platform(), $id);
         $token = $this->token($c);
         $this->identity($c, $token);
-        $p = $this->search($c, $token, 'order', ['ids' => [$id], 'limit' => 1, 'associations' => ['currency' => [], 'orderCustomer' => [], 'billingAddress' => [], 'stateMachineState' => [], 'transactions' => ['limit' => 2, 'associations' => ['stateMachineState' => []]]]]);
+        $p = $this->search($c, $token, 'order', ['ids' => [$id], 'limit' => 1, 'associations' => ['lineItems' => ['limit' => 101, 'sort' => [['field' => 'position', 'order' => 'ASC'], ['field' => 'id', 'order' => 'ASC']]], 'currency' => [], 'orderCustomer' => [], 'billingAddress' => [], 'stateMachineState' => [], 'transactions' => ['limit' => 2, 'associations' => ['stateMachineState' => []]]]]);
         $rows = $p['data'] ?? [];
         $o = count($rows) === 1 ? $rows[0] : null;
         if (! is_array($o) || ($o['id'] ?? null) !== $id || ($o['salesChannelId'] ?? null) !== $c->credential('sales_channel_id')) {
@@ -208,7 +209,7 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements C
             $payment = PaymentStatus::Unknown;
         }
 
-        return new NormalizedOrder(externalId: $this->str($o['id'] ?? null), reference: $this->str($o['orderNumber'] ?? null), firstName: $this->str($o['orderCustomer']['firstName'] ?? null), email: $this->str($o['orderCustomer']['email'] ?? null), phone: $this->str($o['billingAddress']['phoneNumber'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['stateMachineState']['technicalName'] ?? null), placedAt: $this->date($o['orderDateTime'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: null, providerUpdatedAt: $this->date($o['updatedAt'] ?? $o['createdAt'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($o['id'] ?? null), reference: $this->str($o['orderNumber'] ?? null), firstName: $this->str($o['orderCustomer']['firstName'] ?? null), email: $this->str($o['orderCustomer']['email'] ?? null), phone: $this->str($o['billingAddress']['phoneNumber'] ?? null), amountMinor: $amount, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['stateMachineState']['technicalName'] ?? null), placedAt: $this->date($o['orderDateTime'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: null, providerUpdatedAt: $this->date($o['updatedAt'] ?? $o['createdAt'] ?? null), lineItems: LineItems::shopware($o['lineItems'] ?? null, $currency, $o['id'] ?? null));
     }
 
     public function catalogCurrency(WebshopConnection $c): string

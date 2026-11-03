@@ -45,7 +45,9 @@ class CapabilityMatrix
             'orders' => $this->cap($native ? CapabilityState::Available : CapabilityState::Limited, $native ? null : 'Webhook/module orders only; native read incomplete.', $verifiedAt),
             'payments' => $this->cap($payments ? CapabilityState::Available : CapabilityState::Limited, $payments ? null : 'No settled payment time is mapped; payment status only.', $verifiedAt),
             'refunds' => $this->cap($refunds ? CapabilityState::Available : CapabilityState::Limited,
-                $refunds ? null : 'Refund amounts are not mapped'.($refundNote === null ? '.' : ": {$refundNote}"), $verifiedAt),
+                $refunds ? null : (($profile['reported_refund_total_mapped'] ?? false)
+                    ? 'Reported refund totals are mapped; processor cash settlement remains unverified.'
+                    : 'Refund amounts are not mapped'.($refundNote === null ? '.' : ": {$refundNote}")), $verifiedAt),
             'products' => $this->cap($this->productState($profile), $this->productReason($profile), $verifiedAt),
             'categories' => $this->cap($this->productState($profile) === CapabilityState::Available ? CapabilityState::Limited : CapabilityState::Unsupported, 'Category sync is best-effort where products are available.', $verifiedAt),
             'coupons_read' => $this->cap($this->couponReadState($profile), $this->couponReason($profile), $verifiedAt),

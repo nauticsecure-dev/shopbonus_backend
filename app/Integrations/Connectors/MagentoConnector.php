@@ -10,6 +10,7 @@ use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\WooCommerceApi;
+use App\Integrations\LineItems;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
 use App\Support\Money;
@@ -221,7 +222,7 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
             $total === null => PaymentStatus::Unknown,($o['state'] ?? null) === 'canceled' => PaymentStatus::Cancelled,$qualified && $refund === $total && $total > 0 => PaymentStatus::Refunded,$qualified && $refund > 0 => PaymentStatus::PartiallyRefunded,$qualified => PaymentStatus::Paid,$refund > 0 => PaymentStatus::Unknown,default => PaymentStatus::Pending
         };
 
-        return new NormalizedOrder(externalId: $this->str($o['entity_id'] ?? null), reference: $this->str($o['increment_id'] ?? null), firstName: $this->str($o['customer_firstname'] ?? $o['billing_address']['firstname'] ?? null), email: $this->str($o['customer_email'] ?? null), phone: $this->str($o['billing_address']['telephone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['status'] ?? null), placedAt: $this->utc($o['created_at'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->utc($o['updated_at'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($o['entity_id'] ?? null), reference: $this->str($o['increment_id'] ?? null), firstName: $this->str($o['customer_firstname'] ?? $o['billing_address']['firstname'] ?? null), email: $this->str($o['customer_email'] ?? null), phone: $this->str($o['billing_address']['telephone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($o['status'] ?? null), placedAt: $this->utc($o['created_at'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->utc($o['updated_at'] ?? null), lineItems: LineItems::magento($o['items'] ?? null, $currency, $o['entity_id'] ?? null));
     }
 
     /** @return array<string,mixed> this connection's store view config, after the identity gate */
