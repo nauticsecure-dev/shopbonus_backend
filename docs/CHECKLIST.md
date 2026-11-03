@@ -938,3 +938,13 @@ B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual H
 - [x] Capture real admin/public HTTP examples; update OpenAPI, README and handoff with exact evidence.
 
 B38 checked against executed evidence in this implementation commit (parent130fd24); resulting SHA recorded in the next checkpoint. SQLite65pass+1skip/7959assertions, MySQL62pass+1skip/446assertions; static/style PASS;16 real HTTP captures.
+
+### B49 — Review acceptance alignment (2026-11-03)
+
+- [x] Document approval-based timing under D-089/D-107, separately from cash settlement; preserve historical reversal rules.
+- [x] Prove the explicit versioned 100% share awards475minor once after approval, preserves its snapshot and leaves the70% default unchanged.
+- [x] Verify existing foreign-workspace404/audit and Answer24 consent/suppression tests; document responsibilities.
+- [x] Keep provider installation/native/live gaps explicitly open with delivery ownership and evidence gates.
+- [x] Record executed focused tests, API compatibility and branch/SHA/next action in checkpoint docs.
+
+B49 evidence: SQLite61/491 and17/7827, MySQL1/12; Pint/diff PASS. Implementing commit has parent e3b25c8; provider delivery remains OPEN.

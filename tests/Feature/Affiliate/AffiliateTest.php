@@ -194,7 +194,7 @@ class AffiliateTest extends TestCase
 
     public function test_card19_e2e4_and_e2e6_import_normalises_pending_is_not_spendable_and_approval_credits_once(): void
     {
-        // Legacy network-approval regime still supported via config override.
+        // Owner-approved default policy (D-089/D-107); explicit for this fixture.
         config(['shopbonus.affiliate.credit_timing' => 'on_network_approval']);
         $this->import($this->daisycon, [$this->daisyconProgram()]);
         $ref = $this->annaClicks();
@@ -216,7 +216,7 @@ class AffiliateTest extends TestCase
         $this->assertCount(1, $bad['rejected']);
     }
 
-    public function test_verified_conversion_credits_immediately_with_default_70_percent_split(): void
+    public function test_network_approved_conversion_credits_with_explicit_70_percent_split(): void
     {
         AffiliateRewardRule::query()->update(['active' => false]);
         AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 7000, 'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
@@ -228,6 +228,35 @@ class AffiliateTest extends TestCase
         $this->assertSame([1000, 700, 'credited'], [$tx->commission_minor, $tx->reward_amount, $tx->reward_status]);
         $this->assertSame([700, 0, 700], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
         $this->assertSame(300, $tx->credit_evidence['allocation']['platform_unrecognized_minor']);
+    }
+
+    public function test_475_commission_scenario_requires_explicit_full_share_and_waits_for_approval(): void
+    {
+        $this->assertSame('on_network_approval', config('shopbonus.affiliate.credit_timing'));
+        $this->assertSame(7000, config('shopbonus.affiliate.default_consumer_share_bps'));
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 2, 'unit' => 'eur_credit', 'share_bps' => 10000,
+            'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $this->import($this->daisycon, [$this->daisyconProgram()]);
+        $ref = $this->annaClicks();
+        $this->import($this->daisycon, [], [$this->daisyconTx('FULL-475', $ref, 'pending', commission: 4.75)]);
+        $tx = AffiliateTransaction::sole();
+        $this->assertSame([0, 475], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending]);
+        $this->assertSame(10000, $tx->reward_terms_snapshot['share_bps']);
+
+        AffiliateRewardRule::query()->update(['active' => false]);
+        AffiliateRewardRule::create(['version' => 3, 'unit' => 'eur_credit', 'share_bps' => 7000,
+            'min_commission_minor' => 0, 'active' => true, 'created_by' => $this->admin->id]);
+        $approved = $this->daisyconTx('FULL-475', $ref, 'approved', '2026-10-24T09:00:00Z', 4.75);
+        $this->import($this->daisycon, [], [$approved]);
+        $this->import($this->daisycon, [], [$approved]);
+        $this->assertSame([475, 0, 475], [$this->wallet()->fresh()->available, $this->wallet()->fresh()->pending, $this->wallet()->fresh()->total_earned]);
+        $evidence = $tx->fresh()->credit_evidence;
+        $this->assertSame(10000, $evidence['rule_terms']['share_bps']);
+        $this->assertSame(0, $evidence['allocation']['platform_unrecognized_minor']);
+        $this->assertFalse($evidence['allocation']['cash_settlement_verified']);
+        $this->assertSame(7000, config('shopbonus.affiliate.default_consumer_share_bps'));
+        $this->assertSame([], app(WalletService::class)->reconcile());
     }
 
     public function test_order_already_credited_as_direct_merchant_conversion_is_never_credited_again(): void

@@ -1,3 +1,15 @@
+# B49 — Review acceptance alignment (2026-11-03, Codex)
+
+Branch `frank/review-fixes`, parent `e3b25c8dc1b5a0dbe653269a329b34314aec295d` (CI41295450472 SUCCESS). User asks to fix five review findings. D-089/D-107 already resolve timing: approval, not settlement or instant attribution. D-105 allocation-only remains. No replacement financial policy assumed.
+
+Added docs/qa/REVIEW_ACCEPTANCE_ALIGNMENT.md, linked from consolidated spec/provider verification. Defines pending/approval versus settlement, explicit475minor/10000bps scenario,404 foreign-workspace concealment versus403 member permissions, ShopBonus eligibility versus Answer24 final execution, and open native-install/provider acceptance deliverables with responsibilities. Corrected misleading legacy/immediate test names/comments. Added executable475minor pending→approval/replay/frozen-rule regression without altering the7000bps default. No runtime behavior/routes/schema/API payload changes, no migration required, no fabricated HTTP examples.
+
+Executed SQLite: AffiliateTest + ContactEligibilityTest + WorkspaceTest61passed/491assertions; Answer24ChannelTest + OpenApiCoverageTest17passed/7827assertions. Pint targeted PASS; git diff check PASS. Focused MySQL475minor regression1passed/12assertions (24.934s). Existing safeguards tests cover cross-tenant audit, missing consent, suppression and cancellation. Main DB untouched. No provider calls or install/acceptance claims.
+
+Status: acceptance alignment DONE after recorded tests; provider packages/connectors/live journeys remain OPEN, not fixed by documentation. Exact next action: push this review checkpoint; provider/native implementation remains the next separate scoped engineering task using verified contracts. Full CI for this commit pending; full local suites NOT RUN (focused boundary only). Changes at checkpoint are B49 docs/test only; implementing SHA recorded in commit history/follow-up. No deployment/merge/Trello move.
+
+---
+
 # Continuation checkpoint — B48 ownership transfer (D-108), cashback timing kept (D-107), suspension cuts sockets (2026-11-01, Claude)
 
 Branch `frank/review-fixes`, parent `8d7e71e` (B47, CI run 41203696904 PASS). Owner said "use the recommended decisions":

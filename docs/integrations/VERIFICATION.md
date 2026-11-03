@@ -53,3 +53,7 @@ Neither adapter has been run against a live account. Before enabling production 
 | Sandbox | `https://services-sandbox.daisycon.com` (15 req/min/IP) | Account-issued SOAP endpoint |
 
 B10b implementation/configuration handoff: [TRADETRACKER.md](TRADETRACKER.md). Owner explicitly assigned credentials to the senior developer. Main transport is fixture-tested; live verification remains NOT RUN and is not a prerequisite for writing the adapter code.
+
+## Review delivery and acceptance boundary (2026-11-03)
+
+See [review acceptance alignment](../qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) for the explicit open installation/native-connector deliverables and responsibility split. No internal fixture pass promotes a provider row to live-verified. PrestaShop/OpenCart artifacts and pending native storefront deliverables remain OPEN; the four unsupported connectors remain unsupported. This is separate from the owner-approved affiliate timing and audited workspace concealment policy.

@@ -2,6 +2,8 @@
 
 Source: Trello Shopbonus board export, 2026-10-23. This is a synthesis of a **requirements snapshot**, not an audit of existing source. Full verbatim descriptions: `requirements/TRELLO_CARDS.md`.
 
+Current acceptance clarifications: [review alignment](qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) governs approval-based credit (D-089/D-107), explicit reward-share fixtures, audited foreign-workspace404 and Answer24 responsibilities. Historical card wording does not override those decisions.
+
 ## Goal and ownership
 
 Laravel 13/PHP 8.3+ (target; verify installed version), versioned `/api/v1` JSON REST API, Sanctum, relational DB with constraints, Redis-backed queues and applicable Reverb broadcasts. Frank owns the **backend**. Hassan's cards are read to extract needed backend endpoints/contracts, not frontend implementation assignments.
