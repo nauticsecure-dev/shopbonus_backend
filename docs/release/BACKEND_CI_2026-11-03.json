@@ -1,0 +1,150 @@
+{
+  "recorded_at": "2026-11-03T08:46:00.262160+00:00",
+  "scope": "Observed isolated backend CI regression, not independent E2E/provider/staging acceptance",
+  "workflow_run": {
+    "id": 41603012663,
+    "url": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41603012663",
+    "head_sha": "b3016cdfee86c90dae0103239cbfcd121ecdbbe4",
+    "tested_merge_sha": "e44ca9a409fd54759b2adc921a94283fb7355816",
+    "tested_tree": "4086f225f86eca1043e6df98e4826c03ecbb3c85",
+    "head_and_tested_tree_match": true
+  },
+  "jobs": [
+    {
+      "artifact": {
+        "id": 13215433888,
+        "name": "backend-qa-8.4-mysql-e44ca9a409fd54759b2adc921a94283fb7355816",
+        "digest": "sha256:4db60dfab94d5cc848f5a8b5fc16153482989a13936b05968164c5f2101242c5",
+        "created_at": "2026-11-03T08:31:52Z",
+        "expires_at": "2026-11-17T08:31:51Z",
+        "expired": false
+      },
+      "run": {
+        "id": "01m6g8jfp6edar1zet3derjb8p",
+        "suite": "full",
+        "environment": "ci",
+        "git_sha": "e44ca9a409fd54759b2adc921a94283fb7355816",
+        "source": "junit",
+        "totals": {
+          "total": 1279,
+          "assertions": 21236,
+          "pass": 1275,
+          "fail": 0,
+          "blocked": 0,
+          "not_implemented": 0,
+          "skipped": 4,
+          "mocked": 1279
+        },
+        "duration_ms": 416187,
+        "report_sha256": "2279f97aa7ee3372fee3534f2273e7331e5c73c10944b40f05d8eaf9348af80d",
+        "created_at": "2026-11-03T08:31:51+00:00"
+      },
+      "execution": {
+        "started_at": "2026-11-03T08:24:50+00:00",
+        "finished_at": "2026-11-03T08:31:46+00:00",
+        "proves": "Isolated backend regression execution; no deployed provider or browser acceptance."
+      },
+      "inventory_totals": {
+        "endpoints": 467,
+        "components": 719,
+        "undocumented": 0,
+        "command": 42,
+        "connector": 26,
+        "controller": 94,
+        "enum": 30,
+        "event": 7,
+        "integration": 48,
+        "job": 15,
+        "listener": 5,
+        "logging": 2,
+        "middleware": 21,
+        "migration": 92,
+        "model": 126,
+        "provider": 2,
+        "request": 13,
+        "resource": 12,
+        "schedule": 27,
+        "service": 151,
+        "support": 6
+      },
+      "downloaded_file_sha256": {
+        "executed-at.txt": "2146fc3a94485f989c8c9ff66102017fb86ec3a6593a711f8fa4344255f8edd0",
+        "results.json": "8e2c73de9aa80fdc26db8e7fb12742eca62f8c9a4676e5c7ba3358e1b9fa9ef1",
+        "results.junit.xml": "6e7d20ea5d2302b4b8d0e517ff02da03fd1840cb778c270ae2bc1c4b9ce9e9c4",
+        "routes.json": "6be8cd0754f8601a6c71cbb1d10cd2d262655d6472186c24b5864d2cf10d1683",
+        "tested-sha.txt": "4aa12dc7e4db9ce2cee4bfc344c0b875d4dd399257c70eb0b1f764c2140e9fdd"
+      }
+    },
+    {
+      "artifact": {
+        "id": 13214867689,
+        "name": "backend-qa-8.4-sqlite-e44ca9a409fd54759b2adc921a94283fb7355816",
+        "digest": "sha256:d6d553c6a68b87eec2d21d790d86f0f9448961014078e0acd5faf9b3729d2f10",
+        "created_at": "2026-11-03T08:26:28Z",
+        "expires_at": "2026-11-17T08:26:27Z",
+        "expired": false
+      },
+      "run": {
+        "id": "01m6g88k7enxq3gtddf69s227g",
+        "suite": "full",
+        "environment": "ci",
+        "git_sha": "e44ca9a409fd54759b2adc921a94283fb7355816",
+        "source": "junit",
+        "totals": {
+          "total": 1279,
+          "assertions": 21145,
+          "pass": 1252,
+          "fail": 0,
+          "blocked": 0,
+          "not_implemented": 0,
+          "skipped": 27,
+          "mocked": 1279
+        },
+        "duration_ms": 89011,
+        "report_sha256": "f2b931aa63cae82af24d2dabe3107d5a4e14a187ccf49270575655a95aa20e7b",
+        "created_at": "2026-11-03T08:26:27+00:00"
+      },
+      "execution": {
+        "started_at": "2026-11-03T08:24:55+00:00",
+        "finished_at": "2026-11-03T08:26:24+00:00",
+        "proves": "Isolated backend regression execution; no deployed provider or browser acceptance."
+      },
+      "inventory_totals": {
+        "endpoints": 467,
+        "components": 719,
+        "undocumented": 0,
+        "command": 42,
+        "connector": 26,
+        "controller": 94,
+        "enum": 30,
+        "event": 7,
+        "integration": 48,
+        "job": 15,
+        "listener": 5,
+        "logging": 2,
+        "middleware": 21,
+        "migration": 92,
+        "model": 126,
+        "provider": 2,
+        "request": 13,
+        "resource": 12,
+        "schedule": 27,
+        "service": 151,
+        "support": 6
+      },
+      "downloaded_file_sha256": {
+        "executed-at.txt": "db5a38da18b81c708b4d5a61676032d8e75db81d455476c7df636a875379e3d3",
+        "results.json": "3630ae7ddb0c7bf06d1c16d9f6ebe4018168345a6ec4d61493f88dfcbfebbbe5",
+        "results.junit.xml": "49385b6b34554bef6ef28427c8cf9f112c90830c6ca82ebf58382b84197193fa",
+        "routes.json": "6be8cd0754f8601a6c71cbb1d10cd2d262655d6472186c24b5864d2cf10d1683",
+        "tested-sha.txt": "4aa12dc7e4db9ce2cee4bfc344c0b875d4dd399257c70eb0b1f764c2140e9fdd"
+      }
+    }
+  ],
+  "limits": [
+    "The inventory-renderer change is newer than this tested baseline and needs its own CI.",
+    "All imported CI cases are labelled mocked; no live provider installation, payment, settlement, frontend, worker or staging performance proof.",
+    "Original PDF mapping and independent E2E-01\u201325 packages remain unavailable/unverified.",
+    "Artifact archive digests below are reported by GitHub; individual downloaded file hashes are computed locally."
+  ]
+}

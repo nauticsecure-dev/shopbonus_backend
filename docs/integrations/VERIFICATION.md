@@ -57,3 +57,5 @@ B10b implementation/configuration handoff: [TRADETRACKER.md](TRADETRACKER.md). O
 ## Review delivery and acceptance boundary (2026-11-03)
 
 See [review acceptance alignment](../qa/REVIEW_ACCEPTANCE_ALIGNMENT.md) for the explicit open installation/native-connector deliverables and responsibility split. No internal fixture pass promotes a provider row to live-verified. PrestaShop/OpenCart artifacts and pending native storefront deliverables remain OPEN; the four unsupported connectors remain unsupported. This is separate from the owner-approved affiliate timing and audited workspace concealment policy.
+
+Release gating (2026-11-03): [independent acceptance register](../release/INDEPENDENT_ACCEPTANCE.md) separates missing native artifacts, original-PDF mapping and actual install/order/refund subruns. All NOT RUN rows above remain unchanged. Green backend CI or a regenerated route inventory does not promote provider verification.

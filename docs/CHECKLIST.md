@@ -1202,3 +1202,14 @@ B53 implementation parentb484cdf: MerchantDashboardTest SQLite11/85 andMySQL11/8
 B54/B55 implementation parent5a84660: SQLite46/8417; MySQL43/637; final principal/race refinement15/299 on each driver; API3/7780. PHPStan/Pint/diff PASS.41 real HTTP captures plus database assertions; no frontend changes. Implementing SHA recorded in the following closeout. Full new CI pending.
 
 B54/B55 implementing SHA: `29c02b2`. Checkbox evidence is in that implementation commit; subsequent docs note records the resolved SHA. New full CI pending.
+
+### B56 — Backend release inventory and evidence alignment (2026-11-03)
+
+- [x] Regenerate runtime route-entry, method/path operation and access/role inventory with explicit HEAD/multi-method counting.
+- [x] Provide a repeatable CLI Markdown renderer and fail on runtime/OpenAPI drift; test checked-in inventory consistency.
+- [x] Align release acceptance and business-journey wording with D-109 approval plus recorded settlement, preserving historical evidence.
+- [x] Record current-build backend CI provenance and separate it from independent E2E/provider/staging acceptance.
+- [x] Document missing native install/storefront artifacts and original-PDF/evidence package blockers without inventing mappings or runs.
+- [x] Execute focused route/access/journey checks and record test results and exact next actions.
+
+B56 implementing commit parentb3016cd: SQLite38/10982, MySQL4/502; static/style/audit PASS. These checkboxes cover inventory and honest release alignment, not independent/native/staging acceptance.

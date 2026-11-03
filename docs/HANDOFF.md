@@ -1,3 +1,15 @@
+# B56 — Release inventory and acceptance evidence (2026-11-03, Codex)
+
+Branch frank/review-fixes, baseline b3016cd; PR#5. Runtime466 route entries /467 non-HEAD operations /408 unique paths, zero access/permission drift. Added repeatable `shopbonus:api-routes --markdown` without changing default JSON/API response. Generated inventory now lists accepted platform roles, authentication classification, workspace scope, step-up and expanded rate middleware; a checked-in snapshot test catches stale routes/access/roles. Markdown bypasses agent output cleanup to preserve paragraphs.
+
+Executed SQLite API/access/journey/registry38pass/10982assertions; MySQL inventory/registry4pass/502assertions. PHPStan512MiB/Pint/diff PASS; composer audit0advisories/0abandoned. Full baseline CI41603012663 SUCCESS all3jobs: SQLite1252pass+27skip/21145assertions; MySQL1275pass+4skip/21236assertions. Downloaded sanitized artifacts and recorded hashes/provenance in release/BACKEND_CI_2026-11-03.json. Tested merge e44ca9a409fd54759b2adc921a94283fb7355816 and b3016cd share tree4086f225f86eca1043e6df98e4826c03ecbb3c85. This baseline does not cover the new renderer change; replacement CI pending.
+
+Release wording now follows D-109 approval+recorded settlement; runtime/historical reward behavior unchanged. INDEPENDENT_ACCEPTANCE.md retains25 UNMAPPED/NOT RUN/MISSING package slots, not fabricated175-check mapping. Original PDF rechecked HTTP401; native packages/storefront delivery, genuine provider install/order/refund/disconnect/downstream runs, deployed workers/staging and independent release approval remain open. NO-GO persists. Native modules/storefront code is outside AGENTS.md Laravel-only scope; no frontend implementation or provider activation. No API/schema/migration/mainDB/sharedRedis changes.
+
+Next exact: commit B56; continue new connector review by auditing Shopware/Magento line items, Lightspeed/Ecwid refund/time limitations and stale Wix/Ecwid docs against verified contracts. One ticket boundary at a time. Current uncommitted B56 source/tests/docs only; no main merge/deploy/Trello edits.
+
+---
+
 # B54/B55 — Backend impersonation and cockpit drill-down (2026-11-03, Codex)
 
 B54/B55 implementation `29c02b2` committed/pushed to draft PR#5. Focused checks and41 real HTTP captures passed; no frontend files or migrations changed. Full new CI remains pending. Exact next: inspect PR#5 CI and use docs/admin/COCKPIT_BACKEND_HANDOFF.md for client integration. Working tree was clean before this documentation closeout.
