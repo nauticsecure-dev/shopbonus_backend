@@ -1,0 +1,44 @@
+{
+  "failed_run": "https://github.com/nauticsecure-dev/shopbonus_backend/actions/runs/41662047329",
+  "failures": {
+    "lint": "10 Pint violations in merchant-packages and scripts/capture-workspace-access.php",
+    "mysql": "DaisyconCompletenessTest raw permission snapshot compares JSON object insertion order with assertSame; MySQL reorders allowed/media_type keys."
+  },
+  "changes": [
+    "Apply existing Pint rules; no exclusions or disabled checks.",
+    "Normalize object keys before strict snapshot comparison; no-activation assertions unchanged.",
+    "Regenerate archives/manifest and assert exact ZIP entry/source parity."
+  ],
+  "checks": {
+    "focused_sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 10,
+      "passed": 10,
+      "assertions": 127,
+      "duration_ms": 1243
+    },
+    "focused_mysql": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 10,
+      "passed": 10,
+      "assertions": 85,
+      "duration_ms": 22067
+    },
+    "pint": {
+      "tool": "pint",
+      "result": "passed"
+    },
+    "phpstan": {
+      "tool": "phpstan",
+      "result": "passed",
+      "errors": 0
+    },
+    "composer_audit": {
+      "advisories": [],
+      "abandoned": []
+    }
+  },
+  "limits": "MySQL focused10/85 preceded the additional42 platform-independent ZIP assertions; those passed on SQLite10/127. Complete pushed CI pending. No API/migration/financial behavior changes or genuine native installation acceptance."
+}

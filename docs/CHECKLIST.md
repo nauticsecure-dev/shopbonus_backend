@@ -1474,3 +1474,11 @@ B65 implementing SHA: `f44d759`. All four checked items refer to the tested loca
 B66 local boundary: QA SQLite27/358; acceptance MySQL4/28; API5/8353; PHPStan/targeted Pint/diff PASS. Parent `ced2fd9`; implementing SHA follows in closeout. Actual175-source mapping, independent real staging/provider runs, controlled scheduled runners and frontend/portal delivery remain OPEN.
 
 B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/evidence-gate boundary only; the missing actual source mapping, executions, runner pipeline and frontend/portal are not checked as complete.
+
+### B67 — Repair recurring CI failures
+
+- [x] Identify failures from actual GitHub Actions logs and reproduce lint/MySQL failures locally.
+- [x] Make the Daisycon raw-permission snapshot assertion independent of JSON object key order while preserving strict values and no-activation guards.
+- [x] Fix reported formatting violations and regenerate deterministic merchant archives/manifests without changing native behavior or weakening lint.
+- [x] Run focused database/package checks, full lint/static checks and dependency audit.
+- [ ] Verify the pushed revision's complete GitHub CI jobs and record results/SHA.

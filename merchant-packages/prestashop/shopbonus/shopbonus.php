@@ -1,5 +1,6 @@
 <?php
-if (!defined('_PS_VERSION_')) {
+
+if (! defined('_PS_VERSION_')) {
     exit;
 }
 require_once __DIR__.'/Delivery.php';
@@ -47,15 +48,15 @@ class Shopbonus extends Module
         $shop = (int) $this->context->shop->id;
         $message = '';
         if (Tools::isSubmit('submitShopbonus')) {
-            if (!hash_equals(Tools::getAdminTokenLite('AdminModules'), (string) Tools::getValue('token'))) {
+            if (! hash_equals(Tools::getAdminTokenLite('AdminModules'), (string) Tools::getValue('token'))) {
                 return $this->displayError('Invalid administrator token.');
             }
             $endpoint = (string) Tools::getValue('SB_ENDPOINT');
             $secret = (string) Tools::getValue('SB_SECRET');
             $origin = (string) Tools::getValue('SB_ORIGIN');
             $key = (string) Tools::getValue('SB_KEY');
-            if (($endpoint !== '' && !ShopbonusDelivery::endpoint($endpoint, 'prestashop')) || ($secret !== '' && !preg_match('/\A[A-Za-z0-9]{32,128}\z/D', $secret))
-                || ($origin !== '' && ShopbonusDelivery::origin($origin) === null) || ($key !== '' && !preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key))) {
+            if (($endpoint !== '' && ! ShopbonusDelivery::endpoint($endpoint, 'prestashop')) || ($secret !== '' && ! preg_match('/\A[A-Za-z0-9]{32,128}\z/D', $secret))
+                || ($origin !== '' && ShopbonusDelivery::origin($origin) === null) || ($key !== '' && ! preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key))) {
                 return $this->displayError('Enter a valid HTTPS webhook, signing secret, backend origin and public key.');
             }
             foreach (['SB_ENDPOINT' => $endpoint, 'SB_ORIGIN' => $origin, 'SB_KEY' => $key, 'SB_BANNER' => Tools::getValue('SB_BANNER') === '1' ? '1' : '0'] as $name => $value) {
@@ -78,7 +79,7 @@ class Shopbonus extends Module
     {
         try {
             $order = new Order((int) $id);
-            if (!Validate::isLoadedObject($order) || $this->setting('SB_ENDPOINT', $order->id_shop) === '') {
+            if (! Validate::isLoadedObject($order) || $this->setting('SB_ENDPOINT', $order->id_shop) === '') {
                 return;
             }
             $event = bin2hex(random_bytes(16));
@@ -121,7 +122,7 @@ class Shopbonus extends Module
     {
         foreach (Db::getInstance()->executeS('SELECT * FROM `'._DB_PREFIX_.'shopbonus_outbox` WHERE delivered=0 ORDER BY id_shop,id_order LIMIT 25') ?: [] as $row) {
             $shop = (int) $row['id_shop'];
-            if (!$this->active || !Db::getInstance()->getValue('SELECT id_module FROM `'._DB_PREFIX_.'module_shop` WHERE id_module='.(int) $this->id.' AND id_shop='.$shop)) {
+            if (! $this->active || ! Db::getInstance()->getValue('SELECT id_module FROM `'._DB_PREFIX_.'module_shop` WHERE id_module='.(int) $this->id.' AND id_shop='.$shop)) {
                 continue;
             }
             $payload = ['shopbonus_lookup_v1' => true, 'shop_id' => (string) $shop, 'order_id' => (string) $row['id_order']];
@@ -136,7 +137,7 @@ class Shopbonus extends Module
         $shop = (int) $this->context->shop->id;
         $origin = ShopbonusDelivery::origin($this->setting('SB_ORIGIN', $shop));
         $key = $this->setting('SB_KEY', $shop);
-        if ($this->setting('SB_BANNER', $shop) !== '1' || $origin === null || !preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key)) {
+        if ($this->setting('SB_BANNER', $shop) !== '1' || $origin === null || ! preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key)) {
             return '';
         }
 
