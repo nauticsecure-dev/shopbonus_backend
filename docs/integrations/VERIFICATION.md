@@ -1,5 +1,7 @@
 # Provider verification checklist
 
+2026-11-03 App Store follow-up: [local changes, executed evidence and remaining engineering/acceptance gaps](APP_STORE_FINDINGS_2026-11-03.md). [Exact server environment and workspace credential keys](ENVIRONMENT.md). Pause/resume has local evidence only; no provider row below is promoted.
+
 Every platform in `config/integrations.php` stays `verification: unverified` until someone with real store or sandbox access runs this checklist and records the evidence below. Adapters were written against the providers' published documentation and are tested with realistic fixtures. That proves the logic, **not** the live provider behaviour. Never mark a platform verified from fixtures (Trello #1 / #31).
 
 Full API/webhook/mapping contracts: [PLATFORM_API_SPECS.md](PLATFORM_API_SPECS.md).
@@ -21,21 +23,25 @@ Full API/webhook/mapping contracts: [PLATFORM_API_SPECS.md](PLATFORM_API_SPECS.m
 
 | Platform | Date | Store/sandbox | Steps passed | Limitations found | Verified by | Commit |
 | --- | --- | --- | --- | --- | --- | --- |
-| Shopify | — | — | NOT RUN | Protected customer data / theme extension pending | — | — |
-| WooCommerce | — | — | NOT RUN | Native WP banner publish pending | — | — |
+| Shopify | — | — | NOT RUN | Theme extension source shipped; authorized app deploy/activation and protected customer data acceptance pending | — | — |
+| WooCommerce | — | — | NOT RUN | Candidate WP banner plugin shipped; native installation/theme/editor acceptance pending | — | — |
 | Wix | — | — | NOT RUN | Backfill via orders/search; paid_at = latest approved transaction createdDate (not settlement time) | — | — |
-| BigCommerce | — | — | NOT RUN | Widgets/catalog not implemented | — | — |
+| BigCommerce | — | — | NOT RUN | Native catalog reads implemented locally; provider import and Widgets placement/publication remain unverified/incomplete | — | — |
 | Ecwid | — | — | NOT RUN | Currency/settlement time unavailable | — | — |
 | Lightspeed C-Series | — | — | NOT RUN | Plan-gated API; refund cash unmapped; paid_at null | — | — |
-| PrestaShop | — | — | NOT RUN (module ZIP not shipped) | Module install/uninstall external | — | — |
-| OpenCart | — | — | NOT RUN (extension not shipped) | Bridge-only; no native order read | — | — |
+| Lightspeed E-Series | — | — | NOT RUN | Shared authenticated Ecwid API contract; paid_at/refund cash unavailable | — | — |
+| Squarespace | — | — | NOT RUN | API-key polling implemented; no settlement timestamp, donation/POS/test-mode import or native banner publisher | — | — |
+| PrestaShop | — | — | NOT RUN | PS9 candidate ZIP shipped; native read credentials/CLI worker required; install/uninstall/theme acceptance pending | — | — |
+| OpenCart | — | — | NOT RUN | OC4.1 default-store candidate extension shipped; payment Unknown, no native order API/refund proof | — | — |
 | Shopware 6 | — | — | NOT RUN | Native app lifecycle separate from HMAC bridge | — | — |
 | Adobe Commerce / Magento | — | — | NOT RUN | Prefer async I/O Events; SaaS unverified | — | — |
-| Shopbonus format v1 (module) | — | — | NOT RUN (no module built yet) | — | — | — |
+| Shopbonus format v1 (module) | — | — | NOT RUN | Candidate package signer round-trip is synthetic contract evidence only | — | — |
 
 ## Platforms without a connector
 
-Lightspeed E-Series, Squarespace, Mijnwebwinkel and CCV: see `blocked_reason` in `config/integrations.php`. Each needs its authentication mechanism verified before an adapter is written. **Do not** substitute Retail/E-Series for C-Series.
+Mijnwebwinkel and CCV remain without a connector; see `blocked_reason` in `config/integrations.php`. Mijnwebwinkel requires an approved partner contract/schema; its [published partner guidance](https://help.mijnwebwinkel.nl/en/articles/856322) is not a complete order/payment API specification. CCV's [native REST contract](https://demo.ccvshop.nl/API/Docs/) is now identified (public/secret key, HMAC-SHA512); adapter implementation, store binding and authoritative update/refund handling remain outstanding engineering work. No fictitious generic bridge was registered for either platform.
+
+Local implementation/evidence, package links and remaining acceptance work: [2026-11-03 review](ADAPTER_REVIEW_2026-11-03.md). Candidate packages do not satisfy genuine provider acceptance and no platform verification flag was promoted.
 
 ## Affiliate networks (B10)
 

@@ -1,3 +1,23 @@
+## Consumer acceptance environment — 2026-11-03 (uncommitted)
+
+- [ ] Record isolated database/configuration guards and idempotent points fixtures in a tested commit.
+- [ ] Record dedicated migration/seed and PHP syntax/Pint checks in a tested commit.
+- [ ] Record actual queued local SMTP verification and points checkout/replay smoke result.
+- [ ] Run all ten complete journeys, provider sandboxes, staging performance and approved visual/accessibility checks.
+
+## #16 workspace/team follow-up — 2026-11-03 (uncommitted)
+
+Executed checks are recorded in PROGRESS.md; boxes remain unticked pending a commit SHA, per repository rule.
+
+- [ ] Ship tenant-scoped team.manage access-history projection and real HTTP examples (implemented/tested; no migration).
+- [ ] Ship permission editor and invitation review using existing APIs (implemented; controlled browser tests passed).
+- [ ] Ship protected ownership-transfer management UI (implemented; controlled desktop/mobile tests passed).
+- [ ] Ship shared workspace state remount/revalidation boundary (implemented; controlled team switch/revoked tests passed).
+- [ ] Record live browser socket revocation/reconnect refusal and broadcaster recovery.
+- [ ] Record every merchant screen's real-session workspace isolation.
+- [ ] Record genuine Places results and staging invitation email delivery.
+- [ ] Resolve remaining frontend dev dependency advisories and record staging P95 <300 ms.
+
 ## Affiliate detail review — 2026-10-31 (uncommitted)
 
 - [ ] Gate new rewards on approval and settlement evidence; preserve historical credits.
@@ -1110,6 +1130,11 @@ B37 evidence: SQLite/MySQL3/58 each; API3/7505; PHPStan/Pint PASS; four actual H
 
 B38 checked against executed evidence in this implementation commit (parent130fd24); resulting SHA recorded in the next checkpoint. SQLite65pass+1skip/7959assertions, MySQL62pass+1skip/446assertions; static/style PASS;16 real HTTP captures.
 
+## Backend merge completion — 2026-11-02
+- [x] Verify pending main -> HassanDev merge has no unresolved entries or conflict markers and preserves HEAD's application tree (parents 0e0a6da / 313dfad; completion commit contains this checkpoint).
+- [x] Execute focused affiliate, benefits, dispute, business journey and OpenAPI regressions (70 passed, 1 skipped; 8480 assertions; PHP 8.4.15).
+- [ ] Record validation, conclude the local merge and verify clean Git status.
+
 ## Backend merge conflict resolution — 2026-11-02
 - [ ] Reconcile all 33 conflicted files, preserve independent API paths and captured examples.
 - [ ] Verify syntax, notification, support, affiliate, discovery, reporting and integration regressions.
@@ -1129,9 +1154,136 @@ B38 checked against executed evidence in this implementation commit (parent130fd
 - [ ] Verify API-driven analytics in Chrome and record local results and outstanding launch blockers.
 
 ## Merchant dashboard and voucher review — 2026-11-02
+- [ ] Follow-up: capture real isolated HTTP import/counter changes and reservation replay/release recovery; distinguish this from staging/browser acceptance.
+- [ ] Follow-up: verify dependency remediation with a fresh audit, typecheck, build and browser regressions.
+- [ ] Follow-up: map full #17 acceptance to executed evidence and document remaining staging/Linux requirements.
 - [ ] Verify existing reusable redemption, dispute pagination, historical labels and protected queued exports.
 - [ ] Expose prices, campaign dates, issuance limit and code mode through the existing editor.
 - [ ] Track asynchronous import/export completion and connect dispute pages and voucher references.
 - [ ] Show reserved codes / expired vouchers and compare adjacent lifecycle periods using existing aggregates.
 - [ ] Verify read-only checkout quote versus explicit payment start; preserve D-106 no per-consumer cap.
 - [ ] Record executed regressions and remaining MySQL/staging/performance evidence.
+
+## Revised platform brief review — 2026-11-02
+- [ ] Verify OTP secrecy, PHP 8.5 SOAP loading and cover OpenAPI coverage.
+- [ ] Make new validated affiliate conversions immediately spendable; verify explicit 100% EUR 4.75 rule, replay, rejection and expiry; preserve frozen historical timing.
+- [ ] Tie replacement allocation to the original voucher and verify a second report cannot issue another replacement.
+- [ ] Diagnose reported onboarding/catalog/connection test failures against current contracts.
+- [ ] Record audited 404 tenant policy, Answer24 disclosure safeguards and unverified/missing integration release blockers.
+- [ ] Record executed checks, branch/SHA, uncommitted status and exact remaining acceptance work.
+
+## Banner storefront dummy-data follow-up — 2026-11-02
+- [ ] Add an opt-in Shopify native-cart reader with bounded refresh, invalidation, freshness and currency validation.
+- [ ] Verify add/remove/quantity/currency/error and in-flight invalidation using local dummy carts with the actual embed.
+- [ ] Record executed checks and retain genuine merchant themes, installation and live AI acceptance as NOT RUN.
+
+## Structured CMS translation bindings follow-up — 2026-11-02
+- [ ] Inventory translatable paths in the three landing schemas; preserve links, identities, media and settings.
+- [ ] Reuse queued suggestions with schema-specific limits and validation; verify EN/DE draft application and stale-source rejection.
+- [ ] Record local test evidence and outstanding staging acceptance; retain unchecked status pending implementation SHA.
+
+## Voucher checkout review follow-up — 2026-11-02 (uncommitted)
+
+- [ ] Connect consumer points checkout and verify unit selection and blocked shortfalls.
+- [ ] Reconcile asynchronous dispute refunds, duplicate protection and failed-refund retry with tests.
+- [ ] Record D-053 policy, API changes, migration, executed checks and outstanding genuine Mollie acceptance.
+
+Verification executed for the voucher-checkout review: backend 40 passed + 3 skipped; final recovery 13/13; browser 3/3; TypeScript, targeted ESLint and PHPStan passed. See docs/release/VOUCHER_CHECKOUT_REVIEW_2026-11-02.md. Boxes remain unticked pending a commit SHA and genuine-provider acceptance; no completion claim.
+
+## German locale follow-up — 2026-11-03
+- [ ] Add DE selectors/shared labels/authentication/role copy and explicit missing German publication behavior.
+- [ ] Accept DE account preferences and identity email resources; verify profile and platform settings compatibility.
+- [ ] Verify local login with demo users and record remaining German/runtime/staging gaps.
+
+## Notification review follow-up — 2026-11-03 (uncommitted)
+
+- [ ] Align default email/action destinations and run action-link regressions.
+- [ ] Verify shared channel ownership and catch-up after subscription/reconnect.
+- [ ] Verify template/delivery pagination and explicit uncertain-retry acknowledgement.
+- [ ] Connect both resolution outcomes and verify review notes and step-up.
+- [ ] Record executed checks and implementation SHA before ticking items.
+
+## Universal order adapter review — 2026-11-03
+- [ ] Reuse the documented Ecwid contract for Lightspeed E-Series; test signature, store binding, native reads and lifecycle.
+- [ ] Implement remaining providers only against authenticated, documented contracts; keep unavailable access explicit.
+- [ ] Ship and verify merchant-side installation packages and native banner publication sources.
+- [ ] Show actual pending rewards and policy-neutral consumer wording without changing spendability.
+- [ ] Record local evidence separately from genuine provider acceptance, branch/SHA and outstanding blockers.
+
+- [ ] Verify merchant credential contract fields, field clearing and private connector download actions; browser checks executed, implementation SHA pending.
+- [ ] Verify signed PS native lookup rejects malformed IDs and ping topics; focused tests executed, implementation SHA pending.
+
+## Affiliate tracking and central wallet findings recheck — 2026-11-03
+
+- [ ] Verify current consumer copy and pending/available/reserved fixture against the recorded timing policy; implementation SHA required before ticking.
+- [ ] Re-run points-only, shortfall and dual-unit checkout browser checks plus TypeScript; retain explicit wallet_unit requests.
+- [ ] Re-run affiliate regressions and confirm platform allocation is management evidence, with revenue recognition unverified.
+- [ ] Collect genuine Daisycon/TradeTracker imports, settlement references, configured points-rule snapshots and duplicate/reversal ledger reconciliation. Local fixtures do not close this acceptance gap.
+### Registration/CSRF review follow-up — 2026-11-03 (uncommitted)
+
+- [ ] Confirm logout 419 remains recoverable; clear local identity only after server logout/401.
+- [ ] Test CSRF bootstrap, one bounded retry, concurrent requests and multipart/bearer paths.
+- [ ] Execute real local browser registration, verification resumption, MFA and recovery-code journeys.
+- [ ] Document every config env key and remove duplicate active example settings.
+- [ ] Record actual email, Redis queue/throttle, deployed cookies/CORS and staging P95 evidence.
+- [ ] Compare desktop/mobile screenshots to owner-approved references.
+
+
+## Homepage publication review — 2026-11-03 (uncommitted)
+
+- [ ] Require reviewed draft revision at homepage publication; reject concurrent saves atomically.
+- [ ] Queue homepage replacements through existing revision-pinned CMS scheduler.
+- [ ] Run real HTTP/browser wallet, concurrency, publication, media and restore journeys.
+- [ ] Record exact reference comparison and deployed performance when supplied.
+
+## Offers and discount codes review — 2026-11-03 (uncommitted)
+
+- [ ] Fetch all offer-scoped batch pages independently of inventory pagination; test foreign offers and pagination.
+- [ ] Explain exact-code search and filtered-inventory export; connect sorting, inclusive local dates and all export filters.
+- [ ] Preserve failed bulk selections and distinguish permission, conflict, session, network and server failures.
+- [ ] Separate manual confirmation from provider proof; verify historical vouchers against frozen snapshots without changing shared inventory status.
+- [ ] Align tenant acceptance with audited 404 concealment, run targeted backend/frontend checks and capture new API contracts over real HTTP.
+- [ ] Obtain real provider checkout acceptance evidence; synthetic Woo HTTP fixtures do not establish provider acceptance.
+## Sales attribution statistics follow-up — 2026-11-03 (uncommitted)
+
+- [ ] Add exploratory visitor conversion difference, relative change, 95% interval and two-sided significance with sparse-data guards; preserve causal_uplift null and block rollout winner without provider evidence and a fixed analysis plan.
+- [ ] Test equal, positive, negative, sparse, zero-baseline, unequal allocation and repeat/refund visitor outcomes; run existing consent/payment isolation regressions.
+- [ ] Capture changed experiment responses through real local HTTP and update API/handoff documentation.
+- [ ] Verify existing analytics translations and record real-provider acceptance procedure; Moneybird remains blocked by OPEN-FINANCIAL-LEGAL.
+- [ ] Execute genuine storefront consent/retry/holdout/payment/refund acceptance and approved Moneybird issuance/delivery/reconciliation. NOT RUN without resolved prerequisites/provider access.
+
+## App Store findings follow-up — 2026-11-03 (uncommitted)
+
+- [ ] Remove static service availability → VERIFIED inference; distinguish catalog synchronization states from backend status.
+- [ ] Add tenant-authorized, audited pause/resume preserving credentials and evidence; enforce at native intake, queue and catalog writes; test tenant/auth/permission negatives.
+- [ ] Complete supported Shopware/Magento line snapshots and monetary detail without inferring unavailable values.
+- [ ] Localize App Store-owned NL/EN copy and verify with controlled browser journeys.
+- [ ] Capture real local HTTP pause/resume responses and update API contract; run focused integration/OpenAPI checks.
+- [ ] Run genuine provider installation/cart/refund/uninstall/reinstall journeys and five cross-platform journeys; collect provider/HTTP/DB/queue/Order Sheet/audit evidence. Remains NOT RUN without provider access.
+
+## Merchant landing review follow-up — 2026-11-03
+
+- [ ] Expose immutable publication content only when include_content=1 is requested by authorized CMS clients.
+- [ ] Verify default history compatibility, stored-content isolation and alias response with focused tests.
+- [ ] Capture a real authenticated HTTP response and document the opt-in query.
+- [ ] Record real-service editing/upload/scheduler evidence and remaining onboarding/design limits.
+
+Boxes remain unticked pending a tested commit SHA.
+
+## Affiliate detail cover verification — 2026-11-03 (uncommitted)
+
+- [ ] Reproduce reported cover failures on installed PHP 8.4 and 8.5; record exact codec/runtime evidence.
+- [ ] Isolate enrichment test storage and verify failed/throwing writes clean partial variants and retain the cover fallback.
+- [ ] Run focused enrichment, affiliate, discovery and API contract regressions; record actual results.
+- [ ] Normalize reviewed provider offer conditions and approved website assets only after verified schema/rights evidence; raw snapshots grant no eligibility.
+- [ ] Collect genuine provider/settlement/wallet acceptance and reference-image/real-service desktop/mobile journeys.
+
+Boxes remain unticked until a tested implementation commit SHA exists. Live acceptance remains separate from local fixtures.
+
+## Consumer platform local acceptance — owner follow-up 2026-11-03 (uncommitted)
+
+- [ ] Record isolated real-HTTP/browser registration, activation/token, points purchase and profile evidence; keep local proof separate from release approval.
+- [ ] Retain 100-sample cold/repeated directory and dashboard latency results, runtime settings and earlier failed attempts.
+- [ ] Run ConsumerPlatformE2ETest, PointsCheckoutTest and OpenApiCoverageTest serially after browser cleanup.
+- [ ] Confirm temporary database/process cleanup and preserve the configured application database and unrelated working-tree changes.
+- [ ] Obtain full accessibility, approved-reference, external delivery and staging evidence before full release acceptance; fresh npm audit requires separate external-metadata approval.

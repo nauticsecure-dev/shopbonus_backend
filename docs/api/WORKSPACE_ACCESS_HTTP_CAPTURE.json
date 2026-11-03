@@ -1,0 +1,55 @@
+{
+    "captured_at": "2026-11-02T19:28:34+00:00",
+    "environment": "Real local PHP HTTP server, isolated SQLite fixture; no production data",
+    "captures": [
+        {
+            "request": "GET /api/v1/workspaces/01m6evr419ajdt17fppmp8mxa3/access-history",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": [
+                    {
+                        "action": "team.member_updated",
+                        "occurred_at": "2026-11-02T19:28:30+00:00",
+                        "outcome": "success"
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6evr419ajdt17fppmp8mxa3/access-history",
+            "authorization": null,
+            "status": 401,
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Authentication is required.",
+                    "request_id": "01a19dbc-1aff-71cb-add5-e9aacd52b068"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6evr419ajdt17fppmp8mxa3/access-history?page=0",
+            "authorization": "Bearer <redacted>",
+            "status": 422,
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "The given data was invalid.",
+                    "request_id": "01a19dbc-1fe3-73dc-bea4-2fdac527cacd",
+                    "fields": {
+                        "page": [
+                            "The page field must be at least 1."
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

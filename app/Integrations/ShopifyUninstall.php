@@ -35,7 +35,9 @@ class ShopifyUninstall
         if (in_array($snapshot->platform, [EcommercePlatform::Shopify, EcommercePlatform::Wix], true) && $snapshot->webshop_id === $event->webshop_id && $snapshot->status !== ConnectionStatus::Disconnected && $snapshot->credential_generation === $event->credential_generation
             && ($snapshot->credential('access_token') !== null || ($wix && $snapshot->credential('wix_app_id') !== null))) {
             try {
-                $wix ? app(WixConnector::class)->testConnection($snapshot) : app(ShopifyApi::class)->test($snapshot);
+                // Merchant pause stops order/catalog reads, never revocation verification.
+                $probe = $snapshot->forLifecycleProbe();
+                $wix ? app(WixConnector::class)->testConnection($probe) : app(ShopifyApi::class)->test($probe);
                 $code = 'uninstall_current_grant_still_valid';
             } catch (ApiException $e) {
                 $revoked = in_array($e->errorCode, ['provider_authentication_failed', 'oauth_reauthorization_required'], true);

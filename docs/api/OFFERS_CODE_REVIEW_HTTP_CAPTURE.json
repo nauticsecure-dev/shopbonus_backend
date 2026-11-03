@@ -1,0 +1,1144 @@
+{
+    "captured_at": "2026-11-03T04:26:14+00:00",
+    "environment": "Real local PHP HTTP server, isolated migrated SQLite; synthetic data; no provider requests",
+    "captures": [
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard",
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "webshop": {
+                        "id": "01m6ftf0e2czz2qe17x8b287aw",
+                        "name": "Dashboard fixture",
+                        "status": "approved"
+                    },
+                    "greeting": "good_morning",
+                    "kpis": {
+                        "active_offers": 0,
+                        "reserved_codes": 0,
+                        "expired_vouchers": 0,
+                        "expired_offers": 0,
+                        "available_codes": 0,
+                        "issued_vouchers": 0,
+                        "claimed_vouchers": 0,
+                        "redeemed_vouchers": 0,
+                        "scheduled_offers": 0,
+                        "paused_offers": 0,
+                        "open_disputes": 0
+                    },
+                    "connection_health": {
+                        "status": "none",
+                        "total": 0,
+                        "connected": 0,
+                        "attention": 0,
+                        "last_error_at": null
+                    },
+                    "recent_activity": [],
+                    "quick_actions": [
+                        {
+                            "key": "create_offer",
+                            "available": true
+                        },
+                        {
+                            "key": "import_codes",
+                            "available": false
+                        },
+                        {
+                            "key": "connect_store",
+                            "available": true
+                        },
+                        {
+                            "key": "top_up_funding",
+                            "available": false
+                        },
+                        {
+                            "key": "review_vouchers",
+                            "available": false
+                        }
+                    ],
+                    "empty": true,
+                    "definitions": {
+                        "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+                        "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+                        "expired_vouchers": "Vouchers with current status expired.",
+                        "expired_offers": "Offers with effective lifecycle expired.",
+                        "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+                        "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+                        "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+                        "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+                        "scheduled_offers": "Offers with status scheduled (not yet opened).",
+                        "paused_offers": "Offers with status paused.",
+                        "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+                    },
+                    "offers": [],
+                    "offers_meta": {
+                        "current_page": 1,
+                        "last_page": 1,
+                        "per_page": 10,
+                        "total": 0
+                    },
+                    "notifications": {
+                        "unread": 0,
+                        "latest": []
+                    },
+                    "funding": {
+                        "available_minor": 1000000,
+                        "reserved_minor": 0
+                    },
+                    "generated_at": "2026-11-03T04:25:19+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard",
+            "authorization": null,
+            "status": 401,
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Authentication is required.",
+                    "request_id": "01a19fa7-8ef9-7311-b96f-a5204869d446"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard?per_page=999",
+            "authorization": "Bearer <redacted>",
+            "status": 422,
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "The given data was invalid.",
+                    "request_id": "01a19fa7-9551-706d-8df9-d819053b6d31",
+                    "fields": {
+                        "per_page": [
+                            "The per page field must not be greater than 50."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers",
+            "payload": {
+                "acquisition": "wallet_purchase",
+                "name": "Inventory HTTP acceptance",
+                "discount_type": "fixed",
+                "discount_value": 1000,
+                "price_minor": 1000,
+                "claim_validity_days": 90,
+                "redemption_validity_days": 90
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 201,
+            "response": {
+                "data": {
+                    "id": "01m6ftf6xyycerp3q3hffjqrb5",
+                    "acquisition": "wallet_purchase",
+                    "status": "draft",
+                    "lifecycle_status": "draft",
+                    "inventory": {
+                        "total": 0,
+                        "available": 0,
+                        "reserved": 0,
+                        "issued": 0,
+                        "redeemed": 0
+                    },
+                    "allowed_actions": [
+                        "edit",
+                        "import_codes",
+                        "publish",
+                        "activate",
+                        "end",
+                        "archive",
+                        "duplicate"
+                    ],
+                    "terms": {
+                        "version": 1,
+                        "locked": false,
+                        "summary": "\u20ac10.00",
+                        "name": "Inventory HTTP acceptance",
+                        "public_description": null,
+                        "discount_type": "fixed",
+                        "discount_value": 1000,
+                        "currency": null,
+                        "min_order_minor": null,
+                        "max_discount_minor": null,
+                        "price_minor": 1000,
+                        "price_points": null,
+                        "starts_at": null,
+                        "ends_at": null,
+                        "claim_validity_days": 90,
+                        "redemption_validity_days": 90,
+                        "categories": [],
+                        "products": [],
+                        "combinable": null,
+                        "code_mode": null,
+                        "allocation_limit": null
+                    },
+                    "missing_for_activation": [],
+                    "cost_preview": {
+                        "applies": false,
+                        "reason": "consumer_funded"
+                    },
+                    "preview": {
+                        "published": false,
+                        "offer_id": "01m6ftf6xyycerp3q3hffjqrb5",
+                        "status": "draft",
+                        "how_to_obtain": "buy_with_wallet",
+                        "title": "Inventory HTTP acceptance",
+                        "summary": "\u20ac10.00",
+                        "badge_label": "\u20ac10 voucher",
+                        "offer_line": "\u20ac10 voucher",
+                        "journey": {
+                            "headline": "\u20ac10.00",
+                            "steps": [],
+                            "claim_window": "Claim within 90 days after issue.",
+                            "redemption_window": "Redeem within 90 days after claim.",
+                            "campaign": null
+                        },
+                        "discount_type": "fixed",
+                        "discount_value": 1000,
+                        "currency": "EUR",
+                        "price_points": null,
+                        "min_order_minor": null,
+                        "max_discount_minor": null,
+                        "claim_validity_days": 90,
+                        "redemption_validity_days": 90,
+                        "starts_at": null,
+                        "ends_at": null,
+                        "conditions": null,
+                        "combinable": false,
+                        "categories": [],
+                        "webshop": {
+                            "name": "Dashboard fixture",
+                            "short_description": null,
+                            "description": null,
+                            "logo_url": null,
+                            "cover_url": null,
+                            "website_url": null,
+                            "verified_domain": null,
+                            "ownership_verified": true
+                        }
+                    },
+                    "activated_at": null,
+                    "paused_at": null,
+                    "ended_at": null,
+                    "archived_at": null,
+                    "created_at": "2026-11-03T04:25:24+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-imports",
+            "payload": {
+                "codes": "SYNTHETIC-HTTP-0001\nSYNTHETIC-HTTP-0002"
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 201,
+            "response": {
+                "data": {
+                    "id": "01m6ftf8b2bn58yv82exnte07e",
+                    "status": "preview",
+                    "source": "paste",
+                    "totals": {
+                        "submitted": 2,
+                        "valid": 2,
+                        "invalid": 0,
+                        "duplicate_in_upload": 0,
+                        "duplicate_existing": 0
+                    },
+                    "rejections": [],
+                    "expires_at": "2026-11-03T05:25:25+00:00",
+                    "committed_at": null
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/code-imports/01m6ftf8b2bn58yv82exnte07e/commit",
+            "payload": [],
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6ftf8b2bn58yv82exnte07e",
+                    "status": "committed",
+                    "source": "paste",
+                    "totals": {
+                        "submitted": 2,
+                        "valid": 2,
+                        "invalid": 0,
+                        "duplicate_in_upload": 0,
+                        "duplicate_existing": 0,
+                        "imported": 2,
+                        "duplicate_at_commit": 0
+                    },
+                    "rejections": [],
+                    "expires_at": null,
+                    "committed_at": "2026-11-03T04:25:26+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/publish",
+            "payload": [],
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6ftf6xyycerp3q3hffjqrb5",
+                    "acquisition": "wallet_purchase",
+                    "status": "active",
+                    "lifecycle_status": "active",
+                    "inventory": {
+                        "total": 2,
+                        "available": 2,
+                        "reserved": 0,
+                        "issued": 0,
+                        "redeemed": 0
+                    },
+                    "allowed_actions": [
+                        "edit",
+                        "import_codes",
+                        "pause",
+                        "end",
+                        "archive",
+                        "duplicate"
+                    ],
+                    "terms": {
+                        "version": 1,
+                        "locked": true,
+                        "summary": "\u20ac10.00",
+                        "name": "Inventory HTTP acceptance",
+                        "public_description": null,
+                        "discount_type": "fixed",
+                        "discount_value": 1000,
+                        "currency": "EUR",
+                        "min_order_minor": null,
+                        "max_discount_minor": null,
+                        "price_minor": 1000,
+                        "price_points": null,
+                        "starts_at": null,
+                        "ends_at": null,
+                        "claim_validity_days": 90,
+                        "redemption_validity_days": 90,
+                        "categories": [],
+                        "products": [],
+                        "combinable": false,
+                        "code_mode": "unique",
+                        "allocation_limit": null
+                    },
+                    "missing_for_activation": [],
+                    "cost_preview": {
+                        "applies": false,
+                        "reason": "consumer_funded"
+                    },
+                    "preview": {
+                        "published": false,
+                        "offer_id": "01m6ftf6xyycerp3q3hffjqrb5",
+                        "status": "active",
+                        "how_to_obtain": "buy_with_wallet",
+                        "title": "Inventory HTTP acceptance",
+                        "summary": "\u20ac10.00",
+                        "badge_label": "\u20ac10 voucher",
+                        "offer_line": "\u20ac10 voucher",
+                        "journey": {
+                            "headline": "\u20ac10.00",
+                            "steps": [],
+                            "claim_window": "Claim within 90 days after issue.",
+                            "redemption_window": "Redeem within 90 days after claim.",
+                            "campaign": null
+                        },
+                        "discount_type": "fixed",
+                        "discount_value": 1000,
+                        "currency": "EUR",
+                        "price_points": null,
+                        "min_order_minor": null,
+                        "max_discount_minor": null,
+                        "claim_validity_days": 90,
+                        "redemption_validity_days": 90,
+                        "starts_at": null,
+                        "ends_at": null,
+                        "conditions": null,
+                        "combinable": false,
+                        "categories": [],
+                        "webshop": {
+                            "name": "Dashboard fixture",
+                            "short_description": null,
+                            "description": null,
+                            "logo_url": null,
+                            "cover_url": null,
+                            "website_url": null,
+                            "verified_domain": null,
+                            "ownership_verified": true
+                        }
+                    },
+                    "activated_at": "2026-11-03T04:25:28+00:00",
+                    "paused_at": null,
+                    "ended_at": null,
+                    "archived_at": null,
+                    "created_at": "2026-11-03T04:25:24+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "webshop": {
+                        "id": "01m6ftf0e2czz2qe17x8b287aw",
+                        "name": "Dashboard fixture",
+                        "status": "approved"
+                    },
+                    "greeting": "good_morning",
+                    "kpis": {
+                        "active_offers": 1,
+                        "reserved_codes": 0,
+                        "expired_vouchers": 0,
+                        "expired_offers": 0,
+                        "available_codes": 2,
+                        "issued_vouchers": 0,
+                        "claimed_vouchers": 0,
+                        "redeemed_vouchers": 0,
+                        "scheduled_offers": 0,
+                        "paused_offers": 0,
+                        "open_disputes": 0
+                    },
+                    "connection_health": {
+                        "status": "none",
+                        "total": 0,
+                        "connected": 0,
+                        "attention": 0,
+                        "last_error_at": null
+                    },
+                    "recent_activity": [
+                        {
+                            "action": "offer.status_changed",
+                            "at": "2026-11-03T04:25:28+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        },
+                        {
+                            "action": "codes.import_committed",
+                            "at": "2026-11-03T04:25:27+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "codes.import_previewed",
+                            "at": "2026-11-03T04:25:25+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "offer.created",
+                            "at": "2026-11-03T04:25:24+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        }
+                    ],
+                    "quick_actions": [
+                        {
+                            "key": "create_offer",
+                            "available": true
+                        },
+                        {
+                            "key": "import_codes",
+                            "available": true
+                        },
+                        {
+                            "key": "connect_store",
+                            "available": true
+                        },
+                        {
+                            "key": "top_up_funding",
+                            "available": false
+                        },
+                        {
+                            "key": "review_vouchers",
+                            "available": false
+                        }
+                    ],
+                    "empty": false,
+                    "definitions": {
+                        "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+                        "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+                        "expired_vouchers": "Vouchers with current status expired.",
+                        "expired_offers": "Offers with effective lifecycle expired.",
+                        "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+                        "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+                        "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+                        "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+                        "scheduled_offers": "Offers with status scheduled (not yet opened).",
+                        "paused_offers": "Offers with status paused.",
+                        "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+                    },
+                    "offers": [
+                        {
+                            "id": "01m6ftf6xyycerp3q3hffjqrb5",
+                            "name": "Inventory HTTP acceptance",
+                            "summary": "\u20ac10.00",
+                            "type": "fixed",
+                            "acquisition": "wallet_purchase",
+                            "min_order_minor": null,
+                            "available_codes": 2,
+                            "issued": 0,
+                            "status": "active",
+                            "lifecycle_status": "active",
+                            "attention": [
+                                "low_inventory"
+                            ]
+                        }
+                    ],
+                    "offers_meta": {
+                        "current_page": 1,
+                        "last_page": 1,
+                        "per_page": 10,
+                        "total": 1
+                    },
+                    "notifications": {
+                        "unread": 0,
+                        "latest": []
+                    },
+                    "funding": {
+                        "available_minor": 1000000,
+                        "reserved_minor": 0
+                    },
+                    "generated_at": "2026-11-03T04:25:30+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "webshop": {
+                        "id": "01m6ftf0e2czz2qe17x8b287aw",
+                        "name": "Dashboard fixture",
+                        "status": "approved"
+                    },
+                    "greeting": "good_morning",
+                    "kpis": {
+                        "active_offers": 1,
+                        "reserved_codes": 1,
+                        "expired_vouchers": 0,
+                        "expired_offers": 0,
+                        "available_codes": 1,
+                        "issued_vouchers": 0,
+                        "claimed_vouchers": 0,
+                        "redeemed_vouchers": 0,
+                        "scheduled_offers": 0,
+                        "paused_offers": 0,
+                        "open_disputes": 0
+                    },
+                    "connection_health": {
+                        "status": "none",
+                        "total": 0,
+                        "connected": 0,
+                        "attention": 0,
+                        "last_error_at": null
+                    },
+                    "recent_activity": [
+                        {
+                            "action": "offer.status_changed",
+                            "at": "2026-11-03T04:25:28+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        },
+                        {
+                            "action": "codes.import_committed",
+                            "at": "2026-11-03T04:25:27+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "codes.import_previewed",
+                            "at": "2026-11-03T04:25:25+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "offer.created",
+                            "at": "2026-11-03T04:25:24+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        }
+                    ],
+                    "quick_actions": [
+                        {
+                            "key": "create_offer",
+                            "available": true
+                        },
+                        {
+                            "key": "import_codes",
+                            "available": true
+                        },
+                        {
+                            "key": "connect_store",
+                            "available": true
+                        },
+                        {
+                            "key": "top_up_funding",
+                            "available": false
+                        },
+                        {
+                            "key": "review_vouchers",
+                            "available": true
+                        }
+                    ],
+                    "empty": false,
+                    "definitions": {
+                        "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+                        "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+                        "expired_vouchers": "Vouchers with current status expired.",
+                        "expired_offers": "Offers with effective lifecycle expired.",
+                        "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+                        "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+                        "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+                        "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+                        "scheduled_offers": "Offers with status scheduled (not yet opened).",
+                        "paused_offers": "Offers with status paused.",
+                        "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+                    },
+                    "offers": [
+                        {
+                            "id": "01m6ftf6xyycerp3q3hffjqrb5",
+                            "name": "Inventory HTTP acceptance",
+                            "summary": "\u20ac10.00",
+                            "type": "fixed",
+                            "acquisition": "wallet_purchase",
+                            "min_order_minor": null,
+                            "available_codes": 1,
+                            "issued": 0,
+                            "status": "active",
+                            "lifecycle_status": "active",
+                            "attention": [
+                                "low_inventory"
+                            ]
+                        }
+                    ],
+                    "offers_meta": {
+                        "current_page": 1,
+                        "last_page": 1,
+                        "per_page": 10,
+                        "total": 1
+                    },
+                    "notifications": {
+                        "unread": 0,
+                        "latest": []
+                    },
+                    "funding": {
+                        "available_minor": 1000000,
+                        "reserved_minor": 0
+                    },
+                    "generated_at": "2026-11-03T04:25:31+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "webshop": {
+                        "id": "01m6ftf0e2czz2qe17x8b287aw",
+                        "name": "Dashboard fixture",
+                        "status": "approved"
+                    },
+                    "greeting": "good_morning",
+                    "kpis": {
+                        "active_offers": 1,
+                        "reserved_codes": 1,
+                        "expired_vouchers": 0,
+                        "expired_offers": 0,
+                        "available_codes": 1,
+                        "issued_vouchers": 0,
+                        "claimed_vouchers": 0,
+                        "redeemed_vouchers": 0,
+                        "scheduled_offers": 0,
+                        "paused_offers": 0,
+                        "open_disputes": 0
+                    },
+                    "connection_health": {
+                        "status": "none",
+                        "total": 0,
+                        "connected": 0,
+                        "attention": 0,
+                        "last_error_at": null
+                    },
+                    "recent_activity": [
+                        {
+                            "action": "offer.status_changed",
+                            "at": "2026-11-03T04:25:28+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        },
+                        {
+                            "action": "codes.import_committed",
+                            "at": "2026-11-03T04:25:27+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "codes.import_previewed",
+                            "at": "2026-11-03T04:25:25+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "offer.created",
+                            "at": "2026-11-03T04:25:24+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        }
+                    ],
+                    "quick_actions": [
+                        {
+                            "key": "create_offer",
+                            "available": true
+                        },
+                        {
+                            "key": "import_codes",
+                            "available": true
+                        },
+                        {
+                            "key": "connect_store",
+                            "available": true
+                        },
+                        {
+                            "key": "top_up_funding",
+                            "available": false
+                        },
+                        {
+                            "key": "review_vouchers",
+                            "available": true
+                        }
+                    ],
+                    "empty": false,
+                    "definitions": {
+                        "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+                        "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+                        "expired_vouchers": "Vouchers with current status expired.",
+                        "expired_offers": "Offers with effective lifecycle expired.",
+                        "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+                        "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+                        "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+                        "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+                        "scheduled_offers": "Offers with status scheduled (not yet opened).",
+                        "paused_offers": "Offers with status paused.",
+                        "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+                    },
+                    "offers": [
+                        {
+                            "id": "01m6ftf6xyycerp3q3hffjqrb5",
+                            "name": "Inventory HTTP acceptance",
+                            "summary": "\u20ac10.00",
+                            "type": "fixed",
+                            "acquisition": "wallet_purchase",
+                            "min_order_minor": null,
+                            "available_codes": 1,
+                            "issued": 0,
+                            "status": "active",
+                            "lifecycle_status": "active",
+                            "attention": [
+                                "low_inventory"
+                            ]
+                        }
+                    ],
+                    "offers_meta": {
+                        "current_page": 1,
+                        "last_page": 1,
+                        "per_page": 10,
+                        "total": 1
+                    },
+                    "notifications": {
+                        "unread": 0,
+                        "latest": []
+                    },
+                    "funding": {
+                        "available_minor": 1000000,
+                        "reserved_minor": 0
+                    },
+                    "generated_at": "2026-11-03T04:25:33+00:00"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/dashboard",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "webshop": {
+                        "id": "01m6ftf0e2czz2qe17x8b287aw",
+                        "name": "Dashboard fixture",
+                        "status": "approved"
+                    },
+                    "greeting": "good_morning",
+                    "kpis": {
+                        "active_offers": 1,
+                        "reserved_codes": 0,
+                        "expired_vouchers": 0,
+                        "expired_offers": 0,
+                        "available_codes": 2,
+                        "issued_vouchers": 0,
+                        "claimed_vouchers": 0,
+                        "redeemed_vouchers": 0,
+                        "scheduled_offers": 0,
+                        "paused_offers": 0,
+                        "open_disputes": 0
+                    },
+                    "connection_health": {
+                        "status": "none",
+                        "total": 0,
+                        "connected": 0,
+                        "attention": 0,
+                        "last_error_at": null
+                    },
+                    "recent_activity": [
+                        {
+                            "action": "offer.status_changed",
+                            "at": "2026-11-03T04:25:28+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        },
+                        {
+                            "action": "codes.import_committed",
+                            "at": "2026-11-03T04:25:27+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "codes.import_previewed",
+                            "at": "2026-11-03T04:25:25+00:00",
+                            "resource_type": "App\\Models\\VoucherCodeBatch"
+                        },
+                        {
+                            "action": "offer.created",
+                            "at": "2026-11-03T04:25:24+00:00",
+                            "resource_type": "App\\Models\\Offer"
+                        }
+                    ],
+                    "quick_actions": [
+                        {
+                            "key": "create_offer",
+                            "available": true
+                        },
+                        {
+                            "key": "import_codes",
+                            "available": true
+                        },
+                        {
+                            "key": "connect_store",
+                            "available": true
+                        },
+                        {
+                            "key": "top_up_funding",
+                            "available": false
+                        },
+                        {
+                            "key": "review_vouchers",
+                            "available": true
+                        }
+                    ],
+                    "empty": false,
+                    "definitions": {
+                        "active_offers": "Offers with effective lifecycle active (expired, scheduled, sold out, draft, paused and archived excluded).",
+                        "reserved_codes": "Codes with status reserved, unavailable for another allocation.",
+                        "expired_vouchers": "Vouchers with current status expired.",
+                        "expired_offers": "Offers with effective lifecycle expired.",
+                        "available_codes": "Codes with status available, i.e. free for allocation (reserved, issued, redeemed, invalid and expired excluded).",
+                        "issued_vouchers": "Vouchers ever issued to a consumer (issued_at set), including those since redeemed or expired.",
+                        "claimed_vouchers": "Answer24 claim links accepted by a verified consumer.",
+                        "redeemed_vouchers": "Vouchers with a verified redemption (paid order containing the code, or merchant verification).",
+                        "scheduled_offers": "Offers with status scheduled (not yet opened).",
+                        "paused_offers": "Offers with status paused.",
+                        "open_disputes": "Voucher reports for this webshop that are not resolved or rejected."
+                    },
+                    "offers": [
+                        {
+                            "id": "01m6ftf6xyycerp3q3hffjqrb5",
+                            "name": "Inventory HTTP acceptance",
+                            "summary": "\u20ac10.00",
+                            "type": "fixed",
+                            "acquisition": "wallet_purchase",
+                            "min_order_minor": null,
+                            "available_codes": 2,
+                            "issued": 0,
+                            "status": "active",
+                            "lifecycle_status": "active",
+                            "attention": [
+                                "low_inventory"
+                            ]
+                        }
+                    ],
+                    "offers_meta": {
+                        "current_page": 1,
+                        "last_page": 1,
+                        "per_page": 10,
+                        "total": 1
+                    },
+                    "notifications": {
+                        "unread": 0,
+                        "latest": []
+                    },
+                    "funding": {
+                        "available_minor": 1000000,
+                        "reserved_minor": 0
+                    },
+                    "generated_at": "2026-11-03T04:25:34+00:00"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-imports",
+            "payload": {
+                "codes": "SYNTHETIC-BATCH-PREVIEW"
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 201,
+            "response": {
+                "data": {
+                    "id": "01m6ftfmmqtwmr8mm6z71fndnx",
+                    "status": "preview",
+                    "source": "paste",
+                    "totals": {
+                        "submitted": 1,
+                        "valid": 1,
+                        "invalid": 0,
+                        "duplicate_in_upload": 0,
+                        "duplicate_existing": 0
+                    },
+                    "rejections": [],
+                    "expires_at": "2026-11-03T05:25:38+00:00",
+                    "committed_at": null
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-batches?per_page=1",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": [
+                    {
+                        "id": "01m6ftfmmqtwmr8mm6z71fndnx",
+                        "status": "preview",
+                        "created_at": "2026-11-03T04:25:38+00:00"
+                    }
+                ],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 2
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-batches?per_page=1&page=2",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": [
+                    {
+                        "id": "01m6ftf8b2bn58yv82exnte07e",
+                        "status": "committed",
+                        "created_at": "2026-11-03T04:25:25+00:00"
+                    }
+                ],
+                "meta": {
+                    "current_page": 2,
+                    "last_page": 2
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-batches?per_page=201",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 422,
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "The given data was invalid.",
+                    "request_id": "01a19fa8-046f-7021-a428-9595daf07fdc",
+                    "fields": {
+                        "per_page": [
+                            "The per page field must not be greater than 200."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-batches",
+            "payload": null,
+            "authorization": null,
+            "status": 401,
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Authentication is required.",
+                    "request_id": "01a19fa8-1269-738a-8a0a-aae83931f883"
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftf6xyycerp3q3hffjqrb5/code-batches",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 403,
+            "response": {
+                "error": {
+                    "status": 403,
+                    "code": "workspace_permission_denied",
+                    "message": "You do not have permission to do this in this workspace.",
+                    "request_id": "01a19fa8-1ff9-70f7-9d7c-8c244f89f343",
+                    "details": {
+                        "required_permission": "vouchers.view"
+                    }
+                }
+            }
+        },
+        {
+            "request": "GET /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/offers/01m6ftg93eyq23mcmncmv6edpn/code-batches",
+            "payload": null,
+            "authorization": "Bearer <redacted>",
+            "status": 404,
+            "response": {
+                "error": {
+                    "status": 404,
+                    "code": "not_found",
+                    "message": "The requested resource was not found.",
+                    "request_id": "01a19fa8-2b6c-7232-871b-914507afd96c"
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/codes/01m6ftf9myb555ys88vxtd00wq/platform-validation",
+            "payload": {
+                "mode": "provider_check"
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6ftf9myb555ys88vxtd00wq",
+                    "code": "****0001",
+                    "status": "available",
+                    "reusable": false,
+                    "uses_count": 0,
+                    "platform_validation": "merchant_verification_required",
+                    "batch_id": "01m6ftf8b2bn58yv82exnte07e",
+                    "assigned": null,
+                    "reserved_at": null,
+                    "issued_at": null,
+                    "redeemed_at": null,
+                    "invalidated_at": null,
+                    "invalid_reason": null,
+                    "created_at": "2026-11-03T04:25:26+00:00"
+                },
+                "verification": {
+                    "platform_validation": "merchant_verification_required",
+                    "detail": {
+                        "reason": "no_usable_connection",
+                        "message": "Connect and verify a webshop integration before automatic coupon checks.",
+                        "scope": "inventory",
+                        "voucher_id": null
+                    }
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/codes/01m6ftf9myb555ys88vxtd00wq/platform-validation",
+            "payload": {
+                "mode": "provider_check",
+                "voucher_id": "01m6ftfd3h3t34d53jvv4jcnvn"
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6ftf9myb555ys88vxtd00wq",
+                    "code": "****0001",
+                    "status": "available",
+                    "reusable": false,
+                    "uses_count": 0,
+                    "platform_validation": "merchant_verification_required",
+                    "batch_id": "01m6ftf8b2bn58yv82exnte07e",
+                    "assigned": null,
+                    "reserved_at": null,
+                    "issued_at": null,
+                    "redeemed_at": null,
+                    "invalidated_at": null,
+                    "invalid_reason": null,
+                    "created_at": "2026-11-03T04:25:26+00:00"
+                },
+                "verification": {
+                    "platform_validation": "merchant_verification_required",
+                    "detail": {
+                        "reason": "no_usable_connection",
+                        "message": "Connect and verify a webshop integration before automatic coupon checks.",
+                        "scope": "historical_voucher",
+                        "voucher_id": "01m6ftfd3h3t34d53jvv4jcnvn"
+                    }
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/codes/01m6ftf9myb555ys88vxtd00wq/platform-validation",
+            "payload": {
+                "mode": "manual_confirm",
+                "note": "Synthetic local manual evidence; no provider checkout acceptance."
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 200,
+            "response": {
+                "data": {
+                    "id": "01m6ftf9myb555ys88vxtd00wq",
+                    "code": "****0001",
+                    "status": "available",
+                    "reusable": false,
+                    "uses_count": 0,
+                    "platform_validation": "manually_confirmed",
+                    "batch_id": "01m6ftf8b2bn58yv82exnte07e",
+                    "assigned": null,
+                    "reserved_at": null,
+                    "issued_at": null,
+                    "redeemed_at": null,
+                    "invalidated_at": null,
+                    "invalid_reason": null,
+                    "created_at": "2026-11-03T04:25:26+00:00"
+                },
+                "verification": {
+                    "platform_validation": "manually_confirmed",
+                    "detail": {
+                        "reason": "merchant_confirmed",
+                        "note": "Synthetic local manual evidence; no provider checkout acceptance.",
+                        "confirmed_by": "01m6ftf0ccfyrz4yyjj20kq83q",
+                        "scope": "inventory",
+                        "voucher_id": null
+                    }
+                }
+            }
+        },
+        {
+            "request": "POST /api/v1/workspaces/01m6ftf0e2czz2qe17x8b287aw/codes/01m6ftf9myb555ys88vxtd00wq/platform-validation",
+            "payload": {
+                "mode": "provider_check",
+                "voucher_id": "01m6ftgmgyvv9gxrtfvz6sbh5v"
+            },
+            "authorization": "Bearer <redacted>",
+            "status": 404,
+            "response": {
+                "error": {
+                    "status": 404,
+                    "code": "not_found",
+                    "message": "The requested resource was not found.",
+                    "request_id": "01a19fa8-5c84-71df-bd22-572939dcca42"
+                }
+            }
+        }
+    ]
+}

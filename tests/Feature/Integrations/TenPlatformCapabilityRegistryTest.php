@@ -16,6 +16,8 @@ class TenPlatformCapabilityRegistryTest extends TestCase
         EcommercePlatform::BigCommerce,
         EcommercePlatform::Ecwid,
         EcommercePlatform::LightspeedC,
+        EcommercePlatform::LightspeedE,
+        EcommercePlatform::Squarespace,
         EcommercePlatform::PrestaShop,
         EcommercePlatform::OpenCart,
         EcommercePlatform::Shopware6,
@@ -39,7 +41,7 @@ class TenPlatformCapabilityRegistryTest extends TestCase
             foreach (self::PROFILE_KEYS as $key) {
                 $this->assertArrayHasKey($key, $profile, $platform->value.' missing profile.'.$key);
             }
-            $this->assertSame('2026-10-30', $profile['reviewed_at']);
+            $this->assertMatchesRegularExpression('/\A\d{4}-\d{2}-\d{2}\z/D', $profile['reviewed_at']);
             $this->assertNull($profile['last_live_verified_at']);
             $this->assertSame('unverified', $entry['verification']);
             $this->assertIsArray($profile['sources']);
@@ -52,6 +54,6 @@ class TenPlatformCapabilityRegistryTest extends TestCase
 
         $this->assertTrue($registry->isAvailable(EcommercePlatform::LightspeedC));
         $this->assertFalse($registry->entry(EcommercePlatform::OpenCart)['profile']['native_read_api_implemented']);
-        $this->assertFalse($registry->isAvailable(EcommercePlatform::LightspeedE));
+        $this->assertTrue($registry->isAvailable(EcommercePlatform::LightspeedE));
     }
 }

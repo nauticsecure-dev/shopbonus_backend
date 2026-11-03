@@ -7,6 +7,13 @@ use App\Enums\ConnectionStatus;
 use App\Enums\EcommercePlatform;
 use App\Enums\WebhookEventStatus;
 use App\Exceptions\ApiException;
+use App\Jobs\ProcessWebhookEvent;
+use App\Jobs\RecoverProviderOrder;
+use App\Jobs\SyncConnectionCatalog;
+use App\Jobs\SynchronizeProviderOrders;
+use App\Models\CatalogSync;
+use App\Models\IntegrationOrderRecovery;
+use App\Models\IntegrationSyncRun;
 use App\Models\WebshopConnection;
 use App\Models\WebshopMembership;
 use App\Models\WebshopOrder;
@@ -110,11 +117,42 @@ class ConnectionManager
             $current->forceFill([
                 'credential_generation' => $current->credential_generation + 1,
                 'status' => ConnectionStatus::Disconnected, 'credentials' => null,
+                'paused_at' => null,
                 'disconnected_at' => now(), 'connected_at' => null,
                 'last_event_at' => null, 'last_verified_order_at' => null,
             ])->save();
             $this->audit->record('integration.disconnected', category: AuditCategory::Integration,
                 resource: $current, webshopId: $current->webshop_id);
+
+            return $connection->refresh();
+        });
+    }
+
+    /** Preserve credential generation, verification evidence and provider installation. */
+    public function setPaused(WebshopConnection $connection, bool $paused): WebshopConnection
+    {
+        return DB::transaction(function () use ($connection, $paused) {
+            $current = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            $this->assertNotDisconnected($current);
+            if (($current->paused_at !== null) !== $paused) {
+                $current->forceFill(['paused_at' => $paused ? now() : null])->save();
+                $this->audit->record($paused ? 'integration.paused' : 'integration.resumed', category: AuditCategory::Integration,
+                    resource: $current, webshopId: $current->webshop_id);
+                if (! $paused) {
+                    foreach ($current->events()->where('status', WebhookEventStatus::Verified)->where('credential_generation', $current->credential_generation)->pluck('id') as $id) {
+                        ProcessWebhookEvent::dispatch($id);
+                    }
+                    foreach (IntegrationOrderRecovery::where('connection_id', $current->id)->whereIn('status', ['pending', 'staged'])->pluck('id') as $id) {
+                        RecoverProviderOrder::dispatch($id);
+                    }
+                    foreach (IntegrationSyncRun::where('connection_id', $current->id)->whereIn('status', ['pending', 'waiting'])->pluck('id') as $id) {
+                        SynchronizeProviderOrders::dispatch($id);
+                    }
+                    foreach (CatalogSync::where('connection_id', $current->id)->where('status', 'running')->pluck('id') as $id) {
+                        SyncConnectionCatalog::dispatch($id);
+                    }
+                }
+            }
 
             return $connection->refresh();
         });

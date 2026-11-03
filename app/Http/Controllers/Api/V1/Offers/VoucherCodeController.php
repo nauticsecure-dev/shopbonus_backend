@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Orders\OrderController;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\VoucherCodeResource;
 use App\Models\Offer;
+use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\VoucherCodeBatch;
 use App\Models\VoucherEvent;
@@ -17,6 +18,7 @@ use App\Services\Discovery\DiscoveryCache;
 use App\Services\Vouchers\CodeImporter;
 use App\Services\Vouchers\PlatformCouponVerification;
 use App\Services\Workspaces\CurrentWorkspace;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,6 +60,18 @@ class VoucherCodeController extends Controller
             : [preg_split('/\r\n|\r|\n/', (string) $data['codes']) ?: [], 'paste'];
 
         return $this->batchResponse($this->importer->preview($current->membership(), $model, $lines, $source), 201);
+    }
+
+    public function batches(Request $request, CurrentWorkspace $current, string $offer): JsonResponse
+    {
+        $model = $this->offer($current, $offer);
+        $data = $request->validate(['per_page' => ['sometimes', 'integer', 'min:1', 'max:200']]);
+        $page = VoucherCodeBatch::where('offer_id', $model->id)->latest('id')
+            ->paginate($data['per_page'] ?? 200, ['public_id', 'status', 'created_at']);
+
+        return response()->json(['data' => $page->map(fn ($batch) => [
+            'id' => $batch->public_id, 'status' => $batch->status, 'created_at' => $batch->created_at->toIso8601String(),
+        ]), 'meta' => ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage()]]);
     }
 
     public function showBatch(CurrentWorkspace $current, string $batch): JsonResponse
@@ -122,13 +136,20 @@ class VoucherCodeController extends Controller
         $data = $request->validate([
             'mode' => ['required', Rule::in(['provider_check', 'manual_confirm'])],
             'note' => ['required_if:mode,manual_confirm', 'nullable', 'string', 'min:3', 'max:255'],
+            'voucher_id' => ['sometimes', 'string', 'size:26'],
         ]);
         $model = $this->code($current, $code)->load('offer.currentVersion');
+        // A reusable code can have several contracts. Never infer a contract from currentVoucher.
+        $voucher = isset($data['voucher_id'])
+            ? Voucher::where('webshop_id', $model->webshop_id)->where('voucher_code_id', $model->id)
+                ->where('public_id', Str::lower($data['voucher_id']))->firstOrFail()
+            : null;
 
         $actor = $current->membership()->user()->firstOrFail();
         $result = $data['mode'] === 'manual_confirm'
-            ? $this->platformCoupons->confirmManually($model, $actor, (string) $data['note'])
-            : $this->platformCoupons->verifyAgainstProvider($model, $model->offer?->currentVersion);
+            ? $this->platformCoupons->confirmManually($model, $actor, (string) $data['note'], $voucher)
+            : ($voucher !== null ? $this->platformCoupons->verifyHistoricalVoucher($voucher)
+                : $this->platformCoupons->verifyAgainstProvider($model, $model->offer?->currentVersion));
 
         return VoucherCodeResource::make($model->refresh()->load(['batch', 'currentVoucher.consumer']))
             ->additional(['verification' => $result])
@@ -160,7 +181,7 @@ class VoucherCodeController extends Controller
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['code', 'status', 'batch', 'platform_validation', 'added_at', 'issued_at', 'redeemed_at'], escape: '');
-            $query->chunkById(500, function ($codes) use ($out) {
+            $query->chunk(500, function ($codes) use ($out) {
                 foreach ($codes as $c) {
                     fputcsv($out, array_map([OrderController::class, 'csvSafe'], [$c->code, $c->status->value, $c->batch?->public_id,
                         $c->platform_validation, $c->created_at->toIso8601String(), $c->issued_at?->toIso8601String(), $c->redeemed_at?->toIso8601String()]), escape: '');
@@ -220,8 +241,8 @@ class VoucherCodeController extends Controller
                 return filter_var($filters['assigned'], FILTER_VALIDATE_BOOLEAN) ? $q->whereHas('currentVoucher', $live) : $q->whereDoesntHave('currentVoucher', $live);
             })
             ->when($filters['platform_validation'] ?? null, fn ($q, $v) => $q->where('platform_validation', $v))
-            ->when($filters['added_from'] ?? null, fn ($q, $v) => $q->where('created_at', '>=', $v))
-            ->when($filters['added_to'] ?? null, fn ($q, $v) => $q->where('created_at', '<=', $v))
+            ->when($filters['added_from'] ?? null, fn ($q, $v) => $q->where('created_at', '>=', CarbonImmutable::parse($v)->utc()))
+            ->when($filters['added_to'] ?? null, fn ($q, $v) => $q->where('created_at', '<=', CarbonImmutable::parse($v)->utc()))
             ->orderBy(ltrim($sort, '-'), str_starts_with($sort, '-') ? 'desc' : 'asc')
             ->orderBy('id', str_starts_with($sort, '-') ? 'desc' : 'asc');
     }

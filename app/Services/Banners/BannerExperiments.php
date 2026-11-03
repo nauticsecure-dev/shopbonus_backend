@@ -171,7 +171,10 @@ class BannerExperiments
 
         return ['experiment' => $e->public_id, 'active' => $e->stopped_at === null, 'holdout' => $e->control_version_id === null, 'variant_bps' => $e->variant_bps,
             'arms' => $arms, 'currency' => 'EUR', 'causal_uplift' => null,
+            'conversion_comparison' => (new ConversionComparison)->calculate($arms['control']['assigned_visitors'], $arms['control']['converted_visitors'],
+                $arms['variant']['assigned_visitors'], $arms['variant']['converted_visitors']),
             'definitions' => ['orders' => 'Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.',
-                'limitations' => 'Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. No statistical significance or uplift claimed.']];
+                'limitations' => 'Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.',
+                'comparison' => 'Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results.']];
     }
 }

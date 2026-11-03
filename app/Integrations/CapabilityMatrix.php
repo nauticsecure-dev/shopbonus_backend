@@ -51,7 +51,8 @@ class CapabilityMatrix
             'coupons_read' => $this->cap($this->couponReadState($profile), $this->couponReason($profile), $verifiedAt),
             'coupons_write' => $this->cap(CapabilityState::Unsupported, 'Coupon writes are out of scope for this boundary.', $verifiedAt),
             'banner_embed' => $this->cap(CapabilityState::Limited, is_string($profile['banner_method'] ?? null) ? (string) $profile['banner_method'] : 'Manual embed / platform extension required.', $verifiedAt),
-            'webhooks' => $this->cap(CapabilityState::Available, null, $verifiedAt),
+            'webhooks' => $this->cap(($entry['method'] ?? null) === 'polling' ? CapabilityState::Unsupported : CapabilityState::Available,
+                ($entry['method'] ?? null) === 'polling' ? 'API-key connection uses polling; webhook authentication is not implemented.' : null, $verifiedAt),
             'backfill' => $this->cap($backfill ? CapabilityState::Available : CapabilityState::Unsupported, $backfill ? null : 'Durable discovery requires a native paged reader.', $verifiedAt),
         ];
 

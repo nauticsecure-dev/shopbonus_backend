@@ -48,6 +48,9 @@ class WixAppTokens
         }
         try {
             $snapshot = $model->fresh();
+            if ($snapshot !== null && $model->isLifecycleProbe()) {
+                $snapshot = $snapshot->forLifecycleProbe();
+            }
             if ($snapshot === null || $snapshot->status === ConnectionStatus::Disconnected) {
                 throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
             }

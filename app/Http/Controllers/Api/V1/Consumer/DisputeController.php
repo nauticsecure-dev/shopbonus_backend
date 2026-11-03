@@ -65,8 +65,9 @@ class DisputeController extends Controller
             'webshop' => DB::table('webshops')->where('id', $d->webshop_id)->value('name'),
             'voucher_id' => $d->voucher_id === null ? null : Voucher::whereKey($d->voucher_id)->value('public_id'),
             'checkout_id' => $d->checkout_id === null ? null : VoucherCheckout::whereKey($d->checkout_id)->value('public_id'),
-            'resolution' => in_array($d->status, VoucherDispute::CLOSED, true) ? ['note' => $d->resolution_note, 'compensation' => $d->compensation,
-                'amount_minor' => $d->compensation_amount_minor, 'at' => $d->resolved_at?->toIso8601String()] : null,
+            'resolution' => in_array($d->status, VoucherDispute::CLOSED, true) || $d->compensation_status !== null ? ['note' => $d->resolution_note, 'compensation' => $d->compensation,
+                'amount_minor' => $d->compensation_amount_minor, 'at' => $d->resolved_at?->toIso8601String(),
+                'compensation_status' => $d->compensation_status, 'compensated_at' => $d->compensated_at?->toIso8601String()] : null,
             'created_at' => $d->created_at->toIso8601String(),
         ];
         if ($withTimeline) {

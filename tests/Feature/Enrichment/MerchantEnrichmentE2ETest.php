@@ -8,14 +8,22 @@ use App\Models\MerchantEnrichmentRun;
 use App\Models\User;
 use App\Models\Webshop;
 use App\Models\WebshopPublicProfile;
+use App\Services\Admin\Diagnostics\ProviderFailure;
+use App\Services\Discovery\PublicProfileService;
 use App\Services\Enrichment\EnrichmentPipeline;
+use App\Services\Enrichment\MerchantCoverGenerator;
 use App\Services\Enrichment\SafeUrlFetcher;
+use App\Services\Enrichment\WebsiteResearcher;
 use App\Services\Onboarding\Network\HostResolver;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreatesActiveWebshops;
 use Tests\Fakes\FakeHostResolver;
 use Tests\TestCase;
@@ -31,6 +39,7 @@ class MerchantEnrichmentE2ETest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Storage::fake(PublicProfileService::DISK);
         $this->dns = new FakeHostResolver;
         $this->app->instance(HostResolver::class, $this->dns);
         config([
@@ -142,24 +151,68 @@ class MerchantEnrichmentE2ETest extends TestCase
 
     public function test_invalid_cover_bytes_are_rejected_and_png_is_transcoded_to_responsive_webp(): void
     {
-        \Illuminate\Support\Facades\Storage::fake(\App\Services\Discovery\PublicProfileService::DISK);
+        Storage::fake(PublicProfileService::DISK);
         Http::fakeSequence()->push(['data' => [['b64_json' => base64_encode('not-an-image')]]])
             ->push(['data' => [['b64_json' => base64_encode($this->coverBytes())]]]);
-        $generator = app(\App\Services\Enrichment\MerchantCoverGenerator::class);
+        $generator = app(MerchantCoverGenerator::class);
         try {
             $generator->generate('fixture', 'Fixture', [], 'fixture-enrichment-image');
             $this->fail('Arbitrary bytes must never be published as WebP.');
-        } catch (\App\Services\Admin\Diagnostics\ProviderFailure $e) {
+        } catch (ProviderFailure $e) {
             $this->assertSame('invalid_cover_output', $e->failureCode);
         }
         $cover = $generator->generate('fixture', 'Fixture', [], 'fixture-enrichment-image');
-        $disk = \Illuminate\Support\Facades\Storage::disk(\App\Services\Discovery\PublicProfileService::DISK);
+        $disk = Storage::disk(PublicProfileService::DISK);
         foreach ([640, 960, 1536] as $width) {
             $path = $width === 1536 ? $cover['path'] : substr($cover['path'], 0, -5).'-'.$width.'.webp';
             $info = getimagesizefromstring($disk->get($path));
             $this->assertSame('image/webp', $info['mime']);
             $this->assertSame($width, $info[0]);
         }
+    }
+
+    public static function storageFailures(): array
+    {
+        return ['false return' => [false, false], 'write exception' => [true, false], 'cleanup exception' => [true, true]];
+    }
+
+    #[DataProvider('storageFailures')]
+    public function test_storage_failure_cleans_attempted_variants_and_pipeline_keeps_copy(bool $throwWrite, bool $throwCleanup): void
+    {
+        $this->dns->addresses['woonenco.nl'] = ['93.184.216.34'];
+        $this->fakeAi();
+        $disk = Mockery::mock(FilesystemAdapter::class);
+        $attempted = [];
+        $disk->shouldReceive('put')->twice()->andReturnUsing(function (string $path, string $bytes) use (&$attempted, $throwWrite): bool {
+            $this->assertSame('image/webp', getimagesizefromstring($bytes)['mime']);
+            $attempted[] = $path;
+            if (count($attempted) === 2) {
+                if ($throwWrite) {
+                    throw new \RuntimeException('Fixture write failure');
+                }
+
+                return false;
+            }
+
+            return true;
+        });
+        $disk->shouldReceive('delete')->once()->andReturnUsing(function (array $paths) use (&$attempted, $throwCleanup): bool {
+            $this->assertCount(2, $paths);
+            $this->assertSame($attempted, $paths);
+            if ($throwCleanup) {
+                throw new \RuntimeException('Fixture cleanup failure');
+            }
+
+            return true;
+        });
+        Storage::shouldReceive('disk')->with(PublicProfileService::DISK)->andReturn($disk);
+
+        $run = app(EnrichmentPipeline::class)->enqueue($this->eligibleShop(), 'scheduled')->fresh();
+
+        $this->assertSame('awaiting_review', $run->status);
+        $this->assertNotNull($run->proposal);
+        $this->assertNull($run->cover_path);
+        $this->assertSame('cover_storage_unavailable', $run->cover_failure_code);
     }
 
     public function test_research_collects_relevant_same_origin_pages_and_image_candidates(): void
@@ -171,7 +224,7 @@ class MerchantEnrichmentE2ETest extends TestCase
             'https://woonenco.nl/contact' => Http::response('<p>Customer service available</p>'),
             'https://woonenco.nl/categories' => Http::response('<p>Furniture and gifts</p><img src="/gift.png" alt="Gift">'),
         ]);
-        $research = app(\App\Services\Enrichment\WebsiteResearcher::class)->research('https://woonenco.nl/', 65536);
+        $research = app(WebsiteResearcher::class)->research('https://woonenco.nl/', 65536);
         $json = json_encode($research);
         $this->assertStringContainsString('Home accessories since 2010', $json);
         $this->assertStringContainsString('logo_candidate', $json);

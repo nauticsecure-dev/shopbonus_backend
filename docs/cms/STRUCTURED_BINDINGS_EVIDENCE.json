@@ -1,0 +1,150 @@
+{
+  "date": "2026-11-03",
+  "status": "PARTIAL_NO_GO",
+  "provider": "stubs only; no live translation",
+  "staging": "T01-T23 UNTESTED",
+  "tests": {
+    "cms": {
+      "passed": 84,
+      "assertions": 939
+    },
+    "compatibility": {
+      "passed": 126,
+      "assertions": 9204
+    },
+    "frontend_node": {
+      "passed": 10
+    },
+    "typecheck": "PASS",
+    "phpstan": "PASS",
+    "pint": "PASS",
+    "locale_helper_lint": "PASS",
+    "broader_touched_ui_lint": "FAIL: 3 pre-existing hook errors; 2 existing warnings"
+  },
+  "local_migrations_applied": [
+    "2026_10_29_140000_create_cms_schedules_and_suggestions",
+    "2026_11_02_120000_add_cms_suggestion_provenance"
+  ],
+  "browser": {
+    "origin": "http://localhost:3000",
+    "actor": "existing local demo Super Admin",
+    "german_login": "observed successful",
+    "translation_report": "observed: all three EN stale / DE missing",
+    "durable_browser_evidence": false
+  },
+  "uncommitted": true,
+  "hashes": [
+    {
+      "path": "shopbonus_backend/app/Services/Cms/CmsTextBindings.php",
+      "sha256": "0faec611a957e29e1d8e008683eaca009dec3f137817b71e1762be95e25a73a4"
+    },
+    {
+      "path": "shopbonus_backend/app/Services/Cms/CmsSuggestions.php",
+      "sha256": "9a3d6e8108e548ce5bd827bdbdd280afb9fff137264dd586dd0fe14097a50771"
+    },
+    {
+      "path": "shopbonus_backend/app/Models/User.php",
+      "sha256": "e1ac42398eee43ae8703f2804472d876f893ba0b8527f4fa5b1b67fd5c1c2b9f"
+    },
+    {
+      "path": "shopbonus_backend/app/Services/Admin/PlatformSettings.php",
+      "sha256": "15f105c3043a65055f56dcf63e6d698e19ea4619ad4981b7014f7fc84fe4d82e"
+    },
+    {
+      "path": "shopbonus_backend/lang/de/identity.php",
+      "sha256": "ffaff6e02afbdbb1af1b571465af65824e8dd2264d3af98e5aaaf73b197b72da"
+    },
+    {
+      "path": "shopbonus_backend/tests/Unit/Cms/CmsTextBindingsTest.php",
+      "sha256": "0d8b73ce5fc0efd6feec4a1cddd7214726adb0ed2d685882d41127336b16b01a"
+    },
+    {
+      "path": "shopbonus_backend/tests/Feature/Cms/CmsScheduleAndSuggestionTest.php",
+      "sha256": "56c03c87d8f17c3b49cca207768dd8936c9fd248cfabac372534a5d109c26b4d"
+    },
+    {
+      "path": "shopbonus_backend/tests/Feature/Identity/IdentityMailTest.php",
+      "sha256": "5e10834b70c4bcf7ade785b6fb83d9646605e94d43ead88c0c1386b4d6b7cfc8"
+    },
+    {
+      "path": "shopbonus_backend/tests/Feature/Consumer/ConsumerProfileTest.php",
+      "sha256": "e34ce46b555a9d7f2fc9d61bf75cdb65a57ada072e522e1d08c5393d70b1c537"
+    },
+    {
+      "path": "shopbonus_backend/docs/cms/structured-bindings.junit.xml",
+      "sha256": "207b542e9e33682c881c0c3d7c1f481855c038c2a95e904d11d0c440b56e7b65"
+    },
+    {
+      "path": "shopbonus_backend/docs/cms/german-compatibility.junit.xml",
+      "sha256": "1846dfce53c55576938e6e5efd54cc33004461886828e36309394d7974c737b0"
+    },
+    {
+      "path": "shopbonus_frontend/src/types/locale.ts",
+      "sha256": "b9b6cdf8d450b837fdbf1592b0675c1db9fd153f45cdea0f81107a43d4caa1c1"
+    },
+    {
+      "path": "shopbonus_frontend/src/i18n/de.ts",
+      "sha256": "a374ecc2e13a5974535900e31872dc06e0c041f4a481378746966e0ca3be7fe2"
+    },
+    {
+      "path": "shopbonus_frontend/src/i18n/dictionaries.ts",
+      "sha256": "e10d447cb989a384da5ceedd2739b0b12d7c7c6c1772b6fe8ea8231ca6c62b78"
+    },
+    {
+      "path": "shopbonus_frontend/src/i18n/authCopy.ts",
+      "sha256": "31367129028b0cc397193b795916c1bbba413919341da1d6eb4ab4a26cc6cb7f"
+    },
+    {
+      "path": "shopbonus_frontend/src/i18n/roleCopy.ts",
+      "sha256": "6e7313814617db5748ebc29d6b1f253bddb3d3642c9df4518750d022c7e6beaf"
+    },
+    {
+      "path": "shopbonus_frontend/src/lib/emptyLocalizedContent.ts",
+      "sha256": "8d52af6d96890f68004240c6332d979353e52b1a2a79e17f53637866a48b45db"
+    },
+    {
+      "path": "shopbonus_frontend/src/lib/homepageDefaults.ts",
+      "sha256": "ea286c23fd4f2ae85aa931f2e5e68d85312698a4b8152c9ed3eaa7a7350ff838"
+    },
+    {
+      "path": "shopbonus_frontend/src/lib/aboutUsDefaults.ts",
+      "sha256": "eaaaaef30aab04310d206748f9c00fce6b70cbd762bb7c9b3a7d31024a03504c"
+    },
+    {
+      "path": "shopbonus_frontend/src/lib/merchantLandingDefaults.ts",
+      "sha256": "6bfbe70ab6ed786e060cef13d0e678911e869dda8239d864dcc5c092bc351155"
+    },
+    {
+      "path": "shopbonus_frontend/src/lib/homepage.ts",
+      "sha256": "2550e0bcc6bccf78fa049cabb2b21f5fe41b1beea7481955afb6bc88b7f96444"
+    },
+    {
+      "path": "shopbonus_frontend/src/app/admin/cms/page.tsx",
+      "sha256": "9b81afaf4129d1897caca8f14b6bfa49577cefa0a6ab05391842ed1c2d6f3dfb"
+    },
+    {
+      "path": "shopbonus_frontend/src/app/admin/cms/faq/page.tsx",
+      "sha256": "81ece5e1d8d93027a2d4c23936f25c7aec2f67941dd66a95b941333e6906f736"
+    },
+    {
+      "path": "shopbonus_frontend/src/app/admin/cms/pages/[id]/page.tsx",
+      "sha256": "fac0d34cb409720766251e1e763d2d9d5eedf62251cd257419027c59110a2144"
+    },
+    {
+      "path": "shopbonus_frontend/src/components/homepage/HomepageView.tsx",
+      "sha256": "8cc0ef2ab490d46fd49c3b349690998816d4d94184c7738d59fda2674ff7a5f8"
+    },
+    {
+      "path": "shopbonus_frontend/src/components/Header.tsx",
+      "sha256": "b2893610d55ffbf818cf15f339419a4f4f53c9103d07b0bc790cf9c4143333d1"
+    },
+    {
+      "path": "shopbonus_frontend/src/app/account/page.tsx",
+      "sha256": "9fa1fc413e7717e3ac352f6e2c03d2e56e5847ebe733e5ef5459849ce7271307"
+    },
+    {
+      "path": "shopbonus_frontend/tests/german-locale.test.cjs",
+      "sha256": "fc4cfca9f1b464e10bf8af203f2633ce3c399f868dc5c87b5f54db4621c38496"
+    }
+  ]
+}

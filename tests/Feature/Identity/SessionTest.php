@@ -97,6 +97,22 @@ class SessionTest extends TestCase
             ->assertJsonStructure(['error' => ['request_id']]);
     }
 
+    public function test_csrf_rejected_logout_does_not_end_the_authenticated_session(): void
+    {
+        User::factory()->create(['email' => 'jan@example.nl', 'password' => 'Sterk-wachtwoord-2026']);
+        $this->login('jan@example.nl', 'Sterk-wachtwoord-2026')->assertOk();
+
+        $this->app->detectEnvironment(fn () => 'local');
+        $this->withHeaders(['Sec-Fetch-Site' => 'cross-site']);
+        $this->spa('POST', '/logout')->assertStatus(419)->assertJsonPath('error.code', 'csrf_token_mismatch');
+        $this->spa('GET', '/api/v1/me')->assertOk();
+        $this->assertSame(0, AuditEvent::where('action', 'identity.logout')->count());
+
+        $this->app->detectEnvironment(fn () => 'testing');
+        $this->spa('POST', '/logout')->assertNoContent();
+        $this->spa('GET', '/api/v1/me')->assertUnauthorized();
+    }
+
     public function test_session_cookie_is_http_only_and_same_site(): void
     {
         $this->assertTrue(config('session.http_only'));

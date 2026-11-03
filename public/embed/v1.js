@@ -717,8 +717,9 @@
       if (shadow) Array.prototype.forEach.call(shadow.querySelectorAll(".sb-widget"), function (el) { if (el.sbFinish) el.sbFinish(); });
       return;
     }
-    if (data.type === "editor.disconnect" && editor.active) {
-      editor.active = false; editor.token = null; clearWidgets(); configSignature = null; shownIds = Object.create(null); loadConfig(); return;
+    if (data.type === "editor.disconnect" && (editor.active || editor.pairing)) {
+      editor.active = false; editor.pairing = false; editor.token = null; editor.nonce = null;
+      clearWidgets(); configSignature = null; shownIds = Object.create(null); loadConfig(); return;
     }
     if (data.type === "editor.pair" && data.pairing_token && !editor.active && !editor.pairing) {
       editor.pairing = true;
@@ -748,6 +749,7 @@
           if (editor.campaignId) loadEditorDraft(editor.campaignId);
         })
         .catch(function () {
+          if (pairNonce !== editor.nonce) return;
           editor.pairing = false;
           postParent({ type: "editor.pair_failed", status: 0, code: "network_error" });
         });
@@ -773,7 +775,8 @@
   }
 
   function loadEditorDraft(campaignId) {
-    var draftNonce = editor.nonce;
+    var draftNonce = editor.nonce, draftToken = editor.token;
+    function current() { return editor.active && editor.token === draftToken && editor.nonce === draftNonce && editor.campaignId === campaignId && Date.now() < editor.expiresAt; }
     fetch(API + "/api/v1/banners/editor/campaigns/" + encodeURIComponent(campaignId), {
       credentials: "omit",
       headers: {
@@ -788,7 +791,7 @@
         });
       })
       .then(function (res) {
-        if (draftNonce !== editor.nonce || Date.now() >= editor.expiresAt) return;
+        if (!current()) return;
         if (!res.ok) {
           editor.active = false; editor.token = null;
           postParent({ type: "editor.draft_failed", status: res.status, code: (res.j.error && res.j.error.code) || "error", request_id: res.j.error && res.j.error.request_id });
@@ -804,6 +807,7 @@
         postParent({ type: "editor.draft", draft_revision: res.j.data.draft_revision, draft_config: res.j.data.draft_config });
       })
       .catch(function () {
+        if (!current()) return;
         editor.active = false; editor.token = null;
         postParent({ type: "editor.draft_failed", status: 0, code: "network_error" });
       });

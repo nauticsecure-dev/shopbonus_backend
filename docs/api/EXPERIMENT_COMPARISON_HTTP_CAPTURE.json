@@ -1,0 +1,190 @@
+{
+    "captured_at": "2026-11-03T04:52:53+00:00",
+    "environment": "Real loopback HTTP / isolated SQLite synthetic fixtures; HassanDev b92f46ab2b471fc4796310e059568bdddde276a4 plus uncommitted comparison; no live providers",
+    "captures": [
+        {
+            "action": "launch",
+            "request": "POST /api/v1/workspaces/01m6fw1c4kyz4hkabtmfqkkpek/banners/01m6fw1cfjs2nnzwjt7gyarkrm/experiment",
+            "authorization": "Bearer <WORKSPACE_TOKEN>",
+            "body": {
+                "control_version": null,
+                "variant_version": 1,
+                "variant_bps": 5000
+            },
+            "status": 201,
+            "response": {
+                "data": {
+                    "experiment": "01m6fw1ffp988jgnfhe491a58k",
+                    "active": true,
+                    "holdout": true,
+                    "variant_bps": 5000,
+                    "arms": {
+                        "control": {
+                            "assigned_visitors": 0,
+                            "viewable_impressions": 0,
+                            "cta_clicks": 0,
+                            "verified_paid_orders": 0,
+                            "converted_visitors": 0,
+                            "net_revenue_minor": 0,
+                            "conversion_rate": null
+                        },
+                        "variant": {
+                            "assigned_visitors": 0,
+                            "viewable_impressions": 0,
+                            "cta_clicks": 0,
+                            "verified_paid_orders": 0,
+                            "converted_visitors": 0,
+                            "net_revenue_minor": 0,
+                            "conversion_rate": null
+                        }
+                    },
+                    "currency": "EUR",
+                    "causal_uplift": null,
+                    "conversion_comparison": {
+                        "status": "insufficient_data",
+                        "method": "two_proportion_z_test_wald_interval",
+                        "confidence_level": 0.95,
+                        "absolute_difference": null,
+                        "relative_change": null,
+                        "confidence_interval": null,
+                        "p_value": null,
+                        "statistically_significant": null,
+                        "favored_arm": null,
+                        "winner": null,
+                        "winner_status": "blocked_unverified_measurement_and_analysis_plan"
+                    },
+                    "definitions": {
+                        "orders": "Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.",
+                        "limitations": "Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.",
+                        "comparison": "Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results."
+                    }
+                }
+            }
+        },
+        {
+            "action": "read",
+            "request": "GET /api/v1/workspaces/01m6fw1c4kyz4hkabtmfqkkpek/banners/01m6fw1cfjs2nnzwjt7gyarkrm/experiment",
+            "authorization": "Bearer <WORKSPACE_TOKEN>",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "experiment": "01m6fw1ffp988jgnfhe491a58k",
+                    "active": true,
+                    "holdout": true,
+                    "variant_bps": 5000,
+                    "arms": {
+                        "control": {
+                            "assigned_visitors": 1,
+                            "viewable_impressions": 0,
+                            "cta_clicks": 0,
+                            "verified_paid_orders": 0,
+                            "converted_visitors": 0,
+                            "net_revenue_minor": 0,
+                            "conversion_rate": 0
+                        },
+                        "variant": {
+                            "assigned_visitors": 1,
+                            "viewable_impressions": 0,
+                            "cta_clicks": 0,
+                            "verified_paid_orders": 0,
+                            "converted_visitors": 0,
+                            "net_revenue_minor": 0,
+                            "conversion_rate": 0
+                        }
+                    },
+                    "currency": "EUR",
+                    "causal_uplift": null,
+                    "conversion_comparison": {
+                        "status": "insufficient_data",
+                        "method": "two_proportion_z_test_wald_interval",
+                        "confidence_level": 0.95,
+                        "absolute_difference": 0,
+                        "relative_change": null,
+                        "confidence_interval": null,
+                        "p_value": null,
+                        "statistically_significant": null,
+                        "favored_arm": null,
+                        "winner": null,
+                        "winner_status": "blocked_unverified_measurement_and_analysis_plan"
+                    },
+                    "definitions": {
+                        "orders": "Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.",
+                        "limitations": "Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.",
+                        "comparison": "Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results."
+                    }
+                }
+            }
+        },
+        {
+            "action": "stop",
+            "request": "POST /api/v1/workspaces/01m6fw1c4kyz4hkabtmfqkkpek/banners/01m6fw1cfjs2nnzwjt7gyarkrm/experiment/stop",
+            "authorization": "Bearer <WORKSPACE_TOKEN>",
+            "body": null,
+            "status": 200,
+            "response": {
+                "data": {
+                    "experiment": "01m6fw1ffp988jgnfhe491a58k",
+                    "active": false,
+                    "holdout": true,
+                    "variant_bps": 5000,
+                    "arms": {
+                        "control": {
+                            "assigned_visitors": 1,
+                            "viewable_impressions": 0,
+                            "cta_clicks": 0,
+                            "verified_paid_orders": 0,
+                            "converted_visitors": 0,
+                            "net_revenue_minor": 0,
+                            "conversion_rate": 0
+                        },
+                        "variant": {
+                            "assigned_visitors": 1,
+                            "viewable_impressions": 0,
+                            "cta_clicks": 0,
+                            "verified_paid_orders": 0,
+                            "converted_visitors": 0,
+                            "net_revenue_minor": 0,
+                            "conversion_rate": 0
+                        }
+                    },
+                    "currency": "EUR",
+                    "causal_uplift": null,
+                    "conversion_comparison": {
+                        "status": "insufficient_data",
+                        "method": "two_proportion_z_test_wald_interval",
+                        "confidence_level": 0.95,
+                        "absolute_difference": 0,
+                        "relative_change": null,
+                        "confidence_interval": null,
+                        "p_value": null,
+                        "statistically_significant": null,
+                        "favored_arm": null,
+                        "winner": null,
+                        "winner_status": "blocked_unverified_measurement_and_analysis_plan"
+                    },
+                    "definitions": {
+                        "orders": "Only signed-provider order data carrying a valid assignment and confirmed paid inside its 30-day window. Redirects and clicks are not payments.",
+                        "limitations": "Consented assigned visitors only; provider/storefront must propagate assignment_token. Missing tokens remain unattributed. Comparison is exploratory: live propagation, equal follow-up and a fixed analysis plan are unverified. No causal uplift or rollout winner claimed.",
+                        "comparison": "Variant minus control conversion probability (multiply by 100 for percentage points); relative_change is a fraction of control, null at zero baseline. All assignments remain in denominators, including revoked/expired assignments; distinct visitors with qualifying net-paid EUR orders are successes. At least ten successes and failures per arm are required for the unadjusted two-sided z-test and 95% Wald interval. Repeated looks and multiple experiments are not adjusted. Refunds and late callbacks can change results."
+                    }
+                }
+            }
+        },
+        {
+            "action": "unauthenticated",
+            "request": "GET /api/v1/workspaces/01m6fw1c4kyz4hkabtmfqkkpek/banners/01m6fw1cfjs2nnzwjt7gyarkrm/experiment",
+            "authorization": null,
+            "body": null,
+            "status": 401,
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Authentication is required.",
+                    "request_id": "01a19fc0-c5fe-71bd-a119-5b372f4f2b05"
+                }
+            }
+        }
+    ]
+}

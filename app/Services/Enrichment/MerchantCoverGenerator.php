@@ -91,13 +91,24 @@ class MerchantCoverGenerator
                     throw new ProviderFailure('invalid_cover_output');
                 }
                 $variantPath = $width === 1536 ? $path : substr($path, 0, -5).'-'.$width.'.webp';
-                if (! Storage::disk(PublicProfileService::DISK)->put($variantPath, $bytes)) {
+                // Include the attempted path: a failed adapter may have partially written it.
+                $written[] = $variantPath;
+                try {
+                    $stored = Storage::disk(PublicProfileService::DISK)->put($variantPath, $bytes);
+                } catch (Throwable) {
                     throw new ProviderFailure('cover_storage_unavailable');
                 }
-                $written[] = $variantPath;
+                if (! $stored) {
+                    throw new ProviderFailure('cover_storage_unavailable');
+                }
             }
         } catch (Throwable $e) {
-            Storage::disk(PublicProfileService::DISK)->delete($written);
+            try {
+                Storage::disk(PublicProfileService::DISK)->delete($written);
+            } catch (Throwable $cleanupFailure) {
+                // Preserve the original failure so enrichment can retain its cover fallback.
+                report($cleanupFailure);
+            }
             throw $e;
         } finally {
             imagedestroy($image);

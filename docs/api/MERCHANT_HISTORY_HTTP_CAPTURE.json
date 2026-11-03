@@ -1,0 +1,1035 @@
+{
+  "method": "GET",
+  "path": "/api/v1/admin/content/voor-webshops/versions?locale=nl&include_content=1",
+  "status": 200,
+  "request_id": "01a1a03e-f591-704b-8c60-9dccca93a3a9",
+  "environment": "Real local Laravel HTTP, isolated SQLite and filesystem, cookie login/CSRF/TOTP/password confirmation; synthetic records; no intercepted responses",
+  "response": {
+    "data": [
+      {
+        "id": "01m6g3xt76r14qen32wav7tt57",
+        "locale": "nl",
+        "number": 4,
+        "restored_from": null,
+        "published_by": "Sylvie",
+        "published_at": "2026-11-03T07:10:39+00:00",
+        "content": {
+          "media": {
+            "hero": {
+              "alt": "Actual uploaded image",
+              "mobile_asset_id": "01m6g3xjanxjcatj4j68spt8v8"
+            }
+          },
+          "title": "ShopBonus voor webshops",
+          "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat",
+          "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+          "seo_image_asset_id": null,
+          "body": {
+            "type": "doc",
+            "content": []
+          },
+          "section_visibility": {
+            "hero": true,
+            "platforms": true,
+            "benefits": true,
+            "offer_preview": true,
+            "onboarding": true,
+            "bottom_cta": true,
+            "faq": true
+          },
+          "nav": {
+            "logo_alt": "ShopBonus",
+            "login_label": "Inloggen",
+            "login_href": "/account?mode=login&role=merchant",
+            "cta_label": "Webshop aanmelden",
+            "cta_href": "/voor-webshops/aanmelden",
+            "links": [
+              {
+                "label": "Voordelen",
+                "href": "#voordelen"
+              },
+              {
+                "label": "Zo werkt het",
+                "href": "#zo-werkt-het"
+              },
+              {
+                "label": "Integraties",
+                "href": "#integraties"
+              },
+              {
+                "label": "Veelgestelde vragen",
+                "href": "#faq"
+              }
+            ]
+          },
+          "hero": {
+            "eyebrow": "VOOR WEBSHOPS",
+            "heading": "HTTP saved unpublished draft",
+            "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+            "primary_cta": {
+              "label": "Sluit je webshop aan",
+              "href": "/voor-webshops/aanmelden"
+            },
+            "secondary_cta": {
+              "label": "Bekijk hoe het werkt",
+              "href": "#zo-werkt-het"
+            },
+            "artwork_note": "Promotionele illustratie — geen live resultaten",
+            "background_asset_id": null,
+            "illustration_asset_id": null,
+            "trust": [
+              "Zelf commissie bepalen",
+              "Snel aansluiten",
+              "Meer zichtbaarheid"
+            ]
+          },
+          "platforms": {
+            "heading": "Werkt met de populairste platforms",
+            "subtitle": "Verbind je webshop met een ondersteunde integratie.",
+            "cta_label": "Bekijk alle integraties",
+            "cta_href": "/voor-webshops/aanmelden#platforms",
+            "tiles": [
+              {
+                "platform": "shopify",
+                "name": "Shopify",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=shopify"
+              },
+              {
+                "platform": "woocommerce",
+                "name": "WooCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=woocommerce"
+              },
+              {
+                "platform": "wix",
+                "name": "Wix",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=wix"
+              },
+              {
+                "platform": "bigcommerce",
+                "name": "BigCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=bigcommerce"
+              },
+              {
+                "platform": "ecwid",
+                "name": "Ecwid",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=ecwid"
+              },
+              {
+                "platform": "lightspeed_c",
+                "name": "Lightspeed C-Series",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=lightspeed_c"
+              },
+              {
+                "platform": "prestashop",
+                "name": "PrestaShop",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=prestashop"
+              },
+              {
+                "platform": "opencart",
+                "name": "OpenCart",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=opencart"
+              },
+              {
+                "platform": "shopware6",
+                "name": "Shopware",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=shopware6"
+              },
+              {
+                "platform": "magento",
+                "name": "Adobe Commerce / Magento",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=magento"
+              }
+            ]
+          },
+          "benefits": {
+            "eyebrow": "GROEI MET SHOPBONUS",
+            "heading": "Maak je webshop\nonweerstaanbaar.",
+            "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.",
+            "image_asset_id": null,
+            "items": [
+              {
+                "icon": "people",
+                "title": "Bereik nieuwe klanten",
+                "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."
+              },
+              {
+                "icon": "tag",
+                "title": "Kortingen én cashback",
+                "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."
+              },
+              {
+                "icon": "cog",
+                "title": "Jij bepaalt de commissie",
+                "description": "Stel je commerciële afspraken in en houd controle over je marges."
+              }
+            ]
+          },
+          "offer_preview": {
+            "eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT",
+            "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.",
+            "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.",
+            "cta_label": "Bekijk een voorbeeld",
+            "cta_href": "/webshops",
+            "preview_asset_id": null,
+            "illustrative": true
+          },
+          "onboarding": {
+            "eyebrow": "IN 3 EENVOUDIGE STAPPEN",
+            "heading": "Binnen enkele stappen live.",
+            "steps": [
+              {
+                "number": "01",
+                "title": "Aanmelden",
+                "description": "Maak een account aan en registreer jouw webshop.",
+                "icon": "document"
+              },
+              {
+                "number": "02",
+                "title": "Koppelen",
+                "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.",
+                "icon": "link"
+              },
+              {
+                "number": "03",
+                "title": "Start met aanbiedingen",
+                "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.",
+                "icon": "megaphone"
+              }
+            ]
+          },
+          "bottom_cta": {
+            "eyebrow": "START MET SHOPBONUS",
+            "heading": "Klaar om nieuwe klanten te bereiken?",
+            "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.",
+            "cta_label": "Webshop aanmelden →",
+            "cta_href": "/voor-webshops/aanmelden"
+          },
+          "faq": {
+            "heading": "Veelgestelde vragen",
+            "items": [
+              {
+                "question": "Wat kost aansluiten bij ShopBonus?",
+                "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."
+              },
+              {
+                "question": "Hoe werkt de commissie?",
+                "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."
+              },
+              {
+                "question": "Kan ik mijn eigen cashbackacties instellen?",
+                "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."
+              },
+              {
+                "question": "Welke webshopplatformen ondersteunen jullie?",
+                "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."
+              },
+              {
+                "question": "Kan ik kortingscodes toevoegen?",
+                "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."
+              },
+              {
+                "question": "Wanneer verschijnt mijn webshop op ShopBonus?",
+                "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."
+              },
+              {
+                "question": "Hoe worden bestellingen geregistreerd?",
+                "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."
+              },
+              {
+                "question": "Kan ik mijn aanbiedingen aanpassen?",
+                "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."
+              }
+            ]
+          },
+          "footer": {
+            "blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."
+          },
+          "section_order": [
+            "hero",
+            "platforms",
+            "benefits",
+            "offer_preview",
+            "onboarding",
+            "bottom_cta",
+            "faq"
+          ]
+        }
+      },
+      {
+        "id": "01m6g145mzqbykt507ejd5n7ce",
+        "locale": "nl",
+        "number": 3,
+        "restored_from": 1,
+        "published_by": "Sylvie",
+        "published_at": "2026-11-03T06:21:42+00:00",
+        "content": {
+          "title": "ShopBonus voor webshops",
+          "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat",
+          "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+          "seo_image_asset_id": null,
+          "body": {
+            "type": "doc",
+            "content": []
+          },
+          "section_visibility": {
+            "hero": true,
+            "platforms": true,
+            "benefits": true,
+            "offer_preview": true,
+            "onboarding": true,
+            "bottom_cta": true,
+            "faq": true
+          },
+          "nav": {
+            "logo_alt": "ShopBonus",
+            "login_label": "Inloggen",
+            "login_href": "/account?mode=login&role=merchant",
+            "cta_label": "Webshop aanmelden",
+            "cta_href": "/voor-webshops/aanmelden",
+            "links": [
+              {
+                "label": "Voordelen",
+                "href": "#voordelen"
+              },
+              {
+                "label": "Zo werkt het",
+                "href": "#zo-werkt-het"
+              },
+              {
+                "label": "Integraties",
+                "href": "#integraties"
+              },
+              {
+                "label": "Veelgestelde vragen",
+                "href": "#faq"
+              }
+            ]
+          },
+          "hero": {
+            "eyebrow": "VOOR WEBSHOPS",
+            "heading": "Echte goedgekeurde publicatie",
+            "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+            "primary_cta": {
+              "label": "Sluit je webshop aan",
+              "href": "/voor-webshops/aanmelden"
+            },
+            "secondary_cta": {
+              "label": "Bekijk hoe het werkt",
+              "href": "#zo-werkt-het"
+            },
+            "artwork_note": "Promotionele illustratie — geen live resultaten",
+            "background_asset_id": null,
+            "illustration_asset_id": null,
+            "trust": [
+              "Zelf commissie bepalen",
+              "Snel aansluiten",
+              "Meer zichtbaarheid"
+            ]
+          },
+          "platforms": {
+            "heading": "Werkt met de populairste platforms",
+            "subtitle": "Verbind je webshop met een ondersteunde integratie.",
+            "cta_label": "Bekijk alle integraties",
+            "cta_href": "/voor-webshops/aanmelden#platforms",
+            "tiles": [
+              {
+                "platform": "shopify",
+                "name": "Shopify",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=shopify"
+              },
+              {
+                "platform": "woocommerce",
+                "name": "WooCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=woocommerce"
+              },
+              {
+                "platform": "wix",
+                "name": "Wix",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=wix"
+              },
+              {
+                "platform": "bigcommerce",
+                "name": "BigCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=bigcommerce"
+              },
+              {
+                "platform": "ecwid",
+                "name": "Ecwid",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=ecwid"
+              },
+              {
+                "platform": "lightspeed_c",
+                "name": "Lightspeed C-Series",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=lightspeed_c"
+              },
+              {
+                "platform": "prestashop",
+                "name": "PrestaShop",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=prestashop"
+              },
+              {
+                "platform": "opencart",
+                "name": "OpenCart",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=opencart"
+              },
+              {
+                "platform": "shopware6",
+                "name": "Shopware",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=shopware6"
+              },
+              {
+                "platform": "magento",
+                "name": "Adobe Commerce / Magento",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=magento"
+              }
+            ]
+          },
+          "benefits": {
+            "eyebrow": "GROEI MET SHOPBONUS",
+            "heading": "Maak je webshop\nonweerstaanbaar.",
+            "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.",
+            "image_asset_id": null,
+            "items": [
+              {
+                "icon": "people",
+                "title": "Bereik nieuwe klanten",
+                "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."
+              },
+              {
+                "icon": "tag",
+                "title": "Kortingen én cashback",
+                "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."
+              },
+              {
+                "icon": "cog",
+                "title": "Jij bepaalt de commissie",
+                "description": "Stel je commerciële afspraken in en houd controle over je marges."
+              }
+            ]
+          },
+          "offer_preview": {
+            "eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT",
+            "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.",
+            "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.",
+            "cta_label": "Bekijk een voorbeeld",
+            "cta_href": "/webshops",
+            "preview_asset_id": null,
+            "illustrative": true
+          },
+          "onboarding": {
+            "eyebrow": "IN 3 EENVOUDIGE STAPPEN",
+            "heading": "Binnen enkele stappen live.",
+            "steps": [
+              {
+                "number": "01",
+                "title": "Aanmelden",
+                "description": "Maak een account aan en registreer jouw webshop.",
+                "icon": "document"
+              },
+              {
+                "number": "02",
+                "title": "Koppelen",
+                "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.",
+                "icon": "link"
+              },
+              {
+                "number": "03",
+                "title": "Start met aanbiedingen",
+                "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.",
+                "icon": "megaphone"
+              }
+            ]
+          },
+          "bottom_cta": {
+            "eyebrow": "START MET SHOPBONUS",
+            "heading": "Klaar om nieuwe klanten te bereiken?",
+            "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.",
+            "cta_label": "Webshop aanmelden →",
+            "cta_href": "/voor-webshops/aanmelden"
+          },
+          "faq": {
+            "heading": "Veelgestelde vragen",
+            "items": [
+              {
+                "question": "Wat kost aansluiten bij ShopBonus?",
+                "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."
+              },
+              {
+                "question": "Hoe werkt de commissie?",
+                "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."
+              },
+              {
+                "question": "Kan ik mijn eigen cashbackacties instellen?",
+                "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."
+              },
+              {
+                "question": "Welke webshopplatformen ondersteunen jullie?",
+                "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."
+              },
+              {
+                "question": "Kan ik kortingscodes toevoegen?",
+                "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."
+              },
+              {
+                "question": "Wanneer verschijnt mijn webshop op ShopBonus?",
+                "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."
+              },
+              {
+                "question": "Hoe worden bestellingen geregistreerd?",
+                "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."
+              },
+              {
+                "question": "Kan ik mijn aanbiedingen aanpassen?",
+                "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."
+              }
+            ]
+          },
+          "footer": {
+            "blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."
+          },
+          "section_order": [
+            "hero",
+            "platforms",
+            "benefits",
+            "offer_preview",
+            "onboarding",
+            "bottom_cta",
+            "faq"
+          ]
+        }
+      },
+      {
+        "id": "01m6g13xct2ts62r2shhg2pqfs",
+        "locale": "nl",
+        "number": 2,
+        "restored_from": null,
+        "published_by": "Sylvie",
+        "published_at": "2026-11-03T06:21:33+00:00",
+        "content": {
+          "media": {
+            "hero": {
+              "alt": "Actual uploaded image",
+              "mobile_asset_id": "01m6g13a6w5pc1ckgf3yy63gvs"
+            }
+          },
+          "title": "ShopBonus voor webshops",
+          "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat",
+          "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+          "seo_image_asset_id": null,
+          "body": {
+            "type": "doc",
+            "content": []
+          },
+          "section_visibility": {
+            "hero": true,
+            "platforms": true,
+            "benefits": true,
+            "offer_preview": true,
+            "onboarding": true,
+            "bottom_cta": true,
+            "faq": true
+          },
+          "nav": {
+            "logo_alt": "ShopBonus",
+            "login_label": "Inloggen",
+            "login_href": "/account?mode=login&role=merchant",
+            "cta_label": "Webshop aanmelden",
+            "cta_href": "/voor-webshops/aanmelden",
+            "links": [
+              {
+                "label": "Voordelen",
+                "href": "#voordelen"
+              },
+              {
+                "label": "Zo werkt het",
+                "href": "#zo-werkt-het"
+              },
+              {
+                "label": "Integraties",
+                "href": "#integraties"
+              },
+              {
+                "label": "Veelgestelde vragen",
+                "href": "#faq"
+              }
+            ]
+          },
+          "hero": {
+            "eyebrow": "VOOR WEBSHOPS",
+            "heading": "HTTP saved unpublished draft",
+            "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+            "primary_cta": {
+              "label": "Sluit je webshop aan",
+              "href": "/voor-webshops/aanmelden"
+            },
+            "secondary_cta": {
+              "label": "Bekijk hoe het werkt",
+              "href": "#zo-werkt-het"
+            },
+            "artwork_note": "Promotionele illustratie — geen live resultaten",
+            "background_asset_id": null,
+            "illustration_asset_id": null,
+            "trust": [
+              "Zelf commissie bepalen",
+              "Snel aansluiten",
+              "Meer zichtbaarheid"
+            ]
+          },
+          "platforms": {
+            "heading": "Werkt met de populairste platforms",
+            "subtitle": "Verbind je webshop met een ondersteunde integratie.",
+            "cta_label": "Bekijk alle integraties",
+            "cta_href": "/voor-webshops/aanmelden#platforms",
+            "tiles": [
+              {
+                "platform": "shopify",
+                "name": "Shopify",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=shopify"
+              },
+              {
+                "platform": "woocommerce",
+                "name": "WooCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=woocommerce"
+              },
+              {
+                "platform": "wix",
+                "name": "Wix",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=wix"
+              },
+              {
+                "platform": "bigcommerce",
+                "name": "BigCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=bigcommerce"
+              },
+              {
+                "platform": "ecwid",
+                "name": "Ecwid",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=ecwid"
+              },
+              {
+                "platform": "lightspeed_c",
+                "name": "Lightspeed C-Series",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=lightspeed_c"
+              },
+              {
+                "platform": "prestashop",
+                "name": "PrestaShop",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=prestashop"
+              },
+              {
+                "platform": "opencart",
+                "name": "OpenCart",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=opencart"
+              },
+              {
+                "platform": "shopware6",
+                "name": "Shopware",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=shopware6"
+              },
+              {
+                "platform": "magento",
+                "name": "Adobe Commerce / Magento",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=magento"
+              }
+            ]
+          },
+          "benefits": {
+            "eyebrow": "GROEI MET SHOPBONUS",
+            "heading": "Maak je webshop\nonweerstaanbaar.",
+            "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.",
+            "image_asset_id": null,
+            "items": [
+              {
+                "icon": "people",
+                "title": "Bereik nieuwe klanten",
+                "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."
+              },
+              {
+                "icon": "tag",
+                "title": "Kortingen én cashback",
+                "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."
+              },
+              {
+                "icon": "cog",
+                "title": "Jij bepaalt de commissie",
+                "description": "Stel je commerciële afspraken in en houd controle over je marges."
+              }
+            ]
+          },
+          "offer_preview": {
+            "eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT",
+            "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.",
+            "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.",
+            "cta_label": "Bekijk een voorbeeld",
+            "cta_href": "/webshops",
+            "preview_asset_id": null,
+            "illustrative": true
+          },
+          "onboarding": {
+            "eyebrow": "IN 3 EENVOUDIGE STAPPEN",
+            "heading": "Binnen enkele stappen live.",
+            "steps": [
+              {
+                "number": "01",
+                "title": "Aanmelden",
+                "description": "Maak een account aan en registreer jouw webshop.",
+                "icon": "document"
+              },
+              {
+                "number": "02",
+                "title": "Koppelen",
+                "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.",
+                "icon": "link"
+              },
+              {
+                "number": "03",
+                "title": "Start met aanbiedingen",
+                "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.",
+                "icon": "megaphone"
+              }
+            ]
+          },
+          "bottom_cta": {
+            "eyebrow": "START MET SHOPBONUS",
+            "heading": "Klaar om nieuwe klanten te bereiken?",
+            "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.",
+            "cta_label": "Webshop aanmelden →",
+            "cta_href": "/voor-webshops/aanmelden"
+          },
+          "faq": {
+            "heading": "Veelgestelde vragen",
+            "items": [
+              {
+                "question": "Wat kost aansluiten bij ShopBonus?",
+                "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."
+              },
+              {
+                "question": "Hoe werkt de commissie?",
+                "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."
+              },
+              {
+                "question": "Kan ik mijn eigen cashbackacties instellen?",
+                "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."
+              },
+              {
+                "question": "Welke webshopplatformen ondersteunen jullie?",
+                "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."
+              },
+              {
+                "question": "Kan ik kortingscodes toevoegen?",
+                "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."
+              },
+              {
+                "question": "Wanneer verschijnt mijn webshop op ShopBonus?",
+                "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."
+              },
+              {
+                "question": "Hoe worden bestellingen geregistreerd?",
+                "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."
+              },
+              {
+                "question": "Kan ik mijn aanbiedingen aanpassen?",
+                "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."
+              }
+            ]
+          },
+          "footer": {
+            "blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."
+          },
+          "section_order": [
+            "hero",
+            "platforms",
+            "benefits",
+            "offer_preview",
+            "onboarding",
+            "bottom_cta",
+            "faq"
+          ]
+        }
+      },
+      {
+        "id": "01m6g0dnt6mjkdjb7fr1qsw4db",
+        "locale": "nl",
+        "number": 1,
+        "restored_from": null,
+        "published_by": "Sylvie",
+        "published_at": "2026-11-03T06:09:25+00:00",
+        "content": {
+          "title": "ShopBonus voor webshops",
+          "seo_title": "ShopBonus voor webshops — meer klanten, alleen betalen voor resultaat",
+          "seo_description": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+          "seo_image_asset_id": null,
+          "body": {
+            "type": "doc",
+            "content": []
+          },
+          "section_visibility": {
+            "hero": true,
+            "platforms": true,
+            "benefits": true,
+            "offer_preview": true,
+            "onboarding": true,
+            "bottom_cta": true,
+            "faq": true
+          },
+          "nav": {
+            "logo_alt": "ShopBonus",
+            "login_label": "Inloggen",
+            "login_href": "/account?mode=login&role=merchant",
+            "cta_label": "Webshop aanmelden",
+            "cta_href": "/voor-webshops/aanmelden",
+            "links": [
+              {
+                "label": "Voordelen",
+                "href": "#voordelen"
+              },
+              {
+                "label": "Zo werkt het",
+                "href": "#zo-werkt-het"
+              },
+              {
+                "label": "Integraties",
+                "href": "#integraties"
+              },
+              {
+                "label": "Veelgestelde vragen",
+                "href": "#faq"
+              }
+            ]
+          },
+          "hero": {
+            "eyebrow": "VOOR WEBSHOPS",
+            "heading": "Echte goedgekeurde publicatie",
+            "subtitle": "Maak jouw webshop aantrekkelijker met cashback, kortingscodes en vouchers. Jij bepaalt de voorwaarden.",
+            "primary_cta": {
+              "label": "Sluit je webshop aan",
+              "href": "/voor-webshops/aanmelden"
+            },
+            "secondary_cta": {
+              "label": "Bekijk hoe het werkt",
+              "href": "#zo-werkt-het"
+            },
+            "artwork_note": "Promotionele illustratie — geen live resultaten",
+            "background_asset_id": null,
+            "illustration_asset_id": null,
+            "trust": [
+              "Zelf commissie bepalen",
+              "Snel aansluiten",
+              "Meer zichtbaarheid"
+            ]
+          },
+          "platforms": {
+            "heading": "Werkt met de populairste platforms",
+            "subtitle": "Verbind je webshop met een ondersteunde integratie.",
+            "cta_label": "Bekijk alle integraties",
+            "cta_href": "/voor-webshops/aanmelden#platforms",
+            "tiles": [
+              {
+                "platform": "shopify",
+                "name": "Shopify",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=shopify"
+              },
+              {
+                "platform": "woocommerce",
+                "name": "WooCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=woocommerce"
+              },
+              {
+                "platform": "wix",
+                "name": "Wix",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=wix"
+              },
+              {
+                "platform": "bigcommerce",
+                "name": "BigCommerce",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=bigcommerce"
+              },
+              {
+                "platform": "ecwid",
+                "name": "Ecwid",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=ecwid"
+              },
+              {
+                "platform": "lightspeed_c",
+                "name": "Lightspeed C-Series",
+                "status": "AVAILABLE",
+                "href": "/voor-webshops/aanmelden?platform=lightspeed_c"
+              },
+              {
+                "platform": "prestashop",
+                "name": "PrestaShop",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=prestashop"
+              },
+              {
+                "platform": "opencart",
+                "name": "OpenCart",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=opencart"
+              },
+              {
+                "platform": "shopware6",
+                "name": "Shopware",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=shopware6"
+              },
+              {
+                "platform": "magento",
+                "name": "Adobe Commerce / Magento",
+                "status": "MANUAL_SETUP",
+                "href": "/voor-webshops/aanmelden?platform=magento"
+              }
+            ]
+          },
+          "benefits": {
+            "eyebrow": "GROEI MET SHOPBONUS",
+            "heading": "Maak je webshop\nonweerstaanbaar.",
+            "description": "Bereik nieuwe klanten met aantrekkelijke aanbiedingen via ShopBonus. Jij houdt de controle over jouw acties en commerciële voorwaarden.",
+            "image_asset_id": null,
+            "items": [
+              {
+                "icon": "people",
+                "title": "Bereik nieuwe klanten",
+                "description": "Maak jouw webshop zichtbaar voor consumenten die gericht zoeken naar aanbiedingen en nieuwe winkels."
+              },
+              {
+                "icon": "tag",
+                "title": "Kortingen én cashback",
+                "description": "Promoot geldige kortingscodes, cashbackacties of een combinatie daarvan, afhankelijk van jouw voorwaarden."
+              },
+              {
+                "icon": "cog",
+                "title": "Jij bepaalt de commissie",
+                "description": "Stel je commerciële afspraken in en houd controle over je marges."
+              }
+            ]
+          },
+          "offer_preview": {
+            "eyebrow": "ZO ZIEN JOUW AANBIEDINGEN ERUIT",
+            "heading": "Jouw aanbiedingen.\nProfessioneel gepresenteerd.",
+            "description": "Jouw cashbackacties en kortingscodes worden op een aantrekkelijke en overzichtelijke manier getoond. Zo ontdekken consumenten eenvoudig wat jouw webshop te bieden heeft.",
+            "cta_label": "Bekijk een voorbeeld",
+            "cta_href": "/webshops",
+            "preview_asset_id": null,
+            "illustrative": true
+          },
+          "onboarding": {
+            "eyebrow": "IN 3 EENVOUDIGE STAPPEN",
+            "heading": "Binnen enkele stappen live.",
+            "steps": [
+              {
+                "number": "01",
+                "title": "Aanmelden",
+                "description": "Maak een account aan en registreer jouw webshop.",
+                "icon": "document"
+              },
+              {
+                "number": "02",
+                "title": "Koppelen",
+                "description": "Verbind jouw webshop via een ondersteunde integratie of beschikbare alternatieve aansluitmethode.",
+                "icon": "link"
+              },
+              {
+                "number": "03",
+                "title": "Start met aanbiedingen",
+                "description": "Stel jouw commissies en acties in. Na goedkeuring verschijnt jouw webshop op ShopBonus.",
+                "icon": "megaphone"
+              }
+            ]
+          },
+          "bottom_cta": {
+            "eyebrow": "START MET SHOPBONUS",
+            "heading": "Klaar om nieuwe klanten te bereiken?",
+            "description": "Maak jouw aanbod zichtbaar voor koopjesjagers en bepaal zelf jouw commerciële voorwaarden.",
+            "cta_label": "Webshop aanmelden →",
+            "cta_href": "/voor-webshops/aanmelden"
+          },
+          "faq": {
+            "heading": "Veelgestelde vragen",
+            "items": [
+              {
+                "question": "Wat kost aansluiten bij ShopBonus?",
+                "answer": "Aansluiten zelf is gratis. Je betaalt alleen wanneer er resultaat is via je afgesproken commissie of actievoorwaarden. Er is geen vast abonnement."
+              },
+              {
+                "question": "Hoe werkt de commissie?",
+                "answer": "Jij stelt je commerciële afspraak in. Bij cashback via affiliate- of commissieafspraken is de standaardverdeling 70% voor de klant en 30% voor ShopBonus, tenzij Super Admin een uitzondering goedkeurt. De commissie is niet automatisch gelijk aan de cashback die de consument ziet."
+              },
+              {
+                "question": "Kan ik mijn eigen cashbackacties instellen?",
+                "answer": "Ja, zodra je webshop is goedgekeurd en er een geldig cashbackprogramma of merchant-akkoord is. Cashbackacties en kortingscodes zijn aparte aanbiedingstypen."
+              },
+              {
+                "question": "Welke webshopplatformen ondersteunen jullie?",
+                "answer": "Onder meer Shopify, WooCommerce, Wix en andere platforms met connector of handmatige module. Status (beschikbaar, handmatige setup of binnenkort) staat per platform vermeld — een logo betekent niet automatisch een live koppeling."
+              },
+              {
+                "question": "Kan ik kortingscodes toevoegen?",
+                "answer": "Ja. Je kunt geldige kortingscodes aanmaken of importeren. Alleen goedgekeurde, actieve aanbiedingen verschijnen publiek."
+              },
+              {
+                "question": "Wanneer verschijnt mijn webshop op ShopBonus?",
+                "answer": "Na afronding van onboarding, verificatie en goedkeuring door ShopBonus. Activatie is niet instant wanneer verificatie vereist is."
+              },
+              {
+                "question": "Hoe worden bestellingen geregistreerd?",
+                "answer": "Via de gekoppelde integratie (webhooks of module) of een goedgekeurde alternatieve aansluitmethode. Alleen gevalideerde, in aanmerking komende bestellingen tellen mee voor cashbackberekening."
+              },
+              {
+                "question": "Kan ik mijn aanbiedingen aanpassen?",
+                "answer": "Ja. Je beheert commissies, cashbackacties en kortingscodes vanuit het merchant-dashboard. Publieke weergave volgt altijd de goedkeurings- en publicatieregels."
+              }
+            ]
+          },
+          "footer": {
+            "blurb": "ShopBonus helpt webshops nieuwe klanten bereiken met cashback, kortingscodes en vouchers. Consumenten wisselen wallet-saldo in voor vouchers — nooit voor contant geld."
+          },
+          "section_order": [
+            "hero",
+            "platforms",
+            "benefits",
+            "offer_preview",
+            "onboarding",
+            "bottom_cta",
+            "faq"
+          ]
+        }
+      }
+    ]
+  }
+}

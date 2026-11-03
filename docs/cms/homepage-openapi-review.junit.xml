@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\wamp64\www\shopbonus\shopbonus_backend\phpunit.xml" tests="3" assertions="6332" errors="0" failures="1" skipped="0" time="11.662959">
+    <testsuite name="Feature" tests="3" assertions="6332" errors="0" failures="1" skipped="0" time="11.662959">
+      <testsuite name="Tests\Feature\Api\OpenApiCoverageTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" tests="3" assertions="6332" errors="0" failures="1" skipped="0" time="11.662959">
+        <testcase name="test_spec_is_valid_openapi_31" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" line="65" class="Tests\Feature\Api\OpenApiCoverageTest" classname="Tests.Feature.Api.OpenApiCoverageTest" assertions="2" time="4.890218"/>
+        <testcase name="test_every_route_is_documented_with_examples_and_correct_access" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" line="73" class="Tests\Feature\Api\OpenApiCoverageTest" classname="Tests.Feature.Api.OpenApiCoverageTest" assertions="5896" time="6.445368">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Api\OpenApiCoverageTest::test_every_route_is_documented_with_examples_and_correct_access&#13;
+POST /api/v1/workspaces/{workspace}/connections/{connection}/pause is missing from docs/api/openapi.yaml
+Failed asserting that null is not null.
+&#13;
+C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php:88</failure>
+        </testcase>
+        <testcase name="test_every_authenticated_route_requires_an_active_account" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Api\OpenApiCoverageTest.php" line="134" class="Tests\Feature\Api\OpenApiCoverageTest" classname="Tests.Feature.Api.OpenApiCoverageTest" assertions="434" time="0.327373"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

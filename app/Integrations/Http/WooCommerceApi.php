@@ -2,7 +2,6 @@
 
 namespace App\Integrations\Http;
 
-use App\Enums\ConnectionStatus;
 use App\Exceptions\ApiException;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
@@ -85,7 +84,10 @@ class WooCommerceApi
      */
     public function get(WebshopConnection $connection, string $resource, int $page = 1, array $query = [], int $maxPages = self::MAX_PAGES): array
     {
-        if ($connection->status === ConnectionStatus::Disconnected) {
+        if ($connection->paused_at !== null) {
+            throw ApiException::conflict('This integration is paused.', 'connection_paused');
+        }
+        if (! $connection->acceptsData()) {
             throw ApiException::conflict('This connection is disconnected. Create a new one.', 'connection_disconnected');
         }
         if (! preg_match('~\A(?:orders(?:/[1-9][0-9]{0,18}(?:/refunds)?)?|products|coupons|data/currencies/current)\z~D', $resource)

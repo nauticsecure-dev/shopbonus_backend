@@ -1,6 +1,13 @@
 # One inline CMS, NL/EN/DE and GPT-6 translation quality
 
 Status: **PARTIAL implementation; NO-GO for the requested release acceptance**.
+
+Latest local follow-up (2026-11-03):
+[structured bindings and German locale evidence](STRUCTURED_BINDINGS_FOLLOWUP.md).
+Structured extraction and shared DE UI are now partly implemented. Two existing
+CMS migrations were applied to local MySQL for the authorized local login checks.
+The earlier checkpoint below remains historical; T01–T23 staging status remains
+UNTESTED and the image pipeline/coverage/release gaps remain open.
 Owner brief: pasted requirements supplied 2026-11-02, SHA256
 `e178fffa9e52dfb955e0268c62edd9375d92ee223dd2430b6d94940aa34433f3`.
 Backend: HassanDev, base `926ab34`; frontend: HassanDev, base `5abab50`.

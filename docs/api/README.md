@@ -2,6 +2,10 @@
 
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
 
+2026-11-03 adapter follow-up: [real isolated HTTP catalogue and PrestaShop/OpenCart setup responses](ADAPTER_REVIEW_PLATFORMS_HTTP_CAPTURE.json), reproduced with `php scripts/capture-adapter-review.php`. Existing GET platform/connection endpoint shapes are retained. E-Series now resolves through its Ecwid-based connector; Squarespace uses restricted API-key polling. Setup steps link candidate PS9/OC4.1 packages. Signed PS9 ID notifications schedule native recovery; they never trust a payment claim in the notification. Package installation and genuine providers remain unverified; see [implementation and limits](../integrations/ADAPTER_REVIEW_2026-11-03.md).
+
+Current affiliate policy (owner revised brief, 2026-11-02): trusted, validated, attributed conversions earn immediately spendable noncash credit under the active versioned rule. Later rejection changes network reporting without automatically reclaiming this credit. Historical timing snapshots remain unchanged. Earlier pending/settlement captures below describe their original checkpoint. See [revised-brief acceptance and executed evidence](../release/REVISED_BRIEF_REVIEW_2026-11-02.md) and [fresh real HTTP captures](REVISED_BRIEF_HTTP_CAPTURE.json). The EUR 4.75 example explicitly uses a 100% rule; the general default share remains 70%.
+
 
 Current connection policy: `Connected` requires all seven native verification gates. Complete webhooks and passive API probes stay `Limited`; see [B23d readiness and recovery](../integrations/READINESS_AND_RECOVERY.md). Earlier checkpoint captures below are historical.
 
@@ -14,6 +18,8 @@ Current connection policy: `Connected` requires all seven native verification ga
 5. For an error status the endpoint cannot yet produce, use an envelope rendered through the real app kernel, and say so.
 
 ## Conventions
+
+Experiment launch/read/stop now add `conversion_comparison` (exploratory conversion difference, relative change, guarded 95% interval/two-sided significance and statistical favored arm). `causal_uplift` and rollout `winner` remain null; live propagation and an analysis plan are unverified. Sparse arms have no significance claim. See [definitions and acceptance limits](../analytics/SALES_ATTRIBUTION_FOLLOWUP_2026-11-03.md) and [four real local HTTP captures](EXPERIMENT_COMPARISON_HTTP_CAPTURE.json), reproduced with `php -d xdebug.mode=off scripts/capture-experiment-comparison.php` (isolated SQLite synthetic fixtures, HassanDev b92f46a plus uncommitted follow-up; no live provider). The machine-readable launch/read/stop response examples below are refreshed from those captures; older examples in this handbook describe their historical checkpoint.
 
 | Topic | Rule |
 | --- | --- |
@@ -24274,6 +24280,12 @@ Captured 200 response:
 
 Checkout policy confirmed by owner in this review: viewing an offer/opening checkout obtains only a read-only quote (`POST /api/v1/consumer/checkouts/quote`); the explicit Confirm/Pay action calls `POST /api/v1/consumer/checkouts`, starts provider payment and makes bounded reservations. Wallet-only issuance remains atomic. No new endpoint/state machine is introduced.
 
+### Local inventory acceptance follow-up
+
+Reproduce with `php scripts/capture-voucher-inventory.php`; add `--browser` for a real dummy merchant session and Chrome desktop/390px checks in the sibling frontend. Uses an isolated migrated SQLite database and temporary PHP HTTP server, never the application database. Actual request payloads, statuses and complete responses are recorded in [VOUCHER_INVENTORY_HTTP_CAPTURE.json](VOUCHER_INVENTORY_HTTP_CAPTURE.json). Captures include offer creation/publication, import preview/commit/status, dashboard counters after inventory mutations, and queued voucher export status/download. Synthetic code strings are test data; authorization tokens are redacted. Local database queue workers are explicitly drained by the harness. The fixture database, export artifact and servers are removed after completion.
+
+These captures supplement the existing operation examples; they do not establish staging/provider acceptance or provenance for every historical example. The [full brief evidence map](../merchant-voucher-acceptance-followup.md) distinguishes structural OpenAPI coverage, real HTTP captures, browser checks and unverified release requirements.
+
 ## Reliability review HTTP refresh — 2026-11-02
 
 Captured on a real local PHP 8.4.25 HTTP server, isolated synthetic SQLite,
@@ -24338,3 +24350,175 @@ Actual 404 response:
   }
 }
 ```
+
+## Voucher dispute compensation lifecycle — 2026-11-02
+
+Dispute read/list and admin resolve responses add resolution.compensation_status (requested, pending, failed, completed) and resolution.compensated_at. A resolved report can still have a pending refund. Only provider completion sets compensated_at and emits compensated. Immediate wallet credit and replacement finish synchronously.
+
+Refund requests commit a frozen amount and provider idempotency key before the external call. After timeout or interrupted persistence, repeat POST /api/v1/admin/disputes/{id}/resolve with the original refund amount (or omit it). Requested refunds reject a different amount with 409 refund_amount_changed. After a confirmed failed/canceled provider refund, the same authenticated resolve endpoint permits a retry with a new stable key; pending/completed reports remain protected. Existing authorization, recent-password gate and audit reason remain required. Historical refunds whose payment reference cannot be matched are requested and return 409 refund_reconciliation_required until an operator reconciles the provider reference; never blindly resend these.
+
+Real HTTP GET request/response examples for all four states: [DISPUTE_REFUND_HTTP_CAPTURE.json](DISPUTE_REFUND_HTTP_CAPTURE.json), generated by scripts/capture-dispute-refunds.php against an isolated SQLite database and local PHP HTTP server at uncommitted parent b92f46a on HassanDev. These are synthetic lifecycle fixtures, with no Mollie calls. OpenAPI x-dispute-refund-lifecycle contains the captured examples. Existing endpoint examples above describe historical captures. EUR pricing plus Mollie shortfall remains D-053; explicit integer points pricing uses wallet_unit=points and never pays a shortfall through Mollie.
+
+## CMS structured translations / German preference follow-up — 2026-11-03
+
+Existing suggestion endpoints now extract schema-specific landing paths and validate proposals using page key/type. Contract/envelope unchanged; provider calls remain draft-only. Existing account/profile locale, business preferred_language and agreement-template locale inputs accept DE; German identity mail is available. Request-locale middleware/general validation still negotiate NL/EN. No new endpoint or fabricated response example was added; prior actual HTTP examples remain examples of unchanged envelopes, not proof of DE acceptance. Local in-memory API regressions and browser login observations, migrations and limits are recorded in [the follow-up](../cms/STRUCTURED_BINDINGS_FOLLOWUP.md). Full DE mutation HTTP capture and staging acceptance remain outstanding.
+
+
+### GET /api/v1/workspaces/{workspace}/access-history
+
+Requires active verified membership and effective `team.manage`. Returns only team and ownership-transfer events for the resolved workspace, newest first, 25 per page. Query `page`: 1–10000. Response is private/no-store. Technical metadata, internal IDs, IP hashes and unrelated financial records are omitted. Existing standard 403/404/429/500 envelopes apply.
+
+Real local HTTP capture with isolated SQLite fixture, base b92f46a plus uncommitted changes; reproduce with `php scripts/capture-workspace-access.php`. [Captured responses](WORKSPACE_ACCESS_HTTP_CAPTURE.json). No production data.
+
+Request: `GET /api/v1/workspaces/01m6evr419ajdt17fppmp8mxa3/access-history` (Authorization: Bearer <redacted>)
+
+Response 200:
+```json
+{
+  "data": [
+    {
+      "action": "team.member_updated",
+      "occurred_at": "2026-11-02T19:28:30+00:00",
+      "outcome": "success"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1
+  }
+}
+```
+
+Request: `GET /api/v1/workspaces/01m6evr419ajdt17fppmp8mxa3/access-history` (Authorization: none)
+
+Response 401:
+```json
+{
+  "error": {
+    "status": 401,
+    "code": "unauthenticated",
+    "message": "Authentication is required.",
+    "request_id": "01a19dbc-1aff-71cb-add5-e9aacd52b068"
+  }
+}
+```
+
+Request: `GET /api/v1/workspaces/01m6evr419ajdt17fppmp8mxa3/access-history?page=0` (Authorization: Bearer <redacted>)
+
+Response 422:
+```json
+{
+  "error": {
+    "status": 422,
+    "code": "validation_failed",
+    "message": "The given data was invalid.",
+    "request_id": "01a19dbc-1fe3-73dc-bea4-2fdac527cacd",
+    "fields": {
+      "page": [
+        "The page field must be at least 1."
+      ]
+    }
+  }
+}
+```
+
+### Homepage publication revision check (2026-11-03)
+
+POST /api/v1/admin/content/homepage/publish now requires { locale, revision }. Use the revision of the reviewed draft, or the draft_revision returned by the immediately preceding save. A changed stored draft returns 409 draft_changed under the existing publication row lock; omitted/invalid revision returns 422. Neither creates a publication. The homepage editor queues replacements through POST /api/v1/admin/cms/pages/{page}/schedules with action=publish, locale, revision and due_at; GET /api/v1/admin/cms/schedules?page={page} and POST /api/v1/admin/cms/schedules/{id}/cancel expose status and cancellation. The existing homepage /schedule endpoint remains the legacy visibility-window draft operation for compatibility. Queued execution requires the deployed every-minute shopbonus:publish-scheduled-content scheduler.
+
+## Offers/code review — 2026-11-03
+
+Real local PHP HTTP server, isolated migrated SQLite, synthetic merchant; no provider request. Reproduce: `php scripts/capture-voucher-inventory.php --offers-review`. [Actual request/response exchanges](OFFERS_CODE_REVIEW_HTTP_CAPTURE.json) include:
+
+- GET `/api/v1/workspaces/{workspace}/offers/{offer}/code-batches?per_page=1&page=2` — independent paginated metadata (vouchers.view), 200/422/404. All import states are included; no full codes returned.
+- POST `/api/v1/workspaces/{workspace}/codes/{code}/platform-validation` with `{"mode":"provider_check","voucher_id":"<voucher public ID>"}` — frozen voucher snapshot comparison (vouchers.manage). Omit voucher_id for current inventory terms. Historical result is in `verification` and an append-only voucher event; `data.platform_validation` remains inventory-scoped. A foreign/missing/mismatched voucher reference returns 404.
+- Manual confirmation requires a note and produces `manually_confirmed`, distinct from provider `verified`. Unsupported adapters remain `unsupported_integration`; no usable connection requires merchant verification. Only WooCommerce has an automated coupon adapter. This capture proves local HTTP behavior, not actual provider checkout acceptance.
+
+Inventory/export filters: status, batch, exact full code search (no references), platform_validation, assigned, added_from, added_to and sort. The UI sends inclusive local calendar-day boundaries as UTC instants; filtered export applies all filters regardless of selected rows. Sorting exports uses ordered chunks to avoid skipping rows across ID boundaries.
+
+Acceptance correction: cross-tenant resource IDs return audited concealed 404; 403 applies to missing permissions within an accessible workspace. Do not infer a foreign record exists from an API denial. The historical Trello brief's cross-tenant 403 expectation is superseded by this established policy.
+
+## Integration pause and resume — 2026-11-03
+
+Real loopback HTTP, isolated SQLite synthetic fixtures, HassanDev base b92f46a + uncommitted changes. [Raw captures](APP_STORE_PAUSE_HTTP_CAPTURE.json), reproduced with `php scripts/capture-app-store-pause.php`. No provider calls.
+
+Both actions require `integrations.manage`, preserve credentials/generation/evidence and are idempotent. `paused_at` is separate from readiness status. Authenticated uninstall notifications remain enabled; ordinary webhooks return 503/Retry-After while paused, queued data remains pending. Resume requeues retained work. Pause does not uninstall the storefront.
+
+### POST /api/v1/workspaces/{workspace}/connections/{connection}/pause
+
+Request: `POST /api/v1/workspaces/01m6ft3esv915gqhn023d6wnwf/connections/01m6ft3f4vbvy0qrc7yqjm7ap6/pause`, Bearer `<TOKEN>`, no body. SPA calls require CSRF.
+
+HTTP 200 (actual local capture):
+
+```json
+{
+  "data": {
+    "id": "01m6ft3f4vbvy0qrc7yqjm7ap6",
+    "platform": "prestashop",
+    "method": "private_module",
+    "status": "setup_required",
+    "paused_at": "2026-11-03T04:19:12+00:00",
+    "external_shop_ref": null,
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-11-03T04:18:59+00:00"
+  }
+}
+```
+
+Disconnected connections return 409 `connection_disconnected`; unknown/cross-tenant IDs return 404; missing manage permission returns 403.
+
+### POST /api/v1/workspaces/{workspace}/connections/{connection}/resume
+
+Request: `POST /api/v1/workspaces/01m6ft3esv915gqhn023d6wnwf/connections/01m6ft3f4vbvy0qrc7yqjm7ap6/resume`, Bearer `<TOKEN>`, no body. SPA calls require CSRF.
+
+HTTP 200 (actual local capture):
+
+```json
+{
+  "data": {
+    "id": "01m6ft3f4vbvy0qrc7yqjm7ap6",
+    "platform": "prestashop",
+    "method": "private_module",
+    "status": "setup_required",
+    "paused_at": null,
+    "external_shop_ref": null,
+    "limitations": [],
+    "last_event_at": null,
+    "last_verified_order_at": null,
+    "connected_at": null,
+    "disconnected_at": null,
+    "last_error": null,
+    "created_at": "2026-11-03T04:18:59+00:00"
+  }
+}
+```
+
+Disconnected connections return 409 `connection_disconnected`; unknown/cross-tenant IDs return 404; missing manage permission returns 403.
+
+Latest offers review capture contains 22 actual exchanges, including anonymous 401 and view-permission 403 on code-batches. The isolated staff bearer is distinct from the fixture owner; all token values are redacted.
+
+Disconnected resume: actual local HTTP 409 from the same isolated capture:
+
+```json
+{
+  "error": {
+    "status": 409,
+    "code": "connection_disconnected",
+    "message": "This connection is disconnected. Create a new one.",
+    "request_id": "01a19fa8-ba3b-7165-85dc-0b4b2be1115f"
+  }
+}
+```
+
+Real cookie-authenticated homepage publication responses (200, 409, 422, plus CSRF/recent-password denials): [isolated running-server capture](HOMEPAGE_PUBLICATION_REVIEW_HTTP_CAPTURE.json). Reproduce with `npx playwright test --config playwright.homepage-live.config.ts --grep "14 real"` in the frontend; the helper performs genuine login, MFA, CSRF and recent-password confirmation against the isolated Laravel HTTP service. The OpenAPI publication examples above are copied from this capture.
+
+### Merchant landing revision comparison — 2026-11-03
+
+Super Admin GET /api/v1/admin/content/voor-webshops/versions accepts optional include_content=1, also on the /content/pages/voor-webshops alias. Default responses retain metadata only. With the flag, each revision includes its immutable stored content; editing the current draft does not change earlier snapshots. Locale filtering and existing authentication/MFA gates apply.
+
+Real authenticated HTTP request/response: [MERCHANT_HISTORY_HTTP_CAPTURE.json](MERCHANT_HISTORY_HTTP_CAPTURE.json), using the isolated SQLite/filesystem runtime in scripts/merchant-review.php. The capture includes synthetic publications and a successful real media upload, not provider or staging evidence. Reproduce: start php scripts/merchant-review.php serve (or resume for its existing isolated database), then run npx playwright test --config playwright.merchant-http.config.ts from the sibling frontend. The browser suite is separately available via playwright.merchant-live.config.ts.

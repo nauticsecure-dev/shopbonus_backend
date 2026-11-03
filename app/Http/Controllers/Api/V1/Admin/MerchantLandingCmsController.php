@@ -103,7 +103,7 @@ class MerchantLandingCmsController extends Controller
             $q->where('locale', $locale);
         }
 
-        return response()->json(['data' => $q->get()->map(fn (CmsRevision $r) => $this->revision($r))->all()]);
+        return response()->json(['data' => $q->get()->map(fn (CmsRevision $r) => $this->revision($r) + ($request->boolean('include_content') ? ['content' => $r->content] : []))->all()]);
     }
 
     public function restore(Request $request): JsonResponse

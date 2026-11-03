@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Affiliate\DaisyconCompletenessTest" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\DaisyconCompletenessTest.php" tests="5" assertions="16" errors="0" failures="0" skipped="0" time="2.376621">
+    <testcase name="test_programs_and_conversions_include_second_pages_even_when_server_caps_page_size" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\DaisyconCompletenessTest.php" line="31" class="Tests\Feature\Affiliate\DaisyconCompletenessTest" classname="Tests.Feature.Affiliate.DaisyconCompletenessTest" assertions="3" time="2.000506"/>
+    <testcase name="test_repeated_or_truncated_pages_never_advance_durable_sync_checkpoint" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\DaisyconCompletenessTest.php" line="48" class="Tests\Feature\Affiliate\DaisyconCompletenessTest" classname="Tests.Feature.Affiliate.DaisyconCompletenessTest" assertions="4" time="0.129879"/>
+    <testcase name="test_page_limit_is_an_error_and_not_partial_success" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\DaisyconCompletenessTest.php" line="62" class="Tests\Feature\Affiliate\DaisyconCompletenessTest" classname="Tests.Feature.Affiliate.DaisyconCompletenessTest" assertions="2" time="0.079470"/>
+    <testcase name="test_raw_access_permission_snapshot_does_not_enable_cashback_or_create_offers" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\DaisyconCompletenessTest.php" line="71" class="Tests\Feature\Affiliate\DaisyconCompletenessTest" classname="Tests.Feature.Affiliate.DaisyconCompletenessTest" assertions="4" time="0.083792"/>
+    <testcase name="test_separate_resource_snapshots_preserve_previous_complete_data_on_failure" file="C:\wamp64\www\shopbonus\shopbonus_backend\tests\Feature\Affiliate\DaisyconCompletenessTest.php" line="91" class="Tests\Feature\Affiliate\DaisyconCompletenessTest" classname="Tests.Feature.Affiliate.DaisyconCompletenessTest" assertions="3" time="0.082974"/>
+  </testsuite>
+</testsuites>

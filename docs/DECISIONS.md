@@ -271,3 +271,9 @@ For the EUR 10 / 70-30 scenario, prove EUR 7 consumer credit plus EUR 3 platform
 allocation using the existing frozen evidence. Label the accounting basis and
 keep recognized revenue explicitly unverified. This does not authorize a new
 revenue journal, change reward spendability, or adopt any proposed RPO/RTO.
+
+### Revised affiliate timing and platform acceptance — owner, 2026-11-02
+
+The current owner brief explicitly confirms immediate spendable affiliate credit. This supersedes D-089/D-107 and earlier settlement-gated launch notes for new reward evaluations. Default timing is on_validated_attribution, frozen with the active versioned rule. Trusted attribution, duplicate/currency/review safeguards remain. Later network rejection updates reporting and does not automatically claw back instant consumer credit; 12-month expiry remains. Preserve existing frozen timing and ledger history. The EUR 4.75 scenario uses a 100% earning rule for 475-cent eligible commission; retain the general 70% default.
+
+Retain audited 404 concealment for a non-member workspace request; update scenario 2 acceptance accordingly. Permission denial within an active membership remains 403. ShopBonus contact eligibility/consent/suppression checks are disclosure safeguards; Answer24 owns final outreach decisions and execution. Ecommerce fixtures do not establish live installations. Full disposition and executed evidence: docs/release/REVISED_BRIEF_REVIEW_2026-11-02.md.

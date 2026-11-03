@@ -1,5 +1,21 @@
 # Affiliate detail, enrichment and cashback review
 
+## Current review follow-up — 2026-11-03
+
+Whole-card acceptance remains PARTIAL. See [current verification](AFFILIATE_DETAIL_FOLLOWUP_2026-11-03.md)
+for reproduced runtime results, storage failure fixes and remaining acceptance.
+The two reported cover failures did not reproduce on installed PHP 8.4.25 or
+8.5.0. This establishes local fixture behavior only. Provider normalization,
+approved website assets, genuine synchronization/settlement and complete visual
+and real-service journeys remain unfinished.
+
+The November 1 timing description below is historical: the owner's November 2
+decision supersedes it for new rewards with `on_validated_attribution`.
+Frozen historical settlement/approval rules retain their timing. This follow-up
+does not change reward policy or establish live acceptance.
+
+## Historical checkpoint — 2026-11-01
+
 2026-11-01. Local implementation verified; whole-card acceptance PARTIAL.
 Backend HassanDev, base 59916e94c26cada8696939845e40deca6d1d4697.
 Existing unrelated and task-related uncommitted changes were preserved.
