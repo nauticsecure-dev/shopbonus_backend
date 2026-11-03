@@ -1450,3 +1450,5 @@ B63 parent5491f79: SQLite7/112, MySQL7/112; PHPStan/Pint PASS. Four real HTTP ca
 - [x] Capture real settings/monitoring/message HTTP responses, update API/config/runbook and record external connectivity/quality/frontend gaps.
 
 B63 implementing SHA `25fa46c`. B64 parent25fa46c: Support SQLite180pass+3skip/1470assertions; selected MySQL154/1324; API5/8349; PHPStan/Pint/diff PASS. Eleven real HTTP exchanges with synthetic accounts/local SMTP; live provider/Reverb/quality/frontend acceptance remains OPEN. B64 implementing SHA recorded next closeout.
+
+B64 implementing SHA: `8c95e5c`; B63 `25fa46c`. Both pushed to draft PR#5; no live-provider or whole-suite green claim.
