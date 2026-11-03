@@ -1415,6 +1415,8 @@ Boxes remain unticked until a tested implementation commit SHA exists. Live acce
 - [x] Preserve new main features plus review fixes; resolve code/docs/API conflicts and retain latest owner D-109.
 - [x] Verify combined connector breakdowns/order binding, financial policy and current route inventory.
 - [x] Run combined regression and static checks, recording local codec failures separately.
-- [ ] Record merge parents/evidence, push review branch and confirm PR mergeability.
+- [x] Record merge parents/evidence, push review branch and confirm PR mergeability.
 
 B61 parent15e58dc + mainb04ea65: repaired SQLite162/2001, merged focused68/8445, MySQL99/883; PHPStan PASS. Initial broad run failed; local GD failures remain documented. Remote mergeability verification follows push.
+
+B61 implementing merge SHA `be4a3e5`; pushed and GitHub MERGEABLE confirmed. Backend Pint/PHPStan/diff PASS; CI41650765241 pending.

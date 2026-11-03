@@ -1,3 +1,5 @@
+B61 merge `be4a3e5` pushed; parents15e58dc andb04ea65. GitHub PR#5 confirmed MERGEABLE (checks pending/UNSTABLE, not a conflict). CI41650765241 in progress at verification. Backend Pint(app/tests/config/routes/database), PHPStan and diff PASS; focused SQLite162/2001 plus68/8445 and MySQL99/883 PASS. Local broad image-codec failures remain documented below; no full green claim. Working tree clean before this documentation closeout. Next: inspect CI results; do not merge/deploy automatically.
+
 # B61 — Resolve PR#5 conflicts with current main (2026-11-03, Codex)
 
 Branch frank/review-fixes; merge parents review15e58dcbc172d6d158beeda6b64d958743050e21 and mainb04ea65740d0ca680d9d3888e5815119de8a2c0a (PR#6). Clean working tree before merge; user explicitly requested conflict repair. Preserved incoming backend features, candidate native package assets and both agents' history/captured evidence. No main merge, force push, deployment or frontend feature work. Combined API merge retains main's new operations plus review examples; inventory regenerated470 route entries /471 non-HEAD operations /412 paths, zero documented access drift.
