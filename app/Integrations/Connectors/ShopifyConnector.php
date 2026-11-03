@@ -8,6 +8,7 @@ use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -35,7 +36,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store.
  */
-class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedOrderReader
+class ShopifyConnector extends WebhookConnector implements CatalogReader, CouponLookup, PagedOrderReader
 {
     public const ORDER_TOPICS = ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'orders/fulfilled'];
 
@@ -289,5 +290,10 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
         }
 
         return ['items' => $items, 'next' => $page['next']];
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        return app(ShopifyApi::class)->couponByCode($connection, $code);
     }
 }

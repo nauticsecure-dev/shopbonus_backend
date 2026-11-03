@@ -1513,3 +1513,12 @@ B69 parent `5861751`: SQLite203/1905; MySQL14/148; PHPStan/Pint/diff PASS. B68 i
 B70 local backend boundary: parent `cfef279`; SQLite302PASS+4skip/13412, MySQL40PASS/251, API5/8353, fullPint/PHPStan/audit/diff PASS. Six actual synthetic local HTTP captures; real native validator/finalizer exercised with explicit synthetic evidence. Implementing SHA `94e3f87`; source integration `d8c9aa9`. Actual provider/study/legal acceptance remains NOT RUN. B69 implementing SHA `cfef279`; B68 `5861751`. New branch `frank/moneybird-experiment-followup` because PR#5 was merged externally; full new-head CI execution is recorded under PR#7 checks.
 
 B68–B70 closeout: `5861751` / `cfef279` / `94e3f87`, integrated source `d8c9aa9`; draft PR#7. Checked items certify tested backend boundaries only. Actual Moneybird, storefront persistence, live experiment measurement and independent release acceptance remain unverified.
+
+### B71 — Additional automatic native coupon verification
+
+- [x] Audit native read contracts and add bounded exact-code lookups using existing authenticated store/domain/scope guards.
+- [x] Verify supported provider configuration against current or frozen terms without claiming checkout acceptance/redemption; retain manual states for unknown constraints and unsupported types.
+- [x] Test native responses, ambiguous/malformed data, currency/term/restriction/lifecycle mismatches, credentials/tenant boundaries and historical isolation.
+- [x] Capture actual HTTP responses, update API/provider contracts and checkpoint docs, run relevant database/static/API checks and record the implementing SHA.
+
+B71 tested backend boundary (2026-11-04): parent52ef8c5; SQLite282PASS/13382, final focusedMySQL23PASS/117, earlier selectedMySQL42PASS/469, API5PASS/8353, fullPint/PHPStan/diff PASS. Ten actual local HTTP captures use explicit synthetic provider transport. Implementing SHA follows in the closeout; real provider/checkout/redemption acceptance remains NOT RUN. No migrations.

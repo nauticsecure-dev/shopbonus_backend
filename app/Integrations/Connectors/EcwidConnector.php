@@ -8,13 +8,16 @@ use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
+use App\Integrations\CouponLookupResult;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\PinnedJsonReader;
+use App\Integrations\Http\WooCommerceApi;
 use App\Integrations\ProviderOrderId;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
@@ -23,7 +26,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+class EcwidConnector extends WebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     public function platform(): EcommercePlatform
     {
@@ -98,7 +101,8 @@ class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNot
         return app(PinnedJsonReader::class)->read($c, 'https://app.ecwid.com/api/v3/'.$c->external_shop_ref.$path, ['headers' => ['Authorization' => 'Bearer '.$c->credential('access_token')]], 'GET', $query)['data'];
     }
 
-    private function identity(WebshopConnection $c): void
+    /** @return array<string,mixed> */
+    private function identity(WebshopConnection $c): array
     {
         $p = $this->read($c, '/profile');
         if ((string) ($p['generalInfo']['storeId'] ?? '') !== $c->external_shop_ref) {
@@ -111,6 +115,9 @@ class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNot
         if (($p['account']['suspended'] ?? true) !== false || ! in_array('API', $p['account']['availableFeatures'] ?? [], true)) {
             throw ApiException::conflict('This store needs an active plan with API access.', 'provider_plan_restricted');
         }
+
+        return $p;
+
     }
 
     public function testConnection(WebshopConnection $c): array
@@ -264,5 +271,23 @@ class EcwidConnector extends WebhookConnector implements CatalogReader, OrderNot
         }
 
         return (int) $cursor;
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $code = WooCommerceApi::couponCode($code);
+        $store = $this->identity($connection);
+        $currency = $store['formatsAndUnits']['currency'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $page = $this->read($connection, '/discount_coupons', ['code' => $code, 'offset' => 0, 'limit' => 100]);
+        $rows = $page['items'] ?? null;
+        if (! is_array($rows) || ! is_int($page['total'] ?? null) || ($page['offset'] ?? null) !== 0
+            || ($page['count'] ?? null) !== count($rows) || $page['total'] !== count($rows)) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+
+        return ['coupon' => CouponLookupResult::exact($rows, $code), 'currency' => $currency];
     }
 }

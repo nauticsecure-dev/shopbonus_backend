@@ -6,6 +6,8 @@ use App\Enums\AuditCategory;
 use App\Enums\ConnectionStatus;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\ConnectorRegistry;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Http\WooCommerceApi;
 use App\Models\OfferVersion;
 use App\Models\User;
@@ -19,8 +21,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Distinguishes "code exists in ShopBonus" from "webshop checkout accepts it"
- * (Trello #7 §8). Import never proves checkout acceptance; this service does
- * when a provider coupon API is available, otherwise leaves merchant action.
+ * (Trello #7 §8). Native APIs establish configuration matches only; actual
+ * checkout acceptance and redemption need separate provider-backed evidence.
  */
 class PlatformCouponVerification
 {
@@ -39,7 +41,7 @@ class PlatformCouponVerification
     public const MISMATCH = 'mismatch';
 
     /** Platforms with a read coupon API wired here. */
-    private const PROVIDER_SUPPORTED = [EcommercePlatform::WooCommerce];
+    private const PROVIDER_SUPPORTED = [EcommercePlatform::WooCommerce, EcommercePlatform::Shopify, EcommercePlatform::BigCommerce, EcommercePlatform::Ecwid, EcommercePlatform::LightspeedE];
 
     public function __construct(
         private readonly WooCommerceApi $woo,
@@ -71,6 +73,20 @@ class PlatformCouponVerification
         }
 
         try {
+            if ($connection->platform !== EcommercePlatform::WooCommerce) {
+                $adapter = app(ConnectorRegistry::class)->for($connection->platform);
+                if (! $adapter instanceof CouponLookup) {
+                    throw ApiException::conflict('The configured adapter has no native coupon lookup.', 'coupon_api_unsupported');
+                }
+                $lookup = $adapter->lookupCoupon($connection, $code->code);
+                if ($lookup['coupon'] === null) {
+                    return $this->persist($code, self::MERCHANT_REQUIRED, ['reason' => 'not_found_on_platform', 'platform' => $connection->platform->value,
+                        'evidence_scope' => 'native_configuration_not_checkout_or_redemption'], 'provider_check', voucher: $voucher);
+                }
+                $result = app(NativeCouponTerms::class)->compare($connection->platform, $lookup['coupon'], $lookup['currency'], $terms, $code, $voucher);
+
+                return $this->persist($code, $result['platform_validation'], $result['detail'], 'provider_check', voucher: $voucher);
+            }
             $coupon = $this->woo->findCouponByCode($connection, $code->code);
             if ($coupon === null) {
                 return $this->persist($code, self::MERCHANT_REQUIRED, [

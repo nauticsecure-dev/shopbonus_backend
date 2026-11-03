@@ -7,8 +7,10 @@ use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
+use App\Integrations\CouponLookupResult;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
@@ -22,7 +24,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class BigCommerceConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+final class BigCommerceConnector extends WebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     public const TOPICS = ['store/order/created', 'store/order/updated', 'store/order/statusUpdated', 'store/order/refund/created', 'store/order/transaction/created'];
 
@@ -114,7 +116,8 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         return app(PinnedJsonReader::class)->read($c, 'https://api.bigcommerce.com/stores/'.$c->external_shop_ref.$path, ['headers' => ['X-Auth-Token' => $c->credential('access_token')]], 'GET', $query, allowEmpty: $allowEmpty)['data'];
     }
 
-    private function identity(WebshopConnection $c): void
+    /** @return array<string,mixed> */
+    private function identity(WebshopConnection $c): array
     {
         $s = $this->read($c, '/v2/store');
         if (($s['id'] ?? null) !== $c->external_shop_ref) {
@@ -126,6 +129,9 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         if (($s['features']['multi_storefront_enabled'] ?? false) === true) {
             throw ApiException::conflict('Multi-storefront channel ownership requires a separate verified mapping.', 'provider_channel_mapping_required');
         }
+
+        return $s;
+
     }
 
     public function testConnection(WebshopConnection $c): array
@@ -292,5 +298,18 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         }
 
         return ['items' => $items, 'next' => $more ? (string) ($page + 1) : null];
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $code = WooCommerceApi::couponCode($code);
+        $store = $this->identity($connection);
+        $currency = $store['currency'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $rows = $this->read($connection, '/v2/coupons', ['code' => $code, 'page' => 1, 'limit' => 100], true);
+
+        return ['coupon' => CouponLookupResult::exact($rows, $code), 'currency' => $currency];
     }
 }

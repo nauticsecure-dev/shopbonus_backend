@@ -1,0 +1,50 @@
+{
+  "sqlite_offers_integrations_api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 282,
+    "passed": 282,
+    "assertions": 13382,
+    "duration_ms": 38127
+  },
+  "mysql_native_coupon_current": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 23,
+    "passed": 23,
+    "assertions": 117,
+    "duration_ms": 22984
+  },
+  "earlier_selected_mysql_regression": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 42,
+    "passed": 42,
+    "assertions": 469,
+    "duration_ms": 27543
+  },
+  "api_coverage_inventory": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 5,
+    "passed": 5,
+    "assertions": 8353,
+    "duration_ms": 5757
+  },
+  "pint": {
+    "tool": "pint",
+    "result": "passed"
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "capture": {
+    "responses": 10,
+    "file": "B71_COUPON_VERIFICATION_HTTP_CAPTURE.json",
+    "environment": "Actual loopback Laravel HTTP; isolated temporary SQLite/storage/key/router. Native provider transport/DNS synthetic only."
+  },
+  "limits": "Actual provider/checkout/redemption acceptance NOT RUN. Only supported unrestricted configurations verify automatically. Unsupported platforms and unprovable caps/restrictions retain manual states. No provider writes or migrations. Full matrix execution is recorded under PR#7 checks.",
+  "baseline_sha": "52ef8c5ad8a5bd95166694a9c5e27f4d44becff0"
+}

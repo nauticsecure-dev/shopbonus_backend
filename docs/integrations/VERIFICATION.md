@@ -1,5 +1,8 @@
 # Provider verification checklist
 
+B71: [automatic native coupon configuration checks](COUPON_VERIFICATION.md) now cover Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside WooCommerce. Unknown restrictions/caps remain manual. This implements authenticated reads only; provider-backed checkout/creation/redemption acceptance remains NOT RUN and coupon-write/banner readiness is unchanged.
+
+
 B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
 
 2026-11-03 App Store follow-up: [local changes, executed evidence and remaining engineering/acceptance gaps](APP_STORE_FINDINGS_2026-11-03.md). [Exact server environment and workspace credential keys](ENVIRONMENT.md). Pause/resume has local evidence only; no provider row below is promoted.
