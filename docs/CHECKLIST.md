@@ -1235,3 +1235,5 @@ B57 implementing SHA: `ffa436d`; pushed to draft PR#5. External provider/native 
 - [x] Run focused CMS/API checks and record remaining approved-content/frontend/deployed scheduler acceptance gaps.
 
 B58 parentf57e6e6: SQLite CMS/API71/8904, MySQL About15/135, static/style/diff PASS;14 real local authenticated HTTP exchanges. Checklist covers backend enforcement/evidence only; deployment/content/frontend/design acceptance stays open. Implementing SHA recorded in the subsequent closeout.
+
+B58 implementing SHA: `6ed1395`.

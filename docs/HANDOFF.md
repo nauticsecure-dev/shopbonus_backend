@@ -1,3 +1,5 @@
+B58 implementing SHA `6ed1395`; focused checks and14 authenticated local HTTP exchanges passed. No migrations. Remaining external acceptance and exact next action are recorded below.
+
 # B58 — Require the reviewed About publication revision (2026-11-03, Codex)
 
 Branch frank/review-fixes, parentf57e6e6; draft PR#5. Both About publication aliases now require a positive integer revision and always pass it to CmsService's existing transactional locked comparison. Missing/null/invalid422, stale409 draft_changed. No auto-reread/retry or change to restore/scheduler semantics. Generic CMS publication already required revision and remains unchanged.
