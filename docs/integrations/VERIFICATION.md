@@ -1,5 +1,7 @@
 # Provider verification checklist
 
+B78: [Lightspeed C cash-refund gap](LIGHTSPEED_C_REFUND_CASH.md) remains OPEN. Credits/manual paid labels/return quantities do not establish actual PSP cash; null values are retained and negative regressions pass.
+
 B77: [Candidate Adobe asynchronous couriers and scoped SaaS REST](ADOBE_ASYNC.md) now ship as PaaS module/private App Builder source plus exact-tenant IMS/Store-header reads. Real Adobe registration/installation/paid/refund/cleanup acceptance remains NOT RUN. Earlier “no module/SaaS implementation” statements are superseded by this source boundary.
 
 B74: [Explicit stored provider evidence review](PROMOTION_EVIDENCE_REVIEW.md) normalizes selected conditions/exclusions into reviewed offer versions; permission remains separate and real provider acceptance is NOT RUN.

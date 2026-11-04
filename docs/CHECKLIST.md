@@ -1598,5 +1598,8 @@ B77 parent81a3591: SQLite241/2188, MySQL5/43, package/Runtime/API11/8541, API5/8
 
 ### B78 — Lightspeed C refund evidence
 
-- [ ] Establish authoritative credit/return versus cash-refund fields and order binding; never infer cash from credits or quantities.
-- [ ] Implement supported cash evidence mapping where documented; otherwise retain unknown values with explicit source blockers and executed negative regression evidence.
+- [x] Verify authoritative credit/return versus cash workflow distinction and record missing cash transaction/order-binding contract.
+- [x] Retain unknown cash values and execute negative regressions preventing credit/quantity/manual paid-label inference and double subtraction.
+- [ ] Implement a supported authoritative PSP/native cash-refund API mapping with exact order/merchant/currency/transaction binding and actual provider acceptance.
+
+B78 audited source4b8626f: combinedC/Adobe/package/Runtime15PASS/254; Pint/diff PASS. This is regression/audit evidence only, not a cash mapping implementation. Gap remains OPEN; no C runtime/API/migration/financial change.
