@@ -1552,6 +1552,8 @@ B73 implementing SHA `346b3bb`; B72 implementing SHA `6a8c5c3`. Checked items ce
 ### B73 CI follow-up — Merchant landing availability fixture
 
 - [x] Preserve the unsupported-connector marketing rejection scenario with an explicit unavailable fixture; verify the newly registered Mijnwebwinkel bridge reports manual setup rather than native availability.
-- [x] Execute the CMS regression on SQLite/MySQL, retain full CI failure provenance, record source SHA and rerun current-head CI.
+- [x] Execute the CMS regression on SQLite/MySQL, retain full CI failure provenance and record source SHA; replacement full CI is tracked separately.
 
 B73 CI follow-up parent9abc7af: CMS SQLite14/84 +MySQL14/84; Pint/diff PASS. Historical failed run41787701578 retained; replacement full CI remains pending. Implementing test SHA recorded in following closeout.
+
+CMS regression correction implementing SHA `c595066`; replacement full CI remains pending at PR#7 checks.
