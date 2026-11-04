@@ -1609,3 +1609,9 @@ B78 audited source4b8626f: combinedC/Adobe/package/Runtime15PASS/254; Pint/diff 
 - [x] Pin Node22 in the backend test jobs to match Adobe Runtime; parse workflow and execute the native action/archive regressions before committing.
 
 B77 implementing source4b8626f; B78 regression/audit89cce64 (cash mapping remains OPEN). Node22 workflow parse/native6PASS/188; current integration/unit242/2195; fullPint/diff PASS. Full current-head matrix pending push; no native provider acceptance inferred.
+
+### B77 capture follow-up — Explicit HTTP storage isolation
+
+- [x] Pass the temporary storage path explicitly to the real HTTP bootstrap, regenerate actual captures and refresh matching OpenAPI examples; rerun API coverage.
+
+B77 runtime CI41799578086 SUCCESS atf217e33: MySQL1457/4skip/24018, SQLite1432/29skip/23913, quality PASS. Final capture isolation/OpenAPI follow-up API5/8353; no runtime source change. Native installation/acceptance and C cash/publisher gaps remain explicitly open.

@@ -1,6 +1,6 @@
 {
-  "captured_at": "2026-11-04T08:11:24Z",
-  "baseline": "81a3591 plus B77 working tree",
+  "captured_at": "2026-11-04T08:36:11Z",
+  "baseline": "f217e33 backend source; explicit HTTP storage-isolation capture follow-up",
   "environment": "Actual Laravel loopback HTTP; isolated temporary SQLite/storage/key. Synthetic merchant records, actual API authentication/authorization/validation/connector creation. No native provider requests or genuine provider acceptance. One-time generated signing secret is redacted. Candidate module and private App Builder action; SaaS native transport is separately fixture-tested. Actual native Adobe registration/installation is NOT RUN. ID notifications are authenticated, persisted and queued; provider order recovery workers are not executed in this HTTP capture.",
   "exchanges": [
     {
@@ -2048,7 +2048,7 @@
       "label": "magento_module_create",
       "request": {
         "method": "POST",
-        "path": "/api/v1/workspaces/01m6jssqce2k2wrjy8vyyfwhfr/connections",
+        "path": "/api/v1/workspaces/01m6jv73m4wfayk8a78xpkjz9r/connections",
         "body": {
           "platform": "magento",
           "store_url": "https://shop.example.com",
@@ -2065,7 +2065,7 @@
         "status": 201,
         "body": {
           "data": {
-            "id": "01m6jssrchz1e5m7bbnsqjy0ck",
+            "id": "01m6jv74f5rfjvvqmf6nc1ayqf",
             "platform": "magento",
             "method": "private_module",
             "status": "setup_required",
@@ -2077,10 +2077,10 @@
             "connected_at": null,
             "disconnected_at": null,
             "last_error": null,
-            "created_at": "2026-11-04T08:11:24+00:00",
+            "created_at": "2026-11-04T08:36:11+00:00",
             "setup": {
               "format": "shopbonus-webhook-v1",
-              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/719mc8s9pYAiEv0TWXxJLTYrVd7Ppkq5tEvel4Y9",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/WmHICQOl07Bll53pomWKqucvVGH0c0NWgOXDJdfB",
               "steps": [
                 "A compatible merchant-side module is required; see this platform\u2019s installation instructions.",
                 "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
@@ -2195,7 +2195,7 @@
       "label": "adobe_saas_create",
       "request": {
         "method": "POST",
-        "path": "/api/v1/workspaces/01m6jssqdd8dsm4eez8apab1gw/connections",
+        "path": "/api/v1/workspaces/01m6jv73n7n1y89rmtga8hn44w/connections",
         "body": {
           "platform": "magento",
           "deployment": "saas",
@@ -2214,7 +2214,7 @@
         "status": 201,
         "body": {
           "data": {
-            "id": "01m6jssre2svjr2zsf0e69xt03",
+            "id": "01m6jv74gttc1c8mpfcdv74vy3",
             "platform": "magento",
             "method": "private_module",
             "status": "setup_required",
@@ -2226,10 +2226,10 @@
             "connected_at": null,
             "disconnected_at": null,
             "last_error": null,
-            "created_at": "2026-11-04T08:11:24+00:00",
+            "created_at": "2026-11-04T08:36:11+00:00",
             "setup": {
               "format": "shopbonus-webhook-v1",
-              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/QMqqo3RSXzfJAXqMOxc2ykhi87a2WMsLNrXvhSOk",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/5zpUFjLuGLOpAzEVByMZDvdxOaewTT9gF0XcMYax",
               "steps": [
                 "A compatible merchant-side module is required; see this platform\u2019s installation instructions.",
                 "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
@@ -2344,7 +2344,7 @@
       "label": "magento_detail",
       "request": {
         "method": "GET",
-        "path": "/api/v1/workspaces/01m6jssqce2k2wrjy8vyyfwhfr/connections/01m6jssrchz1e5m7bbnsqjy0ck",
+        "path": "/api/v1/workspaces/01m6jv73m4wfayk8a78xpkjz9r/connections/01m6jv74f5rfjvvqmf6nc1ayqf",
         "body": null,
         "headers": {
           "Accept": "application/json",
@@ -2355,7 +2355,7 @@
         "status": 200,
         "body": {
           "data": {
-            "id": "01m6jssrchz1e5m7bbnsqjy0ck",
+            "id": "01m6jv74f5rfjvvqmf6nc1ayqf",
             "platform": "magento",
             "method": "private_module",
             "status": "setup_required",
@@ -2367,10 +2367,10 @@
             "connected_at": null,
             "disconnected_at": null,
             "last_error": null,
-            "created_at": "2026-11-04T08:11:24+00:00",
+            "created_at": "2026-11-04T08:36:11+00:00",
             "setup": {
               "format": "shopbonus-webhook-v1",
-              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/719mc8s9pYAiEv0TWXxJLTYrVd7Ppkq5tEvel4Y9",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/WmHICQOl07Bll53pomWKqucvVGH0c0NWgOXDJdfB",
               "steps": [
                 "A compatible merchant-side module is required; see this platform\u2019s installation instructions.",
                 "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
@@ -2481,7 +2481,7 @@
       "label": "foreign_workspace",
       "request": {
         "method": "POST",
-        "path": "/api/v1/workspaces/01m6jssqce2k2wrjy8vyyfwhfr/connections",
+        "path": "/api/v1/workspaces/01m6jv73m4wfayk8a78xpkjz9r/connections",
         "body": {
           "platform": "magento"
         },
@@ -2497,7 +2497,7 @@
             "status": 404,
             "code": "not_found",
             "message": "The requested resource was not found.",
-            "request_id": "01a1a59c-e1f5-71e6-b5ba-54fb562a9653"
+            "request_id": "01a1a5b3-924c-72d8-b608-a49fb913d8a5"
           }
         }
       }
@@ -2506,7 +2506,7 @@
       "label": "no_manage_permission",
       "request": {
         "method": "POST",
-        "path": "/api/v1/workspaces/01m6jssqce2k2wrjy8vyyfwhfr/connections",
+        "path": "/api/v1/workspaces/01m6jv73m4wfayk8a78xpkjz9r/connections",
         "body": {
           "platform": "magento"
         },
@@ -2522,7 +2522,7 @@
             "status": 403,
             "code": "workspace_permission_denied",
             "message": "You do not have permission to do this in this workspace.",
-            "request_id": "01a1a59c-e215-701f-99a1-fdc9cf4f4d54",
+            "request_id": "01a1a5b3-926e-7135-8d8f-04fe255ce255",
             "details": {
               "required_permission": "integrations.manage"
             }
@@ -2534,7 +2534,7 @@
       "label": "unauthenticated",
       "request": {
         "method": "POST",
-        "path": "/api/v1/workspaces/01m6jssqce2k2wrjy8vyyfwhfr/connections",
+        "path": "/api/v1/workspaces/01m6jv73m4wfayk8a78xpkjz9r/connections",
         "body": {
           "platform": "magento"
         },
@@ -2549,7 +2549,7 @@
             "status": 401,
             "code": "unauthenticated",
             "message": "Authentication is required.",
-            "request_id": "01a1a59c-e236-724a-a136-d536751ea8d1"
+            "request_id": "01a1a5b3-9291-71b2-bd3e-f3c938900f91"
           }
         }
       }
@@ -2558,7 +2558,7 @@
       "label": "invalid_saas_origin",
       "request": {
         "method": "POST",
-        "path": "/api/v1/workspaces/01m6jssqce2k2wrjy8vyyfwhfr/connections",
+        "path": "/api/v1/workspaces/01m6jv73m4wfayk8a78xpkjz9r/connections",
         "body": {
           "platform": "magento",
           "deployment": "saas",
@@ -2580,7 +2580,7 @@
             "status": 422,
             "code": "validation_failed",
             "message": "The given data was invalid.",
-            "request_id": "01a1a59c-e252-7288-8c3d-48b642460c9d",
+            "request_id": "01a1a5b3-92ac-722f-b66d-7ff26a72d623",
             "fields": {
               "saas_api_url": [
                 "The saas api url field format is invalid."
@@ -2594,7 +2594,7 @@
       "label": "node_action_lookup",
       "request": {
         "method": "POST",
-        "path": "/api/v1/webhooks/magento/719mc8s9pYAiEv0TWXxJLTYrVd7Ppkq5tEvel4Y9",
+        "path": "/api/v1/webhooks/magento/WmHICQOl07Bll53pomWKqucvVGH0c0NWgOXDJdfB",
         "body": {
           "shopbonus_magento_lookup_v1": true,
           "store_id": "2",
@@ -2614,7 +2614,7 @@
           "data": {
             "received": true,
             "duplicate": false,
-            "event_id": "01m6jssrnym5rcgdypsbs7qmwa"
+            "event_id": "01m6jv74s3tpeab3sfbm4hw9pz"
           }
         }
       }
@@ -2623,7 +2623,7 @@
       "label": "node_action_duplicate",
       "request": {
         "method": "POST",
-        "path": "/api/v1/webhooks/magento/719mc8s9pYAiEv0TWXxJLTYrVd7Ppkq5tEvel4Y9",
+        "path": "/api/v1/webhooks/magento/WmHICQOl07Bll53pomWKqucvVGH0c0NWgOXDJdfB",
         "body": {
           "shopbonus_magento_lookup_v1": true,
           "store_id": "2",
@@ -2651,7 +2651,7 @@
       "label": "foreign_store_lookup",
       "request": {
         "method": "POST",
-        "path": "/api/v1/webhooks/magento/719mc8s9pYAiEv0TWXxJLTYrVd7Ppkq5tEvel4Y9",
+        "path": "/api/v1/webhooks/magento/WmHICQOl07Bll53pomWKqucvVGH0c0NWgOXDJdfB",
         "body": {
           "shopbonus_magento_lookup_v1": true,
           "store_id": "3",
@@ -2672,7 +2672,7 @@
             "status": 401,
             "code": "webhook_rejected",
             "message": "The webhook could not be verified.",
-            "request_id": "01a1a59c-e2f6-70fd-b6f8-e0fcd0659e65",
+            "request_id": "01a1a5b3-9366-724f-aea5-988832d57af8",
             "details": {
               "reason": "invalid_order_id"
             }

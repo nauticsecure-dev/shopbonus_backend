@@ -14,7 +14,7 @@ server=None
 try:
  subprocess.run(['php','artisan','migrate','--force'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True)
  sf=work/'seed.php';sf.write_text(seed);subprocess.run(['php',str(sf)],env=env,check=True)
- data=json.loads((work/'private.json').read_text());log=open(work/'server.log','w');server=subprocess.Popen(['php','artisan','serve','--host=127.0.0.1','--port=8800','--no-reload'],env=env,stdout=log,stderr=log,start_new_session=True)
+ data=json.loads((work/'private.json').read_text());log=open(work/'server.log','w');router=work/'router.php';router.write_text("<?php $_ENV['LARAVEL_STORAGE_PATH']=getenv('LARAVEL_STORAGE_PATH');require "+repr(str(root/'public/index.php'))+";");server=subprocess.Popen(['php','-S','127.0.0.1:8800','-t',str(root/'public'),str(router)],env=env,stdout=log,stderr=log,start_new_session=True)
  for i in range(60):
   try:urllib.request.urlopen('http://127.0.0.1:8800/api/v1/health',timeout=1);break
   except Exception:time.sleep(.2)
@@ -42,7 +42,7 @@ try:
   captures.append({'label':label,'request':{'method':method,'path':path,'body':payload,'headers':{'Accept':'application/json',**({'Authorization':'Bearer <token>'} if token else {})}},'response':{'status':response.status,'body':redact(body)}})
 
 
- setup=native_setup['data'];print_keys=False
+ setup=native_setup['data']
  def find_key(obj,key):
   if isinstance(obj,dict):
    if key in obj:return obj[key]
@@ -64,7 +64,7 @@ try:
   except urllib.error.HTTPError as e:response=e
   body=json.loads(response.read());assert response.status==expected,(label,response.status,body)
   captures.append({'label':label,'request':{'method':'POST','path':path,'body':json.loads(payload),'headers':{'Content-Type':'application/json','X-Shopbonus-Signature':'t=<time>,v1=<actual generated signature>','X-Shopbonus-Event-Id':headers['X-Shopbonus-Event-Id'],'X-Shopbonus-Topic':'order.updated'}},'response':{'status':response.status,'body':body}})
- out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':'81a3591 plus B77 working tree','environment':'Actual Laravel loopback HTTP; isolated temporary SQLite/storage/key. Synthetic merchant records, actual API authentication/authorization/validation/connector creation. No native provider requests or genuine provider acceptance. One-time generated signing secret is redacted. Candidate module and private App Builder action; SaaS native transport is separately fixture-tested. Actual native Adobe registration/installation is NOT RUN. ID notifications are authenticated, persisted and queued; provider order recovery workers are not executed in this HTTP capture.','exchanges':captures}
+ out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':'f217e33 backend source; explicit HTTP storage-isolation capture follow-up','environment':'Actual Laravel loopback HTTP; isolated temporary SQLite/storage/key. Synthetic merchant records, actual API authentication/authorization/validation/connector creation. No native provider requests or genuine provider acceptance. One-time generated signing secret is redacted. Candidate module and private App Builder action; SaaS native transport is separately fixture-tested. Actual native Adobe registration/installation is NOT RUN. ID notifications are authenticated, persisted and queued; provider order recovery workers are not executed in this HTTP capture.','exchanges':captures}
  (root/'docs/qa/B77_ADOBE_HTTP_CAPTURE.json').write_text(json.dumps(out,indent=2)+'\n');print('Captured11 HTTP responses; isolated fixtures cleaned.')
 finally:
  if server:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
