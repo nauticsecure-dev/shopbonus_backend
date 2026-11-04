@@ -16,6 +16,7 @@ use App\Services\Cms\CmsMedia;
 use App\Services\Cms\CmsScheduler;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\CmsSuggestions;
+use App\Services\Cms\FaqCategories;
 use App\Services\Cms\RichText;
 use App\Services\Support\SupportKnowledge;
 use Carbon\CarbonImmutable;
@@ -247,18 +248,38 @@ class CmsController extends Controller
 
     public function faq(): JsonResponse
     {
-        return response()->json(['data' => FaqCategory::orderBy('position')->get()->map(fn (FaqCategory $c) => ['id' => $c->public_id, 'key' => $c->key, 'names' => $c->names, 'position' => $c->position,
+        return response()->json(['data' => FaqCategory::orderBy('position')->orderBy('id')->get()->map(fn (FaqCategory $c) => app(FaqCategories::class)->present($c) + [
             'items' => FaqItem::where('category_id', $c->id)->orderBy('position')->get()->map(fn (FaqItem $i) => $this->faqItem($i))->all()])->all()]);
     }
 
-    public function storeFaqCategory(Request $request): JsonResponse
+    public function storeFaqCategory(Request $request, FaqCategories $categories): JsonResponse
     {
-        $data = $request->validate(['key' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')], 'names' => ['required', 'array:'.implode(',', CmsService::LOCALES)],
-            'names.nl' => ['required', 'string', 'max:80', 'not_regex:/[<>]/'], 'names.en' => ['required', 'string', 'max:80', 'not_regex:/[<>]/']]);
-        $c = FaqCategory::create($data + ['position' => (int) FaqCategory::max('position') + 1]);
-        CmsCache::flush();
+        $data = $this->validateCategory($request, true);
 
-        return response()->json(['data' => ['id' => $c->public_id, 'key' => $c->key, 'names' => $c->names, 'position' => $c->position]], 201);
+        return response()->json(['data' => $categories->present($categories->save(null, $data, $request->user()))], 201);
+    }
+
+    public function updateFaqCategory(Request $request, string $category, FaqCategories $categories): JsonResponse
+    {
+        $data = $this->validateCategory($request, false);
+        $model = FaqCategory::where('public_id', $category)->first() ?? throw new ApiException('Category not found.', 404, 'not_found');
+
+        return response()->json(['data' => $categories->present($categories->save($model, $data, $request->user()))]);
+    }
+
+    /** @return array<string,mixed> */
+    private function validateCategory(Request $request, bool $creating): array
+    {
+        return $request->validate([
+            'key' => [$creating ? 'required' : 'prohibited', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')],
+            'revision' => [$creating ? 'prohibited' : 'required', 'integer', 'min:1'],
+            'parent_id' => ['sometimes', 'nullable', 'string', 'ulid'],
+            'position' => ['sometimes', 'integer', 'between:0,100000'],
+            'names' => [$creating ? 'required' : 'sometimes', 'array:'.implode(',', CmsService::LOCALES), 'min:1'],
+            'names.nl' => ['required_with:names', 'string', 'max:80', 'not_regex:/[<>]/'],
+            'names.en' => ['required_with:names', 'string', 'max:80', 'not_regex:/[<>]/'],
+            'names.de' => ['sometimes', 'string', 'max:80', 'not_regex:/[<>]/'],
+        ]);
     }
 
     public function storeFaqItem(Request $request, RichText $rich): JsonResponse

@@ -1,0 +1,1750 @@
+{
+  "captured_at": "2026-11-04T14:44:36Z",
+  "baseline": "a5a2dbb plus B83 FAQ working tree",
+  "environment": "Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.",
+  "ai_fixture": null,
+  "exchanges": [
+    {
+      "label": "upload",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9pmg6bvw8yftracvvqeh",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh",
+            "media": {
+              "id": "01m6kg9pmg6bvw8yftracvvqeh",
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kg9pmjwqkr499r701sv5rv",
+              "recipes": [
+                {
+                  "id": "01m6kg9pmjwqkr499r701sv5rv",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "show",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kg9pmg6bvw8yftracvvqeh",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh",
+            "revision": 1,
+            "original_available": true,
+            "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+            "active_recipe": "01m6kg9pmjwqkr499r701sv5rv",
+            "recipes": [
+              {
+                "id": "01m6kg9pmjwqkr499r701sv5rv",
+                "version": 1,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 480
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 960
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 1536
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/tablet"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "list",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "id": "01m6kg9pmg6bvw8yftracvvqeh",
+              "width": 80,
+              "height": 60,
+              "revision": 1,
+              "original_available": true
+            }
+          ],
+          "next": null
+        }
+      }
+    },
+    {
+      "label": "original",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh/original",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content_type": "image/png",
+          "byte_length": 114,
+          "sha256": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+          "base64": "iVBORw0KGgoAAAANSUhEUgAAAFAAAAA8CAIAAAB+RarbAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJElEQVRoge3BMQEAAADCoPVP7WkJoAAAAAAAAAAAAAAAAAAAbjh8AAFte11jAAAAAElFTkSuQmCC"
+        }
+      }
+    },
+    {
+      "label": "recipe",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh/recipes",
+        "body": {
+          "revision": 1,
+          "breakpoints": {
+            "mobile": {
+              "x": 0,
+              "y": 0,
+              "width": 40,
+              "height": 40,
+              "rotate": 90,
+              "flip_h": true,
+              "flip_v": false,
+              "output_width": 32
+            },
+            "tablet": {
+              "x": 0,
+              "y": 0,
+              "width": 40,
+              "height": 40,
+              "rotate": 90,
+              "flip_h": true,
+              "flip_v": false,
+              "output_width": 32
+            },
+            "desktop": {
+              "x": 0,
+              "y": 0,
+              "width": 40,
+              "height": 40,
+              "rotate": 90,
+              "flip_h": true,
+              "flip_v": false,
+              "output_width": 32
+            }
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9pmg6bvw8yftracvvqeh",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh",
+            "revision": 2,
+            "original_available": true,
+            "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+            "active_recipe": "01m6kg9psdgy7s9tvwp15xd36h",
+            "recipes": [
+              {
+                "id": "01m6kg9psdgy7s9tvwp15xd36h",
+                "version": 2,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/tablet"
+                  }
+                ]
+              },
+              {
+                "id": "01m6kg9pmjwqkr499r701sv5rv",
+                "version": 1,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 480
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 960
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 1536
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/tablet"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "derivative",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/mobile",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content_type": "image/webp",
+          "byte_length": 58,
+          "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+          "base64": "UklGRjIAAABXRUJQVlA4ICYAAADQAgCdASogACAAPmEuk0ckIqGhKAgAgAwJaQAAPaOgAP78XNAAAA=="
+        }
+      }
+    },
+    {
+      "label": "restore",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh/restore",
+        "body": {
+          "revision": 2,
+          "recipe": "01m6kg9pmjwqkr499r701sv5rv"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kg9pmg6bvw8yftracvvqeh",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh",
+            "revision": 3,
+            "original_available": true,
+            "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+            "active_recipe": "01m6kg9pmjwqkr499r701sv5rv",
+            "recipes": [
+              {
+                "id": "01m6kg9psdgy7s9tvwp15xd36h",
+                "version": 2,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9psdgy7s9tvwp15xd36h/tablet"
+                  }
+                ]
+              },
+              {
+                "id": "01m6kg9pmjwqkr499r701sv5rv",
+                "version": 1,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 480
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 960
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 1536
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9pmg6bvw8yftracvvqeh/recipes/01m6kg9pmjwqkr499r701sv5rv/tablet"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "stale",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh/restore",
+        "body": {
+          "revision": 1,
+          "recipe": "01m6kg9pmjwqkr499r701sv5rv"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "media_revision_conflict",
+            "message": "Media changed; reload its current revision.",
+            "request_id": "01a1a704-db97-7063-85d7-180e5f876a9f"
+          }
+        }
+      }
+    },
+    {
+      "label": "missing_revision",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh/restore",
+        "body": {
+          "recipe": "01m6kg9pmjwqkr499r701sv5rv"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a704-dbb2-72a3-8bbd-1c94f633ece4",
+            "fields": {
+              "revision": [
+                "The revision field is required."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a704-dbd2-718f-aa3a-9c0d0dfc6346"
+          }
+        }
+      }
+    },
+    {
+      "label": "forbidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "status": 403,
+            "code": "platform_role_required",
+            "message": "This action requires a platform administrator.",
+            "request_id": "01a1a704-dbee-7335-95fe-798ce52c0d15"
+          }
+        }
+      }
+    },
+    {
+      "label": "step_up",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kg9pmg6bvw8yftracvvqeh/restore",
+        "body": {
+          "revision": 3,
+          "recipe": "01m6kg9pmjwqkr499r701sv5rv"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "X-Capture-No-Session": "1",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "error": {
+            "status": 423,
+            "code": "password_confirmation_required",
+            "message": "Confirm your password to continue.",
+            "request_id": "01a1a704-dc0b-72da-8c0c-253809029fac"
+          }
+        }
+      }
+    },
+    {
+      "label": "missing",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01AAAAAAAAAAAAAAAAAAAAAAAA",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Media not found.",
+            "request_id": "01a1a704-dc21-706f-8633-efad9240aec7"
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_homepage",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/homepage/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9q272669ac91heg7aawj",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q272669ac91heg7aawj",
+            "media": {
+              "id": "01m6kg9q272669ac91heg7aawj",
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q272669ac91heg7aawj",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kg9q28tsg7zjdcw176crab",
+              "recipes": [
+                {
+                  "id": "01m6kg9q28tsg7zjdcw176crab",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q272669ac91heg7aawj/recipes/01m6kg9q28tsg7zjdcw176crab/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q272669ac91heg7aawj/recipes/01m6kg9q28tsg7zjdcw176crab/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q272669ac91heg7aawj/recipes/01m6kg9q28tsg7zjdcw176crab/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_over-ons",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9q4dzfxj7ck9yezbm1qw",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q4dzfxj7ck9yezbm1qw",
+            "media": {
+              "id": "01m6kg9q4dzfxj7ck9yezbm1qw",
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q4dzfxj7ck9yezbm1qw",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kg9q4eq5acqwqm12z4xbs1",
+              "recipes": [
+                {
+                  "id": "01m6kg9q4eq5acqwqm12z4xbs1",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q4dzfxj7ck9yezbm1qw/recipes/01m6kg9q4eq5acqwqm12z4xbs1/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q4dzfxj7ck9yezbm1qw/recipes/01m6kg9q4eq5acqwqm12z4xbs1/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q4dzfxj7ck9yezbm1qw/recipes/01m6kg9q4eq5acqwqm12z4xbs1/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_voor-webshops",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/voor-webshops/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9q6fkns46q29d5c8swbc",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q6fkns46q29d5c8swbc",
+            "media": {
+              "id": "01m6kg9q6fkns46q29d5c8swbc",
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q6fkns46q29d5c8swbc",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kg9q6hk49cqr308d2hq2ed",
+              "recipes": [
+                {
+                  "id": "01m6kg9q6hk49cqr308d2hq2ed",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q6fkns46q29d5c8swbc/recipes/01m6kg9q6hk49cqr308d2hq2ed/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q6fkns46q29d5c8swbc/recipes/01m6kg9q6hk49cqr308d2hq2ed/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q6fkns46q29d5c8swbc/recipes/01m6kg9q6hk49cqr308d2hq2ed/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_pages/voor-webshops",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/pages/voor-webshops/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9q8f87yspk0xhqva1zgp",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q8f87yspk0xhqva1zgp",
+            "media": {
+              "id": "01m6kg9q8f87yspk0xhqva1zgp",
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q8f87yspk0xhqva1zgp",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kg9q8h75ytbkw96a0a1p2x",
+              "recipes": [
+                {
+                  "id": "01m6kg9q8h75ytbkw96a0a1p2x",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q8f87yspk0xhqva1zgp/recipes/01m6kg9q8h75ytbkw96a0a1p2x/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q8f87yspk0xhqva1zgp/recipes/01m6kg9q8h75ytbkw96a0a1p2x/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kg9q8f87yspk0xhqva1zgp/recipes/01m6kg9q8h75ytbkw96a0a1p2x/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_root",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/faq/categories",
+        "body": {
+          "key": "rewards",
+          "names": {
+            "nl": "Beloningen",
+            "en": "Rewards",
+            "de": "Belohnungen"
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9qanneqd993qt6d9j2tq",
+            "key": "rewards",
+            "names": {
+              "nl": "Beloningen",
+              "en": "Rewards",
+              "de": "Belohnungen"
+            },
+            "position": 1,
+            "revision": 1,
+            "parent_id": null
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_child",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/faq/categories",
+        "body": {
+          "key": "wallet",
+          "names": {
+            "nl": "Tegoed",
+            "en": "Credit",
+            "de": "Guthaben"
+          },
+          "parent_id": "01m6kg9qanneqd993qt6d9j2tq"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9qbpwtq15r2xk2jtmvr7",
+            "key": "wallet",
+            "names": {
+              "nl": "Tegoed",
+              "en": "Credit",
+              "de": "Guthaben"
+            },
+            "position": 2,
+            "revision": 1,
+            "parent_id": "01m6kg9qanneqd993qt6d9j2tq"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_item",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/faq/items",
+        "body": {
+          "category_id": "01m6kg9qbpwtq15r2xk2jtmvr7",
+          "published": true,
+          "audience": "public",
+          "translations": {
+            "nl": {
+              "question": "Waar vind ik mijn tegoed?",
+              "answer": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "In je profiel."
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kg9qcntyr4n6mw3wtzrd98",
+            "audience": "public",
+            "published": true,
+            "position": 1,
+            "revision": 1,
+            "translations": {
+              "nl": {
+                "question": "Waar vind ik mijn tegoed?",
+                "answer": {
+                  "type": "doc",
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "In je profiel."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_update",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7",
+        "body": {
+          "revision": 1,
+          "position": 4
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kg9qbpwtq15r2xk2jtmvr7",
+            "key": "wallet",
+            "names": {
+              "nl": "Tegoed",
+              "en": "Credit",
+              "de": "Guthaben"
+            },
+            "position": 4,
+            "revision": 2,
+            "parent_id": "01m6kg9qanneqd993qt6d9j2tq"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_admin",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/faq",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "id": "01m6kg9qanneqd993qt6d9j2tq",
+              "key": "rewards",
+              "names": {
+                "nl": "Beloningen",
+                "en": "Rewards",
+                "de": "Belohnungen"
+              },
+              "position": 1,
+              "revision": 1,
+              "parent_id": null,
+              "items": []
+            },
+            {
+              "id": "01m6kg9qbpwtq15r2xk2jtmvr7",
+              "key": "wallet",
+              "names": {
+                "nl": "Tegoed",
+                "en": "Credit",
+                "de": "Guthaben"
+              },
+              "position": 4,
+              "revision": 2,
+              "parent_id": "01m6kg9qanneqd993qt6d9j2tq",
+              "items": [
+                {
+                  "id": "01m6kg9qcntyr4n6mw3wtzrd98",
+                  "audience": "public",
+                  "published": true,
+                  "position": 1,
+                  "revision": 1,
+                  "translations": {
+                    "nl": {
+                      "question": "Waar vind ik mijn tegoed?",
+                      "answer": {
+                        "type": "doc",
+                        "content": [
+                          {
+                            "type": "paragraph",
+                            "content": [
+                              {
+                                "type": "text",
+                                "text": "In je profiel."
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "faq_public_de",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/public/faq?locale=de",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "key": "wallet",
+              "name": "Guthaben",
+              "name_fallback": false,
+              "parent_key": "rewards",
+              "parent_name": "Belohnungen",
+              "items": [
+                {
+                  "id": "01m6kg9qcntyr4n6mw3wtzrd98",
+                  "question": "Waar vind ik mijn tegoed?",
+                  "answer": {
+                    "type": "doc",
+                    "content": [
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {
+                            "type": "text",
+                            "text": "In je profiel."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "audience": "public",
+                  "fallback": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "faq_stale",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7",
+        "body": {
+          "revision": 1,
+          "position": 3
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "faq_category_changed",
+            "message": "FAQ category changed.",
+            "request_id": "01a1a704-ddef-703e-b4e3-5b939245a8e8"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_cycle",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7",
+        "body": {
+          "revision": 2,
+          "parent_id": "01m6kg9qbpwtq15r2xk2jtmvr7"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "faq_parent_invalid",
+            "message": "Use a root parent; FAQ nesting is limited to two levels.",
+            "request_id": "01a1a704-de0b-72e4-b9c4-f1ac0179dfb2"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_invalid_de",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/faq/categories",
+        "body": {
+          "key": "bad-de",
+          "names": {
+            "nl": "Valid",
+            "en": "Valid",
+            "de": [
+              "invalid"
+            ]
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a704-de27-71a2-a55b-9144daba5611",
+            "fields": {
+              "names.de": [
+                "The names.de field must be a string.",
+                "The names.de field format is invalid."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_missing",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01AAAAAAAAAAAAAAAAAAAAAAAA",
+        "body": {
+          "revision": 1,
+          "position": 3
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Category not found.",
+            "request_id": "01a1a704-de43-70df-a1de-99475f34dc4f"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_consumer",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7",
+        "body": {
+          "revision": 2,
+          "position": 3
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "status": 403,
+            "code": "platform_role_required",
+            "message": "This action requires a platform administrator.",
+            "request_id": "01a1a704-de59-7069-a54e-2d775c5a7a14"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_anonymous",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7",
+        "body": {
+          "revision": 2,
+          "position": 3
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a704-de77-71a1-bab1-39969b8a8286"
+          }
+        }
+      }
+    },
+    {
+      "label": "faq_step_up",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7",
+        "body": {
+          "revision": 2,
+          "position": 3
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "X-Capture-No-Session": "1",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "error": {
+            "status": 423,
+            "code": "password_confirmation_required",
+            "message": "Confirm your password to continue.",
+            "request_id": "01a1a704-de91-70f5-af5d-7c171e17f885"
+          }
+        }
+      }
+    }
+  ]
+}

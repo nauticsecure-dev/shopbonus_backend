@@ -3,6 +3,7 @@ import datetime
 import os, tempfile, subprocess, pathlib, base64, json, time, urllib.request, urllib.error, shutil, signal, hashlib
 bindings_mode=os.environ.get('CAPTURE_CMS_BINDINGS')=='1'
 ai_mode=os.environ.get('CAPTURE_CMS_AI')=='1'
+faq_mode=os.environ.get('CAPTURE_CMS_FAQ')=='1'
 root=pathlib.Path.cwd(); work=pathlib.Path(tempfile.mkdtemp(prefix='shopbonus-b79-')); env=os.environ.copy(); server=None
 for d in ['framework/cache/data','framework/sessions','framework/views','logs','app/private']:(work/'storage'/d).mkdir(parents=True,exist_ok=True)
 db=work/'capture.sqlite';db.touch()
@@ -113,8 +114,24 @@ Illuminate\Support\Facades\Artisan::call('queue:work',['connection'=>'database',
   other='/api/v1/admin/cms/suggestions/'+proposals['over-ons']
   call('negative_review','POST',other+'/review',{**review,'meaning_preserved':False},actor='reviewer',expected=201)
   call('apply_negative_review','POST',other+'/apply',{},expected=409)
- out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('6c01cc0 plus B81 working tree' if ai_mode else ('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree')),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','ai_fixture':('Actual temporary database queue worker executes proposal jobs against explicitly synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not quality evidence. Two synthetic administrators exercise independent review. No live model/provider call.' if ai_mode else None),'exchanges':captures}
- (root/('docs/qa/B81_CMS_AI_HTTP_CAPTURE.json' if ai_mode else ('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json'))).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
+ if faq_mode:
+  names={'nl':'Beloningen','en':'Rewards','de':'Belohnungen'}
+  root_category=call('faq_root','POST','/api/v1/admin/cms/faq/categories',{'key':'rewards','names':names},expected=201)['data']['id']
+  child=call('faq_child','POST','/api/v1/admin/cms/faq/categories',{'key':'wallet','names':{'nl':'Tegoed','en':'Credit','de':'Guthaben'},'parent_id':root_category},expected=201)['data']['id']
+  call('faq_item','POST','/api/v1/admin/cms/faq/items',{'category_id':child,'published':True,'audience':'public','translations':{'nl':{'question':'Waar vind ik mijn tegoed?','answer':{'type':'doc','content':[{'type':'paragraph','content':[{'type':'text','text':'In je profiel.'}]}]}}}},expected=201)
+  category_path='/api/v1/admin/cms/faq/categories/'+child
+  call('faq_update','PATCH',category_path,{'revision':1,'position':4})
+  call('faq_admin','GET','/api/v1/admin/cms/faq')
+  call('faq_public_de','GET','/api/v1/public/faq?locale=de',actor=None)
+  call('faq_stale','PATCH',category_path,{'revision':1,'position':3},expected=409)
+  call('faq_cycle','PATCH',category_path,{'revision':2,'parent_id':child},expected=422)
+  call('faq_invalid_de','POST','/api/v1/admin/cms/faq/categories',{'key':'bad-de','names':{'nl':'Valid','en':'Valid','de':['invalid']}},expected=422)
+  call('faq_missing','PATCH','/api/v1/admin/cms/faq/categories/01AAAAAAAAAAAAAAAAAAAAAAAA',{'revision':1,'position':3},expected=404)
+  call('faq_consumer','PATCH',category_path,{'revision':2,'position':3},actor='consumer',expected=403)
+  call('faq_anonymous','PATCH',category_path,{'revision':2,'position':3},actor=None,expected=401)
+  call('faq_step_up','PATCH',category_path,{'revision':2,'position':3},no_session=True,expected=423)
+ out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('a5a2dbb plus B83 FAQ working tree' if faq_mode else ('6c01cc0 plus B81 working tree' if ai_mode else ('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree'))),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','ai_fixture':('Actual temporary database queue worker executes proposal jobs against explicitly synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not quality evidence. Two synthetic administrators exercise independent review. No live model/provider call.' if ai_mode else None),'exchanges':captures}
+ (root/('docs/qa/B83_FAQ_HTTP_CAPTURE.json' if faq_mode else ('docs/qa/B81_CMS_AI_HTTP_CAPTURE.json' if ai_mode else ('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json')))).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
 finally:
  if server:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
  shutil.rmtree(work)

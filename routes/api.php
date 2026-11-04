@@ -459,6 +459,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
                         Route::post('assets/{asset}/recipes', [CmsMediaController::class, 'storeRecipe'])->name('assets.recipes.store');
                         Route::post('assets/{asset}/restore', [CmsMediaController::class, 'restore'])->name('assets.restore');
+                        Route::patch('faq/categories/{category}', [AdminCmsController::class, 'updateFaqCategory'])->name('faq.categories.update');
                         Route::post('faq/categories', [AdminCmsController::class, 'storeFaqCategory'])->name('faq.categories.store');
                         Route::post('faq/items', [AdminCmsController::class, 'storeFaqItem'])->name('faq.items.store');
                         Route::put('faq/items/{item}', [AdminCmsController::class, 'updateFaqItem'])->name('faq.items.update');

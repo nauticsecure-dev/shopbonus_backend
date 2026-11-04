@@ -2,9 +2,9 @@
 
 Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **480**. Method/path operations (HEAD aliases excluded): **481**. Unique paths: **421**.
+Runtime route entries: **481**. Method/path operations (HEAD aliases excluded): **482**. Unique paths: **422**.
 
-Access counts are per operation: admin 236, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 237, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -68,6 +68,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/admin/cms/cookie-policies/{policy}/publish` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/faq` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/faq/categories` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| PATCH | `/api/v1/admin/cms/faq/categories/{category}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/faq/items` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | PUT | `/api/v1/admin/cms/faq/items/{item}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/faq/reorder` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |

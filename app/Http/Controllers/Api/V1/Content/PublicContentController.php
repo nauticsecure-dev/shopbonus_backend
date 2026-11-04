@@ -99,7 +99,9 @@ class PublicContentController extends Controller
                 })->filter()
                 ->filter(fn ($i) => $search === '' || str_contains(mb_strtolower($i['question'].' '.RichText::plainText($i['answer'])), $search))->values();
 
-            return ['key' => $c->key, 'name' => $c->names[$locale] ?? $c->names['nl'], 'items' => $items->all()];
+            $parent = $c->parent_id === null ? null : FaqCategory::find($c->parent_id);
+
+            return ['key' => $c->key, 'name' => $c->names[$locale] ?? $c->names['nl'], 'name_fallback' => ! isset($c->names[$locale]), 'parent_key' => $parent?->key, 'parent_name' => $parent === null ? null : ($parent->names[$locale] ?? $parent->names['nl']), 'items' => $items->all()];
         })->filter(fn ($c) => $c['items'] !== [])->values();
 
         return response()->json(['data' => $categories->all()], 200, ['Cache-Control' => count($audiences) > 1 ? 'private, no-store' : 'no-store']);

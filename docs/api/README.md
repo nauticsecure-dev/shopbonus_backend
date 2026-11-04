@@ -25823,3 +25823,16 @@ curl -i -X POST "http://localhost:8000/api/v1/admin/cms/suggestions/01m6kdbf5z62
 ```
 
 Captured201 response: `independent_review` in [the real HTTP artifact](../qa/B81_CMS_AI_HTTP_CAPTURE.json). Self-review403, missing note422, duplicate409, unknown404 and401 are captured too. Both correctness flags must be true to accept; a negative result rejects. Review is immutable and cannot publish.
+
+## B83a — FAQ subcategories and category revisions
+
+Existing category creation accepts optional root `parent_id`, position and validated NL/EN/DE names. Existing admin/public FAQ lists remain flat and add parent metadata; public category-name fallback is explicit. Hidden items remain audience/publication-filtered.
+
+### PATCH /api/v1/admin/cms/faq/categories/{category}
+
+```sh
+curl -i -X PATCH "http://localhost:8000/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 1, "position": 4}'
+# Mutation capture uses a synthetic confirmed session; real clients require a confirmed browser session and CSRF.
+```
+
+Captured200 response: `faq_update` in [30 actual HTTP exchanges](../qa/B83_FAQ_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_FAQ=1 python3 scripts/capture-cms-media.py`. Stale409, self/deep parent422, missing404,401/403 and step-up423 are recorded. Temporary DB/storage and synthetic confirmed-password sessions do not establish browser/CSRF/staging evidence. See [central management contract](../cms/CENTRAL_MANAGEMENT.md).

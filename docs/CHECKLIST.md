@@ -1660,9 +1660,14 @@ B81 implementing SHA `bd9b4ec`; SQLite CMS92/879, MySQL AI/schedule27/286, API5/
 - [x] Provide resumable bounded 1,000+ source backlog execution with dedupe, stale-source checks and review rather than automatic publication.
 - [x] Document five recommended denominators and T01–T23 executor/evidence requirements; block unknown or unexecuted release coverage.
 
-B82 implementing SHA follows closeout; final CMS/API103/9433, sequential QA36/405, MySQL9/54, static/style/diff PASS. Default actual executor/frontend/provider mappings remain unmapped; these checkboxes certify orchestration/gate source, not genuine acceptance.
+B82 implementing SHA `a5a2dbb`; final CMS/API103/9433, sequential QA36/405, MySQL9/54, static/style/diff PASS. Default actual executor/frontend/provider mappings remain unmapped; these checkboxes certify orchestration/gate source, not genuine acceptance.
 
 ### B83 — Remaining central content management
+
+- [x] Add locale-validated FAQ subcategories and optimistic category updates, rejecting cycles/depth violations and preserving existing audience filtering/public compatibility.
+- [ ] Add soft media archive/reactivation and explicit version-checked selected-draft replacement; preserve published/historical files and prevent new archived references.
+- [ ] Add immutable reusable rich-text block versions, locale-specific pins and safe text overrides, with protected mount/detach and resolved public/preview source linkage.
+- [ ] Verify mutation authority/concurrency/negative paths and compatibility; capture all added/changed API contracts through real isolated HTTP and record remaining frontend/staging limits.
 
 - [ ] Add FAQ subcategories and reviewed shared-block override/version semantics through existing CMS services.
 
@@ -1685,3 +1690,5 @@ B84 implementing SHA: `f507073`. SQLite/MySQL runner7/31 each; full static/style
 B85 remaining scope: genuine Adobe module/Runtime/SaaS installation/renewal/order/refund/uninstall acceptance NOT RUN. BigCommerce lifecycle is existing implemented source346b3bb. C/E-Series/Squarespace automatic publishers remain OPEN; C-Series cash mapping remains OPEN without authoritative PSP transaction binding. Checked implementation items above do not certify those gaps complete.
 
 B85 tested implementing source `1b513f5`: SQLite261/2584, SQLite/MySQL IMS7/36 each, API5/8440, fullPint/PHPStan/diff PASS; actual HTTP14. Genuine provider/installation acceptance and unsupported publishers/refund mapping remain incomplete.
+
+B83a FAQ implementing SHA follows closeout: CMS101/948, API5/8543, MySQL3/37, static/style/diff PASS; actualHTTP30. Other B83 management items remain open.

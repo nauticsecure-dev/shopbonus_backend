@@ -1,3 +1,5 @@
+B83a: [FAQ root/subcategories and revision-protected locale metadata](cms/CENTRAL_MANAGEMENT.md) preserve audience filtering and add explicit parent/name-fallback metadata. Media management and shared-block source follow in separate checkpoints.
+
 B82: [Durable saved-page AI backlog and recommended CMS coverage gate](cms/BULK_AND_COVERAGE.md) add bounded snapshot-checked submission and five-denominator/T01–T23 independent-evidence blocking. Real mappings/23 executors/frontend/provider staging remain incomplete; no automatic publication or recovered original175 scope.
 
 B81: [Consolidated queued CMS AI](cms/AI_EXECUTION.md) adds section-scoped proposals, configured-price execution reservations and immutable independent human language/meaning review before apply. Default execution is monetarily disabled; no live model-quality claim.
