@@ -56,5 +56,26 @@
   },
   "http": "11 actual Laravel loopback responses; actual Node signing action, queued worker, synthetic native setup",
   "native_magento_runtime_and_adobe_deployment": "NOT RUN",
-  "laravel_migrations": "None; native Magento declarative outbox schema only"
+  "laravel_migrations": "None; native Magento declarative outbox schema only",
+  "final_integration_unit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 242,
+    "passed": 242,
+    "assertions": 2195,
+    "duration_ms": 13177
+  },
+  "native_action_archive": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 6,
+    "passed": 6,
+    "assertions": 188,
+    "duration_ms": 483
+  },
+  "source_sha": "4b8626f",
+  "native_php_syntax_files": 5,
+  "native_xml_well_formed_files": 7,
+  "native_framework_schema_or_installation": "NOT RUN",
+  "node_test_runtime": "22 (local22.16.0; explicitly pinned in CI)"
 }

@@ -1603,3 +1603,9 @@ B77 parent81a3591: SQLite241/2188, MySQL5/43, package/Runtime/API11/8541, API5/8
 - [ ] Implement a supported authoritative PSP/native cash-refund API mapping with exact order/merchant/currency/transaction binding and actual provider acceptance.
 
 B78 audited source4b8626f: combinedC/Adobe/package/Runtime15PASS/254; Pint/diff PASS. This is regression/audit evidence only, not a cash mapping implementation. Gap remains OPEN; no C runtime/API/migration/financial change.
+
+### B77 CI follow-up — Explicit backend Runtime test toolchain
+
+- [x] Pin Node22 in the backend test jobs to match Adobe Runtime; parse workflow and execute the native action/archive regressions before committing.
+
+B77 implementing source4b8626f; B78 regression/audit89cce64 (cash mapping remains OPEN). Node22 workflow parse/native6PASS/188; current integration/unit242/2195; fullPint/diff PASS. Full current-head matrix pending push; no native provider acceptance inferred.
