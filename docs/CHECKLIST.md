@@ -1548,3 +1548,10 @@ B73 tested backend boundary (parent6a8c5c3): SQLite271PASS+2skip/10988; final na
 - [ ] Complete authorized native app/automatic publication paths for Lightspeed C/E-Series and Squarespace after supported installation/write contracts are established; independently execute all provider installation/storefront/uninstall acceptance.
 
 B73 implementing SHA `346b3bb`; B72 implementing SHA `6a8c5c3`. Checked items certify the locally tested backend boundaries only; the explicitly unchecked native/provider acceptance requirements remain OPEN.
+
+### B73 CI follow-up — Merchant landing availability fixture
+
+- [x] Preserve the unsupported-connector marketing rejection scenario with an explicit unavailable fixture; verify the newly registered Mijnwebwinkel bridge reports manual setup rather than native availability.
+- [x] Execute the CMS regression on SQLite/MySQL, retain full CI failure provenance, record source SHA and rerun current-head CI.
+
+B73 CI follow-up parent9abc7af: CMS SQLite14/84 +MySQL14/84; Pint/diff PASS. Historical failed run41787701578 retained; replacement full CI remains pending. Implementing test SHA recorded in following closeout.

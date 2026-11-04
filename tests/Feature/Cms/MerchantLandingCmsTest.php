@@ -6,6 +6,7 @@ use App\Enums\PlatformRole;
 use App\Models\CmsAsset;
 use App\Models\User;
 use App\Services\Cms\CmsScheduler;
+use App\Services\Cms\MerchantLandingCmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\InteractsWithIdentity;
@@ -171,6 +172,14 @@ class MerchantLandingCmsTest extends TestCase
 
     public function test_platform_enrichment_overrides_false_available(): void
     {
+        $content = ['platforms' => ['tiles' => [['platform' => 'mijnwebwinkel', 'status' => 'AVAILABLE']]]];
+        $manual = app(MerchantLandingCmsService::class)->enrichPlatforms($content)['platforms']['tiles'][0];
+        $this->assertSame('MANUAL_SETUP', $manual['status']);
+        $this->assertTrue($manual['connectable']);
+        $this->assertFalse(config('integrations.platforms.mijnwebwinkel.profile.native_read_api_implemented'));
+
+        // Keep the unavailable-provider security/marketing scenario explicit as coverage expands.
+        config(['integrations.platforms.mijnwebwinkel.connector' => null]);
         $this->asAdmin();
         $rev = $this->getJson('/api/v1/admin/content/voor-webshops?locale=nl')->json('data.draft_revision');
         $this->patchJson('/api/v1/admin/content/voor-webshops/sections/platforms?locale=nl', [
