@@ -1627,8 +1627,16 @@ B79 tested source: `0a5afbe`; SQLite media8/70, CMS77/770, API19/8591, static/st
 
 ### B80 — Backend content/usage bindings
 
-- [ ] Inventory registered CMS source fields with explicit global/tenant scope, locale, immutable version and media usage; preserve unknown frontend coverage.
+- [x] Derive paginated field bindings directly from authoritative drafts/immutable revisions, including source/hash/path/locale and explicit platform-global scope; reject stale pagination hashes.
+- [x] Persist optional per-usage recipe pins inside the existing versioned CMS content, validating exact asset ownership and three ready breakpoints without mutating published snapshots.
+- [x] Expose protected component-context preview manifests and bounded draft/history media-usage discovery; keep browser layout/front-end discovery unknown.
+- [x] Verify compatibility/security/pinning/history, capture new APIs through real isolated HTTP and document exact remaining management work.
+
+- [x] Inventory registered CMS source fields with explicit global/tenant scope, locale, immutable version and media usage; preserve unknown frontend coverage.
 - [ ] Supply component-context preview data and impact/replace/archive controls without claiming browser layout preview implementation.
+
+
+B80 implementing SHA follows closeout; CMS84/822, MySQL5/40, API5/8493, static/style/diff PASS, actualHTTP31. Other-source/frontend discovery and management mutations remain open.
 
 ### B81 — Consolidated CMS AI execution
 

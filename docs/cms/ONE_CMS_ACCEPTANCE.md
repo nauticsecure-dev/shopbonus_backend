@@ -1,3 +1,5 @@
+B80 follow-up: [Saved backend field/source bindings, per-usage immutable recipe pins and component-context media manifests](CONTENT_BINDINGS.md) extend the [B79 original/recipe/derivative/restore pipeline](MEDIA.md). These backend additions supersede earlier “no image pipeline” statements. Universal frontend/other-source discovery, actual responsive component rendering, AI/bulk safeguards and T01–T23 staging acceptance remain incomplete.
+
 # One inline CMS, NL/EN/DE and GPT-6 translation quality
 
 Status: **PARTIAL implementation; NO-GO for the requested release acceptance**.

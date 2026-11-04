@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreem
 use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
 use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
+use App\Http\Controllers\Api\V1\Admin\CmsBindingsController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\CmsMediaController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
@@ -358,6 +359,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
                     Route::get('assets', [CmsMediaController::class, 'index'])->name('assets.index');
                     Route::get('assets/{asset}', [CmsMediaController::class, 'show'])->name('assets.show');
+                    Route::get('pages/{page}/locales/{locale}/bindings', [CmsBindingsController::class, 'fields'])->name('pages.bindings');
+                    Route::get('pages/{page}/locales/{locale}/media-preview', [CmsBindingsController::class, 'preview'])->name('pages.media-preview');
+                    Route::get('assets/{asset}/usages', [CmsBindingsController::class, 'usages'])->name('assets.usages');
                     Route::get('assets/{asset}/original', [CmsMediaController::class, 'original'])->name('assets.original');
                     Route::get('faq', [AdminCmsController::class, 'faq'])->name('faq.index');
                     Route::get('schedules', [AdminCmsController::class, 'schedules'])->name('schedules.index');

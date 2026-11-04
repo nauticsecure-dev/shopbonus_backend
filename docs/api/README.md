@@ -25779,3 +25779,33 @@ B84 adds backend-only [controlled staging execution](../qa/STAGING_RUNNER.md) th
 Existing `POST /api/v1/workspaces/{workspace}/connections` accepts `platform: magento`, `deployment: saas`, exact `saas_api_url`, verified `store_url`, `store_id`, `store_code` and either a manual `access_token` **or** paired `ims_client_id`/`ims_client_secret`. Client credentials are encrypted, never returned. Fixed Adobe OAuth scopes include `commerce.accs`; renewals preserve the underlying grant and do not promote connection readiness. Manual tokens and self-hosted/PaaS remain compatible. No new endpoint/migration.
 
 Actual request and response examples, including setup201, missing-secret422, mixed-auth422 and401/403/404: [14 isolated HTTP exchanges](../qa/B85_ADOBE_IMS_HTTP_CAPTURE.json), reproduced with `CAPTURE_ADOBE_IMS=1 python3 scripts/capture-adobe-async.py`. All credentials are explicitly synthetic; generated one-time signing secrets are redacted. Real Sanctum/validation/setup/Node-signed courier ingestion run; native recovery is queued. IMS/provider transport is fixture-tested separately and actual Adobe registration/installation/renewal/order/refund acceptance remains NOT RUN. See [Adobe contract](../integrations/ADOBE_ASYNC.md).
+
+## B80 — Saved content bindings and pinned media previews
+
+[31 actual isolated HTTP exchanges](../qa/B80_BINDINGS_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_BINDINGS=1 python3 scripts/capture-cms-media.py`, use synthetic admin/image/page records and real Laravel authorization, validation, persistence and synchronous GD derivatives. Capture-only confirmed-password session setup is synthetic; real browser/CSRF, deployed workers and staging acceptance remain NOT RUN. No frontend rendering or exhaustive client discovery is claimed.
+
+### GET /api/v1/admin/cms/pages/{page}/locales/{locale}/bindings
+
+```sh
+curl -i "http://localhost:8000/api/v1/admin/cms/pages/01m6kbzdd8avqs3xtqcj10d0bz/locales/nl/bindings?limit=2" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+```
+
+Captured200 response: `bindings` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/pages/{page}/locales/{locale}/media-preview
+
+```sh
+curl -i "http://localhost:8000/api/v1/admin/cms/pages/01m6kbzdd8avqs3xtqcj10d0bz/locales/nl/media-preview" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+```
+
+Captured200 response: `component_preview` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/assets/{asset}/usages
+
+```sh
+curl -i "http://localhost:8000/api/v1/admin/cms/assets/01m6kbzcpywtzvsxyrfwbp7sq4/usages?source=draft" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+```
+
+Captured200 response: `draft_usage` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
+
+All existing CMS page create/draft-save APIs accept optional `content.media_recipes`, a map of exact image-field paths (for example `body.content.1.attrs.asset_id`) to same-asset recipe ULIDs. At most200 pins; all three derivatives must be ready. Wrong/missing/foreign/incomplete pins return422. Pins are saved inside ordinary versioned content, so normal draft revisions/publication/restore preserve them. Existing unpinned content remains valid; no global active recipe is substituted silently. The `create_pinned_page` and `save_changed_draft` exchanges show actual mutation requests/responses. See [binding/preview contract](../cms/CONTENT_BINDINGS.md).

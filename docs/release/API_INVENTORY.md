@@ -2,9 +2,9 @@
 
 Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **476**. Method/path operations (HEAD aliases excluded): **477**. Unique paths: **417**.
+Runtime route entries: **479**. Method/path operations (HEAD aliases excluded): **480**. Unique paths: **420**.
 
-Access counts are per operation: admin 232, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 235, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -60,6 +60,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/cms/assets/{asset}/original` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets/{asset}/recipes` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets/{asset}/restore` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/assets/{asset}/usages` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-consents/stats` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-policies` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/cookie-policies` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
@@ -75,6 +76,8 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/cms/pages/{page}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/archive` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | PUT | `/api/v1/admin/cms/pages/{page}/locales/{locale}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/bindings` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/media-preview` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/preview` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/publish` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api, ThrottleRequests:cms-ai | admin |

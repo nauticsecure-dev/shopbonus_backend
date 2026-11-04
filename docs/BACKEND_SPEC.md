@@ -1,3 +1,5 @@
+B80: [Saved-page source bindings and per-usage media recipe pins](cms/CONTENT_BINDINGS.md) add backend component-context manifests and bounded usage scans. Universal client/other-source discovery, real responsive rendering and global media management remain incomplete.
+
 B85: [Adobe SaaS IMS renewal](integrations/ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) reuses encrypted credentials/pinned transport and preserves generation-bound authority. Existing async/native publication source is distinguished from genuine provider acceptance; remaining C/E/Squarespace publishers and C cash mapping stay OPEN.
 
 B84: [Controlled staging execution](qa/STAGING_RUNNER.md) adds reviewed exact-Git script execution, scheduled/deployment entry points and mandatory independent acceptance evaluation. Disabled/unmapped until actual reviewed journeys and staging are configured; execution is not provider acceptance.

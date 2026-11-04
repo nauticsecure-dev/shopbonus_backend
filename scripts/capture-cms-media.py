@@ -1,5 +1,6 @@
 """Isolated real HTTP examples; synthetic recent-password fixture, not browser acceptance."""
 import os, tempfile, subprocess, pathlib, base64, json, time, urllib.request, urllib.error, shutil, signal, hashlib
+bindings_mode=os.environ.get('CAPTURE_CMS_BINDINGS')=='1'
 root=pathlib.Path.cwd(); work=pathlib.Path(tempfile.mkdtemp(prefix='shopbonus-b79-')); env=os.environ.copy(); server=None
 for d in ['framework/cache/data','framework/sessions','framework/views','logs','app/private']:(work/'storage'/d).mkdir(parents=True,exist_ok=True)
 db=work/'capture.sqlite';db.touch()
@@ -53,8 +54,25 @@ $app=require getcwd().'/bootstrap/app.php';$app->make(Illuminate\Contracts\Http\
  call('missing','GET','/api/v1/admin/cms/assets/01AAAAAAAAAAAAAAAAAAAAAAAA',expected=404)
  for surface in ['homepage','over-ons','voor-webshops','pages/voor-webshops']:
   call('upload_'+surface,'POST','/api/v1/admin/content/'+surface+'/assets',expected=201,upload=True)
- out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':'1fa850c plus B79 working tree','environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','exchanges':captures}
- (root/'docs/qa/B79_MEDIA_HTTP_CAPTURE.json').write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
+ if bindings_mode:
+  content={'title':'Synthetic component','body':{'type':'doc','content':[{'type':'paragraph','content':[{'type':'text','text':'Actual saved component copy'}]},{'type':'image','attrs':{'asset_id':asset,'alt':'Synthetic image'}}]},'media_recipes':{'body.content.1.attrs.asset_id':old}}
+  page=call('create_pinned_page','POST','/api/v1/admin/cms/pages',{'key':'binding-capture','type':'info','locales':{'nl':{'slug':'binding-capture','content':content}}},expected=201)['data']['id']
+  base='/api/v1/admin/cms/pages/'+page+'/locales/nl'
+  field=call('bindings','GET',base+'/bindings?limit=2');saved_hash=field['source']['content_sha256']
+  call('bindings_next','GET',base+'/bindings?after=2&hash='+saved_hash)
+  call('component_preview','GET',base+'/media-preview')
+  call('publish_pinned','POST',base+'/publish',{'revision':1})
+  call('published_preview','GET',base+'/media-preview?version=published')
+  call('draft_usage','GET',path+'/usages?source=draft');call('revision_usage','GET',path+'/usages?source=revision')
+  content['title']='Changed draft'
+  call('save_changed_draft','PUT',base,{'revision':1,'content':content})
+  call('stale_bindings','GET',base+'/bindings?after=2&hash='+saved_hash,expected=409)
+  call('private_bindings','GET',base+'/bindings',actor=None,expected=401)
+  call('consumer_preview','GET',base+'/media-preview',actor='consumer',expected=403)
+  call('invalid_usage_source','GET',path+'/usages?source=unknown',expected=422)
+  call('missing_source','GET','/api/v1/admin/cms/pages/01AAAAAAAAAAAAAAAAAAAAAAAA/locales/nl/bindings',expected=404)
+ out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree'),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','exchanges':captures}
+ (root/('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json')).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
 finally:
  if server:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
  shutil.rmtree(work)

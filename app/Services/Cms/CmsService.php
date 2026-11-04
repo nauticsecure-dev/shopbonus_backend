@@ -39,6 +39,22 @@ class CmsService
      */
     public function validateContent(array $content, ?string $type = null, ?string $key = null): array
     {
+        $hasPins = array_key_exists('media_recipes', $content);
+        $pins = $content['media_recipes'] ?? null;
+        unset($content['media_recipes']);
+        $data = $this->validateBaseContent($content, $type, $key);
+        if ($hasPins) {
+            $data['media_recipes'] = app(CmsContentBindings::class)->validatePins($data, $pins);
+        }
+
+        return $data;
+    }
+
+    /** @param array<string,mixed> $content
+     * @return array<string,mixed>
+     */
+    private function validateBaseContent(array $content, ?string $type, ?string $key): array
+    {
         if ($key === 'voor-webshops') {
             $data = $this->merchantLanding->validate($content);
             if (isset($data['body']) && is_array($data['body'])) {
