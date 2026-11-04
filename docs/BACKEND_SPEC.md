@@ -1,5 +1,7 @@
 # Shopbonus — Backend Consolidated Specification
 
+B75: [Website candidate images](enrichment/WEBSITE_ASSET_IMPORT.md) now have private bounded import, normalized raster storage and explicit content/rights approval before existing merchant banner-asset reuse. No automatic profile/campaign publication.
+
 B74: [Explicit stored provider evidence review](integrations/PROMOTION_EVIDENCE_REVIEW.md) normalizes selected conditions/exclusions into reviewed offer versions; permission remains separate and real provider acceptance is NOT RUN.
 
 B73: [BigCommerce native Widgets lifecycle](banners/NATIVE_PUBLICATION.md) is implemented behind an OFF-by-default flag. Other reviewed providers retain native app/manual requirements. Provider/storefront acceptance remains NOT RUN.

@@ -1569,6 +1569,8 @@ B74 parent6c0a696: SQLite70PASS+1skip/522; MySQL11/42; PHPStan/Pint/diff PASS; t
 
 ### B75 — Reviewed website image import
 
-- [ ] Reuse pinned public-DNS transport for bounded same-origin candidate downloads; validate and re-encode supported raster images.
-- [ ] Store private pending imports with immutable evidence/hash; enforce current active admin, ownership, explicit rights confirmation and review before reusable assets exist.
-- [ ] Test malicious/oversized/invalid/private-host data, stale source, replay/storage failure and rejection; capture existing real asset API output and update handoff.
+- [x] Reuse pinned public-DNS transport for bounded same-origin candidate downloads; validate and re-encode supported raster images.
+- [x] Store private pending imports with immutable evidence/hash; enforce current active admin, ownership, explicit rights confirmation and review before reusable assets exist.
+- [x] Test malicious/oversized/invalid/private-host data, stale source, replay/storage failure and rejection; capture existing real asset API output and update handoff.
+
+B75 tested boundary parent8cc2c72: SQLite selected147PASS+3skip/9730; final import/API12/8397; MySQL18/86; fullPint/PHPStan/diff PASS. Broader local pre-existing GD cover failures retained in results; Linux current-head CI pending. Two actual HTTP captures; B74 source8cc2c72, B75 implementing SHA follows closeout. Real merchant rights/provider/deployment acceptance NOT RUN.

@@ -1,5 +1,7 @@
 # Shopbonus API reference
 
+B75: [Private candidate-image import and approval](../enrichment/WEBSITE_ASSET_IMPORT.md) feeds the existing same-workspace banner asset library only after current-admin content and explicit usage-rights review. [Actual approved WebP200 and pending404 HTTP captures](../qa/B75_ASSET_HTTP_CAPTURE.json) use synthetic image transport and real Laravel services/storage/serving. Binary base64/length/hash in the artifact represent the captured image bytes. No new API route.
+
 B74: [operator provider-promotion review](../integrations/PROMOTION_EVIDENCE_REVIEW.md) uses existing offer description serialization; no new HTTP endpoint. [Actual reviewed-offer/foreign404/401 captures](../qa/B74_PROMOTION_HTTP_CAPTURE.json) use private synthetic evidence and real Laravel HTTP. Pending/raw snapshots never grant permission or activate offers.
 
 B73: BigCommerce connection setup now documents optional operator-only native Widgets provisioning/removal (default OFF); no public API mutation added. [Seven actual private Laravel HTTP captures](../qa/B73_NATIVE_BANNER_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-banner.py`, cover current catalogue/setup/detail and401/403/404/422. Provider writes and browser delivery are NOT RUN. See [native publication runbook](../banners/NATIVE_PUBLICATION.md).

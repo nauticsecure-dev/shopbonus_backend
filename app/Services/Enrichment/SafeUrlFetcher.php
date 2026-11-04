@@ -19,6 +19,16 @@ class SafeUrlFetcher
 
     public function fetch(string $url, int $maxBytes): ?string
     {
+        return $this->fetchContent($url, $maxBytes, false);
+    }
+
+    public function fetchImage(string $url, int $maxBytes = 2097152): ?string
+    {
+        return $this->fetchContent($url, max(1, min(2097152, $maxBytes)), true);
+    }
+
+    private function fetchContent(string $url, int $maxBytes, bool $image): ?string
+    {
         $parts = parse_url($url);
         if ($parts === false || ($parts['scheme'] ?? '') !== 'https' || isset($parts['user']) || isset($parts['pass'])
             || isset($parts['query']) || isset($parts['fragment']) || (isset($parts['port']) && $parts['port'] !== 443)
@@ -58,7 +68,7 @@ class SafeUrlFetcher
                 'timeout' => 8,
                 'stream' => true,
                 'curl' => [CURLOPT_RESOLVE => ["{$host}:443:{$target}"]],
-            ])->withHeaders(['User-Agent' => 'ShopbonusEnrichment/1.0', 'Accept' => 'text/html,text/plain;q=0.9'])
+            ])->withHeaders(['User-Agent' => 'ShopbonusEnrichment/1.0', 'Accept' => $image ? 'image/jpeg,image/png,image/webp' : 'text/html,text/plain;q=0.9'])
                 ->get('https://'.$host.$path);
         } catch (Throwable $e) {
             Log::info('Enrichment fetch failed', ['host' => $host, 'exception_class' => $e::class]);
@@ -71,12 +81,30 @@ class SafeUrlFetcher
         }
 
         $ctype = strtolower((string) $response->header('Content-Type'));
-        if ($ctype !== '' && ! str_starts_with($ctype, 'text/html') && ! str_starts_with($ctype, 'text/plain')) {
+        if ($image && ! in_array(trim(explode(';', $ctype)[0]), ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            return null;
+        }
+        if (! $image && $ctype !== '' && ! str_starts_with($ctype, 'text/html') && ! str_starts_with($ctype, 'text/plain')) {
             return null;
         }
 
         $body = $response->toPsrResponse()->getBody();
 
-        return $body->isReadable() ? $body->read(max(1024, min(1048576, $maxBytes))) : null;
+        if (! $body->isReadable()) {
+            return null;
+        }
+        if (! $image) {
+            return $body->read(max(1024, min(1048576, $maxBytes)));
+        }
+        $bytes = '';
+        while (! $body->eof() && strlen($bytes) <= $maxBytes) {
+            $part = $body->read(min(65536, $maxBytes + 1 - strlen($bytes)));
+            if ($part === '') {
+                break;
+            }
+            $bytes .= $part;
+        }
+
+        return strlen($bytes) <= $maxBytes && $body->eof() ? $bytes : null;
     }
 }
