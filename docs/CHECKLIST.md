@@ -1574,3 +1574,5 @@ B74 parent6c0a696: SQLite70PASS+1skip/522; MySQL11/42; PHPStan/Pint/diff PASS; t
 - [x] Test malicious/oversized/invalid/private-host data, stale source, replay/storage failure and rejection; capture existing real asset API output and update handoff.
 
 B75 tested boundary parent8cc2c72: SQLite selected147PASS+3skip/9730; final import/API12/8397; MySQL18/86; fullPint/PHPStan/diff PASS. Broader local pre-existing GD cover failures retained in results; Linux current-head CI pending. Two actual HTTP captures; B74 source8cc2c72, B75 implementing SHA follows closeout. Real merchant rights/provider/deployment acceptance NOT RUN.
+
+B74 implementing SHA `8cc2c72`; B75 implementing SHA `bf07291`. Checked items certify the tested backend review/import boundaries; full Linux CI and genuine merchant/provider acceptance are tracked separately.
