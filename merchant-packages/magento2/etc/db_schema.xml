@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+  <table name="shopbonus_async_outbox" resource="default" engine="innodb" comment="ShopBonus ID notification outbox">
+    <column xsi:type="bigint" name="id" unsigned="true" nullable="false" identity="true" comment="ID"/>
+    <column xsi:type="int" name="store_id" unsigned="true" nullable="false" comment="Store view"/>
+    <column xsi:type="bigint" name="order_id" unsigned="true" nullable="false" comment="Order"/>
+    <column xsi:type="varchar" name="event_id" length="32" nullable="false" comment="Stable retry ID"/>
+    <column xsi:type="text" name="payload" nullable="false" comment="ID-only immutable retry payload"/>
+    <column xsi:type="int" name="attempts" unsigned="true" nullable="false" default="0" comment="Attempts"/>
+    <column xsi:type="bigint" name="next_attempt" unsigned="true" nullable="false" default="0" comment="Epoch retry time"/>
+    <column xsi:type="smallint" name="delivered" unsigned="true" nullable="false" default="0" comment="Acknowledged"/>
+    <constraint xsi:type="primary" referenceId="PRIMARY"><column name="id"/></constraint>
+    <constraint xsi:type="unique" referenceId="SHOPBONUS_STORE_ORDER"><column name="store_id"/><column name="order_id"/></constraint>
+    <index referenceId="SHOPBONUS_PENDING" indexType="btree"><column name="delivered"/><column name="next_attempt"/></index>
+  </table>
+</schema>

@@ -102,9 +102,9 @@ class MerchantPackageTest extends TestCase
     public function test_shipped_archives_match_the_manifest_and_platform_entrypoints(): void
     {
         $manifest = json_decode(file_get_contents(public_path('downloads/integrations/manifest.json')), true, flags: JSON_THROW_ON_ERROR);
-        $directories = ['shopbonus-prestashop9.zip' => 'prestashop', 'shopbonus.ocmod.zip' => 'opencart4',
+        $directories = ['shopbonus-adobe-appbuilder-source.zip' => 'adobe-appbuilder', 'shopbonus-magento2-async.zip' => 'magento2', 'shopbonus-prestashop9.zip' => 'prestashop', 'shopbonus.ocmod.zip' => 'opencart4',
             'shopbonus-woocommerce-banner.zip' => 'woocommerce', 'shopbonus-shopify-theme-source.zip' => 'shopify'];
-        foreach (['shopbonus-prestashop9.zip' => 'shopbonus/shopbonus.php', 'shopbonus.ocmod.zip' => 'install.json',
+        foreach (['shopbonus-adobe-appbuilder-source.zip' => 'app.config.yaml', 'shopbonus-magento2-async.zip' => 'registration.php', 'shopbonus-prestashop9.zip' => 'shopbonus/shopbonus.php', 'shopbonus.ocmod.zip' => 'install.json',
             'shopbonus-woocommerce-banner.zip' => 'shopbonus-banner/shopbonus-banner.php',
             'shopbonus-shopify-theme-source.zip' => 'extensions/shopbonus-banner/shopify.extension.toml'] as $filename => $entrypoint) {
             $path = public_path('downloads/integrations/'.$filename);
@@ -120,7 +120,7 @@ class MerchantPackageTest extends TestCase
                 $name = $zip->getNameIndex($index);
                 $source = match ($name) {
                     'INSTALL.md' => base_path('merchant-packages/INSTALL.md'),
-                    'shopbonus/Delivery.php', 'system/library/Delivery.php' => base_path('merchant-packages/common/Delivery.php'),
+                    'shopbonus/Delivery.php', 'system/library/Delivery.php', 'Shared/Delivery.php' => base_path('merchant-packages/common/Delivery.php'),
                     default => base_path('merchant-packages/'.$directories[$filename].'/'.$name),
                 };
                 $this->assertFileExists($source);

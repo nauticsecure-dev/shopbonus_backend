@@ -7,28 +7,67 @@ use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
+use App\Integrations\Data\VerifiedEvent;
+use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\WooCommerceApi;
 use App\Integrations\LineItems;
 use App\Models\WebshopConnection;
 use App\Services\Onboarding\DomainName;
+use App\Support\ExactJson;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 
-/** Adobe Commerce/Magento2.4 self-hosted/PaaS REST only. SaaS tenant API is a separate unsupported deployment. */
-final class MagentoConnector extends GenericSignedWebhookConnector implements CatalogReader, PagedOrderReader
+/** Native Magento/PaaS REST and explicitly scoped Adobe Commerce SaaS REST. Event delivery is deployment-specific. */
+final class MagentoConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
         parent::__construct(EcommercePlatform::Magento);
     }
 
+    public function verifyIncomingEvent(WebshopConnection $connection, Request $request): VerifiedEvent
+    {
+        $event = parent::verifyIncomingEvent($connection, $request);
+        try {
+            $payload = ExactJson::decode($this->rawBody($request));
+        } catch (\JsonException) {
+            throw new InvalidWebhook('invalid_json');
+        }
+        if (is_array($payload) && array_key_exists('shopbonus_magento_lookup_v1', $payload)) {
+            if ($event->kind !== VerifiedEvent::KIND_ORDER || $this->notificationOrderId($connection, $request->getContent()) === null) {
+                throw new InvalidWebhook('invalid_order_id');
+            }
+
+            return new VerifiedEvent($event->dedupeKey, $event->topic, VerifiedEvent::KIND_ORDER_LOOKUP);
+        }
+
+        return $event;
+    }
+
+    public function notificationOrderId(WebshopConnection $connection, string $raw): ?string
+    {
+        try {
+            $p = ExactJson::decode($raw);
+            if (! is_array($p) || ($p['shopbonus_magento_lookup_v1'] ?? false) !== true || ! is_string($p['store_id'] ?? null) || ! is_string($p['store_code'] ?? null)
+                || $p['store_id'] !== $connection->credential('store_id') || $p['store_code'] !== $connection->credential('store_code')) {
+                return null;
+            }
+
+            return WooCommerceApi::orderId(is_string($p['order_id'] ?? null) ? $p['order_id'] : '');
+        } catch (\JsonException|\InvalidArgumentException|ApiException) {
+            return null;
+        }
+    }
+
     public function connectRules(): array
     {
-        return ['store_url' => ['nullable', 'url', 'max:255'], 'access_token' => ['required_with:store_url', 'string', 'min:16', 'max:4096', 'regex:/\A[A-Za-z0-9_.-]+\z/D'], 'store_code' => ['required_with:store_url', 'string', 'max:64', 'regex:/\A[A-Za-z0-9_]+\z/D'], 'store_id' => ['required_with:store_url', 'string', 'regex:/\A[1-9][0-9]{0,18}\z/D']];
+        return ['deployment' => ['sometimes', 'in:self_hosted,saas'], 'saas_api_url' => ['required_if:deployment,saas', 'nullable', 'string', 'max:150', 'regex:~\Ahttps://[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.api\.commerce\.adobe\.com/[A-Za-z0-9_-]{1,100}/?\z~D'], 'store_url' => ['required_if:deployment,saas', 'nullable', 'url', 'max:255'], 'access_token' => ['required_with:store_url', 'string', 'min:16', 'max:4096', 'regex:/\A[A-Za-z0-9_.-]+\z/D'], 'store_code' => ['required_with:store_url', 'string', 'max:64', 'regex:/\A[A-Za-z0-9_]+\z/D'], 'store_id' => ['required_with:store_url', 'string', 'regex:/\A[1-9][0-9]{0,18}\z/D']];
     }
 
     public function connect(WebshopConnection $c, array $input): array
@@ -36,8 +75,12 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         $credentials = parent::connect($c, $input);
         if (! empty($input['store_url'])) {
             $base = WooCommerceApi::baseUrl($input['store_url']);
-            $c->external_shop_ref = $base.'#store='.$input['store_id'].':'.$input['store_code'];
-            $credentials += ['store_url' => $base, 'access_token' => $input['access_token'], 'store_code' => $input['store_code'], 'store_id' => $input['store_id']];
+            $api = ($input['deployment'] ?? 'self_hosted') === 'saas' ? rtrim($input['saas_api_url'], '/') : $base;
+            $c->external_shop_ref = $api.'#store='.$input['store_id'].':'.$input['store_code'];
+            $credentials += ['store_url' => $base, 'access_token' => $input['access_token'], 'store_code' => $input['store_code'], 'store_id' => $input['store_id'], 'deployment' => $input['deployment'] ?? 'self_hosted'];
+            if (($input['deployment'] ?? null) === 'saas') {
+                $credentials['saas_api_url'] = $api;
+            }
         }
 
         return $credentials;
@@ -45,7 +88,12 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
 
     public function setupInstructions(WebshopConnection $c, string $url): array
     {
-        return parent::setupInstructions($c, $url) + ['native_version' => 'Magento/Adobe Commerce2.4 self-hosted/PaaS REST', 'native_read_configured' => $c->credential('access_token') !== null, 'native_notice' => 'Configure an approved restricted integration bearer token supported by the deployed security settings, exact store view ID/code and HTTPS installation URL. SaaS tenant endpoints are not supported. Prefer asynchronous Adobe I/O Events or a compatible signed module; do not block checkout with slow synchronous ingestion. No Magento module is included.'];
+        $saas = $c->credential('deployment') === 'saas';
+
+        return parent::setupInstructions($c, $url) + ['native_version' => $saas ? 'Adobe Commerce as a Cloud Service REST' : 'Magento/Adobe Commerce2.4 self-hosted/PaaS REST',
+            'native_read_configured' => $c->credential('access_token') !== null,
+            'native_notice' => $saas ? 'SaaS uses the exact tenant API URL, current IMS bearer token and Store header; storefront domain and store ID/code are verified independently. Token renewal is deployment-managed. Candidate private Adobe I/O/App Builder source: /downloads/integrations/shopbonus-adobe-appbuilder-source.zip. Runtime Action registration/signature validation, scoped event setup, actual deployment and delivery acceptance remain NOT RUN; PHP modules cannot run on SaaS.'
+                : 'Configure restricted native REST credentials and exact verified store ID/code. Candidate asynchronous module: '.url('/downloads/integrations/shopbonus-magento2-async.zip').'. Commit-time local outbox only; configure encrypted per-store signing settings and cron. Native installation/order/refund/cleanup acceptance NOT RUN.'];
     }
 
     /** @param array<string,mixed> $query
@@ -61,11 +109,21 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
             throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
         }
         $base = WooCommerceApi::baseUrl($base);
-        if (! $c->webshop->isOwnershipVerified() || DomainName::fromInput($base) !== strtolower((string) $c->webshop->verified_domain) || $c->external_shop_ref !== $base.'#store='.$id.':'.$code) {
+        $saas = $c->credential('deployment') === 'saas';
+        $api = $saas ? $c->credential('saas_api_url') : $base;
+        if ($saas && (! is_string($api) || ! preg_match('~\Ahttps://[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.api\.commerce\.adobe\.com/[A-Za-z0-9_-]{1,100}\z~D', $api) || $code === 'all')) {
+            throw ApiException::conflict('Configure the exact scoped Adobe SaaS tenant URL.', 'provider_tenant_invalid');
+        }
+        if (! $c->webshop->isOwnershipVerified() || DomainName::fromInput($base) !== strtolower((string) $c->webshop->verified_domain) || $c->external_shop_ref !== $api.'#store='.$id.':'.$code) {
             throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
         }
+        $headers = ['Authorization' => 'Bearer '.$token];
+        if ($saas) {
+            $headers['Store'] = $code;
+        }
+        $endpoint = $saas ? $api.'/V1/'.$path : $base.'/rest/'.$code.'/V1/'.$path;
 
-        return app(PinnedJsonReader::class)->read($c, $base.'/rest/'.$code.'/V1/'.$path, ['headers' => ['Authorization' => 'Bearer '.$token]], 'GET', $query)['data'];
+        return app(PinnedJsonReader::class)->read($c, $endpoint, ['headers' => $headers], 'GET', $query)['data'];
     }
 
     private function identity(WebshopConnection $c): void

@@ -1584,3 +1584,19 @@ B74 implementing SHA `8cc2c72`; B75 implementing SHA `bf07291`. Checked items ce
 - [x] Record exact source SHA, executed evidence and remaining acceptance in checkpoint docs; preserve the resolved API inventory.
 
 B76 audited implementation SHA `765bc80` (BigCommerce source346b3bb); focused14PASS/838. Checked items certify audit/reconciliation only; C/E-Series/Squarespace automatic publication and genuine provider acceptance remain open.
+
+### B77 — Adobe asynchronous module and deployment separation
+
+- [x] Add a Magento/PaaS candidate module with local commit-time outbox, scoped configuration, bounded asynchronous delivery/retry and disable/cleanup instructions; no checkout network calls.
+- [x] Authenticate and bind ID-only notifications to exact native store scope; reuse native recovery without trusting posted payment/refund claims.
+- [x] Audit SaaS REST/event contracts separately and implement only established supported capabilities; keep installation/native runtime acceptance explicit.
+- [x] Verify protocol, malformed/foreign scope, recovery and deterministic install archive; capture real local setup/webhook responses and update API/runbooks/checkpoint docs.
+
+B77 parent81a3591: SQLite241/2188, MySQL5/43, package/Runtime/API11/8541, API5/8353, fullPint/PHPStan/diff PASS; four Node tests. Source archives are candidates. Native Magento SDK and Adobe installation/registration/observer/cron/uninstall execution NOT RUN; implementing SHA follows closeout.
+
+- [ ] Execute actual Magento module and private Adobe Runtime installation/registration, worker concurrency/failure/replay and order/refund/uninstall acceptance on the deployed build.
+
+### B78 — Lightspeed C refund evidence
+
+- [ ] Establish authoritative credit/return versus cash-refund fields and order binding; never infer cash from credits or quantities.
+- [ ] Implement supported cash evidence mapping where documented; otherwise retain unknown values with explicit source blockers and executed negative regression evidence.

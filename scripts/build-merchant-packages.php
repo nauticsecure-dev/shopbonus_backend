@@ -8,6 +8,8 @@ if (! is_dir($output)) {
     mkdir($output, 0755, true);
 }
 $packages = [
+    'shopbonus-adobe-appbuilder-source.zip' => ['directory' => 'adobe-appbuilder'],
+    'shopbonus-magento2-async.zip' => ['directory' => 'magento2', 'delivery' => 'Shared/Delivery.php'],
     'shopbonus-prestashop9.zip' => ['presta' => true, 'directory' => 'prestashop', 'delivery' => 'shopbonus/Delivery.php'],
     'shopbonus.ocmod.zip' => ['directory' => 'opencart4', 'delivery' => 'system/library/Delivery.php'],
     'shopbonus-woocommerce-banner.zip' => ['directory' => 'woocommerce'],

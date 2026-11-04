@@ -1,0 +1,24 @@
+application:
+  actions: actions
+  runtimeManifest:
+    packages:
+      shopbonus:
+        actions:
+          orders:
+            function: actions/orders/index.js
+            web: 'no'
+            runtime: nodejs:22
+            inputs:
+              SHOPBONUS_ENABLED: $SHOPBONUS_ENABLED
+              SHOPBONUS_ENDPOINT: $SHOPBONUS_ENDPOINT
+              SHOPBONUS_SECRET: $SHOPBONUS_SECRET
+              ADOBE_EVENT_SOURCE: $ADOBE_EVENT_SOURCE
+              COMMERCE_EVENT_SOURCE: $COMMERCE_EVENT_SOURCE
+              COMMERCE_STORE_ID: $COMMERCE_STORE_ID
+              COMMERCE_STORE_CODE: $COMMERCE_STORE_CODE
+            limits:
+              timeout: 15000
+              memorySize: 128
+            annotations:
+              require-adobe-auth: true
+              final: true

@@ -1,5 +1,7 @@
 # Shopbonus — Backend Consolidated Specification
 
+B77: [Adobe async delivery source and scoped SaaS REST](integrations/ADOBE_ASYNC.md) adds a candidate Magento/PaaS commit-time outbox module and private App Builder Runtime Action. Signed IDs request native recovery; source/tenant/store and financial evidence guards remain mandatory. Real native deployment/acceptance NOT RUN.
+
 B75: [Website candidate images](enrichment/WEBSITE_ASSET_IMPORT.md) now have private bounded import, normalized raster storage and explicit content/rights approval before existing merchant banner-asset reuse. No automatic profile/campaign publication.
 
 B74: [Explicit stored provider evidence review](integrations/PROMOTION_EVIDENCE_REVIEW.md) normalizes selected conditions/exclusions into reviewed offer versions; permission remains separate and real provider acceptance is NOT RUN.

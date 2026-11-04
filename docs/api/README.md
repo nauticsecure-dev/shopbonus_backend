@@ -1,5 +1,7 @@
 # Shopbonus API reference
 
+B77: [Adobe async module/private Runtime Action and scoped SaaS reads](../integrations/ADOBE_ASYNC.md) use the existing connection/webhook APIs. [Eleven actual private Laravel HTTP captures](../qa/B77_ADOBE_HTTP_CAPTURE.json), including a real Node-signed ID notification, duplicate and foreign-store rejection, are reproduced by `python3 scripts/capture-adobe-async.py`. Native recovery is queued; actual Adobe registration/install/delivery remains NOT RUN. OpenAPI includes captured setup and webhook examples.
+
 B75: [Private candidate-image import and approval](../enrichment/WEBSITE_ASSET_IMPORT.md) feeds the existing same-workspace banner asset library only after current-admin content and explicit usage-rights review. [Actual approved WebP200 and pending404 HTTP captures](../qa/B75_ASSET_HTTP_CAPTURE.json) use synthetic image transport and real Laravel services/storage/serving. Binary base64/length/hash in the artifact represent the captured image bytes. No new API route.
 
 B74: [operator provider-promotion review](../integrations/PROMOTION_EVIDENCE_REVIEW.md) uses existing offer description serialization; no new HTTP endpoint. [Actual reviewed-offer/foreign404/401 captures](../qa/B74_PROMOTION_HTTP_CAPTURE.json) use private synthetic evidence and real Laravel HTTP. Pending/raw snapshots never grant permission or activate offers.

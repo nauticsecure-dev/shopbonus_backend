@@ -1,0 +1,9 @@
+{
+  "name": "shopbonus-adobe-async-events",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "actions/orders/index.js"
+}

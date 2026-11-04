@@ -1,4 +1,14 @@
 {
+    "shopbonus-adobe-appbuilder-source.zip": {
+        "sha256": "d446d2a0a663f55375fb144af9ad830b73acfb0d7b8a4073c5154c042d248379",
+        "bytes": 8181,
+        "live_verified": false
+    },
+    "shopbonus-magento2-async.zip": {
+        "sha256": "1d8e4d0773879a9f03c8cbd6f6a031a3eae9921b458e7ff5a4bb0d6b9a688cdf",
+        "bytes": 12741,
+        "live_verified": false
+    },
     "shopbonus-prestashop9.zip": {
         "sha256": "8f9f9ae1a9a8df276dd2729e972006821af7cbe2d8082f44932f9815cf2331af",
         "bytes": 7495,

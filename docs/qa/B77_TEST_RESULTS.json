@@ -1,0 +1,60 @@
+{
+  "checkpoint": "B77",
+  "parent": "81a3591",
+  "sqlite_integration_unit": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 241,
+    "passed": 241,
+    "assertions": 2188,
+    "duration_ms": 12778
+  },
+  "mysql_new": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 5,
+    "passed": 5,
+    "assertions": 43,
+    "duration_ms": 16662
+  },
+  "package_runtime_api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 11,
+    "passed": 11,
+    "assertions": 8541,
+    "duration_ms": 10462
+  },
+  "final_api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 5,
+    "passed": 5,
+    "assertions": 8353,
+    "duration_ms": 13663
+  },
+  "pint": {
+    "tool": "pint",
+    "result": "passed"
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "saas_schema": {
+    "source": "https://adobe-commerce-saas.redoc.ly/",
+    "sha256": "62f8bbe6d6b9842fdc4c8d98b4364c2e6388769749974d6e04e02e89879c8970",
+    "version": "November2026",
+    "observed_read_paths": [
+      "/V1/orders/{id}",
+      "/V1/store/storeConfigs",
+      "/V1/transactions",
+      "/V1/invoices",
+      "/V1/creditmemos"
+    ]
+  },
+  "http": "11 actual Laravel loopback responses; actual Node signing action, queued worker, synthetic native setup",
+  "native_magento_runtime_and_adobe_deployment": "NOT RUN",
+  "laravel_migrations": "None; native Magento declarative outbox schema only"
+}

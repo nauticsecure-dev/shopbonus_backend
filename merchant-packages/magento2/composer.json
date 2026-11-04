@@ -1,0 +1,8 @@
+{
+  "name": "shopbonus/module-async-bridge",
+  "description": "Candidate ID-only asynchronous ShopBonus order bridge for Magento 2.4/PaaS",
+  "type": "magento2-module",
+  "version": "0.1.0",
+  "require": {"php": ">=8.1", "magento/framework": "^103.0", "magento/module-sales": "^103.0", "ext-curl": "*"},
+  "autoload": {"files": ["registration.php"], "psr-4": {"Shopbonus\\AsyncBridge\\": ""}}
+}
