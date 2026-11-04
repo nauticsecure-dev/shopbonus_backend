@@ -25773,3 +25773,9 @@ curl -i -X GET 'http://localhost:8000/api/v1/public/content-assets/01m6k9n7cbfwz
 Captured 200 response: [`derivative`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
 
 B84 adds backend-only [controlled staging execution](../qa/STAGING_RUNNER.md) through console/scheduler/deployment hooks. No HTTP route changes. Automatic imported results remain execution records; nonzero-process green JUnit becomes blocked. Missing independent acceptance evidence still blocks promotion. No frontend/provider/staging execution is certified.
+
+## B85 — Adobe SaaS automatic IMS renewal
+
+Existing `POST /api/v1/workspaces/{workspace}/connections` accepts `platform: magento`, `deployment: saas`, exact `saas_api_url`, verified `store_url`, `store_id`, `store_code` and either a manual `access_token` **or** paired `ims_client_id`/`ims_client_secret`. Client credentials are encrypted, never returned. Fixed Adobe OAuth scopes include `commerce.accs`; renewals preserve the underlying grant and do not promote connection readiness. Manual tokens and self-hosted/PaaS remain compatible. No new endpoint/migration.
+
+Actual request and response examples, including setup201, missing-secret422, mixed-auth422 and401/403/404: [14 isolated HTTP exchanges](../qa/B85_ADOBE_IMS_HTTP_CAPTURE.json), reproduced with `CAPTURE_ADOBE_IMS=1 python3 scripts/capture-adobe-async.py`. All credentials are explicitly synthetic; generated one-time signing secrets are redacted. Real Sanctum/validation/setup/Node-signed courier ingestion run; native recovery is queued. IMS/provider transport is fixture-tested separately and actual Adobe registration/installation/renewal/order/refund acceptance remains NOT RUN. See [Adobe contract](../integrations/ADOBE_ASYNC.md).

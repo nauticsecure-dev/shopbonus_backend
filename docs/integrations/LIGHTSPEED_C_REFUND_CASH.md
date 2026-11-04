@@ -21,3 +21,5 @@ Sources reviewed2026-11-04:
 - https://ecom-support.lightspeedhq.com/hc/en-us/articles/229806867-Refunding-orders-for-outside-payment-providers
 - https://ecom-support.lightspeedhq.com/hc/en-us/articles/1260800115029-Refunding-orders-for-Lightspeed-Payments
 - https://ecom-support.lightspeedhq.com/hc/en-us/articles/12011036864155-Managing-the-Klarna-app
+
+B85 recheck (2026-11-04, parent2e7da03): the official [Order resource](https://developers.lightspeedhq.com/ecom/endpoints/order/) documents not_paid/partially_paid/paid/cancelled paymentStatus and no cash-refund mapping. Official [C-Series refunds](https://retail-support.lightspeedhq.com/hc/en-us/articles/228840187-Refunding-eCom-C-Series-orders) explicitly separates credit invoices from refunding via the payment provider. The unknown cash/time mapping remains intentional and incomplete, not a missing arithmetic fallback. Existing negative regression passed again with the Adobe/BigCommerce integration regressions. No PSP account/transaction-binding contract or genuine refund evidence was established; no financial behavior changed.

@@ -1,3 +1,5 @@
+B85: [Adobe SaaS IMS client-credentials renewal](ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) now supplements existing async module/Runtime and scoped native reads. Tokens/client secrets stay encrypted; rotation/pause/tenant/ownership guards and expiry renewal are tested locally. Genuine provider acceptance remains NOT RUN. No new native publisher or C-Series cash mapping is claimed.
+
 # Top 10 commerce platform API & webhook specifications
 
 B77: [Candidate Adobe asynchronous couriers and scoped SaaS REST](ADOBE_ASYNC.md) now ship as PaaS module/private App Builder source plus exact-tenant IMS/Store-header reads. Real Adobe registration/installation/paid/refund/cleanup acceptance remains NOT RUN. Earlier “no module/SaaS implementation” statements are superseded by this source boundary.

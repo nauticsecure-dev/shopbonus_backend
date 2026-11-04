@@ -1652,3 +1652,14 @@ B79 tested source: `0a5afbe`; SQLite media8/70, CMS77/770, API19/8591, static/st
 - [x] Record installation/CI limits and original175/frontend/provider evidence blockers; update checkpoint documentation and commit SHA.
 
 B84 implementing SHA: `f507073`. SQLite/MySQL runner7/31 each; full static/style/shell/diff PASS. Original175/provider/frontend/staging evidence and external deployment wiring remain incomplete; this checks off the controlled runner implementation only.
+
+### B85 — Adobe SaaS IMS renewal and repeated integration review
+
+- [x] Reuse existing asynchronous module/Runtime source; add scoped IMS client-credentials renewal for SaaS with encrypted token storage, current lifecycle/identity checks and serialized renewal.
+- [x] Preserve static-token/self-hosted/bridge compatibility, credential-generation authority and fail-closed handling of malformed/expired responses, rotation, pause/disconnect and provider failures.
+- [x] Execute focused security/regression tests; capture changed connection setup responses from the real isolated HTTP server and refresh API/integration documentation.
+- [x] Recheck remaining native publisher/refund contracts against primary sources; explicitly retain unsupported mappings and unexecuted provider acceptance rather than guessing cash or write endpoints.
+
+B85 remaining scope: genuine Adobe module/Runtime/SaaS installation/renewal/order/refund/uninstall acceptance NOT RUN. BigCommerce lifecycle is existing implemented source346b3bb. C/E-Series/Squarespace automatic publishers remain OPEN; C-Series cash mapping remains OPEN without authoritative PSP transaction binding. Checked implementation items above do not certify those gaps complete.
+
+B85 tested source implementing SHA follows closeout: SQLite261/2584, SQLite/MySQL IMS7/36 each, API5/8440, fullPint/PHPStan/diff PASS; actual HTTP14. Genuine provider/installation acceptance and unsupported publishers/refund mapping remain incomplete.

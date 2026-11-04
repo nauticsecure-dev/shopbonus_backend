@@ -1,3 +1,5 @@
+B85: [Adobe SaaS IMS client-credentials renewal](ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) now supplements existing async module/Runtime and scoped native reads. Tokens/client secrets stay encrypted; rotation/pause/tenant/ownership guards and expiry renewal are tested locally. Genuine provider acceptance remains NOT RUN. No new native publisher or C-Series cash mapping is claimed.
+
 # Provider verification checklist
 
 B78: [Lightspeed C cash-refund gap](LIGHTSPEED_C_REFUND_CASH.md) remains OPEN. Credits/manual paid labels/return quantities do not establish actual PSP cash; null values are retained and negative regressions pass.

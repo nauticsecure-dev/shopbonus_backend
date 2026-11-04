@@ -4,6 +4,7 @@ namespace App\Integrations\Connectors;
 
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AdobeImsTokens;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
@@ -67,7 +68,7 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
 
     public function connectRules(): array
     {
-        return ['deployment' => ['sometimes', 'in:self_hosted,saas'], 'saas_api_url' => ['required_if:deployment,saas', 'nullable', 'string', 'max:150', 'regex:~\Ahttps://[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.api\.commerce\.adobe\.com/[A-Za-z0-9_-]{1,100}/?\z~D'], 'store_url' => ['required_if:deployment,saas', 'nullable', 'url', 'max:255'], 'access_token' => ['required_with:store_url', 'string', 'min:16', 'max:4096', 'regex:/\A[A-Za-z0-9_.-]+\z/D'], 'store_code' => ['required_with:store_url', 'string', 'max:64', 'regex:/\A[A-Za-z0-9_]+\z/D'], 'store_id' => ['required_with:store_url', 'string', 'regex:/\A[1-9][0-9]{0,18}\z/D']];
+        return ['deployment' => ['sometimes', 'in:self_hosted,saas'], 'saas_api_url' => ['required_if:deployment,saas', 'nullable', 'string', 'max:150', 'regex:~\Ahttps://[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.api\.commerce\.adobe\.com/[A-Za-z0-9_-]{1,100}/?\z~D'], 'store_url' => ['required_if:deployment,saas', 'nullable', 'url', 'max:255'], 'ims_client_id' => ['prohibited_unless:deployment,saas', 'required_with:ims_client_secret', 'string', 'regex:/\A[A-Za-z0-9_-]{8,255}\z/D'], 'ims_client_secret' => ['prohibited_unless:deployment,saas', 'required_with:ims_client_id', 'string', 'min:16', 'max:4096', 'not_regex:/[\r\n]/'], 'access_token' => ['exclude_without:store_url', 'required_without:ims_client_id', 'prohibits:ims_client_id,ims_client_secret', 'string', 'min:16', 'max:4096', 'regex:/\A[A-Za-z0-9_.-]+\z/D'], 'store_code' => ['required_with:store_url', 'string', 'max:64', 'regex:/\A[A-Za-z0-9_]+\z/D'], 'store_id' => ['required_with:store_url', 'string', 'regex:/\A[1-9][0-9]{0,18}\z/D']];
     }
 
     public function connect(WebshopConnection $c, array $input): array
@@ -77,7 +78,14 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
             $base = WooCommerceApi::baseUrl($input['store_url']);
             $api = ($input['deployment'] ?? 'self_hosted') === 'saas' ? rtrim($input['saas_api_url'], '/') : $base;
             $c->external_shop_ref = $api.'#store='.$input['store_id'].':'.$input['store_code'];
-            $credentials += ['store_url' => $base, 'access_token' => $input['access_token'], 'store_code' => $input['store_code'], 'store_id' => $input['store_id'], 'deployment' => $input['deployment'] ?? 'self_hosted'];
+            $credentials += ['store_url' => $base, 'store_code' => $input['store_code'], 'store_id' => $input['store_id'], 'deployment' => $input['deployment'] ?? 'self_hosted'];
+            if (isset($input['access_token'])) {
+                $credentials['access_token'] = $input['access_token'];
+            }
+            if (isset($input['ims_client_id'], $input['ims_client_secret'])) {
+                $credentials['ims_client_id'] = $input['ims_client_id'];
+                $credentials['ims_client_secret'] = $input['ims_client_secret'];
+            }
             if (($input['deployment'] ?? null) === 'saas') {
                 $credentials['saas_api_url'] = $api;
             }
@@ -91,8 +99,8 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         $saas = $c->credential('deployment') === 'saas';
 
         return parent::setupInstructions($c, $url) + ['native_version' => $saas ? 'Adobe Commerce as a Cloud Service REST' : 'Magento/Adobe Commerce2.4 self-hosted/PaaS REST',
-            'native_read_configured' => $c->credential('access_token') !== null,
-            'native_notice' => $saas ? 'SaaS uses the exact tenant API URL, current IMS bearer token and Store header; storefront domain and store ID/code are verified independently. Token renewal is deployment-managed. Candidate private Adobe I/O/App Builder source: /downloads/integrations/shopbonus-adobe-appbuilder-source.zip. Runtime Action registration/signature validation, scoped event setup, actual deployment and delivery acceptance remain NOT RUN; PHP modules cannot run on SaaS.'
+            'native_read_configured' => $c->credential('access_token') !== null || $c->credential('ims_client_id') !== null,
+            'native_notice' => $saas ? 'SaaS uses the exact tenant API URL, current IMS bearer token and Store header; storefront domain and store ID/code are verified independently. Optional encrypted IMS client credentials renew access tokens automatically; manually supplied tokens remain deployment-managed. Candidate private Adobe I/O/App Builder source: /downloads/integrations/shopbonus-adobe-appbuilder-source.zip. Runtime Action registration/signature validation, scoped event setup, actual deployment and delivery acceptance remain NOT RUN; PHP modules cannot run on SaaS.'
                 : 'Configure restricted native REST credentials and exact verified store ID/code. Candidate asynchronous module: '.url('/downloads/integrations/shopbonus-magento2-async.zip').'. Commit-time local outbox only; configure encrypted per-store signing settings and cron. Native installation/order/refund/cleanup acceptance NOT RUN.'];
     }
 
@@ -105,7 +113,7 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         $token = $c->credential('access_token');
         $code = $c->credential('store_code');
         $id = $c->credential('store_id');
-        if ($base === null || $token === null || $code === null || $id === null || ! preg_match('/\A[A-Za-z0-9_]{1,64}\z/D', $code)) {
+        if ($base === null || ($token === null && $c->credential('ims_client_id') === null) || $code === null || $id === null || ! preg_match('/\A[A-Za-z0-9_]{1,64}\z/D', $code)) {
             throw ApiException::conflict('Configure read-only provider credentials before testing the API.', 'provider_credentials_missing');
         }
         $base = WooCommerceApi::baseUrl($base);
@@ -116,6 +124,9 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         }
         if (! $c->webshop->isOwnershipVerified() || DomainName::fromInput($base) !== strtolower((string) $c->webshop->verified_domain) || $c->external_shop_ref !== $api.'#store='.$id.':'.$code) {
             throw ApiException::conflict('Verify ownership of the exact store domain before using its API.', 'store_identity_unverified');
+        }
+        if ($saas) {
+            $token = app(AdobeImsTokens::class)->accessToken($c);
         }
         $headers = ['Authorization' => 'Bearer '.$token];
         if ($saas) {
