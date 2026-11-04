@@ -28,6 +28,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $source_hash
  * @property string|null $model
  * @property int|null $input_tokens
+ * @property array<string,mixed>|null $context
+ * @property string|null $budget_day
+ * @property int|null $reserved_micros
+ * @property int|null $estimated_micros
+ * @property array<string,mixed>|null $pricing_snapshot
  * @property int|null $output_tokens
  */
 class CmsAiSuggestion extends Model
@@ -43,7 +48,7 @@ class CmsAiSuggestion extends Model
     protected function casts(): array
     {
         return ['proposed' => 'array', 'source_revision' => 'integer', 'target_revision' => 'integer', 'decided_at' => 'immutable_datetime',
-            'input_tokens' => 'integer', 'output_tokens' => 'integer'];
+            'input_tokens' => 'integer', 'output_tokens' => 'integer', 'context' => 'array', 'pricing_snapshot' => 'array', 'reserved_micros' => 'integer', 'estimated_micros' => 'integer'];
     }
 
     /** @return list<string> */

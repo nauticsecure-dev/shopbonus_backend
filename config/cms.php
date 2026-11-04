@@ -5,6 +5,8 @@ return [
     'ai_enabled' => env('CMS_AI_ENABLED', false),
     'api_key' => env('CMS_AI_API_KEY', env('OPENAI_API_KEY', '')),
     'model' => env('CMS_AI_MODEL', 'gpt-6.1-sol'),
+    'daily_budget_micros' => (int) env('CMS_AI_DAILY_BUDGET_MICROS', 0),
+    'pricing' => json_decode((string) env('CMS_AI_VERIFIED_PRICING', '{}'), true),
     'daily_limit' => (int) env('CMS_AI_DAILY_LIMIT', 20),
     'queue_connection' => env('CMS_AI_QUEUE_CONNECTION', 'database'),
     'queue' => 'cms-translations',

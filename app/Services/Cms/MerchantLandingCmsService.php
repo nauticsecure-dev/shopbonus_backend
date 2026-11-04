@@ -8,7 +8,6 @@ use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\CmsRevision;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -121,63 +120,6 @@ class MerchantLandingCmsService
     public function schedule(CmsPage $page, string $locale, array $schedule, int $revision, int $actorId): CmsPageLocale
     {
         return $this->saveSection($page, $locale, 'schedule', $schedule, $revision, $actorId);
-    }
-
-    /**
-     * @return list<array{field: string, suggestion: string}>
-     */
-    public function aiSuggest(string $locale, string $sectionKey, ?string $focus = null): array
-    {
-        if (! config('shopbonus.cms.ai_suggest_enabled') || empty(config('shopbonus.cms.ai_api_key'))) {
-            throw new ApiException('Merchant landing AI suggestions are not configured.', 503, 'merchant_landing_ai_not_configured');
-        }
-        if (! in_array($sectionKey, MerchantLandingSchema::SECTION_KEYS, true)) {
-            throw ValidationException::withMessages(['section' => 'Unknown merchant landing section.']);
-        }
-        $response = Http::withToken((string) config('shopbonus.cms.ai_api_key'))
-            ->acceptJson()
-            ->withOptions(['allow_redirects' => false])
-            ->connectTimeout(5)
-            ->timeout(20)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => config('shopbonus.cms.ai_model'),
-                'temperature' => 0.4,
-                'max_tokens' => 400,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'Suggest short ShopBonus webshop-owner landing copy in '.$locale.'. Plain text only, no HTML. Never invent platform availability, merchant figures, sales statistics, commission rules, free subscriptions, guaranteed orders, or financial claims. Suggestions only — do not say they are live or published.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => json_encode([
-                            'section' => $sectionKey,
-                            'focus' => $focus,
-                            'format' => 'JSON array of {field, suggestion}',
-                        ], JSON_THROW_ON_ERROR),
-                    ],
-                ],
-            ]);
-        if (! $response->successful()) {
-            throw new ApiException('Merchant landing AI suggestion failed.', 503, 'merchant_landing_ai_failed');
-        }
-        $text = (string) data_get($response->json(), 'choices.0.message.content', '');
-        $json = json_decode(trim($text), true);
-        if (! is_array($json)) {
-            throw new ApiException('Merchant landing AI suggestion failed.', 503, 'merchant_landing_ai_failed');
-        }
-        $out = [];
-        foreach ($json as $row) {
-            if (! is_array($row) || ! is_string($row['field'] ?? null) || ! is_string($row['suggestion'] ?? null)) {
-                continue;
-            }
-            if (preg_match('/[<>]/', $row['suggestion']) === 1 || preg_match('/\b(uitbetalen|opnemen|withdraw|guaranteed)\b/iu', $row['suggestion']) === 1) {
-                continue;
-            }
-            $out[] = ['field' => mb_substr($row['field'], 0, 60), 'suggestion' => mb_substr($row['suggestion'], 0, 300)];
-        }
-
-        return array_slice($out, 0, 8);
     }
 
     /**

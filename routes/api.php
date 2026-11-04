@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreem
 use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
 use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
+use App\Http\Controllers\Api\V1\Admin\CmsAiReviewController;
 use App\Http\Controllers\Api\V1\Admin\CmsBindingsController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\CmsMediaController;
@@ -454,6 +455,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('pages/{page}/locales/{locale}/suggestions', [AdminCmsController::class, 'requestSuggestion'])->middleware('throttle:cms-ai')->name('suggestions.store');
                         Route::post('suggestions/{suggestion}/apply', [AdminCmsController::class, 'applySuggestion'])->name('suggestions.apply');
                         Route::post('suggestions/{suggestion}/reject', [AdminCmsController::class, 'rejectSuggestion'])->name('suggestions.reject');
+                        Route::post('suggestions/{suggestion}/review', [CmsAiReviewController::class, 'store'])->name('suggestions.review');
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
                         Route::post('assets/{asset}/recipes', [CmsMediaController::class, 'storeRecipe'])->name('assets.recipes.store');
                         Route::post('assets/{asset}/restore', [CmsMediaController::class, 'restore'])->name('assets.restore');

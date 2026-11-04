@@ -1632,16 +1632,23 @@ B79 tested source: `0a5afbe`; SQLite media8/70, CMS77/770, API19/8591, static/st
 - [x] Expose protected component-context preview manifests and bounded draft/history media-usage discovery; keep browser layout/front-end discovery unknown.
 - [x] Verify compatibility/security/pinning/history, capture new APIs through real isolated HTTP and document exact remaining management work.
 
-- [x] Inventory registered CMS source fields with explicit global/tenant scope, locale, immutable version and media usage; preserve unknown frontend coverage.
+- [x] Inventory saved CMS page source fields with explicit global/tenant scope, locale, immutable version and media usage; preserve unknown frontend coverage.
 - [ ] Supply component-context preview data and impact/replace/archive controls without claiming browser layout preview implementation.
 
 
-B80 implementing SHA follows closeout; CMS84/822, MySQL5/40, API5/8493, static/style/diff PASS, actualHTTP31. Other-source/frontend discovery and management mutations remain open.
+B80 implementing SHA `6c01cc0`; CMS84/822, MySQL5/40, API5/8493, static/style/diff PASS, actualHTTP31. Other-source/frontend discovery and management mutations remain open.
 
 ### B81 — Consolidated CMS AI execution
 
-- [ ] Route legacy homepage/AboutUs/merchant translation callers through the existing queued revision-backed proposal/review flow.
-- [ ] Enforce configured monetary reservation caps and independent language/semantic review before proposals are applicable.
+- [x] Replace the three legacy Chat Completions implementations with section-scoped requests to the existing queued revision-backed proposal flow; preserve private suggestions/applied=false and expose polling metadata.
+- [x] Reserve the configured worst-case verified model-context/output cost under the daily quota lock before provider execution; retain reservations on failures/timeouts and keep pricing/model assumptions explicit.
+- [x] Require an independently recorded active-admin language/meaning review bound to the exact proposal/source before apply, including negative/stale/revoked-authority paths.
+- [x] Capture changed legacy/review APIs on the real isolated server, document migrations/configuration/frontend polling requirements and execute focused compatibility/security regressions.
+
+- [x] Route legacy homepage/AboutUs/merchant translation callers through the existing queued revision-backed proposal/review flow.
+- [x] Enforce configured monetary reservation caps and independent language/semantic review before proposals are applicable.
+
+B81 implementing SHA follows closeout; SQLite CMS92/879, MySQL AI/schedule27/286, API5/8522, static/style/diff PASS, actualHTTP43. Review is independent human attestation; live model quality/capability and automated classification remain unverified.
 
 ### B82 — Bulk content operations and recommended quality gates
 

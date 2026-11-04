@@ -4,11 +4,13 @@ namespace Tests\Feature\Cms;
 
 use App\Enums\PlatformRole;
 use App\Models\AuditEvent;
+use App\Models\CmsAiReview;
 use App\Models\CmsAiSuggestion;
 use App\Models\CmsPublicationSchedule;
 use App\Models\CmsRevision;
 use App\Models\User;
 use App\Services\Cms\AboutUsSchema;
+use App\Services\Cms\CmsAiReviewService;
 use App\Services\Cms\CmsSuggestions;
 use App\Services\Cms\HomepageSchema;
 use App\Services\Cms\MerchantLandingSchema;
@@ -38,6 +40,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
         Storage::fake('local');
         $this->admin = $this->superAdmin();
         config(['cms.ai_enabled' => true, 'cms.api_key' => 'sk-test-cms', 'cms.model' => 'gpt-test', 'cms.daily_limit' => 5, 'cms.queue_connection' => 'sync', 'cms.auto_translate' => false]);
+        config(['cms.daily_budget_micros' => 10000000, 'cms.pricing' => ['model' => 'gpt-test', 'currency' => 'EUR', 'reference' => 'Synthetic test pricing, not a live quote', 'valid_until' => now()->utc()->addDays(7)->toDateString(), 'context_tokens' => 131072, 'input_micros_per_million' => 1000000, 'output_micros_per_million' => 1000000]]);
     }
 
     private function superAdmin(): User
@@ -88,6 +91,14 @@ class CmsScheduleAndSuggestionTest extends TestCase
                 ])]]],
             ]]);
         }]);
+    }
+
+    private function reviewProposal(string $id): void
+    {
+        $s = CmsAiSuggestion::where('public_id', $id)->firstOrFail();
+        if (! CmsAiReview::where('suggestion_id', $s->id)->exists()) {
+            app(CmsAiReviewService::class)->review($s, $this->superAdmin(), $s->target_locale, true, 'Synthetic independent language and meaning review.');
+        }
     }
 
     // ------------------------------------------------------------ scheduling
@@ -200,6 +211,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
                 ->assertJsonPath('data.proposed.hero.heading', 'Willkommen')
                 ->assertJsonPath('data.proposed.nav.links.0.href', '/voordelen')->json('data.id');
             Http::assertSent(fn ($r) => str_contains($r['input'], 'hero.heading') && ! str_contains($r['input'], '/voordelen'));
+            $this->reviewProposal($suggestion);
             $this->postJson("/api/v1/admin/cms/suggestions/{$suggestion}/apply", ['slug' => $key.'-de'])->assertOk();
             $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertOk()
                 ->assertJsonPath('data.locales_detail.de.draft.hero.heading', 'Willkommen')
@@ -244,6 +256,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
 
         // Nothing changed until a human applies it; applying saves a draft only.
         $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.draft.title', 'Over ShopBonus');
+        $this->reviewProposal($s);
         $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply")->assertOk()->assertJsonPath('data.draft_revision', 2);
         $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.nl.draft.title', 'Over ShopBonus: samen voordeliger')->assertJsonPath('data.locales_detail.nl.published', null);
         $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply")->assertStatus(409)->assertJsonPath('error.code', 'suggestion_not_open');
@@ -282,7 +295,9 @@ class CmsScheduleAndSuggestionTest extends TestCase
         $this->fakeProvider(['About ShopBonus', 'About ShopBonus', 'Save 10% at webshops.', 'Our story', 'We connect shoppers and webshops.', ' Read more', 'For webshops']);
         $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'en', 'idempotency_key' => 'tr-1'])
             ->assertCreated()->assertJsonPath('data.target_locale', 'en')->assertJsonPath('data.target_revision', null)->json('data.id');
+        $this->reviewProposal($s);
         $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply")->assertUnprocessable(); // a new language needs an address
+        $this->reviewProposal($s);
         $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply", ['slug' => 'about-us'])->assertOk()->assertJsonPath('data.locale', 'en')->assertJsonPath('data.slug', 'about-us');
         $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.en.draft.title', 'About ShopBonus');
 
@@ -359,6 +374,7 @@ class CmsScheduleAndSuggestionTest extends TestCase
         $id = $this->page();
         $this->fakeProvider(['Über ShopBonus', 'Über ShopBonus', 'Spare 10% bei Webshops.', 'Unsere Geschichte', 'Wir verbinden Kunden und Webshops.', ' Mehr lesen', 'Für Webshops']);
         $s = $this->postJson("/api/v1/admin/cms/pages/{$id}/locales/nl/suggestions", ['kind' => 'translate', 'target_locale' => 'de', 'idempotency_key' => 'de-ok'])->assertCreated()->json('data.id');
+        $this->reviewProposal($s);
         $this->postJson("/api/v1/admin/cms/suggestions/{$s}/apply", ['slug' => 'uber-uns'])->assertOk()->assertJsonPath('data.locale', 'de');
         $this->getJson("/api/v1/admin/cms/pages/{$id}")->assertJsonPath('data.locales_detail.de.draft.title', 'Über ShopBonus')
             ->assertJsonPath('data.locales_detail.de.published', null)->assertJsonPath('data.locales_detail.nl.draft.title', 'Over ShopBonus');

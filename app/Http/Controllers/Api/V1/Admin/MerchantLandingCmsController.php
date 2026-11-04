@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CmsAsset;
 use App\Models\CmsRevision;
 use App\Services\Cms\CmsMedia;
+use App\Services\Cms\CmsQueuedCopy;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\MerchantLandingCmsService;
 use App\Services\Cms\MerchantLandingSchema;
@@ -138,15 +139,14 @@ class MerchantLandingCmsController extends Controller
         $data = $request->validate([
             'locale' => ['sometimes', Rule::in(CmsService::LOCALES)],
             'section' => ['required', Rule::in(MerchantLandingSchema::SECTION_KEYS)],
+            'request_key' => ['sometimes', 'string', 'max:100', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
             'focus' => ['sometimes', 'nullable', 'string', 'max:200', 'not_regex:/[<>]/'],
         ]);
 
-        return response()->json([
-            'data' => [
-                'suggestions' => $this->landing->aiSuggest($data['locale'] ?? 'nl', $data['section'], $data['focus'] ?? null),
-                'applied' => false,
-            ],
-        ]);
+        app(CmsQueuedCopy::class)->assertConfigured('voor-webshops');
+        $result = app(CmsQueuedCopy::class)->request($this->landing->page(), $request->user(), $data['locale'] ?? 'nl', $data['section'], $data['focus'] ?? null, $data['request_key'] ?? null);
+
+        return response()->json(['data' => $result], in_array($result['proposal']['status'], ['queued', 'processing'], true) ? 202 : 200);
     }
 
     public function assets(Request $request): JsonResponse

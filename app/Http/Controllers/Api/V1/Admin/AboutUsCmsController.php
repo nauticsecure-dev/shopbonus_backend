@@ -8,6 +8,7 @@ use App\Models\CmsRevision;
 use App\Services\Cms\AboutUsCmsService;
 use App\Services\Cms\AboutUsSchema;
 use App\Services\Cms\CmsMedia;
+use App\Services\Cms\CmsQueuedCopy;
 use App\Services\Cms\CmsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -138,15 +139,14 @@ class AboutUsCmsController extends Controller
         $data = $request->validate([
             'locale' => ['sometimes', Rule::in(CmsService::LOCALES)],
             'section' => ['required', Rule::in(AboutUsSchema::SECTION_KEYS)],
+            'request_key' => ['sometimes', 'string', 'max:100', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
             'focus' => ['sometimes', 'nullable', 'string', 'max:200', 'not_regex:/[<>]/'],
         ]);
 
-        return response()->json([
-            'data' => [
-                'suggestions' => $this->aboutUs->aiSuggest($data['locale'] ?? 'nl', $data['section'], $data['focus'] ?? null),
-                'applied' => false,
-            ],
-        ]);
+        app(CmsQueuedCopy::class)->assertConfigured('over-ons');
+        $result = app(CmsQueuedCopy::class)->request($this->aboutUs->page(), $request->user(), $data['locale'] ?? 'nl', $data['section'], $data['focus'] ?? null, $data['request_key'] ?? null);
+
+        return response()->json(['data' => $result], in_array($result['proposal']['status'], ['queued', 'processing'], true) ? 202 : 200);
     }
 
     public function uploadAsset(Request $request): JsonResponse

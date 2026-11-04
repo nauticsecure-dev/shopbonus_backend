@@ -2,9 +2,9 @@
 
 Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **479**. Method/path operations (HEAD aliases excluded): **480**. Unique paths: **420**.
+Runtime route entries: **480**. Method/path operations (HEAD aliases excluded): **481**. Unique paths: **421**.
 
-Access counts are per operation: admin 235, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 236, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -90,6 +90,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/cms/suggestions/{suggestion}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/suggestions/{suggestion}/apply` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/suggestions/{suggestion}/reject` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/suggestions/{suggestion}/review` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/translations` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cockpit` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/content/homepage` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |

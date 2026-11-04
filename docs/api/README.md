@@ -25809,3 +25809,17 @@ curl -i "http://localhost:8000/api/v1/admin/cms/assets/01m6kbzcpywtzvsxyrfwbp7sq
 Captured200 response: `draft_usage` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
 
 All existing CMS page create/draft-save APIs accept optional `content.media_recipes`, a map of exact image-field paths (for example `body.content.1.attrs.asset_id`) to same-asset recipe ULIDs. At most200 pins; all three derivatives must be ready. Wrong/missing/foreign/incomplete pins return422. Pins are saved inside ordinary versioned content, so normal draft revisions/publication/restore preserve them. Existing unpinned content remains valid; no global active recipe is substituted silently. The `create_pinned_page` and `save_changed_draft` exchanges show actual mutation requests/responses. See [binding/preview contract](../cms/CONTENT_BINDINGS.md).
+
+## B81 — Consolidated queued CMS AI and independent review
+
+[43 actual isolated HTTP exchanges](../qa/B81_CMS_AI_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_AI=1 python3 scripts/capture-cms-media.py`, include all four legacy AI routes (queued202 and proposed200), canonical create/poll/list/apply and independent review. An actual temporary database worker executes jobs with synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not translation-quality evidence. Confirmed-password session setup is synthetic. No live model/provider call, genuine pricing verification, deployed worker or staging/browser proof.
+
+The existing page AI endpoints retain `data.suggestions` and `applied:false`, adding proposal status/ID/poll URL. Clients must poll queued202 responses and use the canonical proposal review/apply workflow. Section scope is preserved; other saved fields remain unchanged. `CMS_AI_*` is the single configuration flow; legacy Chat Completions callers were removed. Positive configured monetary cap and current model-specific pricing are required before execution. Reservations remain held on failures/timeouts. Read [the execution/review contract](../cms/AI_EXECUTION.md) before enabling.
+
+### POST /api/v1/admin/cms/suggestions/{suggestion}/review
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/suggestions/01m6kdbf5z62shphjnewpg6bqz/review" -H "Authorization: Bearer <token>" -H "Accept: application/json" -H "Content-Type: application/json" --data '{"locale": "nl", "language_correct": true, "meaning_preserved": true, "note": "Synthetic independent language and meaning review; not live model quality evidence."}'
+```
+
+Captured201 response: `independent_review` in [the real HTTP artifact](../qa/B81_CMS_AI_HTTP_CAPTURE.json). Self-review403, missing note422, duplicate409, unknown404 and401 are captured too. Both correctness flags must be true to accept; a negative result rejects. Review is immutable and cannot publish.

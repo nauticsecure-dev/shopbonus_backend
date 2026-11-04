@@ -344,7 +344,8 @@ class CmsController extends Controller
     {
         return ['id' => $s->public_id, 'page' => $p->public_id, 'kind' => $s->kind, 'source_locale' => $s->source_locale, 'target_locale' => $s->target_locale,
             'source_revision' => $s->source_revision, 'target_revision' => $s->target_revision, 'status' => $s->status, 'error_code' => $s->error_code,
-            'requires_human_approval' => true, 'created_at' => $s->created_at?->toIso8601String(), 'decided_at' => $s->decided_at?->toIso8601String()]
+            'requires_human_approval' => true, 'independent_review_required' => true, 'context' => $s->context,
+            'budget' => ['currency' => 'EUR', 'reserved_micros' => $s->reserved_micros, 'estimated_micros' => $s->estimated_micros, 'scope' => 'Conservative reservation and configured-price estimate; not provider billing evidence.'], 'created_at' => $s->created_at?->toIso8601String(), 'decided_at' => $s->decided_at?->toIso8601String()]
             + ($withContent ? ['proposed' => $s->proposed] : []);
     }
 

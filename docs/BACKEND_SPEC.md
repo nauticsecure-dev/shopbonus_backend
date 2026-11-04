@@ -1,3 +1,5 @@
+B81: [Consolidated queued CMS AI](cms/AI_EXECUTION.md) adds section-scoped proposals, configured-price execution reservations and immutable independent human language/meaning review before apply. Default execution is monetarily disabled; no live model-quality claim.
+
 B80: [Saved-page source bindings and per-usage media recipe pins](cms/CONTENT_BINDINGS.md) add backend component-context manifests and bounded usage scans. Universal client/other-source discovery, real responsive rendering and global media management remain incomplete.
 
 B85: [Adobe SaaS IMS renewal](integrations/ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) reuses encrypted credentials/pinned transport and preserves generation-bound authority. Existing async/native publication source is distinguished from genuine provider acceptance; remaining C/E/Squarespace publishers and C cash mapping stay OPEN.
