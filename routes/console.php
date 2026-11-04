@@ -77,3 +77,6 @@ Schedule::command('shopbonus:enrich-merchants')->dailyAt('02:30')->when(fn () =>
 // Quality Center (#37): read-only production probe (no-op until QA_PROBE_ENABLED) and evidence retention.
 Schedule::command('shopbonus:qa-probe')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('shopbonus:qa-probe --prune')->dailyAt('04:30')->withoutOverlapping();
+
+// Synthetic private-channel delivery evidence expires after 90 seconds.
+Schedule::command('shopbonus:probe-support-connectivity')->everyMinute()->withoutOverlapping();

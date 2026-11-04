@@ -37,7 +37,7 @@ class SupportAdminTest extends TestCase
         $all = $this->getJson('/api/v1/admin/ai/operations?scope=consumer&locale=en')->assertOk();
         $all->assertJsonPath('data.sample_size', 2)->assertJsonPath('data.outcome_percentages.VERIFIED', 50)
             ->assertJsonPath('data.provider_cost', .001)->assertJsonPath('data.costed_requests', 1)
-            ->assertJsonPath('data.connectivity.reverb_live_probe', 'not_measured');
+            ->assertJsonPath('data.connectivity.reverb_live_probe', 'not_configured');
         $this->getJson('/api/v1/admin/ai/operations?status=UNAVAILABLE&model=fixture-model')->assertOk()->assertJsonPath('data.sample_size', 1)->assertJsonPath('data.provider_cost', null);
         $this->getJson('/api/v1/admin/ai/operations?scope=workspace')->assertOk()->assertJsonPath('data.sample_size', 0);
         $this->getJson('/api/v1/admin/ai/operations?status=MADE_UP')->assertUnprocessable();

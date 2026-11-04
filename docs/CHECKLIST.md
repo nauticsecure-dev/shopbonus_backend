@@ -1374,6 +1374,13 @@ Verification executed for the voucher-checkout review: backend 40 passed + 3 ski
 - [ ] Verify existing analytics translations and record real-provider acceptance procedure; Moneybird remains blocked by OPEN-FINANCIAL-LEGAL.
 - [ ] Execute genuine storefront consent/retry/holdout/payment/refund acceptance and approved Moneybird issuance/delivery/reconciliation. NOT RUN without resolved prerequisites/provider access.
 
+## Lightspeed C product catalog follow-up — 2026-11-03 (uncommitted)
+
+- [ ] Verify official product/variant resources and pagination contract.
+- [ ] Add identity-gated bounded native product reads, exact single-variant money and conservative multi-variant snapshots.
+- [ ] Test pagination, malformed responses, identity/currency mismatch, pause, provider failures and failed-pass snapshot retention.
+- [ ] Update capability declarations and findings; record executed checks and remaining provider acceptance. Implementation commit SHA pending.
+
 ## App Store findings follow-up — 2026-11-03 (uncommitted)
 
 - [ ] Remove static service availability → VERIFIED inference; distinguish catalog synchronization states from backend status.
@@ -1484,3 +1491,17 @@ B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/
 - [x] Verify the pushed revision's complete GitHub CI jobs and record results/SHA.
 
 B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL1364pass+4skip/23124assertions, SQLite1339pass+29skip/23023assertions. Local fullPint/PHPStan/Composer audit PASS; docs/qa/B67_CI_REPAIR_RESULTS.json records actual results.
+
+## Native cart adapters beyond Shopify — 2026-11-04
+
+- [ ] Implement opt-in WooCommerce Store API and BigCommerce Stencil readers with strict units/currency and same-origin validation.
+- [ ] Wire WooCommerce plugin reader before renderer, including native mutation notifications and checkout/account exclusions.
+- [ ] Exercise actual readers with renderer for progress, failure, freshness, races and lifecycle; rebuild and verify merchant archives.
+- [ ] Document installation and per-platform limits; obtain genuine installed-store acceptance. Checkboxes await tested implementation commit SHA.
+
+### Support settings and live connectivity review — 2026-11-04
+
+- [ ] Preserve supported advanced settings and align form choices with backend validation.
+- [ ] Localize settings labels, feedback and fixed-control explanations in NL/EN/DE.
+- [ ] Measure bounded private-channel Reverb round trips and expire old/configuration-mismatched evidence.
+- [ ] Run focused regression checks and record actual results and remaining deployment acceptance (commit SHA pending).
