@@ -38,3 +38,7 @@ Current release review: [independent acceptance register](../release/INDEPENDENT
 
 
 B66 adds an invocable fail-closed [acceptance evidence/deployment hook](ACCEPTANCE_GATE.md). It requires the actual source-hashed175-check mapping,60 distinct provider lifecycle subruns, independently reviewed result-bound evidence and a frontend discovery report. The checked-in source mapping remains UNMAPPED; no new genuine staging/provider execution is claimed. `qa-acceptance-check --discover` scans only the configured exact staging deployment and blocks incomplete unmocked route coverage. It does not run suites or install the deployment/nightly/weekly pipeline.
+
+## B86 — Reviewed impacted execution
+
+Controlled staging runs now require registry `tests` entries with exact approved executable keys, versions and assertion minima; all changed backend targets need coverage before after-deploy execution. Mismatched green JUnit is blocked at import. `.github/workflows/qa-staging-gate.yml` supplies opt-in reusable/manual wiring for an existing trusted staging host and deployed root, preserving failure before promotion. No external deployment/host/credentials have been configured or executed. Original175/source mappings, genuine provider subruns and independent review remain incomplete. No frontend discovery/UI is implemented. See STAGING_RUNNER.md.

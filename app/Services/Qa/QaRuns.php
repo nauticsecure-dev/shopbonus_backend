@@ -45,7 +45,7 @@ class QaRuns
     /**
      * `executed_at` is when CI ran the suite; without it the import time stands in (and freshness says so).
      *
-     * @param  array{suite: string, environment: string, git_sha: string, source?: string, mocked?: bool, schedule_id?: int|null, executed_at?: string|null, process_exit_code?: int}  $meta
+     * @param  array{suite: string, environment: string, git_sha: string, source?: string, mocked?: bool, schedule_id?: int|null, executed_at?: string|null, process_exit_code?: int, execution_plan?: array{allowed_tests:list<array{key:string,version:int,min_assertions:int}>,required_tests:list<array{key:string,version:int,min_assertions:int}>}}  $meta
      */
     public function importJunit(string $xml, array $meta, ?int $actorId): QaTestRun
     {
@@ -55,6 +55,15 @@ class QaRuns
             throw ApiException::conflict('This report was already imported.', 'run_duplicate', ['run' => $existing->public_id]);
         }
         $cases = $this->parseJunit($xml, (bool) ($meta['mocked'] ?? false));
+        if (isset($meta['execution_plan']) && ! app(QaExecutionPlan::class)->casesMatch($cases, $meta['execution_plan'])) {
+            foreach ($cases as &$case) {
+                if ($case['status'] === 'pass') {
+                    $case['status'] = 'blocked';
+                    $case['message'] = 'Reviewed execution plan was not satisfied; this is not a qualifying PASS.';
+                }
+            }
+            unset($case);
+        }
         // A script can emit all-green JUnit and then crash. Preserve its assertion counts,
         // but never let those rows count as successful execution.
         if (isset($meta['process_exit_code']) && $meta['process_exit_code'] !== 0) {

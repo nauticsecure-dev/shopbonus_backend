@@ -1,3 +1,5 @@
+B86: [Reviewed backend QA execution planning](qa/B86_BACKEND_DISPOSITION.md) enforces exact executable case versions/assertion minima, persistent discovered impacts and report-to-plan reconciliation. Supplied opt-in reusable deployment workflow preserves independent release gates; missing original175/provider/staging/frontend proof remains blocked.
+
 B83: [Central FAQ/media/reusable-text management](cms/CENTRAL_MANAGEMENT.md) adds taxonomy revisions, soft media lifecycle/selected-draft replacement and immutable exact-locale shared-block snapshots with safe overrides/mount/detach and bounded source-aware usages. Public rich-text remains compatible; frontend/staging/universal discovery acceptance is separate.
 
 B83a: [FAQ root/subcategories and revision-protected locale metadata](cms/CENTRAL_MANAGEMENT.md) preserve audience filtering and add explicit parent/name-fallback metadata. Media management and shared-block source follow in separate checkpoints.

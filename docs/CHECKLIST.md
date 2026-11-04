@@ -1703,3 +1703,13 @@ B83b implementing SHA `4f222e7`.
 B83c tested source follows closeout: SQLite CMS/API/errors131/9919, MySQL21/189, QA36/405, static/style/diff PASS; actualHTTP43. Checkmarks apply to these bounded backend implementations, not universal client discovery, all23 real staging executions or release acceptance.
 
 B83c implementing SHA `3aebd4f`; B83b `4f222e7`; B83a `16b3780`. Final executed checks and remaining independent/deployment acceptance are recorded in HANDOFF.md.
+
+### B86 — Backend QA execution coverage enforcement
+
+- [x] Require reviewed runner mappings to exact approved executable case versions/minimum assertions; reject AI proposals/manual cases as automatic executables.
+- [x] Resolve discovered added/changed/removed backend targets to approved coverage, block unmapped impacts before execution and pass explicit required tests to reviewed runners.
+- [x] Verify imported runner reports contain required keys, no duplicate/unregistered keys and required assertion counts; retain failed reports without implying independent acceptance.
+- [x] Run focused planner/runner/acceptance checks only, update runbooks/handoff and preserve missing original175/frontend/provider/staging limits.
+- [x] B86 deployment adapter: supply an opt-in reusable GitHub workflow that runs the existing hook only in the exact deployed staging checkout, preserving failure before promotion; validate YAML and shell without invoking staging.
+
+B86 focused validation:21/101, scoped static/style/diff and workflow YAML/bash syntax PASS. Checkmarks cover backend enforcement/adapter source only; original175 mapping and real staging/provider/frontend acceptance remain incomplete. Implementing SHA follows closeout.

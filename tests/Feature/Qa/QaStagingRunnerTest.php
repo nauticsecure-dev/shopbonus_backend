@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Qa;
 
+use App\Models\QaEndpoint;
 use App\Models\QaInventorySnapshot;
 use App\Models\QaTestCase;
 use App\Models\QaTestResult;
@@ -11,6 +12,7 @@ use App\Services\Qa\QaRunnerSource;
 use App\Services\Qa\QaStagingRunner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Mockery;
@@ -47,12 +49,15 @@ class QaStagingRunnerTest extends TestCase
         $script = $this->directory.'/fixture.php';
         file_put_contents($script, '<?php '.$body);
         $manifest = ['schema_version' => 1, 'state' => $state, 'review_reference' => 'Synthetic reviewed script fixture, not staging proof', 'runners' => [
-            ['id' => 'fixture', 'path' => 'scripts/qa-runners/fixture.php', 'sha256' => hash_file('sha256', $script), 'triggers' => ['nightly', 'weekly', 'after_deploy'], 'timeout_seconds' => $timeout],
+            ['id' => 'fixture', 'path' => 'scripts/qa-runners/fixture.php', 'sha256' => hash_file('sha256', $script), 'triggers' => ['nightly', 'weekly', 'after_deploy'], 'timeout_seconds' => $timeout, 'tests' => [['key' => 'Staging::executed', 'version' => 1, 'min_assertions' => 2]]],
         ]];
         file_put_contents($this->directory.'/manifest.json', json_encode($manifest));
         $source = Mockery::mock(QaRunnerSource::class);
         $source->shouldReceive('verify')->andReturnUsing(fn ($path) => $path === 'requirements/QA_RUNNERS.json' ? $this->directory.'/manifest.json' : $script);
         $this->app->instance(QaRunnerSource::class, $source);
+        $case = QaTestCase::firstOrCreate(['key' => 'Staging::executed'], ['title' => 'Synthetic executed case', 'source' => 'phpunit', 'status' => 'approved', 'version' => 1]);
+        $endpoint = QaEndpoint::firstOrCreate(['method' => 'GET', 'path' => '/api/v1/health'], ['access' => 'public', 'scope' => 'platform', 'documented' => true, 'fingerprint' => str_repeat('a', 64), 'first_seen_sha' => $this->sha, 'changed_sha' => $this->sha, 'changed_at' => now()]);
+        DB::table('qa_test_coverage')->insertOrIgnore(['test_case_id' => $case->id, 'target_type' => 'endpoint', 'target_id' => $endpoint->id, 'created_at' => now(), 'updated_at' => now()]);
         $inventory = Mockery::mock(QaInventory::class);
         $inventory->shouldReceive('scan')->with($this->sha)->andReturn(new QaInventorySnapshot(['public_id' => strtolower((string) Str::ulid()), 'diff' => ['endpoints' => ['changed' => ['GET /api/v1/health']]]]));
         $this->app->instance(QaInventory::class, $inventory);
@@ -75,7 +80,7 @@ class QaStagingRunnerTest extends TestCase
         $this->assertSame('staging', $run->environment);
         $this->assertNull($run->created_by); // Automated execution cannot impersonate an independent human executor.
         $this->assertSame(1, $run->totals['pass']);
-        $this->assertSame('draft', QaTestCase::sole()->status);
+        $this->assertSame('approved', QaTestCase::sole()->status); // Pre-reviewed fixture case; execution still cannot prove acceptance.
         $this->assertDatabaseHas('audit_events', ['action' => 'qa.staging_runner_executed']);
     }
 
@@ -152,6 +157,32 @@ class QaStagingRunnerTest extends TestCase
         $this->fixture($this->report());
         $this->artisan('shopbonus:qa-staging-run', ['trigger' => 'nightly', '--sha' => $this->sha])->assertFailed();
         $this->assertDatabaseCount('qa_test_runs', 1);
+    }
+
+    public function test_unmapped_impact_is_blocked_before_a_child_can_execute(): void
+    {
+        $marker = $this->directory.'/executed';
+        $this->fixture('file_put_contents('.var_export($marker, true).', "executed");'.$this->report());
+        DB::table('qa_test_coverage')->delete();
+        try {
+            app(QaStagingRunner::class)->execute('after_deploy', $this->sha);
+            $this->fail('Unmapped impact executed.');
+        } catch (RuntimeException) {
+            $this->assertFileDoesNotExist($marker);
+            $this->assertDatabaseCount('qa_test_runs', 0);
+        }
+    }
+
+    public function test_unrelated_green_report_is_retained_as_blocked_execution(): void
+    {
+        $this->fixture('file_put_contents(getenv("QA_JUNIT_PATH"), \'<testsuites><testsuite><testcase classname="Unrelated" name="test" assertions="10"/></testsuite></testsuites>\');');
+        try {
+            app(QaStagingRunner::class)->execute('nightly', $this->sha);
+            $this->fail('Unrelated green assertions qualified.');
+        } catch (RuntimeException) {
+            $this->assertSame(1, QaTestRun::sole()->totals['blocked']);
+            $this->assertSame('blocked', QaTestResult::sole()->status);
+        }
     }
 
     public function test_source_verification_rejects_uncommitted_tampered_and_foreign_files(): void

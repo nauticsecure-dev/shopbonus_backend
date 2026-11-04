@@ -16,7 +16,7 @@ use Symfony\Component\Process\Process;
 /** Executes only deployment-reviewed PHP entry points; never manifest instructions or AI output. */
 class QaStagingRunner
 {
-    public function __construct(private readonly QaRunnerSource $source, private readonly QaInventory $inventory, private readonly QaRuns $runs, private readonly AuditLogger $audit) {}
+    public function __construct(private readonly QaRunnerSource $source, private readonly QaInventory $inventory, private readonly QaRuns $runs, private readonly AuditLogger $audit, private readonly QaExecutionPlan $planner) {}
 
     /** @return array<string,mixed> */
     public function execute(string $trigger, string $sha): array
@@ -50,6 +50,10 @@ class QaStagingRunner
                 'runners' => ['required', 'array', 'min:1', 'max:10'], 'runners.*.id' => ['required', 'string', 'regex:/\A[a-z0-9_-]{1,80}\z/D', 'distinct'],
                 'runners.*.path' => ['required', 'string', 'regex:~\Ascripts/qa-runners/[A-Za-z0-9_/-]+\.php\z~D', 'distinct'], 'runners.*.sha256' => ['required', 'regex:/\A[0-9a-f]{64}\z/D'],
                 'runners.*.triggers' => ['required', 'array', 'min:1'], 'runners.*.triggers.*' => ['required', 'in:nightly,weekly,after_deploy'],
+                'runners.*.tests' => ['required', 'array', 'min:1', 'max:2000'],
+                'runners.*.tests.*.key' => ['required', 'string', 'max:250'],
+                'runners.*.tests.*.version' => ['required', 'integer', 'min:1'],
+                'runners.*.tests.*.min_assertions' => ['required', 'integer', 'min:1'],
                 'runners.*.timeout_seconds' => ['required', 'integer', 'between:1,300'],
             ]);
             if ($validation->fails()) {
@@ -65,10 +69,12 @@ class QaStagingRunner
                 $paths[$row['id']] = $this->source->verify($row['path'], $row['sha256'], $sha);
             }
             $snapshot = $this->inventory->scan($sha);
+            $plans = $this->planner->build($selected, $trigger, $snapshot->diff, $sha);
+            $selected = array_values(array_filter($selected, fn ($row) => $plans[$row['id']]['required_tests'] !== []));
             $directory = storage_path('app/private/qa-runner/'.Str::ulid());
             File::makeDirectory($directory, 0700, true);
             $context = ['schema_version' => 1, 'deployment_sha' => $sha, 'environment' => 'staging', 'trigger' => $trigger, 'base_url' => $url,
-                'inventory' => ['id' => $snapshot->public_id, 'diff' => $snapshot->diff], 'proves' => 'Execution only; independent acceptance evidence and review still required.'];
+                'inventory' => ['id' => $snapshot->public_id, 'diff' => $snapshot->diff], 'execution_plan' => $plans, 'proves' => 'Execution only; independent acceptance evidence and review still required.'];
             $this->write($directory.'/context.json', json_encode($context, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             $executed = [];
             foreach ($selected as $row) {
@@ -105,11 +111,12 @@ class QaStagingRunner
                 $run = $this->runs->importJunit((string) file_get_contents($reportPath), ['suite' => match ($trigger) {
                     'nightly' => 'full', 'weekly' => 'weekly', default => 'changed'
                 },
-                    'environment' => 'staging', 'git_sha' => $sha, 'source' => 'staging_runner', 'executed_at' => $started, 'process_exit_code' => $process->getExitCode() ?? -1], null);
-                $failed = ! $process->isSuccessful() || ($run->totals['pass'] ?? 0) !== ($run->totals['total'] ?? 0) || ($run->totals['mocked'] ?? 0) > 0;
-                $executed[] = ['runner' => $row['id'], 'run_id' => $run->public_id, 'execution_passed' => ! $failed];
+                    'environment' => 'staging', 'git_sha' => $sha, 'source' => 'staging_runner', 'executed_at' => $started, 'process_exit_code' => $process->getExitCode() ?? -1, 'execution_plan' => $plans[$row['id']]], null);
+                $planMatches = $this->planner->reportMatches($run, $plans[$row['id']]);
+                $failed = ! $planMatches || ! $process->isSuccessful() || ($run->totals['pass'] ?? 0) !== ($run->totals['total'] ?? 0) || ($run->totals['mocked'] ?? 0) > 0;
+                $executed[] = ['runner' => $row['id'], 'run_id' => $run->public_id, 'execution_passed' => ! $failed, 'required_tests_executed' => $planMatches];
                 $this->audit->record('qa.staging_runner_executed', category: AuditCategory::Admin, metadata: ['runner' => $row['id'], 'source_sha256' => $row['sha256'], 'registry_sha256' => $manifestHash,
-                    'review_reference' => $manifest['review_reference'], 'git_sha' => $sha, 'run' => $run->public_id, 'execution_passed' => ! $failed]);
+                    'review_reference' => $manifest['review_reference'], 'git_sha' => $sha, 'run' => $run->public_id, 'execution_passed' => ! $failed, 'required_tests_executed' => $planMatches, 'required_test_keys' => array_column($plans[$row['id']]['required_tests'], 'key')]);
                 if ($failed) {
                     throw new RuntimeException('Staging runner execution failed; imported results are retained.');
                 }

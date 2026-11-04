@@ -1,0 +1,45 @@
+name: Deployed staging acceptance gate
+
+# The deployment job must call this workflow and require success before promotion.
+# This runs in the existing deployed backend: no checkout, install or database reset.
+on:
+  workflow_call:
+    inputs:
+      deployment_sha:
+        description: Exact already-deployed backend Git commit
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      deployment_sha:
+        description: Exact already-deployed backend Git commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shopbonus-staging-acceptance
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    name: Discovery, impacted execution and independent evidence gates
+    runs-on: [self-hosted, shopbonus-staging]
+    environment: staging
+    timeout-minutes: 65
+    steps:
+      - name: Verify deployed source and block unless acceptance succeeds
+        shell: bash
+        env:
+          QA_EXPECTED_SHA: ${{ inputs.deployment_sha }}
+          QA_STAGING_ROOT: ${{ vars.SHOPBONUS_STAGING_ROOT }}
+        run: |
+          set -euo pipefail
+          [[ "$QA_EXPECTED_SHA" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          test -n "$QA_STAGING_ROOT"
+          cd -- "$QA_STAGING_ROOT"
+          test "$(git rev-parse HEAD)" = "$QA_EXPECTED_SHA"
+          export APP_RELEASE_SHA="$QA_EXPECTED_SHA"
+          sh scripts/qa-after-deploy.sh
