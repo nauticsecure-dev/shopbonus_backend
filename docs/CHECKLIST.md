@@ -1546,3 +1546,5 @@ B72 local boundary: SQLite202/1864, MySQL7/40, API5/8353; fullPint/PHPStan/diff 
 B73 tested backend boundary (parent6a8c5c3): SQLite271PASS+2skip/10988; final native CLI12/353; MySQL18/356; fullPint/PHPStan/audit/diff PASS. Seven actual local HTTP captures; no migrations. Implementing SHA follows at closeout. Actual provider/native-app/storefront acceptance NOT RUN; automatic C/E-Series/Squarespace and native Mijnwebwinkel remain open.
 
 - [ ] Complete authorized native app/automatic publication paths for Lightspeed C/E-Series and Squarespace after supported installation/write contracts are established; independently execute all provider installation/storefront/uninstall acceptance.
+
+B73 implementing SHA `346b3bb`; B72 implementing SHA `6a8c5c3`. Checked items certify the locally tested backend boundaries only; the explicitly unchecked native/provider acceptance requirements remain OPEN.
