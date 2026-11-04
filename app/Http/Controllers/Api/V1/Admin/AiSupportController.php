@@ -14,6 +14,7 @@ use App\Models\SupportMessage;
 use App\Models\SupportRegression;
 use App\Models\SupportReview;
 use App\Services\Audit\AuditLogger;
+use App\Services\Support\SupportConnectivity;
 use App\Services\Support\SupportKnowledge;
 use App\Services\Support\SupportModelContract;
 use App\Services\Support\SupportOperations;
@@ -145,7 +146,7 @@ class AiSupportController extends Controller
             'daily_requests' => (int) (DB::table('support_quotas')->where('day', now()->utc()->toDateString())->where('scope', 'global')->value('requests') ?? 0),
             'circuit_open' => Cache::has('support-ai:circuit'), 'broadcaster' => config('broadcasting.default'), 'last_successful_broadcast_at' => Cache::get('support-ai:last-broadcast-at'),
             'broadcast_failures_last_24h' => DB::table('audit_events')->where('action', 'support.broadcast_unavailable')->where('occurred_at', '>=', $from)->count(),
-            'connectivity' => ['provider_last_success_at' => Cache::get('support-ai:last-provider-success-at'), 'worker_last_execution_at' => Cache::get('support-ai:last-worker-execution-at'), 'queue_connection' => config('queue.default'), 'reverb_live_probe' => 'not_measured', 'broadcast_evidence' => 'dispatch_attempt_only'],
+            'connectivity' => ['provider_last_success_at' => Cache::get('support-ai:last-provider-success-at'), 'worker_last_execution_at' => Cache::get('support-ai:last-worker-execution-at'), 'queue_connection' => config('queue.default'), ...app(SupportConnectivity::class)->evidence()],
             'model_contract' => ['model' => $current['model'], 'verified' => app(SupportModelContract::class)->verified($current['model']), 'proof_scope' => 'expiring_exact_model_key_profile_synthetic_strict_tool_canary_not_live_availability_or_quality'],
             'settings_capabilities' => ['renderer' => 'server_owned_evidence_templates',
                 'tone' => ['friendly_professional', 'direct', 'warm'], 'empathy' => ['balanced', 'minimal', 'high'],

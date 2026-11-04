@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Shopbonus Banner
  * Description: Merchant-controlled placement of the Shopbonus public banner. Order delivery uses WooCommerce's native webhooks.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires PHP: 8.1
  */
 if (! defined('ABSPATH')) {
@@ -45,6 +45,12 @@ add_action('wp_footer', static function () {
     $settings = shopbonus_banner_sanitize(get_option('shopbonus_banner', []));
     if (! $settings['enabled'] || $settings['origin'] === '' || $settings['key'] === '') {
         return;
+    }
+    if ((function_exists('is_checkout') && is_checkout()) || (function_exists('is_account_page') && is_account_page())) {
+        return;
+    }
+    if (function_exists('WC')) {
+        echo '<script defer src="'.esc_url($settings['origin'].'/embed/native-cart-v1.js').'" data-platform="woocommerce" data-cart-url="'.esc_url(rest_url('wc/store/v1/cart')).'"></script>';
     }
     echo '<script defer src="'.esc_url($settings['origin'].'/embed/v1.js').'" data-shopbonus-key="'.esc_attr($settings['key']).'"></script>';
 });

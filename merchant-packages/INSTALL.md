@@ -24,6 +24,8 @@ Optional banner placement uses the native footer event and is disabled initially
 
 Upload `shopbonus-woocommerce-banner.zip` using Plugins → Add New → Upload, activate, then configure Settings → Shopbonus Banner with the backend HTTPS origin and public `pk_...` key. Enable explicitly. Publish the campaign and authorize the storefront domain in Shopbonus. The plugin uses `wp_footer`; it adds no payment or editor authorization. Continue using WooCommerce's native signed order webhooks and restricted REST key for orders. Deactivation stops placement; plugin deletion removes its local settings. Multisite network-wide deployment/cleanup is not supported by this first package.
 
+Plugin 0.2.0 loads `/embed/native-cart-v1.js` before the banner when WooCommerce is present, using WordPress's native Store API cart URL. Deploy that reader alongside the backend public embed. Checkout/account pages are excluded. Store API session totals drive progress; invalid/stale data falls back to static terms. Classic/Blocks notifications and bounded polling refresh the cart; custom themes should dispatch `shopbonus:cart-invalidated` after completed mutations. Two-decimal currencies only; no headless cart tokens, checkout attribution writes or genuine installed-store acceptance are claimed. Details: backend `docs/banners/NATIVE_CART_ADAPTERS.md`.
+
 ## Shopify
 
 `shopbonus-shopify-theme-source.zip` contains **Theme App Extension source**, not a Shopify merchant-uploadable ZIP. Copy `extensions/shopbonus-banner` into the existing authorized Shopify app project, preserve that app's identity and run its Shopify CLI checks/deployment. Do not create a second app or change the registered app's scopes as part of this source import.

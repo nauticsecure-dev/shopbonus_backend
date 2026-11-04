@@ -5,6 +5,8 @@ return [
     // Leave empty until prices/exchange conversion are verified; no invented default prices.
     'verified_eur_rates' => [],
     'enabled' => env('SUPPORT_AI_ENABLED', false),
+    // Must match an allowed Reverb origin; falls back to APP_URL when omitted.
+    'reverb_probe_origin' => env('SUPPORT_AI_REVERB_PROBE_ORIGIN'),
     'api_key' => env('OPENAI_API_KEY'),
     'model' => env('SUPPORT_AI_MODEL', ''),
     'daily_request_limit' => (int) env('SUPPORT_AI_DAILY_REQUEST_LIMIT', 100),

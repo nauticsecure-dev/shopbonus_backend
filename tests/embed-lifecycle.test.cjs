@@ -4,12 +4,14 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/v1.js'), 'utf8');
 const shopifySource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/shopify-cart-v1.js'), 'utf8');
+const nativeSource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/native-cart-v1.js'), 'utf8');
 
-function harness({ allowed = false, observer = false, holdout = false, failEvents = 0, cart = null, shopify = false } = {}) {
+function harness({ allowed = false, observer = false, holdout = false, failEvents = 0, cart = null, shopify = false, platform = null, wooUrl = '/store/wp-json/wc/store/v1/cart' } = {}) {
   const requests = [], reads = [], writes = [], bridge = [], timers = [], listeners = {}, observers = [], intervals = [], messages = [];
   const elements = [];
   let now = Date.parse('2026-10-31T10:00:00Z'), sequence = 0;
   let nativeCart = { total_price: 9400, currency: 'EUR' }, nativeFailure = false, nativeHold = null, draftHold = null, pairHold = null;
+  if (platform) nativeCart = providerCart(platform, 9400);
   function listen(name, callback) { const previous = listeners[name]; listeners[name] = previous ? (...args) => { previous(...args); callback(...args); } : callback; }
   function element(tag) {
     const el = { tag, children: [], style: {}, classList: { add() {}, contains() { return false; } }, isConnected: true,
@@ -24,7 +26,7 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
     readyState: 'complete', visibilityState: 'visible', documentElement: Object.assign(element('html'), { lang: 'nl' }),
     createElement: element, addEventListener: listen };
   let published = true;
-  const config = { reward: { threshold_minor: 10000, currency: 'EUR' }, campaign: 'campaign', version: 1, config: { template: cart || shopify ? 'cart_progress' : 'floating', placement: {}, devices: ['desktop'], content: { cta_label: 'Go', cta_url: 'https://shop.test/reward' } } };
+  const config = { reward: { threshold_minor: 10000, currency: 'EUR' }, campaign: 'campaign', version: 1, config: { template: cart || shopify || platform ? 'cart_progress' : 'floating', placement: {}, devices: ['desktop'], content: { cta_label: 'Go', cta_url: 'https://shop.test/reward' } } };
   const sandbox = { document, URL, Promise, JSON, Object, Math, navigator: { language: 'nl' }, crypto: { randomUUID: () => `00000000-0000-4000-8000-${String(++sequence).padStart(12, '0')}` },
     Date: class extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } },
     location: { origin: 'https://shop.test', pathname: '/collections/all' }, innerWidth: 1200,
@@ -33,8 +35,8 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
     setTimeout(callback, delay) { const t = { callback, delay }; timers.push(t); return t; }, clearTimeout(t) { t.cancelled = true; }, setInterval(callback, delay) { intervals.push({ callback, delay }); },
     addEventListener: listen, dispatchEvent(event) { listeners[event.type]?.(event); },
     fetch: async (url, options = {}) => {
-      const body = options.body && JSON.parse(options.body); requests.push({ url, body });
-      if (url === 'https://shop.test/en/cart.js') {
+      const body = options.body && JSON.parse(options.body); requests.push({ url, body, options });
+      if (url === 'https://shop.test/en/cart.js' || url === new URL(wooUrl, 'https://shop.test').href || url === 'https://shop.test/api/storefront/carts') {
         const value = JSON.parse(JSON.stringify(nativeCart));
         if (nativeHold) await nativeHold;
         if (nativeFailure) throw new Error('native_cart_offline');
@@ -57,6 +59,16 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
     sandbox.Shopify = { routes: { root: '/en/' } };
     sandbox.AbortController = AbortController;
     vm.runInNewContext(shopifySource, sandbox);
+  }
+  if (platform) {
+    delete sandbox.ShopBonusCart;
+    sandbox.AbortController = AbortController;
+    const embedScript = document.currentScript;
+    document.body = element('body');
+    sandbox.jQuery = () => ({ on(names, callback) { names.split(' ').forEach((name) => listen(name, callback)); } });
+    document.currentScript = { getAttribute: (key) => ({ 'data-platform': platform, 'data-cart-url': wooUrl })[key] || null };
+    vm.runInNewContext(nativeSource, sandbox);
+    document.currentScript = embedScript;
   }
   if (observer) sandbox.IntersectionObserver = class { constructor(callback) { this.callback = callback; observers.push(this); } observe(el) { this.el = el; } disconnect() {} };
   vm.runInNewContext(source, sandbox);
@@ -311,4 +323,105 @@ test('Shopify adapter preserves an existing bridge and rejects absent or foreign
     const sandbox = { window: null, Shopify: { routes: { root: '/en/' } }, location: { origin: 'https://shop.test', pathname }, URL, AbortController };
     sandbox.window = sandbox; vm.runInNewContext(shopifySource, sandbox); assert.equal(sandbox.ShopBonusCart, undefined);
   }
+});
+
+function providerCart(platform, minor, currency = 'EUR') {
+  return platform === 'woocommerce'
+    ? { totals: { total_price: String(minor), currency_code: currency, currency_minor_unit: 2 } }
+    : [{ cartAmount: minor / 100, currency: { code: currency, decimalPlaces: 2 } }];
+}
+for (const platform of ['woocommerce', 'bigcommerce']) {
+  test(`${platform}: native cart drives actual banner without consent or tracking`, async () => {
+    const h = harness({ platform }); await h.settle();
+    const bar = h.elements.find((e) => e.sbItem).querySelector('.sb-bar');
+    assert.equal(bar.firstChild.style.width, '94%');
+    for (const [minor, width] of [[12000, '100%'], [3000, '30%'], [0, '0%']]) {
+      h.nativeCart(providerCart(platform, minor));
+      assert.equal(bar.style.display, 'none');
+      await h.settle(); assert.equal(bar.firstChild.style.width, width); assert.equal(bar.style.display, 'block');
+    }
+    h.nativeCart(providerCart(platform, 9400, 'USD')); await h.settle(); assert.equal(bar.style.display, 'none');
+    assert.equal(h.reads.length, 0); assert.equal(h.writes.length, 0);
+    for (const request of h.requests.filter((r) => r.url.startsWith('https://shop.test/'))) {
+      assert.equal(request.options.credentials, 'same-origin'); assert.equal(request.options.cache, 'no-store');
+      assert.equal(request.options.redirect, 'error'); assert.equal(request.body, undefined);
+    }
+  });
+  test(`${platform}: malformed precision, empty responses and outages hide progress and recover`, async () => {
+    const h = harness({ platform }); await h.settle();
+    const bar = h.elements.find((e) => e.sbItem).querySelector('.sb-bar');
+    const invalid = platform === 'woocommerce'
+      ? [null, {}, { totals: { total_price: '9400.0', currency_minor_unit: 2, currency_code: 'EUR' } }, { totals: { total_price: 9400, currency_minor_unit: 2, currency_code: 'EUR' } }, { totals: { total_price: '9400', currency_minor_unit: 0, currency_code: 'EUR' } }]
+      : [null, [], [{ cartAmount: 94.001, currency: { code: 'EUR', decimalPlaces: 2 } }], [{ cartAmount: '94', currency: { code: 'EUR', decimalPlaces: 2 } }], [{ cartAmount: 94, currency: { code: 'EUR', decimalPlaces: 3 } }], [...providerCart(platform, 9400), ...providerCart(platform, 100)]];
+    for (const value of [...invalid, providerCart(platform, -1), providerCart(platform, 9400, 'JPY'), providerCart(platform, 9400, 'AAA'), providerCart(platform, Number.MAX_SAFE_INTEGER * 2)]) {
+      h.nativeCart(value); await h.settle(); assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null); assert.equal(bar.style.display, 'none');
+    }
+    h.nativeFail(true); h.nativeCart(providerCart(platform, 9400)); await h.settle(); assert.equal(bar.style.display, 'none');
+    h.nativeFail(false); h.sandbox.ShopBonusCart.refresh(); await h.settle(); assert.equal(bar.style.display, 'block');
+    const copy = h.sandbox.ShopBonusCart.getSnapshot(); copy.total_minor = 1;
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400);
+    h.advance(31000); h.intervals.find((i) => i.delay === 4000).callback(); assert.equal(bar.style.display, 'none');
+    h.sandbox.ShopBonusCart.refresh(); await h.settle(); assert.equal(bar.style.display, 'block');
+  });
+  test(`${platform}: coalesces in-flight invalidations and ignores timeout responses`, async () => {
+    const h = harness({ platform }); await h.settle();
+    let release; h.holdNative(new Promise((resolve) => { release = resolve; }));
+    h.intervals.find((i) => i.delay === 10000).callback(); await h.settle();
+    h.nativeCart(providerCart(platform, 1000)); h.nativeCart(providerCart(platform, 2000));
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+    h.holdNative(null); release(); await h.settle();
+    assert.equal(h.requests.filter((r) => r.url.startsWith('https://shop.test/')).length, 3);
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 2000);
+    let calls = 0; const unsubscribe = h.sandbox.ShopBonusCart.subscribe(() => { calls++; });
+    h.holdNative(new Promise((resolve) => { release = resolve; }));
+    h.intervals.find((i) => i.delay === 10000).callback(); await h.settle(); await h.timer(5000);
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null); assert.equal(calls, 1); unsubscribe();
+    release(); await h.settle(); assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+    h.holdNative(null); h.sandbox.ShopBonusCart.refresh(); await h.settle(); assert.equal(calls, 1);
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 2000);
+  });
+  test(`${platform}: hidden/pagehide discard reads; pageshow restores; sensitive SPA route stops reads`, async () => {
+    const h = harness({ platform }); await h.settle();
+    h.sandbox.document.visibilityState = 'hidden'; h.listeners.visibilitychange();
+    h.intervals.find((i) => i.delay === 10000).callback(); await h.settle();
+    assert.equal(h.requests.filter((r) => r.url.startsWith('https://shop.test/')).length, 1);
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+    h.sandbox.document.visibilityState = 'visible'; h.listeners.pageshow(); await h.settle();
+    let release; h.holdNative(new Promise((resolve) => { release = resolve; }));
+    h.sandbox.ShopBonusCart.refresh(); await h.settle(); h.listeners.pagehide();
+    release(); await h.settle(); assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null);
+    h.holdNative(null); h.listeners.pageshow(); await h.settle(); assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400);
+    const count = h.requests.length; h.sandbox.location.pathname = '/nl/checkout';
+    h.intervals.find((i) => i.delay === 10000).callback(); await h.settle();
+    assert.equal(h.sandbox.ShopBonusCart.getSnapshot(), null); assert.equal(h.requests.length, count);
+  });
+}
+test('native reader requires explicit platform, preserves bridges and rejects unsafe endpoints and routes', () => {
+  function load(platform, endpoint, pathname = '/products') {
+    const s = { document: { currentScript: { getAttribute: (k) => k === 'data-platform' ? platform : endpoint } }, URL, AbortController,
+      location: { origin: 'https://shop.test', pathname }, fetch() {}, window: null };
+    s.window = s; vm.runInNewContext(nativeSource, s); return s;
+  }
+  for (const url of ['https://evil.test/wp-json/wc/store/v1/cart', 'https://user:pass@shop.test/wp-json/wc/store/v1/cart', '/wp-json/wc/store/v1/cart#x', '/wp-json/wc/store/v1/cart?x=1', '/?rest_route=/wc/store/v1/cart&x=1', '/?rest_route=/wc/v3/orders', null]) {
+    assert.equal(load('woocommerce', url).ShopBonusCart, undefined);
+  }
+  assert.equal(load('wix', '/wp-json/wc/store/v1/cart').ShopBonusCart, undefined);
+  for (const pathname of ['/checkout', '/nl/my-account', '/checkout.php', '/account.php', '/store/order-received/1']) {
+    assert.equal(load('woocommerce', '/wp-json/wc/store/v1/cart', pathname).ShopBonusCart, undefined);
+  }
+  const existing = {}; vm.runInNewContext(nativeSource, { window: { ShopBonusCart: existing } });
+});
+
+test('WooCommerce classic and Blocks notifications trigger native rereads', async () => {
+  const h = harness({ platform: 'woocommerce' }); await h.settle();
+  const before = h.requests.length;
+  h.listeners['wc-blocks_added_to_cart'](); await h.settle();
+  h.listeners['wc-blocks_removed_from_cart'](); await h.settle();
+  for (const name of ['added_to_cart', 'removed_from_cart', 'updated_wc_div', 'wc_fragments_refreshed']) { h.listeners[name](); await h.settle(); }
+  assert.equal(h.requests.length, before + 6);
+});
+
+test('WooCommerce plain WordPress REST routing reads the native cart', async () => {
+  const h = harness({ platform: 'woocommerce', wooUrl: '/store/index.php?rest_route=%2Fwc%2Fstore%2Fv1%2Fcart' }); await h.settle();
+  assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400);
 });
