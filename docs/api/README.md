@@ -25771,3 +25771,5 @@ curl -i -X GET 'http://localhost:8000/api/v1/public/content-assets/01m6k9n7cbfwz
 ```
 
 Captured 200 response: [`derivative`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+B84 adds backend-only [controlled staging execution](../qa/STAGING_RUNNER.md) through console/scheduler/deployment hooks. No HTTP route changes. Automatic imported results remain execution records; nonzero-process green JUnit becomes blocked. Missing independent acceptance evidence still blocks promotion. No frontend/provider/staging execution is certified.

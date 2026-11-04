@@ -1,3 +1,5 @@
+B84: [Controlled staging execution](qa/STAGING_RUNNER.md) adds reviewed exact-Git script execution, scheduled/deployment entry points and mandatory independent acceptance evaluation. Disabled/unmapped until actual reviewed journeys and staging are configured; execution is not provider acceptance.
+
 B79: [Versioned global CMS media](cms/MEDIA.md) preserves private uploaded originals, immutable recipes, queued derivatives and exact artifact restoration. Responsive component rendering/usage bindings and staging acceptance remain incomplete.
 
 # Shopbonus — Backend Consolidated Specification

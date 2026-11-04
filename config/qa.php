@@ -20,6 +20,11 @@ return [
     // Test sources whose PASS needs evidence attached to that result (no automated assertion trail).
     'evidence_required_sources' => array_values(array_filter(explode(',', (string) env('QA_EVIDENCE_REQUIRED_SOURCES', 'browser,manual')))),
 
+    // Execution stays disabled until reviewed scripts and staging deployment are configured.
+    'runner_enabled' => env('QA_STAGING_RUNNER_ENABLED', false),
+    'runner_lock_store' => env('QA_STAGING_LOCK_STORE', 'database'),
+    'staging_url' => env('QA_STAGING_URL', ''),
+
     // Read-only production probe (every 5 minutes); alerts after this many ms.
     'probe_enabled' => env('QA_PROBE_ENABLED', false),
     'probe_slow_ms' => (int) env('QA_PROBE_SLOW_MS', 1000),

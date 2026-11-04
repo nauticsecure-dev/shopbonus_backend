@@ -77,3 +77,7 @@ Schedule::command('shopbonus:enrich-merchants')->dailyAt('02:30')->when(fn () =>
 // Quality Center (#37): read-only production probe (no-op until QA_PROBE_ENABLED) and evidence retention.
 Schedule::command('shopbonus:qa-probe')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('shopbonus:qa-probe --prune')->dailyAt('04:30')->withoutOverlapping();
+
+// Controlled staging journeys; a failed independent acceptance gate is a failed execution command.
+Schedule::command('shopbonus:qa-staging-run nightly')->dailyAt('02:00')->environments('staging')->when(fn () => (bool) config('qa.runner_enabled'))->withoutOverlapping(65)->onOneServer();
+Schedule::command('shopbonus:qa-staging-run weekly')->weeklyOn(0, '04:00')->environments('staging')->when(fn () => (bool) config('qa.runner_enabled'))->withoutOverlapping(65)->onOneServer();

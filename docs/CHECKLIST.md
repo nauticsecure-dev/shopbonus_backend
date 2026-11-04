@@ -1623,7 +1623,7 @@ B77 runtime CI41799578086 SUCCESS atf217e33: MySQL1457/4skip/24018, SQLite1432/2
 - [x] Implement optimistic recipe updates, private original access and exact restoration of existing derivative bytes with integrity checks.
 - [x] Add authorized API contracts/security negatives, real isolated HTTP captures, source-compatible upload regressions, migrations and handoff evidence.
 
-B79 tested source: implementing SHA follows in checkpoint closeout; SQLite media8/70, CMS77/770, API19/8591, static/style PASS; real HTTP17. Deployed acceptance NOT RUN.
+B79 tested source: `0a5afbe`; SQLite media8/70, CMS77/770, API19/8591, static/style PASS; real HTTP17. Deployed acceptance NOT RUN.
 
 ### B80 — Backend content/usage bindings
 
@@ -1643,3 +1643,12 @@ B79 tested source: implementing SHA follows in checkpoint closeout; SQLite media
 ### B83 — Remaining central content management
 
 - [ ] Add FAQ subcategories and reviewed shared-block override/version semantics through existing CMS services.
+
+### B84 — Controlled backend staging execution (#37 follow-up)
+
+- [x] Add a disabled-by-default, staging-only reviewed-script runner bound to the exact configured deployed Git SHA, with bounded timeout/output, distributed exclusion and no shell/AI command execution.
+- [x] Connect nightly/weekly/deployment entry points; require discovery, actual executed JUnit import and the existing independent acceptance gate before reporting success.
+- [x] Test wrong environment/build, missing/unreviewed/tampered runner, concurrency, failure/timeout/missing report and successful execution without converting regression PASS into acceptance PASS.
+- [x] Record installation/CI limits and original175/frontend/provider evidence blockers; update checkpoint documentation and commit SHA.
+
+B84 implementing SHA follows in checkpoint closeout. SQLite/MySQL runner7/31 each; full static/style/shell/diff PASS. Original175/provider/frontend/staging evidence and external deployment wiring remain incomplete; this checks off the controlled runner implementation only.
