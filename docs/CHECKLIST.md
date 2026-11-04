@@ -1526,3 +1526,19 @@ B71 tested backend boundary (2026-11-04): parent52ef8c5; SQLite282PASS/13382, fi
 B71 context follow-up (parentc6c173e): final locked source/code/current-term revalidation rejects in-flight edits/rotations; stable-date canonical comparison and frozen historical scope verified. SQLite284/13390; MySQL25/125; PHPStan PASS; eleven actual local HTTP captures include context-change rejection. Final focused SQLite/native/API30PASS/8478 and fullPint/diff PASS; source SHA follows in the closeout. Provider/checkout/redemption NOT RUN.
 
 B71 final implementing source SHA `d599c40` includes adapters65af0e3 and the tested locked context guard. Checked items certify the backend configuration boundary only; actual provider/checkout/redemption remains NOT RUN.
+
+### B72 — Remaining order connector backend boundary
+
+- [x] Establish primary-source CCV Shop auth/store/order/paging fields and preserve unknown payment/refund evidence.
+- [x] Add explicitly labelled Mijnwebwinkel signed partner-bridge ingestion with merchant/domain binding, without inventing a native API contract or promoting Connected.
+- [x] Reuse native recovery/discovery and bounded transport; reject unsupported webhooks/foreign stores and retain credential-bound cooldown across signatures.
+- [x] Run SQLite/MySQL/API/static checks, capture actual HTTP and document provider/bridge acceptance limits.
+- [ ] Implement and independently execute a native Mijnwebwinkel partner API client after its authoritative specification is available; the actual upstream bridge is also NOT RUN.
+
+B72 local boundary: SQLite202/1864, MySQL7/40, API5/8353; fullPint/PHPStan/diff PASS; eight actual synthetic local HTTP responses. No migrations. Implementing SHA follows in B73 checkpoint. Actual provider acceptance remains NOT RUN.
+
+### B73 — Native banner publication gaps
+
+- [ ] Audit provider-supported writes, scopes, installations and current publishing/recovery architecture; do not invent remote endpoints.
+- [ ] Implement supported backend publication/removal with immutable ownership, bounded writes and ambiguous-effect recovery; distinguish publication from storefront delivery.
+- [ ] Document genuinely unsupported automatic paths and required native app/manual setup; run relevant security/state tests and real local API captures with clear provider acceptance limits.

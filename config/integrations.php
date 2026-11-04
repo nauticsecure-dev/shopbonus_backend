@@ -1,11 +1,13 @@
 <?php
 
 use App\Integrations\Connectors\BigCommerceConnector;
+use App\Integrations\Connectors\CcvConnector;
 use App\Integrations\Connectors\EcwidConnector;
 use App\Integrations\Connectors\GenericSignedWebhookConnector;
 use App\Integrations\Connectors\LightspeedCConnector;
 use App\Integrations\Connectors\LightspeedEConnector;
 use App\Integrations\Connectors\MagentoConnector;
+use App\Integrations\Connectors\MijnwebwinkelConnector;
 use App\Integrations\Connectors\PrestaShopConnector;
 use App\Integrations\Connectors\ShopifyConnector;
 use App\Integrations\Connectors\ShopwareConnector;
@@ -301,14 +303,30 @@ return [
             'verification' => 'unverified', 'blocked_reason' => null,
         ],
         'mijnwebwinkel' => [
-            'name' => 'Mijnwebwinkel', 'priority' => 'additional', 'connector' => null,
-            'method' => 'partner API', 'auth' => 'partner authorisation', 'reliability' => 'unknown',
-            'limitations' => [], 'verification' => 'unverified', 'blocked_reason' => 'Partner/API authorisation pending.',
+            'name' => 'Mijnwebwinkel', 'priority' => 'additional', 'connector' => MijnwebwinkelConnector::class,
+            'method' => 'private_module', 'auth' => 'Merchant-authorized partner bridge; ShopBonus HMAC-SHA256', 'reliability' => 'partner-bridge claims, not independent native evidence',
+            'profile' => [
+                'api_version' => 'ShopBonus partner bridge v1 (native partner API not implemented)', 'reviewed_at' => '2026-11-04', 'last_live_verified_at' => null,
+                'native_read_api_implemented' => false, 'payment_time_mapped' => false, 'refund_amounts_mapped' => false,
+                'product_api' => 'UNSUPPORTED', 'coupon_api' => 'UNSUPPORTED', 'banner_method' => 'Merchant placement; native API publication unsupported',
+                'sources' => ['https://help.mijnwebwinkel.nl/en/articles/999938', 'https://connect.myonlinestore.com/swagger-docs/'],
+            ],
+            'limitations' => ['Requires an actual authorized partner-side bridge; no native partner API client or backfill is claimed.', 'Signed bridge claims do not prove native payment/settlement/refund amounts or contact consent. Connection remains Limited.', 'Native schema retrieval and genuine provider acceptance remain unverified.'],
+            'verification' => 'unverified', 'blocked_reason' => null,
         ],
         'ccv' => [
-            'name' => 'CCV Shop', 'priority' => 'additional', 'connector' => null,
-            'method' => 'REST API (adapter pending)', 'auth' => 'API public key + secret; HMAC-SHA512 over public|method|URI|body|UTC timestamp', 'reliability' => 'unknown',
-            'limitations' => ['Native REST adapter, store binding, webhook/reconciliation and payment/refund mapping remain unimplemented.'], 'verification' => 'unverified', 'blocked_reason' => 'API contract identified at https://demo.ccvshop.nl/API/Docs/; authenticated adapter and acceptance still required.',
+            'name' => 'CCV Shop', 'priority' => 'additional', 'connector' => CcvConnector::class,
+            'method' => 'polling', 'auth' => 'CCV Shop public key + HMAC-SHA512 secret', 'reliability' => 'creation-window polling; payment-time/refund evidence limited',
+            'profile' => [
+                'api_version' => 'REST v1', 'reviewed_at' => '2026-11-04', 'last_live_verified_at' => null,
+                'native_read_api_implemented' => true, 'payment_time_mapped' => false, 'refund_amounts_mapped' => false,
+                'discovery_window' => 'created_at', 'order_api' => 'GET /api/rest/v1/orders/{id}/',
+                'refund_api' => 'UNSUPPORTED cash totals/times', 'product_api' => 'UNSUPPORTED', 'coupon_api' => 'UNSUPPORTED',
+                'banner_method' => 'Native app code-block installation not implemented',
+                'sources' => ['https://demo.ccvshop.nl/API/Docs/'],
+            ],
+            'limitations' => ['Completed native orders only. Paid is a marked-as-paid flag, not settlement proof.', 'Discovery filters create_date; historical changes require explicit order-ID recovery. No authenticated webhook contract or cash-refund mapping.', 'Genuine provider acceptance NOT RUN.'],
+            'verification' => 'unverified', 'blocked_reason' => null,
         ],
         'other' => [
             'name' => 'Other / custom shop', 'priority' => 'additional',

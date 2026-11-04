@@ -90,6 +90,8 @@ class ConnectionsAndWebhooksTest extends TestCase
     public function test_card1_e2e2_unsupported_platforms_cannot_be_connected(): void
     {
         foreach (['ccv', 'mijnwebwinkel'] as $platform) {
+            // A disabled adapter must remain unconnectable even when its implementation exists.
+            config(["integrations.platforms.{$platform}.connector" => null]);
             $this->postJson($this->url('/connections'), ['platform' => $platform])
                 ->assertStatus(409)->assertJsonPath('error.code', 'platform_not_available');
         }

@@ -1,5 +1,8 @@
 # Shopbonus — Backend Consolidated Specification
 
+B72 (2026-11-04): [CCV native reads and Mijnwebwinkel signed partner bridge](integrations/REMAINING_CONNECTORS.md) are registered. CCV discovery covers creation windows only; payment/refund timestamps remain unknown. Mijnwebwinkel is explicitly a bridge, with native partner API implementation still open. Genuine provider acceptance remains NOT RUN.
+
+
 B71 (2026-11-04): [automatic native coupon configuration checks](integrations/COUPON_VERIFICATION.md) extend WooCommerce with Shopify, BigCommerce legacy, Ecwid and Lightspeed E-Series. The existing authorized platform-validation endpoint remains read-only with respect to providers. Unknown caps/restrictions and unsupported platforms stay manual; configuration matches never certify checkout acceptance or redemption.
 
 

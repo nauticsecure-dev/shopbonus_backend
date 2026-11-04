@@ -1,0 +1,41 @@
+{
+  "sqlite_integrations": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 202,
+    "passed": 202,
+    "assertions": 1864,
+    "duration_ms": 12033
+  },
+  "mysql_remaining_connectors": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 7,
+    "passed": 7,
+    "assertions": 40,
+    "duration_ms": 16877
+  },
+  "api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 5,
+    "passed": 5,
+    "assertions": 8353,
+    "duration_ms": 7597
+  },
+  "pint": {
+    "tool": "pint",
+    "result": "passed"
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "capture": {
+    "file": "B72_REMAINING_CONNECTORS_HTTP_CAPTURE.json",
+    "responses": 8,
+    "scope": "Actual loopback HTTP, synthetic merchants/private SQLite; no provider requests; one-time secret redacted."
+  },
+  "limits": "CCV is creation-window polling with native marked-paid status, no independent payment/refund time/cash proof. Mijnwebwinkel is a signed partner bridge only; native partner API not implemented. Actual partner-side bridge and genuine provider acceptance NOT RUN. No migration."
+}

@@ -1,5 +1,8 @@
 # Provider verification checklist
 
+B72: [CCV native reads / Mijnwebwinkel partner-bridge boundary](REMAINING_CONNECTORS.md) supersedes earlier “no connector” statements. CCV paid/settlement/refund-time evidence remains limited; discovery is by creation window. Mijnwebwinkel is a ShopBonus signed bridge only, not native partner API integration. Real provider/bridge acceptance remains NOT RUN.
+
+
 B71: [automatic native coupon configuration checks](COUPON_VERIFICATION.md) now cover Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside WooCommerce. Unknown restrictions/caps remain manual. This implements authenticated reads only; provider-backed checkout/creation/redemption acceptance remains NOT RUN and coupon-write/banner readiness is unchanged.
 
 
