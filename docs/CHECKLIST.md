@@ -1651,4 +1651,4 @@ B79 tested source: `0a5afbe`; SQLite media8/70, CMS77/770, API19/8591, static/st
 - [x] Test wrong environment/build, missing/unreviewed/tampered runner, concurrency, failure/timeout/missing report and successful execution without converting regression PASS into acceptance PASS.
 - [x] Record installation/CI limits and original175/frontend/provider evidence blockers; update checkpoint documentation and commit SHA.
 
-B84 implementing SHA follows in checkpoint closeout. SQLite/MySQL runner7/31 each; full static/style/shell/diff PASS. Original175/provider/frontend/staging evidence and external deployment wiring remain incomplete; this checks off the controlled runner implementation only.
+B84 implementing SHA: `f507073`. SQLite/MySQL runner7/31 each; full static/style/shell/diff PASS. Original175/provider/frontend/staging evidence and external deployment wiring remain incomplete; this checks off the controlled runner implementation only.
