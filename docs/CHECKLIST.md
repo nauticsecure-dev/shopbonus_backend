@@ -1576,3 +1576,11 @@ B74 parent6c0a696: SQLite70PASS+1skip/522; MySQL11/42; PHPStan/Pint/diff PASS; t
 B75 tested boundary parent8cc2c72: SQLite selected147PASS+3skip/9730; final import/API12/8397; MySQL18/86; fullPint/PHPStan/diff PASS. Broader local pre-existing GD cover failures retained in results; Linux current-head CI pending. Two actual HTTP captures; B74 source8cc2c72, B75 implementing SHA follows closeout. Real merchant rights/provider/deployment acceptance NOT RUN.
 
 B74 implementing SHA `8cc2c72`; B75 implementing SHA `bf07291`. Checked items certify the tested backend review/import boundaries; full Linux CI and genuine merchant/provider acceptance are tracked separately.
+
+### B76 — Storefront publication finding reconciliation (backend audit)
+
+- [x] Verify current BigCommerce placement/recovery/cleanup code and execute focused native-publication and inventory regressions.
+- [x] Review remaining providers' primary installation contracts; record unresolved automatic-write authority without inventing endpoints or treating manual setup as automation.
+- [x] Record exact source SHA, executed evidence and remaining acceptance in checkpoint docs; preserve the resolved API inventory.
+
+B76 audited implementation SHA `765bc80` (BigCommerce source346b3bb); focused14PASS/838. Checked items certify audit/reconciliation only; C/E-Series/Squarespace automatic publication and genuine provider acceptance remain open.
