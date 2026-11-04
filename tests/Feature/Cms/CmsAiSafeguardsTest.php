@@ -73,6 +73,24 @@ class CmsAiSafeguardsTest extends TestCase
         return app(CmsSuggestions::class)->request($p, 'improve', 'nl', 'nl', $key, $this->admin);
     }
 
+    public function test_provider_execution_waits_for_outer_commit_and_is_discarded_on_rollback(): void
+    {
+        $this->provider();
+        $page = $this->page();
+        DB::beginTransaction();
+        $this->proposal($page, 'rolled-back');
+        Http::assertNothingSent();
+        DB::rollBack();
+        $this->assertDatabaseCount('cms_ai_suggestions', 0);
+        Http::assertNothingSent();
+        DB::beginTransaction();
+        $this->proposal($page, 'committed');
+        Http::assertNothingSent();
+        DB::commit();
+        Http::assertSentCount(1);
+        $this->assertSame('proposed', CmsAiSuggestion::sole()->status);
+    }
+
     public function test_all_legacy_editors_use_only_scoped_revision_backed_responses_and_dedupe(): void
     {
         $this->provider();

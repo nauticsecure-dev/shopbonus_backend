@@ -25836,3 +25836,27 @@ curl -i -X PATCH "http://localhost:8000/api/v1/admin/cms/faq/categories/01m6kg9q
 ```
 
 Captured200 response: `faq_update` in [30 actual HTTP exchanges](../qa/B83_FAQ_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_FAQ=1 python3 scripts/capture-cms-media.py`. Stale409, self/deep parent422, missing404,401/403 and step-up423 are recorded. Temporary DB/storage and synthetic confirmed-password sessions do not establish browser/CSRF/staging evidence. See [central management contract](../cms/CENTRAL_MANAGEMENT.md).
+
+## B83b — Media archive and selected-draft replacement
+
+The library excludes archived media unless `include_archived=1`. Archive/reactivation increments the media revision; files and published/history references remain available. New archived-image references are rejected. Replacement atomically changes only explicit revision-checked draft paths, with optional same-target recipe pins. It never publishes or claims complete usage discovery.
+
+### PATCH /api/v1/admin/cms/assets/{asset}
+
+```sh
+curl -i -X PATCH "http://localhost:8000/api/v1/admin/cms/assets/01m6kh2eczf9r3xqsrv37hm5yk" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 3, "archived": true, "reason": "Retire synthetic photo"}'
+# Mutation capture supplies a synthetic confirmed session; real clients need confirmed browser session/CSRF.
+```
+
+Actual response: `media_archive` in [40 real HTTP exchanges](../qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/assets/{asset}/replace
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/assets/01m6kh2eczf9r3xqsrv37hm5yk/replace" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"replacement_asset_id": "01m6kh2f5th5tm2p6w8c939x8n", "usages": [{"page_id": "01m6kh2f7t2x1z3wew4tqnfzjw", "locale": "nl", "revision": 2, "path": "body.content.0.attrs.asset_id"}]}'
+# Mutation capture supplies a synthetic confirmed session; real clients need confirmed browser session/CSRF.
+```
+
+Actual response: `media_replace` in [40 real HTTP exchanges](../qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json).
+
+Reproduce with `CAPTURE_CMS_MANAGEMENT=1 python3 scripts/capture-cms-media.py`. Temporary SQLite/storage and synthetic confirmed sessions establish backend HTTP behavior; real cookie/CSRF, frontend and staging remain NOT RUN. [Central management contract](../cms/CENTRAL_MANAGEMENT.md).

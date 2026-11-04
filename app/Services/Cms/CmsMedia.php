@@ -89,6 +89,9 @@ class CmsMedia
             $a = CmsAsset::whereKey($asset->id)->lockForUpdate()->firstOrFail();
             $this->authorize($actor);
             $this->revision($a, $revision);
+            if ($a->archived_at !== null) {
+                throw ApiException::conflict('Reactivate media before creating recipes.', 'media_archived');
+            }
             $this->original($a);
             $recipe = $this->validated($a, $breakpoints);
             $r = $this->createLocked($a, $recipe, $actor);
@@ -151,7 +154,7 @@ class CmsMedia
     {
         $recipes = CmsMediaRecipe::where('asset_id', $asset->id)->orderByDesc('version')->limit(100)->get();
 
-        return ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id]),
+        return ['id' => $asset->public_id, 'archived' => $asset->archived_at !== null, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id]),
             'revision' => $asset->media_revision, 'original_available' => $asset->original_path !== null, 'original_hash' => $asset->original_hash,
             'active_recipe' => $recipes->firstWhere('id', $asset->active_recipe_id)?->public_id,
             'recipes' => $recipes->map(function (CmsMediaRecipe $r) use ($asset) {

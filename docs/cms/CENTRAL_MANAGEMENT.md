@@ -10,6 +10,16 @@ Hierarchy is limited to root + one subcategory level. Mutations lock involved ro
 
 [30 actual isolated HTTP captures](../qa/B83_FAQ_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_FAQ=1 python3 scripts/capture-cms-media.py`, include create/update/admin/public DE and401/403/404/409/422/423. Synthetic labels/items/accounts and confirmed-password session setup are explicit; main application data, real browser/CSRF and staging acceptance are untouched/NOT RUN. Existing CMS/API tests remain the compatibility baseline. This does not translate the frontend German dictionary.
 
+## Media lifecycle (B83b)
+
+Migration `2026_11_04_140000_add_cms_media_archive_state` adds soft archive state. PATCH asset state requires current media revision, a reason, current Super Admin and recent password confirmation. It increments the media revision and audits the change. Libraries exclude archived assets by default; `include_archived=1` explicitly lists them. Originals, derivatives, public URLs and immutable published snapshots are retained. Existing draft references may remain at the same field path; new archived references are rejected inside the content transaction. Archived assets cannot receive new recipes; historical restoration remains available.
+
+POST asset `/replace` takes at most50 explicit page/locale/revision/path selections and an active replacement asset with an optional ready same-asset recipe. All selected drafts lock before assets; any stale revision, changed source field, duplicate path or invalid pin rolls back the whole batch. Each selected locale increments once. Neither publication nor historical revisions are changed. This uses the saved-page usage inventory and does not claim all external/frontend usages are known. No physical deletion is provided.
+
+Canonical AI dispatch now waits for the outermost content transaction to commit, including synchronous configurations. A rolled-back multi-draft edit cannot call the provider while its budget reservation/intent is rolled back. The regression checks both rollback/no-call and commit/one-call.
+
+[40 actual isolated HTTP captures](../qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_MANAGEMENT=1 python3 scripts/capture-cms-media.py`, include archive/reactivate, both libraries, rejected new archived usage, selected replacement, preserved published preview, and401/403/404/409/422/423. Synthetic confirmed-session limitations are the same as B83a. Real browser/CSRF/staging remains NOT RUN.
+
 ## Remaining B83 boundaries
 
-Soft media archive/reactivation, source-aware selected-draft replacement and immutable reusable block versions/locale pins/overrides are the next implementation boundaries. Existing B79 private originals/recipes/derivatives/restore and B80 pinned-page usage/preview APIs remain available. No physical media deletion or unreviewed global publication is authorized by this checkpoint. Universal discovery and the28 recommended content evidence definitions remain unmapped until independently executed/reviewed.
+Immutable reusable text-block versions, locale pins and safe overrides are next. Existing B79 originals/recipes/derivatives/restore and B80 pinned-page usage/preview APIs remain available. Universal discovery and the28 recommended content evidence definitions remain unmapped until independently executed/reviewed.

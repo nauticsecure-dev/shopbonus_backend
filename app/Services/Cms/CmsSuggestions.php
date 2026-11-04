@@ -100,7 +100,7 @@ class CmsSuggestions
         }
 
         try {
-            GenerateCmsSuggestion::dispatch($suggestion->id)->onConnection((string) config('cms.queue_connection'))->onQueue((string) config('cms.queue'));
+            GenerateCmsSuggestion::dispatch($suggestion->id)->onConnection((string) config('cms.queue_connection'))->onQueue((string) config('cms.queue'))->afterCommit();
         } catch (Throwable) {
             $this->fail($suggestion->id);
             throw new ApiException('The suggestion could not be generated safely. Nothing was changed.', 503, 'cms_suggestion_failed');

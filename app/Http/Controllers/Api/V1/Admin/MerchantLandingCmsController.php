@@ -152,7 +152,7 @@ class MerchantLandingCmsController extends Controller
     public function assets(Request $request): JsonResponse
     {
         $data = $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
-        $assets = CmsAsset::query()->orderByDesc('id')->paginate(24, ['*'], 'page', $data['page'] ?? 1);
+        $assets = CmsAsset::whereNull('archived_at')->orderByDesc('id')->paginate(24, ['*'], 'page', $data['page'] ?? 1);
 
         return response()->json(['data' => $assets->map(fn (CmsAsset $asset) => [
             'id' => $asset->public_id,

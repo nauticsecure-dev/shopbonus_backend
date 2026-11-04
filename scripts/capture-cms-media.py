@@ -4,6 +4,7 @@ import os, tempfile, subprocess, pathlib, base64, json, time, urllib.request, ur
 bindings_mode=os.environ.get('CAPTURE_CMS_BINDINGS')=='1'
 ai_mode=os.environ.get('CAPTURE_CMS_AI')=='1'
 faq_mode=os.environ.get('CAPTURE_CMS_FAQ')=='1'
+management_mode=os.environ.get('CAPTURE_CMS_MANAGEMENT')=='1'
 root=pathlib.Path.cwd(); work=pathlib.Path(tempfile.mkdtemp(prefix='shopbonus-b79-')); env=os.environ.copy(); server=None
 for d in ['framework/cache/data','framework/sessions','framework/views','logs','app/private']:(work/'storage'/d).mkdir(parents=True,exist_ok=True)
 db=work/'capture.sqlite';db.touch()
@@ -130,8 +131,35 @@ Illuminate\Support\Facades\Artisan::call('queue:work',['connection'=>'database',
   call('faq_consumer','PATCH',category_path,{'revision':2,'position':3},actor='consumer',expected=403)
   call('faq_anonymous','PATCH',category_path,{'revision':2,'position':3},actor=None,expected=401)
   call('faq_step_up','PATCH',category_path,{'revision':2,'position':3},no_session=True,expected=423)
- out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('a5a2dbb plus B83 FAQ working tree' if faq_mode else ('6c01cc0 plus B81 working tree' if ai_mode else ('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree'))),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','ai_fixture':('Actual temporary database queue worker executes proposal jobs against explicitly synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not quality evidence. Two synthetic administrators exercise independent review. No live model/provider call.' if ai_mode else None),'exchanges':captures}
- (root/('docs/qa/B83_FAQ_HTTP_CAPTURE.json' if faq_mode else ('docs/qa/B81_CMS_AI_HTTP_CAPTURE.json' if ai_mode else ('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json')))).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
+ if management_mode:
+  target=call('replacement_upload','POST','/api/v1/admin/cms/assets',expected=201,upload=True)['data']['id']
+  content={'title':'Synthetic media management','body':{'type':'doc','content':[{'type':'image','attrs':{'asset_id':asset,'alt':'Synthetic image'}}]}}
+  page=call('management_page','POST','/api/v1/admin/cms/pages',{'key':'media-management','type':'info','locales':{'nl':{'slug':'media-management','content':content}}},expected=201)['data']['id']
+  base='/api/v1/admin/cms/pages/'+page+'/locales/nl'
+  call('management_publish','POST',base+'/publish',{'revision':1})
+  call('media_archive','PATCH',path,{'revision':3,'archived':True,'reason':'Retire synthetic photo'})
+  call('archived_library','GET','/api/v1/admin/cms/assets?include_archived=1')
+  call('active_library','GET','/api/v1/admin/cms/assets')
+  call('archived_existing_edit','PUT',base,{'revision':1,'content':content})
+  call('archived_new_reference','POST','/api/v1/admin/cms/pages',{'key':'forbidden-photo','type':'info','locales':{'nl':{'slug':'forbidden-photo','content':content}}},expected=422)
+  payload={'replacement_asset_id':target,'usages':[{'page_id':page,'locale':'nl','revision':2,'path':'body.content.0.attrs.asset_id'}]}
+  call('media_replace','POST',path+'/replace',payload)
+  call('media_replace_stale','POST',path+'/replace',payload,expected=409)
+  call('media_published_preserved','GET',base+'/media-preview?version=published')
+  call('media_reactivate','PATCH',path,{'revision':4,'archived':False,'reason':'Approved synthetic reuse'})
+  call('media_state_stale','PATCH',path,{'revision':4,'archived':True,'reason':'Stale revision'},expected=409)
+  call('media_state_missing_revision','PATCH',path,{'archived':True,'reason':'No revision'},expected=422)
+  call('media_state_missing','PATCH','/api/v1/admin/cms/assets/01AAAAAAAAAAAAAAAAAAAAAAAA',{'revision':1,'archived':True,'reason':'Missing asset'},expected=404)
+  call('media_state_consumer','PATCH',path,{'revision':5,'archived':True,'reason':'Not permitted'},actor='consumer',expected=403)
+  call('media_replace_consumer','POST',path+'/replace',payload,actor='consumer',expected=403)
+  call('media_state_anonymous','PATCH',path,{'revision':5,'archived':True,'reason':'Not permitted'},actor=None,expected=401)
+  call('media_replace_anonymous','POST',path+'/replace',payload,actor=None,expected=401)
+  call('media_replace_step_up','POST',path+'/replace',payload,no_session=True,expected=423)
+  call('media_state_step_up','PATCH',path,{'revision':5,'archived':True,'reason':'No step up'},no_session=True,expected=423)
+  call('media_replace_invalid','POST',path+'/replace',{'replacement_asset_id':target,'usages':[]},expected=422)
+  call('media_replace_missing','POST',path+'/replace',{**payload,'replacement_asset_id':'01AAAAAAAAAAAAAAAAAAAAAAAA'},expected=404)
+ out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('16b3780 plus B83 media working tree' if management_mode else ('a5a2dbb plus B83 FAQ working tree' if faq_mode else ('6c01cc0 plus B81 working tree' if ai_mode else ('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree')))),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','ai_fixture':('Actual temporary database queue worker executes proposal jobs against explicitly synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not quality evidence. Two synthetic administrators exercise independent review. No live model/provider call.' if ai_mode else None),'exchanges':captures}
+ (root/('docs/qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json' if management_mode else ('docs/qa/B83_FAQ_HTTP_CAPTURE.json' if faq_mode else ('docs/qa/B81_CMS_AI_HTTP_CAPTURE.json' if ai_mode else ('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json'))))).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
 finally:
  if server:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
  shutil.rmtree(work)

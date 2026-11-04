@@ -27,7 +27,7 @@ class CmsContentBindings
                     continue;
                 }
                 $p = ltrim($path.'.'.$key, '.');
-                if (is_string($value) && ($key === 'asset_id' || str_ends_with((string) $key, '_asset_id'))) {
+                if (is_string($value) && trim($value) !== '' && ($key === 'asset_id' || str_ends_with((string) $key, '_asset_id'))) {
                     $out[$p] = $value;
                 } elseif (is_array($value) && $value !== []) {
                     $walk($value, $p);

@@ -1,3 +1,13 @@
+B83b — Soft media lifecycle and selected-draft replacement (2026-11-04)
+
+Branch `frank/moneybird-experiment-followup`, parent `16b3780` (B83a FAQ). Added revision-checked audited soft archive/reactivation, active/archived library filtering, transaction-locked rejection of new archived references, and atomic replacement of explicit source paths across selected draft revisions. Original files/artifacts/URLs/published history are preserved; no automatic publication or global-unused claim. Canonical AI dispatch waits for the outer transaction commit, with rollback/no-provider-call regression. [Contract](cms/CENTRAL_MANAGEMENT.md).
+
+Executed sequential final SQLite CMS + API coverage/inventory110PASS/9573assertions; MySQL media/AI12PASS/97; fullPint/PHPStan512MiB/diff PASS;40 actual isolated HTTP captures, including401/403/404/409/422/423. An initial archive-recipe test passed empty breakpoints and correctly got422; fixed the input before final runs. Initial combined command named a nonexistent inventory test and executed no suite; corrected to ReleaseInventoryTest. Static analysis required replacing inline reference traversal with Arr::set and simplifying null-coalescing access. No suppression. Full current-head CI pending push; last verified CI atbd9b4ec passed.
+
+Migration `2026_11_04_140000_add_cms_media_archive_state` required alongside prior B79/B81/B82/B83a migrations. No provider calls, application-DB migration, frontend/main merge/deployment or financial/D-109 change. Real browser/CSRF/rendering/staging and universal source discovery remain NOT RUN/incomplete.
+
+Exact next: commit this tested boundary, then immutable locale-specific reusable text blocks, safe source-bound overrides and explicit mount/detach through existing draft revision protection. Uncommitted scope is B83b source/migration/tests/captures/docs only; no unrelated work overwritten. Implementing SHA follows closeout. B82/B83a local commits remain to push with final B83 changes to draftPR#7.
+
 B83a — FAQ hierarchy and locale-safe category updates (2026-11-04)
 
 Branch `frank/moneybird-experiment-followup`, B82 source `a5a2dbb`. Reused FAQ categories/items; added root/subcategory links, revision-checked category metadata updates, bounded validated DE labels, ordered row locks and cycle/depth/parent-with-children guards. Existing admin/public flat lists and item audience filtering are preserved with additive parent/revision/name-fallback metadata. Category before/after changes are audited. [Central management contract](cms/CENTRAL_MANAGEMENT.md).

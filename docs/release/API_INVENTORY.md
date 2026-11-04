@@ -2,9 +2,9 @@
 
 Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **481**. Method/path operations (HEAD aliases excluded): **482**. Unique paths: **422**.
+Runtime route entries: **483**. Method/path operations (HEAD aliases excluded): **484**. Unique paths: **423**.
 
-Access counts are per operation: admin 237, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 239, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -57,8 +57,10 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/cms/assets` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/assets/{asset}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| PATCH | `/api/v1/admin/cms/assets/{asset}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/assets/{asset}/original` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets/{asset}/recipes` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/assets/{asset}/replace` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets/{asset}/restore` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/assets/{asset}/usages` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-consents/stats` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |

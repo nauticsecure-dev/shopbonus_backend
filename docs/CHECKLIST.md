@@ -1665,7 +1665,7 @@ B82 implementing SHA `a5a2dbb`; final CMS/API103/9433, sequential QA36/405, MySQ
 ### B83 — Remaining central content management
 
 - [x] Add locale-validated FAQ subcategories and optimistic category updates, rejecting cycles/depth violations and preserving existing audience filtering/public compatibility.
-- [ ] Add soft media archive/reactivation and explicit version-checked selected-draft replacement; preserve published/historical files and prevent new archived references.
+- [x] Add soft media archive/reactivation and explicit version-checked selected-draft replacement; preserve published/historical files and prevent new archived references.
 - [ ] Add immutable reusable rich-text block versions, locale-specific pins and safe text overrides, with protected mount/detach and resolved public/preview source linkage.
 - [ ] Verify mutation authority/concurrency/negative paths and compatibility; capture all added/changed API contracts through real isolated HTTP and record remaining frontend/staging limits.
 
@@ -1692,3 +1692,5 @@ B85 remaining scope: genuine Adobe module/Runtime/SaaS installation/renewal/orde
 B85 tested implementing source `1b513f5`: SQLite261/2584, SQLite/MySQL IMS7/36 each, API5/8440, fullPint/PHPStan/diff PASS; actual HTTP14. Genuine provider/installation acceptance and unsupported publishers/refund mapping remain incomplete.
 
 B83a FAQ implementing SHA follows closeout: CMS101/948, API5/8543, MySQL3/37, static/style/diff PASS; actualHTTP30. Other B83 management items remain open.
+
+B83b tested source follows closeout: SQLite CMS/API110/9573, MySQL12/97, full static/style/diff PASS; actualHTTP40. B83a implementing SHA `16b3780`.

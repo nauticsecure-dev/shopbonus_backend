@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 
 /**
+ * @property CarbonImmutable|null $archived_at
  * @property int $id
  * @property string $public_id
  * @property string $path
@@ -25,13 +27,13 @@ class CmsAsset extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['id', 'path', 'original_path', 'uploaded_by'];
+    protected $hidden = ['id', 'path', 'original_path', 'uploaded_by', 'archived_by'];
 
     protected $attributes = ['media_revision' => 0];
 
     protected function casts(): array
     {
-        return ['media_revision' => 'integer'];
+        return ['media_revision' => 'integer', 'archived_at' => 'immutable_datetime'];
     }
 
     protected static function booted(): void

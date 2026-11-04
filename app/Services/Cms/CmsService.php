@@ -210,7 +210,9 @@ class CmsService
         return DB::transaction(function () use ($key, $type, $audience, $locales, $actorId) {
             $page = CmsPage::create(['key' => $key, 'type' => $type, 'audience' => $audience, 'created_by' => $actorId]);
             foreach ($locales as $locale => $l) {
-                CmsPageLocale::create(['page_id' => $page->id, 'locale' => $locale, 'slug' => $l['slug'], 'draft_content' => $this->validateContent($l['content'], $type, $key),
+                $content = $this->validateContent($l['content'], $type, $key);
+                app(CmsAssetPolicy::class)->assertNewReferences([], $content);
+                CmsPageLocale::create(['page_id' => $page->id, 'locale' => $locale, 'slug' => $l['slug'], 'draft_content' => $content,
                     'draft_updated_at' => now(), 'draft_updated_by' => $actorId]);
             }
             $this->audit->record('cms.page_created', category: AuditCategory::Admin, resource: $page, actorUserId: $actorId, metadata: ['key' => $key, 'type' => $type]);
@@ -230,6 +232,7 @@ class CmsService
 
         $saved = DB::transaction(function () use ($page, $locale, $content, $revision, $slug, $actorId) {
             $l = CmsPageLocale::where('page_id', $page->id)->where('locale', $locale)->lockForUpdate()->first();
+            app(CmsAssetPolicy::class)->assertNewReferences($l->draft_content ?? [], $content);
             if ($l === null) {
                 if ($slug === null) {
                     throw ValidationException::withMessages(['slug' => 'A new translation needs a slug.']);

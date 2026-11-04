@@ -457,6 +457,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('suggestions/{suggestion}/reject', [AdminCmsController::class, 'rejectSuggestion'])->name('suggestions.reject');
                         Route::post('suggestions/{suggestion}/review', [CmsAiReviewController::class, 'store'])->name('suggestions.review');
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
+                        Route::patch('assets/{asset}', [CmsMediaController::class, 'update'])->name('assets.update');
+                        Route::post('assets/{asset}/replace', [CmsMediaController::class, 'replace'])->name('assets.replace');
                         Route::post('assets/{asset}/recipes', [CmsMediaController::class, 'storeRecipe'])->name('assets.recipes.store');
                         Route::post('assets/{asset}/restore', [CmsMediaController::class, 'restore'])->name('assets.restore');
                         Route::patch('faq/categories/{category}', [AdminCmsController::class, 'updateFaqCategory'])->name('faq.categories.update');
