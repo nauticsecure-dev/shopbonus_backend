@@ -1662,4 +1662,4 @@ B84 implementing SHA: `f507073`. SQLite/MySQL runner7/31 each; full static/style
 
 B85 remaining scope: genuine Adobe module/Runtime/SaaS installation/renewal/order/refund/uninstall acceptance NOT RUN. BigCommerce lifecycle is existing implemented source346b3bb. C/E-Series/Squarespace automatic publishers remain OPEN; C-Series cash mapping remains OPEN without authoritative PSP transaction binding. Checked implementation items above do not certify those gaps complete.
 
-B85 tested source implementing SHA follows closeout: SQLite261/2584, SQLite/MySQL IMS7/36 each, API5/8440, fullPint/PHPStan/diff PASS; actual HTTP14. Genuine provider/installation acceptance and unsupported publishers/refund mapping remain incomplete.
+B85 tested implementing source `1b513f5`: SQLite261/2584, SQLite/MySQL IMS7/36 each, API5/8440, fullPint/PHPStan/diff PASS; actual HTTP14. Genuine provider/installation acceptance and unsupported publishers/refund mapping remain incomplete.
