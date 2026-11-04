@@ -1,0 +1,766 @@
+{
+  "schema_version": 1,
+  "state": "unmapped",
+  "scope": "owner_delegated_recommended_contract_not_original175",
+  "source": {
+    "path": "CMS_ACCEPTANCE_SOURCE.md",
+    "version": "cms-recommended-v1",
+    "sha256": "78d7e5c1dd91ebbb855177527a9f55d0cdef10c914a8b1c337161312ce7741d3"
+  },
+  "frontend_git_sha": null,
+  "denominators": [
+    {
+      "id": "CMS-D01",
+      "package": "CMS-D01",
+      "title": "All saved/discovered editable field bindings",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "All saved/discovered editable field bindings; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "cms_coverage",
+        "frontend_inventory"
+      ],
+      "review_evidence_id": null,
+      "coverage_kind": "saved_fields",
+      "frontend_git_sha": null
+    },
+    {
+      "id": "CMS-D02",
+      "package": "CMS-D02",
+      "title": "All required current locale bindings",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "All required current locale bindings; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "cms_coverage",
+        "frontend_inventory"
+      ],
+      "review_evidence_id": null,
+      "coverage_kind": "locale_bindings",
+      "frontend_git_sha": null
+    },
+    {
+      "id": "CMS-D03",
+      "package": "CMS-D03",
+      "title": "All inventoried media usage breakpoints",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "All inventoried media usage breakpoints; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "cms_coverage",
+        "frontend_inventory"
+      ],
+      "review_evidence_id": null,
+      "coverage_kind": "media_breakpoints",
+      "frontend_git_sha": null
+    },
+    {
+      "id": "CMS-D04",
+      "package": "CMS-D04",
+      "title": "All discovered rendered component contexts",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "All discovered rendered component contexts; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "cms_coverage",
+        "frontend_inventory"
+      ],
+      "review_evidence_id": null,
+      "coverage_kind": "component_contexts",
+      "frontend_git_sha": null
+    },
+    {
+      "id": "CMS-D05",
+      "package": "CMS-D05",
+      "title": "All23 independent staging executors",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "All23 independent staging executors; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "cms_coverage"
+      ],
+      "review_evidence_id": null,
+      "coverage_kind": "staging_executors"
+    }
+  ],
+  "checks": [
+    {
+      "id": "CMS-T01",
+      "package": "CMS-T01",
+      "title": "Exhaustive route/locale/role/state/content/image discovery",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Exhaustive route/locale/role/state/content/image discovery; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T02",
+      "package": "CMS-T02",
+      "title": "Hardcoded visible copy injection detected and CI fails",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Hardcoded visible copy injection detected and CI fails; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T03",
+      "package": "CMS-T03",
+      "title": "Translated t() without binding detected",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Translated t() without binding detected; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T04",
+      "package": "CMS-T04",
+      "title": "Hero edit, exact DB/reload/audit/restore and field isolation",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Hero edit, exact DB/reload/audit/restore and field isolation; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T05",
+      "package": "CMS-T05",
+      "title": "FAQ category/subcategory/answer, order, visibility, locale isolation",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "FAQ category/subcategory/answer, order, visibility, locale isolation; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T06",
+      "package": "CMS-T06",
+      "title": "Exit editing restores normal navigation",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Exit editing restores normal navigation; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T07",
+      "package": "CMS-T07",
+      "title": "Contact email display and mailto update together",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Contact email display and mailto update together; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T08",
+      "package": "CMS-T08",
+      "title": "Blog/case rich text/blocks/SEO/schema/sitemap/revisions",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Blog/case rich text/blocks/SEO/schema/sitemap/revisions; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T09",
+      "package": "CMS-T09",
+      "title": "NL change produces validated GPT-6 EN/DE review drafts/cost evidence",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "NL change produces validated GPT-6 EN/DE review drafts/cost evidence; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "provider_confirmation"
+      ],
+      "review_evidence_id": null,
+      "provider": "openai"
+    },
+    {
+      "id": "CMS-T10",
+      "package": "CMS-T10",
+      "title": "Reject token, voucher meaning, negation and payout mutations",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Reject token, voucher meaning, negation and payout mutations; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T11",
+      "package": "CMS-T11",
+      "title": "Locale changes preserve shop/wallet/claim/order/codes",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Locale changes preserve shop/wallet/claim/order/codes; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T12",
+      "package": "CMS-T12",
+      "title": "Merchant/tenant isolation and real 401/403/419",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Merchant/tenant isolation and real 401/403/419; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T13",
+      "package": "CMS-T13",
+      "title": "Legal versions/consent, localized email/SEO/cache publication",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Legal versions/consent, localized email/SEO/cache publication; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T14",
+      "package": "CMS-T14",
+      "title": "Outage, monetary budget cap and duplicate-job safety",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Outage, monetary budget cap and duplicate-job safety; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T15",
+      "package": "CMS-T15",
+      "title": "Changed source invalidates old evidence and reruns impacted tests",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Changed source invalidates old evidence and reruns impacted tests; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T16",
+      "package": "CMS-T16",
+      "title": "JPG transformations, private original and responsive WebP",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "JPG transformations, private original and responsive WebP; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T17",
+      "package": "CMS-T17",
+      "title": "Actual component text/crop/focus preview at three sizes",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Actual component text/crop/focus preview at three sizes; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T18",
+      "package": "CMS-T18",
+      "title": "Usage-specific changes, replace-here/everywhere, safe delete",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Usage-specific changes, replace-here/everywhere, safe delete; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T19",
+      "package": "CMS-T19",
+      "title": "Cancel/reset/restore with identical storage/DB/page recovery",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Cancel/reset/restore with identical storage/DB/page recovery; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T20",
+      "package": "CMS-T20",
+      "title": "Upload/worker/storage/CSRF/oversize failure preserves publication",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Upload/worker/storage/CSRF/oversize failure preserves publication; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T21",
+      "package": "CMS-T21",
+      "title": "Every media/ALT edit audited; added locales invalidate missing ALT",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Every media/ALT edit audited; added locales invalidate missing ALT; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    },
+    {
+      "id": "CMS-T22",
+      "package": "CMS-T22",
+      "title": "Queued 1,000+ content/AI/SEO/GEO records and review backlog",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Queued 1,000+ content/AI/SEO/GEO records and review backlog; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot",
+        "provider_confirmation"
+      ],
+      "review_evidence_id": null,
+      "provider": "openai"
+    },
+    {
+      "id": "CMS-T23",
+      "package": "CMS-T23",
+      "title": "Safe rich text/forms/video/download/consent-script save/render",
+      "test_key": null,
+      "case_version": 1,
+      "assertions": [
+        "Safe rich text/forms/video/download/consent-script save/render; verify expected/actual downstream state on the exact recorded staging build."
+      ],
+      "min_assertions": 1,
+      "environment": "staging",
+      "executor": null,
+      "runner_id": null,
+      "instructions": [
+        "Assign a qualified staging executor and review/commit the executable journey in the controlled runner registry.",
+        "Run against the exact deployed backend/frontend build with dedicated test identities; retain masked real HTTP, DB changes, request IDs and screenshots.",
+        "Independently review result-bound evidence against this definition; no fixture-only PASS or automatic publication."
+      ],
+      "required_evidence": [
+        "http",
+        "database",
+        "request_ids",
+        "screenshot"
+      ],
+      "review_evidence_id": null
+    }
+  ],
+  "blocker": "Recommended definitions exist, but actual reviewed runner/case/executor mappings, exhaustive frontend inventory and genuine staging/model/browser evidence remain NOT RUN/unmapped."
+}

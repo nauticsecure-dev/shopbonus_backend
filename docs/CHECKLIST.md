@@ -1648,12 +1648,19 @@ B80 implementing SHA `6c01cc0`; CMS84/822, MySQL5/40, API5/8493, static/style/di
 - [x] Route legacy homepage/AboutUs/merchant translation callers through the existing queued revision-backed proposal/review flow.
 - [x] Enforce configured monetary reservation caps and independent language/semantic review before proposals are applicable.
 
-B81 implementing SHA follows closeout; SQLite CMS92/879, MySQL AI/schedule27/286, API5/8522, static/style/diff PASS, actualHTTP43. Review is independent human attestation; live model quality/capability and automated classification remain unverified.
+B81 implementing SHA `bd9b4ec`; SQLite CMS92/879, MySQL AI/schedule27/286, API5/8522, static/style/diff PASS, actualHTTP43. Review is independent human attestation; live model quality/capability and automated classification remain unverified.
 
 ### B82 — Bulk content operations and recommended quality gates
 
-- [ ] Provide resumable bounded 1,000+ source backlog execution with dedupe, stale-source checks and review rather than automatic publication.
-- [ ] Document five recommended denominators and T01–T23 executor/evidence requirements; block unknown or unexecuted release coverage.
+- [x] Plan 1,000+ saved-page source records in bounded durable chunks, recording source/target version/hash and excluding legal/archived content.
+- [x] Submit and reconcile bounded batches through the canonical queued proposal flow with current authority, stale-source rejection, coalescing, held monetary reservations and no automatic apply/publish.
+- [x] Define the five recommended content coverage denominators and T01–T23 executor/evidence ledger without inventing original-source coverage or completed staging runs.
+- [x] Connect a fail-closed content-specific deployment check to controlled staging execution; test missing/unknown/stale/fixture evidence and document installation limits.
+
+- [x] Provide resumable bounded 1,000+ source backlog execution with dedupe, stale-source checks and review rather than automatic publication.
+- [x] Document five recommended denominators and T01–T23 executor/evidence requirements; block unknown or unexecuted release coverage.
+
+B82 implementing SHA follows closeout; final CMS/API103/9433, sequential QA36/405, MySQL9/54, static/style/diff PASS. Default actual executor/frontend/provider mappings remain unmapped; these checkboxes certify orchestration/gate source, not genuine acceptance.
 
 ### B83 — Remaining central content management
 

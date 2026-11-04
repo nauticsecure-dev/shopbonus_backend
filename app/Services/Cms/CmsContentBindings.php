@@ -79,7 +79,7 @@ class CmsContentBindings
             $content = $r->content;
             $identity = ['kind' => 'revision', 'id' => $r->public_id, 'revision' => $r->number];
         }
-        $source = ['scope' => 'platform_global', 'webshop_id' => null, 'page_id' => $page->public_id, 'page_key' => $page->key, 'locale' => $locale, 'version' => $identity, 'content_sha256' => hash('sha256', json_encode($content, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES))];
+        $source = ['scope' => 'platform_global', 'webshop_id' => null, 'page_id' => $page->public_id, 'page_key' => $page->key, 'locale' => $locale, 'version' => $identity, 'content_sha256' => CmsSuggestions::sourceHash($content)];
 
         return ['content' => $content, 'source' => $source];
     }

@@ -19,7 +19,10 @@ class QaStagingRun extends Command
             $this->line(json_encode($runner->execute((string) $this->argument('trigger'), $sha), JSON_THROW_ON_ERROR));
 
             // Do not permit a success-only switch: regression execution cannot promote a release.
-            return $this->call('shopbonus:qa-acceptance-check', ['--sha' => $sha, '--discover' => true]);
+            $general = $this->call('shopbonus:qa-acceptance-check', ['--sha' => $sha, '--discover' => true]);
+            $content = $this->call('shopbonus:cms-content-check', ['--sha' => $sha]);
+
+            return $general === self::SUCCESS && $content === self::SUCCESS ? self::SUCCESS : self::FAILURE;
         } catch (Throwable $e) {
             report($e);
             $this->line(json_encode(['execution_complete' => false, 'evidence_complete' => false, 'release_approved' => false, 'blockers' => ['staging_runner_unavailable_or_failed']]));

@@ -48,7 +48,7 @@ class QaStagingRunner
             $validation = Validator::make($manifest, [
                 'schema_version' => ['required', 'in:1'], 'state' => ['required', 'in:reviewed'], 'review_reference' => ['required', 'string', 'max:500'],
                 'runners' => ['required', 'array', 'min:1', 'max:10'], 'runners.*.id' => ['required', 'string', 'regex:/\A[a-z0-9_-]{1,80}\z/D', 'distinct'],
-                'runners.*.path' => ['required', 'string', 'distinct'], 'runners.*.sha256' => ['required', 'regex:/\A[0-9a-f]{64}\z/D'],
+                'runners.*.path' => ['required', 'string', 'regex:~\Ascripts/qa-runners/[A-Za-z0-9_/-]+\.php\z~D', 'distinct'], 'runners.*.sha256' => ['required', 'regex:/\A[0-9a-f]{64}\z/D'],
                 'runners.*.triggers' => ['required', 'array', 'min:1'], 'runners.*.triggers.*' => ['required', 'in:nightly,weekly,after_deploy'],
                 'runners.*.timeout_seconds' => ['required', 'integer', 'between:1,300'],
             ]);

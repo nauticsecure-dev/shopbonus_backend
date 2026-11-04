@@ -12,7 +12,7 @@ class QaRunnerSource
 
     public function verify(string $relative, string $hash, string $sha): string
     {
-        if (! preg_match('~\A(?:scripts/qa-runners/[A-Za-z0-9_/-]+\.php|requirements/QA_RUNNERS\.json)\z~D', $relative)
+        if (! preg_match('~\A(?:scripts/qa-runners/[A-Za-z0-9_/-]+\.php|requirements/(?:QA_RUNNERS\.json|CMS_ACCEPTANCE\.json|CMS_ACCEPTANCE_SOURCE\.md))\z~D', $relative)
             || str_contains($relative, '..') || ! preg_match('/\A[0-9a-f]{64}\z/D', $hash)) {
             throw new RuntimeException('Invalid reviewed source reference.');
         }

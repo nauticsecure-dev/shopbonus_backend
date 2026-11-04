@@ -31,8 +31,10 @@ class CmsSuggestions
 {
     public function __construct(private readonly CmsService $cms, private readonly AuditLogger $audit) {}
 
-    /** @param array{section?:string,focus?:string} $context */
-    public function request(CmsPage $page, string $kind, string $sourceLocale, string $targetLocale, string $key, User $actor, array $context = []): CmsAiSuggestion
+    /** @param array{section?:string,focus?:string} $context
+     * @param  array{source_revision:int,source_hash:string,target_revision:int|null}|null  $expected
+     */
+    public function request(CmsPage $page, string $kind, string $sourceLocale, string $targetLocale, string $key, User $actor, array $context = [], ?array $expected = null): CmsAiSuggestion
     {
         $this->authorize($actor);
         if (! config('cms.ai_enabled') || (string) config('cms.api_key') === '' || ! preg_match('/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D', (string) config('cms.model'))) {
@@ -59,8 +61,11 @@ class CmsSuggestions
             throw new ApiException('Unsupported scoped copy request.', 422, 'validation_failed');
         }
         $target = CmsPageLocale::where('page_id', $page->id)->where('locale', $targetLocale)->first();
-        $hash = hash('sha256', json_encode(['bindings-v2', $page->id, $kind, $sourceLocale, $targetLocale, $source->draft_revision,
-            $target?->draft_revision, config('cms.model'), config('cms.glossary'), $context], JSON_THROW_ON_ERROR));
+        if ($expected !== null && ($source->draft_revision !== $expected['source_revision'] || self::sourceHash($source->draft_content) !== $expected['source_hash'] || $target?->draft_revision !== $expected['target_revision'])) {
+            throw ApiException::conflict('The planned source or target changed before submission.', 'source_revision_conflict');
+        }
+        $hash = hash('sha256', json_encode(['bindings-v3', $page->id, $kind, $sourceLocale, $targetLocale, $source->draft_revision,
+            $target?->draft_revision, self::sourceHash($source->draft_content), config('cms.model'), config('cms.glossary'), $context], JSON_THROW_ON_ERROR));
 
         $suggestion = DB::transaction(function () use ($page, $kind, $sourceLocale, $targetLocale, $key, $actor, $hash, $source, $target, $context) {
             User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
