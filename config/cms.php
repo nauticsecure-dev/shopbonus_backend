@@ -11,6 +11,7 @@ return [
     'auto_translate' => env('CMS_AI_AUTO_TRANSLATE', true),
     'max_input_chars' => 24000,
     'max_output_tokens' => 4000,
+    'media_queue_connection' => env('CMS_MEDIA_QUEUE_CONNECTION', 'database'),
     // Reviewed brand terms must occur verbatim in every matching output segment.
     'glossary' => ['ShopBonus', 'Answer24'],
 ];

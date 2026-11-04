@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1\Content;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\CmsAsset;
+use App\Models\CmsMediaDerivative;
+use App\Models\CmsMediaRecipe;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\CmsRevision;
@@ -132,5 +134,14 @@ class PublicContentController extends Controller
         $content['body'] = $walk($content['body']);
 
         return $content;
+    }
+
+    public function derivative(string $id, string $recipe, string $breakpoint): Response
+    {
+        $a = CmsAsset::where('public_id', $id)->first() ?? throw new ApiException('Image not found.', 404, 'not_found');
+        $r = CmsMediaRecipe::where('asset_id', $a->id)->where('public_id', $recipe)->first() ?? throw new ApiException('Image not found.', 404, 'not_found');
+        $d = CmsMediaDerivative::where('recipe_id', $r->id)->where('breakpoint', $breakpoint)->where('status', 'ready')->first() ?? throw new ApiException('Image not found.', 404, 'not_found');
+
+        return Storage::disk('local')->response($d->path, 'image.webp', ['Content-Type' => 'image/webp', 'Cache-Control' => 'public, max-age=31536000, immutable', 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'"], 'inline');
     }
 }

@@ -1,10 +1,10 @@
 # API route inventory (Trello #22)
 
-Generated 2026-11-03 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
+Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **470**. Method/path operations (HEAD aliases excluded): **471**. Unique paths: **412**.
+Runtime route entries: **476**. Method/path operations (HEAD aliases excluded): **477**. Unique paths: **417**.
 
-Access counts are per operation: admin 227, authenticated 4, integration 4, public 44, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 232, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -54,7 +54,12 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/admin/audit/export` | admin | super_admin | session_cookie | - | platform | recent password, email code | ThrottleRequests:api, ThrottleRequests:order-export | admin |
 | GET | `/api/v1/admin/checkouts` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | financial |
 | POST | `/api/v1/admin/checkouts/{checkout}/refund` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | financial |
+| GET | `/api/v1/admin/cms/assets` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/assets/{asset}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/assets/{asset}/original` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/assets/{asset}/recipes` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/assets/{asset}/restore` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-consents/stats` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-policies` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/cookie-policies` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
@@ -335,6 +340,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/platform/notifications/templates/{template}/test` | admin | super_admin | session_cookie | - | platform | recent password, email code | ThrottleRequests:api | admin |
 | GET | `/api/v1/public/categories` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/public/content-assets/{id}` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
+| GET | `/api/v1/public/content-assets/{id}/recipes/{recipe}/{breakpoint}` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/public/cookie-consents` | public | - | none | - | public | - | ThrottleRequests:api, ThrottleRequests:claims | security_denials |
 | GET | `/api/v1/public/cookie-consents/{consentId}` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/public/cookie-policy` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |

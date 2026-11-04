@@ -10725,6 +10725,27 @@ paths:
               example: {"error":{"status":403,"code":"platform_role_required","message":"This action requires a platform administrator.","request_id":"01a16ded-b4c4-70c5-9517-635ccae06f1f"}}
 
   /api/v1/admin/cms/assets:
+    get:
+      tags: [CMS]
+      operationId: listCmsMedia
+      summary: "listCmsMedia"
+      description: "Platform-global CMS media. Immutable recipes and artifact URLs; originals are private. Mutations require a recently confirmed session and exact revision. Original bytes refer to uploaded bytes; legacy assets cannot recover a pre-upload source. See docs/cms/MEDIA.md."
+      x-access: admin
+      parameters:
+        - { name: after, in: query, schema: { type: string }, description: "Last returned asset ULID" }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets' -H 'Accept: application/json' -b cookies.txt"
+      responses:
+        '200':
+          description: "Captured actual response; see B79_MEDIA_HTTP_CAPTURE.json."
+          content:
+            application/json:
+              example: {"data":[{"id":"01m6k9n7cbfwzb45dpyez8zvsr","width":80,"height":60,"revision":1,"original_available":true}],"next":null}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
     post:
       tags: [CMS]
       operationId: uploadCmsAsset
@@ -10750,7 +10771,7 @@ paths:
           description: "Stored."
           content:
             application/json:
-              example: {"data":{"id":"01m5pyvgv6n5w84d2p0a8x63sc","width":800,"height":400,"url":"http:\/\/127.0.0.1:8798\/api\/v1\/public\/content-assets\/01m5pyvgv6n5w84d2p0a8x63sc"}}
+              example: {"data":{"id":"01m6k9n7cbfwzb45dpyez8zvsr","width":80,"height":60,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr","media":{"id":"01m6k9n7cbfwzb45dpyez8zvsr","width":80,"height":60,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr","revision":1,"original_available":true,"original_hash":"109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6","active_recipe":"01m6k9n7ce13t6va93z91aq894","recipes":[{"id":"01m6k9n7ce13t6va93z91aq894","version":1,"recipe":{"schema":"cms-media-v1","renderer":"cms-webp-v1","orientation":"encoded_pixels","breakpoints":{"mobile":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":480},"tablet":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":960},"desktop":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":1536}}},"derivatives":[{"breakpoint":"desktop","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/desktop"},{"breakpoint":"mobile","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/mobile"},{"breakpoint":"tablet","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/tablet"}]}]}}}
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/PlatformRoleRequired' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
@@ -25853,6 +25874,170 @@ paths:
                   fields:
                     page:
                       - 'The page field must be at least 1.'
+  /api/v1/admin/cms/assets/{asset}:
+    get:
+      tags: [CMS]
+      operationId: showCmsMedia
+      summary: "showCmsMedia"
+      description: "Platform-global CMS media. Immutable recipes and artifact URLs; originals are private. Mutations require a recently confirmed session and exact revision. Original bytes refer to uploaded bytes; legacy assets cannot recover a pre-upload source. See docs/cms/MEDIA.md."
+      x-access: admin
+      parameters:
+        - name: asset
+          in: path
+          required: true
+          schema: { type: string }
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr' -H 'Accept: application/json' -b cookies.txt"
+      responses:
+        '200':
+          description: "Captured actual response; see B79_MEDIA_HTTP_CAPTURE.json."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6k9n7cbfwzb45dpyez8zvsr","width":80,"height":60,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr","revision":1,"original_available":true,"original_hash":"109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6","active_recipe":"01m6k9n7ce13t6va93z91aq894","recipes":[{"id":"01m6k9n7ce13t6va93z91aq894","version":1,"recipe":{"schema":"cms-media-v1","renderer":"cms-webp-v1","orientation":"encoded_pixels","breakpoints":{"mobile":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":480},"tablet":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":960},"desktop":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":1536}}},"derivatives":[{"breakpoint":"desktop","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/desktop"},{"breakpoint":"mobile","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/mobile"},{"breakpoint":"tablet","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/tablet"}]}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/admin/cms/assets/{asset}/original:
+    get:
+      tags: [CMS]
+      operationId: downloadCmsOriginal
+      summary: "downloadCmsOriginal"
+      description: "Platform-global CMS media. Immutable recipes and artifact URLs; originals are private. Mutations require a recently confirmed session and exact revision. Original bytes refer to uploaded bytes; legacy assets cannot recover a pre-upload source. See docs/cms/MEDIA.md."
+      x-access: admin
+      parameters:
+        - name: asset
+          in: path
+          required: true
+          schema: { type: string }
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/original' -H 'Accept: application/json' -b cookies.txt"
+      responses:
+        '200':
+          description: "Captured actual response; see B79_MEDIA_HTTP_CAPTURE.json."
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/v1/admin/cms/assets/{asset}/recipes:
+    post:
+      tags: [CMS]
+      operationId: createCmsMediaRecipe
+      summary: "createCmsMediaRecipe"
+      description: "Platform-global CMS media. Immutable recipes and artifact URLs; originals are private. Mutations require a recently confirmed session and exact revision. Original bytes refer to uploaded bytes; legacy assets cannot recover a pre-upload source. See docs/cms/MEDIA.md."
+      x-access: admin
+      parameters:
+        - name: asset
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, breakpoints]
+              properties:
+                revision: { type: integer, minimum: 0 }
+                breakpoints: { type: object, description: "Exactly mobile/tablet/desktop; each x/y/width/height/rotate/flip_h/flip_v/output_width. Encoded-pixel crop bounds, rotate 0/90/180/270, width 1..2048. All three required." }
+            example: {"revision": 1, "breakpoints": {"mobile": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}, "tablet": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}, "desktop": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}}}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes' -H 'Accept: application/json' -b cookies.txt -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <token>' --data '{\"revision\": 1, \"breakpoints\": {\"mobile\": {\"x\": 0, \"y\": 0, \"width\": 40, \"height\": 40, \"rotate\": 90, \"flip_h\": true, \"flip_v\": false, \"output_width\": 32}, \"tablet\": {\"x\": 0, \"y\": 0, \"width\": 40, \"height\": 40, \"rotate\": 90, \"flip_h\": true, \"flip_v\": false, \"output_width\": 32}, \"desktop\": {\"x\": 0, \"y\": 0, \"width\": 40, \"height\": 40, \"rotate\": 90, \"flip_h\": true, \"flip_v\": false, \"output_width\": 32}}}'"
+      responses:
+        '201':
+          description: "Captured actual response; see B79_MEDIA_HTTP_CAPTURE.json."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6k9n7cbfwzb45dpyez8zvsr","width":80,"height":60,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr","revision":2,"original_available":true,"original_hash":"109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6","active_recipe":"01m6k9n7hr9vvp0rqeyxnwefjz","recipes":[{"id":"01m6k9n7hr9vvp0rqeyxnwefjz","version":2,"recipe":{"schema":"cms-media-v1","renderer":"cms-webp-v1","orientation":"encoded_pixels","breakpoints":{"mobile":{"x":0,"y":0,"width":40,"height":40,"rotate":90,"flip_h":true,"flip_v":false,"output_width":32},"tablet":{"x":0,"y":0,"width":40,"height":40,"rotate":90,"flip_h":true,"flip_v":false,"output_width":32},"desktop":{"x":0,"y":0,"width":40,"height":40,"rotate":90,"flip_h":true,"flip_v":false,"output_width":32}}},"derivatives":[{"breakpoint":"desktop","status":"ready","width":32,"height":32,"sha256":"d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/desktop"},{"breakpoint":"mobile","status":"ready","width":32,"height":32,"sha256":"d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/mobile"},{"breakpoint":"tablet","status":"ready","width":32,"height":32,"sha256":"d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/tablet"}]},{"id":"01m6k9n7ce13t6va93z91aq894","version":1,"recipe":{"schema":"cms-media-v1","renderer":"cms-webp-v1","orientation":"encoded_pixels","breakpoints":{"mobile":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":480},"tablet":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":960},"desktop":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":1536}}},"derivatives":[{"breakpoint":"desktop","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/desktop"},{"breakpoint":"mobile","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/mobile"},{"breakpoint":"tablet","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/tablet"}]}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '409':
+          description: "Stale revision, unavailable original or incomplete/corrupt saved artifacts."
+          content:
+            application/json:
+              example: {"error": {"status": 409, "code": "media_revision_conflict", "message": "Media changed; reload its current revision.", "request_id": "01a1a69a-9ea3-7252-844d-42bb81480d50"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/admin/cms/assets/{asset}/restore:
+    post:
+      tags: [CMS]
+      operationId: restoreCmsMediaRecipe
+      summary: "restoreCmsMediaRecipe"
+      description: "Platform-global CMS media. Immutable recipes and artifact URLs; originals are private. Mutations require a recently confirmed session and exact revision. Original bytes refer to uploaded bytes; legacy assets cannot recover a pre-upload source. See docs/cms/MEDIA.md."
+      x-access: admin
+      parameters:
+        - name: asset
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, recipe]
+              properties:
+                revision: { type: integer, minimum: 0 }
+                recipe: { type: string }
+            example: {"revision": 2, "recipe": "01m6k9n7ce13t6va93z91aq894"}
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/restore' -H 'Accept: application/json' -b cookies.txt -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <token>' --data '{\"revision\": 2, \"recipe\": \"01m6k9n7ce13t6va93z91aq894\"}'"
+      responses:
+        '200':
+          description: "Captured actual response; see B79_MEDIA_HTTP_CAPTURE.json."
+          content:
+            application/json:
+              example: {"data":{"id":"01m6k9n7cbfwzb45dpyez8zvsr","width":80,"height":60,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr","revision":3,"original_available":true,"original_hash":"109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6","active_recipe":"01m6k9n7ce13t6va93z91aq894","recipes":[{"id":"01m6k9n7hr9vvp0rqeyxnwefjz","version":2,"recipe":{"schema":"cms-media-v1","renderer":"cms-webp-v1","orientation":"encoded_pixels","breakpoints":{"mobile":{"x":0,"y":0,"width":40,"height":40,"rotate":90,"flip_h":true,"flip_v":false,"output_width":32},"tablet":{"x":0,"y":0,"width":40,"height":40,"rotate":90,"flip_h":true,"flip_v":false,"output_width":32},"desktop":{"x":0,"y":0,"width":40,"height":40,"rotate":90,"flip_h":true,"flip_v":false,"output_width":32}}},"derivatives":[{"breakpoint":"desktop","status":"ready","width":32,"height":32,"sha256":"d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/desktop"},{"breakpoint":"mobile","status":"ready","width":32,"height":32,"sha256":"d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/mobile"},{"breakpoint":"tablet","status":"ready","width":32,"height":32,"sha256":"d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/tablet"}]},{"id":"01m6k9n7ce13t6va93z91aq894","version":1,"recipe":{"schema":"cms-media-v1","renderer":"cms-webp-v1","orientation":"encoded_pixels","breakpoints":{"mobile":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":480},"tablet":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":960},"desktop":{"x":0,"y":0,"width":80,"height":60,"rotate":0,"flip_h":false,"flip_v":false,"output_width":1536}}},"derivatives":[{"breakpoint":"desktop","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/desktop"},{"breakpoint":"mobile","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/mobile"},{"breakpoint":"tablet","status":"ready","width":80,"height":60,"sha256":"c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190","failure_code":null,"url":"http://127.0.0.1:8801/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7ce13t6va93z91aq894/tablet"}]}]}}
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/PlatformRoleRequired' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '409':
+          description: "Stale revision, unavailable original or incomplete/corrupt saved artifacts."
+          content:
+            application/json:
+              example: {"error": {"status": 409, "code": "media_revision_conflict", "message": "Media changed; reload its current revision.", "request_id": "01a1a69a-9ea3-7252-844d-42bb81480d50"}}
+        '423': { $ref: '#/components/responses/PasswordConfirmationRequired' }
+
+  /api/v1/public/content-assets/{id}/recipes/{recipe}/{breakpoint}:
+    get:
+      tags: [CMS]
+      operationId: showCmsMediaDerivative
+      summary: "showCmsMediaDerivative"
+      description: "Platform-global CMS media. Immutable recipes and artifact URLs; originals are private. Mutations require a recently confirmed session and exact revision. Original bytes refer to uploaded bytes; legacy assets cannot recover a pre-upload source. See docs/cms/MEDIA.md."
+      x-access: public
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: recipe
+          in: path
+          required: true
+          schema: { type: string }
+        - name: breakpoint
+          in: path
+          required: true
+          schema: { type: string }
+      x-codeSamples:
+        - lang: curl
+          source: "curl -i -X GET 'http://localhost:8000/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/mobile' -H 'Accept: application/json'"
+      responses:
+        '200':
+          description: "Captured actual response; see B79_MEDIA_HTTP_CAPTURE.json."
+          content:
+            image/webp:
+              schema: { type: string, format: binary }
+
 components:
   parameters:
     Workspace:

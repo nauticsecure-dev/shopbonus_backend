@@ -25719,3 +25719,55 @@ curl -i -X GET 'http://127.0.0.1:8798/api/v1/ai/messages/01m6gxxfk2zqhw35p0wa634
 ```json
 {"status":200,"body":{"data":{"id":"01m6gxxfk2zqhw35p0wa634db9","message_id":"01m6gxxfk2zqhw35p0wa634db9","conversation_id":"01m6gxxfjtk89abbqsmjvp4xp5","question":"Synthetic presentation-only fixture","status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","retry_used":false,"action":null,"checks":{"passed":[],"failed":["POLICY"]},"display":{"show_progress_updates":true,"show_verified_badge":true},"result":{"status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","action":null,"evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","checks":{"passed":[],"failed":["POLICY"]},"presentation_reason":"answer_word_limit","presentation":{"tone":"warm","empathy":"high","detail":"concise","target_words":20,"target_is_soft":true,"max_words":25,"word_count":11}},"created_at":"2026-11-03T14:44:51+00:00","completed_at":"2026-11-03T14:44:51+00:00"}}}
 ```
+
+## B79 — Versioned media API (2026-11-04)
+
+[Actual HTTP requests and responses](../qa/B79_MEDIA_HTTP_CAPTURE.json), reproduced by `python3 scripts/capture-cms-media.py`, use isolated SQLite/storage and synthetic accounts/image. Recent-password sessions are attached by a temporary capture-only router; this is not browser/CSRF or deployed-worker evidence. Synchronous jobs execute real GD transformations. Binary downloads are recorded as actual base64/hash/length.
+
+### GET /api/v1/admin/cms/assets
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets' -H 'Accept: application/json' -b cookies.txt
+```
+
+Captured 200 response: [`list`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/assets/{asset}
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr' -H 'Accept: application/json' -b cookies.txt
+```
+
+Captured 200 response: [`show`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/assets/{asset}/original
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/original' -H 'Accept: application/json' -b cookies.txt
+```
+
+Captured 200 response: [`original`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/assets/{asset}/recipes
+
+```sh
+curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes' -H 'Accept: application/json' -b cookies.txt -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <token>' --data '{"revision": 1, "breakpoints": {"mobile": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}, "tablet": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}, "desktop": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}}}'
+```
+
+Captured 201 response: [`recipe`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/assets/{asset}/restore
+
+```sh
+curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/restore' -H 'Accept: application/json' -b cookies.txt -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <token>' --data '{"revision": 2, "recipe": "01m6k9n7ce13t6va93z91aq894"}'
+```
+
+Captured 200 response: [`restore`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### GET /api/v1/public/content-assets/{id}/recipes/{recipe}/{breakpoint}
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/mobile' -H 'Accept: application/json'
+```
+
+Captured 200 response: [`derivative`](../qa/B79_MEDIA_HTTP_CAPTURE.json).

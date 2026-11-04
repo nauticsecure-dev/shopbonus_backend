@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\CmsAiSuggestion;
-use App\Models\CmsAsset;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\CmsPublicationSchedule;
 use App\Models\CmsRevision;
 use App\Models\FaqCategory;
 use App\Models\FaqItem;
-use App\Services\Audit\AuditLogger;
 use App\Services\Cms\CmsCache;
+use App\Services\Cms\CmsMedia;
 use App\Services\Cms\CmsScheduler;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\CmsSuggestions;
@@ -24,8 +22,6 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -35,7 +31,7 @@ use Illuminate\Validation\ValidationException;
  */
 class CmsController extends Controller
 {
-    public function __construct(private readonly CmsService $cms, private readonly AuditLogger $audit) {}
+    public function __construct(private readonly CmsService $cms) {}
 
     // ---------------------------------------------------------------- pages
 
@@ -158,16 +154,10 @@ class CmsController extends Controller
     public function uploadAsset(Request $request): JsonResponse
     {
         $request->validate(['image' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'mimetypes:image/png,image/jpeg,image/webp', 'max:4096', 'dimensions:min_width=16,min_height=16,max_width=6000,max_height=6000']]);
-        $file = $request->file('image');
-        $size = getimagesize($file->getRealPath()) ?: [0, 0];
-        $path = 'cms/'.Str::lower((string) Str::ulid()).'.'.$file->guessExtension();
-        if (Storage::disk('local')->putFileAs('cms', $file, basename($path)) === false) {
-            throw new ApiException('The image could not be stored. Please try again.', 503, 'storage_unavailable');
-        }
-        $asset = CmsAsset::create(['path' => $path, 'mime' => (string) $file->getMimeType(), 'width' => $size[0], 'height' => $size[1], 'uploaded_by' => $request->user()->id]);
-        $this->audit->record('cms.asset_uploaded', category: AuditCategory::Admin, resource: $asset, actorUserId: $request->user()->id);
+        $service = app(CmsMedia::class);
+        $asset = $service->upload($request->file('image'), $request->user());
 
-        return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id])]], 201);
+        return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id]), 'media' => $service->present($asset)]], 201);
     }
 
     // ---------------------------------------------------------------- scheduling (#33–#35)

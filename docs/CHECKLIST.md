@@ -1615,3 +1615,31 @@ B77 implementing source4b8626f; B78 regression/audit89cce64 (cash mapping remain
 - [x] Pass the temporary storage path explicitly to the real HTTP bootstrap, regenerate actual captures and refresh matching OpenAPI examples; rerun API coverage.
 
 B77 runtime CI41799578086 SUCCESS atf217e33: MySQL1457/4skip/24018, SQLite1432/29skip/23913, quality PASS. Final capture isolation/OpenAPI follow-up API5/8353; no runtime source change. Native installation/acceptance and C cash/publisher gaps remain explicitly open.
+
+### B79 — CMS non-destructive media backend
+
+- [x] Centralize CMS uploads; preserve exact private uploaded originals and stable normalized compatibility URLs without rewriting legacy assets.
+- [x] Store immutable device-specific crop/rotation/flip/resize recipes; queue bounded, idempotent WebP derivatives and expose version-pinned manifests.
+- [x] Implement optimistic recipe updates, private original access and exact restoration of existing derivative bytes with integrity checks.
+- [x] Add authorized API contracts/security negatives, real isolated HTTP captures, source-compatible upload regressions, migrations and handoff evidence.
+
+B79 tested source: implementing SHA follows in checkpoint closeout; SQLite media8/70, CMS77/770, API19/8591, static/style PASS; real HTTP17. Deployed acceptance NOT RUN.
+
+### B80 — Backend content/usage bindings
+
+- [ ] Inventory registered CMS source fields with explicit global/tenant scope, locale, immutable version and media usage; preserve unknown frontend coverage.
+- [ ] Supply component-context preview data and impact/replace/archive controls without claiming browser layout preview implementation.
+
+### B81 — Consolidated CMS AI execution
+
+- [ ] Route legacy homepage/AboutUs/merchant translation callers through the existing queued revision-backed proposal/review flow.
+- [ ] Enforce configured monetary reservation caps and independent language/semantic review before proposals are applicable.
+
+### B82 — Bulk content operations and recommended quality gates
+
+- [ ] Provide resumable bounded 1,000+ source backlog execution with dedupe, stale-source checks and review rather than automatic publication.
+- [ ] Document five recommended denominators and T01–T23 executor/evidence requirements; block unknown or unexecuted release coverage.
+
+### B83 — Remaining central content management
+
+- [ ] Add FAQ subcategories and reviewed shared-block override/version semantics through existing CMS services.

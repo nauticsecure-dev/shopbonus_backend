@@ -1,3 +1,5 @@
+B79: [Versioned global CMS media](cms/MEDIA.md) preserves private uploaded originals, immutable recipes, queued derivatives and exact artifact restoration. Responsive component rendering/usage bindings and staging acceptance remain incomplete.
+
 # Shopbonus — Backend Consolidated Specification
 
 B77: [Adobe async delivery source and scoped SaaS REST](integrations/ADOBE_ASYNC.md) adds a candidate Magento/PaaS commit-time outbox module and private App Builder Runtime Action. Signed IDs request native recovery; source/tenant/store and financial evidence guards remain mandatory. Real native deployment/acceptance NOT RUN.
