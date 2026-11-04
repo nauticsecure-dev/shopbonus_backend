@@ -1,0 +1,29 @@
+{
+  "checkpoint": "B74",
+  "parent": "6c0a696",
+  "sqlite_affiliate": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 71,
+    "passed": 70,
+    "assertions": 522,
+    "duration_ms": 6032,
+    "skipped": 1
+  },
+  "mysql_review_and_sync": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 11,
+    "passed": 11,
+    "assertions": 42,
+    "duration_ms": 18840
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "http": "B74_PROMOTION_HTTP_CAPTURE.json: 3 real loopback responses, synthetic stored evidence",
+  "live_provider": "NOT RUN",
+  "migration": "2026_11_04_080000_create_affiliate_promotion_reviews"
+}

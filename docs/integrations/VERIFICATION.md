@@ -1,5 +1,7 @@
 # Provider verification checklist
 
+B74: [Explicit stored provider evidence review](PROMOTION_EVIDENCE_REVIEW.md) normalizes selected conditions/exclusions into reviewed offer versions; permission remains separate and real provider acceptance is NOT RUN.
+
 B73: [native banner backend publication](../banners/NATIVE_PUBLICATION.md) adds opt-in BigCommerce Widgets install/read reconciliation/verified binding/removal with durable uncertain-effect guards. Defaults OFF. Lightspeed C/E-Series and Squarespace retain explicit native app/manual requirements; automatic writes remain unsupported. Actual provider/storefront acceptance remains NOT RUN.
 
 

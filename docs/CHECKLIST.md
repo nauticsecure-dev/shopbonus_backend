@@ -1557,3 +1557,18 @@ B73 implementing SHA `346b3bb`; B72 implementing SHA `6a8c5c3`. Checked items ce
 B73 CI follow-up parent9abc7af: CMS SQLite14/84 +MySQL14/84; Pint/diff PASS. Historical failed run41787701578 retained; replacement full CI remains pending. Implementing test SHA recorded in following closeout.
 
 CMS regression correction implementing SHA `c595066`; replacement full CI remains pending at PR#7 checks.
+
+### B74 — Reviewed provider promotion evidence
+
+- [x] Normalize explicitly selected stored promotion fields into conditions/exclusions with exact program/source binding; preserve missing/ambiguous evidence as rejection.
+- [x] Add authorized propose/approve/reject operator workflow with immutable evidence, expected offer revision, source freshness/recheck and idempotent review.
+- [x] Publish approved terms in a new offer version without granting advertiser permission, eligibility or financial effects; preserve historical snapshots.
+- [x] Test security/staleness/replay/negative paths on SQLite/MySQL and update contracts/runbook/checkpoint evidence.
+
+B74 parent6c0a696: SQLite70PASS+1skip/522; MySQL11/42; PHPStan/Pint/diff PASS; three real local HTTP responses. Implementing SHA follows at B75 checkpoint. Actual provider acceptance NOT RUN.
+
+### B75 — Reviewed website image import
+
+- [ ] Reuse pinned public-DNS transport for bounded same-origin candidate downloads; validate and re-encode supported raster images.
+- [ ] Store private pending imports with immutable evidence/hash; enforce current active admin, ownership, explicit rights confirmation and review before reusable assets exist.
+- [ ] Test malicious/oversized/invalid/private-host data, stale source, replay/storage failure and rejection; capture existing real asset API output and update handoff.

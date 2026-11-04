@@ -1,5 +1,7 @@
 # Shopbonus API reference
 
+B74: [operator provider-promotion review](../integrations/PROMOTION_EVIDENCE_REVIEW.md) uses existing offer description serialization; no new HTTP endpoint. [Actual reviewed-offer/foreign404/401 captures](../qa/B74_PROMOTION_HTTP_CAPTURE.json) use private synthetic evidence and real Laravel HTTP. Pending/raw snapshots never grant permission or activate offers.
+
 B73: BigCommerce connection setup now documents optional operator-only native Widgets provisioning/removal (default OFF); no public API mutation added. [Seven actual private Laravel HTTP captures](../qa/B73_NATIVE_BANNER_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-banner.py`, cover current catalogue/setup/detail and401/403/404/422. Provider writes and browser delivery are NOT RUN. See [native publication runbook](../banners/NATIVE_PUBLICATION.md).
 
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.

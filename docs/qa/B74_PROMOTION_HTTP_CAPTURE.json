@@ -1,0 +1,178 @@
+{
+  "captured_at": "2026-11-04T07:09:19Z",
+  "baseline": "6c0a696 plus B74 working tree",
+  "environment": "Actual Laravel loopback HTTP; isolated temporary SQLite/storage/key. Synthetic merchant records, actual API authentication/authorization/validation/connector creation. No native provider requests or genuine provider acceptance. One-time generated signing secret is redacted. Stored provider payload and reviewed mappings are synthetic; actual normalization/review/offer rendering services executed. No permission, offer activation, cashback or reward rules created.",
+  "exchanges": [
+    {
+      "label": "reviewed_offer",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6jp81v8mq5bx2bz4dy622e9/offers/01m6jp81w5jztr8cq1w2d0arys",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6jp81w5jztr8cq1w2d0arys",
+            "acquisition": "promotional_code",
+            "status": "draft",
+            "lifecycle_status": "draft",
+            "inventory": {
+              "total": 0,
+              "available": 0,
+              "reserved": 0,
+              "issued": 0,
+              "redeemed": 0
+            },
+            "allowed_actions": [
+              "edit",
+              "import_codes",
+              "publish",
+              "activate",
+              "end",
+              "archive",
+              "duplicate"
+            ],
+            "terms": {
+              "version": 2,
+              "locked": false,
+              "summary": "10%",
+              "name": "Synthetic reviewed promotion",
+              "public_description": "Minimum purchase EUR 50\nExclusions:\nGift cards",
+              "discount_type": "percentage",
+              "discount_value": 1000,
+              "currency": "EUR",
+              "min_order_minor": null,
+              "max_discount_minor": null,
+              "price_minor": null,
+              "price_points": null,
+              "starts_at": null,
+              "ends_at": null,
+              "claim_validity_days": null,
+              "redemption_validity_days": null,
+              "categories": [],
+              "products": [],
+              "combinable": false,
+              "code_mode": "unique",
+              "allocation_limit": null
+            },
+            "missing_for_activation": [
+              "redemption_validity_days"
+            ],
+            "cost_preview": {
+              "applies": false,
+              "reason": "merchant_promotion"
+            },
+            "preview": {
+              "published": false,
+              "offer_id": "01m6jp81w5jztr8cq1w2d0arys",
+              "status": "draft",
+              "how_to_obtain": "claim",
+              "title": "Synthetic reviewed promotion",
+              "summary": "10%",
+              "badge_label": "10% korting",
+              "offer_line": "",
+              "journey": {
+                "headline": "10%",
+                "steps": [],
+                "claim_window": null,
+                "redemption_window": null,
+                "campaign": null
+              },
+              "discount_type": "percentage",
+              "discount_value": 1000,
+              "currency": "EUR",
+              "price_points": null,
+              "min_order_minor": null,
+              "max_discount_minor": null,
+              "claim_validity_days": null,
+              "redemption_validity_days": null,
+              "starts_at": null,
+              "ends_at": null,
+              "conditions": "Minimum purchase EUR 50\nExclusions:\nGift cards",
+              "combinable": false,
+              "categories": [],
+              "webshop": {
+                "name": "Synthetic remaining-platform merchant",
+                "short_description": null,
+                "description": null,
+                "logo_url": null,
+                "cover_url": null,
+                "website_url": null,
+                "verified_domain": "shop.example.com",
+                "ownership_verified": true
+              }
+            },
+            "activated_at": null,
+            "paused_at": null,
+            "ended_at": null,
+            "archived_at": null,
+            "created_at": "2026-11-04T07:09:18+00:00"
+          },
+          "versions": [
+            {
+              "version": 1,
+              "locked": false,
+              "created_at": "2026-11-04T07:09:18+00:00"
+            },
+            {
+              "version": 2,
+              "locked": false,
+              "created_at": "2026-11-04T07:09:18+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "foreign_offer",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6jp81v8mq5bx2bz4dy622e9/offers/01m6jp81w5jztr8cq1w2d0arys",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "The requested resource was not found.",
+            "request_id": "01a1a564-0afe-7320-842b-133a6d9af4be"
+          }
+        }
+      }
+    },
+    {
+      "label": "unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6jp81v8mq5bx2bz4dy622e9/offers/01m6jp81w5jztr8cq1w2d0arys",
+        "body": null,
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a564-0b2a-72f3-86e0-fa3355c0f02f"
+          }
+        }
+      }
+    }
+  ]
+}

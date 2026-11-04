@@ -110,4 +110,22 @@ class DaisyconCompletenessTest extends TestCase
         }
         $this->assertDatabaseCount('offer_versions', 0);
     }
+
+    public function test_rotated_credentials_cannot_write_old_inflight_evidence(): void
+    {
+        $connection = $this->connection();
+        Http::fake(function () use ($connection) {
+            $current = $connection->fresh();
+            $current->forceFill(['credentials' => ['publisher_id' => 'other', 'access_token' => 'rotated']])->save();
+
+            return Http::response([['program_id' => 'P1', 'conditions' => ['Old account terms']]]);
+        });
+        try {
+            (new SyncDaisyconEvidence($connection->id, 'access-rules', 'P1'))->handle(app(DaisyconAdapter::class));
+            $this->fail('Changed source authority must be rejected.');
+        } catch (NetworkFailure $e) {
+            $this->assertSame('connection_changed', $e->error);
+        }
+        $this->assertDatabaseCount('affiliate_provider_resources', 0);
+    }
 }
