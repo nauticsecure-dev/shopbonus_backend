@@ -1,5 +1,7 @@
 # Shopbonus — Backend Consolidated Specification
 
+B73: [BigCommerce native Widgets lifecycle](banners/NATIVE_PUBLICATION.md) is implemented behind an OFF-by-default flag. Other reviewed providers retain native app/manual requirements. Provider/storefront acceptance remains NOT RUN.
+
 B72 (2026-11-04): [CCV native reads and Mijnwebwinkel signed partner bridge](integrations/REMAINING_CONNECTORS.md) are registered. CCV discovery covers creation windows only; payment/refund timestamps remain unknown. Mijnwebwinkel is explicitly a bridge, with native partner API implementation still open. Genuine provider acceptance remains NOT RUN.
 
 

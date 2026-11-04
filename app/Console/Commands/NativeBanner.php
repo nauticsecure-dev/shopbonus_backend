@@ -1,0 +1,83 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Enums\EcommercePlatform;
+use App\Exceptions\ApiException;
+use App\Models\User;
+use App\Models\WebshopConnection;
+use App\Services\Banners\NativeBannerPublisher;
+use App\Support\ExactJson;
+use Illuminate\Console\Command;
+use Illuminate\Support\Str;
+
+class NativeBanner extends Command
+{
+    protected $signature = 'shopbonus:banner-native {action : readiness|install|reconcile|bind|remove} {id : Platform for readiness; connection public ID otherwise} {--actor= : Current authorized public user ID} {--file= : Reviewed JSON target for install} {--step= : template|widget|placement for bind} {--remote-id= : Native UUID for bind}';
+
+    protected $description = 'Explicit native banner provisioning, reconciliation and removal; no blind write retries';
+
+    public function handle(NativeBannerPublisher $publisher): int
+    {
+        $action = (string) $this->argument('action');
+        $id = strtolower((string) $this->argument('id'));
+        if ($action === 'readiness') {
+            $platform = EcommercePlatform::tryFrom($id);
+            if ($platform === null) {
+                $this->error('Unknown platform.');
+
+                return self::FAILURE;
+            }
+            $this->line(json_encode($publisher->readiness($platform), JSON_THROW_ON_ERROR));
+
+            return self::SUCCESS;
+        }
+        $actorId = strtolower((string) $this->option('actor'));
+        if (! in_array($action, ['install', 'reconcile', 'bind', 'remove'], true) || ! Str::isUlid($id) || ! Str::isUlid($actorId)) {
+            $this->error('Provide a supported action, connection public ID and --actor public ID.');
+
+            return self::FAILURE;
+        }
+        $connection = WebshopConnection::where('public_id', $id)->first();
+        $actor = User::where('public_id', $actorId)->first();
+        if ($connection === null || $actor === null) {
+            $this->error('Connection or actor not found.');
+
+            return self::FAILURE;
+        }
+        try {
+            $target = [];
+            if ($action === 'install') {
+                $file = (string) $this->option('file');
+                if (! is_file($file) || ! is_readable($file)) {
+                    throw new \InvalidArgumentException('Provide a readable local JSON target file.');
+                }
+                $bytes = file_get_contents($file, false, null, 0, 65537);
+                if ($bytes === false || strlen($bytes) > 65536) {
+                    throw new \InvalidArgumentException('Target file must be at most 64 KiB.');
+                }
+                $target = ExactJson::decode($bytes);
+                if (! is_array($target) || array_is_list($target)) {
+                    throw new \InvalidArgumentException('Target must be a JSON object.');
+                }
+            }
+            $result = match ($action) {
+                'install' => $publisher->install($connection, $target, $actor),
+                'reconcile' => $publisher->reconcile($connection, $actor),
+                'bind' => $publisher->bind($connection, (string) $this->option('step'), (string) $this->option('remote-id'), $actor),
+                'remove' => $publisher->remove($connection, $actor),
+            };
+            $this->line(json_encode($result, JSON_THROW_ON_ERROR));
+
+            return self::SUCCESS;
+        } catch (ApiException $e) {
+            $this->error($e->errorCode.': '.$e->getMessage());
+
+            return self::FAILURE;
+        } catch (\InvalidArgumentException|\JsonException) {
+            $this->error('Invalid native publication arguments or target JSON.');
+
+            return self::FAILURE;
+        }
+    }
+}

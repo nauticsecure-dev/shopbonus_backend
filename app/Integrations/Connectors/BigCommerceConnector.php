@@ -52,7 +52,7 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
 
     public function setupInstructions(WebshopConnection $c, string $url): array
     {
-        return ['format' => 'bigcommerce-standard-webhooks', 'webhook_url' => $url, 'store_hash' => $c->external_shop_ref, 'topics' => self::TOPICS, 'steps' => ['Configure a merchant-authorized app/store token with Orders, Order Transactions and Information read scopes.', 'Register HTTPS hooks through POST /stores/{store_hash}/v3/hooks. This receiver requires documented Standard Webhooks signatures using the app client secret. A payload hash alone is not authentication.', 'Widget publication and real order/payment/refund acceptance remain merchant-controlled and unverified.'], 'live_verified' => false];
+        return ['format' => 'bigcommerce-standard-webhooks', 'webhook_url' => $url, 'store_hash' => $c->external_shop_ref, 'topics' => self::TOPICS, 'steps' => ['Configure a merchant-authorized app/store token with Orders, Order Transactions and Information read scopes.', 'Register HTTPS hooks through POST /stores/{store_hash}/v3/hooks. This receiver requires documented Standard Webhooks signatures using the app client secret. A payload hash alone is not authentication.', 'For optional native Widgets provisioning/removal, configure Content modify permission and BIGCOMMERCE_BANNERS_ENABLED; use shopbonus:banner-native with a reviewed existing theme region. Real storefront/order/payment/refund acceptance remains unverified.'], 'live_verified' => false];
     }
 
     public function verifyIncomingEvent(WebshopConnection $c, Request $r): VerifiedEvent
@@ -132,6 +132,12 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
 
         return $s;
 
+    }
+
+    /** Reused by native content provisioning; identity does not imply content permissions. */
+    public function verifyStore(WebshopConnection $connection): void
+    {
+        $this->identity($connection);
     }
 
     public function testConnection(WebshopConnection $c): array

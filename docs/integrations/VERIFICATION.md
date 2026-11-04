@@ -1,5 +1,8 @@
 # Provider verification checklist
 
+B73: [native banner backend publication](../banners/NATIVE_PUBLICATION.md) adds opt-in BigCommerce Widgets install/read reconciliation/verified binding/removal with durable uncertain-effect guards. Defaults OFF. Lightspeed C/E-Series and Squarespace retain explicit native app/manual requirements; automatic writes remain unsupported. Actual provider/storefront acceptance remains NOT RUN.
+
+
 B72: [CCV native reads / Mijnwebwinkel partner-bridge boundary](REMAINING_CONNECTORS.md) supersedes earlier “no connector” statements. CCV paid/settlement/refund-time evidence remains limited; discovery is by creation window. Mijnwebwinkel is a ShopBonus signed bridge only, not native partner API integration. Real provider/bridge acceptance remains NOT RUN.
 
 
@@ -34,7 +37,7 @@ Full API/webhook/mapping contracts: [PLATFORM_API_SPECS.md](PLATFORM_API_SPECS.m
 | Shopify | — | — | NOT RUN | Theme extension source shipped; authorized app deploy/activation and protected customer data acceptance pending | — | — |
 | WooCommerce | — | — | NOT RUN | Candidate WP banner plugin shipped; native installation/theme/editor acceptance pending | — | — |
 | Wix | — | — | NOT RUN | Backfill via orders/search; paid_at null; transaction createdDate is not settlement evidence | — | — |
-| BigCommerce | — | — | NOT RUN | Native catalog reads implemented locally; provider import and Widgets placement/publication remain unverified/incomplete | — | — |
+| BigCommerce | — | — | NOT RUN | Native catalogue reads and opt-in Widgets lifecycle implemented locally; actual provider import, installation, storefront delivery and uninstall remain NOT RUN | — | — |
 | Ecwid | — | — | NOT RUN | Total/refundedAmount use observed authenticated shop currency; historical currency/cash settlement/time unverified | — | — |
 | Lightspeed C-Series | — | — | NOT RUN | Plan-gated API; refund cash unmapped; paid_at null | — | — |
 | Lightspeed E-Series | — | — | NOT RUN | Shared authenticated Ecwid API contract; paid_at/refund cash unavailable | — | — |

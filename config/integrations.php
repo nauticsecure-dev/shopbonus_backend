@@ -55,6 +55,8 @@ return [
 
     'webhook_retention_days' => (int) env('WEBHOOK_PAYLOAD_RETENTION_DAYS', 14),
 
+    'bigcommerce_banners' => ['enabled' => (bool) env('BIGCOMMERCE_BANNERS_ENABLED', false)],
+
     'platforms' => [
         'woocommerce' => [
             'profile' => [
@@ -131,7 +133,7 @@ return [
                 'webhook_topics' => ['store/order/created', 'store/order/updated', 'store/order/statusUpdated', 'store/order/refund/created', 'store/order/transaction/created'],
                 'order_api' => 'GET https://api.bigcommerce.com/stores/{hash}/v2/orders/{id}', 'refund_api' => 'GET .../v3/orders/{id}/payment_actions/refunds',
                 'product_api' => 'GET /v3/catalog/products?include=primary_image', 'coupon_api' => 'GET /v2/coupons (read-only)',
-                'banner_method' => 'BigCommerce Widgets API; native publish not implemented',
+                'banner_method' => 'Opt-in BigCommerce Widgets template/widget/placement provisioning via shopbonus:banner-native; existing reviewed region, Content modify scope and live storefront acceptance required',
                 'rate_limit_policy' => 'No redirects/retries;8second/1MiB; webhook timestamp±300s; unpaid created orders imported but not rewarded until capture proof.',
                 'sources' => ['https://docs.bigcommerce.com/developer/docs/integrations/webhooks/overview', 'https://docs.bigcommerce.com/developer/docs/integrations/webhooks/event-reference/events', 'https://docs.bigcommerce.com/developer/docs/admin/widgets-and-scripts/overview', 'https://docs.bigcommerce.com/developer/api-reference/rest/admin/management/orders/get-order'],
             ],

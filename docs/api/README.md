@@ -1,5 +1,7 @@
 # Shopbonus API reference
 
+B73: BigCommerce connection setup now documents optional operator-only native Widgets provisioning/removal (default OFF); no public API mutation added. [Seven actual private Laravel HTTP captures](../qa/B73_NATIVE_BANNER_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-banner.py`, cover current catalogue/setup/detail and401/403/404/422. Provider writes and browser delivery are NOT RUN. See [native publication runbook](../banners/NATIVE_PUBLICATION.md).
+
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
 
 B72: CCV Shop native REST reads and LIMITED creation-window discovery are implemented; settlement timestamps/refund cash stay unknown. Mijnwebwinkel now has a platform-specific signed **partner bridge**, explicitly not a native partner API client; actual upstream bridge and native schema/acceptance remain open. [Contracts and limits](../integrations/REMAINING_CONNECTORS.md), [eight actual HTTP captures](../qa/B72_REMAINING_CONNECTORS_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-remaining-connectors.py` (be6f2f1 plus B72, private SQLite/storage, synthetic merchants, no provider requests). POST connections accepts the captured CCV and bridge inputs; secrets are redacted. OpenAPI examples are captured responses.

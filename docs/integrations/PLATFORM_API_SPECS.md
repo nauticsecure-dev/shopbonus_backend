@@ -1,5 +1,8 @@
 # Top 10 commerce platform API & webhook specifications
 
+B73: [native banner backend publication](../banners/NATIVE_PUBLICATION.md) adds opt-in BigCommerce Widgets install/read reconciliation/verified binding/removal with durable uncertain-effect guards. Defaults OFF. Lightspeed C/E-Series and Squarespace retain explicit native app/manual requirements; automatic writes remain unsupported. Actual provider/storefront acceptance remains NOT RUN.
+
+
 B72: [CCV native reads / Mijnwebwinkel partner-bridge boundary](REMAINING_CONNECTORS.md) supersedes earlier “no connector” statements. CCV paid/settlement/refund-time evidence remains limited; discovery is by creation window. Mijnwebwinkel is a ShopBonus signed bridge only, not native partner API integration. Real provider/bridge acceptance remains NOT RUN.
 
 
@@ -147,7 +150,7 @@ Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`
 | Topics | `store/order/created`, `updated`, `statusUpdated`, `refund/created`, `transaction/created` |
 | Sample | `{"scope":"store/order/created","producer":"stores/abc123","data":{"type":"order","id":250}}` |
 | Important | `created` may be unpaid — fetch order + capture proof before reward |
-| Banners | Widgets API; publish not implemented |
+| Banners | Opt-in Widgets provisioning/reconciliation/removal implemented; existing region + Content modify scope required; actual storefront delivery NOT RUN |
 
 | Target | Path |
 | --- | --- |

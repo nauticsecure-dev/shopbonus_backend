@@ -1539,6 +1539,10 @@ B72 local boundary: SQLite202/1864, MySQL7/40, API5/8353; fullPint/PHPStan/diff 
 
 ### B73 — Native banner publication gaps
 
-- [ ] Audit provider-supported writes, scopes, installations and current publishing/recovery architecture; do not invent remote endpoints.
-- [ ] Implement supported backend publication/removal with immutable ownership, bounded writes and ambiguous-effect recovery; distinguish publication from storefront delivery.
-- [ ] Document genuinely unsupported automatic paths and required native app/manual setup; run relevant security/state tests and real local API captures with clear provider acceptance limits.
+- [x] Audit provider-supported writes, scopes, installations and current publishing/recovery architecture; do not invent remote endpoints.
+- [x] Implement supported backend publication/removal with immutable ownership, bounded writes and ambiguous-effect recovery; distinguish publication from storefront delivery.
+- [x] Document genuinely unsupported automatic paths and required native app/manual setup; run relevant security/state tests and real local API captures with clear provider acceptance limits.
+
+B73 tested backend boundary (parent6a8c5c3): SQLite271PASS+2skip/10988; final native CLI12/353; MySQL18/356; fullPint/PHPStan/audit/diff PASS. Seven actual local HTTP captures; no migrations. Implementing SHA follows at closeout. Actual provider/native-app/storefront acceptance NOT RUN; automatic C/E-Series/Squarespace and native Mijnwebwinkel remain open.
+
+- [ ] Complete authorized native app/automatic publication paths for Lightspeed C/E-Series and Squarespace after supported installation/write contracts are established; independently execute all provider installation/storefront/uninstall acceptance.
