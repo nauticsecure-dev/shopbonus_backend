@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\CmsAiReviewController;
 use App\Http\Controllers\Api\V1\Admin\CmsBindingsController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
 use App\Http\Controllers\Api\V1\Admin\CmsMediaController;
+use App\Http\Controllers\Api\V1\Admin\CmsSharedBlocksController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
@@ -358,6 +359,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('pages/{page}/revisions', [AdminCmsController::class, 'revisions'])->name('pages.revisions');
                     Route::get('pages/{page}/locales/{locale}/preview', [AdminCmsController::class, 'preview'])->name('pages.preview');
                     Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
+                    Route::get('shared-blocks', [CmsSharedBlocksController::class, 'index'])->name('shared-blocks.index');
+                    Route::get('shared-blocks/{block}/usages', [CmsSharedBlocksController::class, 'usages'])->name('shared-blocks.usages');
+                    Route::get('shared-blocks/{block}', [CmsSharedBlocksController::class, 'show'])->name('shared-blocks.show');
                     Route::get('assets', [CmsMediaController::class, 'index'])->name('assets.index');
                     Route::get('assets/{asset}', [CmsMediaController::class, 'show'])->name('assets.show');
                     Route::get('pages/{page}/locales/{locale}/bindings', [CmsBindingsController::class, 'fields'])->name('pages.bindings');
@@ -456,6 +460,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('suggestions/{suggestion}/apply', [AdminCmsController::class, 'applySuggestion'])->name('suggestions.apply');
                         Route::post('suggestions/{suggestion}/reject', [AdminCmsController::class, 'rejectSuggestion'])->name('suggestions.reject');
                         Route::post('suggestions/{suggestion}/review', [CmsAiReviewController::class, 'store'])->name('suggestions.review');
+                        Route::post('shared-blocks', [CmsSharedBlocksController::class, 'store'])->name('shared-blocks.store');
+                        Route::post('shared-blocks/{block}/versions', [CmsSharedBlocksController::class, 'version'])->name('shared-blocks.versions.store');
+                        Route::post('pages/{page}/locales/{locale}/shared-blocks', [CmsSharedBlocksController::class, 'mount'])->name('shared-blocks.mount');
+                        Route::post('pages/{page}/locales/{locale}/shared-blocks/detach', [CmsSharedBlocksController::class, 'detach'])->name('shared-blocks.detach');
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
                         Route::patch('assets/{asset}', [CmsMediaController::class, 'update'])->name('assets.update');
                         Route::post('assets/{asset}/replace', [CmsMediaController::class, 'replace'])->name('assets.replace');

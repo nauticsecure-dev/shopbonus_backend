@@ -23,7 +23,7 @@ class CmsContentBindings
         $out = [];
         $walk = function (array $node, string $path) use (&$walk, &$out): void {
             foreach ($node as $key => $value) {
-                if ($key === 'media_recipes') {
+                if (in_array($key, ['media_recipes', 'shared_blocks'], true)) {
                     continue;
                 }
                 $p = ltrim($path.'.'.$key, '.');
@@ -94,14 +94,20 @@ class CmsContentBindings
         $out = [];
         $walk = function (array $node, string $path) use (&$walk, &$out, $snapshot, $text, $refs): void {
             foreach ($node as $key => $value) {
-                if ($key === 'media_recipes') {
+                if (in_array($key, ['media_recipes', 'shared_blocks'], true)) {
                     continue;
                 }
                 $p = ltrim($path.'.'.$key, '.');
                 if (is_array($value) && $value !== []) {
                     $walk($value, $p);
                 } else {
-                    $out[] = ['path' => $p, 'source' => $snapshot['source'], 'value' => $value, 'translatable' => isset($text[$p]), 'kind' => isset($refs[$p]) ? 'media_reference' : (isset($text[$p]) ? 'translatable_text' : 'content_value')];
+                    $sharedSource = null;
+                    foreach ($snapshot['content']['shared_blocks'] ?? [] as $prefix => $pin) {
+                        if (str_starts_with($p, $prefix.'.')) {
+                            $sharedSource = ['version_id' => $pin['version_id'], 'usage_path' => $prefix, 'overridden' => array_key_exists(substr($p, strlen($prefix) + 1), $pin['overrides'])];
+                        }
+                    }
+                    $out[] = ['path' => $p, 'source' => $snapshot['source'], 'shared_source' => $sharedSource, 'value' => $value, 'translatable' => isset($text[$p]), 'kind' => isset($refs[$p]) ? 'media_reference' : (isset($text[$p]) ? 'translatable_text' : 'content_value')];
                 }
             }
         };
@@ -130,7 +136,7 @@ class CmsContentBindings
                 'compatibility_url' => $asset === null ? null : route('api.v1.public.content-assets.show', ['id' => $id]), 'derivatives' => $derivatives];
         }
 
-        return ['source' => $snapshot['source'], 'content' => $snapshot['content'], 'media_usages' => $usages, 'viewports' => ['desktop' => 1440, 'tablet' => 768, 'mobile' => 390],
+        return ['source' => $snapshot['source'], 'content' => $snapshot['content'], 'media_usages' => $usages, 'shared_usages' => app(CmsSharedBlocks::class)->usages($snapshot['content']), 'viewports' => ['desktop' => 1440, 'tablet' => 768, 'mobile' => 390],
             'evidence_scope' => 'Backend component content and pinned artifact manifest only; actual client layout/rendering and exhaustive frontend coverage are unverified.'];
     }
 }

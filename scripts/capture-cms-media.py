@@ -5,6 +5,7 @@ bindings_mode=os.environ.get('CAPTURE_CMS_BINDINGS')=='1'
 ai_mode=os.environ.get('CAPTURE_CMS_AI')=='1'
 faq_mode=os.environ.get('CAPTURE_CMS_FAQ')=='1'
 management_mode=os.environ.get('CAPTURE_CMS_MANAGEMENT')=='1'
+shared_mode=os.environ.get('CAPTURE_CMS_SHARED')=='1'
 root=pathlib.Path.cwd(); work=pathlib.Path(tempfile.mkdtemp(prefix='shopbonus-b79-')); env=os.environ.copy(); server=None
 for d in ['framework/cache/data','framework/sessions','framework/views','logs','app/private']:(work/'storage'/d).mkdir(parents=True,exist_ok=True)
 db=work/'capture.sqlite';db.touch()
@@ -158,8 +159,42 @@ Illuminate\Support\Facades\Artisan::call('queue:work',['connection'=>'database',
   call('media_state_step_up','PATCH',path,{'revision':5,'archived':True,'reason':'No step up'},no_session=True,expected=423)
   call('media_replace_invalid','POST',path+'/replace',{'replacement_asset_id':target,'usages':[]},expected=422)
   call('media_replace_missing','POST',path+'/replace',{**payload,'replacement_asset_id':'01AAAAAAAAAAAAAAAAAAAAAAAA'},expected=404)
- out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('16b3780 plus B83 media working tree' if management_mode else ('a5a2dbb plus B83 FAQ working tree' if faq_mode else ('6c01cc0 plus B81 working tree' if ai_mode else ('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree')))),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','ai_fixture':('Actual temporary database queue worker executes proposal jobs against explicitly synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not quality evidence. Two synthetic administrators exercise independent review. No live model/provider call.' if ai_mode else None),'exchanges':captures}
- (root/('docs/qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json' if management_mode else ('docs/qa/B83_FAQ_HTTP_CAPTURE.json' if faq_mode else ('docs/qa/B81_CMS_AI_HTTP_CAPTURE.json' if ai_mode else ('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json'))))).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
+ if shared_mode:
+  node={'type':'paragraph','content':[{'type':'text','text':'Reusable synthetic copy'}]}
+  v=call('shared_create','POST','/api/v1/admin/cms/shared-blocks',{'key':'synthetic-shared','locale':'nl','node':node},expected=201)['data']
+  block_path='/api/v1/admin/cms/shared-blocks/'+v['block_id']
+  content={'title':'Synthetic shared page','body':{'type':'doc','content':[]}}
+  page=call('shared_page','POST','/api/v1/admin/cms/pages',{'key':'shared-page','type':'info','locales':{'nl':{'slug':'shared-page','content':content}}},expected=201)['data']['id']
+  base='/api/v1/admin/cms/pages/'+page+'/locales/nl'
+  payload={'revision':1,'version_id':v['id'],'overrides':{'content.0.text':'Local synthetic override'}}
+  mounted=call('shared_mount','POST',base+'/shared-blocks',payload)['data']['content']
+  call('shared_publish','POST',base+'/publish',{'revision':2})
+  call('shared_preview','GET',base+'/media-preview?version=published')
+  v2=call('shared_version','POST',block_path+'/versions',{'revision':1,'locale':'de','node':{'type':'paragraph','content':[{'type':'text','text':'Wiederverwendbarer Beispieltext'}]}},expected=201)['data']
+  call('shared_list','GET','/api/v1/admin/cms/shared-blocks?limit=1')
+  call('shared_show','GET',block_path+'?after=1&locale=de')
+  call('shared_draft_usages','GET',block_path+'/usages?source=draft')
+  call('shared_revision_usages','GET',block_path+'/usages?source=revision')
+  call('shared_bindings','GET',base+'/bindings')
+  call('shared_stale_version','POST',block_path+'/versions',{'revision':1,'locale':'nl','node':node},expected=409)
+  call('shared_foreign_locale','POST',base+'/shared-blocks',{'revision':2,'index':0,'version_id':v2['id']},expected=422)
+  call('shared_unsafe_override','POST',base+'/shared-blocks',{'revision':2,'index':0,'version_id':v['id'],'overrides':{'attrs.href':'javascript:alert(1)'}},expected=422)
+  changed=json.loads(json.dumps(mounted));changed['body']['content'][0]['content'][0]['text']='Untracked change'
+  call('shared_tampered_body','PUT',base,{'revision':2,'content':changed},expected=422)
+  changed=json.loads(json.dumps(mounted));del changed['shared_blocks']
+  call('shared_silent_detach','PUT',base,{'revision':2,'content':changed},expected=409)
+  call('shared_stale_mount','POST',base+'/shared-blocks',payload,expected=409)
+  call('shared_missing_version','POST',base+'/shared-blocks',{'revision':2,'version_id':'01AAAAAAAAAAAAAAAAAAAAAAAA'},expected=404)
+  call('shared_missing_revision','POST',base+'/shared-blocks',{'version_id':v['id']},expected=422)
+  call('shared_consumer','POST',base+'/shared-blocks',payload,actor='consumer',expected=403)
+  call('shared_anonymous','GET',block_path,actor=None,expected=401)
+  call('shared_step_up','POST',base+'/shared-blocks',payload,no_session=True,expected=423)
+  call('shared_detach','POST',base+'/shared-blocks/detach',{'revision':2,'index':0})
+  call('shared_stale_detach','POST',base+'/shared-blocks/detach',{'revision':2,'index':0},expected=409)
+  call('shared_published_preserved','GET',base+'/media-preview?version=published')
+  call('shared_public','GET','/api/v1/public/pages/nl/shared-page',actor=None)
+ out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':('4f222e7 plus B83 shared blocks working tree' if shared_mode else ('16b3780 plus B83 media working tree' if management_mode else ('a5a2dbb plus B83 FAQ working tree' if faq_mode else ('6c01cc0 plus B81 working tree' if ai_mode else ('d31343a plus B80 working tree' if bindings_mode else '1fa850c plus B79 working tree'))))),'environment':'Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.','ai_fixture':('Actual temporary database queue worker executes proposal jobs against explicitly synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not quality evidence. Two synthetic administrators exercise independent review. No live model/provider call.' if ai_mode else None),'exchanges':captures}
+ (root/('docs/qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json' if shared_mode else ('docs/qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json' if management_mode else ('docs/qa/B83_FAQ_HTTP_CAPTURE.json' if faq_mode else ('docs/qa/B81_CMS_AI_HTTP_CAPTURE.json' if ai_mode else ('docs/qa/B80_BINDINGS_HTTP_CAPTURE.json' if bindings_mode else 'docs/qa/B79_MEDIA_HTTP_CAPTURE.json')))))).write_text(json.dumps(out,indent=2)+'\n');print('Captured',len(captures),'actual HTTP responses.')
 finally:
  if server:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
  shutil.rmtree(work)

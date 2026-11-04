@@ -25860,3 +25860,74 @@ curl -i -X POST "http://localhost:8000/api/v1/admin/cms/assets/01m6kh2eczf9r3xqs
 Actual response: `media_replace` in [40 real HTTP exchanges](../qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json).
 
 Reproduce with `CAPTURE_CMS_MANAGEMENT=1 python3 scripts/capture-cms-media.py`. Temporary SQLite/storage and synthetic confirmed sessions establish backend HTTP behavior; real cookie/CSRF, frontend and staging remain NOT RUN. [Central management contract](../cms/CENTRAL_MANAGEMENT.md).
+
+## B83c — Immutable reusable text blocks
+
+Library versions have immutable locale/node/hash provenance. Mount materializes an exact version plus safe local text overrides into the ordinary rich-text body, with source metadata; existing public clients need no new block renderer. New versions never propagate automatically. Mount/detach changes a revision-checked draft only. At most20 root usages,100 overrides per usage and64KiB per version; images/legal content/nested reusable references are excluded. Improve-with-AI omits pinned text; translating a source with pins is rejected before provider execution, requiring explicit detachment or independently localized library versions.
+
+### GET /api/v1/admin/cms/shared-blocks
+
+```sh
+curl -i -X GET "http://localhost:8000/api/v1/admin/cms/shared-blocks?limit=1" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_list` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/shared-blocks
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/shared-blocks" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"key": "synthetic-shared", "locale": "nl", "node": {"type": "paragraph", "content": [{"type": "text", "text": "Reusable synthetic copy"}]}}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_create` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/shared-blocks/{block}
+
+```sh
+curl -i -X GET "http://localhost:8000/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx?after=1&locale=de" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_show` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/shared-blocks/{block}/usages
+
+```sh
+curl -i -X GET "http://localhost:8000/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/usages?source=draft" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_draft_usages` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/shared-blocks/{block}/versions
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/versions" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 1, "locale": "de", "node": {"type": "paragraph", "content": [{"type": "text", "text": "Wiederverwendbarer Beispieltext"}]}}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_version` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/pages/{page}/locales/{locale}/shared-blocks
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 1, "version_id": "01m6kjvjmkxtmyhdpjafx6cg82", "overrides": {"content.0.text": "Local synthetic override"}}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_mount` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/pages/{page}/locales/{locale}/shared-blocks/detach
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks/detach" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 2, "index": 0}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_detach` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+Existing field bindings add per-field `shared_source`; preview adds exact `shared_usages`. Usage scan is page-source-bounded and requires exhausting both draft and revision streams; it does not prove globally unused content. Public rich-text remains materialized from the immutable published page snapshot.
+
+Reproduce with `CAPTURE_CMS_SHARED=1 python3 scripts/capture-cms-media.py`. Actual private Laravel HTTP/SQLite with synthetic content/accounts and a synthetic confirmed session; no live provider/browser/CSRF/staging evidence. See [management semantics and remaining acceptance boundaries](../cms/CENTRAL_MANAGEMENT.md).

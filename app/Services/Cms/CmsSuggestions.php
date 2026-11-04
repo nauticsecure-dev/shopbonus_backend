@@ -56,6 +56,9 @@ class CmsSuggestions
         if ($source === null || $source->draft_content === null) {
             throw ApiException::conflict('There is no draft in this language to work from.', 'nothing_to_suggest');
         }
+        if ($kind === 'translate' && ($source->draft_content['shared_blocks'] ?? []) !== []) {
+            throw new ApiException('Translate the shared library block separately and mount a version in the target locale, or detach the source usage before translating.', 422, 'cms_shared_block_translation_requires_locale_version');
+        }
         if (array_diff(array_keys($context), ['section', 'focus']) !== [] || ($context !== [] && ($kind !== 'improve' || ! is_string($context['section'] ?? null) || ! is_array($source->draft_content[$context['section']] ?? null)))
             || (isset($context['focus']) && (mb_strlen($context['focus']) > 200 || preg_match('/[<>]|[\w.+-]+@[\w-]+\.[\w.]+|\b(?:sk-|Bearer\s|password\s*[:=])/iu', $context['focus'])))) {
             throw new ApiException('Unsupported scoped copy request.', 422, 'validation_failed');

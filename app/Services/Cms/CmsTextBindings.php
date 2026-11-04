@@ -70,7 +70,13 @@ final class CmsTextBindings
     public static function discover(array $content, ?string $type = null, ?string $key = null): array
     {
         $out = [];
-        $add = function (string $path, mixed $value, int $limit, string $kind = 'text') use (&$out): void {
+        $pinned = array_keys($content['shared_blocks'] ?? []);
+        $add = function (string $path, mixed $value, int $limit, string $kind = 'text') use (&$out, $pinned): void {
+            foreach ($pinned as $prefix) {
+                if (str_starts_with($path, $prefix.'.')) {
+                    return;
+                }
+            }
             if (is_string($value) && trim($value) !== '') {
                 $out[] = ['path' => $path, 'kind' => $kind, 'max_length' => $limit, 'text' => $value];
             }

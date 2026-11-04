@@ -1666,10 +1666,13 @@ B82 implementing SHA `a5a2dbb`; final CMS/API103/9433, sequential QA36/405, MySQ
 
 - [x] Add locale-validated FAQ subcategories and optimistic category updates, rejecting cycles/depth violations and preserving existing audience filtering/public compatibility.
 - [x] Add soft media archive/reactivation and explicit version-checked selected-draft replacement; preserve published/historical files and prevent new archived references.
-- [ ] Add immutable reusable rich-text block versions, locale-specific pins and safe text overrides, with protected mount/detach and resolved public/preview source linkage.
-- [ ] Verify mutation authority/concurrency/negative paths and compatibility; capture all added/changed API contracts through real isolated HTTP and record remaining frontend/staging limits.
+- [x] Add immutable reusable rich-text block versions, locale-specific pins and safe text overrides, with protected mount/detach and resolved public/preview source linkage.
+- [x] B83c: define immutable single rich-text block versions (paragraph/heading/list/button), exact locale/hash provenance, bounded root-level usages and safe text-only overrides; preserve normal rich-text public compatibility.
+- [x] B83c: implement protected library/create-version and revision-checked draft mount/detach; enforce pins in ordinary saves and exclude pinned text from AI improvement, rejecting cross-locale AI borrowing.
+- [x] B83c: test stale/foreign locale/unsafe override/tampered body/immutable versions/published stability/security; record actual HTTP contracts and explicit coverage limits.
+- [x] Verify mutation authority/concurrency/negative paths and compatibility; capture all added/changed API contracts through real isolated HTTP and record remaining frontend/staging limits.
 
-- [ ] Add FAQ subcategories and reviewed shared-block override/version semantics through existing CMS services.
+- [x] Add FAQ subcategories and reviewed shared-block override/version semantics through existing CMS services.
 
 ### B84 — Controlled backend staging execution (#37 follow-up)
 
@@ -1694,3 +1697,7 @@ B85 tested implementing source `1b513f5`: SQLite261/2584, SQLite/MySQL IMS7/36 e
 B83a FAQ implementing SHA follows closeout: CMS101/948, API5/8543, MySQL3/37, static/style/diff PASS; actualHTTP30. Other B83 management items remain open.
 
 B83b tested source follows closeout: SQLite CMS/API110/9573, MySQL12/97, full static/style/diff PASS; actualHTTP40. B83a implementing SHA `16b3780`.
+
+B83b implementing SHA `4f222e7`.
+
+B83c tested source follows closeout: SQLite CMS/API/errors131/9919, MySQL21/189, QA36/405, static/style/diff PASS; actualHTTP43. Checkmarks apply to these bounded backend implementations, not universal client discovery, all23 real staging executions or release acceptance.
