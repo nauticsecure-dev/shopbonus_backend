@@ -1,3 +1,9 @@
+# Continuation checkpoint — native cart readers for remaining platforms: blocked on documented contracts (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: no native ShopBonusCart adapters beyond Shopify, WooCommerce, BigCommerce. Official sources read for Ecwid/Lightspeed E, Lightspeed C, PrestaShop, OpenCart, Magento/Adobe and Squarespace; none documents both an exact storefront cart total and its ISO currency (Ecwid: total unit unstated, currency only server-side; PrestaShop: event only; OpenCart: HTML only; Magento: source-only `subtotalAmount`, no currency; Squarespace: no cart API; Lightspeed C: docs unreadable). No reader was implemented; per-platform evidence and what is missing are in docs/banners/NATIVE_CART_ADAPTERS.md. Most promising next step: Ecwid, once units are confirmed by Ecwid or a live test store and the currency is declared from the REST profile `formatsAndUnits.currency`.
+
+---
+
 # Continuation checkpoint — BigCommerce native publication loads the cart reader (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: the BigCommerce Widgets publisher installed only `/embed/v1.js`, so cart changes never reached live banner progress. New plans now freeze `cart_script_url` and the widget template loads `/embed/native-cart-v1.js` (`data-platform="bigcommerce"`) then `/embed/v1.js`, both `defer`. Plans frozen earlier (append-only audit, no `cart_script_url`) keep their exact original template so reconcile/remove still verify; reinstall to gain the reader. Tests: NativeBannerPublisherTest asserts the ordered template and the legacy template; Banners 70 pass + 2 pre-existing skips. Not run on a live BigCommerce store (widget script execution and Stencil cart endpoint NOT RUN).
