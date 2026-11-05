@@ -79,7 +79,7 @@ class NativeBannerPublisher
             throw ApiException::conflict('The reviewed native region was not confirmed.', 'native_banner_region_missing');
         }
         $context = ['generation' => $connection->credential_generation, 'store' => $connection->external_shop_ref, 'domain' => $shop->verified_domain, 'public_key' => $installation->public_key,
-            'script_url' => $origin.'/embed/v1.js', 'target' => $t];
+            'script_url' => $origin.'/embed/v1.js', 'cart_script_url' => $origin.'/embed/native-cart-v1.js', 'target' => $t];
         $context['digest'] = hash('sha256', json_encode($context, JSON_THROW_ON_ERROR));
         $plan = DB::transaction(function () use ($connection, $context, $actor) {
             $this->current($connection, $actor);
@@ -329,12 +329,29 @@ class NativeBannerPublisher
         $name = 'ShopBonus '.$plan->id;
 
         return match ($step) {
-            'template' => ['name' => $name, 'template' => '<script async src="'.htmlspecialchars($m['script_url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'" data-shopbonus-key="{{shopbonus_public_key}}"></script>', 'channel_id' => 1],
+            'template' => ['name' => $name, 'template' => self::template($m), 'channel_id' => 1],
             'widget' => ['name' => $name, 'widget_template_uuid' => $this->observation($plan, 'template')?->metadata['uuid'] ?? throw ApiException::conflict('Confirm the native template first.', 'native_banner_incomplete'),
                 'widget_configuration' => ['shopbonus_public_key' => $m['public_key']], 'channel_id' => 1],
             'placement' => $m['target'] + ['widget_uuid' => $this->observation($plan, 'widget')?->metadata['uuid'] ?? throw ApiException::conflict('Confirm the native widget first.', 'native_banner_incomplete'), 'status' => 'active', 'channel_id' => 1],
             default => throw new \InvalidArgumentException('Unsupported native publication step.'),
         };
+    }
+
+    /**
+     * Plans frozen with `cart_script_url` load the BigCommerce cart reader before the renderer (ordered defer),
+     * so cart changes drive live banner progress. Older plans keep their exact frozen template.
+     *
+     * @param  array<string,mixed>  $m
+     */
+    private static function template(array $m): string
+    {
+        $e = fn (string $v) => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        if (! isset($m['cart_script_url'])) {
+            return '<script async src="'.$e($m['script_url']).'" data-shopbonus-key="{{shopbonus_public_key}}"></script>';
+        }
+
+        return '<script defer src="'.$e($m['cart_script_url']).'" data-platform="bigcommerce"></script>'
+            .'<script defer src="'.$e($m['script_url']).'" data-shopbonus-key="{{shopbonus_public_key}}"></script>';
     }
 
     /** @param array<string,mixed> $remote */

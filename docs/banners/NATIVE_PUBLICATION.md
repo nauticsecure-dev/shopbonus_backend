@@ -25,7 +25,7 @@ php artisan shopbonus:banner-native remove CONNECTION_ULID --actor=USER_ULID
 
 Installation reads native store identity and current theme regions, freezes the source/domain/credential generation/public key/script origin/target in append-only audit events, then creates and reads back:
 
-1. Widget template containing the existing `/embed/v1.js` loader.
+1. Widget template loading `/embed/native-cart-v1.js` (`data-platform="bigcommerce"`) and then the existing `/embed/v1.js` loader, both `defer` so the cart reader runs first and cart changes drive live progress. Plans frozen before 2026-11-05 (no `cart_script_url` in the plan) keep their original renderer-only template and still verify; remove and reinstall to add the cart reader.
 2. Widget with this workspace's public installation key.
 3. Active placement in the frozen page/region.
 
