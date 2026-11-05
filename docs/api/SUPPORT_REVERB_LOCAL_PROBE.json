@@ -1,0 +1,24 @@
+{
+    "scope": "actual local Reverb private-channel round trip, synthetic credentials; not deployment/browser/queue proof",
+    "success": {
+        "reverb_live_probe": "connected",
+        "reverb_probe_checked_at": "2026-11-04T03:04:13+00:00",
+        "reverb_probe_latency_ms": 7,
+        "broadcast_evidence": "synthetic_round_trip_received",
+        "reverb_probe_scope": "server_to_reverb_private_channel_round_trip_not_browser_or_worker"
+    },
+    "bad_credentials": {
+        "reverb_live_probe": "failed",
+        "reverb_probe_checked_at": "2026-11-04T03:04:13+00:00",
+        "reverb_probe_latency_ms": 5,
+        "broadcast_evidence": "dispatch_attempt_only",
+        "reverb_probe_scope": "server_to_reverb_private_channel_round_trip_not_browser_or_worker"
+    },
+    "recovery": {
+        "reverb_live_probe": "connected",
+        "reverb_probe_checked_at": "2026-11-04T03:04:13+00:00",
+        "reverb_probe_latency_ms": 7,
+        "broadcast_evidence": "synthetic_round_trip_received",
+        "reverb_probe_scope": "server_to_reverb_private_channel_round_trip_not_browser_or_worker"
+    }
+}

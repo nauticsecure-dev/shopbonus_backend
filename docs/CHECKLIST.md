@@ -1374,6 +1374,13 @@ Verification executed for the voucher-checkout review: backend 40 passed + 3 ski
 - [ ] Verify existing analytics translations and record real-provider acceptance procedure; Moneybird remains blocked by OPEN-FINANCIAL-LEGAL.
 - [ ] Execute genuine storefront consent/retry/holdout/payment/refund acceptance and approved Moneybird issuance/delivery/reconciliation. NOT RUN without resolved prerequisites/provider access.
 
+## Lightspeed C product catalog follow-up — 2026-11-03 (uncommitted)
+
+- [ ] Verify official product/variant resources and pagination contract.
+- [ ] Add identity-gated bounded native product reads, exact single-variant money and conservative multi-variant snapshots.
+- [ ] Test pagination, malformed responses, identity/currency mismatch, pause, provider failures and failed-pass snapshot retention.
+- [ ] Update capability declarations and findings; record executed checks and remaining provider acceptance. Implementation commit SHA pending.
+
 ## App Store findings follow-up — 2026-11-03 (uncommitted)
 
 - [ ] Remove static service availability → VERIFIED inference; distinguish catalog synchronization states from backend status.
@@ -1715,3 +1722,26 @@ B83c implementing SHA `3aebd4f`; B83b `4f222e7`; B83a `16b3780`. Final executed 
 B86 focused validation:21/101, scoped static/style/diff and workflow YAML/bash syntax PASS. Checkmarks cover backend enforcement/adapter source only; original175 mapping and real staging/provider/frontend acceptance remain incomplete. Implementing SHA follows closeout.
 
 B86 implementing SHA `bf6ae17`; focused21/101 plus scoped static/style/workflow/whitespace PASS. Independent release gaps remain explicitly open.
+## Native cart adapters beyond Shopify — 2026-11-04
+
+- [ ] Implement opt-in WooCommerce Store API and BigCommerce Stencil readers with strict units/currency and same-origin validation.
+- [ ] Wire WooCommerce plugin reader before renderer, including native mutation notifications and checkout/account exclusions.
+- [ ] Exercise actual readers with renderer for progress, failure, freshness, races and lifecycle; rebuild and verify merchant archives.
+- [ ] Document installation and per-platform limits; obtain genuine installed-store acceptance. Checkboxes await tested implementation commit SHA.
+
+### Support settings and live connectivity review — 2026-11-04
+
+- [ ] Preserve supported advanced settings and align form choices with backend validation.
+- [ ] Localize settings labels, feedback and fixed-control explanations in NL/EN/DE.
+- [ ] Measure bounded private-channel Reverb round trips and expire old/configuration-mismatched evidence.
+- [ ] Run focused regression checks and record actual results and remaining deployment acceptance (commit SHA pending).
+
+### B87 — Resolve PR7 conflicts against current main (2026-11-05)
+
+- [x] Preserve branch CMS/QA environment settings and staged journeys alongside main's Reverb probe settings/schedule.
+- [x] Retain both documentation/checklist histories and every original captured OpenAPI example; combine changed descriptions without inventing responses.
+- [x] Verify focused catalogue/connectivity/API/package compatibility and syntax; regenerate inventory only if runtime contracts changed.
+- [x] Record main/feature SHAs, validation and unchanged release limits; commit/push resolution on the feature branch only.
+- [x] B87 package reconciliation: rebuild deterministic merchant archives/manifests from combined reviewed source so every embedded INSTALL.md matches the merge.
+
+B87: focused22 non-package checks passed; archive rerun5/185 PASS after deterministic rebuild. Syntax/scoped style/semantic OpenAPI/environment preservation/conflict-marker/diff checks PASS. Merge implementation SHA follows closeout.

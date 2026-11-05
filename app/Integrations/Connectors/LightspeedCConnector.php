@@ -6,6 +6,7 @@ use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
+use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -31,7 +32,7 @@ use Illuminate\Http\Request;
  * - https://developers.lightspeedhq.com/ecom/tutorials/webhooks/
  * - https://ecom-support.lightspeedhq.com/hc/en-us/articles/220320568-API-documentation
  */
-final class LightspeedCConnector extends WebhookConnector implements OrderNotification, PagedOrderReader
+final class LightspeedCConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
 {
     public const CLUSTERS = [
         'eu1' => 'https://api.webshopapp.com',
@@ -239,6 +240,68 @@ final class LightspeedCConnector extends WebhookConnector implements OrderNotifi
         }
 
         return ['ids' => $ids, 'next' => count($ids) === 25 ? (string) ($page + 1) : null];
+    }
+
+    public function catalogCurrency(WebshopConnection $c): string
+    {
+        return $this->identity($c)['currency'];
+    }
+
+    public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array
+    {
+        if ($kind !== 'products') {
+            throw ApiException::conflict('Lightspeed C coupon reads are not implemented.', 'capability_unsupported');
+        }
+        if ($cursor !== null && ! preg_match('/\A[1-9][0-9]{0,3}\z/D', $cursor)) {
+            throw new \InvalidArgumentException('Invalid catalog cursor.');
+        }
+        if ($this->identity($c)['currency'] !== $currency) {
+            throw ApiException::conflict('The store currency changed during catalog synchronization.', 'provider_currency_changed');
+        }
+        $page = $cursor === null ? 1 : (int) $cursor;
+        $rows = $this->catalogRows($this->read($c, 'products', ['page' => $page, 'limit' => 25]), 'products', 25);
+        $items = [];
+        $seen = [];
+        foreach ($rows as $row) {
+            $id = $row['id'] ?? null;
+            if ((! is_int($id) && ! is_string($id)) || ! preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $id)) {
+                throw new ApiException('The provider product identity is invalid.', 502, 'provider_product_invalid');
+            }
+            $id = (string) $id;
+            if (isset($seen[$id])) {
+                throw new ApiException('The provider returned duplicate products.', 502, 'provider_product_invalid');
+            }
+            $seen[$id] = true;
+            // Two rows distinguish a single variant from multiple variants without unbounded fan-out.
+            // Never follow provider-supplied resource links.
+            $variants = $this->catalogRows($this->read($c, 'variants', ['product' => $id, 'page' => 1, 'limit' => 2]), 'variants', 2);
+            foreach ($variants as $variant) {
+                if ((string) ($variant['product']['resource']['id'] ?? '') !== $id) {
+                    throw new ApiException('The provider variant belongs to another product.', 502, 'provider_product_invalid');
+                }
+            }
+            $items[] = LightspeedCCatalog::product($row, count($variants) === 1 ? $variants[0] : null, $currency);
+        }
+
+        return ['items' => $items, 'next' => count($rows) === 25 ? (string) ($page + 1) : null];
+    }
+
+    /** @param array<string,mixed> $payload
+     * @return list<array<string,mixed>>
+     */
+    private function catalogRows(array $payload, string $key, int $limit): array
+    {
+        $rows = $payload[$key] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > $limit) {
+            throw new ApiException('The provider catalog page is invalid.', 502, 'provider_response_invalid');
+        }
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                throw new ApiException('The provider catalog row is invalid.', 502, 'provider_response_invalid');
+            }
+        }
+
+        return $rows;
     }
 
     public function normalizeOrder(array $payload): NormalizedOrder

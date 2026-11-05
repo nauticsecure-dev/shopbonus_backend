@@ -49,7 +49,7 @@ class CapabilityMatrix
                     ? 'Reported refund totals are mapped; processor cash settlement remains unverified.'
                     : 'Refund amounts are not mapped'.($refundNote === null ? '.' : ": {$refundNote}")), $verifiedAt),
             'products' => $this->cap($this->productState($profile), $this->productReason($profile), $verifiedAt),
-            'categories' => $this->cap($this->productState($profile) === CapabilityState::Available ? CapabilityState::Limited : CapabilityState::Unsupported, 'Category sync is best-effort where products are available.', $verifiedAt),
+            'categories' => $this->cap(($profile['catalog_categories_implemented'] ?? true) && $this->productState($profile) === CapabilityState::Available ? CapabilityState::Limited : CapabilityState::Unsupported, 'Category sync is best-effort where implemented with products.', $verifiedAt),
             'coupons_read' => $this->cap($this->couponReadState($profile), $this->couponReason($profile), $verifiedAt),
             'coupons_write' => $this->cap(CapabilityState::Unsupported, 'Coupon writes are out of scope for this boundary.', $verifiedAt),
             'banner_embed' => $this->cap(CapabilityState::Limited, is_string($profile['banner_method'] ?? null) ? (string) $profile['banner_method'] : 'Manual embed / platform extension required.', $verifiedAt),

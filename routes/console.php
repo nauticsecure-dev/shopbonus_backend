@@ -81,3 +81,6 @@ Schedule::command('shopbonus:qa-probe --prune')->dailyAt('04:30')->withoutOverla
 // Controlled staging journeys; a failed independent acceptance gate is a failed execution command.
 Schedule::command('shopbonus:qa-staging-run nightly')->dailyAt('02:00')->environments('staging')->when(fn () => (bool) config('qa.runner_enabled'))->withoutOverlapping(65)->onOneServer();
 Schedule::command('shopbonus:qa-staging-run weekly')->weeklyOn(0, '04:00')->environments('staging')->when(fn () => (bool) config('qa.runner_enabled'))->withoutOverlapping(65)->onOneServer();
+
+// Synthetic private-channel delivery evidence expires after 90 seconds.
+Schedule::command('shopbonus:probe-support-connectivity')->everyMinute()->withoutOverlapping();

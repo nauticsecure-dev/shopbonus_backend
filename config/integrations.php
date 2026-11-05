@@ -169,7 +169,8 @@ return [
                 'scopes' => ['store API key on Advanced/Professional plan'],
                 'webhook_topics' => ['orders/created', 'orders/updated', 'orders/paid', 'orders/deleted', 'invoices/created', 'invoices/updated', 'returns/created', 'returns/updated'],
                 'order_api' => 'GET https://{cluster}/{lang}/orders/{id}.json', 'refund_api' => 'paymentStatus only; returns cash mapping UNSUPPORTED in this boundary',
-                'product_api' => 'GET /products.json available upstream; catalog sync UNSUPPORTED in this boundary', 'coupon_api' => 'UNSUPPORTED in this boundary',
+                'product_api' => 'GET /products.json + GET /variants.json?product={id}; single-variant money/stock only; category assignments unavailable', 'coupon_api' => 'UNSUPPORTED in this boundary',
+                'catalog_categories_implemented' => false,
                 'banner_method' => 'Theme/script placement; Shop/scripts resource exists upstream; automatic publish not implemented',
                 'rate_limit_policy' => 'Cluster eu1|us1 only;8second/1MiB reads; require x-signature (app webhooks); Retail/E-Series refused; confirmation-page tracking not used.',
                 'sources' => [
@@ -177,6 +178,8 @@ return [
                     'https://developers.lightspeedhq.com/ecom/introduction/authentication/',
                     'https://developers.lightspeedhq.com/ecom/endpoints/order/',
                     'https://developers.lightspeedhq.com/ecom/endpoints/shop/',
+                    'https://developers.lightspeedhq.com/ecom/endpoints/product/',
+                    'https://developers.lightspeedhq.com/ecom/endpoints/variant/',
                     'https://developers.lightspeedhq.com/ecom/tutorials/webhooks/',
                 ],
             ],
