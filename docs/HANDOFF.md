@@ -1,3 +1,7 @@
+B88 source closeout — 2026-11-05
+
+Implementing SHA `435d229` on `frank/moneybird-experiment-followup`: exactly five Symfony8.1.9→8.1.11 lock updates fix the reproduced ten-advisory audit failure. Local audit0, strict Composer validation and focused31/8881 checks PASS; no suppressed advisories or audit/workflow/application change. This follow-up records documentation only; source tree was clean after implementation. No migration/deployment/full local suite. Next: push feature branch and verify new CI rather than claiming the old failed run passed. Existing release/provider/staging limits remain unchanged.
+
 B88 — CI dependency-security audit repair (2026-11-05)
 
 Branch `frank/moneybird-experiment-followup`, base `ac13c38`. Actual CI41968973988 failed only job127052489675/composer audit: ten newly reported Symfony advisories across five locked8.1.9 components. Formatting, PHPStan and both full SQLite/MySQL jobs passed on that baseline. Primary Symfony advisories identify8.1.11 patches; updated only http-foundation/http-kernel/routing/serializer/yaml to8.1.11 via a minimal targeted Composer update. No application code, composer.json, unrelated dependency, workflow/audit policy or ignore list changed. Update scripts were disabled to avoid unrelated application/public asset effects.
