@@ -1,6 +1,21 @@
+B85: [Adobe SaaS IMS client-credentials renewal](ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) now supplements existing async module/Runtime and scoped native reads. Tokens/client secrets stay encrypted; rotation/pause/tenant/ownership guards and expiry renewal are tested locally. Genuine provider acceptance remains NOT RUN. No new native publisher or C-Series cash mapping is claimed.
+
 # Top 10 commerce platform API & webhook specifications
 
-B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
+B77: [Candidate Adobe asynchronous couriers and scoped SaaS REST](ADOBE_ASYNC.md) now ship as PaaS module/private App Builder source plus exact-tenant IMS/Store-header reads. Real Adobe registration/installation/paid/refund/cleanup acceptance remains NOT RUN. Earlier “no module/SaaS implementation” statements are superseded by this source boundary.
+
+B73: [native banner backend publication](../banners/NATIVE_PUBLICATION.md) adds opt-in BigCommerce Widgets install/read reconciliation/verified binding/removal with durable uncertain-effect guards. Defaults OFF. Lightspeed C/E-Series and Squarespace retain explicit native app/manual requirements; automatic writes remain unsupported. Actual provider/storefront acceptance remains NOT RUN.
+
+
+B72: [CCV native reads / Mijnwebwinkel partner-bridge boundary](REMAINING_CONNECTORS.md) supersedes earlier “no connector” statements. CCV paid/settlement/refund-time evidence remains limited; discovery is by creation window. Mijnwebwinkel is a ShopBonus signed bridge only, not native partner API integration. Real provider/bridge acceptance remains NOT RUN.
+
+
+B71: [automatic native coupon configuration checks](COUPON_VERIFICATION.md) now cover Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside WooCommerce. Unknown restrictions/caps remain manual. This implements authenticated reads only; provider-backed checkout/creation/redemption acceptance remains NOT RUN and coupon-write/banner readiness is unchanged.
+
+
+B69 follow-up: [assignment bridge contract](../banners/ASSIGNMENT_BRIDGES.md) adds Shopware/Magento/Ecwid/E-Series/Wix custom metadata extraction and opt-in BigCommerce order metafield reads; Woo/Shopify repeatable fields now reject duplicate tokens. Supported parsing does not establish installed cart persistence, payment evidence or causal measurement. Unverified native fields remain null.
+
+B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS source boundary is documented under B77; genuine deployment remains NOT RUN.
 
 Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `OrderIngestion` / catalogue capabilities. No parallel integration architecture.
 
@@ -139,7 +154,7 @@ Webhook fields: `eventType`, `instanceId`, `entityId`, `eventTime`, `id`, `slug`
 | Topics | `store/order/created`, `updated`, `statusUpdated`, `refund/created`, `transaction/created` |
 | Sample | `{"scope":"store/order/created","producer":"stores/abc123","data":{"type":"order","id":250}}` |
 | Important | `created` may be unpaid — fetch order + capture proof before reward |
-| Banners | Widgets API; publish not implemented |
+| Banners | Opt-in Widgets provisioning/reconciliation/removal implemented; existing region + Content modify scope required; actual storefront delivery NOT RUN |
 
 | Target | Path |
 | --- | --- |
@@ -272,14 +287,14 @@ Example manifest webhook shape (upstream):
 
 | Item | Value |
 | --- | --- |
-| Version | 2.4 self-hosted/PaaS REST (SaaS not substituted) |
-| Install | Compatible module/app for deployment model |
+| Version | 2.4 self-hosted/PaaS REST or separately configured SaaS IMS/Store-header REST |
+| Install | Candidate PaaS module/private App Builder source shipped; native deployment NOT RUN |
 | Auth | Integration bearer + Shopbonus HMAC bridge |
 | Prefer | Adobe I/O Events (async). **Do not** use synchronous Commerce Webhooks for slow ShopBonus ingestion |
 | Docs | https://developer.adobe.com/commerce/extensibility/events/ · webhooks · REST |
 | Orders | `/V1/orders/{id}`; invoices/captures/creditmemos for payment/refund proof |
 | Banners | Approved module/storefront component |
-| Status | Optional native read **WORKING**; async app delivery / SaaS **PENDING** |
+| Status | Native read and candidate async module/action source implemented; actual native delivery/SaaS acceptance **NOT RUN** |
 
 ---
 

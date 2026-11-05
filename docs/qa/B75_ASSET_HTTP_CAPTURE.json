@@ -1,0 +1,49 @@
+{
+  "captured_at": "2026-11-04T07:16:57Z",
+  "baseline": "8cc2c72 plus B75 working tree",
+  "environment": "Actual Laravel loopback HTTP; isolated temporary SQLite/storage/key. Synthetic merchant records, actual API authentication/authorization/validation/connector creation. No native provider requests or genuine provider acceptance. One-time generated signing secret is redacted. Candidate images and download transport are explicitly synthetic; real import/re-encoding/rights review and existing public asset serving run. Approved binary response is recorded as actual base64/length/hash, not JSON served by the API. Pending candidate has no public asset.",
+  "exchanges": [
+    {
+      "label": "approved_asset",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/banners/assets/01m6jpp15t4ejvc9j27vsbqxdk",
+        "body": null,
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content_type": "image/webp",
+          "byte_length": 58,
+          "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+          "base64": "UklGRjIAAABXRUJQVlA4ICYAAADQAgCdASogACAAPmEuk0ckIqGhKAgAgAwJaQAAPaOgAP78XNAAAA=="
+        }
+      }
+    },
+    {
+      "label": "pending_not_public",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/banners/assets/01m6jpp162kyv3emg0nmssedkr",
+        "body": null,
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Image not found.",
+            "request_id": "01a1a56b-076f-733f-8937-7c290ec33886"
+          }
+        }
+      }
+    }
+  ]
+}

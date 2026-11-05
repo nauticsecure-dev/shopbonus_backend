@@ -1,6 +1,23 @@
+B85: [Adobe SaaS IMS client-credentials renewal](ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) now supplements existing async module/Runtime and scoped native reads. Tokens/client secrets stay encrypted; rotation/pause/tenant/ownership guards and expiry renewal are tested locally. Genuine provider acceptance remains NOT RUN. No new native publisher or C-Series cash mapping is claimed.
+
 # Provider verification checklist
 
-B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS remains pending.
+B78: [Lightspeed C cash-refund gap](LIGHTSPEED_C_REFUND_CASH.md) remains OPEN. Credits/manual paid labels/return quantities do not establish actual PSP cash; null values are retained and negative regressions pass.
+
+B77: [Candidate Adobe asynchronous couriers and scoped SaaS REST](ADOBE_ASYNC.md) now ship as PaaS module/private App Builder source plus exact-tenant IMS/Store-header reads. Real Adobe registration/installation/paid/refund/cleanup acceptance remains NOT RUN. Earlier “no module/SaaS implementation” statements are superseded by this source boundary.
+
+B74: [Explicit stored provider evidence review](PROMOTION_EVIDENCE_REVIEW.md) normalizes selected conditions/exclusions into reviewed offer versions; permission remains separate and real provider acceptance is NOT RUN.
+
+B73: [native banner backend publication](../banners/NATIVE_PUBLICATION.md) adds opt-in BigCommerce Widgets install/read reconciliation/verified binding/removal with durable uncertain-effect guards. Defaults OFF. Lightspeed C/E-Series and Squarespace retain explicit native app/manual requirements; automatic writes remain unsupported. Actual provider/storefront acceptance remains NOT RUN.
+
+
+B72: [CCV native reads / Mijnwebwinkel partner-bridge boundary](REMAINING_CONNECTORS.md) supersedes earlier “no connector” statements. CCV paid/settlement/refund-time evidence remains limited; discovery is by creation window. Mijnwebwinkel is a ShopBonus signed bridge only, not native partner API integration. Real provider/bridge acceptance remains NOT RUN.
+
+
+B71: [automatic native coupon configuration checks](COUPON_VERIFICATION.md) now cover Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside WooCommerce. Unknown restrictions/caps remain manual. This implements authenticated reads only; provider-backed checkout/creation/redemption acceptance remains NOT RUN and coupon-write/banner readiness is unchanged.
+
+
+B65 review follow-up (2026-11-03): see [feature evidence and monetary definitions](FEATURE_PROVENANCE.md). Per-feature provenance is now exposed, without promoting documentation dates or connection labels into live proof. Shopware/Magento order-bound line items and breakdowns already exist; Ecwid reported refunds remain distinct from settlement. Ecwid reported current tax/shipping/discount, Lightspeed C gross breakdown and Shopify distinct current shipping are mapped. Unsupported cash/timestamp details remain null. Candidate PrestaShop9/OpenCart4.1 packages and Shopify extension source are present; genuine installation/publication/order/refund/uninstall acceptance is NOT RUN. Adobe async/SaaS source boundary is documented under B77; genuine deployment remains NOT RUN.
 
 2026-11-03 App Store follow-up: [local changes, executed evidence and remaining engineering/acceptance gaps](APP_STORE_FINDINGS_2026-11-03.md). [Exact server environment and workspace credential keys](ENVIRONMENT.md). Pause/resume has local evidence only; no provider row below is promoted.
 
@@ -28,7 +45,7 @@ Full API/webhook/mapping contracts: [PLATFORM_API_SPECS.md](PLATFORM_API_SPECS.m
 | Shopify | — | — | NOT RUN | Theme extension source shipped; authorized app deploy/activation and protected customer data acceptance pending | — | — |
 | WooCommerce | — | — | NOT RUN | Candidate WP banner plugin shipped; native installation/theme/editor acceptance pending | — | — |
 | Wix | — | — | NOT RUN | Backfill via orders/search; paid_at null; transaction createdDate is not settlement evidence | — | — |
-| BigCommerce | — | — | NOT RUN | Native catalog reads implemented locally; provider import and Widgets placement/publication remain unverified/incomplete | — | — |
+| BigCommerce | — | — | NOT RUN | Native catalogue reads and opt-in Widgets lifecycle implemented locally; actual provider import, installation, storefront delivery and uninstall remain NOT RUN | — | — |
 | Ecwid | — | — | NOT RUN | Total/refundedAmount use observed authenticated shop currency; historical currency/cash settlement/time unverified | — | — |
 | Lightspeed C-Series | — | — | NOT RUN | Plan-gated API; refund cash unmapped; paid_at null | — | — |
 | Lightspeed E-Series | — | — | NOT RUN | Shared authenticated Ecwid API contract; paid_at/refund cash unavailable | — | — |

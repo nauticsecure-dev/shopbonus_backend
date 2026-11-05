@@ -8,7 +8,6 @@ use App\Models\CmsPageLocale;
 use App\Models\CmsRevision;
 use App\Services\Admin\PlatformSettings;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -123,66 +122,6 @@ class AboutUsCmsService
     public function schedule(CmsPage $page, string $locale, array $schedule, int $revision, int $actorId): CmsPageLocale
     {
         return $this->saveSection($page, $locale, 'schedule', $schedule, $revision, $actorId);
-    }
-
-    /**
-     * @return list<array{field: string, suggestion: string}>
-     */
-    public function aiSuggest(string $locale, string $sectionKey, ?string $focus = null): array
-    {
-        if (! config('shopbonus.cms.ai_suggest_enabled') || empty(config('shopbonus.cms.ai_api_key'))) {
-            throw new ApiException('About Us AI suggestions are not configured.', 503, 'about_us_ai_not_configured');
-        }
-        if (! in_array($sectionKey, AboutUsSchema::SECTION_KEYS, true)) {
-            throw ValidationException::withMessages(['section' => 'Unknown About Us section.']);
-        }
-        $response = Http::withToken((string) config('shopbonus.cms.ai_api_key'))
-            ->acceptJson()
-            ->withOptions(['allow_redirects' => false])
-            ->connectTimeout(5)
-            ->timeout(20)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => config('shopbonus.cms.ai_model'),
-                'temperature' => 0.4,
-                'max_tokens' => 400,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'Suggest short ShopBonus About Us copy in '.$locale.'. Plain text only, no HTML. Never invent founding dates, founders, team members, KvK/registration numbers, addresses, statistics, awards, partnerships, or financial performance. Never claim cashback as a percentage of purchase amount. Suggestions only — do not say they are live or published.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => json_encode([
-                            'section' => $sectionKey,
-                            'focus' => $focus,
-                            'format' => 'JSON array of {field, suggestion}',
-                        ], JSON_THROW_ON_ERROR),
-                    ],
-                ],
-            ]);
-        if (! $response->successful()) {
-            throw new ApiException('About Us AI suggestion failed.', 503, 'about_us_ai_failed');
-        }
-        $text = (string) data_get($response->json(), 'choices.0.message.content', '');
-        $json = json_decode(trim($text), true);
-        if (! is_array($json)) {
-            throw new ApiException('About Us AI suggestion failed.', 503, 'about_us_ai_failed');
-        }
-        $out = [];
-        foreach ($json as $row) {
-            if (! is_array($row) || ! is_string($row['field'] ?? null) || ! is_string($row['suggestion'] ?? null)) {
-                continue;
-            }
-            if (preg_match('/[<>]/', $row['suggestion']) === 1 || preg_match('/\b(uitbetalen|opnemen|withdraw|guaranteed)\b/iu', $row['suggestion']) === 1) {
-                continue;
-            }
-            if (preg_match('/\b\d+\s*%\s*(cashback\s+)?(op|van)\s+(de\s+)?(aankoop|purchase|order)\b/iu', $row['suggestion']) === 1) {
-                continue;
-            }
-            $out[] = ['field' => mb_substr($row['field'], 0, 60), 'suggestion' => mb_substr($row['suggestion'], 0, 300)];
-        }
-
-        return array_slice($out, 0, 8);
     }
 
     /**

@@ -1,4 +1,39 @@
+B86: [Reviewed backend QA execution planning](qa/B86_BACKEND_DISPOSITION.md) enforces exact executable case versions/assertion minima, persistent discovered impacts and report-to-plan reconciliation. Supplied opt-in reusable deployment workflow preserves independent release gates; missing original175/provider/staging/frontend proof remains blocked.
+
+B83: [Central FAQ/media/reusable-text management](cms/CENTRAL_MANAGEMENT.md) adds taxonomy revisions, soft media lifecycle/selected-draft replacement and immutable exact-locale shared-block snapshots with safe overrides/mount/detach and bounded source-aware usages. Public rich-text remains compatible; frontend/staging/universal discovery acceptance is separate.
+
+B83a: [FAQ root/subcategories and revision-protected locale metadata](cms/CENTRAL_MANAGEMENT.md) preserve audience filtering and add explicit parent/name-fallback metadata. Media management and shared-block source follow in separate checkpoints.
+
+B82: [Durable saved-page AI backlog and recommended CMS coverage gate](cms/BULK_AND_COVERAGE.md) add bounded snapshot-checked submission and five-denominator/T01–T23 independent-evidence blocking. Real mappings/23 executors/frontend/provider staging remain incomplete; no automatic publication or recovered original175 scope.
+
+B81: [Consolidated queued CMS AI](cms/AI_EXECUTION.md) adds section-scoped proposals, configured-price execution reservations and immutable independent human language/meaning review before apply. Default execution is monetarily disabled; no live model-quality claim.
+
+B80: [Saved-page source bindings and per-usage media recipe pins](cms/CONTENT_BINDINGS.md) add backend component-context manifests and bounded usage scans. Universal client/other-source discovery, real responsive rendering and global media management remain incomplete.
+
+B85: [Adobe SaaS IMS renewal](integrations/ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) reuses encrypted credentials/pinned transport and preserves generation-bound authority. Existing async/native publication source is distinguished from genuine provider acceptance; remaining C/E/Squarespace publishers and C cash mapping stay OPEN.
+
+B84: [Controlled staging execution](qa/STAGING_RUNNER.md) adds reviewed exact-Git script execution, scheduled/deployment entry points and mandatory independent acceptance evaluation. Disabled/unmapped until actual reviewed journeys and staging are configured; execution is not provider acceptance.
+
+B79: [Versioned global CMS media](cms/MEDIA.md) preserves private uploaded originals, immutable recipes, queued derivatives and exact artifact restoration. Responsive component rendering/usage bindings and staging acceptance remain incomplete.
+
 # Shopbonus — Backend Consolidated Specification
+
+B77: [Adobe async delivery source and scoped SaaS REST](integrations/ADOBE_ASYNC.md) adds a candidate Magento/PaaS commit-time outbox module and private App Builder Runtime Action. Signed IDs request native recovery; source/tenant/store and financial evidence guards remain mandatory. Real native deployment/acceptance NOT RUN.
+
+B75: [Website candidate images](enrichment/WEBSITE_ASSET_IMPORT.md) now have private bounded import, normalized raster storage and explicit content/rights approval before existing merchant banner-asset reuse. No automatic profile/campaign publication.
+
+B74: [Explicit stored provider evidence review](integrations/PROMOTION_EVIDENCE_REVIEW.md) normalizes selected conditions/exclusions into reviewed offer versions; permission remains separate and real provider acceptance is NOT RUN.
+
+B73: [BigCommerce native Widgets lifecycle](banners/NATIVE_PUBLICATION.md) is implemented behind an OFF-by-default flag. Other reviewed providers retain native app/manual requirements. Provider/storefront acceptance remains NOT RUN.
+
+B72 (2026-11-04): [CCV native reads and Mijnwebwinkel signed partner bridge](integrations/REMAINING_CONNECTORS.md) are registered. CCV discovery covers creation windows only; payment/refund timestamps remain unknown. Mijnwebwinkel is explicitly a bridge, with native partner API implementation still open. Genuine provider acceptance remains NOT RUN.
+
+
+B71 (2026-11-04): [automatic native coupon configuration checks](integrations/COUPON_VERIFICATION.md) extend WooCommerce with Shopify, BigCommerce legacy, Ecwid and Lightspeed E-Series. The existing authorized platform-validation endpoint remains read-only with respect to providers. Unknown caps/restrictions and unsupported platforms stay manual; configuration matches never certify checkout acceptance or redemption.
+
+
+2026-11-03 B68–B70 backend additions: [guarded Moneybird funding invoice lifecycle](funding/MONEYBIRD.md), [native assignment containers](banners/ASSIGNMENT_BRIDGES.md), and [opt-in registered experiment readout](banners/EXPERIMENT_PROTOCOL.md). Moneybird writes and optional BigCommerce metadata reads default OFF. Causal/winner reporting requires actual reviewed native measurement and the registered fixed endpoint; legacy studies stay exploratory. No actual seller/VAT records or provider acceptance is invented. New rewards retain D-109 approval plus recorded settlement.
+
 
 Source: Trello Shopbonus board export, 2026-10-23. This is a synthesis of a **requirements snapshot**, not an audit of existing source. Full verbatim descriptions: `requirements/TRELLO_CARDS.md`.
 

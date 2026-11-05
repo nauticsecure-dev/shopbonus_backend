@@ -1,10 +1,10 @@
 # API route inventory (Trello #22)
 
-Generated 2026-11-03 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
+Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **470**. Method/path operations (HEAD aliases excluded): **471**. Unique paths: **412**.
+Runtime route entries: **490**. Method/path operations (HEAD aliases excluded): **491**. Unique paths: **429**.
 
-Access counts are per operation: admin 227, authenticated 4, integration 4, public 44, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 246, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -54,7 +54,15 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/admin/audit/export` | admin | super_admin | session_cookie | - | platform | recent password, email code | ThrottleRequests:api, ThrottleRequests:order-export | admin |
 | GET | `/api/v1/admin/checkouts` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | financial |
 | POST | `/api/v1/admin/checkouts/{checkout}/refund` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | financial |
+| GET | `/api/v1/admin/cms/assets` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/assets` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/assets/{asset}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| PATCH | `/api/v1/admin/cms/assets/{asset}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/assets/{asset}/original` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/assets/{asset}/recipes` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/assets/{asset}/replace` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/assets/{asset}/restore` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/assets/{asset}/usages` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-consents/stats` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/cookie-policies` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/cookie-policies` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
@@ -62,6 +70,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/admin/cms/cookie-policies/{policy}/publish` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/faq` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/faq/categories` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| PATCH | `/api/v1/admin/cms/faq/categories/{category}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/faq/items` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | PUT | `/api/v1/admin/cms/faq/items/{item}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/faq/reorder` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
@@ -70,8 +79,12 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/cms/pages/{page}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/archive` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | PUT | `/api/v1/admin/cms/pages/{page}/locales/{locale}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/bindings` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/media-preview` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/pages/{page}/locales/{locale}/preview` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/publish` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/shared-blocks` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/shared-blocks/detach` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/locales/{locale}/suggestions` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api, ThrottleRequests:cms-ai | admin |
 | GET | `/api/v1/admin/cms/pages/{page}/revisions` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/pages/{page}/revisions/{revision}/restore` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
@@ -79,9 +92,15 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/cms/pages/{page}/suggestions` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/schedules` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/schedules/{schedule}/cancel` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/shared-blocks` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/shared-blocks` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/shared-blocks/{block}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/cms/shared-blocks/{block}/usages` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/shared-blocks/{block}/versions` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/suggestions/{suggestion}` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/suggestions/{suggestion}/apply` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/cms/suggestions/{suggestion}/reject` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/cms/suggestions/{suggestion}/review` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cms/translations` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/cockpit` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/content/homepage` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
@@ -335,6 +354,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/platform/notifications/templates/{template}/test` | admin | super_admin | session_cookie | - | platform | recent password, email code | ThrottleRequests:api | admin |
 | GET | `/api/v1/public/categories` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/public/content-assets/{id}` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
+| GET | `/api/v1/public/content-assets/{id}/recipes/{recipe}/{breakpoint}` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/public/cookie-consents` | public | - | none | - | public | - | ThrottleRequests:api, ThrottleRequests:claims | security_denials |
 | GET | `/api/v1/public/cookie-consents/{consentId}` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |
 | GET | `/api/v1/public/cookie-policy` | public | - | none | - | public | - | ThrottleRequests:api | security_denials |

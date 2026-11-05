@@ -1,5 +1,8 @@
 # Sales attribution statistics and acceptance follow-up
 
+B70 update: a new, opt-in [registered fixed-horizon captured-purchase readout](../banners/EXPERIMENT_PROTOCOL.md) is implemented. Legacy studies and exploratory `conversion_comparison` still cannot select a rollout winner. Real measurement/provider acceptance remains NOT RUN; earlier unconditional-null statements below describe the previous checkpoint.
+
+
 Status: PARTIAL. Backend HassanDev base b92f46ab2b471fc4796310e059568bdddde276a4; frontend HassanDev base bd76ff420cda1aa180e45e44a521ff0707670b3f. Scoped changes are uncommitted alongside preserved existing work. No migration, deployment, payment, invoice delivery or provider activation.
 
 ## Local implementation

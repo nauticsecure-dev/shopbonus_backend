@@ -6,21 +6,27 @@ use App\Enums\AuditCategory;
 use App\Enums\ConnectionStatus;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Http\Resources\OfferResource;
+use App\Integrations\ConnectorRegistry;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Http\WooCommerceApi;
+use App\Models\Offer;
 use App\Models\OfferVersion;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherCode;
 use App\Models\VoucherEvent;
+use App\Models\Webshop;
 use App\Models\WebshopConnection;
 use App\Services\Audit\AuditLogger;
 use App\Support\Money;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Distinguishes "code exists in ShopBonus" from "webshop checkout accepts it"
- * (Trello #7 §8). Import never proves checkout acceptance; this service does
- * when a provider coupon API is available, otherwise leaves merchant action.
+ * (Trello #7 §8). Native APIs establish configuration matches only; actual
+ * checkout acceptance and redemption need separate provider-backed evidence.
  */
 class PlatformCouponVerification
 {
@@ -39,7 +45,7 @@ class PlatformCouponVerification
     public const MISMATCH = 'mismatch';
 
     /** Platforms with a read coupon API wired here. */
-    private const PROVIDER_SUPPORTED = [EcommercePlatform::WooCommerce];
+    private const PROVIDER_SUPPORTED = [EcommercePlatform::WooCommerce, EcommercePlatform::Shopify, EcommercePlatform::BigCommerce, EcommercePlatform::Ecwid, EcommercePlatform::LightspeedE];
 
     public function __construct(
         private readonly WooCommerceApi $woo,
@@ -71,6 +77,21 @@ class PlatformCouponVerification
         }
 
         try {
+            if ($connection->platform !== EcommercePlatform::WooCommerce) {
+                $adapter = app(ConnectorRegistry::class)->for($connection->platform);
+                if (! $adapter instanceof CouponLookup) {
+                    throw ApiException::conflict('The configured adapter has no native coupon lookup.', 'coupon_api_unsupported');
+                }
+                $context = ['domain' => $connection->webshop->verified_domain, 'ownership_verified_at' => $connection->webshop->ownership_verified_at?->toIso8601String()];
+                $lookup = $adapter->lookupCoupon($connection, $code->code);
+                if ($lookup['coupon'] === null) {
+                    return $this->persist($code, self::MERCHANT_REQUIRED, ['reason' => 'not_found_on_platform', 'platform' => $connection->platform->value,
+                        'evidence_scope' => 'native_configuration_not_checkout_or_redemption'], 'provider_check', voucher: $voucher);
+                }
+                $result = app(NativeCouponTerms::class)->compare($connection->platform, $lookup['coupon'], $lookup['currency'], $terms, $code, $voucher);
+
+                return $this->persistNative($code, $connection, $context, $terms, $voucher, $result);
+            }
             $coupon = $this->woo->findCouponByCode($connection, $code->code);
             if ($coupon === null) {
                 return $this->persist($code, self::MERCHANT_REQUIRED, [
@@ -96,6 +117,37 @@ class PlatformCouponVerification
                 'message' => 'Platform coupon check failed. Retry after fixing the integration, or confirm manually.',
             ], 'provider_check', voucher: $voucher);
         }
+    }
+
+    /** A slow native read must not certify newly edited terms or a rotated/disconnected source.
+     * @param  array<string,mixed>  $context
+     * @param  array{platform_validation:string,detail:array<string,mixed>}  $result
+     * @return array{platform_validation:string,detail:array<string,mixed>}
+     */
+    private function persistNative(VoucherCode $code, WebshopConnection $connection, array $context, ?OfferVersion $terms, ?Voucher $voucher, array $result): array
+    {
+        return DB::transaction(function () use ($code, $connection, $context, $terms, $voucher, $result) {
+            $shop = Webshop::whereKey($code->webshop_id)->lockForUpdate()->firstOrFail();
+            $source = WebshopConnection::whereKey($connection->id)->lockForUpdate()->firstOrFail();
+            // Match OfferService's version-before-offer lock order for concurrent draft edits.
+            $currentTerms = $voucher === null && $terms !== null ? OfferVersion::whereKey($terms->id)->lockForUpdate()->first() : null;
+            $offer = Offer::whereKey($code->offer_id)->lockForUpdate()->first();
+            $current = VoucherCode::whereKey($code->id)->lockForUpdate()->firstOrFail();
+            $termsChanged = $voucher === null && (($terms === null && $offer?->current_version_id !== null)
+                || ($terms !== null && ($offer === null || $offer->current_version_id !== $terms->id || $currentTerms === null
+                    || Arr::only(OfferResource::terms($currentTerms), OfferVersion::TERM_FIELDS) !== Arr::only(OfferResource::terms($terms), OfferVersion::TERM_FIELDS))));
+            if ($current->webshop_id !== $code->webshop_id || $current->offer_id !== $code->offer_id || $current->code_hash !== $code->code_hash
+                || $source->webshop_id !== $code->webshop_id || $source->credential_generation !== $connection->credential_generation
+                || $source->external_shop_ref !== $connection->external_shop_ref || ! $source->status->receivesEvents() || $source->paused_at !== null
+                || ! $shop->isOwnershipVerified() || $shop->verified_domain !== $context['domain']
+                || $shop->ownership_verified_at?->toIso8601String() !== $context['ownership_verified_at']
+                || $termsChanged) {
+                return $this->persist($current, self::SYNC_ERROR, ['reason' => 'verification_context_changed', 'platform' => $connection->platform->value,
+                    'message' => 'The integration or offer changed during verification. Retry against the current configuration.'], 'provider_check', voucher: $voucher);
+            }
+
+            return $this->persist($current, $result['platform_validation'], $result['detail'], 'provider_check', voucher: $voucher);
+        });
     }
 
     /**

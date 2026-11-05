@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\CmsAsset;
 use App\Models\CmsRevision;
-use App\Services\Audit\AuditLogger;
+use App\Services\Cms\CmsMedia;
+use App\Services\Cms\CmsQueuedCopy;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\MerchantLandingCmsService;
 use App\Services\Cms\MerchantLandingSchema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /** Super Admin webshop-owner landing content studio. */
@@ -24,7 +22,6 @@ class MerchantLandingCmsController extends Controller
     public function __construct(
         private readonly MerchantLandingCmsService $landing,
         private readonly CmsService $cms,
-        private readonly AuditLogger $audit,
     ) {}
 
     public function show(Request $request): JsonResponse
@@ -142,21 +139,20 @@ class MerchantLandingCmsController extends Controller
         $data = $request->validate([
             'locale' => ['sometimes', Rule::in(CmsService::LOCALES)],
             'section' => ['required', Rule::in(MerchantLandingSchema::SECTION_KEYS)],
+            'request_key' => ['sometimes', 'string', 'max:100', 'regex:/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,99}$/D'],
             'focus' => ['sometimes', 'nullable', 'string', 'max:200', 'not_regex:/[<>]/'],
         ]);
 
-        return response()->json([
-            'data' => [
-                'suggestions' => $this->landing->aiSuggest($data['locale'] ?? 'nl', $data['section'], $data['focus'] ?? null),
-                'applied' => false,
-            ],
-        ]);
+        app(CmsQueuedCopy::class)->assertConfigured('voor-webshops');
+        $result = app(CmsQueuedCopy::class)->request($this->landing->page(), $request->user(), $data['locale'] ?? 'nl', $data['section'], $data['focus'] ?? null, $data['request_key'] ?? null);
+
+        return response()->json(['data' => $result], in_array($result['proposal']['status'], ['queued', 'processing'], true) ? 202 : 200);
     }
 
     public function assets(Request $request): JsonResponse
     {
         $data = $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
-        $assets = CmsAsset::query()->orderByDesc('id')->paginate(24, ['*'], 'page', $data['page'] ?? 1);
+        $assets = CmsAsset::whereNull('archived_at')->orderByDesc('id')->paginate(24, ['*'], 'page', $data['page'] ?? 1);
 
         return response()->json(['data' => $assets->map(fn (CmsAsset $asset) => [
             'id' => $asset->public_id,
@@ -169,16 +165,10 @@ class MerchantLandingCmsController extends Controller
     public function uploadAsset(Request $request): JsonResponse
     {
         $request->validate(['image' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'mimetypes:image/png,image/jpeg,image/webp', 'max:4096', 'dimensions:min_width=16,min_height=16,max_width=6000,max_height=6000']]);
-        $file = $request->file('image');
-        $size = getimagesize($file->getRealPath()) ?: [0, 0];
-        $path = 'cms/'.Str::lower((string) Str::ulid()).'.'.$file->guessExtension();
-        if (Storage::disk('local')->putFileAs('cms', $file, basename($path)) === false) {
-            throw new ApiException('The image could not be stored. Please try again.', 503, 'storage_unavailable');
-        }
-        $asset = CmsAsset::create(['path' => $path, 'mime' => (string) $file->getMimeType(), 'width' => $size[0], 'height' => $size[1], 'uploaded_by' => $request->user()->id]);
-        $this->audit->record('cms.asset_uploaded', category: AuditCategory::Admin, resource: $asset, actorUserId: $request->user()->id);
+        $service = app(CmsMedia::class);
+        $asset = $service->upload($request->file('image'), $request->user());
 
-        return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id])]], 201);
+        return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id]), 'media' => $service->present($asset)]], 201);
     }
 
     private function locale(Request $request): string

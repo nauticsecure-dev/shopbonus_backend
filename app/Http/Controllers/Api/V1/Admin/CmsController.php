@@ -2,30 +2,27 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\AuditCategory;
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
 use App\Models\CmsAiSuggestion;
-use App\Models\CmsAsset;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\CmsPublicationSchedule;
 use App\Models\CmsRevision;
 use App\Models\FaqCategory;
 use App\Models\FaqItem;
-use App\Services\Audit\AuditLogger;
 use App\Services\Cms\CmsCache;
+use App\Services\Cms\CmsMedia;
 use App\Services\Cms\CmsScheduler;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\CmsSuggestions;
+use App\Services\Cms\FaqCategories;
 use App\Services\Cms\RichText;
 use App\Services\Support\SupportKnowledge;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -35,7 +32,7 @@ use Illuminate\Validation\ValidationException;
  */
 class CmsController extends Controller
 {
-    public function __construct(private readonly CmsService $cms, private readonly AuditLogger $audit) {}
+    public function __construct(private readonly CmsService $cms) {}
 
     // ---------------------------------------------------------------- pages
 
@@ -158,16 +155,10 @@ class CmsController extends Controller
     public function uploadAsset(Request $request): JsonResponse
     {
         $request->validate(['image' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'mimetypes:image/png,image/jpeg,image/webp', 'max:4096', 'dimensions:min_width=16,min_height=16,max_width=6000,max_height=6000']]);
-        $file = $request->file('image');
-        $size = getimagesize($file->getRealPath()) ?: [0, 0];
-        $path = 'cms/'.Str::lower((string) Str::ulid()).'.'.$file->guessExtension();
-        if (Storage::disk('local')->putFileAs('cms', $file, basename($path)) === false) {
-            throw new ApiException('The image could not be stored. Please try again.', 503, 'storage_unavailable');
-        }
-        $asset = CmsAsset::create(['path' => $path, 'mime' => (string) $file->getMimeType(), 'width' => $size[0], 'height' => $size[1], 'uploaded_by' => $request->user()->id]);
-        $this->audit->record('cms.asset_uploaded', category: AuditCategory::Admin, resource: $asset, actorUserId: $request->user()->id);
+        $service = app(CmsMedia::class);
+        $asset = $service->upload($request->file('image'), $request->user());
 
-        return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id])]], 201);
+        return response()->json(['data' => ['id' => $asset->public_id, 'width' => $asset->width, 'height' => $asset->height, 'url' => route('api.v1.public.content-assets.show', ['id' => $asset->public_id]), 'media' => $service->present($asset)]], 201);
     }
 
     // ---------------------------------------------------------------- scheduling (#33–#35)
@@ -257,18 +248,38 @@ class CmsController extends Controller
 
     public function faq(): JsonResponse
     {
-        return response()->json(['data' => FaqCategory::orderBy('position')->get()->map(fn (FaqCategory $c) => ['id' => $c->public_id, 'key' => $c->key, 'names' => $c->names, 'position' => $c->position,
+        return response()->json(['data' => FaqCategory::orderBy('position')->orderBy('id')->get()->map(fn (FaqCategory $c) => app(FaqCategories::class)->present($c) + [
             'items' => FaqItem::where('category_id', $c->id)->orderBy('position')->get()->map(fn (FaqItem $i) => $this->faqItem($i))->all()])->all()]);
     }
 
-    public function storeFaqCategory(Request $request): JsonResponse
+    public function storeFaqCategory(Request $request, FaqCategories $categories): JsonResponse
     {
-        $data = $request->validate(['key' => ['required', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')], 'names' => ['required', 'array:'.implode(',', CmsService::LOCALES)],
-            'names.nl' => ['required', 'string', 'max:80', 'not_regex:/[<>]/'], 'names.en' => ['required', 'string', 'max:80', 'not_regex:/[<>]/']]);
-        $c = FaqCategory::create($data + ['position' => (int) FaqCategory::max('position') + 1]);
-        CmsCache::flush();
+        $data = $this->validateCategory($request, true);
 
-        return response()->json(['data' => ['id' => $c->public_id, 'key' => $c->key, 'names' => $c->names, 'position' => $c->position]], 201);
+        return response()->json(['data' => $categories->present($categories->save(null, $data, $request->user()))], 201);
+    }
+
+    public function updateFaqCategory(Request $request, string $category, FaqCategories $categories): JsonResponse
+    {
+        $data = $this->validateCategory($request, false);
+        $model = FaqCategory::where('public_id', $category)->first() ?? throw new ApiException('Category not found.', 404, 'not_found');
+
+        return response()->json(['data' => $categories->present($categories->save($model, $data, $request->user()))]);
+    }
+
+    /** @return array<string,mixed> */
+    private function validateCategory(Request $request, bool $creating): array
+    {
+        return $request->validate([
+            'key' => [$creating ? 'required' : 'prohibited', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/', Rule::unique('faq_categories', 'key')],
+            'revision' => [$creating ? 'prohibited' : 'required', 'integer', 'min:1'],
+            'parent_id' => ['sometimes', 'nullable', 'string', 'ulid'],
+            'position' => ['sometimes', 'integer', 'between:0,100000'],
+            'names' => [$creating ? 'required' : 'sometimes', 'array:'.implode(',', CmsService::LOCALES), 'min:1'],
+            'names.nl' => ['required_with:names', 'string', 'max:80', 'not_regex:/[<>]/'],
+            'names.en' => ['required_with:names', 'string', 'max:80', 'not_regex:/[<>]/'],
+            'names.de' => ['sometimes', 'string', 'max:80', 'not_regex:/[<>]/'],
+        ]);
     }
 
     public function storeFaqItem(Request $request, RichText $rich): JsonResponse
@@ -354,7 +365,8 @@ class CmsController extends Controller
     {
         return ['id' => $s->public_id, 'page' => $p->public_id, 'kind' => $s->kind, 'source_locale' => $s->source_locale, 'target_locale' => $s->target_locale,
             'source_revision' => $s->source_revision, 'target_revision' => $s->target_revision, 'status' => $s->status, 'error_code' => $s->error_code,
-            'requires_human_approval' => true, 'created_at' => $s->created_at?->toIso8601String(), 'decided_at' => $s->decided_at?->toIso8601String()]
+            'requires_human_approval' => true, 'independent_review_required' => true, 'context' => $s->context,
+            'budget' => ['currency' => 'EUR', 'reserved_micros' => $s->reserved_micros, 'estimated_micros' => $s->estimated_micros, 'scope' => 'Conservative reservation and configured-price estimate; not provider billing evidence.'], 'created_at' => $s->created_at?->toIso8601String(), 'decided_at' => $s->decided_at?->toIso8601String()]
             + ($withContent ? ['proposed' => $s->proposed] : []);
     }
 

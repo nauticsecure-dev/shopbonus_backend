@@ -1,3 +1,11 @@
+Current backend follow-up (2026-11-04): B79/B80 media and saved-page bindings, B81 unified AI/budgets/independent human review, B82 durable backlog/content release gate and B83 [FAQ/media/shared-text management](CENTRAL_MANAGEMENT.md) are implemented at their recorded tested checkpoints. Remaining statements below are historical unless explicitly carried forward. German frontend dictionaries, real responsive rendering, universal other-source discovery, actual23 staging executors/provider quality and independent release acceptance remain incomplete. Backend-only source completion does not establish full-card PASS.
+
+B82 follow-up: [Durable saved-page backlog and recommended coverage gate](BULK_AND_COVERAGE.md) add bounded1000+ planning and mandatory five-denominator/T01–T23 proof evaluation to controlled staging commands. Definition/mapping ledger is not23 implemented browser executors; actual staging/front-end/provider evidence remains UNMAPPED/UNTESTED.
+
+B81 follow-up: [Unified queued AI, monetary reservations and independent human language/meaning review](AI_EXECUTION.md) replace legacy page Chat Completions clients. Human review is not an automated semantic/language classifier or proof of live-model quality. Bulk processing and content-specific coverage/execution remain incomplete.
+
+B80 follow-up: [Saved backend field/source bindings, per-usage immutable recipe pins and component-context media manifests](CONTENT_BINDINGS.md) extend the [B79 original/recipe/derivative/restore pipeline](MEDIA.md). These backend additions supersede earlier “no image pipeline” statements. Universal frontend/other-source discovery, actual responsive component rendering, AI/bulk safeguards and T01–T23 staging acceptance remain incomplete.
+
 # One inline CMS, NL/EN/DE and GPT-6 translation quality
 
 Status: **PARTIAL implementation; NO-GO for the requested release acceptance**.

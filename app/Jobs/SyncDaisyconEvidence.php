@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Affiliate\Adapters\DaisyconAdapter;
 use App\Affiliate\NetworkFailure;
 use App\Models\AffiliateConnection;
+use App\Services\Enrichment\WebsiteResearcher;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -50,15 +51,33 @@ class SyncDaisyconEvidence implements ShouldQueue
         $key = $this->resource.($this->programId === null ? '' : ':'.$this->programId);
         try {
             $payload = $adapter->fetchEvidence($connection, $this->resource, $this->programId);
-            DB::table('affiliate_provider_resources')->updateOrInsert(['connection_id' => $connection->id, 'resource_key' => $key], [
-                'payload' => json_encode($payload, JSON_THROW_ON_ERROR), 'fetched_at' => now(), 'last_error' => null, 'updated_at' => now(),
-            ]);
+            DB::transaction(function () use ($connection, $payload, $key) {
+                $current = AffiliateConnection::whereKey($connection->id)->lockForUpdate()->first();
+                if (! $this->sameAuthority($connection, $current)) {
+                    throw new NetworkFailure('connection_changed');
+                }
+                DB::table('affiliate_provider_resources')->updateOrInsert(['connection_id' => $connection->id, 'resource_key' => $key], [
+                    'payload' => json_encode($payload, JSON_THROW_ON_ERROR), 'fetched_at' => now(), 'credential_hash' => app(WebsiteResearcher::class)->hash($connection->credentials), 'last_error' => null, 'updated_at' => now(),
+                ]);
+            });
         } catch (Throwable $e) {
             // Preserve the last complete snapshot and timestamp; queue retries this resource independently.
-            DB::table('affiliate_provider_resources')->updateOrInsert(['connection_id' => $connection->id, 'resource_key' => $key], [
-                'last_error' => $e instanceof NetworkFailure ? $e->error : 'provider_resource_failed', 'updated_at' => now(),
-            ]);
+            DB::transaction(function () use ($connection, $key, $e) {
+                $current = AffiliateConnection::whereKey($connection->id)->lockForUpdate()->first();
+                if (! $this->sameAuthority($connection, $current)) {
+                    return;
+                }
+                DB::table('affiliate_provider_resources')->updateOrInsert(['connection_id' => $connection->id, 'resource_key' => $key], [
+                    'last_error' => $e instanceof NetworkFailure ? $e->error : 'provider_resource_failed', 'updated_at' => now(),
+                ]);
+            });
             throw $e;
         }
+    }
+
+    private function sameAuthority(AffiliateConnection $original, ?AffiliateConnection $current): bool
+    {
+        return $current !== null && $current->network === $original->network && $current->status !== 'disabled'
+            && hash_equals(app(WebsiteResearcher::class)->hash($original->credentials), app(WebsiteResearcher::class)->hash($current->credentials));
     }
 }

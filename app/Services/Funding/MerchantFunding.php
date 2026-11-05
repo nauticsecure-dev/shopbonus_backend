@@ -8,6 +8,7 @@ use App\Enums\WalletKind;
 use App\Enums\WalletUnit;
 use App\Exceptions\ApiException;
 use App\Models\FundingInvoice;
+use App\Models\FundingInvoiceExport;
 use App\Models\FundingTopUp;
 use App\Models\OfferVersion;
 use App\Models\SponsorshipObligation;
@@ -225,9 +226,10 @@ class MerchantFunding
         $webshops = SponsorshipObligation::where('status', 'settled')->where('settled_at', '>=', $start)->where('settled_at', '<', $end)->distinct()->pluck('webshop_id');
         foreach ($webshops as $webshopId) {
             DB::transaction(function () use ($webshopId, $period, $start, $end, &$count) {
+                Webshop::whereKey($webshopId)->lockForUpdate()->firstOrFail();
                 $invoice = FundingInvoice::where('webshop_id', $webshopId)->where('period', $period)->lockForUpdate()->first();
-                if ($invoice !== null && $invoice->status !== 'draft') {
-                    return; // sent invoices are never changed
+                if ($invoice !== null && ($invoice->status !== 'draft' || FundingInvoiceExport::where('invoice_id', $invoice->id)->exists())) {
+                    return; // prepared/exported snapshots are never changed
                 }
                 $invoice ??= FundingInvoice::create(['webshop_id' => $webshopId, 'period' => $period, 'reward_minor' => 0, 'fee_minor' => 0, 'lines' => 0, 'status' => 'draft']);
 

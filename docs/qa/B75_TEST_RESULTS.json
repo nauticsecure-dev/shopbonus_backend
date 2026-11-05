@@ -1,0 +1,96 @@
+{
+  "checkpoint": "B75",
+  "parent": "8cc2c72",
+  "branch": "frank/moneybird-experiment-followup",
+  "sqlite_selected": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 150,
+    "passed": 147,
+    "assertions": 9730,
+    "duration_ms": 24156,
+    "skipped": 3
+  },
+  "sqlite_final_import_api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 12,
+    "passed": 12,
+    "assertions": 8397,
+    "duration_ms": 11609
+  },
+  "mysql_review_import_sync": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 18,
+    "passed": 18,
+    "assertions": 86,
+    "duration_ms": 21907
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "pint": {
+    "tool": "pint",
+    "result": "passed"
+  },
+  "local_broader_run": {
+    "tool": "phpunit",
+    "result": "failed",
+    "tests": 162,
+    "passed": 154,
+    "assertions": 9781,
+    "duration_ms": 25230,
+    "failed": 4,
+    "failures": [
+      {
+        "test": "Tests\\Feature\\Enrichment\\MerchantEnrichmentE2ETest::test_pipeline_completes_with_faked_ai_and_admin_approve_publishes_profile",
+        "file": "/Users/kcoder/Projects/Shopbonus/tests/Feature/Enrichment/MerchantEnrichmentE2ETest.php",
+        "line": 138,
+        "message": "Failed asserting that false is true."
+      },
+      {
+        "test": "Tests\\Feature\\Enrichment\\MerchantEnrichmentE2ETest::test_storage_failure_cleans_attempted_variants_and_pipeline_keeps_copy with data set \"false return\"",
+        "file": "/Users/kcoder/Projects/Shopbonus/tests/Feature/Enrichment/MerchantEnrichmentE2ETest.php",
+        "line": 215,
+        "message": "Failed asserting that two strings are identical.\n--- Expected\n+++ Actual\n@@ @@\n-'cover_storage_unavailable'\n+'invalid_cover_output'"
+      },
+      {
+        "test": "Tests\\Feature\\Enrichment\\MerchantEnrichmentE2ETest::test_storage_failure_cleans_attempted_variants_and_pipeline_keeps_copy with data set \"write exception\"",
+        "file": "/Users/kcoder/Projects/Shopbonus/tests/Feature/Enrichment/MerchantEnrichmentE2ETest.php",
+        "line": 215,
+        "message": "Failed asserting that two strings are identical.\n--- Expected\n+++ Actual\n@@ @@\n-'cover_storage_unavailable'\n+'invalid_cover_output'"
+      },
+      {
+        "test": "Tests\\Feature\\Enrichment\\MerchantEnrichmentE2ETest::test_storage_failure_cleans_attempted_variants_and_pipeline_keeps_copy with data set \"cleanup exception\"",
+        "file": "/Users/kcoder/Projects/Shopbonus/tests/Feature/Enrichment/MerchantEnrichmentE2ETest.php",
+        "line": 215,
+        "message": "Failed asserting that two strings are identical.\n--- Expected\n+++ Actual\n@@ @@\n-'cover_storage_unavailable'\n+'invalid_cover_output'"
+      }
+    ],
+    "errors": 1,
+    "error_details": [
+      {
+        "test": "Tests\\Feature\\Enrichment\\MerchantEnrichmentE2ETest::test_invalid_cover_bytes_are_rejected_and_png_is_transcoded_to_responsive_webp",
+        "file": "/Users/kcoder/Projects/Shopbonus/tests/Feature/Enrichment/MerchantEnrichmentE2ETest.php",
+        "line": 164,
+        "message": "Incident diagnostics failed.",
+        "trace": [
+          "/Users/kcoder/Projects/Shopbonus/app/Services/Enrichment/MerchantCoverGenerator.php:80",
+          "/Users/kcoder/Projects/Shopbonus/tests/Feature/Enrichment/MerchantEnrichmentE2ETest.php:164"
+        ]
+      }
+    ],
+    "skipped": 3,
+    "risky": 3
+  },
+  "local_gd_diagnostic": "Untouched MerchantCoverGenerator uses imagescale(..., IMG_BICUBIC_FIXED); a standalone local PHP call returns false. Existing cover tests fail locally (4 failures/1 error, 3 risky). These are retained rather than counted as passing; full Linux CI remains pending.",
+  "http": "B75_ASSET_HTTP_CAPTURE.json: actual approved binary200 and pending404, temporary SQLite/storage/key; synthetic download transport",
+  "migrations": [
+    "2026_11_04_080000_create_affiliate_promotion_reviews",
+    "2026_11_04_090000_create_merchant_asset_imports"
+  ],
+  "real_merchant_rights_deployment_acceptance": "NOT RUN"
+}

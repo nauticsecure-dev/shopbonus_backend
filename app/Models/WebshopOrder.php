@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A normalised order from a verified provider event. Customer details are
  * encrypted; `customer_email_hash` supports exact search.
  *
+ * @property int|null $banner_assignment_id
  * @property int $id
  * @property string $public_id
  * @property int $webshop_id

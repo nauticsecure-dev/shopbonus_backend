@@ -114,11 +114,21 @@ class WebshopConnection extends Model
     /** Same grant after normal OAuth renewal; manual rotation still changes generation. */
     public function hasSameCredentialAuthority(self $other): bool
     {
-        if ($this->id !== $other->id || $this->credential_generation !== $other->credential_generation) {
+        if ($this->id !== $other->id || $this->credential_generation !== $other->credential_generation || $this->platform !== $other->platform || $this->webshop_id !== $other->webshop_id) {
             return false;
         }
         if ($this->getRawOriginal('credentials') === $other->getRawOriginal('credentials')) {
             return true;
+        }
+        // Only access-token bytes/expiry may change during an Adobe IMS renewal.
+        if ($this->platform === EcommercePlatform::Magento && $this->credential('deployment') === 'saas' && $this->credential('ims_client_id') !== null) {
+            $authority = $this->credentials ?? [];
+            $otherAuthority = $other->credentials ?? [];
+            unset($authority['access_token'], $authority['access_token_expires_at'], $otherAuthority['access_token'], $otherAuthority['access_token_expires_at']);
+            ksort($authority);
+            ksort($otherAuthority);
+
+            return $this->external_shop_ref === $other->external_shop_ref && $authority === $otherAuthority;
         }
         // Wix app mode: a renewed 4-hour instance token keeps the same app/instance/site/key authority.
         if ($this->platform === EcommercePlatform::Wix && $this->credential('wix_app_id') !== null) {

@@ -23,7 +23,7 @@ class PinnedJsonReader
      * @param  array<string,mixed>  $query
      * @return array{data:array<mixed>,headers:array<string,string>}
      */
-    public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', #[\SensitiveParameter] array $query = [], bool $form = false, bool $allowEmpty = false): array
+    public function read(WebshopConnection $connection, string $url, #[\SensitiveParameter] array $auth, string $method = 'GET', #[\SensitiveParameter] array $query = [], bool $form = false, bool $allowEmpty = false, ?string $credentialIdentity = null): array
     {
         if ($connection->paused_at !== null && ! $connection->isLifecycleProbe()) {
             throw ApiException::conflict('This integration is paused.', 'connection_paused');
@@ -42,7 +42,10 @@ class PinnedJsonReader
         }
         $host = strtolower($parts['host'] ?? '');
         DomainName::fromInput($host);
-        $cacheKey = 'commerce-api:'.hash_hmac('sha256', $connection->public_id.'|'.$host.'|'.json_encode($auth, JSON_THROW_ON_ERROR), (string) config('app.key'));
+        if ($credentialIdentity !== null && ! preg_match('/\A[0-9a-f]{64}\z/D', $credentialIdentity)) {
+            throw new \InvalidArgumentException('Invalid server credential fingerprint.');
+        }
+        $cacheKey = 'commerce-api:'.hash_hmac('sha256', $connection->public_id.'|'.$host.'|'.($credentialIdentity ?? json_encode($auth, JSON_THROW_ON_ERROR)), (string) config('app.key'));
         $pausedUntil = filter_var(Cache::get($cacheKey.':paused'), FILTER_VALIDATE_INT);
         if ($pausedUntil !== false && $pausedUntil > now()->getTimestamp()) {
             throw new ApiException('Provider reads are temporarily paused. Retry later.', 503, 'provider_circuit_open', headers: ['Retry-After' => (string) ($pausedUntil - now()->getTimestamp())]);

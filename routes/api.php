@@ -6,7 +6,11 @@ use App\Http\Controllers\Api\V1\Admin\AgreementTemplateController as AdminAgreem
 use App\Http\Controllers\Api\V1\Admin\AiSupportController;
 use App\Http\Controllers\Api\V1\Admin\ApiRouteRegistryController as AdminApiRouteRegistryController;
 use App\Http\Controllers\Api\V1\Admin\AuditExportController as AdminAuditExportController;
+use App\Http\Controllers\Api\V1\Admin\CmsAiReviewController;
+use App\Http\Controllers\Api\V1\Admin\CmsBindingsController;
 use App\Http\Controllers\Api\V1\Admin\CmsController as AdminCmsController;
+use App\Http\Controllers\Api\V1\Admin\CmsMediaController;
+use App\Http\Controllers\Api\V1\Admin\CmsSharedBlocksController;
 use App\Http\Controllers\Api\V1\Admin\CockpitController as AdminCockpitController;
 use App\Http\Controllers\Api\V1\Admin\CookiePolicyController as AdminCookiePolicyController;
 use App\Http\Controllers\Api\V1\Admin\DisputeController as AdminDisputeController;
@@ -169,6 +173,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('pages/{locale}/{slug}', [PublicContentController::class, 'page'])->name('pages.show');
         Route::get('faq', [PublicContentController::class, 'faq'])->name('faq.index');
         Route::get('content-assets/{id}', [PublicContentController::class, 'asset'])->name('content-assets.show');
+        Route::get('content-assets/{id}/recipes/{recipe}/{breakpoint}', [PublicContentController::class, 'derivative'])->name('content-assets.derivative');
         // Cookie banner (Trello #5).
         Route::get('cookie-policy', [CookieConsentController::class, 'policy'])->name('cookie-policy.show');
         Route::post('cookie-consents', [CookieConsentController::class, 'store'])->middleware('throttle:claims')->name('cookie-consents.store');
@@ -354,6 +359,15 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                     Route::get('pages/{page}/revisions', [AdminCmsController::class, 'revisions'])->name('pages.revisions');
                     Route::get('pages/{page}/locales/{locale}/preview', [AdminCmsController::class, 'preview'])->name('pages.preview');
                     Route::get('translations', [AdminCmsController::class, 'translations'])->name('translations');
+                    Route::get('shared-blocks', [CmsSharedBlocksController::class, 'index'])->name('shared-blocks.index');
+                    Route::get('shared-blocks/{block}/usages', [CmsSharedBlocksController::class, 'usages'])->name('shared-blocks.usages');
+                    Route::get('shared-blocks/{block}', [CmsSharedBlocksController::class, 'show'])->name('shared-blocks.show');
+                    Route::get('assets', [CmsMediaController::class, 'index'])->name('assets.index');
+                    Route::get('assets/{asset}', [CmsMediaController::class, 'show'])->name('assets.show');
+                    Route::get('pages/{page}/locales/{locale}/bindings', [CmsBindingsController::class, 'fields'])->name('pages.bindings');
+                    Route::get('pages/{page}/locales/{locale}/media-preview', [CmsBindingsController::class, 'preview'])->name('pages.media-preview');
+                    Route::get('assets/{asset}/usages', [CmsBindingsController::class, 'usages'])->name('assets.usages');
+                    Route::get('assets/{asset}/original', [CmsMediaController::class, 'original'])->name('assets.original');
                     Route::get('faq', [AdminCmsController::class, 'faq'])->name('faq.index');
                     Route::get('schedules', [AdminCmsController::class, 'schedules'])->name('schedules.index');
                     Route::get('pages/{page}/suggestions', [AdminCmsController::class, 'suggestions'])->name('suggestions.index');
@@ -445,7 +459,17 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                         Route::post('pages/{page}/locales/{locale}/suggestions', [AdminCmsController::class, 'requestSuggestion'])->middleware('throttle:cms-ai')->name('suggestions.store');
                         Route::post('suggestions/{suggestion}/apply', [AdminCmsController::class, 'applySuggestion'])->name('suggestions.apply');
                         Route::post('suggestions/{suggestion}/reject', [AdminCmsController::class, 'rejectSuggestion'])->name('suggestions.reject');
+                        Route::post('suggestions/{suggestion}/review', [CmsAiReviewController::class, 'store'])->name('suggestions.review');
+                        Route::post('shared-blocks', [CmsSharedBlocksController::class, 'store'])->name('shared-blocks.store');
+                        Route::post('shared-blocks/{block}/versions', [CmsSharedBlocksController::class, 'version'])->name('shared-blocks.versions.store');
+                        Route::post('pages/{page}/locales/{locale}/shared-blocks', [CmsSharedBlocksController::class, 'mount'])->name('shared-blocks.mount');
+                        Route::post('pages/{page}/locales/{locale}/shared-blocks/detach', [CmsSharedBlocksController::class, 'detach'])->name('shared-blocks.detach');
                         Route::post('assets', [AdminCmsController::class, 'uploadAsset'])->name('assets.store');
+                        Route::patch('assets/{asset}', [CmsMediaController::class, 'update'])->name('assets.update');
+                        Route::post('assets/{asset}/replace', [CmsMediaController::class, 'replace'])->name('assets.replace');
+                        Route::post('assets/{asset}/recipes', [CmsMediaController::class, 'storeRecipe'])->name('assets.recipes.store');
+                        Route::post('assets/{asset}/restore', [CmsMediaController::class, 'restore'])->name('assets.restore');
+                        Route::patch('faq/categories/{category}', [AdminCmsController::class, 'updateFaqCategory'])->name('faq.categories.update');
                         Route::post('faq/categories', [AdminCmsController::class, 'storeFaqCategory'])->name('faq.categories.store');
                         Route::post('faq/items', [AdminCmsController::class, 'storeFaqItem'])->name('faq.items.store');
                         Route::put('faq/items/{item}', [AdminCmsController::class, 'updateFaqItem'])->name('faq.items.update');

@@ -1,0 +1,71 @@
+{
+  "checkpoint": "B73",
+  "date": "2026-11-04",
+  "branch": "frank/moneybird-experiment-followup",
+  "parent": "6a8c5c3",
+  "scope": "Backend-only opt-in BigCommerce Widgets lifecycle; other native publishers remain explicit app/manual requirements.",
+  "sqlite_banners_integrations_api": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 273,
+    "passed": 271,
+    "assertions": 10988,
+    "duration_ms": 29812,
+    "skipped": 2
+  },
+  "sqlite_final_native_command": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 12,
+    "passed": 12,
+    "assertions": 353,
+    "duration_ms": 1956
+  },
+  "mysql_native_and_remaining_connectors": {
+    "tool": "phpunit",
+    "result": "passed",
+    "tests": 18,
+    "passed": 18,
+    "assertions": 356,
+    "duration_ms": 17141
+  },
+  "phpstan": {
+    "tool": "phpstan",
+    "result": "passed",
+    "errors": 0
+  },
+  "pint": {
+    "tool": "pint",
+    "result": "passed"
+  },
+  "composer_audit": {
+    "advisories": [],
+    "abandoned": []
+  },
+  "http_capture": "B73_NATIVE_BANNER_HTTP_CAPTURE.json (7 actual private Laravel TCP responses, no native provider writes)",
+  "genuine_provider_storefront_acceptance": "NOT RUN",
+  "migrations": "None in B72/B73",
+  "full_ci": "Latest branch head execution: https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks; preceding be6f2f1 run41736724646 passed. B72/B73 current-build matrix pending push.",
+  "ci_fixture_correction": {
+    "parent": "9abc7af",
+    "superseded_run": 41787701578,
+    "cause": "MerchantLandingCmsTest assumed Mijnwebwinkel had no connector; it now has an explicitly manual partner bridge. Unsupported fixture made explicit; manual/non-native assertions added.",
+    "sqlite": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 14,
+      "passed": 14,
+      "assertions": 84,
+      "duration_ms": 2287
+    },
+    "mysql": {
+      "tool": "phpunit",
+      "result": "passed",
+      "tests": 14,
+      "passed": 14,
+      "assertions": 84,
+      "duration_ms": 22801
+    },
+    "production_code_changed": false
+  }
+}

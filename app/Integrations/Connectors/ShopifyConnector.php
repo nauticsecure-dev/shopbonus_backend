@@ -6,7 +6,9 @@ use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -34,7 +36,7 @@ use InvalidArgumentException;
  *
  * NOT VERIFIED against a live store.
  */
-class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedOrderReader
+class ShopifyConnector extends WebhookConnector implements CatalogReader, CouponLookup, PagedOrderReader
 {
     public const ORDER_TOPICS = ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'orders/fulfilled'];
 
@@ -172,8 +174,7 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
             // NOT VERIFIED: the storefront embed is expected to add a cart attribute "shopbonus_click_id".
             attributionClickId: GenericSignedWebhookConnector::clickId(collect(is_array($payload['note_attributes'] ?? null) ? $payload['note_attributes'] : [])
                 ->first(fn ($a) => is_array($a) && ($a['name'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
-            bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect(is_array($payload['note_attributes'] ?? null) ? $payload['note_attributes'] : [])
-                ->first(fn ($m) => is_array($m) && ($m['name'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
+            bannerAssignmentToken: AssignmentMetadata::fromRows($payload['note_attributes'] ?? null, 'name'),
             providerUpdatedAt: $this->date($payload['updated_at'] ?? null),
         );
     }
@@ -246,7 +247,7 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
             attributionClickId: GenericSignedWebhookConnector::clickId(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_click_id')['value'] ?? null),
             lineItems: LineItems::shopify($payload['lineItems'] ?? null, Money::isCurrency($currency) ? $currency : null),
             amountBreakdown: $this->breakdown($payload, Money::isCurrency($currency) ? $currency : null),
-            bannerAssignmentToken: GenericSignedWebhookConnector::assignmentToken(collect($attributes)->first(fn ($a) => is_array($a) && ($a['key'] ?? null) === 'shopbonus_assignment_token')['value'] ?? null),
+            bannerAssignmentToken: AssignmentMetadata::fromRows($attributes, 'key'),
         );
     }
 
@@ -289,5 +290,10 @@ class ShopifyConnector extends WebhookConnector implements CatalogReader, PagedO
         }
 
         return ['items' => $items, 'next' => $page['next']];
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        return app(ShopifyApi::class)->couponByCode($connection, $code);
     }
 }

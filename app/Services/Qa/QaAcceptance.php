@@ -112,13 +112,13 @@ class QaAcceptance
     }
 
     /** @param array<string, mixed> $definition */
-    private function definitionValid(array $definition, bool $provider): bool
+    private function definitionValid(array $definition, bool $provider, string $packagePattern = '/\AE2E-(0[1-9]|1[0-9]|2[0-5])\z/D'): bool
     {
-        $rules = ['id' => ['required', 'string', 'max:100'], 'package' => ['required', 'regex:/\AE2E-(0[1-9]|1[0-9]|2[0-5])\z/D'],
+        $rules = ['id' => ['required', 'string', 'max:100'], 'package' => ['required', 'regex:'.$packagePattern],
             'test_key' => ['required', 'string', 'max:250'], 'assertions' => ['required', 'array', 'min:1'], 'assertions.*' => ['required', 'string', 'max:2000'],
             'case_version' => ['required', 'integer', 'min:1'], 'min_assertions' => ['required', 'integer', 'min:1'], 'environment' => ['required', 'in:staging'],
             'executor' => ['required', 'string', 'max:250'], 'instructions' => ['required', 'array', 'min:1'], 'instructions.*' => ['required', 'string', 'max:2000'],
-            'required_evidence' => ['required', 'array', 'min:4'], 'required_evidence.*' => ['required', 'string', 'in:http,database,request_ids,screenshot,provider_confirmation,frontend_inventory'],
+            'required_evidence' => ['required', 'array', 'min:4'], 'required_evidence.*' => ['required', 'string', 'in:http,database,request_ids,screenshot,provider_confirmation,frontend_inventory,cms_coverage'],
             'review_evidence_id' => ['required', 'ulid']];
         if ($provider) {
             $rules += ['provider' => ['required', 'in:'.implode(',', self::PROVIDERS)], 'stage' => ['required', 'in:'.implode(',', self::STAGES)]];
@@ -127,6 +127,68 @@ class QaAcceptance
         return Validator::make($definition, $rules)->passes()
             && array_diff(['http', 'database', 'request_ids', 'screenshot'], $definition['required_evidence'] ?? []) === []
             && (! $provider || in_array('provider_confirmation', $definition['required_evidence'], true));
+    }
+
+    /** Reuses the same independent result/evidence engine for the separate recommended CMS domain.
+     * @param  array<string,mixed>  $definition
+     * @return list<string>
+     */
+    public function checkCms(array $definition, string $sha, string $sourceHash, string $sourceVersion): array
+    {
+        if (! $this->definitionValid($definition, false, '/\ACMS-(T(0[1-9]|1[0-9]|2[0-3])|D0[1-5])\z/D') || ($definition['id'] ?? null) !== ($definition['package'] ?? null)) {
+            return ['cms_definition_unmapped_or_invalid'];
+        }
+        $required = [];
+        if (in_array($definition['id'], ['CMS-T09', 'CMS-T22'], true)) {
+            $required[] = 'provider_confirmation';
+            if (($definition['provider'] ?? null) !== 'openai') {
+                return ['genuine_model_confirmation_required'];
+            }
+        }
+        if (str_starts_with($definition['id'], 'CMS-D')) {
+            $required[] = 'cms_coverage';
+            if ($definition['id'] !== 'CMS-D05') {
+                $required[] = 'frontend_inventory';
+            }
+        }
+        if (array_diff($required, $definition['required_evidence']) !== []) {
+            return ['cms_required_evidence_missing'];
+        }
+        if (in_array('frontend_inventory', $required, true) && ! preg_match('/\A[0-9a-f]{40,64}\z/D', (string) ($definition['frontend_git_sha'] ?? ''))) {
+            return ['frontend_build_unmapped'];
+        }
+
+        return $this->check($definition, $sha, $sourceHash, $sourceVersion);
+    }
+
+    /** @param array<string,mixed> $data
+     * @param  array<string,mixed>  $definition
+     */
+    private function coverageValid(array $data, array $definition, string $sha): bool
+    {
+        if (($data['known'] ?? null) !== true || ($data['deployment_sha'] ?? null) !== $sha || ($data['denominator_id'] ?? null) !== $definition['id'] || ($data['coverage_kind'] ?? null) !== ($definition['coverage_kind'] ?? null)
+            || ! is_array($data['ids'] ?? null) || ! is_array($data['covered_ids'] ?? null)) {
+            return false;
+        }
+        $ids = $data['ids'];
+        $covered = $data['covered_ids'];
+        if (array_filter($ids, fn ($v) => ! is_string($v)) !== [] || array_filter($covered, fn ($v) => ! is_string($v)) !== [] || count(array_unique($ids)) !== count($ids) || count(array_unique($covered)) !== count($covered)) {
+            return false;
+        }
+        sort($ids);
+        sort($covered);
+        if ($ids !== $covered || $ids === []) {
+            return false;
+        }
+        if ($definition['id'] === 'CMS-D05') {
+            $expected = array_map(fn ($n) => sprintf('CMS-T%02d', $n), range(1, 23));
+            sort($expected);
+            if ($ids !== $expected) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** Hash reviewed instructions/assertions too: changing a mapping invalidates its old proof.
@@ -201,7 +263,7 @@ class QaAcceptance
                     || ($kind === 'request_ids' && ! $artifact->request_id)
                     || ($kind === 'screenshot' && ! in_array($artifact->mime, ['image/png', 'image/jpeg', 'image/webp'], true))) {
                     $errors[] = 'evidence_invalid:'.$kind;
-                } elseif (! $this->artifactValid($kind, $artifact, $definition)) {
+                } elseif (! $this->artifactValid($kind, $artifact, $definition, $sha)) {
                     $errors[] = 'evidence_contract_invalid:'.$kind;
                 }
             }
@@ -213,7 +275,7 @@ class QaAcceptance
     }
 
     /** @param array<string, mixed> $definition */
-    private function artifactValid(string $kind, QaEvidence $artifact, array $definition): bool
+    private function artifactValid(string $kind, QaEvidence $artifact, array $definition, string $sha): bool
     {
         if ($kind === 'screenshot') {
             return true;
@@ -228,9 +290,14 @@ class QaAcceptance
                 'database' => ['before' => 'present|array', 'after' => 'present|array', 'source_references' => 'required|array|min:1'],
                 'request_ids' => ['request_ids' => 'required|array|min:1', 'request_ids.*' => 'required|string'],
                 'provider_confirmation' => ['provider' => 'required|in:'.$definition['provider'], 'store_reference' => 'required|string', 'source_reference' => 'required|string', 'observed_state' => 'required|string', 'observed_at' => 'required|date', 'genuine_provider' => 'required|accepted'],
+                'cms_coverage' => ['denominator_id' => 'required|string', 'coverage_kind' => 'required|string', 'deployment_sha' => 'required|string', 'known' => 'required|boolean', 'ids' => 'required|array|min:1|max:100000', 'ids.*' => 'required|string|max:1000', 'covered_ids' => 'required|array|min:1|max:100000', 'covered_ids.*' => 'required|string|max:1000', 'source_references' => 'required|array|min:1'],
                 'frontend_inventory' => ['git_sha' => ['required', 'regex:/\A[0-9a-f]{40,64}\z/D'], 'routes' => 'required|array|min:1', 'actions' => 'required|array|min:1', 'components' => 'required|array|min:1', 'ui_states' => 'required|array|min:1'],
                 default => [],
             };
+
+            if ($kind === 'cms_coverage' && ! $this->coverageValid($data, $definition, $sha)) {
+                return false;
+            }
 
             return $rules !== [] && Validator::make($data, $rules)->passes()
                 && ($kind !== 'request_ids' || in_array($artifact->request_id, $data['request_ids'], true))

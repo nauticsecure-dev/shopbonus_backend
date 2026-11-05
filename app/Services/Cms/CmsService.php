@@ -39,6 +39,32 @@ class CmsService
      */
     public function validateContent(array $content, ?string $type = null, ?string $key = null): array
     {
+        $shared = $content['shared_blocks'] ?? null;
+        $hasShared = array_key_exists('shared_blocks', $content);
+        unset($content['shared_blocks']);
+        $hasPins = array_key_exists('media_recipes', $content);
+        $pins = $content['media_recipes'] ?? null;
+        unset($content['media_recipes']);
+        $data = $this->validateBaseContent($content, $type, $key);
+        if ($hasPins) {
+            $data['media_recipes'] = app(CmsContentBindings::class)->validatePins($data, $pins);
+        }
+
+        if ($hasShared) {
+            if (in_array($type, CmsPage::LEGAL, true)) {
+                throw ValidationException::withMessages(['content.shared_blocks' => 'Legal text must remain independently reviewed page content.']);
+            }
+            $data['shared_blocks'] = app(CmsSharedBlocks::class)->validatePins($data, $shared);
+        }
+
+        return $data;
+    }
+
+    /** @param array<string,mixed> $content
+     * @return array<string,mixed>
+     */
+    private function validateBaseContent(array $content, ?string $type, ?string $key): array
+    {
         if ($key === 'voor-webshops') {
             $data = $this->merchantLanding->validate($content);
             if (isset($data['body']) && is_array($data['body'])) {
@@ -194,7 +220,10 @@ class CmsService
         return DB::transaction(function () use ($key, $type, $audience, $locales, $actorId) {
             $page = CmsPage::create(['key' => $key, 'type' => $type, 'audience' => $audience, 'created_by' => $actorId]);
             foreach ($locales as $locale => $l) {
-                CmsPageLocale::create(['page_id' => $page->id, 'locale' => $locale, 'slug' => $l['slug'], 'draft_content' => $this->validateContent($l['content'], $type, $key),
+                $content = $this->validateContent($l['content'], $type, $key);
+                app(CmsSharedBlocks::class)->validatePins($content, $content['shared_blocks'] ?? [], $locale);
+                app(CmsAssetPolicy::class)->assertNewReferences([], $content);
+                CmsPageLocale::create(['page_id' => $page->id, 'locale' => $locale, 'slug' => $l['slug'], 'draft_content' => $content,
                     'draft_updated_at' => now(), 'draft_updated_by' => $actorId]);
             }
             $this->audit->record('cms.page_created', category: AuditCategory::Admin, resource: $page, actorUserId: $actorId, metadata: ['key' => $key, 'type' => $type]);
@@ -208,12 +237,17 @@ class CmsService
      *
      * @param  array<string, mixed>  $content
      */
-    public function saveDraft(CmsPage $page, string $locale, array $content, int $revision, ?string $slug, int $actorId): CmsPageLocale
+    public function saveDraft(CmsPage $page, string $locale, array $content, int $revision, ?string $slug, int $actorId, bool $allowSharedDetach = false): CmsPageLocale
     {
         $content = $this->validateContent($content, $page->type, $page->key);
+        app(CmsSharedBlocks::class)->validatePins($content, $content['shared_blocks'] ?? [], $locale);
 
-        $saved = DB::transaction(function () use ($page, $locale, $content, $revision, $slug, $actorId) {
+        $saved = DB::transaction(function () use ($page, $locale, $content, $revision, $slug, $actorId, $allowSharedDetach) {
             $l = CmsPageLocale::where('page_id', $page->id)->where('locale', $locale)->lockForUpdate()->first();
+            if (! $allowSharedDetach && array_diff_key($l->draft_content['shared_blocks'] ?? [], $content['shared_blocks'] ?? []) !== []) {
+                throw ApiException::conflict('Detach shared usages explicitly before removing their source pins.', 'shared_block_detach_required');
+            }
+            app(CmsAssetPolicy::class)->assertNewReferences($l->draft_content ?? [], $content);
             if ($l === null) {
                 if ($slug === null) {
                     throw ValidationException::withMessages(['slug' => 'A new translation needs a slug.']);

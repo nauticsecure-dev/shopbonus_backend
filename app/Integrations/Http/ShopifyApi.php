@@ -110,6 +110,41 @@ class ShopifyApi
 
     private const CATALOG_DISCOUNTS = 'query ShopbonusCatalogDiscounts($after: String) { discountNodes(first: 25, after: $after, query: "method:code", sortKey: ID) { nodes { id discount { __typename ... on DiscountCodeBasic { '.self::DISCOUNT_COMMON.' customerGets { value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount currencyCode } appliesOnEachItem } } items { __typename ... on DiscountProducts { products(first: 10) { nodes { legacyResourceId } pageInfo { hasNextPage } } } ... on DiscountCollections { collections(first: 10) { nodes { legacyResourceId } pageInfo { hasNextPage } } } } } } ... on DiscountCodeFreeShipping { '.self::DISCOUNT_COMMON.' } } } pageInfo { hasNextPage endCursor } } }';
 
+    /** @return array{coupon:array<string,mixed>|null,currency:string} */
+    public function couponByCode(WebshopConnection $connection, string $code): array
+    {
+        $code = WooCommerceApi::couponCode($code);
+        $this->identity($connection, 'read_discounts');
+        $fields = 'status startsAt endsAt updatedAt usageLimit appliesOncePerCustomer asyncUsageCount recurringCycleLimit codesCount { count precision } codes(first: 2) { nodes { code } pageInfo { hasNextPage } } combinesWith { orderDiscounts productDiscounts shippingDiscounts } context { __typename } minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount currencyCode } } } customerGets { value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount currencyCode } appliesOnEachItem } } items { __typename } appliesOnOneTimePurchase appliesOnSubscription }';
+        $data = $this->query($connection, 'query ShopbonusCouponByCode($code: String!) { shop { currencyCode } codeDiscountNodeByCode(code: $code) { id codeDiscount { __typename ... on DiscountCodeBasic { '.$fields.' } } } }', ['code' => $code]);
+        if (! array_key_exists('codeDiscountNodeByCode', $data)) {
+            throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+        $currency = $data['shop']['currencyCode'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $node = $data['codeDiscountNodeByCode'];
+        if ($node === null) {
+            return ['coupon' => null, 'currency' => $currency];
+        }
+        if (! is_array($node) || ! is_string($node['id'] ?? null) || ! preg_match('~\Agid://shopify/DiscountCodeNode/[1-9][0-9]{0,18}\z~D', $node['id']) || ! is_array($node['codeDiscount'] ?? null)) {
+            throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+        $d = $node['codeDiscount'];
+        if (($d['__typename'] ?? null) === 'DiscountCodeBasic') {
+            $codes = $d['codes']['nodes'] ?? null;
+            if (($d['codesCount']['count'] ?? null) !== 1 || ($d['codesCount']['precision'] ?? null) !== 'EXACT'
+                || ($d['codes']['pageInfo']['hasNextPage'] ?? null) !== false || ! is_array($codes) || ! array_is_list($codes) || count($codes) !== 1
+                || ! is_string($codes[0]['code'] ?? null) || mb_strtoupper($codes[0]['code']) !== mb_strtoupper($code)) {
+                throw ApiException::conflict('The native coupon identity is ambiguous.', 'provider_coupon_ambiguous');
+            }
+        }
+
+        // Preserve the catalog mapper's established node shape, but retain raw restrictions for verification.
+        return ['coupon' => ['id' => $node['id'], 'discount' => $d], 'currency' => $currency];
+    }
+
     /** Store currency after the identity/domain gate (no extra scope). */
     public function shopCurrency(WebshopConnection $connection): ?string
     {

@@ -79,4 +79,22 @@ class LightspeedCConnectorTest extends TestCase
         $this->expectException(InvalidWebhook::class);
         $a->verifyIncomingEvent($c, $r);
     }
+
+    public function test_credit_invoices_return_quantities_and_paid_labels_do_not_prove_cash_refunds(): void
+    {
+        $p = $this->orderPayload();
+        $p['invoices'] = [['id' => 9, 'isCredit' => true, 'isPaid' => true, 'priceIncl' => '20.00', 'order_id' => 1623550]];
+        $p['returns'] = [['order_id' => 1623550, 'status' => 'refunded', 'quantity' => 1, 'amount' => '20.00']];
+        $p['order']['refundedMinor'] = 2000;
+        $p['order']['amount_refunded'] = '20.00';
+        $n = (new LightspeedCConnector)->normalizeOrder($p);
+        $this->assertNull($n->refundedMinor);
+        $this->assertNull($n->refundedAt);
+        $this->assertSame(PaymentStatus::Paid, $n->paymentStatus);
+        $this->assertSame(5035, $n->amountMinor);
+        $this->assertSame(5035, $n->amountBreakdown['original_total_minor']);
+        $unknown = (new LightspeedCConnector)->normalizeOrder($this->orderPayload('refunded'));
+        $this->assertSame(PaymentStatus::Unknown, $unknown->paymentStatus);
+        $this->assertNull($unknown->refundedMinor);
+    }
 }

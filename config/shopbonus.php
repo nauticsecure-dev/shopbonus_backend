@@ -123,6 +123,7 @@ return [
         // Extra https hosts allowed in homepage section hrefs (frontend + APP_URL are always included).
         'href_hosts' => array_values(array_filter(array_map('trim', explode(',', (string) env('CMS_HREF_HOSTS', 'localhost,127.0.0.1,shopbonus.nl,www.shopbonus.nl'))))),
         // Homepage AI suggestions (never auto-apply). Off by default.
+        // Deprecated compatibility keys: CMS execution uses config/cms.php and the queued reviewed flow.
         'ai_suggest_enabled' => (bool) env('CMS_AI_SUGGEST_ENABLED', false),
         'ai_api_key' => env('CMS_AI_API_KEY', env('OPENAI_API_KEY')),
         'ai_model' => env('CMS_AI_MODEL', 'gpt-4o-mini'),

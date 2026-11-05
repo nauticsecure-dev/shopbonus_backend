@@ -1,11 +1,13 @@
 <?php
 
 use App\Integrations\Connectors\BigCommerceConnector;
+use App\Integrations\Connectors\CcvConnector;
 use App\Integrations\Connectors\EcwidConnector;
 use App\Integrations\Connectors\GenericSignedWebhookConnector;
 use App\Integrations\Connectors\LightspeedCConnector;
 use App\Integrations\Connectors\LightspeedEConnector;
 use App\Integrations\Connectors\MagentoConnector;
+use App\Integrations\Connectors\MijnwebwinkelConnector;
 use App\Integrations\Connectors\PrestaShopConnector;
 use App\Integrations\Connectors\ShopifyConnector;
 use App\Integrations\Connectors\ShopwareConnector;
@@ -28,6 +30,9 @@ use App\Integrations\Connectors\WooCommerceConnector;
 
 return [
 
+    // Explicit read capability after the cart/order bridge and provider permissions are configured.
+    'assignment_metadata' => ['bigcommerce' => (bool) env('BIGCOMMERCE_ASSIGNMENT_METADATA_ENABLED', false)],
+
     'sync' => ['enabled' => (bool) env('INTEGRATION_SYNC_ENABLED', false), 'connections' => array_values(array_filter(explode(',', (string) env('INTEGRATION_SYNC_CONNECTIONS', ''))))],
 
     'shopify_webhooks' => ['enabled' => (bool) env('SHOPIFY_WEBHOOK_SETUP_ENABLED', false)],
@@ -49,6 +54,8 @@ return [
     ],
 
     'webhook_retention_days' => (int) env('WEBHOOK_PAYLOAD_RETENTION_DAYS', 14),
+
+    'bigcommerce_banners' => ['enabled' => (bool) env('BIGCOMMERCE_BANNERS_ENABLED', false)],
 
     'platforms' => [
         'woocommerce' => [
@@ -126,7 +133,7 @@ return [
                 'webhook_topics' => ['store/order/created', 'store/order/updated', 'store/order/statusUpdated', 'store/order/refund/created', 'store/order/transaction/created'],
                 'order_api' => 'GET https://api.bigcommerce.com/stores/{hash}/v2/orders/{id}', 'refund_api' => 'GET .../v3/orders/{id}/payment_actions/refunds',
                 'product_api' => 'GET /v3/catalog/products?include=primary_image', 'coupon_api' => 'GET /v2/coupons (read-only)',
-                'banner_method' => 'BigCommerce Widgets API; native publish not implemented',
+                'banner_method' => 'Opt-in BigCommerce Widgets template/widget/placement provisioning via shopbonus:banner-native; existing reviewed region, Content modify scope and live storefront acceptance required',
                 'rate_limit_policy' => 'No redirects/retries;8second/1MiB; webhook timestamp±300s; unpaid created orders imported but not rewarded until capture proof.',
                 'sources' => ['https://docs.bigcommerce.com/developer/docs/integrations/webhooks/overview', 'https://docs.bigcommerce.com/developer/docs/integrations/webhooks/event-reference/events', 'https://docs.bigcommerce.com/developer/docs/admin/widgets-and-scripts/overview', 'https://docs.bigcommerce.com/developer/api-reference/rest/admin/management/orders/get-order'],
             ],
@@ -250,20 +257,20 @@ return [
             'name' => 'Magento / Adobe Commerce', 'priority' => 'additional',
             'connector' => MagentoConnector::class,
             'profile' => [
-                'api_version' => 'Magento/Adobe Commerce2.4 self-hosted/PaaS REST', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
+                'api_version' => 'Magento2.4/PaaS REST + Adobe Commerce SaaS scoped REST', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
                 'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
-                'native_read_api_implemented' => true, 'auth_method' => 'Shopbonus HMAC bridge + optional REST integration bearer token',
+                'native_read_api_implemented' => true, 'auth_method' => 'ShopBonus ID-only HMAC courier; PaaS bearer or SaaS IMS bearer + Store header',
                 'scopes' => ['orders, invoices, transactions, creditmemos read'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
-                'order_api' => 'GET {installation}/rest/{store_code}/V1/orders/{id}', 'refund_api' => 'creditmemos + refund transactions required for refund qualification',
+                'order_api' => 'PaaS: GET {installation}/rest/{store_code}/V1/orders/{id}; SaaS: GET {tenant_api}/V1/orders/{id} with Store header', 'refund_api' => 'creditmemos + refund transactions required for refund qualification',
                 'product_api' => 'GET /V1/products', 'coupon_api' => 'GET salesRules/search + coupons/search (SPECIFIC_COUPON read-only)',
                 'banner_method' => 'Approved Commerce module/storefront component; architecture-dependent',
-                'rate_limit_policy' => 'Prefer Adobe I/O Events async; do not use synchronous Commerce Webhooks for slow ingestion. SaaS tenant auth not substituted.',
-                'sources' => ['https://developer.adobe.com/commerce/extensibility/events/', 'https://developer.adobe.com/commerce/extensibility/webhooks/', 'https://developer.adobe.com/commerce/webapi/rest/attributes/', 'https://github.com/magento/magento2'],
+                'rate_limit_policy' => 'Candidate private App Builder action or PaaS commit-time outbox; no checkout HTTP. Bounded pinned reads; SaaS tenant/store binding and IMS renewal are deployment requirements.',
+                'sources' => ['https://developer.adobe.com/commerce/extensibility/events/', 'https://developer.adobe.com/commerce/extensibility/webhooks/', 'https://developer.adobe.com/commerce/webapi/rest/attributes/', 'https://github.com/magento/magento2', 'https://developer.adobe.com/commerce/webapi/rest/', 'https://adobe-commerce-saas.redoc.ly/', 'https://developer.adobe.com/commerce/extensibility/events/tutorial/deployment'],
             ],
             'method' => 'private_module', 'auth' => 'Shopbonus signed webhook v1', 'order_source' => 'module payload',
-            'reliability' => 'high (module not yet built)', 'limitations' => ['private module must be installed', 'SaaS vs PaaS/on-prem differences unverified live'],
+            'reliability' => 'unverified (candidate asynchronous couriers)', 'limitations' => ['PaaS module/App Builder source shipped; authorized installation required', 'SaaS IMS renewal and Adobe signature-validator/event registration remain deployment-managed', 'Native installation/order/refund/uninstall acceptance NOT RUN'],
             'verification' => 'unverified',
         ],
         'lightspeed_e' => [
@@ -301,14 +308,30 @@ return [
             'verification' => 'unverified', 'blocked_reason' => null,
         ],
         'mijnwebwinkel' => [
-            'name' => 'Mijnwebwinkel', 'priority' => 'additional', 'connector' => null,
-            'method' => 'partner API', 'auth' => 'partner authorisation', 'reliability' => 'unknown',
-            'limitations' => [], 'verification' => 'unverified', 'blocked_reason' => 'Partner/API authorisation pending.',
+            'name' => 'Mijnwebwinkel', 'priority' => 'additional', 'connector' => MijnwebwinkelConnector::class,
+            'method' => 'private_module', 'auth' => 'Merchant-authorized partner bridge; ShopBonus HMAC-SHA256', 'reliability' => 'partner-bridge claims, not independent native evidence',
+            'profile' => [
+                'api_version' => 'ShopBonus partner bridge v1 (native partner API not implemented)', 'reviewed_at' => '2026-11-04', 'last_live_verified_at' => null,
+                'native_read_api_implemented' => false, 'payment_time_mapped' => false, 'refund_amounts_mapped' => false,
+                'product_api' => 'UNSUPPORTED', 'coupon_api' => 'UNSUPPORTED', 'banner_method' => 'Merchant placement; native API publication unsupported',
+                'sources' => ['https://help.mijnwebwinkel.nl/en/articles/999938', 'https://connect.myonlinestore.com/swagger-docs/'],
+            ],
+            'limitations' => ['Requires an actual authorized partner-side bridge; no native partner API client or backfill is claimed.', 'Signed bridge claims do not prove native payment/settlement/refund amounts or contact consent. Connection remains Limited.', 'Native schema retrieval and genuine provider acceptance remain unverified.'],
+            'verification' => 'unverified', 'blocked_reason' => null,
         ],
         'ccv' => [
-            'name' => 'CCV Shop', 'priority' => 'additional', 'connector' => null,
-            'method' => 'REST API (adapter pending)', 'auth' => 'API public key + secret; HMAC-SHA512 over public|method|URI|body|UTC timestamp', 'reliability' => 'unknown',
-            'limitations' => ['Native REST adapter, store binding, webhook/reconciliation and payment/refund mapping remain unimplemented.'], 'verification' => 'unverified', 'blocked_reason' => 'API contract identified at https://demo.ccvshop.nl/API/Docs/; authenticated adapter and acceptance still required.',
+            'name' => 'CCV Shop', 'priority' => 'additional', 'connector' => CcvConnector::class,
+            'method' => 'polling', 'auth' => 'CCV Shop public key + HMAC-SHA512 secret', 'reliability' => 'creation-window polling; payment-time/refund evidence limited',
+            'profile' => [
+                'api_version' => 'REST v1', 'reviewed_at' => '2026-11-04', 'last_live_verified_at' => null,
+                'native_read_api_implemented' => true, 'payment_time_mapped' => false, 'refund_amounts_mapped' => false,
+                'discovery_window' => 'created_at', 'order_api' => 'GET /api/rest/v1/orders/{id}/',
+                'refund_api' => 'UNSUPPORTED cash totals/times', 'product_api' => 'UNSUPPORTED', 'coupon_api' => 'UNSUPPORTED',
+                'banner_method' => 'Native app code-block installation not implemented',
+                'sources' => ['https://demo.ccvshop.nl/API/Docs/'],
+            ],
+            'limitations' => ['Completed native orders only. Paid is a marked-as-paid flag, not settlement proof.', 'Discovery filters create_date; historical changes require explicit order-ID recovery. No authenticated webhook contract or cash-refund mapping.', 'Genuine provider acceptance NOT RUN.'],
+            'verification' => 'unverified', 'blocked_reason' => null,
         ],
         'other' => [
             'name' => 'Other / custom shop', 'priority' => 'additional',

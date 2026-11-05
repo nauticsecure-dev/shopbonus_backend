@@ -5,9 +5,12 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
+use App\Integrations\CouponLookupResult;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
 use App\Integrations\Data\VerifiedEvent;
@@ -21,7 +24,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class BigCommerceConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+final class BigCommerceConnector extends WebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     public const TOPICS = ['store/order/created', 'store/order/updated', 'store/order/statusUpdated', 'store/order/refund/created', 'store/order/transaction/created'];
 
@@ -49,7 +52,7 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
 
     public function setupInstructions(WebshopConnection $c, string $url): array
     {
-        return ['format' => 'bigcommerce-standard-webhooks', 'webhook_url' => $url, 'store_hash' => $c->external_shop_ref, 'topics' => self::TOPICS, 'steps' => ['Configure a merchant-authorized app/store token with Orders, Order Transactions and Information read scopes.', 'Register HTTPS hooks through POST /stores/{store_hash}/v3/hooks. This receiver requires documented Standard Webhooks signatures using the app client secret. A payload hash alone is not authentication.', 'Widget publication and real order/payment/refund acceptance remain merchant-controlled and unverified.'], 'live_verified' => false];
+        return ['format' => 'bigcommerce-standard-webhooks', 'webhook_url' => $url, 'store_hash' => $c->external_shop_ref, 'topics' => self::TOPICS, 'steps' => ['Configure a merchant-authorized app/store token with Orders, Order Transactions and Information read scopes.', 'Register HTTPS hooks through POST /stores/{store_hash}/v3/hooks. This receiver requires documented Standard Webhooks signatures using the app client secret. A payload hash alone is not authentication.', 'For optional native Widgets provisioning/removal, configure Content modify permission and BIGCOMMERCE_BANNERS_ENABLED; use shopbonus:banner-native with a reviewed existing theme region. Real storefront/order/payment/refund acceptance remains unverified.'], 'live_verified' => false];
     }
 
     public function verifyIncomingEvent(WebshopConnection $c, Request $r): VerifiedEvent
@@ -113,7 +116,8 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         return app(PinnedJsonReader::class)->read($c, 'https://api.bigcommerce.com/stores/'.$c->external_shop_ref.$path, ['headers' => ['X-Auth-Token' => $c->credential('access_token')]], 'GET', $query, allowEmpty: $allowEmpty)['data'];
     }
 
-    private function identity(WebshopConnection $c): void
+    /** @return array<string,mixed> */
+    private function identity(WebshopConnection $c): array
     {
         $s = $this->read($c, '/v2/store');
         if (($s['id'] ?? null) !== $c->external_shop_ref) {
@@ -125,6 +129,15 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         if (($s['features']['multi_storefront_enabled'] ?? false) === true) {
             throw ApiException::conflict('Multi-storefront channel ownership requires a separate verified mapping.', 'provider_channel_mapping_required');
         }
+
+        return $s;
+
+    }
+
+    /** Reused by native content provisioning; identity does not imply content permissions. */
+    public function verifyStore(WebshopConnection $connection): void
+    {
+        $this->identity($connection);
     }
 
     public function testConnection(WebshopConnection $c): array
@@ -162,7 +175,16 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
             throw new ApiException('The provider returned an unexpected order identity or currency.', 502, 'provider_order_invalid');
         }
 
-        return ['order' => $p, 'transactions' => $this->collection($c, '/v3/orders/'.$id.'/transactions'), 'refunds' => $this->collection($c, '/v3/orders/'.$id.'/payment_actions/refunds')];
+        $payload = ['order' => $p, 'transactions' => $this->collection($c, '/v3/orders/'.$id.'/transactions'), 'refunds' => $this->collection($c, '/v3/orders/'.$id.'/payment_actions/refunds')];
+        if (config('integrations.assignment_metadata.bigcommerce')) {
+            $metadata = $this->read($c, '/v3/orders/'.$id.'/metafields', ['namespace' => 'shopbonus', 'key' => 'assignment_token', 'limit' => 2, 'page' => 1]);
+            if (! is_array($metadata['data'] ?? null) || ! array_is_list($metadata['data']) || count($metadata['data']) > 2 || ($metadata['meta']['pagination']['total_pages'] ?? 1) > 1) {
+                throw new ApiException('Order assignment metadata is ambiguous or incomplete.', 502, 'provider_assignment_metadata_invalid');
+            }
+            $payload['assignment_metafields'] = $metadata['data'];
+        }
+
+        return $payload;
     }
 
     public function discoverOrders(WebshopConnection $c, CarbonImmutable $since, CarbonImmutable $until, ?string $cursor): array
@@ -240,7 +262,7 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
             $total === null => PaymentStatus::Unknown,($p['status_id'] ?? null) === 5 => PaymentStatus::Cancelled,$paidAt !== null && $captured >= $total && $refund === $total && $total > 0 => PaymentStatus::Refunded,$paidAt !== null && $captured >= $total && $refund > 0 => PaymentStatus::PartiallyRefunded,$paidAt !== null && $captured >= $total => PaymentStatus::Paid,default => PaymentStatus::Pending
         };
 
-        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null), bannerAssignmentToken: AssignmentMetadata::bigCommerce($payload['assignment_metafields'] ?? null, $p['id'] ?? null));
     }
 
     public function catalogCurrency(WebshopConnection $c): string
@@ -282,5 +304,18 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         }
 
         return ['items' => $items, 'next' => $more ? (string) ($page + 1) : null];
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $code = WooCommerceApi::couponCode($code);
+        $store = $this->identity($connection);
+        $currency = $store['currency'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $rows = $this->read($connection, '/v2/coupons', ['code' => $code, 'page' => 1, 'limit' => 100], true);
+
+        return ['coupon' => CouponLookupResult::exact($rows, $code), 'currency' => $currency];
     }
 }

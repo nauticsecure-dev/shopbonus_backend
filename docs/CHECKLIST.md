@@ -1492,6 +1492,236 @@ B66 implementing SHA: `d27b56c`. Checked items certify the tested backend input/
 
 B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL1364pass+4skip/23124assertions, SQLite1339pass+29skip/23023assertions. Local fullPint/PHPStan/Composer audit PASS; docs/qa/B67_CI_REPAIR_RESULTS.json records actual results.
 
+### B68 — Moneybird funding invoice lifecycle
+
+- [x] Record owner-delegated technical defaults; require actual administration/seller/contact/tax/ledger mappings before egress, with creation/delivery disabled by default.
+- [x] Freeze statement/export snapshots and implement bounded create, explicit delivery, read reconciliation and uncertain-result recovery without automatic duplicate writes or wallet postings.
+- [x] Enforce active Super Admin authority, immutable cross-shop/provider bindings, exact cents and lifecycle/audit guards; test failures, replay and concurrency boundaries.
+- [x] Document configuration/operations, capture actual invoice API serialization, run relevant SQLite/MySQL/static/API checks and record migration/SHA/remaining provider acceptance.
+
+B68 implementing SHA follows at closeout. Parent `92adc46`: Funding SQLite19PASS+2skip/150, MySQL21PASS/156; API5/8353; PHPStan/Pint/diff PASS. Actual Moneybird/legal/provider delivery acceptance remains unverified; defaults OFF.
+
+### B69 — Additional experiment assignment metadata mappings
+
+- [x] Reuse one strict token parser and reject duplicate/conflicting fields; preserve missing metadata as unknown.
+- [x] Map documented native custom-field/extension metadata where available, with an explicit optional BigCommerce read path and no invented native fields for unsupported bridges.
+- [x] Verify malformed/foreign-source/ambiguity behavior and existing order-assignment isolation/payment semantics on SQLite/MySQL; record exact propagation limits.
+- [x] Update provider/bridge contracts, real API evidence if contracts change, tests and checkpoint SHA without claiming installed storefront persistence.
+
+B69 parent `5861751`: SQLite203/1905; MySQL14/148; PHPStan/Pint/diff PASS. B68 implementing SHA `5861751`. B69 implementing SHA follows next checkpoint. Installed cart/storefront and genuine provider evidence remain NOT RUN.
+
+### B70 — Pre-registered experiment protocol and fixed readout
+
+- [x] Register immutable opt-in analysis/measurement snapshots before launch; pin versions, allocation, enrollment/follow-up, sample/effect thresholds and native evidence bindings.
+- [x] Stop new enrollment at the fixed cutoff while retaining existing assignments; require mature follow-up, source reconciliation, cohort integrity and sample-ratio checks.
+- [x] Finalize one immutable captured-purchase conversion readout with explicit uncertainty/winner criteria and no automatic publication; retain null causal estimates for unverified legacy studies.
+- [x] Verify authorization, missing/stale/changed proof, early stop, consent/source/cohort gaps, inadequate samples and replay; capture actual HTTP, update API/spec/runbook and record tests/SHA.
+
+B70 local backend boundary: parent `cfef279`; SQLite302PASS+4skip/13412, MySQL40PASS/251, API5/8353, fullPint/PHPStan/audit/diff PASS. Six actual synthetic local HTTP captures; real native validator/finalizer exercised with explicit synthetic evidence. Implementing SHA `94e3f87`; source integration `d8c9aa9`. Actual provider/study/legal acceptance remains NOT RUN. B69 implementing SHA `cfef279`; B68 `5861751`. New branch `frank/moneybird-experiment-followup` because PR#5 was merged externally; full new-head CI execution is recorded under PR#7 checks.
+
+B68–B70 closeout: `5861751` / `cfef279` / `94e3f87`, integrated source `d8c9aa9`; draft PR#7. Checked items certify tested backend boundaries only. Actual Moneybird, storefront persistence, live experiment measurement and independent release acceptance remain unverified.
+
+### B71 — Additional automatic native coupon verification
+
+- [x] Audit native read contracts and add bounded exact-code lookups using existing authenticated store/domain/scope guards.
+- [x] Verify supported provider configuration against current or frozen terms without claiming checkout acceptance/redemption; retain manual states for unknown constraints and unsupported types.
+- [x] Test native responses, ambiguous/malformed data, currency/term/restriction/lifecycle mismatches, credentials/tenant boundaries and historical isolation.
+- [x] Capture actual HTTP responses, update API/provider contracts and checkpoint docs, run relevant database/static/API checks and record the implementing SHA.
+
+B71 tested backend boundary (2026-11-04): parent52ef8c5; SQLite282PASS/13382, final focusedMySQL23PASS/117, earlier selectedMySQL42PASS/469, API5PASS/8353, fullPint/PHPStan/diff PASS. Ten actual local HTTP captures use explicit synthetic provider transport. Implementing SHA `65af0e3`; real provider/checkout/redemption acceptance remains NOT RUN. No migrations.
+
+B71 context follow-up (parentc6c173e): final locked source/code/current-term revalidation rejects in-flight edits/rotations; stable-date canonical comparison and frozen historical scope verified. SQLite284/13390; MySQL25/125; PHPStan PASS; eleven actual local HTTP captures include context-change rejection. Final focused SQLite/native/API30PASS/8478 and fullPint/diff PASS; source SHA follows in the closeout. Provider/checkout/redemption NOT RUN.
+
+B71 final implementing source SHA `d599c40` includes adapters65af0e3 and the tested locked context guard. Checked items certify the backend configuration boundary only; actual provider/checkout/redemption remains NOT RUN.
+
+### B72 — Remaining order connector backend boundary
+
+- [x] Establish primary-source CCV Shop auth/store/order/paging fields and preserve unknown payment/refund evidence.
+- [x] Add explicitly labelled Mijnwebwinkel signed partner-bridge ingestion with merchant/domain binding, without inventing a native API contract or promoting Connected.
+- [x] Reuse native recovery/discovery and bounded transport; reject unsupported webhooks/foreign stores and retain credential-bound cooldown across signatures.
+- [x] Run SQLite/MySQL/API/static checks, capture actual HTTP and document provider/bridge acceptance limits.
+- [ ] Implement and independently execute a native Mijnwebwinkel partner API client after its authoritative specification is available; the actual upstream bridge is also NOT RUN.
+
+B72 local boundary: SQLite202/1864, MySQL7/40, API5/8353; fullPint/PHPStan/diff PASS; eight actual synthetic local HTTP responses. No migrations. Implementing SHA follows in B73 checkpoint. Actual provider acceptance remains NOT RUN.
+
+### B73 — Native banner publication gaps
+
+- [x] Audit provider-supported writes, scopes, installations and current publishing/recovery architecture; do not invent remote endpoints.
+- [x] Implement supported backend publication/removal with immutable ownership, bounded writes and ambiguous-effect recovery; distinguish publication from storefront delivery.
+- [x] Document genuinely unsupported automatic paths and required native app/manual setup; run relevant security/state tests and real local API captures with clear provider acceptance limits.
+
+B73 tested backend boundary (parent6a8c5c3): SQLite271PASS+2skip/10988; final native CLI12/353; MySQL18/356; fullPint/PHPStan/audit/diff PASS. Seven actual local HTTP captures; no migrations. Implementing SHA follows at closeout. Actual provider/native-app/storefront acceptance NOT RUN; automatic C/E-Series/Squarespace and native Mijnwebwinkel remain open.
+
+- [ ] Complete authorized native app/automatic publication paths for Lightspeed C/E-Series and Squarespace after supported installation/write contracts are established; independently execute all provider installation/storefront/uninstall acceptance.
+
+B73 implementing SHA `346b3bb`; B72 implementing SHA `6a8c5c3`. Checked items certify the locally tested backend boundaries only; the explicitly unchecked native/provider acceptance requirements remain OPEN.
+
+### B73 CI follow-up — Merchant landing availability fixture
+
+- [x] Preserve the unsupported-connector marketing rejection scenario with an explicit unavailable fixture; verify the newly registered Mijnwebwinkel bridge reports manual setup rather than native availability.
+- [x] Execute the CMS regression on SQLite/MySQL, retain full CI failure provenance and record source SHA; replacement full CI is tracked separately.
+
+B73 CI follow-up parent9abc7af: CMS SQLite14/84 +MySQL14/84; Pint/diff PASS. Historical failed run41787701578 retained; replacement full CI remains pending. Implementing test SHA recorded in following closeout.
+
+CMS regression correction implementing SHA `c595066`; replacement full CI remains pending at PR#7 checks.
+
+### B74 — Reviewed provider promotion evidence
+
+- [x] Normalize explicitly selected stored promotion fields into conditions/exclusions with exact program/source binding; preserve missing/ambiguous evidence as rejection.
+- [x] Add authorized propose/approve/reject operator workflow with immutable evidence, expected offer revision, source freshness/recheck and idempotent review.
+- [x] Publish approved terms in a new offer version without granting advertiser permission, eligibility or financial effects; preserve historical snapshots.
+- [x] Test security/staleness/replay/negative paths on SQLite/MySQL and update contracts/runbook/checkpoint evidence.
+
+B74 parent6c0a696: SQLite70PASS+1skip/522; MySQL11/42; PHPStan/Pint/diff PASS; three real local HTTP responses. Implementing SHA follows at B75 checkpoint. Actual provider acceptance NOT RUN.
+
+### B75 — Reviewed website image import
+
+- [x] Reuse pinned public-DNS transport for bounded same-origin candidate downloads; validate and re-encode supported raster images.
+- [x] Store private pending imports with immutable evidence/hash; enforce current active admin, ownership, explicit rights confirmation and review before reusable assets exist.
+- [x] Test malicious/oversized/invalid/private-host data, stale source, replay/storage failure and rejection; capture existing real asset API output and update handoff.
+
+B75 tested boundary parent8cc2c72: SQLite selected147PASS+3skip/9730; final import/API12/8397; MySQL18/86; fullPint/PHPStan/diff PASS. Broader local pre-existing GD cover failures retained in results; Linux current-head CI pending. Two actual HTTP captures; B74 source8cc2c72, B75 implementing SHA follows closeout. Real merchant rights/provider/deployment acceptance NOT RUN.
+
+B74 implementing SHA `8cc2c72`; B75 implementing SHA `bf07291`. Checked items certify the tested backend review/import boundaries; full Linux CI and genuine merchant/provider acceptance are tracked separately.
+
+### B76 — Storefront publication finding reconciliation (backend audit)
+
+- [x] Verify current BigCommerce placement/recovery/cleanup code and execute focused native-publication and inventory regressions.
+- [x] Review remaining providers' primary installation contracts; record unresolved automatic-write authority without inventing endpoints or treating manual setup as automation.
+- [x] Record exact source SHA, executed evidence and remaining acceptance in checkpoint docs; preserve the resolved API inventory.
+
+B76 audited implementation SHA `765bc80` (BigCommerce source346b3bb); focused14PASS/838. Checked items certify audit/reconciliation only; C/E-Series/Squarespace automatic publication and genuine provider acceptance remain open.
+
+### B77 — Adobe asynchronous module and deployment separation
+
+- [x] Add a Magento/PaaS candidate module with local commit-time outbox, scoped configuration, bounded asynchronous delivery/retry and disable/cleanup instructions; no checkout network calls.
+- [x] Authenticate and bind ID-only notifications to exact native store scope; reuse native recovery without trusting posted payment/refund claims.
+- [x] Audit SaaS REST/event contracts separately and implement only established supported capabilities; keep installation/native runtime acceptance explicit.
+- [x] Verify protocol, malformed/foreign scope, recovery and deterministic install archive; capture real local setup/webhook responses and update API/runbooks/checkpoint docs.
+
+B77 parent81a3591: SQLite241/2188, MySQL5/43, package/Runtime/API11/8541, API5/8353, fullPint/PHPStan/diff PASS; four Node tests. Source archives are candidates. Native Magento SDK and Adobe installation/registration/observer/cron/uninstall execution NOT RUN; implementing SHA follows closeout.
+
+- [ ] Execute actual Magento module and private Adobe Runtime installation/registration, worker concurrency/failure/replay and order/refund/uninstall acceptance on the deployed build.
+
+### B78 — Lightspeed C refund evidence
+
+- [x] Verify authoritative credit/return versus cash workflow distinction and record missing cash transaction/order-binding contract.
+- [x] Retain unknown cash values and execute negative regressions preventing credit/quantity/manual paid-label inference and double subtraction.
+- [ ] Implement a supported authoritative PSP/native cash-refund API mapping with exact order/merchant/currency/transaction binding and actual provider acceptance.
+
+B78 audited source4b8626f: combinedC/Adobe/package/Runtime15PASS/254; Pint/diff PASS. This is regression/audit evidence only, not a cash mapping implementation. Gap remains OPEN; no C runtime/API/migration/financial change.
+
+### B77 CI follow-up — Explicit backend Runtime test toolchain
+
+- [x] Pin Node22 in the backend test jobs to match Adobe Runtime; parse workflow and execute the native action/archive regressions before committing.
+
+B77 implementing source4b8626f; B78 regression/audit89cce64 (cash mapping remains OPEN). Node22 workflow parse/native6PASS/188; current integration/unit242/2195; fullPint/diff PASS. Full current-head matrix pending push; no native provider acceptance inferred.
+
+### B77 capture follow-up — Explicit HTTP storage isolation
+
+- [x] Pass the temporary storage path explicitly to the real HTTP bootstrap, regenerate actual captures and refresh matching OpenAPI examples; rerun API coverage.
+
+B77 runtime CI41799578086 SUCCESS atf217e33: MySQL1457/4skip/24018, SQLite1432/29skip/23913, quality PASS. Final capture isolation/OpenAPI follow-up API5/8353; no runtime source change. Native installation/acceptance and C cash/publisher gaps remain explicitly open.
+
+### B79 — CMS non-destructive media backend
+
+- [x] Centralize CMS uploads; preserve exact private uploaded originals and stable normalized compatibility URLs without rewriting legacy assets.
+- [x] Store immutable device-specific crop/rotation/flip/resize recipes; queue bounded, idempotent WebP derivatives and expose version-pinned manifests.
+- [x] Implement optimistic recipe updates, private original access and exact restoration of existing derivative bytes with integrity checks.
+- [x] Add authorized API contracts/security negatives, real isolated HTTP captures, source-compatible upload regressions, migrations and handoff evidence.
+
+B79 tested source: `0a5afbe`; SQLite media8/70, CMS77/770, API19/8591, static/style PASS; real HTTP17. Deployed acceptance NOT RUN.
+
+### B80 — Backend content/usage bindings
+
+- [x] Derive paginated field bindings directly from authoritative drafts/immutable revisions, including source/hash/path/locale and explicit platform-global scope; reject stale pagination hashes.
+- [x] Persist optional per-usage recipe pins inside the existing versioned CMS content, validating exact asset ownership and three ready breakpoints without mutating published snapshots.
+- [x] Expose protected component-context preview manifests and bounded draft/history media-usage discovery; keep browser layout/front-end discovery unknown.
+- [x] Verify compatibility/security/pinning/history, capture new APIs through real isolated HTTP and document exact remaining management work.
+
+- [x] Inventory saved CMS page source fields with explicit global/tenant scope, locale, immutable version and media usage; preserve unknown frontend coverage.
+- [ ] Supply component-context preview data and impact/replace/archive controls without claiming browser layout preview implementation.
+
+
+B80 implementing SHA `6c01cc0`; CMS84/822, MySQL5/40, API5/8493, static/style/diff PASS, actualHTTP31. Other-source/frontend discovery and management mutations remain open.
+
+### B81 — Consolidated CMS AI execution
+
+- [x] Replace the three legacy Chat Completions implementations with section-scoped requests to the existing queued revision-backed proposal flow; preserve private suggestions/applied=false and expose polling metadata.
+- [x] Reserve the configured worst-case verified model-context/output cost under the daily quota lock before provider execution; retain reservations on failures/timeouts and keep pricing/model assumptions explicit.
+- [x] Require an independently recorded active-admin language/meaning review bound to the exact proposal/source before apply, including negative/stale/revoked-authority paths.
+- [x] Capture changed legacy/review APIs on the real isolated server, document migrations/configuration/frontend polling requirements and execute focused compatibility/security regressions.
+
+- [x] Route legacy homepage/AboutUs/merchant translation callers through the existing queued revision-backed proposal/review flow.
+- [x] Enforce configured monetary reservation caps and independent language/semantic review before proposals are applicable.
+
+B81 implementing SHA `bd9b4ec`; SQLite CMS92/879, MySQL AI/schedule27/286, API5/8522, static/style/diff PASS, actualHTTP43. Review is independent human attestation; live model quality/capability and automated classification remain unverified.
+
+### B82 — Bulk content operations and recommended quality gates
+
+- [x] Plan 1,000+ saved-page source records in bounded durable chunks, recording source/target version/hash and excluding legal/archived content.
+- [x] Submit and reconcile bounded batches through the canonical queued proposal flow with current authority, stale-source rejection, coalescing, held monetary reservations and no automatic apply/publish.
+- [x] Define the five recommended content coverage denominators and T01–T23 executor/evidence ledger without inventing original-source coverage or completed staging runs.
+- [x] Connect a fail-closed content-specific deployment check to controlled staging execution; test missing/unknown/stale/fixture evidence and document installation limits.
+
+- [x] Provide resumable bounded 1,000+ source backlog execution with dedupe, stale-source checks and review rather than automatic publication.
+- [x] Document five recommended denominators and T01–T23 executor/evidence requirements; block unknown or unexecuted release coverage.
+
+B82 implementing SHA `a5a2dbb`; final CMS/API103/9433, sequential QA36/405, MySQL9/54, static/style/diff PASS. Default actual executor/frontend/provider mappings remain unmapped; these checkboxes certify orchestration/gate source, not genuine acceptance.
+
+### B83 — Remaining central content management
+
+- [x] Add locale-validated FAQ subcategories and optimistic category updates, rejecting cycles/depth violations and preserving existing audience filtering/public compatibility.
+- [x] Add soft media archive/reactivation and explicit version-checked selected-draft replacement; preserve published/historical files and prevent new archived references.
+- [x] Add immutable reusable rich-text block versions, locale-specific pins and safe text overrides, with protected mount/detach and resolved public/preview source linkage.
+- [x] B83c: define immutable single rich-text block versions (paragraph/heading/list/button), exact locale/hash provenance, bounded root-level usages and safe text-only overrides; preserve normal rich-text public compatibility.
+- [x] B83c: implement protected library/create-version and revision-checked draft mount/detach; enforce pins in ordinary saves and exclude pinned text from AI improvement, rejecting cross-locale AI borrowing.
+- [x] B83c: test stale/foreign locale/unsafe override/tampered body/immutable versions/published stability/security; record actual HTTP contracts and explicit coverage limits.
+- [x] Verify mutation authority/concurrency/negative paths and compatibility; capture all added/changed API contracts through real isolated HTTP and record remaining frontend/staging limits.
+
+- [x] Add FAQ subcategories and reviewed shared-block override/version semantics through existing CMS services.
+
+### B84 — Controlled backend staging execution (#37 follow-up)
+
+- [x] Add a disabled-by-default, staging-only reviewed-script runner bound to the exact configured deployed Git SHA, with bounded timeout/output, distributed exclusion and no shell/AI command execution.
+- [x] Connect nightly/weekly/deployment entry points; require discovery, actual executed JUnit import and the existing independent acceptance gate before reporting success.
+- [x] Test wrong environment/build, missing/unreviewed/tampered runner, concurrency, failure/timeout/missing report and successful execution without converting regression PASS into acceptance PASS.
+- [x] Record installation/CI limits and original175/frontend/provider evidence blockers; update checkpoint documentation and commit SHA.
+
+B84 implementing SHA: `f507073`. SQLite/MySQL runner7/31 each; full static/style/shell/diff PASS. Original175/provider/frontend/staging evidence and external deployment wiring remain incomplete; this checks off the controlled runner implementation only.
+
+### B85 — Adobe SaaS IMS renewal and repeated integration review
+
+- [x] Reuse existing asynchronous module/Runtime source; add scoped IMS client-credentials renewal for SaaS with encrypted token storage, current lifecycle/identity checks and serialized renewal.
+- [x] Preserve static-token/self-hosted/bridge compatibility, credential-generation authority and fail-closed handling of malformed/expired responses, rotation, pause/disconnect and provider failures.
+- [x] Execute focused security/regression tests; capture changed connection setup responses from the real isolated HTTP server and refresh API/integration documentation.
+- [x] Recheck remaining native publisher/refund contracts against primary sources; explicitly retain unsupported mappings and unexecuted provider acceptance rather than guessing cash or write endpoints.
+
+B85 remaining scope: genuine Adobe module/Runtime/SaaS installation/renewal/order/refund/uninstall acceptance NOT RUN. BigCommerce lifecycle is existing implemented source346b3bb. C/E-Series/Squarespace automatic publishers remain OPEN; C-Series cash mapping remains OPEN without authoritative PSP transaction binding. Checked implementation items above do not certify those gaps complete.
+
+B85 tested implementing source `1b513f5`: SQLite261/2584, SQLite/MySQL IMS7/36 each, API5/8440, fullPint/PHPStan/diff PASS; actual HTTP14. Genuine provider/installation acceptance and unsupported publishers/refund mapping remain incomplete.
+
+B83a FAQ implementing SHA follows closeout: CMS101/948, API5/8543, MySQL3/37, static/style/diff PASS; actualHTTP30. Other B83 management items remain open.
+
+B83b tested source follows closeout: SQLite CMS/API110/9573, MySQL12/97, full static/style/diff PASS; actualHTTP40. B83a implementing SHA `16b3780`.
+
+B83b implementing SHA `4f222e7`.
+
+B83c tested source follows closeout: SQLite CMS/API/errors131/9919, MySQL21/189, QA36/405, static/style/diff PASS; actualHTTP43. Checkmarks apply to these bounded backend implementations, not universal client discovery, all23 real staging executions or release acceptance.
+
+B83c implementing SHA `3aebd4f`; B83b `4f222e7`; B83a `16b3780`. Final executed checks and remaining independent/deployment acceptance are recorded in HANDOFF.md.
+
+### B86 — Backend QA execution coverage enforcement
+
+- [x] Require reviewed runner mappings to exact approved executable case versions/minimum assertions; reject AI proposals/manual cases as automatic executables.
+- [x] Resolve discovered added/changed/removed backend targets to approved coverage, block unmapped impacts before execution and pass explicit required tests to reviewed runners.
+- [x] Verify imported runner reports contain required keys, no duplicate/unregistered keys and required assertion counts; retain failed reports without implying independent acceptance.
+- [x] Run focused planner/runner/acceptance checks only, update runbooks/handoff and preserve missing original175/frontend/provider/staging limits.
+- [x] B86 deployment adapter: supply an opt-in reusable GitHub workflow that runs the existing hook only in the exact deployed staging checkout, preserving failure before promotion; validate YAML and shell without invoking staging.
+
+B86 focused validation:21/101, scoped static/style/diff and workflow YAML/bash syntax PASS. Checkmarks cover backend enforcement/adapter source only; original175 mapping and real staging/provider/frontend acceptance remain incomplete. Implementing SHA follows closeout.
+
+B86 implementing SHA `bf6ae17`; focused21/101 plus scoped static/style/workflow/whitespace PASS. Independent release gaps remain explicitly open.
 ## Native cart adapters beyond Shopify — 2026-11-04
 
 - [ ] Implement opt-in WooCommerce Store API and BigCommerce Stencil readers with strict units/currency and same-origin validation.
@@ -1505,3 +1735,25 @@ B67 implementing SHA `36c9029`: GitHub CI41665566931 SUCCESS (all3jobs), MySQL13
 - [ ] Localize settings labels, feedback and fixed-control explanations in NL/EN/DE.
 - [ ] Measure bounded private-channel Reverb round trips and expire old/configuration-mismatched evidence.
 - [ ] Run focused regression checks and record actual results and remaining deployment acceptance (commit SHA pending).
+
+### B87 — Resolve PR7 conflicts against current main (2026-11-05)
+
+- [x] Preserve branch CMS/QA environment settings and staged journeys alongside main's Reverb probe settings/schedule.
+- [x] Retain both documentation/checklist histories and every original captured OpenAPI example; combine changed descriptions without inventing responses.
+- [x] Verify focused catalogue/connectivity/API/package compatibility and syntax; regenerate inventory only if runtime contracts changed.
+- [x] Record main/feature SHAs, validation and unchanged release limits; commit/push resolution on the feature branch only.
+- [x] B87 package reconciliation: rebuild deterministic merchant archives/manifests from combined reviewed source so every embedded INSTALL.md matches the merge.
+
+B87: focused22 non-package checks passed; archive rerun5/185 PASS after deterministic rebuild. Syntax/scoped style/semantic OpenAPI/environment preservation/conflict-marker/diff checks PASS. Merge implementation SHA follows closeout.
+
+B87 implementing merge SHA `e14a603`; validation above covers conflict resolution only.
+
+### B88 — CI dependency security audit repair (2026-11-05)
+
+- [x] Confirm exact failing job/advisories; preserve passing tests, lint/static gates and mandatory audit.
+- [x] Update only affected Symfony dependency constraints/lock entries to patched compatible releases, with no ignored advisories or unrelated upgrades.
+- [x] Verify clean Composer audit/lock validity and focused HTTP/routing/OpenAPI compatibility; record actual CI follow-up and deployment limits.
+
+B88 local validation: Composer audit0 advisories/abandoned, strict validate PASS, focused31/8881 and lock-delta/diff checks PASS. Failed CI41968973988 was audit-only; new CI remains pending until push.
+
+B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; external follow-up CI pending push.

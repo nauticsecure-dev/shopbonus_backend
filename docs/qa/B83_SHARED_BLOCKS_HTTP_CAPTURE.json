@@ -1,0 +1,2588 @@
+{
+  "captured_at": "2026-11-04T15:29:19Z",
+  "baseline": "4f222e7 plus B83 shared blocks working tree",
+  "environment": "Actual Laravel loopback HTTP; temporary SQLite/storage/key, synthetic accounts/image. Temporary router attaches synthetic confirmed-password session except step_up case; this does NOT establish real cookie/CSRF/browser acceptance. Actual Sanctum authorization, validation, storage, GD transforms and synchronous jobs run. Deployed database queue worker and staging NOT RUN. Binary bytes captured as base64/hash/length. No provider calls.",
+  "ai_fixture": null,
+  "exchanges": [
+    {
+      "label": "upload",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvhxpb60za3mydawk4e20",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20",
+            "media": {
+              "id": "01m6kjvhxpb60za3mydawk4e20",
+              "archived": false,
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kjvhxre8gc4sk0add1d0x7",
+              "recipes": [
+                {
+                  "id": "01m6kjvhxre8gc4sk0add1d0x7",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "show",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kjvhxpb60za3mydawk4e20",
+            "archived": false,
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20",
+            "revision": 1,
+            "original_available": true,
+            "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+            "active_recipe": "01m6kjvhxre8gc4sk0add1d0x7",
+            "recipes": [
+              {
+                "id": "01m6kjvhxre8gc4sk0add1d0x7",
+                "version": 1,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 480
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 960
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 1536
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/tablet"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "list",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "id": "01m6kjvhxpb60za3mydawk4e20",
+              "archived": false,
+              "width": 80,
+              "height": 60,
+              "revision": 1,
+              "original_available": true
+            }
+          ],
+          "next": null
+        }
+      }
+    },
+    {
+      "label": "original",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20/original",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content_type": "image/png",
+          "byte_length": 114,
+          "sha256": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+          "base64": "iVBORw0KGgoAAAANSUhEUgAAAFAAAAA8CAIAAAB+RarbAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAJElEQVRoge3BMQEAAADCoPVP7WkJoAAAAAAAAAAAAAAAAAAAbjh8AAFte11jAAAAAElFTkSuQmCC"
+        }
+      }
+    },
+    {
+      "label": "recipe",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20/recipes",
+        "body": {
+          "revision": 1,
+          "breakpoints": {
+            "mobile": {
+              "x": 0,
+              "y": 0,
+              "width": 40,
+              "height": 40,
+              "rotate": 90,
+              "flip_h": true,
+              "flip_v": false,
+              "output_width": 32
+            },
+            "tablet": {
+              "x": 0,
+              "y": 0,
+              "width": 40,
+              "height": 40,
+              "rotate": 90,
+              "flip_h": true,
+              "flip_v": false,
+              "output_width": 32
+            },
+            "desktop": {
+              "x": 0,
+              "y": 0,
+              "width": 40,
+              "height": 40,
+              "rotate": 90,
+              "flip_h": true,
+              "flip_v": false,
+              "output_width": 32
+            }
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvhxpb60za3mydawk4e20",
+            "archived": false,
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20",
+            "revision": 2,
+            "original_available": true,
+            "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+            "active_recipe": "01m6kjvj2gtgxdr5h08jzajqxq",
+            "recipes": [
+              {
+                "id": "01m6kjvj2gtgxdr5h08jzajqxq",
+                "version": 2,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/tablet"
+                  }
+                ]
+              },
+              {
+                "id": "01m6kjvhxre8gc4sk0add1d0x7",
+                "version": 1,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 480
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 960
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 1536
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/tablet"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "derivative",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/mobile",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "content_type": "image/webp",
+          "byte_length": 58,
+          "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+          "base64": "UklGRjIAAABXRUJQVlA4ICYAAADQAgCdASogACAAPmEuk0ckIqGhKAgAgAwJaQAAPaOgAP78XNAAAA=="
+        }
+      }
+    },
+    {
+      "label": "restore",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20/restore",
+        "body": {
+          "revision": 2,
+          "recipe": "01m6kjvhxre8gc4sk0add1d0x7"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kjvhxpb60za3mydawk4e20",
+            "archived": false,
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20",
+            "revision": 3,
+            "original_available": true,
+            "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+            "active_recipe": "01m6kjvhxre8gc4sk0add1d0x7",
+            "recipes": [
+              {
+                "id": "01m6kjvj2gtgxdr5h08jzajqxq",
+                "version": 2,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 40,
+                      "height": 40,
+                      "rotate": 90,
+                      "flip_h": true,
+                      "flip_v": false,
+                      "output_width": 32
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 32,
+                    "height": 32,
+                    "sha256": "d937f8027c5cd1061e3c1f9f329ccc4e7cb09f57c05aca1c450dc2d9e4cf3e88",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvj2gtgxdr5h08jzajqxq/tablet"
+                  }
+                ]
+              },
+              {
+                "id": "01m6kjvhxre8gc4sk0add1d0x7",
+                "version": 1,
+                "recipe": {
+                  "schema": "cms-media-v1",
+                  "renderer": "cms-webp-v1",
+                  "orientation": "encoded_pixels",
+                  "breakpoints": {
+                    "mobile": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 480
+                    },
+                    "tablet": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 960
+                    },
+                    "desktop": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 80,
+                      "height": 60,
+                      "rotate": 0,
+                      "flip_h": false,
+                      "flip_v": false,
+                      "output_width": 1536
+                    }
+                  }
+                },
+                "derivatives": [
+                  {
+                    "breakpoint": "desktop",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/desktop"
+                  },
+                  {
+                    "breakpoint": "mobile",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/mobile"
+                  },
+                  {
+                    "breakpoint": "tablet",
+                    "status": "ready",
+                    "width": 80,
+                    "height": 60,
+                    "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                    "failure_code": null,
+                    "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvhxpb60za3mydawk4e20/recipes/01m6kjvhxre8gc4sk0add1d0x7/tablet"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "stale",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20/restore",
+        "body": {
+          "revision": 1,
+          "recipe": "01m6kjvhxre8gc4sk0add1d0x7"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "media_revision_conflict",
+            "message": "Media changed; reload its current revision.",
+            "request_id": "01a1a72d-c8ba-728b-a7b7-17ecbc1db7fa"
+          }
+        }
+      }
+    },
+    {
+      "label": "missing_revision",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20/restore",
+        "body": {
+          "recipe": "01m6kjvhxre8gc4sk0add1d0x7"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a72d-c8d7-702b-bd97-782a187cdd69",
+            "fields": {
+              "revision": [
+                "The revision field is required."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "unauthenticated",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a72d-c8f3-714c-a229-1e8317c767fc"
+          }
+        }
+      }
+    },
+    {
+      "label": "forbidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "status": 403,
+            "code": "platform_role_required",
+            "message": "This action requires a platform administrator.",
+            "request_id": "01a1a72d-c914-73c6-b2f1-c26fc38f0440"
+          }
+        }
+      }
+    },
+    {
+      "label": "step_up",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/assets/01m6kjvhxpb60za3mydawk4e20/restore",
+        "body": {
+          "revision": 3,
+          "recipe": "01m6kjvhxre8gc4sk0add1d0x7"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "X-Capture-No-Session": "1",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "error": {
+            "status": 423,
+            "code": "password_confirmation_required",
+            "message": "Confirm your password to continue.",
+            "request_id": "01a1a72d-c933-71cc-8bf1-5e976267a286"
+          }
+        }
+      }
+    },
+    {
+      "label": "missing",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/assets/01AAAAAAAAAAAAAAAAAAAAAAAA",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Media not found.",
+            "request_id": "01a1a72d-c949-7152-b5c2-8ae6f1ef0371"
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_homepage",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/homepage/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjbetrvv3qyws1ej4xf5",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjbetrvv3qyws1ej4xf5",
+            "media": {
+              "id": "01m6kjvjbetrvv3qyws1ej4xf5",
+              "archived": false,
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjbetrvv3qyws1ej4xf5",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kjvjbg2y0smq8pwn0g8ars",
+              "recipes": [
+                {
+                  "id": "01m6kjvjbg2y0smq8pwn0g8ars",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjbetrvv3qyws1ej4xf5/recipes/01m6kjvjbg2y0smq8pwn0g8ars/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjbetrvv3qyws1ej4xf5/recipes/01m6kjvjbg2y0smq8pwn0g8ars/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjbetrvv3qyws1ej4xf5/recipes/01m6kjvjbg2y0smq8pwn0g8ars/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_over-ons",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/over-ons/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjdxggye5xnq4jbpqktt",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjdxggye5xnq4jbpqktt",
+            "media": {
+              "id": "01m6kjvjdxggye5xnq4jbpqktt",
+              "archived": false,
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjdxggye5xnq4jbpqktt",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kjvjdyzey8tvrae0jw3jbd",
+              "recipes": [
+                {
+                  "id": "01m6kjvjdyzey8tvrae0jw3jbd",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjdxggye5xnq4jbpqktt/recipes/01m6kjvjdyzey8tvrae0jw3jbd/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjdxggye5xnq4jbpqktt/recipes/01m6kjvjdyzey8tvrae0jw3jbd/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjdxggye5xnq4jbpqktt/recipes/01m6kjvjdyzey8tvrae0jw3jbd/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_voor-webshops",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/voor-webshops/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjg0t148nzf4ayd1c14e",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjg0t148nzf4ayd1c14e",
+            "media": {
+              "id": "01m6kjvjg0t148nzf4ayd1c14e",
+              "archived": false,
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjg0t148nzf4ayd1c14e",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kjvjg1h31de7y3bpkdqn1k",
+              "recipes": [
+                {
+                  "id": "01m6kjvjg1h31de7y3bpkdqn1k",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjg0t148nzf4ayd1c14e/recipes/01m6kjvjg1h31de7y3bpkdqn1k/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjg0t148nzf4ayd1c14e/recipes/01m6kjvjg1h31de7y3bpkdqn1k/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjg0t148nzf4ayd1c14e/recipes/01m6kjvjg1h31de7y3bpkdqn1k/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "upload_pages/voor-webshops",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/content/pages/voor-webshops/assets",
+        "body": {
+          "image": "@source.png (actual multipart PNG)"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "multipart/form-data; boundary=ShopbonusCaptureBoundary"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjj9aqtwk2gjhrnacwcc",
+            "width": 80,
+            "height": 60,
+            "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjj9aqtwk2gjhrnacwcc",
+            "media": {
+              "id": "01m6kjvjj9aqtwk2gjhrnacwcc",
+              "archived": false,
+              "width": 80,
+              "height": 60,
+              "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjj9aqtwk2gjhrnacwcc",
+              "revision": 1,
+              "original_available": true,
+              "original_hash": "109ebabaef2b3920c323629cdb684ac4d201fdbcfc71725e6f9933ad8f0140e6",
+              "active_recipe": "01m6kjvjjby0d89d0b4mayn333",
+              "recipes": [
+                {
+                  "id": "01m6kjvjjby0d89d0b4mayn333",
+                  "version": 1,
+                  "recipe": {
+                    "schema": "cms-media-v1",
+                    "renderer": "cms-webp-v1",
+                    "orientation": "encoded_pixels",
+                    "breakpoints": {
+                      "mobile": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 480
+                      },
+                      "tablet": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 960
+                      },
+                      "desktop": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 80,
+                        "height": 60,
+                        "rotate": 0,
+                        "flip_h": false,
+                        "flip_v": false,
+                        "output_width": 1536
+                      }
+                    }
+                  },
+                  "derivatives": [
+                    {
+                      "breakpoint": "desktop",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjj9aqtwk2gjhrnacwcc/recipes/01m6kjvjjby0d89d0b4mayn333/desktop"
+                    },
+                    {
+                      "breakpoint": "mobile",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjj9aqtwk2gjhrnacwcc/recipes/01m6kjvjjby0d89d0b4mayn333/mobile"
+                    },
+                    {
+                      "breakpoint": "tablet",
+                      "status": "ready",
+                      "width": 80,
+                      "height": 60,
+                      "sha256": "c91c92905bf760140b57d95dfcd5de1f1fad78244b03f629d0ab5df16e063190",
+                      "failure_code": null,
+                      "url": "http://127.0.0.1:8801/api/v1/public/content-assets/01m6kjvjj9aqtwk2gjhrnacwcc/recipes/01m6kjvjjby0d89d0b4mayn333/tablet"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_create",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/shared-blocks",
+        "body": {
+          "key": "synthetic-shared",
+          "locale": "nl",
+          "node": {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Reusable synthetic copy"
+              }
+            ]
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjmkxtmyhdpjafx6cg82",
+            "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+            "key": "synthetic-shared",
+            "block_revision": 1,
+            "number": 1,
+            "locale": "nl",
+            "node": {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Reusable synthetic copy"
+                }
+              ]
+            },
+            "sha256": "656cba209ea07cff39218db7ef1e5b8a8ac252c3d3267ae65c2854490a812dff",
+            "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+            "created_at": "2026-11-04T15:29:18+00:00",
+            "scope": "platform_global",
+            "propagation": "explicit_draft_mount_only"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_page",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages",
+        "body": {
+          "key": "shared-page",
+          "type": "info",
+          "locales": {
+            "nl": {
+              "slug": "shared-page",
+              "content": {
+                "title": "Synthetic shared page",
+                "body": {
+                  "type": "doc",
+                  "content": []
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjnm8fpwammjaaxd1hww",
+            "key": "shared-page",
+            "type": "info",
+            "audience": "public",
+            "archived": false,
+            "locales": {
+              "nl": {
+                "slug": "shared-page",
+                "published": false,
+                "draft_revision": 1,
+                "draft_updated_at": "2026-11-04T15:29:18+00:00"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_mount",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 1,
+          "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+          "overrides": {
+            "content.0.text": "Local synthetic override"
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "draft_revision": 2,
+            "content": {
+              "title": "Synthetic shared page",
+              "body": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "shared_blocks": {
+                "body.content.0": {
+                  "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                  "overrides": {
+                    "content.0.text": "Local synthetic override"
+                  }
+                }
+              }
+            },
+            "publication": "unchanged"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_publish",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/publish",
+        "body": {
+          "revision": 2
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kjvjqqg2byf3nehccmtrq0",
+            "locale": "nl",
+            "number": 1,
+            "legal_version": null,
+            "effective_date": null,
+            "approved_by": null,
+            "published_by": "Ryan",
+            "restored_from": null,
+            "published_at": "2026-11-04T15:29:18+00:00"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_preview",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/media-preview?version=published",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "source": {
+              "scope": "platform_global",
+              "webshop_id": null,
+              "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+              "page_key": "shared-page",
+              "locale": "nl",
+              "version": {
+                "kind": "revision",
+                "id": "01m6kjvjqqg2byf3nehccmtrq0",
+                "revision": 1
+              },
+              "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+            },
+            "content": {
+              "title": "Synthetic shared page",
+              "body": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "shared_blocks": {
+                "body.content.0": {
+                  "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                  "overrides": {
+                    "content.0.text": "Local synthetic override"
+                  }
+                }
+              }
+            },
+            "media_usages": [],
+            "shared_usages": [
+              {
+                "path": "body.content.0",
+                "source": {
+                  "id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                  "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+                  "key": "synthetic-shared",
+                  "number": 1,
+                  "locale": "nl",
+                  "node": {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Reusable synthetic copy"
+                      }
+                    ]
+                  },
+                  "sha256": "656cba209ea07cff39218db7ef1e5b8a8ac252c3d3267ae65c2854490a812dff",
+                  "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+                  "created_at": "2026-11-04T15:29:18+00:00",
+                  "scope": "platform_global",
+                  "propagation": "explicit_draft_mount_only"
+                },
+                "overrides": {
+                  "content.0.text": "Local synthetic override"
+                },
+                "resolved_node": {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Local synthetic override"
+                    }
+                  ]
+                }
+              }
+            ],
+            "viewports": {
+              "desktop": 1440,
+              "tablet": 768,
+              "mobile": 390
+            },
+            "evidence_scope": "Backend component content and pinned artifact manifest only; actual client layout/rendering and exhaustive frontend coverage are unverified."
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_version",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/versions",
+        "body": {
+          "revision": 1,
+          "locale": "de",
+          "node": {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Wiederverwendbarer Beispieltext"
+              }
+            ]
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6kjvjsmkv1fhtb1gjmkzk85",
+            "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+            "key": "synthetic-shared",
+            "block_revision": 2,
+            "number": 2,
+            "locale": "de",
+            "node": {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Wiederverwendbarer Beispieltext"
+                }
+              ]
+            },
+            "sha256": "cc3f640f0fa60a859516e6e28fcd9039d33b8e266770a603019f80bee3a4c465",
+            "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+            "created_at": "2026-11-04T15:29:18+00:00",
+            "scope": "platform_global",
+            "propagation": "explicit_draft_mount_only"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_list",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/shared-blocks?limit=1",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "id": "01m6kjvjmha133rwpgf0rb64sx",
+              "key": "synthetic-shared",
+              "revision": 2
+            }
+          ],
+          "next": null
+        }
+      }
+    },
+    {
+      "label": "shared_show",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx?after=1&locale=de",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6kjvjmha133rwpgf0rb64sx",
+            "key": "synthetic-shared",
+            "revision": 2,
+            "versions": [
+              {
+                "id": "01m6kjvjsmkv1fhtb1gjmkzk85",
+                "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+                "key": "synthetic-shared",
+                "block_revision": 2,
+                "number": 2,
+                "locale": "de",
+                "node": {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Wiederverwendbarer Beispieltext"
+                    }
+                  ]
+                },
+                "sha256": "cc3f640f0fa60a859516e6e28fcd9039d33b8e266770a603019f80bee3a4c465",
+                "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+                "created_at": "2026-11-04T15:29:18+00:00",
+                "scope": "platform_global",
+                "propagation": "explicit_draft_mount_only"
+              }
+            ]
+          },
+          "next": null
+        }
+      }
+    },
+    {
+      "label": "shared_draft_usages",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/usages?source=draft",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "draft",
+                  "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+                  "revision": 2
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "usages": [
+                {
+                  "path": "body.content.0",
+                  "source": {
+                    "id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                    "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+                    "key": "synthetic-shared",
+                    "number": 1,
+                    "locale": "nl",
+                    "node": {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Reusable synthetic copy"
+                        }
+                      ]
+                    },
+                    "sha256": "656cba209ea07cff39218db7ef1e5b8a8ac252c3d3267ae65c2854490a812dff",
+                    "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+                    "created_at": "2026-11-04T15:29:18+00:00",
+                    "scope": "platform_global",
+                    "propagation": "explicit_draft_mount_only"
+                  },
+                  "overrides": {
+                    "content.0.text": "Local synthetic override"
+                  },
+                  "resolved_node": {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "scan": {
+            "source": "draft",
+            "scanned": 1,
+            "next": null,
+            "scope": "Saved CMS page drafts/revisions only; exhaust both streams. Other sources/frontend usages are unknown."
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_revision_usages",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/usages?source=revision",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": [
+            {
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "revision",
+                  "id": "01m6kjvjqqg2byf3nehccmtrq0",
+                  "revision": 1
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "usages": [
+                {
+                  "path": "body.content.0",
+                  "source": {
+                    "id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                    "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+                    "key": "synthetic-shared",
+                    "number": 1,
+                    "locale": "nl",
+                    "node": {
+                      "type": "paragraph",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "Reusable synthetic copy"
+                        }
+                      ]
+                    },
+                    "sha256": "656cba209ea07cff39218db7ef1e5b8a8ac252c3d3267ae65c2854490a812dff",
+                    "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+                    "created_at": "2026-11-04T15:29:18+00:00",
+                    "scope": "platform_global",
+                    "propagation": "explicit_draft_mount_only"
+                  },
+                  "overrides": {
+                    "content.0.text": "Local synthetic override"
+                  },
+                  "resolved_node": {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "scan": {
+            "source": "revision",
+            "scanned": 1,
+            "next": null,
+            "scope": "Saved CMS page drafts/revisions only; exhaust both streams. Other sources/frontend usages are unknown."
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_bindings",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/bindings",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "source": {
+            "scope": "platform_global",
+            "webshop_id": null,
+            "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+            "page_key": "shared-page",
+            "locale": "nl",
+            "version": {
+              "kind": "draft",
+              "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+              "revision": 2
+            },
+            "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+          },
+          "data": [
+            {
+              "path": "title",
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "draft",
+                  "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+                  "revision": 2
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "shared_source": null,
+              "value": "Synthetic shared page",
+              "translatable": true,
+              "kind": "translatable_text"
+            },
+            {
+              "path": "body.type",
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "draft",
+                  "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+                  "revision": 2
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "shared_source": null,
+              "value": "doc",
+              "translatable": false,
+              "kind": "content_value"
+            },
+            {
+              "path": "body.content.0.type",
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "draft",
+                  "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+                  "revision": 2
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "shared_source": {
+                "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                "usage_path": "body.content.0",
+                "overridden": false
+              },
+              "value": "paragraph",
+              "translatable": false,
+              "kind": "content_value"
+            },
+            {
+              "path": "body.content.0.content.0.type",
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "draft",
+                  "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+                  "revision": 2
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "shared_source": {
+                "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                "usage_path": "body.content.0",
+                "overridden": false
+              },
+              "value": "text",
+              "translatable": false,
+              "kind": "content_value"
+            },
+            {
+              "path": "body.content.0.content.0.text",
+              "source": {
+                "scope": "platform_global",
+                "webshop_id": null,
+                "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+                "page_key": "shared-page",
+                "locale": "nl",
+                "version": {
+                  "kind": "draft",
+                  "id": "01m6kjvjnm8fpwammjaaxd1hww:nl",
+                  "revision": 2
+                },
+                "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+              },
+              "shared_source": {
+                "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                "usage_path": "body.content.0",
+                "overridden": true
+              },
+              "value": "Local synthetic override",
+              "translatable": false,
+              "kind": "content_value"
+            }
+          ],
+          "total": 5,
+          "next": null,
+          "coverage": {
+            "backend_source": "saved_page_content",
+            "frontend": "unknown",
+            "other_content_models": "not_in_this_inventory"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_stale_version",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/versions",
+        "body": {
+          "revision": 1,
+          "locale": "nl",
+          "node": {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Reusable synthetic copy"
+              }
+            ]
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "shared_block_revision_conflict",
+            "message": "Shared block changed; reload its revision.",
+            "request_id": "01a1a72d-cbc2-72d5-8eb8-36f1a6e398c3"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_foreign_locale",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 2,
+          "index": 0,
+          "version_id": "01m6kjvjsmkv1fhtb1gjmkzk85"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a72d-cbda-7391-9376-e71b4774cb6e",
+            "fields": {
+              "version_id": [
+                "Choose a version in the exact page locale."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_unsafe_override",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 2,
+          "index": 0,
+          "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+          "overrides": {
+            "attrs.href": "javascript:alert(1)"
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a72d-cbf8-73a9-a921-3dd8796e3d7f",
+            "fields": {
+              "overrides": [
+                "Override existing text or button labels only, within their original limits."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_tampered_body",
+      "request": {
+        "method": "PUT",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl",
+        "body": {
+          "revision": 2,
+          "content": {
+            "title": "Synthetic shared page",
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Untracked change"
+                    }
+                  ]
+                }
+              ]
+            },
+            "shared_blocks": {
+              "body.content.0": {
+                "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                "overrides": {
+                  "content.0.text": "Local synthetic override"
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a72d-cc16-713e-b318-0660a1ef1cba",
+            "fields": {
+              "content.shared_blocks": [
+                "Pinned body differs from its version/overrides. Update overrides or detach before editing."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_silent_detach",
+      "request": {
+        "method": "PUT",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl",
+        "body": {
+          "revision": 2,
+          "content": {
+            "title": "Synthetic shared page",
+            "body": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Local synthetic override"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "shared_block_detach_required",
+            "message": "Detach shared usages explicitly before removing their source pins.",
+            "request_id": "01a1a72d-cc33-7269-8d7b-39b7c30f1e5e"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_stale_mount",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 1,
+          "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+          "overrides": {
+            "content.0.text": "Local synthetic override"
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "draft_revision_conflict",
+            "message": "Draft changed; reload its revision.",
+            "request_id": "01a1a72d-cc4d-7249-883d-4563563afb14"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_missing_version",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 2,
+          "version_id": "01AAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "Shared version not found.",
+            "request_id": "01a1a72d-cc66-725b-a4a4-da4c683ad0c5"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_missing_revision",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "version_id": "01m6kjvjmkxtmyhdpjafx6cg82"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": {
+            "status": 422,
+            "code": "validation_failed",
+            "message": "The given data was invalid.",
+            "request_id": "01a1a72d-cc7d-725a-8ad1-116ebbfa3ead",
+            "fields": {
+              "revision": [
+                "The revision field is required."
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_consumer",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 1,
+          "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+          "overrides": {
+            "content.0.text": "Local synthetic override"
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "status": 403,
+            "code": "platform_role_required",
+            "message": "This action requires a platform administrator.",
+            "request_id": "01a1a72d-cc9b-7041-8da4-140ed7881b9f"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_anonymous",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1a72d-ccbb-72b5-a493-e9c0971a3da1"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_step_up",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks",
+        "body": {
+          "revision": 1,
+          "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+          "overrides": {
+            "content.0.text": "Local synthetic override"
+          }
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "X-Capture-No-Session": "1",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 423,
+        "body": {
+          "error": {
+            "status": 423,
+            "code": "password_confirmation_required",
+            "message": "Confirm your password to continue.",
+            "request_id": "01a1a72d-ccdb-7381-b9b7-af961dd9d6db"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_detach",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks/detach",
+        "body": {
+          "revision": 2,
+          "index": 0
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "draft_revision": 3,
+            "content": {
+              "title": "Synthetic shared page",
+              "body": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "shared_blocks": []
+            },
+            "publication": "unchanged"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_stale_detach",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks/detach",
+        "body": {
+          "revision": 2,
+          "index": 0
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": {
+            "status": 409,
+            "code": "draft_revision_conflict",
+            "message": "Draft changed; reload its revision.",
+            "request_id": "01a1a72d-cd11-7042-a654-ee340a428c12"
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_published_preserved",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/media-preview?version=published",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "source": {
+              "scope": "platform_global",
+              "webshop_id": null,
+              "page_id": "01m6kjvjnm8fpwammjaaxd1hww",
+              "page_key": "shared-page",
+              "locale": "nl",
+              "version": {
+                "kind": "revision",
+                "id": "01m6kjvjqqg2byf3nehccmtrq0",
+                "revision": 1
+              },
+              "content_sha256": "e02d1c25afa3f840ca7d5180dba8de100edc8eef11f925ccaa359a18f59bf719"
+            },
+            "content": {
+              "title": "Synthetic shared page",
+              "body": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "shared_blocks": {
+                "body.content.0": {
+                  "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                  "overrides": {
+                    "content.0.text": "Local synthetic override"
+                  }
+                }
+              }
+            },
+            "media_usages": [],
+            "shared_usages": [
+              {
+                "path": "body.content.0",
+                "source": {
+                  "id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                  "block_id": "01m6kjvjmha133rwpgf0rb64sx",
+                  "key": "synthetic-shared",
+                  "number": 1,
+                  "locale": "nl",
+                  "node": {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Reusable synthetic copy"
+                      }
+                    ]
+                  },
+                  "sha256": "656cba209ea07cff39218db7ef1e5b8a8ac252c3d3267ae65c2854490a812dff",
+                  "created_by": "01m6kjvh98fbnj5v851hhq93tb",
+                  "created_at": "2026-11-04T15:29:18+00:00",
+                  "scope": "platform_global",
+                  "propagation": "explicit_draft_mount_only"
+                },
+                "overrides": {
+                  "content.0.text": "Local synthetic override"
+                },
+                "resolved_node": {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Local synthetic override"
+                    }
+                  ]
+                }
+              }
+            ],
+            "viewports": {
+              "desktop": 1440,
+              "tablet": 768,
+              "mobile": 390
+            },
+            "evidence_scope": "Backend component content and pinned artifact manifest only; actual client layout/rendering and exhaustive frontend coverage are unverified."
+          }
+        }
+      }
+    },
+    {
+      "label": "shared_public",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/public/pages/nl/shared-page",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "key": "shared-page",
+            "type": "info",
+            "locale": "nl",
+            "slug": "shared-page",
+            "content": {
+              "title": "Synthetic shared page",
+              "body": {
+                "type": "doc",
+                "content": [
+                  {
+                    "type": "paragraph",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "Local synthetic override"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "shared_blocks": {
+                "body.content.0": {
+                  "version_id": "01m6kjvjmkxtmyhdpjafx6cg82",
+                  "overrides": {
+                    "content.0.text": "Local synthetic override"
+                  }
+                }
+              }
+            },
+            "legal": null,
+            "revision": 1,
+            "published_at": "2026-11-04T15:29:18+00:00",
+            "alternates": {
+              "nl": "shared-page"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

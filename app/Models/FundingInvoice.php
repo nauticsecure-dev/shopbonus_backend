@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Monthly statement of settled sponsored rewards and fees for one webshop.
- * A draft until it is pushed to Moneybird (not connected: OPEN-FINANCIAL-LEGAL).
+ * A draft until explicitly issued through configured Moneybird; actual mapping/acceptance remains deployment-owned.
  *
  * @property int $id
  * @property string $public_id

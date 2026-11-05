@@ -1,6 +1,22 @@
 # Shopbonus API reference
 
+B77: [Adobe async module/private Runtime Action and scoped SaaS reads](../integrations/ADOBE_ASYNC.md) use the existing connection/webhook APIs. [Eleven actual private Laravel HTTP captures](../qa/B77_ADOBE_HTTP_CAPTURE.json), including a real Node-signed ID notification, duplicate and foreign-store rejection, are reproduced by `python3 scripts/capture-adobe-async.py`. Native recovery is queued; actual Adobe registration/install/delivery remains NOT RUN. OpenAPI includes captured setup and webhook examples.
+
+B75: [Private candidate-image import and approval](../enrichment/WEBSITE_ASSET_IMPORT.md) feeds the existing same-workspace banner asset library only after current-admin content and explicit usage-rights review. [Actual approved WebP200 and pending404 HTTP captures](../qa/B75_ASSET_HTTP_CAPTURE.json) use synthetic image transport and real Laravel services/storage/serving. Binary base64/length/hash in the artifact represent the captured image bytes. No new API route.
+
+B74: [operator provider-promotion review](../integrations/PROMOTION_EVIDENCE_REVIEW.md) uses existing offer description serialization; no new HTTP endpoint. [Actual reviewed-offer/foreign404/401 captures](../qa/B74_PROMOTION_HTTP_CAPTURE.json) use private synthetic evidence and real Laravel HTTP. Pending/raw snapshots never grant permission or activate offers.
+
+B73: BigCommerce connection setup now documents optional operator-only native Widgets provisioning/removal (default OFF); no public API mutation added. [Seven actual private Laravel HTTP captures](../qa/B73_NATIVE_BANNER_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-banner.py`, cover current catalogue/setup/detail and401/403/404/422. Provider writes and browser delivery are NOT RUN. See [native publication runbook](../banners/NATIVE_PUBLICATION.md).
+
 Machine-readable contract: [`openapi.yaml`](openapi.yaml) (OpenAPI 3.1). This page is the readable companion: every endpoint shows an example request and a **real response captured from a running server**.
+
+B72: CCV Shop native REST reads and LIMITED creation-window discovery are implemented; settlement timestamps/refund cash stay unknown. Mijnwebwinkel now has a platform-specific signed **partner bridge**, explicitly not a native partner API client; actual upstream bridge and native schema/acceptance remain open. [Contracts and limits](../integrations/REMAINING_CONNECTORS.md), [eight actual HTTP captures](../qa/B72_REMAINING_CONNECTORS_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-remaining-connectors.py` (be6f2f1 plus B72, private SQLite/storage, synthetic merchants, no provider requests). POST connections accepts the captured CCV and bridge inputs; secrets are redacted. OpenAPI examples are captured responses.
+
+B71: existing POST `workspaces/{workspace}/codes/{code}/platform-validation` adds automatic native configuration checks for Shopify, BigCommerce legacy coupons, Ecwid and Lightspeed E-Series alongside WooCommerce. New native details include `evidence_scope: native_configuration_not_checkout_or_redemption` and `unverified_constraints`; unprovable caps/restrictions stay manual. [Contract and limits](../integrations/COUPON_VERIFICATION.md), [eleven actual HTTP requests/responses](../qa/B71_COUPON_VERIFICATION_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-coupon-verification.py` (52ef8c5 plus B71, isolated SQLite/private storage, synthetic native transport; no genuine provider/checkout acceptance). OpenAPI examples are those captured responses.
+
+B70: experiment launch/read/stop now include `winner_evaluation`. Legacy and unverified studies retain null `causal_uplift`; a pre-registered, mature, native-evidence-verified frozen readout can expose the probability difference for **EUR captured purchases within 30 days, including later refunds**. This differs from the existing exploratory net-paid comparison and never changes publication automatically. [Protocol and operations](../banners/EXPERIMENT_PROTOCOL.md), [six real local HTTP captures](../qa/B70_EXPERIMENT_PROTOCOL_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-experiment-protocol.py`. All records are explicitly synthetic; no genuine provider acceptance. OpenAPI examples are captured responses.
+
+B68: [Moneybird funding lifecycle](../funding/MONEYBIRD.md) adds disabled-by-default console creation/delivery/reconciliation and immutable snapshots. Existing GET workspace invoices retains its fields; provider-issued `sent` does not certify recipient delivery or request another payment. [Three real local HTTP responses](../qa/B68_MONEYBIRD_INVOICE_HTTP_CAPTURE.json) use synthetic transport fixtures at92adc46 plus B68; no genuine provider acceptance. OpenAPI examples are refreshed from those captures.
 
 B66 (2026-11-03): Quality Center run/result `pass` and totals describe imported execution, not provider acceptance or release approval. The separate [source-mapped acceptance gate](../qa/ACCEPTANCE_GATE.md) requires independently reviewed result-bound proof for all mapped checks and provider subruns. The original175-check source remains UNMAPPED and the gate blocks. No QA API endpoint or response shape changed.
 
@@ -9,7 +25,7 @@ B65 (2026-11-03): platform/connection/capability/health reports include per-feat
 
 2026-11-03 adapter follow-up: [real isolated HTTP catalogue and PrestaShop/OpenCart setup responses](ADAPTER_REVIEW_PLATFORMS_HTTP_CAPTURE.json), reproduced with `php scripts/capture-adapter-review.php`. Existing GET platform/connection endpoint shapes are retained. E-Series now resolves through its Ecwid-based connector; Squarespace uses restricted API-key polling. Setup steps link candidate PS9/OC4.1 packages. Signed PS9 ID notifications schedule native recovery; they never trust a payment claim in the notification. Package installation and genuine providers remain unverified; see [implementation and limits](../integrations/ADAPTER_REVIEW_2026-11-03.md).
 
-Current affiliate policy (owner revised brief, 2026-11-02): trusted, validated, attributed conversions earn immediately spendable noncash credit under the active versioned rule. Later rejection changes network reporting without automatically reclaiming this credit. Historical timing snapshots remain unchanged. Earlier pending/settlement captures below describe their original checkpoint. See [revised-brief acceptance and executed evidence](../release/REVISED_BRIEF_REVIEW_2026-11-02.md) and [fresh real HTTP captures](REVISED_BRIEF_HTTP_CAPTURE.json). The EUR 4.75 example explicitly uses a 100% rule; the general default share remains 70%.
+Current affiliate policy (D-109, owner decision 2026-11-03): new rewards become spendable after network approval **and independently recorded settlement**. Historical timing snapshots and their reversal rules remain unchanged. Earlier immediate-credit and pending-only captures below describe their original checkpoints. The EUR4.75 example requires an explicit 100% rule; default consumer share remains70%.
 
 
 Current connection policy: `Connected` requires all seven native verification gates. Complete webhooks and passive API probes stay `Limited`; see [B23d readiness and recovery](../integrations/READINESS_AND_RECOVERY.md). Earlier checkpoint captures below are historical.
@@ -24,7 +40,7 @@ Current connection policy: `Connected` requires all seven native verification ga
 
 ## Conventions
 
-Experiment launch/read/stop now add `conversion_comparison` (exploratory conversion difference, relative change, guarded 95% interval/two-sided significance and statistical favored arm). `causal_uplift` and rollout `winner` remain null; live propagation and an analysis plan are unverified. Sparse arms have no significance claim. See [definitions and acceptance limits](../analytics/SALES_ATTRIBUTION_FOLLOWUP_2026-11-03.md) and [four real local HTTP captures](EXPERIMENT_COMPARISON_HTTP_CAPTURE.json), reproduced with `php -d xdebug.mode=off scripts/capture-experiment-comparison.php` (isolated SQLite synthetic fixtures, HassanDev b92f46a plus uncommitted follow-up; no live provider). The machine-readable launch/read/stop response examples below are refreshed from those captures; older examples in this handbook describe their historical checkpoint.
+Experiment launch/read/stop now add `conversion_comparison` (exploratory conversion difference, relative change, guarded 95% interval/two-sided significance and statistical favored arm). The exploratory `conversion_comparison.winner` remains null. B70 adds a separate opt-in, verified fixed readout; see the current protocol contract above. Sparse arms have no significance claim. See [definitions and acceptance limits](../analytics/SALES_ATTRIBUTION_FOLLOWUP_2026-11-03.md) and [four real local HTTP captures](EXPERIMENT_COMPARISON_HTTP_CAPTURE.json), reproduced with `php -d xdebug.mode=off scripts/capture-experiment-comparison.php` (isolated SQLite synthetic fixtures, HassanDev b92f46a plus uncommitted follow-up; no live provider). The machine-readable launch/read/stop response examples below are refreshed from those captures; older examples in this handbook describe their historical checkpoint.
 
 | Topic | Rule |
 | --- | --- |
@@ -25704,6 +25720,217 @@ curl -i -X GET 'http://127.0.0.1:8798/api/v1/ai/messages/01m6gxxfk2zqhw35p0wa634
 {"status":200,"body":{"data":{"id":"01m6gxxfk2zqhw35p0wa634db9","message_id":"01m6gxxfk2zqhw35p0wa634db9","conversation_id":"01m6gxxfjtk89abbqsmjvp4xp5","question":"Synthetic presentation-only fixture","status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","retry_used":false,"action":null,"checks":{"passed":[],"failed":["POLICY"]},"display":{"show_progress_updates":true,"show_verified_badge":true},"result":{"status":"ESCALATED","answer":"A human support review has been requested for a complete answer.","action":null,"evidence_ids":[],"checked_at":"2026-11-03T14:44:51+00:00","checks":{"passed":[],"failed":["POLICY"]},"presentation_reason":"answer_word_limit","presentation":{"tone":"warm","empathy":"high","detail":"concise","target_words":20,"target_is_soft":true,"max_words":25,"word_count":11}},"created_at":"2026-11-03T14:44:51+00:00","completed_at":"2026-11-03T14:44:51+00:00"}}}
 ```
 
+## B79 — Versioned media API (2026-11-04)
+
+[Actual HTTP requests and responses](../qa/B79_MEDIA_HTTP_CAPTURE.json), reproduced by `python3 scripts/capture-cms-media.py`, use isolated SQLite/storage and synthetic accounts/image. Recent-password sessions are attached by a temporary capture-only router; this is not browser/CSRF or deployed-worker evidence. Synchronous jobs execute real GD transformations. Binary downloads are recorded as actual base64/hash/length.
+
+### GET /api/v1/admin/cms/assets
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets' -H 'Accept: application/json' -b cookies.txt
+```
+
+Captured 200 response: [`list`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/assets/{asset}
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr' -H 'Accept: application/json' -b cookies.txt
+```
+
+Captured 200 response: [`show`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/assets/{asset}/original
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/original' -H 'Accept: application/json' -b cookies.txt
+```
+
+Captured 200 response: [`original`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/assets/{asset}/recipes
+
+```sh
+curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes' -H 'Accept: application/json' -b cookies.txt -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <token>' --data '{"revision": 1, "breakpoints": {"mobile": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}, "tablet": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}, "desktop": {"x": 0, "y": 0, "width": 40, "height": 40, "rotate": 90, "flip_h": true, "flip_v": false, "output_width": 32}}}'
+```
+
+Captured 201 response: [`recipe`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/assets/{asset}/restore
+
+```sh
+curl -i -X POST 'http://localhost:8000/api/v1/admin/cms/assets/01m6k9n7cbfwzb45dpyez8zvsr/restore' -H 'Accept: application/json' -b cookies.txt -H 'Content-Type: application/json' -H 'X-XSRF-TOKEN: <token>' --data '{"revision": 2, "recipe": "01m6k9n7ce13t6va93z91aq894"}'
+```
+
+Captured 200 response: [`restore`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+### GET /api/v1/public/content-assets/{id}/recipes/{recipe}/{breakpoint}
+
+```sh
+curl -i -X GET 'http://localhost:8000/api/v1/public/content-assets/01m6k9n7cbfwzb45dpyez8zvsr/recipes/01m6k9n7hr9vvp0rqeyxnwefjz/mobile' -H 'Accept: application/json'
+```
+
+Captured 200 response: [`derivative`](../qa/B79_MEDIA_HTTP_CAPTURE.json).
+
+B84 adds backend-only [controlled staging execution](../qa/STAGING_RUNNER.md) through console/scheduler/deployment hooks. No HTTP route changes. Automatic imported results remain execution records; nonzero-process green JUnit becomes blocked. Missing independent acceptance evidence still blocks promotion. No frontend/provider/staging execution is certified.
+
+## B85 — Adobe SaaS automatic IMS renewal
+
+Existing `POST /api/v1/workspaces/{workspace}/connections` accepts `platform: magento`, `deployment: saas`, exact `saas_api_url`, verified `store_url`, `store_id`, `store_code` and either a manual `access_token` **or** paired `ims_client_id`/`ims_client_secret`. Client credentials are encrypted, never returned. Fixed Adobe OAuth scopes include `commerce.accs`; renewals preserve the underlying grant and do not promote connection readiness. Manual tokens and self-hosted/PaaS remain compatible. No new endpoint/migration.
+
+Actual request and response examples, including setup201, missing-secret422, mixed-auth422 and401/403/404: [14 isolated HTTP exchanges](../qa/B85_ADOBE_IMS_HTTP_CAPTURE.json), reproduced with `CAPTURE_ADOBE_IMS=1 python3 scripts/capture-adobe-async.py`. All credentials are explicitly synthetic; generated one-time signing secrets are redacted. Real Sanctum/validation/setup/Node-signed courier ingestion run; native recovery is queued. IMS/provider transport is fixture-tested separately and actual Adobe registration/installation/renewal/order/refund acceptance remains NOT RUN. See [Adobe contract](../integrations/ADOBE_ASYNC.md).
+
+## B80 — Saved content bindings and pinned media previews
+
+[31 actual isolated HTTP exchanges](../qa/B80_BINDINGS_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_BINDINGS=1 python3 scripts/capture-cms-media.py`, use synthetic admin/image/page records and real Laravel authorization, validation, persistence and synchronous GD derivatives. Capture-only confirmed-password session setup is synthetic; real browser/CSRF, deployed workers and staging acceptance remain NOT RUN. No frontend rendering or exhaustive client discovery is claimed.
+
+### GET /api/v1/admin/cms/pages/{page}/locales/{locale}/bindings
+
+```sh
+curl -i "http://localhost:8000/api/v1/admin/cms/pages/01m6kbzdd8avqs3xtqcj10d0bz/locales/nl/bindings?limit=2" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+```
+
+Captured200 response: `bindings` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/pages/{page}/locales/{locale}/media-preview
+
+```sh
+curl -i "http://localhost:8000/api/v1/admin/cms/pages/01m6kbzdd8avqs3xtqcj10d0bz/locales/nl/media-preview" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+```
+
+Captured200 response: `component_preview` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/assets/{asset}/usages
+
+```sh
+curl -i "http://localhost:8000/api/v1/admin/cms/assets/01m6kbzcpywtzvsxyrfwbp7sq4/usages?source=draft" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+```
+
+Captured200 response: `draft_usage` in [the actual HTTP artifact](../qa/B80_BINDINGS_HTTP_CAPTURE.json).
+
+All existing CMS page create/draft-save APIs accept optional `content.media_recipes`, a map of exact image-field paths (for example `body.content.1.attrs.asset_id`) to same-asset recipe ULIDs. At most200 pins; all three derivatives must be ready. Wrong/missing/foreign/incomplete pins return422. Pins are saved inside ordinary versioned content, so normal draft revisions/publication/restore preserve them. Existing unpinned content remains valid; no global active recipe is substituted silently. The `create_pinned_page` and `save_changed_draft` exchanges show actual mutation requests/responses. See [binding/preview contract](../cms/CONTENT_BINDINGS.md).
+
+## B81 — Consolidated queued CMS AI and independent review
+
+[43 actual isolated HTTP exchanges](../qa/B81_CMS_AI_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_AI=1 python3 scripts/capture-cms-media.py`, include all four legacy AI routes (queued202 and proposed200), canonical create/poll/list/apply and independent review. An actual temporary database worker executes jobs with synthetic OpenAI transport/pricing; unchanged copy is a structural fixture, not translation-quality evidence. Confirmed-password session setup is synthetic. No live model/provider call, genuine pricing verification, deployed worker or staging/browser proof.
+
+The existing page AI endpoints retain `data.suggestions` and `applied:false`, adding proposal status/ID/poll URL. Clients must poll queued202 responses and use the canonical proposal review/apply workflow. Section scope is preserved; other saved fields remain unchanged. `CMS_AI_*` is the single configuration flow; legacy Chat Completions callers were removed. Positive configured monetary cap and current model-specific pricing are required before execution. Reservations remain held on failures/timeouts. Read [the execution/review contract](../cms/AI_EXECUTION.md) before enabling.
+
+### POST /api/v1/admin/cms/suggestions/{suggestion}/review
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/suggestions/01m6kdbf5z62shphjnewpg6bqz/review" -H "Authorization: Bearer <token>" -H "Accept: application/json" -H "Content-Type: application/json" --data '{"locale": "nl", "language_correct": true, "meaning_preserved": true, "note": "Synthetic independent language and meaning review; not live model quality evidence."}'
+```
+
+Captured201 response: `independent_review` in [the real HTTP artifact](../qa/B81_CMS_AI_HTTP_CAPTURE.json). Self-review403, missing note422, duplicate409, unknown404 and401 are captured too. Both correctness flags must be true to accept; a negative result rejects. Review is immutable and cannot publish.
+
+## B83a — FAQ subcategories and category revisions
+
+Existing category creation accepts optional root `parent_id`, position and validated NL/EN/DE names. Existing admin/public FAQ lists remain flat and add parent metadata; public category-name fallback is explicit. Hidden items remain audience/publication-filtered.
+
+### PATCH /api/v1/admin/cms/faq/categories/{category}
+
+```sh
+curl -i -X PATCH "http://localhost:8000/api/v1/admin/cms/faq/categories/01m6kg9qbpwtq15r2xk2jtmvr7" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 1, "position": 4}'
+# Mutation capture uses a synthetic confirmed session; real clients require a confirmed browser session and CSRF.
+```
+
+Captured200 response: `faq_update` in [30 actual HTTP exchanges](../qa/B83_FAQ_HTTP_CAPTURE.json), reproduced with `CAPTURE_CMS_FAQ=1 python3 scripts/capture-cms-media.py`. Stale409, self/deep parent422, missing404,401/403 and step-up423 are recorded. Temporary DB/storage and synthetic confirmed-password sessions do not establish browser/CSRF/staging evidence. See [central management contract](../cms/CENTRAL_MANAGEMENT.md).
+
+## B83b — Media archive and selected-draft replacement
+
+The library excludes archived media unless `include_archived=1`. Archive/reactivation increments the media revision; files and published/history references remain available. New archived-image references are rejected. Replacement atomically changes only explicit revision-checked draft paths, with optional same-target recipe pins. It never publishes or claims complete usage discovery.
+
+### PATCH /api/v1/admin/cms/assets/{asset}
+
+```sh
+curl -i -X PATCH "http://localhost:8000/api/v1/admin/cms/assets/01m6kh2eczf9r3xqsrv37hm5yk" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 3, "archived": true, "reason": "Retire synthetic photo"}'
+# Mutation capture supplies a synthetic confirmed session; real clients need confirmed browser session/CSRF.
+```
+
+Actual response: `media_archive` in [40 real HTTP exchanges](../qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/assets/{asset}/replace
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/assets/01m6kh2eczf9r3xqsrv37hm5yk/replace" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"replacement_asset_id": "01m6kh2f5th5tm2p6w8c939x8n", "usages": [{"page_id": "01m6kh2f7t2x1z3wew4tqnfzjw", "locale": "nl", "revision": 2, "path": "body.content.0.attrs.asset_id"}]}'
+# Mutation capture supplies a synthetic confirmed session; real clients need confirmed browser session/CSRF.
+```
+
+Actual response: `media_replace` in [40 real HTTP exchanges](../qa/B83_MEDIA_MANAGEMENT_HTTP_CAPTURE.json).
+
+Reproduce with `CAPTURE_CMS_MANAGEMENT=1 python3 scripts/capture-cms-media.py`. Temporary SQLite/storage and synthetic confirmed sessions establish backend HTTP behavior; real cookie/CSRF, frontend and staging remain NOT RUN. [Central management contract](../cms/CENTRAL_MANAGEMENT.md).
+
+## B83c — Immutable reusable text blocks
+
+Library versions have immutable locale/node/hash provenance. Mount materializes an exact version plus safe local text overrides into the ordinary rich-text body, with source metadata; existing public clients need no new block renderer. New versions never propagate automatically. Mount/detach changes a revision-checked draft only. At most20 root usages,100 overrides per usage and64KiB per version; images/legal content/nested reusable references are excluded. Improve-with-AI omits pinned text; translating a source with pins is rejected before provider execution, requiring explicit detachment or independently localized library versions.
+
+### GET /api/v1/admin/cms/shared-blocks
+
+```sh
+curl -i -X GET "http://localhost:8000/api/v1/admin/cms/shared-blocks?limit=1" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_list` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/shared-blocks
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/shared-blocks" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"key": "synthetic-shared", "locale": "nl", "node": {"type": "paragraph", "content": [{"type": "text", "text": "Reusable synthetic copy"}]}}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_create` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/shared-blocks/{block}
+
+```sh
+curl -i -X GET "http://localhost:8000/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx?after=1&locale=de" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_show` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### GET /api/v1/admin/cms/shared-blocks/{block}/usages
+
+```sh
+curl -i -X GET "http://localhost:8000/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/usages?source=draft" -H "Accept: application/json" -H "Authorization: Bearer <token>"
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_draft_usages` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/shared-blocks/{block}/versions
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/shared-blocks/01m6kjvjmha133rwpgf0rb64sx/versions" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 1, "locale": "de", "node": {"type": "paragraph", "content": [{"type": "text", "text": "Wiederverwendbarer Beispieltext"}]}}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_version` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/pages/{page}/locales/{locale}/shared-blocks
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 1, "version_id": "01m6kjvjmkxtmyhdpjafx6cg82", "overrides": {"content.0.text": "Local synthetic override"}}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_mount` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+### POST /api/v1/admin/cms/pages/{page}/locales/{locale}/shared-blocks/detach
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/cms/pages/01m6kjvjnm8fpwammjaaxd1hww/locales/nl/shared-blocks/detach" -H "Accept: application/json" -H "Authorization: Bearer <token>" -H "Content-Type: application/json" --data '{"revision": 2, "index": 0}'
+# Mutation capture supplies a synthetic confirmed session; real clients require confirmed browser session/CSRF.
+```
+
+Captured response: `shared_detach` in [43 actual HTTP exchanges](../qa/B83_SHARED_BLOCKS_HTTP_CAPTURE.json).
+
+Existing field bindings add per-field `shared_source`; preview adds exact `shared_usages`. Usage scan is page-source-bounded and requires exhausting both draft and revision streams; it does not prove globally unused content. Public rich-text remains materialized from the immutable published page snapshot.
+
+Reproduce with `CAPTURE_CMS_SHARED=1 python3 scripts/capture-cms-media.py`. Actual private Laravel HTTP/SQLite with synthetic content/accounts and a synthetic confirmed session; no live provider/browser/CSRF/staging evidence. See [management semantics and remaining acceptance boundaries](../cms/CENTRAL_MANAGEMENT.md).
 Lightspeed C catalog follow-up (2026-11-03): product reads now use bounded native product/variant requests with single-variant price/SKU/reported stock only. Categories and coupons remain unsupported. Existing route shapes are unchanged. [Two real loopback HTTP request/response examples](LIGHTSPEED_CATALOG_HTTP_CAPTURE.json) for GET /api/v1/integrations/platforms and GET /api/v1/workspaces/{workspace}/connections/{connection} were captured against isolated synthetic SQLite at HassanDev parent 9546163 plus this uncommitted checkpoint, using `php scripts/capture-lightspeed-catalog.php`. The OpenAPI platform response includes the captured `lightspeedCatalog` example. No provider requests or live acceptance. [Implementation, tests and limitations](../integrations/LIGHTSPEED_CATALOG_2026-11-03.md).
 
 ## Support monitoring connectivity review — 2026-11-04
