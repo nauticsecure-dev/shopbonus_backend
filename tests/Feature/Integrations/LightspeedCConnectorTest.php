@@ -47,6 +47,22 @@ class LightspeedCConnectorTest extends TestCase
         $this->assertSame('ORD-1001', $paid->reference);
     }
 
+    public function test_assignment_token_comes_only_from_one_embedded_order_metafield(): void
+    {
+        $token = 'bx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        $with = function (mixed $embedded) {
+            $p = $this->orderPayload('paid');
+            $p['order']['metafields'] = ['resource' => ['id' => false, 'url' => 'orders/1623550/metafields', 'embedded' => $embedded]];
+
+            return (new LightspeedCConnector)->normalizeOrder($p)->bannerAssignmentToken;
+        };
+        $this->assertSame($token, $with([['id' => 1, 'key' => 'external_email', 'value' => 'x@example.test'], ['id' => 2, 'key' => 'shopbonus_assignment_token', 'value' => $token]]));
+        $this->assertNull($with([['key' => 'shopbonus_assignment_token', 'value' => $token], ['key' => 'shopbonus_assignment_token', 'value' => $token]]));
+        $this->assertNull($with([['key' => 'shopbonus_assignment_token', 'value' => 'bx_short']]));
+        $this->assertNull($with(false));
+        $this->assertNull((new LightspeedCConnector)->normalizeOrder($this->orderPayload('paid'))->bannerAssignmentToken);
+    }
+
     public function test_missing_shop_currency_clears_money_instead_of_borrowing_unverified_values(): void
     {
         $a = new LightspeedCConnector;

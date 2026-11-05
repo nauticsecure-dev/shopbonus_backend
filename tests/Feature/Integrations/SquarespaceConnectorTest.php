@@ -140,6 +140,18 @@ class SquarespaceConnectorTest extends TestCase
         app(SquarespaceConnector::class)->discoverOrders($this->connection, CarbonImmutable::now()->subDay(), CarbonImmutable::now(), null);
     }
 
+    public function test_assignment_token_comes_only_from_one_exact_checkout_form_row(): void
+    {
+        $adapter = new SquarespaceConnector;
+        $token = 'bx_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        $with = fn (array $rows) => $adapter->normalizeOrder(['native_order' => array_replace($this->order(), ['formSubmission' => $rows])])->bannerAssignmentToken;
+        $this->assertSame($token, $with([['label' => 'How did you hear about us?', 'value' => 'Facebook'], ['label' => 'shopbonus_assignment_token', 'value' => $token]]));
+        $this->assertNull($with([['label' => 'shopbonus_assignment_token', 'value' => $token], ['label' => 'shopbonus_assignment_token', 'value' => $token]]));
+        $this->assertNull($with([['label' => 'shopbonus_assignment_token', 'value' => strtoupper($token)]]));
+        $this->assertNull($with([['label' => 'How did you hear about us?', 'value' => $token]]));
+        $this->assertNull($adapter->normalizeOrder(['native_order' => $this->order()])->bannerAssignmentToken);
+    }
+
     public function test_api_key_connection_accepts_no_webhook(): void
     {
         $this->expectException(InvalidWebhook::class);

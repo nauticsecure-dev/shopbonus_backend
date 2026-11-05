@@ -1,3 +1,9 @@
+# Continuation checkpoint — assignment extraction for Lightspeed C and Squarespace (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: experiment assignment extraction missing for Lightspeed C, Squarespace and CCV. Added from documented order containers: Lightspeed C reads one embedded OrderMetafield (`order.metafields.resource.embedded`, key `shopbonus_assignment_token`); Squarespace reads one `formSubmission` row with that exact label. Both use the existing `AssignmentMetadata::fromRows` (exactly one row, exact `bx_` + 64 hex). CCV unchanged: its API docs could not be fetched. docs/banners/ASSIGNMENT_BRIDGES.md updated with remaining bridge requirements (Squarespace form rows are shopper-visible; Lightspeed metafield must be written by a bridge). Tests: new cases in SquarespaceConnectorTest and LightspeedCConnectorTest (13/13). Live shops NOT RUN.
+
+---
+
 # Continuation checkpoint — native cart readers for remaining platforms: blocked on documented contracts (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: no native ShopBonusCart adapters beyond Shopify, WooCommerce, BigCommerce. Official sources read for Ecwid/Lightspeed E, Lightspeed C, PrestaShop, OpenCart, Magento/Adobe and Squarespace; none documents both an exact storefront cart total and its ISO currency (Ecwid: total unit unstated, currency only server-side; PrestaShop: event only; OpenCart: HTML only; Magento: source-only `subtotalAmount`, no currency; Squarespace: no cart API; Lightspeed C: docs unreadable). No reader was implemented; per-platform evidence and what is missing are in docs/banners/NATIVE_CART_ADAPTERS.md. Most promising next step: Ecwid, once units are confirmed by Ecwid or a live test store and the currency is declared from the REST profile `formatsAndUnits.currency`.
