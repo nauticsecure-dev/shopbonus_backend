@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatform
 use App\Http\Controllers\Api\V1\Admin\QaController;
 use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
+use App\Http\Controllers\Api\V1\Admin\SupportConnectivityController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\WalletAdjustmentController as AdminWalletAdjustmentController;
@@ -299,6 +300,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('ai/reviews', [AiSupportController::class, 'index'])->name('ai.reviews.index');
                 Route::get('ai/reviews/{review}', [AiSupportController::class, 'show'])->name('ai.reviews.show');
                 Route::get('ai/operations', [AiSupportController::class, 'operations'])->name('ai.operations');
+                Route::post('ai/connectivity/browser-probe', [SupportConnectivityController::class, 'start'])->middleware('throttle:admin-diagnostics')->name('ai.connectivity.browser-probe');
+                Route::post('ai/connectivity/browser-probe/{nonce}/ack', [SupportConnectivityController::class, 'acknowledge'])->name('ai.connectivity.browser-probe.ack');
                 Route::middleware(['password.recent', 'step_up.otp'])->group(function () {
                     Route::post('ai/knowledge/{document}/rollback', [AiSupportController::class, 'rollbackKnowledge'])->name('ai.knowledge.rollback');
                     Route::post('ai/reviews/{review}/resolve', [AiSupportController::class, 'resolve'])->name('ai.reviews.resolve');

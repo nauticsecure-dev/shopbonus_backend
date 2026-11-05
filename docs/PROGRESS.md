@@ -1,3 +1,16 @@
+# Continuation checkpoint — support connectivity: worker and browser probes (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: the support probe only proved a server-to-Reverb private-channel round trip, not queue-worker processing or browser delivery. Added:
+- **Worker probe:** `shopbonus:probe-support-connectivity` (every minute) also dispatches `ProbeSupportWorker` on the default connection/queue (same as `ProcessSupportMessage`); the job records completion. `worker_probe`: `processed` (within 180 s, with `worker_probe_latency_ms`), `pending` (dispatched < 90 s ago), `not_processed`, `sync_driver_no_worker`, `not_measured`.
+- **Browser probe:** `POST /api/v1/admin/ai/connectivity/browser-probe` (Super Admin) broadcasts a one-time nonce (`support.connectivity.browser_probe`, ShouldBroadcastNow) to the admin's own `private-shopbonus.user.{id}.notifications`; the browser posts it to `.../browser-probe/{nonce}/ack` within 60 s (same admin, single use; another admin's attempt does not consume it). `browser_probe`: `acknowledged` (15 min) / `stale` / `not_measured`. Scope: the requesting admin's browser only.
+- Evidence keys added to `ai/operations` connectivity; OpenAPI updated (examples from a test run); docs/release/API_INVENTORY.md regenerated.
+
+Frontend (Hassan): the admin operations page should subscribe to the admin's notifications channel, call browser-probe, and echo the nonce on receipt.
+
+Executed: SupportConnectivityTest 6/6 (2 new); MySQL Support connectivity+admin 13/13; full SQLite 1547: only the 5 pre-existing MerchantEnrichmentE2ETest failures (also fail on clean main). PHPStan, Pint PASS. Not run against a live Reverb or worker.
+
+---
+
 # Continuation checkpoint — Lightspeed C automatic banner publication; refund cash stays unknown (2026-11-05, Claude)
 
 Branch `review-fixes` from `main` `904239a` (PR #7 merge). Two reviewer findings:

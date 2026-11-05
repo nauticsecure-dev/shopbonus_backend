@@ -1,10 +1,10 @@
 # API route inventory (Trello #22)
 
-Generated 2026-11-04 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
+Generated 2026-11-05 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **490**. Method/path operations (HEAD aliases excluded): **491**. Unique paths: **429**.
+Runtime route entries: **492**. Method/path operations (HEAD aliases excluded): **493**. Unique paths: **431**.
 
-Access counts are per operation: admin 246, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 248, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -40,6 +40,8 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | POST | `/api/v1/admin/agreement-templates` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | PATCH | `/api/v1/admin/agreement-templates/{template}` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/agreement-templates/{template}/publish` | admin | super_admin | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/ai/connectivity/browser-probe` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api, ThrottleRequests:admin-diagnostics | admin |
+| POST | `/api/v1/admin/ai/connectivity/browser-probe/{nonce}/ack` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/ai/conversations/{conversation}/reply` | admin | super_admin | session_cookie | - | platform | recent password, email code | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/ai/knowledge/{document}/rollback` | admin | super_admin | session_cookie | - | platform | recent password, email code | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/ai/knowledge/{document}/versions` | admin | super_admin | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
