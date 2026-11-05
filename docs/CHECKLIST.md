@@ -1747,3 +1747,11 @@ B86 implementing SHA `bf6ae17`; focused21/101 plus scoped static/style/workflow/
 B87: focused22 non-package checks passed; archive rerun5/185 PASS after deterministic rebuild. Syntax/scoped style/semantic OpenAPI/environment preservation/conflict-marker/diff checks PASS. Merge implementation SHA follows closeout.
 
 B87 implementing merge SHA `e14a603`; validation above covers conflict resolution only.
+
+### B88 — CI dependency security audit repair (2026-11-05)
+
+- [x] Confirm exact failing job/advisories; preserve passing tests, lint/static gates and mandatory audit.
+- [x] Update only affected Symfony dependency constraints/lock entries to patched compatible releases, with no ignored advisories or unrelated upgrades.
+- [x] Verify clean Composer audit/lock validity and focused HTTP/routing/OpenAPI compatibility; record actual CI follow-up and deployment limits.
+
+B88 local validation: Composer audit0 advisories/abandoned, strict validate PASS, focused31/8881 and lock-delta/diff checks PASS. Failed CI41968973988 was audit-only; new CI remains pending until push.
