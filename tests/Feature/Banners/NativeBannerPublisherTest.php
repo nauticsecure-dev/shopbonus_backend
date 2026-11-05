@@ -262,7 +262,8 @@ class NativeBannerPublisherTest extends TestCase
 
     public function test_other_platforms_require_real_native_app_or_manual_installation(): void
     {
-        foreach ([EcommercePlatform::LightspeedC, EcommercePlatform::LightspeedE, EcommercePlatform::Squarespace] as $p) {
+        // Lightspeed C now publishes through its documented Shop Scripts API (LightspeedScriptPublisherTest).
+        foreach ([EcommercePlatform::LightspeedE, EcommercePlatform::Squarespace] as $p) {
             $this->assertFalse($this->publisher()->readiness($p)['automatic_publication']);
         }
         $this->artisan('shopbonus:banner-native', ['action' => 'readiness', 'id' => 'bigcommerce'])->assertSuccessful();

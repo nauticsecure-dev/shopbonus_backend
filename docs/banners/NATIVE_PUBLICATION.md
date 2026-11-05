@@ -42,15 +42,30 @@ php artisan shopbonus:banner-native install CONNECTION_ULID --actor=USER_ULID --
 
 Steps are `template`, `widget`, `placement`. If no native object can be proven, remain blocked for operator/provider investigation. Cleanup requires uncertain creates to be bound first. A durable removal marker prevents installation from racing cleanup. Removal verifies ownership, deletes placement/widget/template in reverse order and requires native GET 404 absence. A lost delete response is reconciled by reading absence; a still-present object after an uncertain delete is blocked, not retried automatically. Credential rotation is permitted for cleanup only when the current connection still proves the same store/domain/public key. Remove before disconnecting/revoking access; provider-side cleanup may otherwise be required. Removing does not delete campaign records, wallet data or audit history.
 
+## Lightspeed C-Series (Shop Scripts)
+
+Default **OFF** (`LIGHTSPEED_BANNERS_ENABLED=false`). Uses the documented [Shop Scripts](https://developers.lightspeedhq.com/ecom/endpoints/shopscript/) resource: `POST /shop/scripts.json`, `GET /shop/scripts/{id}.json` (wrapper `shopScript`), `DELETE` (204). The connection's API key must be allowed to manage shop scripts (the docs state no scope name; a 401/403 is reported as `native_banner_permission_missing`). Same prerequisites as BigCommerce otherwise: verified shop identity and owned domain (`testConnection`), live funded campaign, verified storefront origin allowed, public bare HTTPS `APP_URL`.
+
+One owned script is created with `location: body` and an inline `body` that adds the existing `/embed/v1.js` loader with this workspace's `data-shopbonus-key` (Shop Scripts cannot set attributes on a `url` script, and the loader reads its key from its own tag). No target file is needed.
+
+```sh
+php artisan shopbonus:banner-native readiness lightspeed_c
+php artisan shopbonus:banner-native install CONNECTION_ULID --actor=USER_ULID
+php artisan shopbonus:banner-native reconcile CONNECTION_ULID --actor=USER_ULID
+php artisan shopbonus:banner-native bind CONNECTION_ULID --actor=USER_ULID --remote-id=SCRIPT_ID
+php artisan shopbonus:banner-native remove CONNECTION_ULID --actor=USER_ULID
+```
+
+The documented create response does not promise an ID. If none comes back the create stays uncertain: find the script in Lightspeed and `bind` its numeric ID; only a script whose `body`/`location` exactly match the frozen plan (and has no `url`) is adopted. Never repeat the install hoping for a second create. Plans, intents, observations and removal are `integration.banner_ls_*` audit events (`LightspeedScriptPublisher`). Removal deletes and then requires GET 404. Provider execution is **NOT RUN**; `storefront_delivery` stays `not_observed`.
+
 ## Remaining native installation paths
 
 | Platform | Current backend readiness | Required real setup |
 | --- | --- | --- |
-| Lightspeed C-Series | `manual_installation_required`; automatic writes unsupported | Merchant installs the current loader through documented Web Extras/theme customization. No supported script-write contract was established. |
 | Lightspeed E-Series / Ecwid | `native_app_required`; automatic writes unsupported | Authorized native app installation with `customize_storefront` and developer-configured `customJsUrl`. An ordinary order API token does not authorize changing native app endpoints. |
 | Squarespace | `manual_installation_required`; automatic writes unsupported | Merchant Code Injection on an eligible site/plan. Commerce/Orders credentials do not establish code-injection authority. |
 
-Use `readiness lightspeed_c`, `readiness lightspeed_e`, `readiness ecwid`, or `readiness squarespace` for explicit machine-readable states. These are setup requirements, not shipped native apps or verified installations. The complete automatic-publication scope remains **PARTIAL**. The backend will not invent remote write APIs or promote these paths to available.
+Use `readiness lightspeed_e`, `readiness ecwid`, or `readiness squarespace` for explicit machine-readable states. These are setup requirements, not shipped native apps or verified installations. The complete automatic-publication scope remains **PARTIAL**. The backend will not invent remote write APIs or promote these paths to available.
 
 ## Evidence and acceptance
 

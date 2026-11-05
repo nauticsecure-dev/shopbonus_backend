@@ -1,3 +1,16 @@
+# Continuation checkpoint — Lightspeed C automatic banner publication; refund cash stays unknown (2026-11-05, Claude)
+
+Branch `review-fixes` from `main` `904239a` (PR #7 merge). Two reviewer findings:
+
+1. **Native automatic storefront publication (Lightspeed C, E/Ecwid, Squarespace).** Lightspeed C is now implemented, opt-in (`LIGHTSPEED_BANNERS_ENABLED`, default off): `App\Integrations\Http\LightspeedScripts` (documented Shop Scripts POST/GET/DELETE, fixed cluster origin, no redirects/retries, bounded body; 401/403 → `native_banner_permission_missing`) and `App\Services\Banners\LightspeedScriptPublisher` (frozen plan, intent before every write, read-back verification of exact `body`/`location`, explicit `bind` when the create returns no ID, confirmed removal; `integration.banner_ls_*` audit events). The script is an inline loader adding `/embed/v1.js` with `data-shopbonus-key`. `shopbonus:banner-native` routes Lightspeed C connections to it; readiness is `implemented_opt_in`. Docs: docs/banners/NATIVE_PUBLICATION.md. Ecwid/Lightspeed E (customJsUrl is set in the developer's app settings, not by a merchant API) and Squarespace (no injection API found) stay `native_app_required` / `manual_installation_required` — unchanged, not code-fixable here.
+2. **Lightspeed C refund cash mapping.** Rechecked the developer reference (Invoice, Order, OrderCredit, Return): no PSP refund ID, settlement time or payout confirmation; credit-invoice `paid` is a manual label. Kept `refundedMinor`/`refundedAt` null by design; recorded in docs/integrations/LIGHTSPEED_C_REFUND_CASH.md. Needs a provider/PSP refund contract.
+
+Executed: new tests/Feature/Banners/LightspeedScriptPublisherTest.php (4 tests, 77 assertions; faked provider); NativeBannerPublisherTest updated (Lightspeed C no longer manual). Banners+Integrations 298 (296 pass, 2 pre-existing skips); MySQL Banners 71/71; PHPStan, Pint PASS. Full SQLite suite 1545: 4 failures, all MerchantEnrichmentE2ETest cover-image tests, which fail identically on clean `main` (pre-existing, unrelated). Provider execution NOT RUN; the API key permission name for scripts is undocumented.
+
+Next: someone should fix the pre-existing MerchantEnrichmentE2ETest failures on main; live-run Lightspeed C publication on a test shop.
+
+---
+
 B88 source closeout — 2026-11-05
 
 Implementing SHA `435d229` on `frank/moneybird-experiment-followup`: exactly five Symfony8.1.9→8.1.11 lock updates fix the reproduced ten-advisory audit failure. Local audit0, strict Composer validation and focused31/8881 checks PASS; no suppressed advisories or audit/workflow/application change. This follow-up records documentation only; source tree was clean after implementation. No migration/deployment/full local suite. Next: push feature branch and verify new CI rather than claiming the old failed run passed. Existing release/provider/staging limits remain unchanged.

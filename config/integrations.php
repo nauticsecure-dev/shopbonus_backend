@@ -57,6 +57,9 @@ return [
 
     'bigcommerce_banners' => ['enabled' => (bool) env('BIGCOMMERCE_BANNERS_ENABLED', false)],
 
+    // Lightspeed C-Series Shop Scripts publication (opt-in; the merchant's API key must be allowed to manage scripts).
+    'lightspeed_banners' => ['enabled' => (bool) env('LIGHTSPEED_BANNERS_ENABLED', false)],
+
     'platforms' => [
         'woocommerce' => [
             'profile' => [
@@ -171,7 +174,7 @@ return [
                 'order_api' => 'GET https://{cluster}/{lang}/orders/{id}.json', 'refund_api' => 'paymentStatus only; returns cash mapping UNSUPPORTED in this boundary',
                 'product_api' => 'GET /products.json + GET /variants.json?product={id}; single-variant money/stock only; category assignments unavailable', 'coupon_api' => 'UNSUPPORTED in this boundary',
                 'catalog_categories_implemented' => false,
-                'banner_method' => 'Theme/script placement; Shop/scripts resource exists upstream; automatic publish not implemented',
+                'banner_method' => 'Opt-in automatic publication via one owned Shop Script (LIGHTSPEED_BANNERS_ENABLED; key must manage scripts); otherwise manual Web Extras/theme placement',
                 'rate_limit_policy' => 'Cluster eu1|us1 only;8second/1MiB reads; require x-signature (app webhooks); Retail/E-Series refused; confirmation-page tracking not used.',
                 'sources' => [
                     'https://ecom-support.lightspeedhq.com/hc/en-us/articles/220320568-API-documentation',
