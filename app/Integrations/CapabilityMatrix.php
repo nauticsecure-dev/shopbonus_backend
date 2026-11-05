@@ -95,7 +95,8 @@ class CapabilityMatrix
      */
     private function productState(array $profile): CapabilityState
     {
-        if (! ($profile['native_read_api_implemented'] ?? false)) {
+        // A worker-pushed signed snapshot (OpenCart) is a read source too; it is not a native order API.
+        if (! ($profile['native_read_api_implemented'] ?? false) && ($profile['catalog_snapshot_push'] ?? false) !== true) {
             return CapabilityState::Unsupported;
         }
         $api = $profile['product_api'] ?? null;

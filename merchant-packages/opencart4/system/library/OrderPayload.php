@@ -19,7 +19,8 @@ final class ShopbonusOpenCartOrder
             'created_at' => self::date($order['date_added'] ?? '', $timezone), 'updated_at' => self::date($order['date_modified'] ?? '', $timezone)]];
     }
 
-    private static function date(string $value, string $timezone): ?string
+    /** Store-local `Y-m-d H:i:s` to UTC ISO 8601; null when invalid or ambiguous (DST fall-back hour). */
+    public static function date(string $value, string $timezone): ?string
     {
         if (! in_array($timezone, DateTimeZone::listIdentifiers(), true)) {
             return null;

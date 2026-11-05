@@ -64,6 +64,7 @@ use App\Http\Controllers\Api\V1\Discovery\PublicSearchController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
 use App\Http\Controllers\Api\V1\Integrations\CatalogController;
+use App\Http\Controllers\Api\V1\Integrations\CatalogSnapshotController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyComplianceController;
@@ -127,6 +128,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // One provider IP serves many merchants, so the per-IP api limiter is replaced by a per-connection one.
     Route::post('webhooks/{platform}/{token}', [WebhookController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('webhooks.receive');
+    // Signed catalog snapshot pages from the OpenCart extension worker (same token and signature as orders).
+    Route::post('webhooks/{platform}/{token}/catalog', [CatalogSnapshotController::class, 'receive'])
+        ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('webhooks.catalog');
     // Shopify mandatory privacy webhooks: one app-level URI, signed with the app client secret.
     Route::post('integrations/shopify/compliance', [ShopifyComplianceController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:shopify-compliance')->name('integrations.shopify.compliance');

@@ -25,17 +25,24 @@ final class ShopbonusDelivery
             && preg_match('~\A/api/v1/webhooks/'.preg_quote($platform, '~').'/[A-Za-z0-9]{40}\z~D', $parts['path'] ?? '') === 1;
     }
 
-    public static function headers(string $body, string $secret, string $eventId, int $time): array
+    public static function headers(string $body, string $secret, string $eventId, int $time, string $topic = 'order.updated'): array
     {
-        return ['Content-Type: application/json', 'X-Shopbonus-Topic: order.updated', 'X-Shopbonus-Event-Id: '.$eventId,
+        return ['Content-Type: application/json', 'X-Shopbonus-Topic: '.$topic, 'X-Shopbonus-Event-Id: '.$eventId,
             'X-Shopbonus-Signature: t='.$time.',v1='.hash_hmac('sha256', $time.'.'.$body, $secret)];
     }
 
-    public static function send(string $url, string $platform, string $secret, string $eventId, array $payload): bool
+    /** Signed catalog snapshot page: same configured webhook URL plus `/catalog`, topic `catalog.snapshot`. */
+    public static function sendCatalog(string $url, string $platform, string $secret, string $eventId, array $page): bool
     {
-        if (! self::endpoint($url, $platform) || strlen($secret) < 32 || ! preg_match('/\A[a-f0-9]{32}\z/D', $eventId) || ! extension_loaded('curl')) {
+        return self::send($url, $platform, $secret, $eventId, $page, 'catalog.snapshot', '/catalog');
+    }
+
+    public static function send(string $url, string $platform, string $secret, string $eventId, array $payload, string $topic = 'order.updated', string $suffix = ''): bool
+    {
+        if (! self::endpoint($url, $platform) || ! in_array($suffix, ['', '/catalog'], true) || strlen($secret) < 32 || ! preg_match('/\A[a-f0-9]{32}\z/D', $eventId) || ! extension_loaded('curl')) {
             return false;
         }
+        $url .= $suffix;
         $host = parse_url($url, PHP_URL_HOST);
         $records = dns_get_record($host, DNS_A | DNS_AAAA);
         $addresses = [];
@@ -54,7 +61,7 @@ final class ShopbonusDelivery
         $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
         $ip = str_contains($addresses[0], ':') ? '['.$addresses[0].']' : $addresses[0];
         $curl = curl_init($url);
-        curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body, CURLOPT_HTTPHEADER => self::headers($body, $secret, $eventId, time()),
+        curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body, CURLOPT_HTTPHEADER => self::headers($body, $secret, $eventId, time(), $topic),
             CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROXY => '', CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 8,
             CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2, CURLOPT_RESOLVE => [$host.':443:'.$ip],
             CURLOPT_WRITEFUNCTION => static fn ($handle, $data) => strlen($data)]);

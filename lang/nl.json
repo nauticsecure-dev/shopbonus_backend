@@ -827,5 +827,10 @@
     "Order received": "Bestelling ontvangen",
     "Phone number available": "Telefoonnummer beschikbaar",
     "Webshop ownership verified": "Eigendom van de webshop geverifieerd",
-    "Shown only once. Store it in your shop settings now; it cannot be retrieved later.": "Wordt maar één keer getoond. Sla het nu op in je winkelinstellingen; het kan later niet opnieuw worden opgehaald."
+    "Shown only once. Store it in your shop settings now; it cannot be retrieved later.": "Wordt maar één keer getoond. Sla het nu op in je winkelinstellingen; het kan later niet opnieuw worden opgehaald.",
+    "No complete catalog snapshot has been received from the OpenCart extension yet.": "Er is nog geen volledige cataloguskopie van de OpenCart-extensie ontvangen.",
+    "This snapshot page was already received with different content.": "Deze pagina van de cataloguskopie is al ontvangen met andere inhoud.",
+    "The catalog snapshot page is invalid.": "De pagina van de cataloguskopie is ongeldig.",
+    "Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)": "Ondertekende kopieën van product/product_description, verstuurd door de worker van de extensie (geen endpoint in de winkel)",
+    "Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker": "Ondertekende kopieën van coupon/coupon_product/coupon_category, verstuurd door de worker van de extensie"
 }

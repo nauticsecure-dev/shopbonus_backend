@@ -77,7 +77,8 @@ class GenericSignedWebhookConnector extends WebhookConnector
         ];
     }
 
-    public function verifyIncomingEvent(WebshopConnection $connection, Request $request): VerifiedEvent
+    /** Shopbonus signed v1: `X-Shopbonus-Signature: t=<unix>,v1=<hmac-sha256(t.body)>` with the connection's signing secret. */
+    public function verifySignature(WebshopConnection $connection, Request $request): void
     {
         $body = $this->rawBody($request);
         $secret = $this->requireSecret($connection, 'signing_secret');
@@ -104,6 +105,11 @@ class GenericSignedWebhookConnector extends WebhookConnector
         if (! $valid) {
             throw new InvalidWebhook('invalid_signature');
         }
+    }
+
+    public function verifyIncomingEvent(WebshopConnection $connection, Request $request): VerifiedEvent
+    {
+        $this->verifySignature($connection, $request);
 
         $eventId = trim((string) $request->header('X-Shopbonus-Event-Id', ''));
         $topic = (string) $request->header('X-Shopbonus-Topic', '');

@@ -1,3 +1,17 @@
+# Continuation checkpoint — OpenCart native product and coupon reads via signed snapshots (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: OpenCart native product and coupon reads unimplemented. D-110: the extension worker pushes signed snapshots.
+- Backend: `POST /api/v1/webhooks/{platform}/{token}/catalog` (`CatalogSnapshotController`, OpenCart only) verifies the same HMAC as orders (`GenericSignedWebhookConnector::verifySignature`, extracted), topic `catalog.snapshot`, validates pages (schema `shopbonus.catalog.v1`, kind, 32-hex snapshot id, page ≤ 500, ≤ 100 object rows, ISO currency), stores them idempotently in `catalog_snapshot_pages` (encrypted items; 409 on changed redelivery). When pages 1..N arrive with page N `last`, older snapshots are deleted and the normal `CatalogSynchronizer` run starts. `OpenCartConnector` (new, replaces GenericSignedWebhookConnector for opencart) implements `CatalogReader` over the newest complete snapshot; `OpenCartCatalog` maps OpenCart 4.1 rows (F fixed / P percent, total = minimum spend, logged = customer restricted, coupon_product/category scope, date_end midnight expiry), semantics verified in OpenCart 4.1 source. Capability: `catalog_snapshot_push` lets products/coupons be AVAILABLE without a native order API.
+- Extension (0.2.0): `system/library/CatalogPayload.php` (keyset pages of 100 from product/product_description/product_to_store store 0 and coupon/coupon_product/coupon_category; default language from `config_language` code, base currency `config_currency`, verified in OpenCart install data); `bin/worker.php` sends both kinds every six hours (state row `module_shopbonus_catalog_sent_at`); shared `common/Delivery.php` gains `sendCatalog` / optional topic+suffix (defaults unchanged; Magento/PrestaShop ZIPs rebuilt only for that file). merchant-packages/INSTALL.md updated. Known limits: coupon `date_start` not sent; nameless products skipped.
+- Docs: OpenAPI entry, API inventory regenerated, Dutch translations for the new messages.
+
+Executed: OpenCartCatalogSnapshotTest 4/4 (incl. worker builder → signed endpoint → sync end to end with a non-connecting mysqli subclass); MySQL OpenCart+Capability 9/9; MerchantPackageTest 5/5; full SQLite 1557: only the 5 known local MerchantEnrichmentE2ETest failures. Live OpenCart store NOT RUN.
+(Correction to the localization checkpoint below: nl.json had 829 entries, not 831.)
+
+Next: Shopify coupon writes (D-109, opt-in per offer).
+
+---
+
 # Continuation checkpoint — Dutch localization of errors, provider steps, capability reasons and gates (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: provider instructions, capability reasons, diagnostic gate names and backend/provider errors lacked complete localization. NL is the default locale (SetRequestLocale: nl, en; English strings are the translation keys).

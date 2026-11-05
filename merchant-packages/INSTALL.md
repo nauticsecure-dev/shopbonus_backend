@@ -18,6 +18,8 @@ This first package supports **default store 0 only**. Enter the backend connecti
 
 Order IDs/references/customer fields and native local timestamps are delivered using Shopbonus signed v1. **Order status does not prove capture, settlement or refund:** payment status remains Unknown, no paid/refund timestamp or refund cash is invented. Only unconverted EUR/USD/GBP amounts with exact two-decimal precision are mapped; other currency conversion/precision stays incomplete. Native admin order API, authoritative payment/refund provider extension, bulk recovery and seven-gate Connected remain unsupported. Do not call this a completed paid-order integration.
 
+Package 0.2.0 also sends **product and coupon snapshots** (D-110): at most every six hours the same worker reads the default store's `product`/`product_description` (default storefront language, `config_language`) and `coupon`/`coupon_product`/`coupon_category`, and posts them as signed pages to the same webhook URL plus `/catalog` (topic `catalog.snapshot`). Prices are in the store's base currency (`config_currency`); times use the configured timezone. Nothing is exposed on the shop. A snapshot only counts once every page arrived; a failure part-way keeps the previous snapshot. Coupon `date_start` is not sent (not-yet-active coupons appear active), and products without a name in the default language are skipped. Live store acceptance is NOT RUN.
+
 Optional banner placement uses the native footer event and is disabled initially. Configure the public key/origin and enable it explicitly. Theme compatibility/editor acceptance remains NOT RUN.
 
 ## WooCommerce

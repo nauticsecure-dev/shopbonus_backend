@@ -2,9 +2,9 @@
 
 Generated 2026-11-05 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **492**. Method/path operations (HEAD aliases excluded): **493**. Unique paths: **431**.
+Runtime route entries: **493**. Method/path operations (HEAD aliases excluded): **494**. Unique paths: **432**.
 
-Access counts are per operation: admin 248, authenticated 4, integration 4, public 45, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 248, authenticated 4, integration 4, public 46, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -376,6 +376,7 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/public/webshops/{slug}/visit` | public | - | none | - | public | - | ThrottleRequests:api, ThrottleRequests:visits | security_denials |
 | DELETE | `/api/v1/support-session` | authenticated | - | session_cookie, bearer_token | - | authenticated_user_resource | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/webhooks/{platform}/{token}` | public | - | none | - | public | - | ThrottleRequests:webhooks | integration |
+| POST | `/api/v1/webhooks/{platform}/{token}/catalog` | public | - | none | - | public | - | ThrottleRequests:webhooks | integration |
 | GET | `/api/v1/workspaces` | verified | - | session_cookie, bearer_token | - | authenticated_user_resource | - | ThrottleRequests:api | security_denials |
 | POST | `/api/v1/workspaces` | verified | - | session_cookie, bearer_token | - | authenticated_user_resource | - | ThrottleRequests:api, ThrottleRequests:workspace-create | security_denials |
 | GET | `/api/v1/workspaces/{workspace}` | verified | - | session_cookie, bearer_token | - | workspace_membership | - | ThrottleRequests:api | security_denials |

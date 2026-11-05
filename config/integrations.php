@@ -8,6 +8,7 @@ use App\Integrations\Connectors\LightspeedCConnector;
 use App\Integrations\Connectors\LightspeedEConnector;
 use App\Integrations\Connectors\MagentoConnector;
 use App\Integrations\Connectors\MijnwebwinkelConnector;
+use App\Integrations\Connectors\OpenCartConnector;
 use App\Integrations\Connectors\PrestaShopConnector;
 use App\Integrations\Connectors\ShopifyConnector;
 use App\Integrations\Connectors\ShopwareConnector;
@@ -218,7 +219,7 @@ return [
         ],
         'opencart' => [
             'name' => 'OpenCart', 'priority' => 'additional',
-            'connector' => GenericSignedWebhookConnector::class,
+            'connector' => OpenCartConnector::class,
             'profile' => [
                 'api_version' => 'Shopbonus webhook v1 bridge (OpenCart 3/4 extension required)', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
@@ -227,7 +228,9 @@ return [
                 'scopes' => ['merchant extension pairing secret'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
                 'order_api' => 'UNSUPPORTED native admin order read; OpenCart catalog API is checkout-session oriented, not authoritative order history',
-                'refund_api' => 'Via module payload fields only', 'product_api' => 'UNSUPPORTED in this boundary', 'coupon_api' => 'UNSUPPORTED in this boundary',
+                'refund_api' => 'Via module payload fields only', 'product_api' => 'Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)', 'coupon_api' => 'Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker',
+                // Products/coupons come from worker-pushed signed snapshots, not a native shop API (D-110).
+                'catalog_snapshot_push' => true,
                 'banner_method' => 'Candidate OpenCart 4.1 default-store module/events shipped; theme/editor acceptance unverified',
                 'rate_limit_policy' => 'Module must deliver server-to-server signed events; OC3 vs OC4 packaging differs; no invented REST admin orders API.',
                 'sources' => ['https://docs.opencart.com/developer-guide/extensions', 'https://docs.opencart.com/admin-interface/system/users/api'],
