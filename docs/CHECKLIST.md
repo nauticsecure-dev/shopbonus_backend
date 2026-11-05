@@ -1745,3 +1745,5 @@ B86 implementing SHA `bf6ae17`; focused21/101 plus scoped static/style/workflow/
 - [x] B87 package reconciliation: rebuild deterministic merchant archives/manifests from combined reviewed source so every embedded INSTALL.md matches the merge.
 
 B87: focused22 non-package checks passed; archive rerun5/185 PASS after deterministic rebuild. Syntax/scoped style/semantic OpenAPI/environment preservation/conflict-marker/diff checks PASS. Merge implementation SHA follows closeout.
+
+B87 implementing merge SHA `e14a603`; validation above covers conflict resolution only.

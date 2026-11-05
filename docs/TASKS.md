@@ -1,3 +1,9 @@
+B87 source closeout — 2026-11-05
+
+Merge SHA `e14a603` on `frank/moneybird-experiment-followup`, parents `d23fa84` and main `01c9336`. Five conflicts resolved with both settings/schedule/documentation histories and intact captured responses; deterministic package rebuild repaired the shared-INSTALL archive mismatch. Focused22 API/catalogue/connectivity checks passed; final package5/185, PHP syntax/scoped Pint, semantic OpenAPI/environment preservation/conflict/whitespace checks PASS. No full suite/MySQL/frontend/provider/staging run, migration, main merge/deployment or financial change. Working tree was clean after the merge commit; this closeout changes docs only.
+
+Next: push existing feature branch to PR7 and verify remote ancestry/mergeability; repository CI is separate from the focused local results. All previous independent acceptance/deployment limits remain. Do not infer original175/provider/staging acceptance from mergeability.
+
 B87 — PR7 merge-conflict resolution (2026-11-05)
 
 Branch `frank/moneybird-experiment-followup`; parents feature `d23fa84` and current main `01c9336` (PR8/HassanDev). Resolved `.env.example`, `routes/console.php`, `docs/CHECKLIST.md`, `docs/api/README.md` and `docs/api/openapi.yaml`. Preserved all branch CMS/QA defaults and guarded nightly/weekly schedules plus main's bounded support-connectivity probe/schedule and catalogue documentation. OpenAPI was merged semantically against both parents/base: the only shared description conflict combined two appended descriptions, all captured response examples were retained intact, and parsed output matches the expected three-way union. No invented/edited response payloads. Existing main changes auto-merge into the feature branch; PR7 is not merged into main.
