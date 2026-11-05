@@ -1,3 +1,17 @@
+# Continuation checkpoint — Dutch localization of errors, provider steps, capability reasons and gates (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: provider instructions, capability reasons, diagnostic gate names and backend/provider errors lacked complete localization. NL is the default locale (SetRequestLocale: nl, en; English strings are the translation keys).
+- lang/nl.json: +603 API error messages (all literal `new ApiException` / `ApiException::conflict` messages), 42 provider setup steps, all capability reasons (CapabilityMatrix + ConnectionCapabilities + platform config `blocked_reason`/`banner_method`/unsupported `coupon_api`/`refund_api`), gate and check labels. 816 → 831 entries. Informal "je".
+- Code: `CapabilityMatrix::cap` and `ConnectionCapabilities::report` localize reasons; the refund reason uses `:note`; `ConnectionResource` localizes setup `steps` and the secrets notice; the verify response adds `gate_labels` / `check_labels` (keys unchanged); two concatenated messages became placeholders (`At most :max codes per import.`, OpenCart package `:url`).
+- tests/Feature/LocalizationCoverageTest.php fails when any of these texts lacks a Dutch entry, and checks NL/EN responses over HTTP.
+Not localized: free-text technical profile fields (`order_api`, `product_api`, `limitations`) shown only in the platform catalogue profile; messages built at runtime from variables other than the two above.
+
+Executed: LocalizationCoverageTest 3/3; Integrations + Api 267/267; full SQLite 1553: only the 5 MerchantEnrichmentE2ETest failures that also fail on clean main locally and pass in CI. PHPStan, Pint PASS.
+
+Decision recorded with the owner: Shopify coupon writes → opt-in per offer (next after OpenCart reads).
+
+---
+
 # Continuation checkpoint — cart adapters persist assignment tokens (WooCommerce bridge, Shopify opt-in) (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: the embed calls `ShopBonusCart.setAttribution()` but shipped adapters did not implement it. Now:

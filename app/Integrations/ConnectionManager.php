@@ -186,8 +186,13 @@ class ConnectionManager
             return [
                 'status' => $connection->status->value,
                 'quality_gates' => $gates,
+                'gate_labels' => ConnectionReadiness::labels(),
                 'missing_gates' => array_keys(array_filter($gates, fn ($passed) => ! $passed)),
                 'checks' => $items,
+                'check_labels' => array_map(fn (string $label) => __($label), [
+                    'credentials_configured' => 'Credentials configured', 'event_received' => 'Event received', 'order_received' => 'Order received',
+                    'mandatory_fields_present' => 'Required order fields present', 'phone_available' => 'Phone number available', 'webshop_ownership_verified' => 'Webshop ownership verified',
+                ]),
                 'missing_fields' => $result['missing_fields'] ?? [],
                 'limitations' => $connection->limitations ?? [],
                 'next_action' => match (true) {
