@@ -1,3 +1,14 @@
+# Continuation checkpoint — cart adapters persist assignment tokens (WooCommerce bridge, Shopify opt-in) (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: the embed calls `ShopBonusCart.setAttribution()` but shipped adapters did not implement it. Now:
+- **WooCommerce (plugin 0.3.0):** footer emits `data-attribution-url` (admin-ajax) and a `wp_create_nonce('shopbonus_attribution')`; `native-cart-v1.js` `setAttribution` posts only exact `bx_`/`bc_` values (empty clears). The plugin stores them in the WooCommerce session (starting a guest session cookie if needed), refuses bad nonces (403), and copies them to `_shopbonus_assignment_token` / `_shopbonus_click_id` order meta on classic and Blocks checkout, once. Package rebuilt (`scripts/build-merchant-packages.php`; only the WooCommerce ZIP + manifest changed).
+- **Shopify:** opt-in `data-persist-attribution="true"` on `shopify-cart-v1.js` writes documented Ajax cart attributes (`cart/update.js`). Clearing with `""` and checkout visibility are undocumented → per-store verification before enabling.
+- **BigCommerce:** no storefront writer possible (order metafields need a server bridge); documented.
+
+Executed: `node --test tests/embed-lifecycle.test.cjs` 34/34 (2 new); `php tests/woocommerce-banner.test.php` 16 checks; MerchantPackageTest 5/5. Live stores NOT RUN.
+
+---
+
 # Continuation checkpoint — assignment extraction for Lightspeed C and Squarespace (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: experiment assignment extraction missing for Lightspeed C, Squarespace and CCV. Added from documented order containers: Lightspeed C reads one embedded OrderMetafield (`order.metafields.resource.embedded`, key `shopbonus_assignment_token`); Squarespace reads one `formSubmission` row with that exact label. Both use the existing `AssignmentMetadata::fromRows` (exactly one row, exact `bx_` + 64 hex). CCV unchanged: its API docs could not be fetched. docs/banners/ASSIGNMENT_BRIDGES.md updated with remaining bridge requirements (Squarespace form rows are shopper-visible; Lightspeed metafield must be written by a bridge). Tests: new cases in SquarespaceConnectorTest and LightspeedCConnectorTest (13/13). Live shops NOT RUN.

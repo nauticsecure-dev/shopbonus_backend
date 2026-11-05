@@ -1,6 +1,6 @@
 # Native cart readers — 2026-11-04
 
-`public/embed/native-cart-v1.js` implements the existing `ShopBonusCart` snapshot/subscribe/refresh contract for WooCommerce and BigCommerce. Load it before `embed/v1.js` using ordered deferred scripts. It preserves an existing bridge. It never writes a cart, persists identifiers, scrapes prices or uses order webhooks for progress. No checkout attribution writer is added.
+`public/embed/native-cart-v1.js` implements the existing `ShopBonusCart` snapshot/subscribe/refresh contract for WooCommerce and BigCommerce. `setAttribution` (assignment/click persistence into the provider order) exists for WooCommerce through the plugin bridge (0.3.0+, `data-attribution-url`/`data-attribution-nonce`) and, opt-in, for Shopify (`data-persist-attribution="true"`); see docs/banners/ASSIGNMENT_BRIDGES.md. BigCommerce has none. Load it before `embed/v1.js` using ordered deferred scripts. It preserves an existing bridge. It never writes a cart, persists identifiers, scrapes prices or uses order webhooks for progress. No checkout attribution writer is added.
 
 ## WooCommerce
 
