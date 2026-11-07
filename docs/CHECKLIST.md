@@ -1798,3 +1798,12 @@ B87 implementing merge SHA `e14a603`; validation above covers conflict resolutio
 B88 local validation: Composer audit0 advisories/abandoned, strict validate PASS, focused31/8881 and lock-delta/diff checks PASS. Failed CI41968973988 was audit-only; new CI remains pending until push.
 
 B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; external follow-up CI pending push.
+
+### B92 — BigCommerce legacy native cart upgrade (2026-11-07)
+
+- [x] Add a fixed owned-template PUT operation using the documented forced update contract; keep external writes default-off.
+- [x] Upgrade matching legacy plans through install/explicit upgrade without rewriting immutable plans or removing widgets/placements; journal uncertain writes and reconcile without replay.
+- [x] Verify ownership, current authority, credential/domain binding, idempotency, lost responses and safe cleanup with focused native HTTP tests.
+- [x] Record commands, executed checks and remaining native cart/provider acceptance in task/progress/handoff docs.
+
+B92: native publisher17 PASS / 499 assertions; localization3 PASS / 9; scoped PHPStan and Pint/whitespace PASS. Actual BigCommerce propagation/storefront acceptance NOT RUN. SHA follows closeout.

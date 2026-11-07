@@ -17,7 +17,7 @@ Read source: session-bound GET Store API cart, `totals.total_price` (integer str
 
 ## BigCommerce
 
-The native Widgets publisher (`shopbonus:banner-native install`, docs/banners/NATIVE_PUBLICATION.md) now loads this reader before the renderer automatically for new plans. For a manual installation, use the merchant-authorized Stencil storefront script placement, before the renderer:
+The native Widgets publisher (`shopbonus:banner-native install`, docs/banners/NATIVE_PUBLICATION.md) loads this reader before the renderer for new plans. B92 upgrades matching legacy plans in place when install is run again, or through the explicit `shopbonus:banner-native upgrade` command; no remove/reinstall cycle is required. For a manual installation, use the merchant-authorized Stencil storefront script placement, before the renderer:
 
 ```html
 <script defer src="https://YOUR_BACKEND/embed/native-cart-v1.js" data-platform="bigcommerce"></script>
