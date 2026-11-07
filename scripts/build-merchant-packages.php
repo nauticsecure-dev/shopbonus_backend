@@ -9,9 +9,9 @@ if (! is_dir($output)) {
 }
 $packages = [
     'shopbonus-adobe-appbuilder-source.zip' => ['directory' => 'adobe-appbuilder'],
-    'shopbonus-magento2-async.zip' => ['directory' => 'magento2', 'delivery' => 'Shared/Delivery.php'],
-    'shopbonus-prestashop9.zip' => ['presta' => true, 'directory' => 'prestashop', 'delivery' => 'shopbonus/Delivery.php'],
-    'shopbonus.ocmod.zip' => ['directory' => 'opencart4', 'delivery' => 'system/library/Delivery.php'],
+    'shopbonus-magento2-async.zip' => ['directory' => 'magento2', 'delivery' => 'Shared/Delivery.php', 'cart' => 'Shared/CartSnapshot.php'],
+    'shopbonus-prestashop9.zip' => ['presta' => true, 'directory' => 'prestashop', 'delivery' => 'shopbonus/Delivery.php', 'cart' => 'shopbonus/CartSnapshot.php'],
+    'shopbonus.ocmod.zip' => ['directory' => 'opencart4', 'delivery' => 'system/library/Delivery.php', 'cart' => 'system/library/CartSnapshot.php'],
     'shopbonus-woocommerce-banner.zip' => ['directory' => 'woocommerce'],
     'shopbonus-shopify-theme-source.zip' => ['directory' => 'shopify'],
 ];
@@ -30,6 +30,9 @@ foreach ($packages as $name => $package) {
     }
     if (isset($package['delivery'])) {
         $files[$package['delivery']] = $source.'/common/Delivery.php';
+    }
+    if (isset($package['cart'])) {
+        $files[$package['cart']] = $source.'/common/CartSnapshot.php';
     }
     $files['INSTALL.md'] = $source.'/INSTALL.md';
     ksort($files);

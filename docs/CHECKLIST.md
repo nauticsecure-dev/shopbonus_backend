@@ -1807,3 +1807,14 @@ B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; exte
 - [x] Record commands, executed checks and remaining native cart/provider acceptance in task/progress/handoff docs.
 
 B92: native publisher17 PASS / 499 assertions; localization3 PASS / 9; scoped PHPStan and Pint/whitespace PASS. Actual BigCommerce propagation/storefront acceptance NOT RUN. SHA follows closeout.
+
+B92 implementing SHA `3180453`.
+
+### B93 — Native package session-cart sources (2026-11-07)
+
+- [x] Add exact bounded private session-cart snapshots for supported PrestaShop9/OpenCart4.1/Magento2.4 packages, without order data, guessed currency or new OpenCart catalogue endpoints.
+- [x] Extend the shared native reader with narrowly validated same-origin package routes/header/section contracts, lifecycle/sensitive-route protection and native change notifications.
+- [x] Wire ordered reader loading through enabled native packages and rebuild deterministic archives/manifests; preserve existing catalog/order semantics and disabled defaults.
+- [x] Run focused runtime/native package/reader negative checks, document exact version/source boundaries, and retain unsupported Lightspeed/Squarespace/Adobe SaaS cases honestly.
+
+B93 validation: combined package/publisher24 PASS / 731 assertions, including Node48 PASS via PHPUnit and four isolated native-framework contract fixtures; PHP syntax18 files and Magento XML well-formedness PASS; Pint/whitespace PASS. Actual native installation/DI/storefront/provider/staging acceptance NOT RUN. No Laravel migration or API route change. Source SHA follows closeout.

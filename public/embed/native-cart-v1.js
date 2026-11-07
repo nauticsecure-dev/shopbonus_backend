@@ -1,4 +1,4 @@
-/** Opt-in WooCommerce Store API / BigCommerce Stencil cart reader. Load before v1.js. */
+/** Opt-in native/session-package cart reader. Load before v1.js. */
 (function () {
   "use strict";
   if (window.ShopBonusCart || typeof AbortController !== "function" || typeof fetch !== "function") return;
@@ -15,11 +15,35 @@
       } else if (!/\/wp-json\/wc\/store\/v1\/cart\/?$/.test(endpoint.pathname) || endpoint.search) return;
     } else if (platform === "bigcommerce") {
       endpoint = new URL("/api/storefront/carts", location.origin);
+    } else if (["prestashop", "opencart", "magento"].indexOf(platform) >= 0) {
+      endpoint = new URL(script.getAttribute("data-cart-url"), location.origin);
+      var keys = Array.from(endpoint.searchParams.keys());
+      if (platform === "prestashop") {
+        var pretty = /\/module\/shopbonus\/cart\/?$/.test(endpoint.pathname);
+        var plain = /\/index\.php$/.test(endpoint.pathname) && endpoint.searchParams.get("fc") === "module"
+          && endpoint.searchParams.get("module") === "shopbonus" && endpoint.searchParams.get("controller") === "cart";
+        if ((!pretty && !plain) || keys.some(function (key) { return ["fc", "module", "controller", "id_lang"].indexOf(key) < 0; })
+          || (pretty && keys.some(function (key) { return key !== "id_lang"; }))
+          || (endpoint.searchParams.has("id_lang") && !/^[1-9][0-9]*$/.test(endpoint.searchParams.get("id_lang")))) return;
+      } else if (platform === "opencart") {
+        if (!/\/index\.php$/.test(endpoint.pathname) || endpoint.searchParams.get("route") !== "common/cart.info"
+          || keys.some(function (key) { return ["route", "language"].indexOf(key) < 0; })
+          || (endpoint.searchParams.has("language") && !/^[a-z]{2}(?:-[a-z]{2})?$/.test(endpoint.searchParams.get("language")))) return;
+      } else if (!/\/customer\/section\/load\/?$/.test(endpoint.pathname) || keys.length !== 1 || keys[0] !== "sections"
+        || endpoint.searchParams.get("sections") !== "shopbonus_cart") return;
+      // Duplicated routing keys are ambiguous even if URLSearchParams.get returns a safe first value.
+      if (keys.some(function (key, index) { return keys.indexOf(key) !== index; })) return;
     } else return;
     if (endpoint.origin !== location.origin || endpoint.username || endpoint.password || endpoint.hash) return;
   } catch (e) { return; }
   function excluded() {
-    return /(?:^|\/)(checkout|checkouts|checkout\.php|payment|payments|account|account\.php|my-account|login|login\.php|register|order-received)(\/|$)/i.test(location.pathname);
+    if (/(?:^|\/)(checkout|checkouts|checkout\.php|payment|payments|account|account\.php|my-account|login|login\.php|register|order-received|customer|authentication)(\/|$)/i.test(location.pathname)) return true;
+    try {
+      var query = new URL(location.pathname + (location.search || ""), location.origin).searchParams;
+      if (/(?:^|\/)(checkout|account|payment)(?:\/|\.|$)/i.test(query.get("route") || "")) return true;
+      if (/^(order|order-opc|authentication|my-account|identity|addresses|address|history|order-detail|order-slip|order-follow|password|registration)$/.test(query.get("controller") || "")) return true;
+    } catch (e) { return true; }
+    return false;
   }
   if (excluded()) return;
   // WooCommerce plugin bridge (0.3.0+): same-origin admin-ajax endpoint and nonce, emitted by the plugin.
@@ -39,6 +63,10 @@
       var totals = cart && cart.totals;
       if (!totals || totals.currency_minor_unit !== 2 || typeof totals.total_price !== "string" || !/^(0|[1-9][0-9]*)$/.test(totals.total_price)) return null;
       amount = Number(totals.total_price); currency = totals.currency_code;
+    } else if (["prestashop", "opencart", "magento"].indexOf(platform) >= 0) {
+      var source = platform === "magento" ? cart && cart.shopbonus_cart : cart;
+      if (!source || source.schema !== "shopbonus.cart-source.v1" || source.platform !== platform || source.minor_unit !== 2) return null;
+      amount = source.total_minor; currency = source.currency;
     } else {
       // No cart has no reported currency: do not invent a zero/currency pair.
       if (!Array.isArray(cart) || cart.length !== 1 || !cart[0] || !cart[0].currency || cart[0].currency.decimalPlaces !== 2) return null;
@@ -73,6 +101,13 @@
       });
     }).then(function (response) {
       if (!response.ok) throw new Error("cart_unavailable");
+      if (platform === "opencart") {
+        // The extension attaches a tiny structured snapshot to the existing native cart.info response.
+        // Never parse its HTML, formatted prices or item/customer data.
+        var header = response.headers && response.headers.get("X-ShopBonus-Cart");
+        if (typeof header !== "string" || header.length > 512) throw new Error("cart_source_missing");
+        return JSON.parse(header);
+      }
       return response.json();
     }).then(function (cart) {
       if (stopped || controller.signal.aborted || generation !== revision || excluded()) return;
@@ -116,6 +151,13 @@
     if (window.jQuery && document.body) window.jQuery(document.body).on("added_to_cart removed_from_cart updated_wc_div wc_fragments_refreshed", changed);
     document.addEventListener("wc-blocks_added_to_cart", changed);
     document.addEventListener("wc-blocks_removed_from_cart", changed);
+  }
+  if (platform === "prestashop" && window.prestashop && typeof window.prestashop.on === "function") {
+    window.prestashop.on("updateCart", changed);
+    window.prestashop.on("updatedCart", changed);
+  }
+  if (platform === "magento" && window.jQuery && document.body) {
+    window.jQuery(document.body).on("ajax:addToCart ajax:removeFromCart", changed);
   }
   window.addEventListener("pagehide", function () {
     stopped = true; pending = false; invalidate();
