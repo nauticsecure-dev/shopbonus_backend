@@ -47,7 +47,7 @@ class CapabilityMatrix
             'refunds' => $this->cap($refunds ? CapabilityState::Available : CapabilityState::Limited,
                 $refunds ? null : (($profile['reported_refund_total_mapped'] ?? false)
                     ? 'Reported refund totals are mapped; processor cash settlement remains unverified.'
-                    : 'Refund amounts are not mapped'.($refundNote === null ? '.' : ": {$refundNote}")), $verifiedAt),
+                    : ($refundNote === null ? 'Refund amounts are not mapped.' : __('Refund amounts are not mapped: :note', ['note' => __($refundNote)]))), $verifiedAt),
             'products' => $this->cap($this->productState($profile), $this->productReason($profile), $verifiedAt),
             'categories' => $this->cap(($profile['catalog_categories_implemented'] ?? true) && $this->productState($profile) === CapabilityState::Available ? CapabilityState::Limited : CapabilityState::Unsupported, 'Category sync is best-effort where implemented with products.', $verifiedAt),
             'coupons_read' => $this->cap($this->couponReadState($profile), $this->couponReason($profile), $verifiedAt),
@@ -95,7 +95,8 @@ class CapabilityMatrix
      */
     private function productState(array $profile): CapabilityState
     {
-        if (! ($profile['native_read_api_implemented'] ?? false)) {
+        // A worker-pushed signed snapshot (OpenCart) is a read source too; it is not a native order API.
+        if (! ($profile['native_read_api_implemented'] ?? false) && ($profile['catalog_snapshot_push'] ?? false) !== true) {
             return CapabilityState::Unsupported;
         }
         $api = $profile['product_api'] ?? null;
@@ -149,7 +150,8 @@ class CapabilityMatrix
      */
     private function cap(CapabilityState $state, ?string $reason, ?string $verifiedAt): array
     {
-        return ['state' => $state->value, 'reason' => $reason, 'last_verified_at' => $verifiedAt,
+        // Reasons are English source text; the request locale decides what the client sees (lang/nl.json).
+        return ['state' => $state->value, 'reason' => $reason === null ? null : __($reason), 'last_verified_at' => $verifiedAt,
             'evidence_id' => null, 'source_url' => null, 'error_code' => $state === CapabilityState::Unsupported ? 'capability_unsupported' : 'feature_not_live_verified',
             'evidence_scope' => 'implementation_declaration_not_provider_acceptance'];
     }

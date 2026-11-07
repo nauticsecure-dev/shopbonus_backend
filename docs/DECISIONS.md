@@ -299,3 +299,11 @@ Owner answered “do whats recommended without intervention” for the missing f
 ### D-113 — Reusable CMS text snapshots (2026-11-04)
 
 Agent reversible implementation within owner-delegated backend-only CMS scope. Reuse allowed rich-text root slots: immutable single paragraph/heading/list/button library versions, exact locale/hash pins, at most20 usages per page, bounded existing-text overrides and explicit revision-checked mount/detach. Materialize normal rich-text snapshots into the page revision so public clients/history need no new renderer or live mutable resolution. No automatic propagation/publication; exclude legal/shared-image/arbitrary component/layout builders. Translate localized library text separately; pinned text is excluded from AI improvement and cross-locale borrowing is blocked. This defines backend behavior, not approval of factual company copy, translation quality or independent staging acceptance.
+
+### D-109 — Shopify coupon writes: opt-in per offer (owner, 2026-11-05)
+
+Owner chose opt-in, per-offer Shopify discount-code creation. Off by default; when a merchant enables it for an offer, ShopBonus creates single-use Shopify discount codes matching the offer terms, verifies them by reading back, and can deactivate them. Requires the Shopify app to request `write_discounts` and merchants to re-authorize. Not implemented yet (queued after OpenCart native reads).
+
+### D-110 — OpenCart products/coupons via worker-pushed signed snapshots (owner, 2026-11-05)
+
+OpenCart has no core product/coupon API. Owner chose that the ShopBonus extension's existing CLI worker pushes signed snapshot pages (same webhook token/HMAC, topic `catalog.snapshot`, path `/catalog`) rather than adding a read endpoint on merchant shops. Nothing new is exposed on the shop; data is as fresh as the worker schedule (six hours).

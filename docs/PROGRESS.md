@@ -1,8 +1,94 @@
+Merge conflict resolution - 2026-11-07
+
+Branch `HassanDev`, HEAD `f029d6bd50740a8f02738aecea94eeb700dcc5ff`, merging `e919d764e47f389f8ba90b4fb1f1353a747932e2`. Resolved the append-only HANDOFF/PROGRESS conflicts by retaining the current Quality Center notes followed by all incoming integration checkpoints. Validation: both conflict blocks contained additions only; all non-marker content preserved and conflict-marker scan passed. Application tests NOT RUN (documentation resolution only). No new policy decision or migration introduced by this resolution. Merge remains uncommitted with existing staged changes preserved; next action: review the staged merge and create its merge commit.
+
 Quality Center follow-up (2026-11-07)
 
 Reused result-bound acceptance checks for mapped endpoint PASS, including provider proof and reviewer identity. The same result ID must satisfy both views. The staging registry can carry reviewed AI proposal provenance on a separately approved executable case and revalidates the link when importing results. Added a candidate portal smoke runner with four read-only HTTP checks. The frontend Quality Center uses existing role-scoped APIs and supports staging report import. Frontend inventory scans committed source and compares static candidates against a review of the same Git SHA.
 
 Focused SQLite acceptance, execution-plan and QA API verification passed (13 tests, 155 assertions). Scoped Pint, frontend typecheck and ESLint passed. The discovery verifier accepted complete synthetic dispositions and rejected an omitted candidate. An earlier full QA run hit the Windows POSIX file-mode assertion in QaCiImportTest and an incomplete test fixture corrected in the focused rerun.
+# Continuation checkpoint — OpenCart native product and coupon reads via signed snapshots (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: OpenCart native product and coupon reads unimplemented. D-110: the extension worker pushes signed snapshots.
+- Backend: `POST /api/v1/webhooks/{platform}/{token}/catalog` (`CatalogSnapshotController`, OpenCart only) verifies the same HMAC as orders (`GenericSignedWebhookConnector::verifySignature`, extracted), topic `catalog.snapshot`, validates pages (schema `shopbonus.catalog.v1`, kind, 32-hex snapshot id, page ≤ 500, ≤ 100 object rows, ISO currency), stores them idempotently in `catalog_snapshot_pages` (encrypted items; 409 on changed redelivery). When pages 1..N arrive with page N `last`, older snapshots are deleted and the normal `CatalogSynchronizer` run starts. `OpenCartConnector` (new, replaces GenericSignedWebhookConnector for opencart) implements `CatalogReader` over the newest complete snapshot; `OpenCartCatalog` maps OpenCart 4.1 rows (F fixed / P percent, total = minimum spend, logged = customer restricted, coupon_product/category scope, date_end midnight expiry), semantics verified in OpenCart 4.1 source. Capability: `catalog_snapshot_push` lets products/coupons be AVAILABLE without a native order API.
+- Extension (0.2.0): `system/library/CatalogPayload.php` (keyset pages of 100 from product/product_description/product_to_store store 0 and coupon/coupon_product/coupon_category; default language from `config_language` code, base currency `config_currency`, verified in OpenCart install data); `bin/worker.php` sends both kinds every six hours (state row `module_shopbonus_catalog_sent_at`); shared `common/Delivery.php` gains `sendCatalog` / optional topic+suffix (defaults unchanged; Magento/PrestaShop ZIPs rebuilt only for that file). merchant-packages/INSTALL.md updated. Known limits: coupon `date_start` not sent; nameless products skipped.
+- Docs: OpenAPI entry, API inventory regenerated, Dutch translations for the new messages.
+
+Executed: OpenCartCatalogSnapshotTest 4/4 (incl. worker builder → signed endpoint → sync end to end with a non-connecting mysqli subclass); MySQL OpenCart+Capability 9/9; MerchantPackageTest 5/5; full SQLite 1557: only the 5 known local MerchantEnrichmentE2ETest failures. Live OpenCart store NOT RUN.
+(Correction to the localization checkpoint below: nl.json had 829 entries, not 831.)
+
+Next: Shopify coupon writes (D-109, opt-in per offer).
+
+---
+
+# Continuation checkpoint — Dutch localization of errors, provider steps, capability reasons and gates (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: provider instructions, capability reasons, diagnostic gate names and backend/provider errors lacked complete localization. NL is the default locale (SetRequestLocale: nl, en; English strings are the translation keys).
+- lang/nl.json: +603 API error messages (all literal `new ApiException` / `ApiException::conflict` messages), 42 provider setup steps, all capability reasons (CapabilityMatrix + ConnectionCapabilities + platform config `blocked_reason`/`banner_method`/unsupported `coupon_api`/`refund_api`), gate and check labels. 816 → 831 entries. Informal "je".
+- Code: `CapabilityMatrix::cap` and `ConnectionCapabilities::report` localize reasons; the refund reason uses `:note`; `ConnectionResource` localizes setup `steps` and the secrets notice; the verify response adds `gate_labels` / `check_labels` (keys unchanged); two concatenated messages became placeholders (`At most :max codes per import.`, OpenCart package `:url`).
+- tests/Feature/LocalizationCoverageTest.php fails when any of these texts lacks a Dutch entry, and checks NL/EN responses over HTTP.
+Not localized: free-text technical profile fields (`order_api`, `product_api`, `limitations`) shown only in the platform catalogue profile; messages built at runtime from variables other than the two above.
+
+Executed: LocalizationCoverageTest 3/3; Integrations + Api 267/267; full SQLite 1553: only the 5 MerchantEnrichmentE2ETest failures that also fail on clean main locally and pass in CI. PHPStan, Pint PASS.
+
+Decision recorded with the owner: Shopify coupon writes → opt-in per offer (next after OpenCart reads).
+
+---
+
+# Continuation checkpoint — cart adapters persist assignment tokens (WooCommerce bridge, Shopify opt-in) (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: the embed calls `ShopBonusCart.setAttribution()` but shipped adapters did not implement it. Now:
+- **WooCommerce (plugin 0.3.0):** footer emits `data-attribution-url` (admin-ajax) and a `wp_create_nonce('shopbonus_attribution')`; `native-cart-v1.js` `setAttribution` posts only exact `bx_`/`bc_` values (empty clears). The plugin stores them in the WooCommerce session (starting a guest session cookie if needed), refuses bad nonces (403), and copies them to `_shopbonus_assignment_token` / `_shopbonus_click_id` order meta on classic and Blocks checkout, once. Package rebuilt (`scripts/build-merchant-packages.php`; only the WooCommerce ZIP + manifest changed).
+- **Shopify:** opt-in `data-persist-attribution="true"` on `shopify-cart-v1.js` writes documented Ajax cart attributes (`cart/update.js`). Clearing with `""` and checkout visibility are undocumented → per-store verification before enabling.
+- **BigCommerce:** no storefront writer possible (order metafields need a server bridge); documented.
+
+Executed: `node --test tests/embed-lifecycle.test.cjs` 34/34 (2 new); `php tests/woocommerce-banner.test.php` 16 checks; MerchantPackageTest 5/5. Live stores NOT RUN.
+
+---
+
+# Continuation checkpoint — assignment extraction for Lightspeed C and Squarespace (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: experiment assignment extraction missing for Lightspeed C, Squarespace and CCV. Added from documented order containers: Lightspeed C reads one embedded OrderMetafield (`order.metafields.resource.embedded`, key `shopbonus_assignment_token`); Squarespace reads one `formSubmission` row with that exact label. Both use the existing `AssignmentMetadata::fromRows` (exactly one row, exact `bx_` + 64 hex). CCV unchanged: its API docs could not be fetched. docs/banners/ASSIGNMENT_BRIDGES.md updated with remaining bridge requirements (Squarespace form rows are shopper-visible; Lightspeed metafield must be written by a bridge). Tests: new cases in SquarespaceConnectorTest and LightspeedCConnectorTest (13/13). Live shops NOT RUN.
+
+---
+
+# Continuation checkpoint — native cart readers for remaining platforms: blocked on documented contracts (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: no native ShopBonusCart adapters beyond Shopify, WooCommerce, BigCommerce. Official sources read for Ecwid/Lightspeed E, Lightspeed C, PrestaShop, OpenCart, Magento/Adobe and Squarespace; none documents both an exact storefront cart total and its ISO currency (Ecwid: total unit unstated, currency only server-side; PrestaShop: event only; OpenCart: HTML only; Magento: source-only `subtotalAmount`, no currency; Squarespace: no cart API; Lightspeed C: docs unreadable). No reader was implemented; per-platform evidence and what is missing are in docs/banners/NATIVE_CART_ADAPTERS.md. Most promising next step: Ecwid, once units are confirmed by Ecwid or a live test store and the currency is declared from the REST profile `formatsAndUnits.currency`.
+
+---
+
+# Continuation checkpoint — BigCommerce native publication loads the cart reader (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: the BigCommerce Widgets publisher installed only `/embed/v1.js`, so cart changes never reached live banner progress. New plans now freeze `cart_script_url` and the widget template loads `/embed/native-cart-v1.js` (`data-platform="bigcommerce"`) then `/embed/v1.js`, both `defer`. Plans frozen earlier (append-only audit, no `cart_script_url`) keep their exact original template so reconcile/remove still verify; reinstall to gain the reader. Tests: NativeBannerPublisherTest asserts the ordered template and the legacy template; Banners 70 pass + 2 pre-existing skips. Not run on a live BigCommerce store (widget script execution and Stencil cart endpoint NOT RUN).
+
+---
+
+# Continuation checkpoint — support connectivity: worker and browser probes (2026-11-05, Claude)
+
+Branch `review-fixes` (PR #9). Finding: the support probe only proved a server-to-Reverb private-channel round trip, not queue-worker processing or browser delivery. Added:
+- **Worker probe:** `shopbonus:probe-support-connectivity` (every minute) also dispatches `ProbeSupportWorker` on the default connection/queue (same as `ProcessSupportMessage`); the job records completion. `worker_probe`: `processed` (within 180 s, with `worker_probe_latency_ms`), `pending` (dispatched < 90 s ago), `not_processed`, `sync_driver_no_worker`, `not_measured`.
+- **Browser probe:** `POST /api/v1/admin/ai/connectivity/browser-probe` (Super Admin) broadcasts a one-time nonce (`support.connectivity.browser_probe`, ShouldBroadcastNow) to the admin's own `private-shopbonus.user.{id}.notifications`; the browser posts it to `.../browser-probe/{nonce}/ack` within 60 s (same admin, single use; another admin's attempt does not consume it). `browser_probe`: `acknowledged` (15 min) / `stale` / `not_measured`. Scope: the requesting admin's browser only.
+- Evidence keys added to `ai/operations` connectivity; OpenAPI updated (examples from a test run); docs/release/API_INVENTORY.md regenerated.
+
+Frontend (Hassan): the admin operations page should subscribe to the admin's notifications channel, call browser-probe, and echo the nonce on receipt.
+
+Executed: SupportConnectivityTest 6/6 (2 new); MySQL Support connectivity+admin 13/13; full SQLite 1547: only the 5 pre-existing MerchantEnrichmentE2ETest failures (also fail on clean main). PHPStan, Pint PASS. Not run against a live Reverb or worker.
+
+---
+
+# Continuation checkpoint — Lightspeed C automatic banner publication; refund cash stays unknown (2026-11-05, Claude)
+
+Branch `review-fixes` from `main` `904239a` (PR #7 merge). Two reviewer findings:
+
+1. **Native automatic storefront publication (Lightspeed C, E/Ecwid, Squarespace).** Lightspeed C is now implemented, opt-in (`LIGHTSPEED_BANNERS_ENABLED`, default off): `App\Integrations\Http\LightspeedScripts` (documented Shop Scripts POST/GET/DELETE, fixed cluster origin, no redirects/retries, bounded body; 401/403 → `native_banner_permission_missing`) and `App\Services\Banners\LightspeedScriptPublisher` (frozen plan, intent before every write, read-back verification of exact `body`/`location`, explicit `bind` when the create returns no ID, confirmed removal; `integration.banner_ls_*` audit events). The script is an inline loader adding `/embed/v1.js` with `data-shopbonus-key`. `shopbonus:banner-native` routes Lightspeed C connections to it; readiness is `implemented_opt_in`. Docs: docs/banners/NATIVE_PUBLICATION.md. Ecwid/Lightspeed E (customJsUrl is set in the developer's app settings, not by a merchant API) and Squarespace (no injection API found) stay `native_app_required` / `manual_installation_required` — unchanged, not code-fixable here.
+2. **Lightspeed C refund cash mapping.** Rechecked the developer reference (Invoice, Order, OrderCredit, Return): no PSP refund ID, settlement time or payout confirmation; credit-invoice `paid` is a manual label. Kept `refundedMinor`/`refundedAt` null by design; recorded in docs/integrations/LIGHTSPEED_C_REFUND_CASH.md. Needs a provider/PSP refund contract.
+
+Executed: new tests/Feature/Banners/LightspeedScriptPublisherTest.php (4 tests, 77 assertions; faked provider); NativeBannerPublisherTest updated (Lightspeed C no longer manual). Banners+Integrations 298 (296 pass, 2 pre-existing skips); MySQL Banners 71/71; PHPStan, Pint PASS. Full SQLite suite 1545: 4 failures, all MerchantEnrichmentE2ETest cover-image tests, which fail identically on clean `main` (pre-existing, unrelated). Provider execution NOT RUN; the API key permission name for scripts is undocumented.
+
+Next: someone should fix the pre-existing MerchantEnrichmentE2ETest failures on main; live-run Lightspeed C publication on a test shop.
+
+---
 
 B88 source closeout — 2026-11-05
 

@@ -1,4 +1,4 @@
-/** Opt-in Shopify theme cart reader. Load before embed/v1.js; never writes to the cart. */
+/** Opt-in Shopify theme cart reader. Load before embed/v1.js. Writes only cart attributes, and only with data-persist-attribution="true". */
 (function () {
   "use strict";
   if (window.ShopBonusCart || !window.Shopify || !window.Shopify.routes || typeof AbortController !== "function") return;
@@ -11,6 +11,7 @@
   if (storefrontPath.indexOf(root.pathname) === 0) storefrontPath = storefrontPath.slice(root.pathname.length - 1);
   if (/^\/(checkout|checkouts|payment|payments|account|my-account|login|register|order-received)(\/|$)/i.test(storefrontPath)) return;
 
+  var persistAttribution = !!(document.currentScript && document.currentScript.getAttribute("data-persist-attribution") === "true");
   // Only verified two-decimal presentment currencies. Other precisions fail closed.
   var currencies = ["EUR", "USD", "GBP", "CAD", "AUD", "NZD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK"];
   var snapshot = null, subscribers = [], running = false, pending = false, stopped = false;
@@ -57,6 +58,23 @@
     },
     refresh: changed,
   };
+  if (persistAttribution) {
+    // Documented Ajax Cart API cart attributes (POST cart/update.js {attributes}); ShopBonus reads them back as the
+    // order's note_attributes / customAttributes. Clearing with "" on withdrawal is not documented by Shopify and must
+    // be verified on the merchant's store, as must whether the theme/checkout shows these attributes to shoppers.
+    window.ShopBonusCart.setAttribution = function (value) {
+      var token = value && typeof value.assignment_token === "string" && /^bx_[a-f0-9]{64}$/.test(value.assignment_token) ? value.assignment_token : "";
+      var click = value && typeof value.click_id === "string" && /^bc_[A-Za-z0-9]{24}$/.test(value.click_id) ? value.click_id : "";
+      return fetch(new URL("cart/update.js", root).href, {
+        method: "POST", credentials: "same-origin", redirect: "error",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ attributes: { shopbonus_assignment_token: token, shopbonus_click_id: click } }),
+      }).then(function (response) {
+        if (!response.ok) throw new Error("attribution_not_stored");
+        changed();
+      });
+    };
+  }
   // Theme code dispatches this only AFTER its native cart mutation has completed.
   window.addEventListener("shopbonus:cart-invalidated", changed);
   window.addEventListener("focus", changed);

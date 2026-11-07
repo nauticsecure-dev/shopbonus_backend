@@ -97,7 +97,7 @@ class CodeImporter
         $lines = array_values(array_filter(array_map('trim', $lines), fn (string $l) => $l !== ''));
 
         if (count($lines) > self::MAX_CODES) {
-            throw new ApiException('At most '.self::MAX_CODES.' codes per import.', 422, 'too_many_codes');
+            throw new ApiException(__('At most :max codes per import.', ['max' => self::MAX_CODES]), 422, 'too_many_codes');
         }
 
         $valid = [];

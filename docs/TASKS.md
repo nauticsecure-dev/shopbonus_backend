@@ -1,3 +1,7 @@
+Merge conflict resolution - 2026-11-07
+
+Branch `HassanDev`, HEAD `f029d6bd50740a8f02738aecea94eeb700dcc5ff`, merging `e919d764e47f389f8ba90b4fb1f1353a747932e2`. Resolved the append-only HANDOFF/PROGRESS conflicts by retaining the current Quality Center notes followed by all incoming integration checkpoints. Validation: both conflict blocks contained additions only; all non-marker content preserved and conflict-marker scan passed. Application tests NOT RUN (documentation resolution only). No new policy decision or migration introduced by this resolution. Merge remains uncommitted with existing staged changes preserved; next action: review the staged merge and create its merge commit.
+
 Quality Center follow-up — PARTIAL (2026-11-07)
 
 Mapped endpoint results now use the independent acceptance evidence contract. A reviewed runner can link a separately approved executable to an approved AI proposal version. A read-only portal smoke executor is available for review and registration. The frontend repository supplies a Quality Center, a protected OpenAPI operation browser, and static discovery with candidate review reconciliation. Outstanding work includes the original 175-check/60-provider mapping, runtime discovery evidence, real browser/provider executors, a Swagger/Stoplight integration, and the promotion workflow dependency.

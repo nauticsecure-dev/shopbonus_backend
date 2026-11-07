@@ -22,6 +22,15 @@
     return /(?:^|\/)(checkout|checkouts|checkout\.php|payment|payments|account|account\.php|my-account|login|login\.php|register|order-received)(\/|$)/i.test(location.pathname);
   }
   if (excluded()) return;
+  // WooCommerce plugin bridge (0.3.0+): same-origin admin-ajax endpoint and nonce, emitted by the plugin.
+  var attributionUrl = null, attributionNonce = script.getAttribute("data-attribution-nonce") || "";
+  if (platform === "woocommerce" && script.getAttribute("data-attribution-url")) {
+    try {
+      attributionUrl = new URL(script.getAttribute("data-attribution-url"), location.origin);
+      if (attributionUrl.origin !== location.origin || !/\/wp-admin\/admin-ajax\.php$/.test(attributionUrl.pathname) || attributionUrl.search || attributionUrl.hash
+        || !/^[A-Za-z0-9]{1,32}$/.test(attributionNonce)) attributionUrl = null;
+    } catch (e) { attributionUrl = null; }
+  }
   // Match the renderer's currency precision; unknown currencies fail closed.
   var currencies = ["EUR", "USD", "GBP", "CAD", "AUD", "NZD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK"];
   function normalize(cart) {
@@ -88,6 +97,17 @@
     },
     refresh: changed,
   };
+  if (attributionUrl) {
+    // Only exact-format values are sent; an empty value clears what the store session holds (tracking withdrawn).
+    window.ShopBonusCart.setAttribution = function (value) {
+      var body = new URLSearchParams({ action: "shopbonus_attribution", nonce: attributionNonce });
+      if (value && typeof value.assignment_token === "string" && /^bx_[a-f0-9]{64}$/.test(value.assignment_token)) body.set("assignment_token", value.assignment_token);
+      if (value && typeof value.click_id === "string" && /^bc_[A-Za-z0-9]{24}$/.test(value.click_id)) body.set("click_id", value.click_id);
+      return fetch(attributionUrl.href, { method: "POST", credentials: "same-origin", redirect: "error", body: body }).then(function (response) {
+        if (!response.ok) throw new Error("attribution_not_stored");
+      });
+    };
+  }
   window.addEventListener("shopbonus:cart-invalidated", changed);
   window.addEventListener("focus", changed);
   document.addEventListener("visibilitychange", changed);

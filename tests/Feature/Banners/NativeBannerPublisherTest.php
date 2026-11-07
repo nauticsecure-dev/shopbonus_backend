@@ -133,6 +133,9 @@ class NativeBannerPublisherTest extends TestCase
         $this->assertSame($first, $again);
         $this->assertCount(3, $this->writes);
         $this->assertStringContainsString('https://api.example.com/embed/v1.js', array_values($this->remote)[0]['template']);
+        // The BigCommerce cart reader loads first (ordered defer) so cart changes drive live progress.
+        $this->assertSame('<script defer src="https://api.example.com/embed/native-cart-v1.js" data-platform="bigcommerce"></script>'
+            .'<script defer src="https://api.example.com/embed/v1.js" data-shopbonus-key="{{shopbonus_public_key}}"></script>', array_values($this->remote)[0]['template']);
         $this->assertSame('removed', $this->publisher()->remove($this->connection, $this->owner)['state']);
         $this->publisher()->remove($this->connection, $this->owner);
         $this->assertCount(6, $this->writes);
@@ -260,9 +263,19 @@ class NativeBannerPublisherTest extends TestCase
         }
     }
 
+    public function test_a_plan_frozen_before_the_cart_reader_keeps_its_original_template(): void
+    {
+        // Audit plans are append-only: an installation frozen without `cart_script_url` must still verify against
+        // exactly the template it was created with, or reconcile/removal would report it as tampered.
+        $template = new \ReflectionMethod(NativeBannerPublisher::class, 'template');
+        $this->assertSame('<script async src="https://api.example.com/embed/v1.js" data-shopbonus-key="{{shopbonus_public_key}}"></script>',
+            $template->invoke(null, ['script_url' => 'https://api.example.com/embed/v1.js']));
+    }
+
     public function test_other_platforms_require_real_native_app_or_manual_installation(): void
     {
-        foreach ([EcommercePlatform::LightspeedC, EcommercePlatform::LightspeedE, EcommercePlatform::Squarespace] as $p) {
+        // Lightspeed C now publishes through its documented Shop Scripts API (LightspeedScriptPublisherTest).
+        foreach ([EcommercePlatform::LightspeedE, EcommercePlatform::Squarespace] as $p) {
             $this->assertFalse($this->publisher()->readiness($p)['automatic_publication']);
         }
         $this->artisan('shopbonus:banner-native', ['action' => 'readiness', 'id' => 'bigcommerce'])->assertSuccessful();

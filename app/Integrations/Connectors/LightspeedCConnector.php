@@ -6,6 +6,7 @@ use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
+use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
@@ -359,6 +360,8 @@ final class LightspeedCConnector extends WebhookConnector implements CatalogRead
             refundedMinor: null,
             providerUpdatedAt: $this->date($p['updatedAt'] ?? null),
             amountBreakdown: AmountBreakdown::make($currency, 'lightspeedc_order', ['original_total' => $decimal($p['priceIncl'] ?? null)], true),
+            // Documented OrderMetafield key/value rows, as embedded in the order resource.
+            bannerAssignmentToken: AssignmentMetadata::fromRows($p['metafields']['resource']['embedded'] ?? null, 'key'),
         );
     }
 

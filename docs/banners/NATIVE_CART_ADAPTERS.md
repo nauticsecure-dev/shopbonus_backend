@@ -1,6 +1,6 @@
 # Native cart readers — 2026-11-04
 
-`public/embed/native-cart-v1.js` implements the existing `ShopBonusCart` snapshot/subscribe/refresh contract for WooCommerce and BigCommerce. Load it before `embed/v1.js` using ordered deferred scripts. It preserves an existing bridge. It never writes a cart, persists identifiers, scrapes prices or uses order webhooks for progress. No checkout attribution writer is added.
+`public/embed/native-cart-v1.js` implements the existing `ShopBonusCart` snapshot/subscribe/refresh contract for WooCommerce and BigCommerce. `setAttribution` (assignment/click persistence into the provider order) exists for WooCommerce through the plugin bridge (0.3.0+, `data-attribution-url`/`data-attribution-nonce`) and, opt-in, for Shopify (`data-persist-attribution="true"`); see docs/banners/ASSIGNMENT_BRIDGES.md. BigCommerce has none. Load it before `embed/v1.js` using ordered deferred scripts. It preserves an existing bridge. It never writes a cart, persists identifiers, scrapes prices or uses order webhooks for progress. No checkout attribution writer is added.
 
 ## WooCommerce
 
@@ -17,7 +17,7 @@ Read source: session-bound GET Store API cart, `totals.total_price` (integer str
 
 ## BigCommerce
 
-Install through the merchant-authorized Stencil storefront script placement, before the renderer:
+The native Widgets publisher (`shopbonus:banner-native install`, docs/banners/NATIVE_PUBLICATION.md) now loads this reader before the renderer automatically for new plans. For a manual installation, use the merchant-authorized Stencil storefront script placement, before the renderer:
 
 ```html
 <script defer src="https://YOUR_BACKEND/embed/native-cart-v1.js" data-platform="bigcommerce"></script>
@@ -41,9 +41,25 @@ Both readers allow the same explicit two-decimal currencies as the existing Shop
 | Shopify | Existing `shopify-cart-v1.js` | NOT RUN |
 | WooCommerce | `native-cart-v1.js`, opt-in plugin integration | NOT RUN |
 | BigCommerce Stencil | `native-cart-v1.js`, ordered merchant script installation | NOT RUN |
-| Wix, Ecwid, Lightspeed, PrestaShop, OpenCart, Shopware, Magento, Squarespace, Mijnwebwinkel, CCV | No native reader shipped; retain truthful static fallback or an existing verified merchant bridge | NOT RUN / unsupported by these readers |
+| Wix, Shopware, Mijnwebwinkel, CCV | No native reader shipped; retain truthful static fallback or an existing verified merchant bridge | NOT RUN / unsupported by these readers |
+| Ecwid / Lightspeed E-Series, Lightspeed C-Series, PrestaShop, OpenCart, Magento/Adobe, Squarespace | No reader: blocked on a documented storefront cart contract (see below) | NOT RUN |
 
 This does not promote platform capability/Connected status or prove payment, attribution, installation or reward eligibility. Server eligibility remains authoritative. Real merchant acceptance must record platform/theme versions and exercise add/remove/quantity/coupon/currency, empty cart, outages, sensitive pages, desktop/mobile, consent and uninstall. No live provider store was available in this task.
+
+## Platforms without a documented cart read (reviewed 2026-11-05)
+
+A reader needs a documented storefront source for an exact cart total **and** its ISO currency. Without both it would have to guess units or currency, and a wrong guess shows progress 100× off or in the wrong currency. Official sources were read on 2026-11-05; none is implemented.
+
+| Platform | What the official docs provide | Missing for a reader |
+|---|---|---|
+| Ecwid / Lightspeed E-Series | `Ecwid.OnAPILoaded`, `Ecwid.OnCartChanged`, `Ecwid.Cart.calculateTotal(order)` with `order.total` "includes all costs, fees, taxes, and discounts" ([calculate cart details](https://docs.ecwid.com/storefronts/manage-cart-and-checkout/calculate-cart-details.md)) | The unit of `total` is not stated (example `"total": 3850`, prices `500`); no storefront currency code (only `Ecwid.formatCurrency()` strings); the ISO code is only in the server-side REST profile `formatsAndUnits.currency`. Needs Ecwid confirmation of units, or a live test store, plus a server-declared currency. |
+| Lightspeed C-Series | Developer site renders empty to fetchers; no storefront cart JSON or theme variable found | Any documented cart total/currency source. |
+| PrestaShop 1.7/8 | `prestashop.on('updateCart')` ([JS events](https://devdocs.prestashop-project.org/8/themes/reference/javascript-events/)) | No documented cart total or currency object/endpoint (no `prestashop.cart` contract). |
+| OpenCart 3/4 | `common/cart` and `common/cart.info` render HTML only (source `catalog/controller/common/cart.php`) | Any JSON cart total; would require HTML scraping, which these readers never do. |
+| Magento 2 / Adobe Commerce | `customer-data` `cart` section has `subtotalAmount` (source `Checkout/CustomerData/Cart.php`, not documented) | No currency code; subtotal semantics (tax/discount/shipping) undocumented; quote (display) currency may differ from base. |
+| Squarespace | Custom Code Spec documents only static DOM attributes; Commerce APIs are server-side orders, no carts ([developers](https://developers.squarespace.com/custom-code)) | Any supported storefront cart read or cart-changed event. |
+
+On these platforms banners keep the truthful static fallback. Adding a reader requires the missing contract first; record its source here.
 
 ## Verification
 

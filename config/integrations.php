@@ -8,6 +8,7 @@ use App\Integrations\Connectors\LightspeedCConnector;
 use App\Integrations\Connectors\LightspeedEConnector;
 use App\Integrations\Connectors\MagentoConnector;
 use App\Integrations\Connectors\MijnwebwinkelConnector;
+use App\Integrations\Connectors\OpenCartConnector;
 use App\Integrations\Connectors\PrestaShopConnector;
 use App\Integrations\Connectors\ShopifyConnector;
 use App\Integrations\Connectors\ShopwareConnector;
@@ -56,6 +57,9 @@ return [
     'webhook_retention_days' => (int) env('WEBHOOK_PAYLOAD_RETENTION_DAYS', 14),
 
     'bigcommerce_banners' => ['enabled' => (bool) env('BIGCOMMERCE_BANNERS_ENABLED', false)],
+
+    // Lightspeed C-Series Shop Scripts publication (opt-in; the merchant's API key must be allowed to manage scripts).
+    'lightspeed_banners' => ['enabled' => (bool) env('LIGHTSPEED_BANNERS_ENABLED', false)],
 
     'platforms' => [
         'woocommerce' => [
@@ -171,7 +175,7 @@ return [
                 'order_api' => 'GET https://{cluster}/{lang}/orders/{id}.json', 'refund_api' => 'paymentStatus only; returns cash mapping UNSUPPORTED in this boundary',
                 'product_api' => 'GET /products.json + GET /variants.json?product={id}; single-variant money/stock only; category assignments unavailable', 'coupon_api' => 'UNSUPPORTED in this boundary',
                 'catalog_categories_implemented' => false,
-                'banner_method' => 'Theme/script placement; Shop/scripts resource exists upstream; automatic publish not implemented',
+                'banner_method' => 'Opt-in automatic publication via one owned Shop Script (LIGHTSPEED_BANNERS_ENABLED; key must manage scripts); otherwise manual Web Extras/theme placement',
                 'rate_limit_policy' => 'Cluster eu1|us1 only;8second/1MiB reads; require x-signature (app webhooks); Retail/E-Series refused; confirmation-page tracking not used.',
                 'sources' => [
                     'https://ecom-support.lightspeedhq.com/hc/en-us/articles/220320568-API-documentation',
@@ -215,7 +219,7 @@ return [
         ],
         'opencart' => [
             'name' => 'OpenCart', 'priority' => 'additional',
-            'connector' => GenericSignedWebhookConnector::class,
+            'connector' => OpenCartConnector::class,
             'profile' => [
                 'api_version' => 'Shopbonus webhook v1 bridge (OpenCart 3/4 extension required)', 'reviewed_at' => '2026-10-30', 'last_live_verified_at' => null,
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
@@ -224,7 +228,9 @@ return [
                 'scopes' => ['merchant extension pairing secret'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
                 'order_api' => 'UNSUPPORTED native admin order read; OpenCart catalog API is checkout-session oriented, not authoritative order history',
-                'refund_api' => 'Via module payload fields only', 'product_api' => 'UNSUPPORTED in this boundary', 'coupon_api' => 'UNSUPPORTED in this boundary',
+                'refund_api' => 'Via module payload fields only', 'product_api' => 'Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)', 'coupon_api' => 'Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker',
+                // Products/coupons come from worker-pushed signed snapshots, not a native shop API (D-110).
+                'catalog_snapshot_push' => true,
                 'banner_method' => 'Candidate OpenCart 4.1 default-store module/events shipped; theme/editor acceptance unverified',
                 'rate_limit_policy' => 'Module must deliver server-to-server signed events; OC3 vs OC4 packaging differs; no invented REST admin orders API.',
                 'sources' => ['https://docs.opencart.com/developer-guide/extensions', 'https://docs.opencart.com/admin-interface/system/users/api'],

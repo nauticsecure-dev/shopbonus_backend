@@ -13,6 +13,23 @@ use App\Services\Audit\AuditLogger;
 /** Gate evidence is derived from authenticated native ingestion, never merchant-submitted booleans. */
 class ConnectionReadiness
 {
+    /** English source labels for the seven gates; clients show the localized label, keys stay stable. */
+    public const LABELS = [
+        'authorization_verified' => 'Authorization verified',
+        'store_identity_matches' => 'Store identity matches',
+        'genuine_order_observed' => 'Genuine order received',
+        'mandatory_fields_mapped' => 'Required order fields present',
+        'payment_verified' => 'Payment verified',
+        'duplicate_processing_prevented' => 'Duplicate processing prevented',
+        'changes_refunds_recoverable' => 'Refunds recovered',
+    ];
+
+    /** @return array<string,string> */
+    public static function labels(): array
+    {
+        return array_map(fn (string $label) => __($label), self::LABELS);
+    }
+
     /** @return array<string,bool> */
     public function gates(WebshopConnection $c): array
     {
