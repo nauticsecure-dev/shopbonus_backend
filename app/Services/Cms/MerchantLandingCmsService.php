@@ -216,6 +216,6 @@ class MerchantLandingCmsService
             $content['offer_preview']['preview_url'] = $url($content['offer_preview']['preview_asset_id']);
         }
 
-        return $content;
+        return app(CmsContentBindings::class)->resolveMedia($content);
     }
 }

@@ -1,3 +1,13 @@
+## CMS frontend integration follow-up — 2026-11-07
+
+- [ ] Integrate shared-block versions, draft overrides, detach and paginated usage UI.
+- [ ] Replace landing browser cropping with preserved original/versioned recipe queue and exact restoration.
+- [ ] Resolve validated immutable media pins in landing rendering; verify ownership and historical version preservation.
+- [ ] Integrate responsive component previews and field bindings.
+- [ ] Integrate AI backlog, budgets and independent review controls.
+- [ ] Register executable content QA mappings and require the gate in deployment.
+- [ ] Record executed checks and remaining staging acceptance with commit SHA.
+
 ## Publication/refund gap follow-up — 2026-11-07
 
 - [ ] Correct stale C-Series setup instructions and Dutch translation; verify localization and publisher regressions (pending commit SHA).

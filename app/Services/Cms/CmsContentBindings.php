@@ -9,6 +9,7 @@ use App\Models\CmsMediaRecipe;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\CmsRevision;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -61,6 +62,33 @@ class CmsContentBindings
         ksort($pins);
 
         return $pins;
+    }
+
+    /** Resolve only immutable recipe pins belonging to their saved image reference.
+     * @param  array<string,mixed>  $content
+     * @return array<string,mixed>
+     */
+    public function resolveMedia(array $content): array
+    {
+        $refs = $this->references($content);
+        foreach ($content['media_recipes'] ?? [] as $path => $pin) {
+            if (! isset($refs[$path])) {
+                continue;
+            }
+            $asset = CmsAsset::where('public_id', $refs[$path])->first();
+            $recipe = $asset === null ? null : CmsMediaRecipe::where('asset_id', $asset->id)->where('public_id', $pin)->first();
+            if ($recipe === null || $recipe->original_hash !== $asset->original_hash) {
+                continue;
+            }
+            $bp = str_contains($path, 'mobile_asset_id') ? 'mobile' : 'desktop';
+            if (! CmsMediaDerivative::where('recipe_id', $recipe->id)->where('breakpoint', $bp)->where('status', 'ready')->exists()) {
+                continue;
+            }
+            $urlPath = str_ends_with($path, '.asset_id') ? substr($path, 0, -8).'src' : substr($path, 0, -8).'url';
+            Arr::set($content, $urlPath, route('api.v1.public.content-assets.derivative', ['id' => $asset->public_id, 'recipe' => $recipe->public_id, 'breakpoint' => $bp]));
+        }
+
+        return $content;
     }
 
     /** @return array{content:array<string,mixed>,source:array<string,mixed>} */

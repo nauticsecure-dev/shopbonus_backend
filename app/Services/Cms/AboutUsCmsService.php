@@ -219,6 +219,6 @@ class AboutUsCmsService
             }, $content['team']['profiles']);
         }
 
-        return $content;
+        return app(CmsContentBindings::class)->resolveMedia($content);
     }
 }
