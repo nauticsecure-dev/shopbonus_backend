@@ -1798,3 +1798,11 @@ B87 implementing merge SHA `e14a603`; validation above covers conflict resolutio
 B88 local validation: Composer audit0 advisories/abandoned, strict validate PASS, focused31/8881 and lock-delta/diff checks PASS. Failed CI41968973988 was audit-only; new CI remains pending until push.
 
 B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; external follow-up CI pending push.
+
+### B90 — Provider notices and publication readiness localization (2026-11-07)
+
+- [x] Localize setup native_notice and publisher human-facing reasons/requirements/methods without translating machine states, URLs or identifiers.
+- [x] Add Dutch dictionary entries for the reviewed publication/setup notices, verify EN/NL behavior and capture changed API responses through a real isolated server.
+- [x] Record provider publication API limits and the OpenCart policy question; preserve current unsupported states until actual write authority exists.
+
+B90 validation: focused localization/OpenAPI 5 PASS / 8309 assertions; scoped PHPStan and Pint PASS. Implementing SHA recorded in the following checkpoint. Genuine provider acceptance NOT RUN.
