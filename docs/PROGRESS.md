@@ -1,3 +1,12 @@
+Merge conflict resolution - 2026-11-07
+
+Branch `HassanDev`, HEAD `f029d6bd50740a8f02738aecea94eeb700dcc5ff`, merging `e919d764e47f389f8ba90b4fb1f1353a747932e2`. Resolved the append-only HANDOFF/PROGRESS conflicts by retaining the current Quality Center notes followed by all incoming integration checkpoints. Validation: both conflict blocks contained additions only; all non-marker content preserved and conflict-marker scan passed. Application tests NOT RUN (documentation resolution only). No new policy decision or migration introduced by this resolution. Merge remains uncommitted with existing staged changes preserved; next action: review the staged merge and create its merge commit.
+
+Quality Center follow-up (2026-11-07)
+
+Reused result-bound acceptance checks for mapped endpoint PASS, including provider proof and reviewer identity. The same result ID must satisfy both views. The staging registry can carry reviewed AI proposal provenance on a separately approved executable case and revalidates the link when importing results. Added a candidate portal smoke runner with four read-only HTTP checks. The frontend Quality Center uses existing role-scoped APIs and supports staging report import. Frontend inventory scans committed source and compares static candidates against a review of the same Git SHA.
+
+Focused SQLite acceptance, execution-plan and QA API verification passed (13 tests, 155 assertions). Scoped Pint, frontend typecheck and ESLint passed. The discovery verifier accepted complete synthetic dispositions and rejected an omitted candidate. An earlier full QA run hit the Windows POSIX file-mode assertion in QaCiImportTest and an incomplete test fixture corrected in the focused rerun.
 # Continuation checkpoint — OpenCart native product and coupon reads via signed snapshots (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: OpenCart native product and coupon reads unimplemented. D-110: the extension worker pushes signed snapshots.
@@ -306,6 +315,8 @@ Exact next: finish final focused/static checks, commit this tested follow-up and
 B71 implementing SHA `65af0e3` (2026-11-04), branch `frank/moneybird-experiment-followup`, draft [PR#7](https://github.com/nauticsecure-dev/shopbonus_backend/pull/7). Local SQLite282/13382, focusedMySQL23/117, API5/8353, fullPint/PHPStan/diff PASS; ten real local HTTP captures with explicitly synthetic native transport. No migration. Automatic provider coverage adds Shopify, BigCommerce legacy, Ecwid and Lightspeed E-Series; unsupported kinds/caps/constraints remain manual. Genuine provider/checkout/redemption acceptance remains NOT RUN. Full current-head CI execution: [PR#7 checks](https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks). Exact next: push this checkpoint, inspect complete CI, then senior configures real read scopes and executes provider acceptance. Source and working tree were clean before this documentation-only SHA closeout; no main merge, deployment or actual provider effects.
 
 # B71 — Automatic native coupon configuration verification (2026-11-04, Codex)
+
+2026-11-07 Wix follow-up. The existing endpoint now checks Wix app/site identity, payment currency, exact case-insensitive code identity and offer terms. Offers, platform catalog and API coverage passed (68 tests, 8,897 assertions). A captured local HTTP match using synthetic Wix data is included in OpenAPI. No migration. Live Wix and checkout acceptance NOT RUN.
 
 IMPLEMENTED backend boundary; PARTIAL genuine provider/checkout acceptance. Branch `frank/moneybird-experiment-followup`, parent `52ef8c5ad8a5bd95166694a9c5e27f4d44becff0`, existing draft PR#7. Added read-only exact-code lookup adapters for Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside the existing WooCommerce checker. Reuses current store/domain/scope/credential/SSRF/pause/version guards and bounded native transport. Each new check requires two native operations. Duplicate/partial/malformed results cannot establish a match; native restrictions, exact currency/amount/minimum, lifecycle, usage and expiry are compared conservatively.
 

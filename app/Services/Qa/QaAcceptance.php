@@ -20,6 +20,55 @@ class QaAcceptance
 
     public const STAGES = ['installation', 'authorization', 'order', 'refund', 'storefront', 'uninstall'];
 
+    /**
+     * Validate mapped cases against the same result displayed by endpoint status.
+     * Cases outside the acceptance manifest still report ordinary regression status.
+     *
+     * @return array<string, bool>
+     */
+    public function endpointProofs(array $manifest, iterable $passingResults): array
+    {
+        $definitions = [];
+        foreach (['checks', 'provider_subruns', 'frontend_discovery'] as $group) {
+            $entries = $manifest[$group] ?? [];
+            if ($group === 'frontend_discovery') {
+                $entries = [$entries];
+            }
+            foreach (is_array($entries) ? $entries : [] as $entry) {
+                if (is_array($entry) && is_string($entry['test_key'] ?? null)) {
+                    $definitions[$entry['test_key']][] = [$entry, $group];
+                }
+            }
+        }
+        $proofs = [];
+        $source = is_array($manifest['source'] ?? null) ? $manifest['source'] : [];
+        $sourceValid = ($manifest['schema_version'] ?? null) === 1 && ($manifest['state'] ?? null) === 'reviewed'
+            && is_string($source['version'] ?? null) && $source['version'] !== ''
+            && $this->sourceMatches($source);
+        foreach ($passingResults as $result) {
+            if (! isset($definitions[$result->key])) {
+                continue;
+            }
+            [$definition, $group] = $definitions[$result->key][0];
+            $proofs[$result->key] = $sourceValid && count($definitions[$result->key]) === 1
+                && preg_match('/\A[0-9a-f]{40,64}\z/D', (string) $result->git_sha) === 1
+                && $this->definitionValid($definition, $group === 'provider_subruns')
+                && ($group !== 'frontend_discovery' || in_array('frontend_inventory', $definition['required_evidence'], true))
+                && $this->check($definition, (string) $result->git_sha, $source['sha256'], $source['version'], $result->id) === [];
+        }
+
+        return $proofs;
+    }
+
+    private function sourceMatches(array $source): bool
+    {
+        $path = is_string($source['path'] ?? null) ? realpath(base_path('requirements').'/'.$source['path']) : false;
+
+        return $path && str_starts_with($path, realpath(base_path('requirements')).DIRECTORY_SEPARATOR)
+            && is_file($path) && is_string($source['sha256'] ?? null)
+            && hash_equals($source['sha256'], (string) hash_file('sha256', $path));
+    }
+
     /** @param array<string, mixed> $manifest
      * @return array<string, mixed>
      */
@@ -41,9 +90,7 @@ class QaAcceptance
             $errors = array_merge($errors, array_map(fn ($key) => 'manifest_invalid:'.$key, array_keys($validator->errors()->messages())));
         }
         $sourceHash = is_string($manifest['source']['sha256'] ?? null) ? $manifest['source']['sha256'] : '';
-        $path = is_string($manifest['source']['path'] ?? null) ? realpath(base_path('requirements').'/'.$manifest['source']['path']) : false;
-        if (! $path || ! str_starts_with($path, realpath(base_path('requirements')).DIRECTORY_SEPARATOR)
-            || ! is_file($path) || ! hash_equals($sourceHash, (string) hash_file('sha256', $path))) {
+        if (! $this->sourceMatches(is_array($manifest['source'] ?? null) ? $manifest['source'] : [])) {
             $errors[] = 'approved_source_missing_or_mismatched';
         }
         if (QaFinding::whereIn('severity', ['p0', 'p1'])->whereIn('status', ['open', 'fixed', 'retest_failed'])->exists()) {
@@ -205,7 +252,7 @@ class QaAcceptance
     /** @param array<string, mixed> $definition
      * @return list<string>
      */
-    private function check(array $definition, string $sha, string $sourceHash, string $sourceVersion): array
+    private function check(array $definition, string $sha, string $sourceHash, string $sourceVersion, ?int $expectedResultId = null): array
     {
         try {
             $proofs = app(QaRuns::class);
@@ -218,6 +265,9 @@ class QaAcceptance
                 return ['invalid_review_record'];
             }
             $result = QaTestResult::whereKey($review->result_id)->where('run_id', $review->run_id)->first();
+            if ($expectedResultId !== null && $result?->id !== $expectedResultId) {
+                return ['review_result_mismatch'];
+            }
             $run = QaTestRun::find($review->run_id);
             $case = QaTestCase::where('key', $definition['test_key'])->first();
             if ($result === null || $run === null || $case === null || $case->status !== 'approved' || $case->version !== $definition['case_version'] || $result->test_case_id !== $case->id

@@ -41,7 +41,7 @@ class QaAcceptanceCheck extends Command
             $report = $acceptance->evaluate($manifest, $sha);
             if ($this->option('discover')) {
                 $endpoints = QaEndpoint::whereNull('removed_at')->get();
-                $statuses = app(QaStatus::class)->forEndpoints($endpoints);
+                $statuses = app(QaStatus::class)->forEndpoints($endpoints, $manifest);
                 $unproven = $endpoints->filter(fn ($endpoint) => ! $endpoint->documented || ($statuses[$endpoint->id]['status'] ?? null) !== 'pass' || $statuses[$endpoint->id]['mocked']);
                 $report['route_coverage'] = ['total' => $endpoints->count(), 'unproven' => $unproven->count()];
                 if ($endpoints->isEmpty() || $unproven->isNotEmpty()) {

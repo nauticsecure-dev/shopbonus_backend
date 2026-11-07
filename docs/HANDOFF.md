@@ -1,3 +1,14 @@
+Merge conflict resolution - 2026-11-07
+
+Branch `HassanDev`, HEAD `f029d6bd50740a8f02738aecea94eeb700dcc5ff`, merging `e919d764e47f389f8ba90b4fb1f1353a747932e2`. Resolved the append-only HANDOFF/PROGRESS conflicts by retaining the current Quality Center notes followed by all incoming integration checkpoints. Validation: both conflict blocks contained additions only; all non-marker content preserved and conflict-marker scan passed. Application tests NOT RUN (documentation resolution only). No new policy decision or migration introduced by this resolution. Merge remains uncommitted with existing staged changes preserved; next action: review the staged merge and create its merge commit.
+
+Quality Center follow-up (2026-11-07)
+
+Backend branch `HassanDev`, base `904239af1ba524ef7db90cf4a78be28de8917078`. Frontend branch `HassanDev`, base `3a40eb1f8d4bab637a6f2ed4157d607d0417565f`. Changes are local and uncommitted alongside existing unrelated edits. Endpoint PASS for mapped acceptance cases now requires proof for the displayed result. AI proposal provenance can be bound to a separately approved, Git-reviewed executable. The frontend uses existing role-scoped QA routes and a first-party OpenAPI operation viewer. No database migration is required.
+
+Next action: obtain the original approved source and the actual deployment workflow. Review and register the candidate smoke runner, build out reviewed browser/provider journeys, and obtain independently reviewed frontend and provider evidence for the deployed SHAs. The reusable gate must become a required job before production promotion. Staging and provider execution remain NOT RUN.
+
+Verification: focused QA 13 tests and 155 assertions passed. Frontend typecheck, targeted ESLint, discovery verification and scoped Pint passed. The earlier full QA run was not green on Windows because of a POSIX file-mode assertion and a test-fixture error subsequently fixed and verified. Frontend browser verification and deployed HTTP smoke execution remain NOT RUN.
 # Continuation checkpoint — OpenCart native product and coupon reads via signed snapshots (2026-11-05, Claude)
 
 Branch `review-fixes` (PR #9). Finding: OpenCart native product and coupon reads unimplemented. D-110: the extension worker pushes signed snapshots.
@@ -306,6 +317,8 @@ Exact next: finish final focused/static checks, commit this tested follow-up and
 B71 implementing SHA `65af0e3` (2026-11-04), branch `frank/moneybird-experiment-followup`, draft [PR#7](https://github.com/nauticsecure-dev/shopbonus_backend/pull/7). Local SQLite282/13382, focusedMySQL23/117, API5/8353, fullPint/PHPStan/diff PASS; ten real local HTTP captures with explicitly synthetic native transport. No migration. Automatic provider coverage adds Shopify, BigCommerce legacy, Ecwid and Lightspeed E-Series; unsupported kinds/caps/constraints remain manual. Genuine provider/checkout/redemption acceptance remains NOT RUN. Full current-head CI execution: [PR#7 checks](https://github.com/nauticsecure-dev/shopbonus_backend/pull/7/checks). Exact next: push this checkpoint, inspect complete CI, then senior configures real read scopes and executes provider acceptance. Source and working tree were clean before this documentation-only SHA closeout; no main merge, deployment or actual provider effects.
 
 # B71 — Automatic native coupon configuration verification (2026-11-04, Codex)
+
+2026-11-07 Wix follow-up. Branch `HassanDev`, baseline `904239a`, scoped Wix changes uncommitted. No migration or route changes. Wix uses the existing app connection and requires Manage Coupons. The adapter requires a complete result of at most 100 coupons and retains merchant review for unsupported constraints. Offers, platform catalog and API coverage passed (68 tests, 8,897 assertions). The local fixed-value HTTP capture uses synthetic provider transport. Next, exercise the adapter with an authorized Wix test site and compare the native response and checkout independently. Remaining integrations require their own verification adapters.
 
 IMPLEMENTED backend boundary; PARTIAL genuine provider/checkout acceptance. Branch `frank/moneybird-experiment-followup`, parent `52ef8c5ad8a5bd95166694a9c5e27f4d44becff0`, existing draft PR#7. Added read-only exact-code lookup adapters for Shopify, BigCommerce legacy v2, Ecwid and Lightspeed E-Series alongside the existing WooCommerce checker. Reuses current store/domain/scope/credential/SSRF/pause/version guards and bounded native transport. Each new check requires two native operations. Duplicate/partial/malformed results cannot establish a match; native restrictions, exact currency/amount/minimum, lifecycle, usage and expiry are compared conservatively.
 

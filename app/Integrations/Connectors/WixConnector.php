@@ -8,6 +8,7 @@ use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -25,7 +26,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
-final class WixConnector extends WebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+final class WixConnector extends WebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     /** eventType values of com.wixpress.market.aim.api.AppInstanceService (@wix/auto_sdk_app-management_app-instances). */
     private const APP_INSTANCE_EVENTS = ['AppInstalled', 'AppRemoved'];
@@ -341,6 +342,33 @@ final class WixConnector extends WebhookConnector implements CatalogReader, Orde
         $code = $this->read($c, '/site-properties/v4/properties')['properties']['paymentCurrency'] ?? null;
 
         return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $currency = $this->catalogCurrency($connection);
+        // Search a complete bounded page because Wix accepts codes irrespective of case.
+        $p = $this->read($connection, '/stores/v2/coupons/query', 'POST', ['query' => ['paging' => ['limit' => 100, 'offset' => 0]]]);
+        $rows = $p['coupons'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100 || ($p['totalResults'] ?? null) !== count($rows)) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+
+        $coupon = null;
+        foreach ($rows as $row) {
+            $returnedCode = $row['specification']['code'] ?? null;
+            if (! is_string($returnedCode) || $returnedCode === '') {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            if (mb_strtolower($returnedCode) === mb_strtolower($code)) {
+                if ($coupon !== null) {
+                    throw ApiException::conflict('The native coupon identity is ambiguous.', 'provider_coupon_ambiguous');
+                }
+                $coupon = $row;
+            }
+        }
+
+        return ['coupon' => $coupon, 'currency' => $currency];
     }
 
     /** Cursors are "v1:<offset>", "v3:<native cursor>" or "<offset>" for coupons. */

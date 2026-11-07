@@ -44,9 +44,6 @@ class PlatformCouponVerification
 
     public const MISMATCH = 'mismatch';
 
-    /** Platforms with a read coupon API wired here. */
-    private const PROVIDER_SUPPORTED = [EcommercePlatform::WooCommerce, EcommercePlatform::Shopify, EcommercePlatform::BigCommerce, EcommercePlatform::Ecwid, EcommercePlatform::LightspeedE];
-
     public function __construct(
         private readonly WooCommerceApi $woo,
         private readonly AuditLogger $audit,
@@ -68,7 +65,9 @@ class PlatformCouponVerification
             ], 'provider_check', voucher: $voucher);
         }
 
-        if (! in_array($connection->platform, self::PROVIDER_SUPPORTED, true)) {
+        $registry = app(ConnectorRegistry::class);
+        $adapter = $registry->isAvailable($connection->platform) ? $registry->for($connection->platform) : null;
+        if ($connection->platform !== EcommercePlatform::WooCommerce && ! $adapter instanceof CouponLookup) {
             return $this->persist($code, self::UNSUPPORTED, [
                 'reason' => 'coupon_api_unsupported',
                 'platform' => $connection->platform->value,
@@ -77,11 +76,7 @@ class PlatformCouponVerification
         }
 
         try {
-            if ($connection->platform !== EcommercePlatform::WooCommerce) {
-                $adapter = app(ConnectorRegistry::class)->for($connection->platform);
-                if (! $adapter instanceof CouponLookup) {
-                    throw ApiException::conflict('The configured adapter has no native coupon lookup.', 'coupon_api_unsupported');
-                }
+            if ($adapter instanceof CouponLookup) {
                 $context = ['domain' => $connection->webshop->verified_domain, 'ownership_verified_at' => $connection->webshop->ownership_verified_at?->toIso8601String()];
                 $lookup = $adapter->lookupCoupon($connection, $code->code);
                 if ($lookup['coupon'] === null) {

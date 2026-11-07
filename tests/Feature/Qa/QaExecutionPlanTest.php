@@ -101,4 +101,18 @@ class QaExecutionPlanTest extends TestCase
         $this->assertTrue(app(QaExecutionPlan::class)->casesMatch([['key' => 'Affected::test', 'assertions' => 3]], $plan));
         $this->assertFalse(app(QaExecutionPlan::class)->casesMatch([], $plan));
     }
+
+    public function test_reviewed_executable_linked_to_ai_proposal_requires_both_approvals(): void
+    {
+        $proposal = QaTestCase::create(['key' => 'AI-synthetic-1', 'title' => 'Synthetic proposal', 'source' => 'ai', 'status' => 'approved', 'version' => 1]);
+        $this->runners[0]['tests'][0]['proposal'] = ['key' => $proposal->key, 'version' => 1];
+        $planner = app(QaExecutionPlan::class);
+        $plan = $planner->build($this->runners, 'nightly', [], $this->sha)['affected'];
+        $result = [['key' => 'Affected::test', 'assertions' => 3]];
+        $this->assertTrue($planner->casesMatch($result, $plan));
+        $proposal->update(['status' => 'retired']);
+        $this->assertFalse($planner->casesMatch($result, $plan));
+        $this->expectException(RuntimeException::class);
+        $planner->build($this->runners, 'nightly', [], $this->sha);
+    }
 }
