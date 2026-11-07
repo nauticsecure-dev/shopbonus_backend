@@ -1,5 +1,7 @@
 # Source-mapped acceptance evidence gate — B66
 
+Endpoint status uses the same independent evidence contract for linked cases mapped in the original acceptance manifest. Proof must belong to the exact result used for endpoint status, including genuine provider confirmation where required. Missing or expired proof leaves that result untested for endpoint coverage. Raw run results and cases outside the manifest continue to report regression execution.
+
 `shopbonus:qa-acceptance-check` evaluates reviewed evidence. It does not run tests, generate tests, certify frontend completeness, contact a provider or approve a release. Exit 1 means blocked, invalid input or unavailable evidence; exit 0 means only that the selected mapping's reviewed evidence is complete. `release_approved` is always false; Martijn retains final approval.
 
 The checked-in `requirements/QA_ACCEPTANCE.json` is deliberately UNMAPPED. The approved original 175-check PDF v2 is still unavailable locally. The Trello export contains scenario summaries and inconsistent older check totals; it cannot substitute for individual source check IDs. No fictitious checks have been filled in. Tests use clearly synthetic IDs exclusively in disposable fixtures.

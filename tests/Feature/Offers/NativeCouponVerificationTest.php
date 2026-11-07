@@ -69,6 +69,8 @@ class NativeCouponVerificationTest extends TestCase
         $input = match ($platform) {
             'shopify' => ['shop_domain' => 'synthetic.myshopify.com', 'signing_secret' => 'SYNTHETIC_signing_secret', 'access_token' => 'shpat_SYNTHETIC_token'],
             'bigcommerce' => ['store_hash' => 'abc123', 'access_token' => 'SYNTHETIC_bc_token', 'client_secret' => 'SYNTHETIC_bc_secret'],
+            'wix' => ['instance_id' => NativeCouponFixture::WIX_INSTANCE, 'site_id' => NativeCouponFixture::WIX_SITE,
+                'access_token' => 'SYNTHETIC_wix_token', 'public_key' => file_get_contents(base_path('tests/fixtures/rsa_public.pem'))],
             default => ['store_id' => '1003', 'access_token' => 'SYNTHETIC_ecwid_token', 'client_secret' => 'SYNTHETIC_ecwid_secret'],
         };
         [$this->connection] = app(ConnectionManager::class)->create($this->shop->memberships()->sole(), EcommercePlatform::from($platform), $input);
@@ -84,7 +86,7 @@ class NativeCouponVerificationTest extends TestCase
 
     public static function platforms(): array
     {
-        return [['shopify'], ['bigcommerce'], ['ecwid'], ['lightspeed_e']];
+        return [['shopify'], ['bigcommerce'], ['ecwid'], ['lightspeed_e'], ['wix']];
     }
 
     #[DataProvider('platforms')]
@@ -95,7 +97,31 @@ class NativeCouponVerificationTest extends TestCase
             ->assertJsonPath('verification.detail.evidence_scope', 'native_configuration_not_checkout_or_redemption');
         $this->assertDatabaseHas('voucher_events', ['voucher_code_id' => $this->code->id, 'type' => 'platform_validation_provider_check', 'to_status' => 'verified']);
         $this->assertDatabaseCount('vouchers', 0);
-        Http::assertNotSent(fn (Request $r) => $r->method() !== 'GET' && ! str_starts_with($r['query'] ?? '', 'query '));
+        Http::assertNotSent(fn (Request $r) => $r->method() !== 'GET'
+            && ! str_starts_with(is_string($r['query'] ?? null) ? $r['query'] : '', 'query ')
+            && ! str_ends_with($r->url(), '/stores/v2/coupons/query'));
+    }
+
+    public function test_wix_restrictions_and_unproven_searches_do_not_verify(): void
+    {
+        $this->fixture('wix');
+        $this->native['specification']['scope']['group'] = ['name' => 'product', 'entityId' => NativeCouponFixture::WIX_SITE];
+        $this->postJson($this->url, ['mode' => 'provider_check'])->assertOk()
+            ->assertJsonPath('data.platform_validation', 'merchant_verification_required')
+            ->assertJsonPath('verification.detail.unverified_constraints.0', 'product_scope');
+
+        foreach ([
+            ['totalResults' => 101, 'coupons' => [$this->native], 'reason' => 'provider_coupon_lookup_incomplete'],
+            ['totalResults' => 2, 'coupons' => [$this->native, NativeCouponFixture::coupon('wix')], 'reason' => 'provider_coupon_ambiguous'],
+        ] as $result) {
+            Http::swap(new Factory);
+            Http::fake(fn (Request $r) => str_ends_with($r->url(), '/stores/v2/coupons/query')
+                ? Http::response(['totalResults' => $result['totalResults'], 'coupons' => $result['coupons']])
+                : NativeCouponFixture::response($r, 'wix', $this->native));
+            $this->postJson($this->url, ['mode' => 'provider_check'])->assertOk()
+                ->assertJsonPath('data.platform_validation', 'sync_error')
+                ->assertJsonPath('verification.detail.reason', $result['reason']);
+        }
     }
 
     #[DataProvider('platforms')]
@@ -221,6 +247,9 @@ class NativeCouponVerificationTest extends TestCase
         } elseif ($platform === 'bigcommerce') {
             $this->native['type'] = 'per_total_discount';
             $this->native['amount'] = '10.00';
+        } elseif ($platform === 'wix') {
+            unset($this->native['specification']['percentOffRate']);
+            $this->native['specification']['moneyOffAmount'] = 10;
         } else {
             $this->native['discountType'] = 'ABS';
             $this->native['discount'] = '10.00';

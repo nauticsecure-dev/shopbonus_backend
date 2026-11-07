@@ -33,7 +33,7 @@ class QaStatus
      * @param  Collection<int, QaEndpoint>  $endpoints
      * @return array<int, array{status: string, mocked: bool, tests: int, last_run_at: string|null, provenance: string|null, evidence_missing: bool}>
      */
-    public function forEndpoints(Collection $endpoints): array
+    public function forEndpoints(Collection $endpoints, ?array $manifest = null): array
     {
         $ids = $endpoints->pluck('id')->all();
         $links = DB::table('qa_test_coverage as c')->join('qa_test_cases as t', 't.id', '=', 'c.test_case_id')
@@ -42,8 +42,15 @@ class QaStatus
         $needsEvidence = (array) config('qa.evidence_required_sources', []);
         $caseIds = $links->flatten(1)->pluck('test_case_id')->unique()->values()->all();
         $latest = DB::table('qa_test_results as r')->join('qa_test_runs as run', 'run.id', '=', 'r.run_id')
+            ->join('qa_test_cases as t', 't.id', '=', 'r.test_case_id')
             ->whereIn('r.id', DB::table('qa_test_results')->selectRaw('max(id)')->whereIn('test_case_id', $caseIds === [] ? [0] : $caseIds)->groupBy('test_case_id'))
-            ->get(['r.id', 'r.test_case_id', 'r.status', 'r.mocked', 'r.created_at', 'run.git_sha', 'run.started_at'])->keyBy('test_case_id');
+            ->get(['r.id', 't.key', 'r.test_case_id', 'r.status', 'r.mocked', 'r.created_at', 'run.git_sha', 'run.started_at'])->keyBy('test_case_id');
+        $manifestPath = base_path('requirements/QA_ACCEPTANCE.json');
+        if ($manifest === null && is_readable($manifestPath)) {
+            $manifest = json_decode((string) file_get_contents($manifestPath), true);
+        }
+        $manifestAvailable = is_array($manifest);
+        $acceptanceProofs = app(QaAcceptance::class)->endpointProofs($manifestAvailable ? $manifest : [], $latest->where('status', 'pass'));
         $humanCases = $links->flatten(1)->filter(fn ($link) => in_array($link->source, $needsEvidence, true))->pluck('test_case_id')->all();
         $humanResults = $latest->only($humanCases)->pluck('id')->all();
         $withEvidence = collect();
@@ -78,8 +85,8 @@ class QaStatus
                 $mocked = $mocked || (bool) $r->mocked;
                 $source = self::provenance((string) $r->git_sha, $at, $endpoint, $scans, $builds);
                 $provenance[] = $source;
-                // A manual/browser PASS without attached evidence proves nothing yet.
-                $unproven = $r->status === 'pass' && in_array($caseLinks->firstWhere('test_case_id', $caseId)?->source, $needsEvidence, true) && ! $withEvidence->has($r->id);
+                $hasRequiredAttachment = ! in_array($caseLinks->firstWhere('test_case_id', $caseId)?->source, $needsEvidence, true) || $withEvidence->has($r->id);
+                $unproven = $r->status === 'pass' && (! $manifestAvailable || ! ($acceptanceProofs[$r->key] ?? $hasRequiredAttachment));
                 $evidenceMissing = $evidenceMissing || $unproven;
                 $statuses[] = match (true) {
                     $r->status === 'skipped', $unproven => 'untested',

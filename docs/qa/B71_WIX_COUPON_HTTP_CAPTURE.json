@@ -1,0 +1,66 @@
+{
+  "captured_at": "2026-11-07T01:19:23Z",
+  "baseline": "904239a plus Wix working tree",
+  "environment": "Actual Laravel loopback HTTP; private temporary SQLite/key/storage. Synthetic native provider transport and public resolver fixtures are installed only in the disposable router; actual authentication, workspace permissions, lookups, comparison and persistence execute. No genuine provider, checkout acceptance or redemption proof. X-Capture headers are harness-only controls, not production API inputs.",
+  "exchanges": [
+    {
+      "label": "wix_match",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6ssdd12sbyecx5emjzwwmwx/codes/01m6ssdd8hm0mt7jqz4vy2jdw5/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6ssdd8hm0mt7jqz4vy2jdw5",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "verified",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T01:19:20+00:00"
+          },
+          "verification": {
+            "platform_validation": "verified",
+            "detail": {
+              "reason": "provider_match",
+              "platform": "wix",
+              "provider_coupon": {
+                "external_id": "33333333-3333-4333-8333-333333333333",
+                "discount_type": "fixed_cart",
+                "amount_minor": 1000,
+                "percent_bps": null,
+                "currency": "EUR",
+                "minimum_spend_minor": 10000,
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T01:19:23+00:00"
+              },
+              "differences": [],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    }
+  ]
+}

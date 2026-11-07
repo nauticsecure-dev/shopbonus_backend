@@ -1471,6 +1471,14 @@ B65 tests: SQLite191/1773; MySQL191/1775; API35/10983; PHPStan/Pint/diff PASS. P
 
 B65 implementing SHA: `f44d759`. All four checked items refer to the tested local backend boundary; genuine provider installation/publication/release acceptance remains open.
 
+### Quality Center endpoint evidence
+
+- [ ] Require mapped acceptance proof on the same result used to derive endpoint PASS.
+- [ ] Verify missing provider evidence blocks PASS and completed proof restores it.
+- [ ] Verify AI proposal approval is checked at staging planning and result import for linked executables.
+- [ ] Review, register and execute the portal smoke candidate on deployed staging.
+- [ ] Map the original acceptance source and provider journeys and connect the deployment gate to promotion.
+
 ### B66 — Executable acceptance manifest and fail-closed deployment gate
 
 - [x] Define source-hashed unique 175-check mapping contracts with assertions, executor, environment, instructions and separately identified required provider subruns; leave unavailable source UNMAPPED.
@@ -1522,6 +1530,12 @@ B70 local backend boundary: parent `cfef279`; SQLite302PASS+4skip/13412, MySQL40
 B68–B70 closeout: `5861751` / `cfef279` / `94e3f87`, integrated source `d8c9aa9`; draft PR#7. Checked items certify tested backend boundaries only. Actual Moneybird, storefront persistence, live experiment measurement and independent release acceptance remain unverified.
 
 ### B71 — Additional automatic native coupon verification
+
+Wix follow-up
+
+- [ ] Prove the app instance, site, currency and complete bounded coupon lookup.
+- [ ] Compare supported Wix Stores terms and exercise restricted, ambiguous and incomplete responses.
+- [ ] Record local HTTP and regression evidence with the implementing SHA.
 
 - [x] Audit native read contracts and add bounded exact-code lookups using existing authenticated store/domain/scope guards.
 - [x] Verify supported provider configuration against current or frozen terms without claiming checkout acceptance/redemption; retain manual states for unknown constraints and unsupported types.

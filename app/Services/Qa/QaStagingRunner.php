@@ -54,6 +54,9 @@ class QaStagingRunner
                 'runners.*.tests.*.key' => ['required', 'string', 'max:250'],
                 'runners.*.tests.*.version' => ['required', 'integer', 'min:1'],
                 'runners.*.tests.*.min_assertions' => ['required', 'integer', 'min:1'],
+                'runners.*.tests.*.proposal' => ['sometimes', 'array:key,version', 'required_array_keys:key,version'],
+                'runners.*.tests.*.proposal.key' => ['string', 'max:250'],
+                'runners.*.tests.*.proposal.version' => ['integer', 'min:1'],
                 'runners.*.timeout_seconds' => ['required', 'integer', 'between:1,300'],
             ]);
             if ($validation->fails()) {
