@@ -1817,3 +1817,5 @@ B90 implementing SHA: `2ce1c2f`.
 - [x] Execute focused workflow/security/native-transport tests and scoped style/static checks; document migrations, configuration, exact supported subset and genuine-provider acceptance limits.
 
 B91 validation: focused regression56 PASS / 8901 assertions; final provisioning/localization21 PASS / 494 assertions after drift/currency/immutable-intent additions. Scoped PHPStan, Pint and whitespace PASS. Seven real isolated API captures; actual provider writes/checkout/staging/MySQL NOT RUN. Implementation SHA follows closeout.
+
+B91 implementing SHA `60869b4`; B90 localization SHA `2ce1c2f`. Local validation passed as recorded above; current-head CI and genuine provider acceptance remain pending.
