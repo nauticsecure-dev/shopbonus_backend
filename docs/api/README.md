@@ -25938,3 +25938,20 @@ Lightspeed C catalog follow-up (2026-11-03): product reads now use bounded nativ
 `GET /api/v1/admin/ai/operations` retains its route/auth/filter contract and adds current synthetic Reverb evidence under `data.connectivity`: `reverb_live_probe`, `reverb_probe_checked_at`, `reverb_probe_latency_ms`, `broadcast_evidence`, and `reverb_probe_scope`. The scheduler runs `shopbonus:probe-support-connectivity` every minute; receipt of the exact private-channel nonce is required. Evidence older than90seconds or from changed connection/origin settings cannot report current delivery. States include connected/failed/stale/not_measured/not_configured. Scope is server-to-Reverb, separately from browser, queue-worker and provider observations.
 
 Example request: `curl -i http://localhost:<PORT>/api/v1/admin/ai/operations -H 'Accept: application/json' -H 'Authorization: Bearer <SYNTHETIC_TOKEN>'`. Actual response examples (200/401/403/422) are in [SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json](SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json), captured from a running loopback server with isolated synthetic SQLite at HassanDev9546163 plus this uncommitted change; the200example is also in OpenAPI. Broadcaster was disabled for that capture, accurately returning not_configured. Actual local Reverb delivery/invalid-credentials/recovery observations are separately captured in [SUPPORT_REVERB_LOCAL_PROBE.json](SUPPORT_REVERB_LOCAL_PROBE.json). See [runbook, executed checks and limits](../SUPPORT_SETTINGS_CONNECTIVITY_REVIEW_2026-11-04.md); deployed TLS/browser/queue/provider acceptance remains NOT RUN.
+
+## B89 — Correlated support connectivity receipts
+
+Security correction: `POST /api/v1/admin/ai/connectivity/browser-probe` no longer returns the acknowledgement nonce. It returns public `probe_id`, channel, event and60second lifetime. Authenticate/subscribe to the own private notifications channel first. The `support.connectivity.browser_probe` event alone supplies `{probe_id, nonce}`.
+
+`POST /api/v1/admin/ai/connectivity/browser-probe/{nonce}/ack` retains its legacy path spelling, but that path value is the **public probe_id**. The required JSON body carries `nonce` from the private event. Old clients that echoed the HTTP nonce must update; preserving that behavior would preserve the receipt bypass.
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/ai/connectivity/browser-probe" -H "Accept: application/json" -H "Authorization: Bearer <SYNTHETIC_TOKEN>" -H "Content-Type: application/json" --data '{}'
+curl -i -X POST "http://localhost:8000/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack" -H "Accept: application/json" -H "Authorization: Bearer <SYNTHETIC_TOKEN>" -H "Content-Type: application/json" --data '{"nonce": "821b394b31501cf7a6cd51337031b9a2"}'
+```
+
+Actual201/200 responses: `browser_start` and `event_receipt_ack` in [21 actual HTTP exchanges](../qa/B89_SUPPORT_RECEIPTS_HTTP_CAPTURE.json), reproduced with `python3 scripts/verify-support-receipts.py`. Includes missing challenge422, HTTP-only/foreign/replay404,401/403, concurrent operation409, stopped-broker503 and limiter429. No response body is invented. Both mutations are private/no-store.
+
+GET `/api/v1/admin/ai/operations` reports browser evidence only for the requesting administrator, invalidating changed Reverb configuration and superseded probes. Worker evidence requires the latest nonce, dispatch timestamp, exact connection/queue/configuration and actual queued-job context; a manual handle call or old completion cannot establish readiness.
+
+The isolated harness runs a real database queue worker and authenticated Node WebSocket client with actual Reverb events. It does not implement the frontend listener or prove browser-engine/cookie-CSRF/staging/deployed coverage. See [protocol, atomicity and deployment limits](../support/CONNECTIVITY_RECEIPTS.md).

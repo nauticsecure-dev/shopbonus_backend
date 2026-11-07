@@ -832,5 +832,7 @@
     "This snapshot page was already received with different content.": "Deze pagina van de cataloguskopie is al ontvangen met andere inhoud.",
     "The catalog snapshot page is invalid.": "De pagina van de cataloguskopie is ongeldig.",
     "Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)": "Ondertekende kopieën van product/product_description, verstuurd door de worker van de extensie (geen endpoint in de winkel)",
-    "Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker": "Ondertekende kopieën van coupon/coupon_product/coupon_category, verstuurd door de worker van de extensie"
+    "Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker": "Ondertekende kopieën van coupon/coupon_product/coupon_category, verstuurd door de worker van de extensie",
+    "The realtime broadcaster is not configured.": "De realtime-broadcaster is niet geconfigureerd.",
+    "Another probe operation is in progress.": "Er wordt al een andere verbindingstest uitgevoerd."
 }
