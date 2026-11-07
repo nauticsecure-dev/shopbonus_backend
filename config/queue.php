@@ -30,6 +30,15 @@ return [
     */
 
     'connections' => [
+        // Dedicated visibility window for bounded full staging suites.
+        'qa-staging' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'qa-staging',
+            'retry_after' => 3960,
+            'after_commit' => true,
+        ],
 
         'sync' => [
             'driver' => 'sync',

@@ -1,3 +1,9 @@
+## Quality Center staging execution requests — 2026-11-07
+
+`GET /api/v1/admin/qa/executions` lists recent paginated requests. `POST /api/v1/admin/qa/executions` queues an idempotent fixed staging suite; recent password and current Super Admin/QA role are mandatory. The worker rechecks the actor and exact build, executes the existing combined runner/gates once, and never grants release approval. Duplicate keys return the existing intent; changed plans conflict. Sync/short-visibility queues and nonmatching/nonstaging builds are rejected.
+
+Real isolated SQLite/PHP HTTP captures (no worker/provider execution): [QA_EXECUTION_HTTP_CAPTURE.json](QA_EXECUTION_HTTP_CAPTURE.json). Reproduce with `php scripts/capture-qa-execution.php`; examples in OpenAPI come directly from that server. Dedicated worker: `php artisan queue:work qa-staging --queue=qa-staging --timeout=3900 --tries=1`. Migration `2026_11_07_180000_create_qa_execution_requests` is required. Runner/registry/independent evidence prerequisites remain enforced.
+
 # Shopbonus API reference
 
 B77: [Adobe async module/private Runtime Action and scoped SaaS reads](../integrations/ADOBE_ASYNC.md) use the existing connection/webhook APIs. [Eleven actual private Laravel HTTP captures](../qa/B77_ADOBE_HTTP_CAPTURE.json), including a real Node-signed ID notification, duplicate and foreign-store rejection, are reproduced by `python3 scripts/capture-adobe-async.py`. Native recovery is queued; actual Adobe registration/install/delivery remains NOT RUN. OpenAPI includes captured setup and webhook examples.

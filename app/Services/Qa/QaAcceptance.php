@@ -22,8 +22,10 @@ class QaAcceptance
 
     /**
      * Validate mapped cases against the same result displayed by endpoint status.
-     * Cases outside the acceptance manifest still report ordinary regression status.
+     * Unmapped cases have no acceptance proof and cannot produce endpoint PASS.
      *
+     * @param  array<string,mixed>  $manifest
+     * @param  iterable<\stdClass>  $passingResults
      * @return array<string, bool>
      */
     public function endpointProofs(array $manifest, iterable $passingResults): array
@@ -60,6 +62,7 @@ class QaAcceptance
         return $proofs;
     }
 
+    /** @param array<string,mixed> $source */
     private function sourceMatches(array $source): bool
     {
         $path = is_string($source['path'] ?? null) ? realpath(base_path('requirements').'/'.$source['path']) : false;
@@ -344,6 +347,10 @@ class QaAcceptance
                 'frontend_inventory' => ['git_sha' => ['required', 'regex:/\A[0-9a-f]{40,64}\z/D'], 'routes' => 'required|array|min:1', 'actions' => 'required|array|min:1', 'components' => 'required|array|min:1', 'ui_states' => 'required|array|min:1'],
                 default => [],
             };
+
+            if ($kind === 'frontend_inventory' && (! app(QaFrontendInventory::class)->valid($data) || ! app(QaFrontendInventory::class)->artifactsAvailable($data, $sha))) {
+                return false;
+            }
 
             if ($kind === 'cms_coverage' && ! $this->coverageValid($data, $definition, $sha)) {
                 return false;

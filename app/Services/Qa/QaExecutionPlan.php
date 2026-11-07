@@ -107,9 +107,14 @@ class QaExecutionPlan
         return array_diff(array_column($plan['required_tests'], 'key'), array_keys($seen)) === [];
     }
 
+    /** @param array<string,mixed> $test */
     private function reviewed(QaTestCase $case, array $test): bool
     {
         if ($case->status !== 'approved' || $case->version !== $test['version'] || ! in_array($case->source, ['phpunit', 'postman', 'browser'], true)) {
+            return false;
+        }
+        if (isset($test['discovery']) && ! QaEndpoint::where('public_id', $test['discovery']['endpoint_id'] ?? '')
+            ->where('fingerprint', $test['discovery']['fingerprint'] ?? '')->whereNull('removed_at')->exists()) {
             return false;
         }
         if (! array_key_exists('proposal', $test)) {

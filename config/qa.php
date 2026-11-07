@@ -21,6 +21,7 @@ return [
     'evidence_required_sources' => array_values(array_filter(explode(',', (string) env('QA_EVIDENCE_REQUIRED_SOURCES', 'browser,manual')))),
 
     // Execution stays disabled until reviewed scripts and staging deployment are configured.
+    'execution_queue_connection' => env('QA_EXECUTION_QUEUE_CONNECTION', 'qa-staging'),
     'runner_enabled' => env('QA_STAGING_RUNNER_ENABLED', false),
     'runner_lock_store' => env('QA_STAGING_LOCK_STORE', 'database'),
     'staging_url' => env('QA_STAGING_URL', ''),

@@ -4,7 +4,7 @@ Endpoint status uses the same independent evidence contract for linked cases map
 
 `shopbonus:qa-acceptance-check` evaluates reviewed evidence. It does not run tests, generate tests, certify frontend completeness, contact a provider or approve a release. Exit 1 means blocked, invalid input or unavailable evidence; exit 0 means only that the selected mapping's reviewed evidence is complete. `release_approved` is always false; Martijn retains final approval.
 
-The checked-in `requirements/QA_ACCEPTANCE.json` is deliberately UNMAPPED. The approved original 175-check PDF v2 is still unavailable locally. The Trello export contains scenario summaries and inconsistent older check totals; it cannot substitute for individual source check IDs. No fictitious checks have been filled in. Tests use clearly synthetic IDs exclusively in disposable fixtures.
+The uploaded original PDF v2 is now preserved as `requirements/QA_ACCEPTANCE_SOURCE_V2.pdf` with extracted text and its SHA-256. `QA_ACCEPTANCE.json` contains all 175 original SB step IDs/text and the 60 explicitly derived provider-stage rows. State is `source_mapped`, not `reviewed`: executable keys, reviewed runner mappings and independent execution evidence are still incomplete. The later owner affiliate timing decision D-109 is recorded beside the conflicting original SB-12 expectations; no financial policy is changed. Tests use clearly synthetic acceptance evidence in disposable fixtures.
 
 ## Mapping contract
 

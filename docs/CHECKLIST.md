@@ -1,3 +1,13 @@
+## Quality Center gap closure — 2026-11-07
+
+- [ ] Require exact result-bound acceptance proofs before endpoint PASS, including unmapped cases.
+- [ ] Verify complete frontend candidate dispositions with exact source and runtime bindings.
+- [ ] Add authorized asynchronous staging execution requests and Quality Center controls.
+- [ ] Provide discovery-bound generated runner candidates and reviewed execution integration.
+- [ ] Map original 175 checks/60 subruns from the approved source and register reviewed journeys.
+- [ ] Wire the actual deployment workflow to required acceptance before promotion.
+- [ ] Capture real API examples, run affected checks and record exact remaining external dependencies.
+
 ## CMS frontend integration follow-up — 2026-11-07
 
 - [ ] Integrate shared-block versions, draft overrides, detach and paginated usage UI.

@@ -832,5 +832,14 @@
     "This snapshot page was already received with different content.": "Deze pagina van de cataloguskopie is al ontvangen met andere inhoud.",
     "The catalog snapshot page is invalid.": "De pagina van de cataloguskopie is ongeldig.",
     "Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)": "Ondertekende kopieën van product/product_description, verstuurd door de worker van de extensie (geen endpoint in de winkel)",
-    "Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker": "Ondertekende kopieën van coupon/coupon_product/coupon_category, verstuurd door de worker van de extensie"
+    "Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker": "Ondertekende kopieën van coupon/coupon_product/coupon_category, verstuurd door de worker van de extensie",
+    "Current Quality Center execution permission is required.": "Actuele toestemming voor uitvoering in het Quality Center is vereist.",
+    "An enabled matching staging deployment is required.": "Een ingeschakelde overeenkomende stagingdeploy is vereist.",
+    "Staging execution requires an asynchronous queue.": "Staginguitvoering vereist een asynchrone wachtrij.",
+    "This execution request key belongs to a different plan.": "Deze uitvoeringssleutel hoort bij een ander plan.",
+    "The staging execution could not be queued.": "De staginguitvoering kon niet in de wachtrij worden gezet.",
+    "Choose an open AI proposal and a concrete protected GET endpoint.": "Kies een open AI-voorstel en een concreet beveiligd GET-endpoint.",
+    "Link the proposal to the discovered endpoint before generation.": "Koppel het voorstel vóór het genereren aan het ontdekte endpoint.",
+    "Generated executable already exists with different bytes.": "De gegenereerde uitvoerbare test bestaat al met andere inhoud.",
+    "The configured adapter has no native coupon comparison.": "De ingestelde adapter ondersteunt geen vergelijking van native kortingscodes."
 }
