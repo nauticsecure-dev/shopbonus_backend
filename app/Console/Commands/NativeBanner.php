@@ -6,6 +6,7 @@ use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Models\WebshopConnection;
+use App\Services\Banners\LightspeedScriptPublisher;
 use App\Services\Banners\NativeBannerPublisher;
 use App\Support\ExactJson;
 use Illuminate\Console\Command;
@@ -13,7 +14,7 @@ use Illuminate\Support\Str;
 
 class NativeBanner extends Command
 {
-    protected $signature = 'shopbonus:banner-native {action : readiness|install|reconcile|bind|remove} {id : Platform for readiness; connection public ID otherwise} {--actor= : Current authorized public user ID} {--file= : Reviewed JSON target for install} {--step= : template|widget|placement for bind} {--remote-id= : Native UUID for bind}';
+    protected $signature = 'shopbonus:banner-native {action : readiness|install|reconcile|bind|remove} {id : Platform for readiness; connection public ID otherwise} {--actor= : Current authorized public user ID} {--file= : Reviewed JSON target for install} {--step= : template|widget|placement for bind (BigCommerce)} {--remote-id= : Native UUID (BigCommerce) or shop script ID (Lightspeed C) for bind}';
 
     protected $description = 'Explicit native banner provisioning, reconciliation and removal; no blind write retries';
 
@@ -46,6 +47,20 @@ class NativeBanner extends Command
             return self::FAILURE;
         }
         try {
+            if ($connection->platform === EcommercePlatform::LightspeedC) {
+                // One owned shop script; no target file, bind takes the numeric script ID.
+                $lightspeed = app(LightspeedScriptPublisher::class);
+                $remoteId = (string) $this->option('remote-id');
+                $result = match ($action) {
+                    'install' => $lightspeed->install($connection, $actor),
+                    'reconcile' => $lightspeed->reconcile($connection, $actor),
+                    'bind' => preg_match('/\A[1-9][0-9]{0,18}\z/D', $remoteId) === 1 ? $lightspeed->bind($connection, (int) $remoteId, $actor) : throw new \InvalidArgumentException,
+                    'remove' => $lightspeed->remove($connection, $actor),
+                };
+                $this->line(json_encode($result, JSON_THROW_ON_ERROR));
+
+                return self::SUCCESS;
+            }
             $target = [];
             if ($action === 'install') {
                 $file = (string) $this->option('file');

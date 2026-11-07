@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatform
 use App\Http\Controllers\Api\V1\Admin\QaController;
 use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
+use App\Http\Controllers\Api\V1\Admin\SupportConnectivityController;
 use App\Http\Controllers\Api\V1\Admin\SupportSessionController as AdminSupportSessionController;
 use App\Http\Controllers\Api\V1\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\V1\Admin\WalletAdjustmentController as AdminWalletAdjustmentController;
@@ -63,6 +64,7 @@ use App\Http\Controllers\Api\V1\Discovery\PublicSearchController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\Integrations\Answer24Controller;
 use App\Http\Controllers\Api\V1\Integrations\CatalogController;
+use App\Http\Controllers\Api\V1\Integrations\CatalogSnapshotController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionApiTestController;
 use App\Http\Controllers\Api\V1\Integrations\ConnectionController;
 use App\Http\Controllers\Api\V1\Integrations\ShopifyComplianceController;
@@ -126,6 +128,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // One provider IP serves many merchants, so the per-IP api limiter is replaced by a per-connection one.
     Route::post('webhooks/{platform}/{token}', [WebhookController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('webhooks.receive');
+    // Signed catalog snapshot pages from the OpenCart extension worker (same token and signature as orders).
+    Route::post('webhooks/{platform}/{token}/catalog', [CatalogSnapshotController::class, 'receive'])
+        ->withoutMiddleware('throttle:api')->middleware('throttle:webhooks')->name('webhooks.catalog');
     // Shopify mandatory privacy webhooks: one app-level URI, signed with the app client secret.
     Route::post('integrations/shopify/compliance', [ShopifyComplianceController::class, 'receive'])
         ->withoutMiddleware('throttle:api')->middleware('throttle:shopify-compliance')->name('integrations.shopify.compliance');
@@ -299,6 +304,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
                 Route::get('ai/reviews', [AiSupportController::class, 'index'])->name('ai.reviews.index');
                 Route::get('ai/reviews/{review}', [AiSupportController::class, 'show'])->name('ai.reviews.show');
                 Route::get('ai/operations', [AiSupportController::class, 'operations'])->name('ai.operations');
+                Route::post('ai/connectivity/browser-probe', [SupportConnectivityController::class, 'start'])->middleware('throttle:admin-diagnostics')->name('ai.connectivity.browser-probe');
+                Route::post('ai/connectivity/browser-probe/{nonce}/ack', [SupportConnectivityController::class, 'acknowledge'])->name('ai.connectivity.browser-probe.ack');
                 Route::middleware(['password.recent', 'step_up.otp'])->group(function () {
                     Route::post('ai/knowledge/{document}/rollback', [AiSupportController::class, 'rollbackKnowledge'])->name('ai.knowledge.rollback');
                     Route::post('ai/reviews/{review}/resolve', [AiSupportController::class, 'resolve'])->name('ai.reviews.resolve');

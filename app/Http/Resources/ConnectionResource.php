@@ -69,12 +69,16 @@ class ConnectionResource extends JsonResource
 
         if ($this->withSetup && $c->status->receivesEvents()) {
             $data['setup'] = app(ConnectorRegistry::class)->for($c->platform)->setupInstructions($c, self::webhookUrl($c));
+            // Provider instructions are English source text; localize each step for the request locale.
+            if (is_array($data['setup']['steps'] ?? null)) {
+                $data['setup']['steps'] = array_map(fn ($step) => is_string($step) ? __($step) : $step, $data['setup']['steps']);
+            }
             $data['capabilities'] = app(CapabilityMatrix::class)->forConnection($c);
         }
 
         if ($this->secrets !== []) {
             $data['secrets'] = $this->secrets;
-            $data['secrets_notice'] = 'Shown only once. Store it in your shop settings now; it cannot be retrieved later.';
+            $data['secrets_notice'] = __('Shown only once. Store it in your shop settings now; it cannot be retrieved later.');
         }
 
         return $data;

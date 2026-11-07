@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Shopbonus Banner
  * Description: Merchant-controlled placement of the Shopbonus public banner. Order delivery uses WooCommerce's native webhooks.
- * Version: 0.2.0
+ * Version: 0.3.0
  * Requires PHP: 8.1
  */
 if (! defined('ABSPATH')) {
@@ -50,10 +50,67 @@ add_action('wp_footer', static function () {
         return;
     }
     if (function_exists('WC')) {
-        echo '<script defer src="'.esc_url($settings['origin'].'/embed/native-cart-v1.js').'" data-platform="woocommerce" data-cart-url="'.esc_url(rest_url('wc/store/v1/cart')).'"></script>';
+        echo '<script defer src="'.esc_url($settings['origin'].'/embed/native-cart-v1.js').'" data-platform="woocommerce" data-cart-url="'.esc_url(rest_url('wc/store/v1/cart')).'"'
+            .' data-attribution-url="'.esc_url(admin_url('admin-ajax.php')).'" data-attribution-nonce="'.esc_attr(wp_create_nonce('shopbonus_attribution')).'"></script>';
     }
     echo '<script defer src="'.esc_url($settings['origin'].'/embed/v1.js').'" data-shopbonus-key="'.esc_attr($settings['key']).'"></script>';
 });
+
+// Assignment bridge: the storefront reader stores the consented ShopBonus click ID / experiment assignment
+// token in the WooCommerce session (admin-ajax, where WooCommerce loads its session), and checkout copies them
+// onto the order as `_shopbonus_click_id` / `_shopbonus_assignment_token`, which ShopBonus reads from order meta_data.
+const SHOPBONUS_ATTRIBUTION_SESSION = 'shopbonus_attribution';
+
+function shopbonus_banner_attribution_values($input)
+{
+    $values = [];
+    $token = $input['assignment_token'] ?? null;
+    $click = $input['click_id'] ?? null;
+    if (is_string($token) && preg_match('/\Abx_[a-f0-9]{64}\z/D', $token)) {
+        $values['assignment_token'] = $token;
+    }
+    if (is_string($click) && preg_match('/\Abc_[A-Za-z0-9]{24}\z/D', $click)) {
+        $values['click_id'] = $click;
+    }
+
+    return $values;
+}
+
+function shopbonus_banner_store_attribution()
+{
+    $settings = shopbonus_banner_sanitize(get_option('shopbonus_banner', []));
+    if (! $settings['enabled'] || ! check_ajax_referer('shopbonus_attribution', 'nonce', false) || ! function_exists('WC') || ! WC()->session) {
+        wp_send_json(['stored' => false], 403);
+    }
+    // An empty or invalid submission clears the stored values (tracking withdrawn).
+    $values = shopbonus_banner_attribution_values(wp_unslash($_POST));
+    if ($values !== [] && ! WC()->session->has_session()) {
+        WC()->session->set_customer_session_cookie(true);
+    }
+    WC()->session->set(SHOPBONUS_ATTRIBUTION_SESSION, $values === [] ? null : $values);
+    wp_send_json(['stored' => $values !== []]);
+}
+add_action('wp_ajax_shopbonus_attribution', 'shopbonus_banner_store_attribution');
+add_action('wp_ajax_nopriv_shopbonus_attribution', 'shopbonus_banner_store_attribution');
+
+function shopbonus_banner_copy_attribution($order)
+{
+    if (! function_exists('WC') || ! WC()->session || ! is_object($order)) {
+        return;
+    }
+    $values = shopbonus_banner_attribution_values((array) WC()->session->get(SHOPBONUS_ATTRIBUTION_SESSION, []));
+    if (isset($values['assignment_token'])) {
+        $order->update_meta_data('_shopbonus_assignment_token', $values['assignment_token']);
+    }
+    if (isset($values['click_id'])) {
+        $order->update_meta_data('_shopbonus_click_id', $values['click_id']);
+    }
+    // One order per stored assignment; a later order needs a fresh consented assignment.
+    WC()->session->set(SHOPBONUS_ATTRIBUTION_SESSION, null);
+}
+add_action('woocommerce_checkout_create_order', 'shopbonus_banner_copy_attribution');
+add_action('woocommerce_store_api_checkout_update_order_meta', 'shopbonus_banner_copy_attribution');
+
 register_uninstall_hook(__FILE__, 'shopbonus_banner_uninstall');
 function shopbonus_banner_uninstall()
 {

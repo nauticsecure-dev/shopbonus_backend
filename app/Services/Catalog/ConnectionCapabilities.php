@@ -91,6 +91,12 @@ class ConnectionCapabilities
             $rows[] = $row;
         }
 
+        // Localize every reason once, whichever rule produced it (machine codes have no translation and pass through).
+        foreach ($rows as &$row) {
+            $row['reason'] = is_string($row['reason'] ?? null) ? __($row['reason']) : ($row['reason'] ?? null);
+        }
+        unset($row);
+
         return $rows;
     }
 }

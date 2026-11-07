@@ -425,3 +425,53 @@ test('WooCommerce plain WordPress REST routing reads the native cart', async () 
   const h = harness({ platform: 'woocommerce', wooUrl: '/store/index.php?rest_route=%2Fwc%2Fstore%2Fv1%2Fcart' }); await h.settle();
   assert.equal(h.sandbox.ShopBonusCart.getSnapshot().total_minor, 9400);
 });
+
+function adapterSandbox(source, attributes, extra = {}) {
+  const calls = [];
+  const s = Object.assign({
+    document: { currentScript: { getAttribute: (k) => attributes[k] ?? null }, visibilityState: 'visible', addEventListener() {} },
+    URL, URLSearchParams, AbortController, JSON, Promise, Date, location: { origin: 'https://shop.test', pathname: '/products' },
+    CustomEvent: class { constructor(type) { this.type = type; } }, addEventListener() {}, dispatchEvent() {},
+    setTimeout() { return {}; }, clearTimeout() {}, setInterval() {},
+    fetch: async (url, options = {}) => { calls.push({ url, options }); return { ok: true, json: async () => ({ total_price: 0, currency: 'EUR', totals: { total_price: '0', currency_code: 'EUR', currency_minor_unit: 2 } }) }; },
+  }, extra);
+  s.window = s;
+  vm.runInNewContext(source, s);
+  return { s, calls };
+}
+const TOKEN = 'bx_' + 'a'.repeat(64), CLICK = 'bc_' + 'A1'.repeat(12);
+
+test('WooCommerce reader persists only exact assignment values through the plugin bridge and clears on withdrawal', async () => {
+  const attrs = { 'data-platform': 'woocommerce', 'data-cart-url': '/wp-json/wc/store/v1/cart', 'data-attribution-url': '/wp-admin/admin-ajax.php', 'data-attribution-nonce': 'abc123' };
+  const { s, calls } = adapterSandbox(nativeSource, attrs);
+  await s.ShopBonusCart.setAttribution({ assignment_token: TOKEN, click_id: CLICK });
+  const sent = calls.find((c) => c.options.method === 'POST');
+  assert.equal(sent.url, 'https://shop.test/wp-admin/admin-ajax.php');
+  assert.equal(sent.options.credentials, 'same-origin');
+  assert.deepEqual(Object.fromEntries(sent.options.body), { action: 'shopbonus_attribution', nonce: 'abc123', assignment_token: TOKEN, click_id: CLICK });
+
+  calls.length = 0;
+  await s.ShopBonusCart.setAttribution({ assignment_token: 'token', click_id: 'bc_short' });
+  assert.deepEqual(Object.fromEntries(calls[0].options.body), { action: 'shopbonus_attribution', nonce: 'abc123' }); // invalid values never sent; clears
+  await s.ShopBonusCart.setAttribution({});
+  assert.deepEqual(Object.fromEntries(calls[1].options.body), { action: 'shopbonus_attribution', nonce: 'abc123' });
+
+  for (const url of ['https://evil.test/wp-admin/admin-ajax.php', '/wp-admin/admin-ajax.php?x=1', '/wp-json/shopbonus']) {
+    assert.equal(adapterSandbox(nativeSource, { ...attrs, 'data-attribution-url': url }).s.ShopBonusCart.setAttribution, undefined);
+  }
+  assert.equal(adapterSandbox(nativeSource, { ...attrs, 'data-attribution-nonce': '<script>' }).s.ShopBonusCart.setAttribution, undefined);
+  assert.equal(adapterSandbox(nativeSource, { 'data-platform': 'woocommerce', 'data-cart-url': '/wp-json/wc/store/v1/cart' }).s.ShopBonusCart.setAttribution, undefined);
+});
+
+test('Shopify reader writes cart attributes only when the merchant opts in', async () => {
+  const shopify = { Shopify: { routes: { root: '/en/' } } };
+  assert.equal(adapterSandbox(shopifySource, {}, shopify).s.ShopBonusCart.setAttribution, undefined);
+  const { s, calls } = adapterSandbox(shopifySource, { 'data-persist-attribution': 'true' }, shopify);
+  await s.ShopBonusCart.setAttribution({ assignment_token: TOKEN, click_id: CLICK });
+  const sent = calls.find((c) => c.options.method === 'POST');
+  assert.equal(sent.url, 'https://shop.test/en/cart/update.js');
+  assert.deepEqual(JSON.parse(sent.options.body), { attributes: { shopbonus_assignment_token: TOKEN, shopbonus_click_id: CLICK } });
+  calls.length = 0;
+  await s.ShopBonusCart.setAttribution({});
+  assert.deepEqual(JSON.parse(calls.find((c) => c.options.method === 'POST').options.body), { attributes: { shopbonus_assignment_token: '', shopbonus_click_id: '' } });
+});
