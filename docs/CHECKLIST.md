@@ -1767,3 +1767,5 @@ B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; exte
 - [x] Capture changed API examples from the real server; update OpenAPI/runbook/checkpoint docs and record tests/SHA.
 
 B89 tested source: focused20/8920, scoped style/static/whitespace PASS; real isolated HTTP/Reverb/worker protocol PASS with21 HTTP exchanges. Checkmarks certify backend/protocol implementation only, not the missing frontend listener or actual browser/staging delivery. Implementing SHA follows closeout.
+
+B89 implementing SHA `e434296`; focused20/8920 and scoped static/style/diff PASS; actualHTTP/Reverb/worker21-exchange journey PASS. Frontend listener and browser/staging acceptance remain open.

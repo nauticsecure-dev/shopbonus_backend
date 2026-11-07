@@ -1,3 +1,9 @@
+B89 source closeout — 2026-11-07
+
+Implementing SHA `e434296` on `frank/support-connectivity-receipts` (parentd43b4d7, already-merged PR9). Focused connectivity/admin/API20PASS/8920assertions; scoped Pint/PHPStan/diff PASS; actual isolated HTTP/Reverb/database-worker protocol PASS with21 captured exchanges. No full suite/MySQL/frontend/browser-engine/staging/provider run or migration. This closeout records source SHA only; source tree was clean after commit.
+
+Next: push new branch and open a draft PR against main; senior deploys with shared lock-capable cache and restarted workers. Frontend owner must implement subscription-before-start and event-only challenge acknowledgement; old HTTP-echo clients intentionally no longer qualify. Do not mark deployed browser delivery or all-user/worker coverage complete. API correction and remaining acceptance: docs/support/CONNECTIVITY_RECEIPTS.md. No credentials, production/main deployment or financial-policy changes.
+
 B89 — Correlated support connectivity receipts (2026-11-07)
 
 Branch `frank/support-connectivity-receipts`, parent `d43b4d7` from already-merged PR9/review-fixes. Separated public probe IDs from event-only acknowledgement challenges; HTTP no longer reveals the receipt secret. Added current-admin/configuration/freshness/latest-probe checks and per-admin atomic single use. Monitoring is per administrator and explicitly describes authenticated client receipt rather than a browser engine/all clients. Worker completions now match the latest nonce, exact dispatch time, actual running-job connection/queue and current resolved database/Redis/cache configuration; old/unrelated/manual/out-of-order/configuration-changed work cannot mask a pending probe. Legacy queued payloads default missing configuration safely and cannot qualify. [Protocol, compatibility correction and remaining frontend/staging limits](support/CONNECTIVITY_RECEIPTS.md).
