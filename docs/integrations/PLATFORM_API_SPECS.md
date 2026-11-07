@@ -54,7 +54,7 @@ Reviewed **2026-10-30**. Extends `ConnectorRegistry` / `ConnectionManager` / `Or
 | Docs | https://shopify.dev/docs/api/admin-graphql · https://shopify.dev/docs/apps/build/webhooks · https://shopify.dev/docs/apps/build/online-store/theme-app-extensions |
 | Orders | `order` / `orders` GraphQL queries |
 | Refunds | `totalRefundedSet` + successful REFUND transactions (no refund mutation) |
-| Products / coupon reads | GraphQL products (bounded); `discountNodes` with optional `read_discounts` maps single-code basic/free-shipping discounts. BXGY/app/bulk-code discounts are skipped; coupon writes are unsupported. Default OAuth requests only `read_orders,read_products`; additional scope requires reviewed provider authorization. |
+| Products / coupon reads | GraphQL products (bounded); `discountNodes` with optional `read_discounts` maps single-code basic/free-shipping discounts. BXGY/app/bulk-code discounts are skipped. B91 adds a default-off, per-offer opt-in operator workflow for basic single-use create/repair/deactivate plus exact readback; see [workflow and limits](SHOPIFY_COUPON_WRITES.md). Default OAuth requests only `read_orders,read_products`; the explicit write gate adds `write_discounts` to new grants and existing merchants must reauthorize. Genuine checkout/write acceptance remains NOT RUN. |
 | Webhooks | `orders/create`, `orders/updated`, `orders/paid`, `orders/cancelled`, `refunds/create`, `app/uninstalled` |
 | Signature | Base64 HMAC-SHA256 over **raw body**; dedupe delivery/event IDs |
 | Banners | Candidate Theme App Extension source present; native publication/activation/uninstall acceptance NOT RUN — manual embed LIMITED |

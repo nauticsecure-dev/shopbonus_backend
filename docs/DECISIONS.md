@@ -302,7 +302,7 @@ Agent reversible implementation within owner-delegated backend-only CMS scope. R
 
 ### D-109 — Shopify coupon writes: opt-in per offer (owner, 2026-11-05)
 
-Owner chose opt-in, per-offer Shopify discount-code creation. Off by default; when a merchant enables it for an offer, ShopBonus creates single-use Shopify discount codes matching the offer terms, verifies them by reading back, and can deactivate them. Requires the Shopify app to request `write_discounts` and merchants to re-authorize. Not implemented yet (queued after OpenCart native reads).
+Owner chose opt-in, per-offer Shopify discount-code creation. Off by default; when a merchant enables it for an offer, ShopBonus creates single-use Shopify discount codes matching the offer terms, verifies them by reading back, and can deactivate them. Requires the Shopify app to request `write_discounts` and merchants to re-authorize. Implemented locally by B91 as a default-off authorized operator workflow; see `docs/integrations/SHOPIFY_COUPON_WRITES.md`. Merchant generation HTTP/UI and genuine provider acceptance remain outside this checkpoint. OpenCart live reads were subsequently excluded by the owner’s D-110 reconfirmation.
 
 ### D-110 — OpenCart products/coupons via worker-pushed signed snapshots (owner, 2026-11-05)
 

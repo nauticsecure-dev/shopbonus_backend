@@ -318,7 +318,12 @@ class VoucherInventory
         $skipLocked = in_array(DB::getDriverName(), ['mysql', 'mariadb', 'pgsql'], true);
 
         for ($attempt = 0; $attempt < self::PICK_ATTEMPTS; $attempt++) {
-            $query = VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)->orderBy('id')->limit(1);
+            $query = VoucherCode::where('offer_id', $offer->id)->where('status', VoucherCodeStatus::Available)
+                // Native generated codes are bound to immutable terms, never silently reused for a newer offer version.
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('shopify_coupon_operations')
+                    ->whereColumn('shopify_coupon_operations.voucher_code_id', 'voucher_codes.id')
+                    ->where('shopify_coupon_operations.offer_version_id', '!=', $offer->current_version_id))
+                ->orderBy('id')->limit(1);
             $code = $skipLocked ? $query->lock('for update skip locked')->first() : $query->lockForUpdate()->first();
 
             if ($code === null) {

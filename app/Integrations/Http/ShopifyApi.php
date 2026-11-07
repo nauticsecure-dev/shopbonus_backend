@@ -115,7 +115,7 @@ class ShopifyApi
     {
         $code = WooCommerceApi::couponCode($code);
         $this->identity($connection, 'read_discounts');
-        $fields = 'status startsAt endsAt updatedAt usageLimit appliesOncePerCustomer asyncUsageCount recurringCycleLimit codesCount { count precision } codes(first: 2) { nodes { code } pageInfo { hasNextPage } } combinesWith { orderDiscounts productDiscounts shippingDiscounts } context { __typename } minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount currencyCode } } } customerGets { value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount currencyCode } appliesOnEachItem } } items { __typename } appliesOnOneTimePurchase appliesOnSubscription }';
+        $fields = 'title status startsAt endsAt updatedAt usageLimit appliesOncePerCustomer asyncUsageCount recurringCycleLimit codesCount { count precision } codes(first: 2) { nodes { code } pageInfo { hasNextPage } } combinesWith { orderDiscounts productDiscounts shippingDiscounts } context { __typename } minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount currencyCode } } } customerGets { value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount currencyCode } appliesOnEachItem } } items { __typename } appliesOnOneTimePurchase appliesOnSubscription }';
         $data = $this->query($connection, 'query ShopbonusCouponByCode($code: String!) { shop { currencyCode } codeDiscountNodeByCode(code: $code) { id codeDiscount { __typename ... on DiscountCodeBasic { '.$fields.' } } } }', ['code' => $code]);
         if (! array_key_exists('codeDiscountNodeByCode', $data)) {
             throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
@@ -143,6 +143,57 @@ class ShopifyApi
 
         // Preserve the catalog mapper's established node shape, but retain raw restrictions for verification.
         return ['coupon' => ['id' => $node['id'], 'discount' => $d], 'currency' => $currency];
+    }
+
+    /** Fixed writes for the durable opt-in workflow. Never accepts caller GraphQL.
+     * @param  array<string,mixed>  $input
+     */
+    public function createDiscount(WebshopConnection $connection, #[\SensitiveParameter] array $input): string
+    {
+        return $this->writeDiscount($connection, 'discountCodeBasicCreate', $input);
+    }
+
+    /** @param array<string,mixed> $input */
+    public function updateDiscount(WebshopConnection $connection, string $id, #[\SensitiveParameter] array $input): string
+    {
+        return $this->writeDiscount($connection, 'discountCodeBasicUpdate', $input, $id);
+    }
+
+    public function deactivateDiscount(WebshopConnection $connection, string $id): string
+    {
+        return $this->writeDiscount($connection, 'discountCodeDeactivate', [], $id);
+    }
+
+    /** @param array<string,mixed> $input */
+    private function writeDiscount(WebshopConnection $connection, string $operation, #[\SensitiveParameter] array $input, ?string $id = null): string
+    {
+        if (config('integrations.shopify_coupon_writes_enabled') !== true) {
+            throw ApiException::conflict('Shopify coupon writes are disabled.', 'shopify_coupon_writes_disabled');
+        }
+        if ($id !== null && ! preg_match('~\Agid://shopify/DiscountCodeNode/[1-9][0-9]{0,18}\z~D', $id)) {
+            throw new \InvalidArgumentException('Invalid owned discount ID.');
+        }
+        $this->identity($connection, 'write_discounts');
+        $current = WebshopConnection::with('webshop')->findOrFail($connection->id);
+        if (! $connection->hasSameCredentialAuthority($current) || $connection->external_shop_ref !== $current->external_shop_ref
+            || ! $current->acceptsData() || ! $current->webshop->isOwnershipVerified()
+            || $current->webshop->verified_domain !== $connection->webshop->verified_domain) {
+            throw ApiException::conflict('The connection changed during coupon verification.', 'shopify_coupon_binding_changed');
+        }
+        [$query, $variables] = match ($operation) {
+            'discountCodeBasicCreate' => ['mutation ShopbonusDiscountCreate($input: DiscountCodeBasicInput!) { discountCodeBasicCreate(basicCodeDiscount: $input) { codeDiscountNode { id } userErrors { field code } } }', ['input' => $input]],
+            'discountCodeBasicUpdate' => ['mutation ShopbonusDiscountUpdate($id: ID!, $input: DiscountCodeBasicInput!) { discountCodeBasicUpdate(id: $id, basicCodeDiscount: $input) { codeDiscountNode { id } userErrors { field code } } }', ['id' => $id, 'input' => $input]],
+            'discountCodeDeactivate' => ['mutation ShopbonusDiscountDeactivate($id: ID!) { discountCodeDeactivate(id: $id) { codeDiscountNode { id } userErrors { field code } } }', ['id' => $id]],
+            default => throw new \LogicException('Unsupported fixed discount operation.'),
+        };
+        $result = $this->query($connection, $query, $variables)[$operation] ?? null;
+        $remote = $result['codeDiscountNode']['id'] ?? null;
+        if (! is_array($result) || ($result['userErrors'] ?? null) !== [] || ! is_string($remote)
+            || ! preg_match('~\Agid://shopify/DiscountCodeNode/[1-9][0-9]{0,18}\z~D', $remote) || ($id !== null && $remote !== $id)) {
+            throw ApiException::conflict('The provider did not confirm the discount write. Reconcile before any further action.', 'shopify_coupon_write_unconfirmed');
+        }
+
+        return $remote;
     }
 
     /** Store currency after the identity/domain gate (no extra scope). */

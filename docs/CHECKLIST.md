@@ -1806,3 +1806,14 @@ B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; exte
 - [x] Record provider publication API limits and the OpenCart policy question; preserve current unsupported states until actual write authority exists.
 
 B90 validation: focused localization/OpenAPI 5 PASS / 8309 assertions; scoped PHPStan and Pint PASS. Implementing SHA recorded in the following checkpoint. Genuine provider acceptance NOT RUN.
+
+B90 implementing SHA: `2ce1c2f`.
+
+### B91 — Opt-in Shopify native coupon workflow (2026-11-07)
+
+- [x] Add default-off, per-offer/version/credential-bound authorization and durable encrypted generation intents.
+- [x] Implement fixed create/update/deactivate GraphQL operations with live scope/domain validation and owned-code readback; never blindly repeat uncertain writes.
+- [x] Provide an authorized backend command for enabling, generating, reconciling, importing verified codes and deactivating unused codes; reject unsupported terms and issued-code changes.
+- [x] Execute focused workflow/security/native-transport tests and scoped style/static checks; document migrations, configuration, exact supported subset and genuine-provider acceptance limits.
+
+B91 validation: focused regression56 PASS / 8901 assertions; final provisioning/localization21 PASS / 494 assertions after drift/currency/immutable-intent additions. Scoped PHPStan, Pint and whitespace PASS. Seven real isolated API captures; actual provider writes/checkout/staging/MySQL NOT RUN. Implementation SHA follows closeout.

@@ -1,3 +1,5 @@
+B91: [Opt-in Shopify native coupon writes](SHOPIFY_COUPON_WRITES.md) implemented as a default-off authorized operator workflow, with encrypted intents, frozen offer/grant binding, exact readback, inventory import and unused-code cleanup. Platform/connection capability stays LIMITED. Genuine installed-store create/checkout/deactivate acceptance is **NOT RUN**. OpenCart owner reconfirmed signed snapshots; Ecwid/E-Series and Squarespace automatic installation/publication remain OPEN.
+
 B85: [Adobe SaaS IMS client-credentials renewal](ADOBE_ASYNC.md#b85--automatic-ims-client-credentials-renewal) now supplements existing async module/Runtime and scoped native reads. Tokens/client secrets stay encrypted; rotation/pause/tenant/ownership guards and expiry renewal are tested locally. Genuine provider acceptance remains NOT RUN. No new native publisher or C-Series cash mapping is claimed.
 
 # Provider verification checklist

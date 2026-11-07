@@ -62,7 +62,7 @@ class CapabilityAndCatalogTest extends TestCase
         $this->assertSame('AVAILABLE', $platforms['woocommerce']['capabilities']['products']['state']);
         $this->assertSame('AVAILABLE', $platforms['shopify']['capabilities']['coupons_read']['state']);
         $this->assertNull($platforms['shopify']['capabilities']['coupons_read']['last_verified_at']);
-        $this->assertSame('UNSUPPORTED', $platforms['shopify']['capabilities']['coupons_write']['state']);
+        $this->assertSame('LIMITED', $platforms['shopify']['capabilities']['coupons_write']['state']);
         $this->assertTrue($platforms['lightspeed_c']['available']);
         $this->assertSame('AVAILABLE', $platforms['lightspeed_c']['capabilities']['orders']['state']);
         $this->assertSame('LIMITED', $platforms['lightspeed_c']['capabilities']['banner_embed']['state']);
