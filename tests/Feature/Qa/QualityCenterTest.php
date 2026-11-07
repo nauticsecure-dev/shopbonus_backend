@@ -187,18 +187,18 @@ class QualityCenterTest extends TestCase
 
         $this->as($this->qa)->postJson('/api/v1/admin/qa/test-cases/approve', ['keys' => ['Tests\\WalletTest::test_balance', 'Tests\\ProfileTest::test_profile', 'missing']])
             ->assertOk()->assertJsonPath('data.approved', 2)->assertJsonPath('data.skipped', 1);
-        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.mocked', false)
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.mocked', false)->assertJsonPath('data.evidence_missing', true)
             ->assertJsonPath('data.test_cases.0.latest_result.status', 'pass');
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$profile}")->assertJsonPath('data.status', 'fail');
         $this->as($this->qa)->getJson('/api/v1/admin/qa/endpoints?filter=failed')->assertJsonPath('meta.total', 1);
 
-        // Manual coverage for a mocked test → PASS stays labelled MOCKED.
+        // An approved mocked execution without reviewed acceptance remains untested.
         $case = QaTestCase::where('key', 'Tests\\ProviderTest::test_contact_mocked')->firstOrFail();
         $vouchers = $this->endpointId('GET', '/api/v1/consumer/vouchers');
         $this->as($this->qa)->putJson("/api/v1/admin/qa/test-cases/{$case->public_id}/coverage", ['endpoints' => [$vouchers, 'nope']])->assertUnprocessable();
         $this->as($this->qa)->putJson("/api/v1/admin/qa/test-cases/{$case->public_id}/coverage", ['endpoints' => [$vouchers]])->assertOk();
         $this->as($this->qa)->postJson('/api/v1/admin/qa/test-cases/approve', ['keys' => [$case->key]])->assertOk();
-        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$vouchers}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.mocked', true);
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$vouchers}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.mocked', false)->assertJsonPath('data.evidence_missing', true);
 
         // A code change after the evidence makes it STALE, never PASS.
         QaEndpoint::where('public_id', $wallet)->update(['changed_at' => now()->addMinute(), 'changed_sha' => 'ddddddd']);
@@ -222,7 +222,7 @@ class QualityCenterTest extends TestCase
         $this->as($this->qa)->postJson('/api/v1/admin/qa/coverage', ['map' => ['Tests\\WalletTest::test_balance' => ['GET /api/v1/consumer/wallet']]])->assertOk();
         $this->as($this->qa)->postJson('/api/v1/admin/qa/test-cases/approve', ['keys' => ['Tests\\WalletTest::test_balance']])->assertOk();
         // Ran on exactly the scanned build: fresh even though it executed before the scan was recorded.
-        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.provenance', 'sha_verified');
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.provenance', 'sha_verified');
 
         // The handler changes in build bbbbbbb; a report of the old build imported afterwards stays STALE.
         $this->travel(10)->minutes();
@@ -238,7 +238,7 @@ class QualityCenterTest extends TestCase
         $this->import([['Tests\\WalletTest', 'test_balance', 9, '']], 'ddddddd', ['executed_at' => now()->toIso8601String()]);
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'stale')->assertJsonPath('data.provenance', 'time_only');
         $this->import([['Tests\\WalletTest', 'test_balance', 8, '']], 'bbbbbbb1234');
-        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.provenance', 'sha_verified');
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.provenance', 'sha_verified');
 
         $this->as($this->qa)->post('/api/v1/admin/qa/runs', ['report' => $this->junit($case), 'suite' => 'full', 'environment' => 'staging', 'git_sha' => 'abc1234',
             'executed_at' => now()->addDay()->toIso8601String()])->assertUnprocessable();
@@ -258,7 +258,7 @@ class QualityCenterTest extends TestCase
         $this->assertSame('connector', $names['app/Affiliate/Adapters/TradeTrackerSoapClient']);
     }
 
-    public function test_a_browser_pass_counts_only_with_evidence_attached(): void
+    public function test_browser_attachment_alone_cannot_replace_the_full_acceptance_contract(): void
     {
         $this->artisan('shopbonus:qa-discover', ['--sha' => 'aaaaaaa'])->assertSuccessful();
         $wallet = $this->endpointId('GET', '/api/v1/consumer/wallet');
@@ -270,7 +270,7 @@ class QualityCenterTest extends TestCase
         $result = $this->as($this->qa)->getJson("/api/v1/admin/qa/runs/{$run}")->json('data.results.0.id');
         $png = UploadedFile::fake()->image('screen.png', 20, 20);
         $this->as($this->qa)->post("/api/v1/admin/qa/runs/{$run}/evidence", ['file' => $png, 'result_id' => $result])->assertCreated();
-        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'pass')->assertJsonPath('data.evidence_missing', false);
+        $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);
         $evidence = QaEvidence::sole();
         $evidence->forceFill(['retain_until' => now()->subMinute()])->save();
         $this->as($this->qa)->getJson("/api/v1/admin/qa/endpoints/{$wallet}")->assertJsonPath('data.status', 'untested')->assertJsonPath('data.evidence_missing', true);

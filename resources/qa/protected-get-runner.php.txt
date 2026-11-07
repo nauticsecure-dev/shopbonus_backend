@@ -1,0 +1,47 @@
+<?php
+
+// Generated from a fixed, reviewed template. No model text is executable.
+$frozen = json_decode(__FROZEN_PLAN__, true, 32, JSON_THROW_ON_ERROR);
+$contextFile = getenv('QA_RUN_CONTEXT');
+$reportFile = getenv('QA_JUNIT_PATH');
+if (! $contextFile || ! $reportFile || ! is_file($contextFile)) {
+    throw new RuntimeException('Controlled staging context required.');
+}
+$context = json_decode((string) file_get_contents($contextFile), true, 64, JSON_THROW_ON_ERROR);
+$origin = parse_url($context['base_url'] ?? '');
+$required = array_column($context['execution_plan'][$frozen['runner_id']]['required_tests'] ?? [], 'key');
+if (($context['environment'] ?? null) !== 'staging' || ! preg_match('/\A(?:[0-9a-f]{40}|[0-9a-f]{64})\z/D', $context['deployment_sha'] ?? '')
+    || ($origin['scheme'] ?? null) !== 'https' || empty($origin['host']) || ! in_array($origin['path'] ?? '', ['', '/'], true)
+    || array_intersect(['user', 'pass', 'query', 'fragment'], array_keys($origin)) || $required !== [$frozen['test_key']]) {
+    throw new RuntimeException('Unexpected deployment, origin or execution plan.');
+}
+$suite = new SimpleXMLElement('<testsuite name="GeneratedDenial"/>');
+$test = $suite->addChild('testcase');
+$test->addAttribute('class', 'GeneratedDenial');
+$test->addAttribute('name', substr($frozen['test_key'], strlen('GeneratedDenial::')));
+$assertions = 0;
+$failed = false;
+try {
+    $body = '';
+    $request = curl_init(rtrim($context['base_url'], '/').$frozen['path']);
+    curl_setopt_array($request, [CURLOPT_HTTPHEADER => ['Accept: application/json'], CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 15, CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use (&$body): int {
+            if (strlen($body) + strlen($chunk) > 1048576) return 0;
+            $body .= $chunk;
+            return strlen($chunk);
+        }]);
+    if (curl_exec($request) === false) throw new RuntimeException('Bounded HTTPS request failed.');
+    $assertions++;
+    if (curl_getinfo($request, CURLINFO_RESPONSE_CODE) !== $frozen['expected_status']) throw new RuntimeException('Anonymous access was not denied with the expected status.');
+    $assertions++;
+    $json = json_decode($body, true, 32, JSON_THROW_ON_ERROR);
+    if (($json['error']['code'] ?? null) !== $frozen['expected_error']) throw new RuntimeException('Unexpected denial envelope.');
+    $assertions++;
+    if (array_key_exists('data', $json)) throw new RuntimeException('Anonymous denial exposed a data payload.');
+} catch (Throwable) {
+    $failed = true;
+    $test->addChild('failure')->addAttribute('message', 'Generated denial regression failed; inspect redacted staging evidence.');
+}
+$test->addAttribute('assertions', (string) $assertions);
+if (! $suite->asXML($reportFile)) throw new RuntimeException('Report storage unavailable.');
+exit($failed ? 1 : 0);

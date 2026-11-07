@@ -1,3 +1,30 @@
+## Quality Center gap closure — 2026-11-07
+
+- [ ] Require exact result-bound acceptance proofs before endpoint PASS, including unmapped cases.
+- [ ] Verify complete frontend candidate dispositions with exact source and runtime bindings.
+- [ ] Add authorized asynchronous staging execution requests and Quality Center controls.
+- [ ] Provide discovery-bound generated runner candidates and reviewed execution integration.
+- [ ] Map original 175 checks/60 subruns from the approved source and register reviewed journeys.
+- [ ] Wire the actual deployment workflow to required acceptance before promotion.
+- [ ] Capture real API examples, run affected checks and record exact remaining external dependencies.
+
+## CMS frontend integration follow-up — 2026-11-07
+
+- [ ] Integrate shared-block versions, draft overrides, detach and paginated usage UI.
+- [ ] Replace landing browser cropping with preserved original/versioned recipe queue and exact restoration.
+- [ ] Resolve validated immutable media pins in landing rendering; verify ownership and historical version preservation.
+- [ ] Integrate responsive component previews and field bindings.
+- [ ] Integrate AI backlog, budgets and independent review controls.
+- [ ] Register executable content QA mappings and require the gate in deployment.
+- [ ] Record executed checks and remaining staging acceptance with commit SHA.
+
+## Publication/refund gap follow-up — 2026-11-07
+
+- [ ] Correct stale C-Series setup instructions and Dutch translation; verify localization and publisher regressions (pending commit SHA).
+- [ ] Supply authorized Ecwid/E-Series app registration and configure native storefront script delivery.
+- [ ] Establish the selected C-Series PSP read contract and map verified cash refunds.
+- [ ] Complete Squarespace merchant Code Injection and observe live storefront delivery; no reviewed automatic injection API.
+
 ## Consumer acceptance environment — 2026-11-03 (uncommitted)
 
 - [ ] Record isolated database/configuration guards and idempotent points fixtures in a tested commit.
@@ -1471,6 +1498,14 @@ B65 tests: SQLite191/1773; MySQL191/1775; API35/10983; PHPStan/Pint/diff PASS. P
 
 B65 implementing SHA: `f44d759`. All four checked items refer to the tested local backend boundary; genuine provider installation/publication/release acceptance remains open.
 
+### Quality Center endpoint evidence
+
+- [ ] Require mapped acceptance proof on the same result used to derive endpoint PASS.
+- [ ] Verify missing provider evidence blocks PASS and completed proof restores it.
+- [ ] Verify AI proposal approval is checked at staging planning and result import for linked executables.
+- [ ] Review, register and execute the portal smoke candidate on deployed staging.
+- [ ] Map the original acceptance source and provider journeys and connect the deployment gate to promotion.
+
 ### B66 — Executable acceptance manifest and fail-closed deployment gate
 
 - [x] Define source-hashed unique 175-check mapping contracts with assertions, executor, environment, instructions and separately identified required provider subruns; leave unavailable source UNMAPPED.
@@ -1522,6 +1557,12 @@ B70 local backend boundary: parent `cfef279`; SQLite302PASS+4skip/13412, MySQL40
 B68–B70 closeout: `5861751` / `cfef279` / `94e3f87`, integrated source `d8c9aa9`; draft PR#7. Checked items certify tested backend boundaries only. Actual Moneybird, storefront persistence, live experiment measurement and independent release acceptance remain unverified.
 
 ### B71 — Additional automatic native coupon verification
+
+Wix follow-up
+
+- [ ] Prove the app instance, site, currency and complete bounded coupon lookup.
+- [ ] Compare supported Wix Stores terms and exercise restricted, ambiguous and incomplete responses.
+- [ ] Record local HTTP and regression evidence with the implementing SHA.
 
 - [x] Audit native read contracts and add bounded exact-code lookups using existing authenticated store/domain/scope guards.
 - [x] Verify supported provider configuration against current or frozen terms without claiming checkout acceptance/redemption; retain manual states for unknown constraints and unsupported types.
@@ -1769,3 +1810,5 @@ B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; exte
 B89 tested source: focused20/8920, scoped style/static/whitespace PASS; real isolated HTTP/Reverb/worker protocol PASS with21 HTTP exchanges. Checkmarks certify backend/protocol implementation only, not the missing frontend listener or actual browser/staging delivery. Implementing SHA follows closeout.
 
 B89 implementing SHA `e434296`; focused20/8920 and scoped static/style/diff PASS; actualHTTP/Reverb/worker21-exchange journey PASS. Frontend listener and browser/staging acceptance remain open.
+
+B89 integrated main06d43d9: preserved all checkpoint/NL histories and approved source bytes; focused20/8964 and refreshed21-exchange real protocol journey PASS. Runtime inventory495/496. Frontend/browser/staging acceptance remains open.

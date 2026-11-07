@@ -7,6 +7,7 @@ use App\Exceptions\ApiException;
 use App\Integrations\Connectors\BigCommerceCatalog;
 use App\Integrations\Connectors\EcwidCatalog;
 use App\Integrations\Connectors\ShopifyCatalog;
+use App\Integrations\Connectors\WixCatalog;
 use App\Models\OfferVersion;
 use App\Models\Voucher;
 use App\Models\VoucherCode;
@@ -103,7 +104,48 @@ class NativeCouponTerms
             } elseif ($raw['expires'] !== '') {
                 $expiration = $this->date($raw['expires'], false);
             }
-        } else {
+        } elseif ($platform === EcommercePlatform::Wix) {
+            $spec = $raw['specification'];
+            $mapped = WixCatalog::coupon($raw, $currency);
+            if (array_diff(array_keys($spec), ['name', 'code', 'active', 'startTime', 'expirationTime', 'scope',
+                'percentOffRate', 'moneyOffAmount', 'minimumSubtotal', 'usageLimit', 'limitPerCustomer',
+                'limitedToOneItem', 'appliesToSubscriptions', 'discountedCycleCount']) !== []) {
+                $unknown[] = 'coupon_options';
+            }
+            if (isset($spec['percentOffRate'], $spec['moneyOffAmount'])) {
+                $unknown[] = 'discount_kind';
+            }
+            // In Wix, the minimum-subtotal mode applies the fixed discount once to the cart.
+            if (($mapped['discount_type'] ?? null) === 'fixed_cart' && ($mapped['minimum_spend_minor'] ?? 0) <= 0) {
+                $unknown[] = 'discount_scope';
+            }
+            $scope = $spec['scope'] ?? null;
+            if (! is_array($scope) || ($scope['namespace'] ?? null) !== 'stores'
+                || ($scope['group'] ?? null) !== null || array_diff(array_keys($scope), ['namespace', 'group']) !== []
+                || ($spec['limitedToOneItem'] ?? false) !== false) {
+                $unknown[] = 'product_scope';
+            }
+            if (($spec['appliesToSubscriptions'] ?? false) !== false || isset($spec['discountedCycleCount'])) {
+                $unknown[] = 'purchase_type';
+            }
+            if (! in_array($spec['limitPerCustomer'] ?? null, [null, 0], true)) {
+                $unknown[] = 'customer_usage';
+            }
+            if (isset($spec['usageLimit']) && (! $this->count($spec['usageLimit']) || $spec['usageLimit'] === 0)) {
+                $unknown[] = 'usage_limit';
+            }
+            if (! $this->count($raw['numberOfUsages'] ?? null)) {
+                $unknown[] = 'usage_count';
+            }
+            if (! is_bool($spec['active'] ?? null) || ! is_bool($raw['expired'] ?? null)) {
+                $unknown[] = 'status';
+            }
+            if (isset($spec['minimumSubtotal']) && $this->minor($spec['minimumSubtotal'], $currency) === null) {
+                $unknown[] = 'minimum_spend';
+            }
+            $start = $this->wixDate($spec['startTime'] ?? null);
+            $expiration = $this->wixDate($spec['expirationTime'] ?? null, nullable: true);
+        } elseif (in_array($platform, [EcommercePlatform::Ecwid, EcommercePlatform::LightspeedE], true)) {
             $mapped = EcwidCatalog::coupon($raw, $currency);
             if (! in_array($raw['discountType'] ?? null, ['ABS', 'PERCENT'], true)) {
                 $unknown[] = 'discount_kind';
@@ -129,6 +171,8 @@ class NativeCouponTerms
             }
             $start = $this->date($raw['launchDate'] ?? null, false);
             $expiration = $this->date($raw['expirationDate'] ?? null);
+        } else {
+            throw ApiException::conflict('The configured adapter has no native coupon comparison.', 'coupon_api_unsupported');
         }
         if ($mapped !== null) {
             $mapped['expires_at'] = $expiration;
@@ -221,6 +265,18 @@ class NativeCouponTerms
     private function count(mixed $v): bool
     {
         return is_int($v) && $v >= 0 && $v < 4_000_000_000;
+    }
+
+    private function wixDate(mixed $value, bool $nullable = false): ?CarbonImmutable
+    {
+        if ($value === null && $nullable) {
+            return null;
+        }
+        if ((! is_int($value) && ! is_string($value)) || ! preg_match('/\A[1-9][0-9]{12}\z/D', (string) $value)) {
+            throw new ApiException('The native coupon date is invalid.', 502, 'provider_coupon_invalid');
+        }
+
+        return CarbonImmutable::createFromTimestampMs((int) $value, 'UTC');
     }
 
     private function minor(mixed $v, string $currency): ?int

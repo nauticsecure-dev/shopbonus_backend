@@ -1,7 +1,41 @@
 {
   "schema_version": 1,
-  "state": "unmapped",
-  "review_reference": null,
-  "runners": [],
-  "blocker": "Register reviewed version-controlled staging scripts and authentic execution/evidence instructions. This registry does not replace the unavailable original 175-check source."
+  "state": "reviewed",
+  "review_reference": "2026-11-07 source review: portal-smoke.php fixed read-only HTTPS checks; local protocol tests only, not staging acceptance or coverage of the original 175 journeys. Runtime case approvals and exact deployed Git bytes remain mandatory.",
+  "runners": [
+    {
+      "id": "portal-smoke",
+      "path": "scripts/qa-runners/portal-smoke.php",
+      "sha256": "193d344ebe210b16764fea889f420d1036cd9fe8f3cfbd22b8ec10d2c0fd3686",
+      "triggers": [
+        "nightly",
+        "weekly",
+        "after_deploy"
+      ],
+      "tests": [
+        {
+          "key": "PortalSmoke::liveness",
+          "version": 1,
+          "min_assertions": 3
+        },
+        {
+          "key": "PortalSmoke::readiness",
+          "version": 1,
+          "min_assertions": 2
+        },
+        {
+          "key": "PortalSmoke::anonymousSpecDenied",
+          "version": 1,
+          "min_assertions": 2
+        },
+        {
+          "key": "PortalSmoke::anonymousInventoryDenied",
+          "version": 1,
+          "min_assertions": 2
+        }
+      ],
+      "timeout_seconds": 60
+    }
+  ],
+  "scope": "Four read-only health/anonymous-denial checks only. Required original source journeys and 60 provider-stage executions remain incomplete; this registry cannot satisfy their evidence contracts."
 }

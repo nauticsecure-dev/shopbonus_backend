@@ -10,8 +10,12 @@ use App\Models\CmsMediaRecipe;
 use App\Models\CmsPage;
 use App\Models\CmsPageLocale;
 use App\Models\User;
+use App\Services\Cms\AboutUsCmsService;
+use App\Services\Cms\CmsContentBindings;
 use App\Services\Cms\CmsMedia;
 use App\Services\Cms\CmsService;
+use App\Services\Cms\HomepageCmsService;
+use App\Services\Cms\MerchantLandingCmsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
@@ -54,6 +58,31 @@ class CmsBindingsTest extends TestCase
     private function page(): CmsPage
     {
         return app(CmsService::class)->create('binding-test', 'info', 'public', ['nl' => ['slug' => 'binding-test', 'content' => $this->content()]], $this->admin->id);
+    }
+
+    public function test_landing_renderers_preserve_exact_recipe_pins_instead_of_active_recipe(): void
+    {
+        $bindings = app(CmsContentBindings::class);
+        $asset = $this->asset->public_id;
+        $pin = $this->recipe->public_id;
+        $content = ['hero' => ['background_asset_id' => $asset, 'background_mobile_asset_id' => $asset],
+            'media' => ['hero' => ['desktop_asset_id' => $asset, 'mobile_asset_id' => $asset, 'alt' => 'Photo']],
+            'media_recipes' => ['hero.background_asset_id' => $pin, 'hero.background_mobile_asset_id' => $pin,
+                'media.hero.desktop_asset_id' => $pin, 'media.hero.mobile_asset_id' => $pin]];
+        foreach ([HomepageCmsService::class, MerchantLandingCmsService::class, AboutUsCmsService::class] as $renderer) {
+            $result = app($renderer)->resolveAssets($content);
+            $this->assertStringEndsWith('/recipes/'.$pin.'/desktop', $result['hero']['background_url'] ?? $result['media']['hero']['desktop_url']);
+            $this->assertStringEndsWith('/recipes/'.$pin.'/mobile', $result['hero']['background_mobile_url'] ?? $result['media']['hero']['mobile_url']);
+        }
+        $original = $bindings->resolveMedia($content);
+        $this->asset->forceFill(['active_recipe_id' => null])->save();
+        $this->assertSame($original, $bindings->resolveMedia($content));
+        $foreign = app(CmsMedia::class)->upload(UploadedFile::fake()->image('foreign.png', 80, 60), $this->admin);
+        $content['hero']['background_asset_id'] = $foreign->public_id;
+        $result = $bindings->resolveMedia($content);
+        $this->assertArrayNotHasKey('background_url', $result['hero']);
+        $rich = $bindings->resolveMedia($this->content());
+        $this->assertStringEndsWith('/recipes/'.$pin.'/desktop', $rich['body']['content'][1]['attrs']['src']);
     }
 
     public function test_snapshot_bindings_pin_exact_source_recipe_and_survive_other_recipe_changes(): void

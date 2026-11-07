@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\Admin\OperationsController as AdminOperationsCon
 use App\Http\Controllers\Api\V1\Admin\OperationsOverviewController;
 use App\Http\Controllers\Api\V1\Admin\PlatformSettingController as AdminPlatformSettingController;
 use App\Http\Controllers\Api\V1\Admin\QaController;
+use App\Http\Controllers\Api\V1\Admin\QaExecutionsController;
 use App\Http\Controllers\Api\V1\Admin\ReconciliationController;
 use App\Http\Controllers\Api\V1\Admin\StepUpController as AdminStepUpController;
 use App\Http\Controllers\Api\V1\Admin\SupportConnectivityController;
@@ -546,6 +547,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
             // developer only reaches findings assigned to them (and their evidence) and records fix commits.
             Route::prefix('admin/qa')->name('admin.qa.')->group(function () {
                 Route::middleware('platform:super_admin,qa_tester')->group(function () {
+                    Route::get('executions', [QaExecutionsController::class, 'index'])->name('executions.index');
+                    Route::post('executions', [QaExecutionsController::class, 'store'])->middleware(['password.recent', 'throttle:qa-ai'])->name('executions.store');
                     Route::get('summary', [QaController::class, 'summary'])->name('summary');
                     Route::get('endpoints', [QaController::class, 'endpoints'])->name('endpoints.index');
                     Route::get('endpoints/{endpoint}', [QaController::class, 'showEndpoint'])->name('endpoints.show');

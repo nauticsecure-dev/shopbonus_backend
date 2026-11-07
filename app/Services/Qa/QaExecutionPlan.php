@@ -27,7 +27,7 @@ class QaExecutionPlan
             $seen = [];
             foreach ($tests as $test) {
                 $case = QaTestCase::where('key', $test['key'])->first();
-                if (isset($seen[$test['key']]) || ($case !== null && isset($mapped[$case->id])) || $case === null || $case->status !== 'approved' || $case->version !== $test['version'] || ! in_array($case->source, ['phpunit', 'postman', 'browser'], true) || $test['min_assertions'] < 1) {
+                if (isset($seen[$test['key']]) || ($case !== null && isset($mapped[$case->id])) || $case === null || ! $this->reviewed($case, $test) || $test['min_assertions'] < 1) {
                     throw new RuntimeException('Runner requires distinct approved executable case versions and positive assertions.');
                 }
                 $seen[$test['key']] = true;
@@ -98,12 +98,33 @@ class QaExecutionPlan
         foreach ($cases as $result) {
             $test = $allowed[$result['key']] ?? null;
             $case = $test === null ? null : QaTestCase::where('key', $test['key'])->first();
-            if ($test === null || isset($seen[$result['key']]) || $result['assertions'] < $test['min_assertions'] || $case === null || $case->status !== 'approved' || $case->version !== $test['version'] || ! in_array($case->source, ['phpunit', 'postman', 'browser'], true)) {
+            if ($test === null || isset($seen[$result['key']]) || $result['assertions'] < $test['min_assertions'] || $case === null || ! $this->reviewed($case, $test)) {
                 return false;
             }
             $seen[$result['key']] = true;
         }
 
         return array_diff(array_column($plan['required_tests'], 'key'), array_keys($seen)) === [];
+    }
+
+    /** @param array<string,mixed> $test */
+    private function reviewed(QaTestCase $case, array $test): bool
+    {
+        if ($case->status !== 'approved' || $case->version !== $test['version'] || ! in_array($case->source, ['phpunit', 'postman', 'browser'], true)) {
+            return false;
+        }
+        if (isset($test['discovery']) && ! QaEndpoint::where('public_id', $test['discovery']['endpoint_id'] ?? '')
+            ->where('fingerprint', $test['discovery']['fingerprint'] ?? '')->whereNull('removed_at')->exists()) {
+            return false;
+        }
+        if (! array_key_exists('proposal', $test)) {
+            return true;
+        }
+
+        return QaTestCase::where('key', $test['proposal']['key'] ?? '')
+            ->where('version', $test['proposal']['version'] ?? 0)
+            ->where('source', 'ai')
+            ->where('status', 'approved')
+            ->exists();
     }
 }

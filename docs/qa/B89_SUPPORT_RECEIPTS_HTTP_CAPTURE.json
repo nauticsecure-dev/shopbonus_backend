@@ -1,6 +1,6 @@
 {
   "date": "2026-11-07",
-  "baseline": "d43b4d7 plus B89 working tree",
+  "baseline": "a65aa96 plus B89 working tree",
   "scope": "Actual isolated Laravel HTTP, Reverb private WebSocket subscription/event and database queue:work process. Synthetic Node client and accounts; not frontend/browser-engine/cookie-CSRF/staging acceptance. Shared private SQLite cache/queue, ephemeral keys, no live providers/customer records.",
   "worker": {
     "real_process": "queue:work database --queue=receipt-proof --stop-when-empty",
@@ -57,9 +57,9 @@
             "provider_cost": null,
             "costed_requests": 0,
             "cost_currency": "EUR",
-            "from": "2026-11-06T20:39:27+00:00",
-            "checked_at": "2026-11-07T20:39:27+00:00",
-            "to": "2026-11-07T20:39:27+00:00",
+            "from": "2026-11-06T20:49:59+00:00",
+            "checked_at": "2026-11-07T20:49:59+00:00",
+            "to": "2026-11-07T20:49:59+00:00",
             "provider_cost_estimate": null,
             "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.",
             "open_reviews": 0,
@@ -76,8 +76,8 @@
               "worker_last_execution_at": null,
               "queue_connection": "database",
               "reverb_live_probe": "connected",
-              "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-              "reverb_probe_latency_ms": 72,
+              "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+              "reverb_probe_latency_ms": 86,
               "broadcast_evidence": "synthetic_round_trip_received",
               "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
               "worker_probe": "pending",
@@ -136,7 +136,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-d01b-70c5-816e-222273e8ab46",
+          "X-Request-Id": "01a1b7c6-773f-7089-b777-47b88fc4daed",
           "Cache-Control": "no-store, private"
         }
       }
@@ -183,9 +183,9 @@
             "provider_cost": null,
             "costed_requests": 0,
             "cost_currency": "EUR",
-            "from": "2026-11-06T20:39:30+00:00",
-            "checked_at": "2026-11-07T20:39:30+00:00",
-            "to": "2026-11-07T20:39:30+00:00",
+            "from": "2026-11-06T20:50:03+00:00",
+            "checked_at": "2026-11-07T20:50:03+00:00",
+            "to": "2026-11-07T20:50:03+00:00",
             "provider_cost_estimate": null,
             "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.",
             "open_reviews": 0,
@@ -202,12 +202,12 @@
               "worker_last_execution_at": null,
               "queue_connection": "database",
               "reverb_live_probe": "connected",
-              "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-              "reverb_probe_latency_ms": 72,
+              "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+              "reverb_probe_latency_ms": 86,
               "broadcast_evidence": "synthetic_round_trip_received",
               "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
               "worker_probe": "processed",
-              "worker_probe_latency_ms": 937,
+              "worker_probe_latency_ms": 1041,
               "worker_probe_scope": "latest_nonce_exact_queue_configuration_and_running_job_context",
               "browser_probe": "not_measured",
               "browser_probe_checked_at": null,
@@ -262,7 +262,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-de4c-7013-8bb7-7838d73079b1",
+          "X-Request-Id": "01a1b7c6-8576-7066-a156-f879b0fb18c2",
           "Cache-Control": "no-store, private"
         }
       }
@@ -309,9 +309,9 @@
             "provider_cost": null,
             "costed_requests": 0,
             "cost_currency": "EUR",
-            "from": "2026-11-06T20:39:30+00:00",
-            "checked_at": "2026-11-07T20:39:30+00:00",
-            "to": "2026-11-07T20:39:30+00:00",
+            "from": "2026-11-06T20:50:03+00:00",
+            "checked_at": "2026-11-07T20:50:03+00:00",
+            "to": "2026-11-07T20:50:03+00:00",
             "provider_cost_estimate": null,
             "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.",
             "open_reviews": 0,
@@ -328,12 +328,12 @@
               "worker_last_execution_at": null,
               "queue_connection": "database",
               "reverb_live_probe": "connected",
-              "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-              "reverb_probe_latency_ms": 72,
+              "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+              "reverb_probe_latency_ms": 86,
               "broadcast_evidence": "synthetic_round_trip_received",
               "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
               "worker_probe": "processed",
-              "worker_probe_latency_ms": 937,
+              "worker_probe_latency_ms": 1041,
               "worker_probe_scope": "latest_nonce_exact_queue_configuration_and_running_job_context",
               "browser_probe": "not_measured",
               "browser_probe_checked_at": null,
@@ -388,7 +388,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-dee7-71ee-8ad6-e3cd4cca4a3c",
+          "X-Request-Id": "01a1b7c6-8615-73eb-b3aa-e92247731014",
           "Cache-Control": "no-store, private"
         }
       }
@@ -405,14 +405,14 @@
         "status": 201,
         "body": {
           "data": {
-            "probe_id": "40828535870ebf7a607cbc89aee6d4b4",
-            "channel": "private-shopbonus.user.01m6vvsjszjb1eq130rbmj3gp1.notifications",
+            "probe_id": "bfe0b388abb50a7902233bc138b26f79",
+            "channel": "private-shopbonus.user.01m6vwcwf4bz96nbw2gjgbacgn.notifications",
             "event": "support.connectivity.browser_probe",
             "expires_in": 60
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-df12-7071-a8b8-3321e9ec7c97",
+          "X-Request-Id": "01a1b7c6-8642-70e1-ab2e-d0f63cfdbafa",
           "Cache-Control": "no-store, private"
         }
       }
@@ -423,18 +423,18 @@
         "method": "POST",
         "path": "/api/broadcasting/auth",
         "body": {
-          "socket_id": "177534875.360078735",
-          "channel_name": "private-shopbonus.user.01m6vvsjszjb1eq130rbmj3gp1.notifications"
+          "socket_id": "756577001.687559083",
+          "channel_name": "private-shopbonus.user.01m6vwcwf4bz96nbw2gjgbacgn.notifications"
         },
         "authorization": "Bearer <SYNTHETIC_TOKEN>"
       },
       "response": {
         "status": 200,
         "body": {
-          "auth": "716c1e6eaab015656fec999a:b945474e8051efb1c9fb5daebb32bb58f60362c9255a887d3eb85dc97f80aea1"
+          "auth": "f19b93363a563a9613247290:09e218e1193aab63ea4b6bbd448b9f297bc187ca1c8ef6d0b3504db797411696"
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-df51-702f-a380-d4749c4a8160",
+          "X-Request-Id": "01a1b7c6-8684-73e7-b70c-38befae7a537",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -451,14 +451,14 @@
         "status": 201,
         "body": {
           "data": {
-            "probe_id": "47abcd958b5ae2fa1739f9b8e4934340",
-            "channel": "private-shopbonus.user.01m6vvsjszjb1eq130rbmj3gp1.notifications",
+            "probe_id": "310c2d6e1b4560df0deeffab652f0d47",
+            "channel": "private-shopbonus.user.01m6vwcwf4bz96nbw2gjgbacgn.notifications",
             "event": "support.connectivity.browser_probe",
             "expires_in": 60
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-df76-7185-95d8-466a9bd7f987",
+          "X-Request-Id": "01a1b7c6-86ab-71d7-84e1-e13d040630bf",
           "Cache-Control": "no-store, private"
         }
       }
@@ -467,9 +467,9 @@
       "label": "http_only_rejected",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
-          "nonce": "47abcd958b5ae2fa1739f9b8e4934340"
+          "nonce": "310c2d6e1b4560df0deeffab652f0d47"
         },
         "authorization": "Bearer <SYNTHETIC_TOKEN>"
       },
@@ -480,11 +480,11 @@
             "status": 404,
             "code": "probe_not_found",
             "message": "This probe is unknown, expired or already acknowledged.",
-            "request_id": "01a1b7bc-df9f-70eb-98b9-7fe8b194c616"
+            "request_id": "01a1b7c6-86d8-71da-b9e7-6bf32557b38e"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-df9f-70eb-98b9-7fe8b194c616",
+          "X-Request-Id": "01a1b7c6-86d8-71da-b9e7-6bf32557b38e",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -493,7 +493,7 @@
       "label": "missing_challenge",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {},
         "authorization": "Bearer <SYNTHETIC_TOKEN>"
       },
@@ -504,7 +504,7 @@
             "status": 422,
             "code": "validation_failed",
             "message": "The given data was invalid.",
-            "request_id": "01a1b7bc-dfc8-7306-a336-0d6d2f3fdeec",
+            "request_id": "01a1b7c6-8700-73b9-8fc8-49346b840134",
             "fields": {
               "nonce": [
                 "The nonce field is required."
@@ -513,7 +513,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-dfc8-7306-a336-0d6d2f3fdeec",
+          "X-Request-Id": "01a1b7c6-8700-73b9-8fc8-49346b840134",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -522,9 +522,9 @@
       "label": "other_admin_rejected",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
-          "nonce": "821b394b31501cf7a6cd51337031b9a2"
+          "nonce": "1cc370243c8f152a3ce6f23eba989fd5"
         },
         "authorization": "Bearer <SYNTHETIC_TOKEN>"
       },
@@ -535,11 +535,11 @@
             "status": 404,
             "code": "probe_not_found",
             "message": "This probe is unknown, expired or already acknowledged.",
-            "request_id": "01a1b7bc-dffa-725a-9b57-a674f52c07db"
+            "request_id": "01a1b7c6-8732-73db-bc3f-595958cb037d"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-dffa-725a-9b57-a674f52c07db",
+          "X-Request-Id": "01a1b7c6-8732-73db-bc3f-595958cb037d",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -548,9 +548,9 @@
       "label": "event_receipt_ack",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
-          "nonce": "821b394b31501cf7a6cd51337031b9a2"
+          "nonce": "1cc370243c8f152a3ce6f23eba989fd5"
         },
         "authorization": "Bearer <SYNTHETIC_TOKEN>"
       },
@@ -559,21 +559,21 @@
         "body": {
           "data": {
             "reverb_live_probe": "connected",
-            "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-            "reverb_probe_latency_ms": 72,
+            "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+            "reverb_probe_latency_ms": 86,
             "broadcast_evidence": "synthetic_round_trip_received",
             "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
             "worker_probe": "processed",
-            "worker_probe_latency_ms": 937,
+            "worker_probe_latency_ms": 1041,
             "worker_probe_scope": "latest_nonce_exact_queue_configuration_and_running_job_context",
             "browser_probe": "acknowledged",
-            "browser_probe_checked_at": "2026-11-07T20:39:31+00:00",
-            "browser_probe_latency_ms": 175,
+            "browser_probe_checked_at": "2026-11-07T20:50:03+00:00",
+            "browser_probe_latency_ms": 176,
             "browser_probe_scope": "requesting_admin_authenticated_client_receipt_not_browser_engine_or_every_customer"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e023-71a6-a01f-7a4f949e0dd7",
+          "X-Request-Id": "01a1b7c6-875b-72eb-b47c-0da1d0c2e752",
           "Cache-Control": "no-store, private"
         }
       }
@@ -582,9 +582,9 @@
       "label": "replay_rejected",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
-          "nonce": "821b394b31501cf7a6cd51337031b9a2"
+          "nonce": "1cc370243c8f152a3ce6f23eba989fd5"
         },
         "authorization": "Bearer <SYNTHETIC_TOKEN>"
       },
@@ -595,11 +595,11 @@
             "status": 404,
             "code": "probe_not_found",
             "message": "This probe is unknown, expired or already acknowledged.",
-            "request_id": "01a1b7bc-e04c-72c6-a110-f75a881303ff"
+            "request_id": "01a1b7c6-8785-733c-b1a0-5227d415ebff"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e04c-72c6-a110-f75a881303ff",
+          "X-Request-Id": "01a1b7c6-8785-733c-b1a0-5227d415ebff",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -646,9 +646,9 @@
             "provider_cost": null,
             "costed_requests": 0,
             "cost_currency": "EUR",
-            "from": "2026-11-06T20:39:31+00:00",
-            "checked_at": "2026-11-07T20:39:31+00:00",
-            "to": "2026-11-07T20:39:31+00:00",
+            "from": "2026-11-06T20:50:03+00:00",
+            "checked_at": "2026-11-07T20:50:03+00:00",
+            "to": "2026-11-07T20:50:03+00:00",
             "provider_cost_estimate": null,
             "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.",
             "open_reviews": 0,
@@ -665,16 +665,16 @@
               "worker_last_execution_at": null,
               "queue_connection": "database",
               "reverb_live_probe": "connected",
-              "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-              "reverb_probe_latency_ms": 72,
+              "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+              "reverb_probe_latency_ms": 86,
               "broadcast_evidence": "synthetic_round_trip_received",
               "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
               "worker_probe": "processed",
-              "worker_probe_latency_ms": 937,
+              "worker_probe_latency_ms": 1041,
               "worker_probe_scope": "latest_nonce_exact_queue_configuration_and_running_job_context",
               "browser_probe": "acknowledged",
-              "browser_probe_checked_at": "2026-11-07T20:39:31+00:00",
-              "browser_probe_latency_ms": 175,
+              "browser_probe_checked_at": "2026-11-07T20:50:03+00:00",
+              "browser_probe_latency_ms": 176,
               "browser_probe_scope": "requesting_admin_authenticated_client_receipt_not_browser_engine_or_every_customer"
             },
             "model_contract": {
@@ -725,7 +725,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e070-71ea-aed1-85a32ed1613a",
+          "X-Request-Id": "01a1b7c6-87a9-735d-8dea-9ec773e3b26a",
           "Cache-Control": "no-store, private"
         }
       }
@@ -772,9 +772,9 @@
             "provider_cost": null,
             "costed_requests": 0,
             "cost_currency": "EUR",
-            "from": "2026-11-06T20:39:31+00:00",
-            "checked_at": "2026-11-07T20:39:31+00:00",
-            "to": "2026-11-07T20:39:31+00:00",
+            "from": "2026-11-06T20:50:03+00:00",
+            "checked_at": "2026-11-07T20:50:03+00:00",
+            "to": "2026-11-07T20:50:03+00:00",
             "provider_cost_estimate": null,
             "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.",
             "open_reviews": 0,
@@ -791,12 +791,12 @@
               "worker_last_execution_at": null,
               "queue_connection": "database",
               "reverb_live_probe": "connected",
-              "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-              "reverb_probe_latency_ms": 72,
+              "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+              "reverb_probe_latency_ms": 86,
               "broadcast_evidence": "synthetic_round_trip_received",
               "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
               "worker_probe": "processed",
-              "worker_probe_latency_ms": 937,
+              "worker_probe_latency_ms": 1041,
               "worker_probe_scope": "latest_nonce_exact_queue_configuration_and_running_job_context",
               "browser_probe": "not_measured",
               "browser_probe_checked_at": null,
@@ -851,7 +851,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e097-7264-9845-43c5fcd6c087",
+          "X-Request-Id": "01a1b7c6-87ce-72e0-9f3b-29bf6c43e52e",
           "Cache-Control": "no-store, private"
         }
       }
@@ -871,11 +871,11 @@
             "status": 401,
             "code": "unauthenticated",
             "message": "Authentication is required.",
-            "request_id": "01a1b7bc-e0bb-71f9-bd26-be7ede7f5030"
+            "request_id": "01a1b7c6-87f4-7367-b37c-1f3e15c4c554"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e0bb-71f9-bd26-be7ede7f5030",
+          "X-Request-Id": "01a1b7c6-87f4-7367-b37c-1f3e15c4c554",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -895,11 +895,11 @@
             "status": 403,
             "code": "platform_role_required",
             "message": "This action requires a platform administrator.",
-            "request_id": "01a1b7bc-e0e0-70e7-ba17-5452db6be020"
+            "request_id": "01a1b7c6-881e-73bf-a591-ace989d52ee1"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e0e0-70e7-ba17-5452db6be020",
+          "X-Request-Id": "01a1b7c6-881e-73bf-a591-ace989d52ee1",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -908,7 +908,7 @@
       "label": "anonymous_ack",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
           "nonce": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
@@ -921,11 +921,11 @@
             "status": 401,
             "code": "unauthenticated",
             "message": "Authentication is required.",
-            "request_id": "01a1b7bc-e12d-71f7-828b-0d05486a542b"
+            "request_id": "01a1b7c6-885c-7138-b53a-38850f2c271e"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e12d-71f7-828b-0d05486a542b",
+          "X-Request-Id": "01a1b7c6-885c-7138-b53a-38850f2c271e",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -934,7 +934,7 @@
       "label": "consumer_ack",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
           "nonce": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
@@ -947,11 +947,11 @@
             "status": 403,
             "code": "platform_role_required",
             "message": "This action requires a platform administrator.",
-            "request_id": "01a1b7bc-e14f-72c1-802f-70f6cf5c074a"
+            "request_id": "01a1b7c6-8880-7344-b6a1-f02d79efa005"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e14f-72c1-802f-70f6cf5c074a",
+          "X-Request-Id": "01a1b7c6-8880-7344-b6a1-f02d79efa005",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -960,7 +960,7 @@
       "label": "concurrent_ack_busy",
       "request": {
         "method": "POST",
-        "path": "/api/v1/admin/ai/connectivity/browser-probe/47abcd958b5ae2fa1739f9b8e4934340/ack",
+        "path": "/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack",
         "body": {
           "nonce": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
@@ -973,11 +973,11 @@
             "status": 409,
             "code": "probe_busy",
             "message": "Another probe operation is in progress.",
-            "request_id": "01a1b7bc-e310-72d5-b2fb-43f1a812723c"
+            "request_id": "01a1b7c6-8f04-730a-a6b3-14c51bff9831"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-e310-72d5-b2fb-43f1a812723c",
+          "X-Request-Id": "01a1b7c6-8f04-730a-a6b3-14c51bff9831",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -997,11 +997,11 @@
             "status": 503,
             "code": "broadcast_unavailable",
             "message": "The realtime broadcaster could not send the probe.",
-            "request_id": "01a1b7bc-eeed-7201-a88b-d2c031743418"
+            "request_id": "01a1b7c6-9b26-7148-973c-dc3d437603c3"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-eeed-7201-a88b-d2c031743418",
+          "X-Request-Id": "01a1b7c6-9b26-7148-973c-dc3d437603c3",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -1021,11 +1021,11 @@
             "status": 429,
             "code": "too_many_requests",
             "message": "Too many requests. Please slow down.",
-            "request_id": "01a1b7bc-ef31-7328-a9ad-cfda33bad13b"
+            "request_id": "01a1b7c6-9b71-7377-b7f6-0a10012aef17"
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-ef31-7328-a9ad-cfda33bad13b",
+          "X-Request-Id": "01a1b7c6-9b71-7377-b7f6-0a10012aef17",
           "Cache-Control": "no-cache, private"
         }
       }
@@ -1072,9 +1072,9 @@
             "provider_cost": null,
             "costed_requests": 0,
             "cost_currency": "EUR",
-            "from": "2026-11-06T20:39:35+00:00",
-            "checked_at": "2026-11-07T20:39:35+00:00",
-            "to": "2026-11-07T20:39:35+00:00",
+            "from": "2026-11-06T20:50:08+00:00",
+            "checked_at": "2026-11-07T20:50:08+00:00",
+            "to": "2026-11-07T20:50:08+00:00",
             "provider_cost_estimate": null,
             "cost_notice": "Cost is an estimate for requests with configured verified EUR rates; coverage is reported separately. Billed cost is unavailable. Missing prices are never zero. The legacy blended-rate estimate is not model-specific; failed/timeout/fallback-attempt usage may be absent from observed totals.",
             "open_reviews": 0,
@@ -1091,12 +1091,12 @@
               "worker_last_execution_at": null,
               "queue_connection": "database",
               "reverb_live_probe": "connected",
-              "reverb_probe_checked_at": "2026-11-07T20:39:26+00:00",
-              "reverb_probe_latency_ms": 72,
+              "reverb_probe_checked_at": "2026-11-07T20:49:59+00:00",
+              "reverb_probe_latency_ms": 86,
               "broadcast_evidence": "synthetic_round_trip_received",
               "reverb_probe_scope": "server_to_reverb_private_channel_round_trip",
               "worker_probe": "processed",
-              "worker_probe_latency_ms": 937,
+              "worker_probe_latency_ms": 1041,
               "worker_probe_scope": "latest_nonce_exact_queue_configuration_and_running_job_context",
               "browser_probe": "failed",
               "browser_probe_checked_at": null,
@@ -1151,7 +1151,7 @@
           }
         },
         "headers": {
-          "X-Request-Id": "01a1b7bc-ef5e-73b3-b4b1-fbb032552ffb",
+          "X-Request-Id": "01a1b7c6-9bb0-7273-8849-6e0215ae0c94",
           "Cache-Control": "no-store, private"
         }
       }

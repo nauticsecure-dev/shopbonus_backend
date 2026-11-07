@@ -170,6 +170,6 @@ class HomepageCmsService
             $content['body'] = $walk($content['body']);
         }
 
-        return $content;
+        return app(CmsContentBindings::class)->resolveMedia($content);
     }
 }

@@ -370,15 +370,15 @@ class OffersCodesE2ETest extends TestCase
 
         // Unsupported platform → never advertise Verified.
         $otherOwner = User::factory()->create();
-        $other = $this->activeWebshop($otherOwner, ['name' => 'Wix Shop', 'verified_domain' => 'wixshop.nl']);
+        $other = $this->activeWebshop($otherOwner, ['name' => 'Custom Shop', 'verified_domain' => 'customshop.nl']);
         Sanctum::actingAs($otherOwner);
-        $offerB = $this->postJson($this->url('/offers', $other), [...self::TEN_PERCENT, 'name' => 'Wix deal'])->json('data.id');
-        $batch = $this->postJson($this->url("/offers/{$offerB}/code-imports", $other), ['codes' => 'WIX-CODE-01'])->json('data.id');
+        $offerB = $this->postJson($this->url('/offers', $other), [...self::TEN_PERCENT, 'name' => 'Custom deal'])->json('data.id');
+        $batch = $this->postJson($this->url("/offers/{$offerB}/code-imports", $other), ['codes' => 'CUSTOM-CODE-01'])->json('data.id');
         $this->postJson($this->url("/code-imports/{$batch}/commit", $other))->assertOk();
-        $wixCode = VoucherCode::where('webshop_id', $other->id)->sole();
+        $customCode = VoucherCode::where('webshop_id', $other->id)->sole();
         WebshopConnection::create([
             'webshop_id' => $other->id,
-            'platform' => 'wix',
+            'platform' => 'other',
             'method' => 'webhook',
             'status' => 'connected',
             'webhook_token' => str_repeat('w', 40),
@@ -386,18 +386,18 @@ class OffersCodesE2ETest extends TestCase
             'connected_at' => now(),
         ]);
 
-        $this->postJson($this->url("/codes/{$wixCode->public_id}/platform-validation", $other), ['mode' => 'provider_check'])
+        $this->postJson($this->url("/codes/{$customCode->public_id}/platform-validation", $other), ['mode' => 'provider_check'])
             ->assertOk()
             ->assertJsonPath('data.platform_validation', 'unsupported_integration')
             ->assertJsonPath('verification.detail.reason', 'coupon_api_unsupported');
 
         $this->getJson($this->url("/offers/{$id}/code-batches", $other))->assertNotFound();
-        $this->postJson($this->url("/codes/{$wixCode->public_id}/platform-validation", $other), [
+        $this->postJson($this->url("/codes/{$customCode->public_id}/platform-validation", $other), [
             'mode' => 'provider_check', 'voucher_id' => $voucher->public_id,
         ])->assertNotFound();
 
         // Manual confirmation path for unsupported integrations.
-        $this->postJson($this->url("/codes/{$wixCode->public_id}/platform-validation", $other), [
+        $this->postJson($this->url("/codes/{$customCode->public_id}/platform-validation", $other), [
             'mode' => 'manual_confirm',
             'note' => 'Checked in Wix admin — code applies at checkout.',
         ])->assertOk()->assertJsonPath('data.platform_validation', 'manually_confirmed');

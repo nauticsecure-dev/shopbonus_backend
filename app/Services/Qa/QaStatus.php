@@ -3,7 +3,6 @@
 namespace App\Services\Qa;
 
 use App\Models\QaEndpoint;
-use App\Models\QaEvidence;
 use App\Models\QaFinding;
 use App\Models\QaInventorySnapshot;
 use App\Models\QaSchedule;
@@ -16,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Derives each endpoint's status from executed evidence only (Trello #37 §10):
  * FAIL > NOT_IMPLEMENTED > BLOCKED > STALE > UNTESTED > PASS. Only approved
  * test cases count. Nothing becomes PASS without an executed assertion, and
- * mocked passes stay labelled.
+ * unmapped or unreviewed executions cannot produce endpoint PASS.
  *
  * Freshness follows the tested build (Trello #36/#37 review): a result is
  * fresh when its run's Git SHA matches the endpoint's change SHA or Git
@@ -31,28 +30,26 @@ class QaStatus
 
     /**
      * @param  Collection<int, QaEndpoint>  $endpoints
+     * @param  array<string,mixed>|null  $manifest
      * @return array<int, array{status: string, mocked: bool, tests: int, last_run_at: string|null, provenance: string|null, evidence_missing: bool}>
      */
-    public function forEndpoints(Collection $endpoints): array
+    public function forEndpoints(Collection $endpoints, ?array $manifest = null): array
     {
         $ids = $endpoints->pluck('id')->all();
         $links = DB::table('qa_test_coverage as c')->join('qa_test_cases as t', 't.id', '=', 'c.test_case_id')
             ->where('c.target_type', 'endpoint')->whereIn('c.target_id', $ids === [] ? [0] : $ids)->where('t.status', 'approved')
             ->get(['c.target_id', 'c.test_case_id', 't.source'])->groupBy('target_id');
-        $needsEvidence = (array) config('qa.evidence_required_sources', []);
         $caseIds = $links->flatten(1)->pluck('test_case_id')->unique()->values()->all();
         $latest = DB::table('qa_test_results as r')->join('qa_test_runs as run', 'run.id', '=', 'r.run_id')
+            ->join('qa_test_cases as t', 't.id', '=', 'r.test_case_id')
             ->whereIn('r.id', DB::table('qa_test_results')->selectRaw('max(id)')->whereIn('test_case_id', $caseIds === [] ? [0] : $caseIds)->groupBy('test_case_id'))
-            ->get(['r.id', 'r.test_case_id', 'r.status', 'r.mocked', 'r.created_at', 'run.git_sha', 'run.started_at'])->keyBy('test_case_id');
-        $humanCases = $links->flatten(1)->filter(fn ($link) => in_array($link->source, $needsEvidence, true))->pluck('test_case_id')->all();
-        $humanResults = $latest->only($humanCases)->pluck('id')->all();
-        $withEvidence = collect();
-        $proofs = app(QaRuns::class);
-        foreach (QaEvidence::whereIn('result_id', $humanResults ?: [0])->where('retain_until', '>', now())->latest('id')->get() as $evidence) {
-            if (! $withEvidence->has($evidence->result_id) && $proofs->evidenceAvailable($evidence)) {
-                $withEvidence->put($evidence->result_id, true);
-            }
+            ->get(['r.id', 't.key', 'r.test_case_id', 'r.status', 'r.mocked', 'r.created_at', 'run.git_sha', 'run.started_at'])->keyBy('test_case_id');
+        $manifestPath = base_path('requirements/QA_ACCEPTANCE.json');
+        if ($manifest === null && is_readable($manifestPath)) {
+            $manifest = json_decode((string) file_get_contents($manifestPath), true);
         }
+        $manifestAvailable = is_array($manifest);
+        $acceptanceProofs = app(QaAcceptance::class)->endpointProofs($manifestAvailable ? $manifest : [], $latest->where('status', 'pass'));
         $staleBefore = CarbonImmutable::now()->subDays((int) config('qa.stale_after_days'));
         $scans = DB::table('qa_inventory_snapshots')->orderBy('id')->get(['git_sha', 'created_at']);
 
@@ -78,12 +75,12 @@ class QaStatus
                 $mocked = $mocked || (bool) $r->mocked;
                 $source = self::provenance((string) $r->git_sha, $at, $endpoint, $scans, $builds);
                 $provenance[] = $source;
-                // A manual/browser PASS without attached evidence proves nothing yet.
-                $unproven = $r->status === 'pass' && in_array($caseLinks->firstWhere('test_case_id', $caseId)?->source, $needsEvidence, true) && ! $withEvidence->has($r->id);
+                $unproven = $r->status === 'pass' && (! $manifestAvailable || ! ($acceptanceProofs[$r->key] ?? false));
                 $evidenceMissing = $evidenceMissing || $unproven;
                 $statuses[] = match (true) {
-                    $r->status === 'skipped', $unproven => 'untested',
+                    $r->status === 'skipped' => 'untested',
                     $source === 'sha_outdated' || $source === 'time_only' || $at->lessThan($staleBefore) => 'stale',
+                    $unproven => 'untested',
                     default => $r->status,
                 };
             }

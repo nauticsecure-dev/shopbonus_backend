@@ -3,14 +3,18 @@
 namespace Tests\Feature\Qa;
 
 use App\Enums\PlatformRole;
+use App\Models\QaEndpoint;
 use App\Models\QaEvidence;
 use App\Models\QaTestCase;
 use App\Models\QaTestResult;
 use App\Models\User;
 use App\Services\Qa\QaAcceptance;
+use App\Services\Qa\QaFrontendInventory;
 use App\Services\Qa\QaRuns;
+use App\Services\Qa\QaStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -134,9 +138,23 @@ class QaAcceptanceTest extends TestCase
                 'git_sha' => str_repeat('b', 40), 'routes' => ['synthetic'], 'actions' => ['synthetic'], 'components' => ['synthetic'], 'ui_states' => ['synthetic']];
             $artifact = $runs->storeEvidence($run, UploadedFile::fake()->createWithContent('synthetic.json', json_encode($body)), $result, 'synthetic-request', $executor->id);
             $image = $runs->storeEvidence($run, UploadedFile::fake()->image('synthetic.png', $index + 1, 1), $result, null, $executor->id);
+            if (in_array('frontend_inventory', $entry['required_evidence'], true)) {
+                $observed = array_fill_keys(QaFrontendInventory::KINDS, ['synthetic']);
+                $trace = $runs->storeEvidence($run, UploadedFile::fake()->createWithContent('trace.json', json_encode(['synthetic' => true, 'result' => $result->public_id])), $result, null, $executor->id);
+                $context = ['case_version' => 1, 'id' => 'synthetic-context', 'git_sha' => str_repeat('b', 40), 'locale' => 'en', 'actor_role' => 'qa_tester', 'ui_state' => 'loaded',
+                    'route' => '/synthetic', 'viewport' => ['width' => 390, 'height' => 844], 'test_key' => $entry['test_key'], 'run_id' => $run->public_id, 'result_id' => $result->public_id,
+                    'observed' => $observed, 'evidence' => ['screenshot' => ['sha256' => $image->sha256], 'trace' => ['sha256' => $trace->sha256]]];
+                $body += ['schema_version' => 2, 'verification' => 'reviewed_runtime_dispositions', 'source_sha256' => str_repeat('d', 64), 'review_reference' => 'Explicitly synthetic structural fixture', 'contexts' => [$context], 'source_candidates' => $observed,
+                    'dispositions' => array_fill_keys(QaFrontendInventory::KINDS, [['id' => 'synthetic', 'decision' => 'covered', 'reference' => 'Synthetic only', 'context_ids' => ['synthetic-context']]])];
+                $artifact = $runs->storeEvidence($run, UploadedFile::fake()->createWithContent('frontend.json', json_encode($body)), $result, 'synthetic-request', $executor->id);
+            }
             $refs = [];
             foreach ($entry['required_evidence'] as $kind) {
-                $file = $kind === 'screenshot' ? $image : $artifact;
+                $file = match ($kind) {
+                    'screenshot' => $image,
+                    'provider_confirmation' => $runs->storeEvidence($run, UploadedFile::fake()->createWithContent('provider.json', json_encode($body + ['artifact_kind' => $kind])), $result, null, $executor->id),
+                    default => $artifact,
+                };
                 $refs[] = ['kind' => $kind, 'evidence_id' => $file->public_id, 'sha256' => $file->sha256];
             }
             $record = ['check_id' => $entry['id'], 'definition_sha256' => QaAcceptance::definitionHash($entry), 'source_sha256' => $mapping['source']['sha256'], 'source_version' => $mapping['source']['version'], 'deployment_sha' => $this->sha,
@@ -153,6 +171,26 @@ class QaAcceptanceTest extends TestCase
         $report = $service->evaluate($mapping, $this->sha);
         $this->assertTrue($report['evidence_complete'], json_encode(array_filter($report['checks'], fn ($r) => $r['status'] !== 'evidence_complete')));
         $this->assertFalse($report['release_approved']);
+        $provider = $mapping['provider_subruns'][0];
+        $providerResult = $results[$provider['test_key']];
+        $endpoint = QaEndpoint::create(['method' => 'GET', 'path' => '/api/v1/synthetic-provider', 'access' => 'admin', 'scope' => 'admin', 'documented' => true,
+            'fingerprint' => str_repeat('a', 64), 'first_seen_sha' => $this->sha, 'changed_sha' => $this->sha, 'changed_at' => now()]);
+        DB::table('qa_test_coverage')->insert(['test_case_id' => $providerResult->test_case_id, 'target_type' => 'endpoint', 'target_id' => $endpoint->id]);
+        $status = fn () => app(QaStatus::class)->forEndpoints(collect([$endpoint]), $mapping)[$endpoint->id];
+        $this->assertSame('pass', $status()['status']);
+        $unmapped = $mapping;
+        $unmapped['provider_subruns'] = [];
+        $unmappedStatus = app(QaStatus::class)->forEndpoints(collect([$endpoint]), $unmapped)[$endpoint->id];
+        $this->assertSame('untested', $unmappedStatus['status']);
+        $this->assertTrue($unmappedStatus['evidence_missing']);
+        $providerReview = QaEvidence::where('public_id', $provider['review_evidence_id'])->sole();
+        $providerProof = QaEvidence::where('result_id', $providerResult->id)->where('name', 'provider.json')->sole();
+        $providerProof->forceFill(['retain_until' => now()->subSecond()])->save();
+        $this->assertSame('untested', $status()['status']);
+        $this->assertTrue($status()['evidence_missing']);
+        $this->assertTrue($runs->evidenceAvailable($providerReview));
+        $providerProof->forceFill(['retain_until' => now()->addDay()])->save();
+        $this->assertSame('pass', $status()['status']);
         $changed = $mapping;
         $changed['checks'][0]['assertions'][] = 'A newly added expectation needs fresh independent review';
         $this->assertSame(['review_binding_mismatch:definition_sha256'], $service->evaluate($changed, $this->sha)['checks'][0]['blockers']);

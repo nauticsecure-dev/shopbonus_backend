@@ -98,7 +98,7 @@ final class LightspeedCConnector extends WebhookConnector implements CatalogRead
                 'Store API key/secret via HTTP Basic against the merchant cluster (eu1=api.webshopapp.com, us1=api.shoplightspeed.com) and shop language path.',
                 'Register HTTPS webhooks via POST /webhooks.json for orders created/updated/paid and optionally invoices/returns. App-created webhooks must send x-signature = md5(raw_body + api_secret). Merchant-direct hooks without x-signature are refused.',
                 'Order.created can arrive before payment. ShopBonus always re-reads GET /orders/{id}.json and maps paymentStatus separately. Confirmation-page tracking is not used.',
-                'Banner publication is merchant theme/script placement only; native automatic storefront publish is not implemented. Live plan/order acceptance remains unverified until a real merchant store is authorized.',
+                'Banner publication supports opt-in automatic installation through the Shop Scripts API when LIGHTSPEED_BANNERS_ENABLED is enabled and the API key can manage scripts; otherwise use merchant theme/script placement. Live storefront delivery remains unverified until observed on an authorized merchant store.',
             ],
             'live_verified' => false,
         ];

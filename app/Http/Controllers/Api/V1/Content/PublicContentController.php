@@ -14,6 +14,7 @@ use App\Models\FaqCategory;
 use App\Models\FaqItem;
 use App\Models\User;
 use App\Services\Cms\CmsCache;
+use App\Services\Cms\CmsContentBindings;
 use App\Services\Cms\CmsService;
 use App\Services\Cms\RichText;
 use App\Services\Identity\LegalConsents;
@@ -135,7 +136,7 @@ class PublicContentController extends Controller
         };
         $content['body'] = $walk($content['body']);
 
-        return $content;
+        return app(CmsContentBindings::class)->resolveMedia($content);
     }
 
     public function derivative(string $id, string $recipe, string $breakpoint): Response

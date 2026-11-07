@@ -1,5 +1,6 @@
-import os,tempfile,subprocess,pathlib,base64,json,time,urllib.request,urllib.error,shutil,signal
+import os,tempfile,subprocess,pathlib,base64,json,time,urllib.request,urllib.error,shutil,signal,sys
 root=pathlib.Path.cwd();work=pathlib.Path(tempfile.mkdtemp(prefix='shopbonus-b71-'));env=os.environ.copy()
+wix_only='--wix' in sys.argv
 for d in ['framework/cache/data','framework/sessions','framework/views','logs','app/private']:(work/'storage'/d).mkdir(parents=True,exist_ok=True)
 db=work/'capture.sqlite';db.touch();env.update({'APP_ENV':'local','APP_DEBUG':'false','APP_KEY':'base64:'+base64.b64encode(os.urandom(32)).decode(),'DB_CONNECTION':'sqlite','DB_DATABASE':str(db),'DB_URL':'','LARAVEL_STORAGE_PATH':str(work/'storage'),'CACHE_STORE':'array','SESSION_DRIVER':'array','QUEUE_CONNECTION':'sync','MAIL_MAILER':'array','BROADCAST_CONNECTION':'null','ADMIN_MFA_REQUIRED':'false','OWNER_MFA_REQUIRED':'false','OWNER_STEP_UP_REQUIRED':'false','CAPTURE_PRIVATE':str(work/'private.json')})
 seed=r'''<?php
@@ -14,6 +15,9 @@ $offer=app(App\Services\Offers\OfferService::class)->create($shop->memberships()
 $code=App\Models\VoucherCode::create(['webshop_id'=>$shop->id,'offer_id'=>$offer->id,'code'=>'SYNTHETIC-10','code_hash'=>App\Models\VoucherCode::hashFor($shop->id,'SYNTHETIC-10'),'code_last4'=>'C-10']);app(App\Services\Offers\OfferService::class)->transition($offer,App\Enums\OfferStatus::Active);$records[$platform]=['shop'=>$shop->public_id,'code'=>$code->public_id];}
 file_put_contents(getenv('CAPTURE_PRIVATE'),json_encode(['token'=>$owner->createToken('capture')->plainTextToken,'foreign_token'=>$foreign->createToken('capture')->plainTextToken,'employee_token'=>$employee->createToken('capture')->plainTextToken,'records'=>$records]));chmod(getenv('CAPTURE_PRIVATE'),0600);
 '''
+if wix_only:
+ seed=seed.replace("['shopify','bigcommerce','ecwid','lightspeed_e']", "['wix']").replace(
+  "default=>['store_id'", r"'wix'=>['instance_id'=>Tests\Support\NativeCouponFixture::WIX_INSTANCE,'site_id'=>Tests\Support\NativeCouponFixture::WIX_SITE,'access_token'=>'SYNTHETIC_wix_token','public_key'=>file_get_contents(getcwd().'/tests/fixtures/rsa_public.pem')],default=>['store_id'")
 server=None
 try:
  subprocess.run(['php','artisan','migrate','--force'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True)
@@ -22,11 +26,14 @@ try:
  for i in range(60):
   try:urllib.request.urlopen('http://127.0.0.1:8795/api/v1/health',timeout=1);break
   except Exception:time.sleep(.2)
+ if wix_only:
+  # Re-read the router on the next request with a fixed minimum-subtotal Wix coupon.
+  router.write_text(router.read_text().replace("else{$native['discountType']", "elseif($platform==='wix'){unset($native['specification']['percentOffRate']);$native['specification']['moneyOffAmount']=10;}else{$native['discountType']"))
  captures=[]
 
 
  cases=[(p,'match',data['token'],200) for p in data['records']]+[('shopify','mismatch',data['token'],200),('shopify','unknown',data['token'],200),('shopify','context_changed',data['token'],200),('shopify','foreign_workspace',data['foreign_token'],404),('shopify','no_manage_permission',data['employee_token'],403),('shopify','unauthenticated',None,401),('shopify','invalid_mode',data['token'],422)]
- for platform,label,token,expected in cases:
+ for platform,label,token,expected in cases[:1] if wix_only else cases:
   r=data['records'][platform];path='/api/v1/workspaces/'+r['shop']+'/codes/'+r['code']+'/platform-validation'
   payload={'mode':'invalid' if label=='invalid_mode' else 'provider_check'}
   headers={'Accept':'application/json','Content-Type':'application/json','X-Capture-Platform':platform,'X-Capture-Case':label}
@@ -34,10 +41,16 @@ try:
   try:response=urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8795'+path,headers=headers,method='POST',data=json.dumps(payload).encode()))
   except urllib.error.HTTPError as e:response=e
   body=json.loads(response.read());assert response.status==expected,(label,response.status,body)
+  if wix_only:assert body['data']['platform_validation']=='verified',body
   captures.append({'label':platform+'_'+label,'request':{'method':'POST','path':path,'body':payload,'headers':{'Accept':'application/json',**({'Authorization':'Bearer <token>'} if token else {})}},'response':{'status':response.status,'body':body}})
 
  out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':'52ef8c5 plus B71 working tree','environment':'Actual Laravel loopback HTTP; private temporary SQLite/key/storage. Synthetic native provider transport and public resolver fixtures are installed only in the disposable router; actual authentication, workspace permissions, lookups, comparison and persistence execute. No genuine provider, checkout acceptance or redemption proof. X-Capture headers are harness-only controls, not production API inputs.','exchanges':captures}
- (root/'docs/qa/B71_COUPON_VERIFICATION_HTTP_CAPTURE.json').write_text(json.dumps(out,indent=2)+'\n');print('Captured11 HTTP responses; isolated fixtures cleaned.')
+ if wix_only:out['baseline']='904239a plus Wix working tree'
+ name='B71_WIX_COUPON_HTTP_CAPTURE.json' if wix_only else 'B71_COUPON_VERIFICATION_HTTP_CAPTURE.json'
+ (root/'docs/qa'/name).write_text(json.dumps(out,indent=2)+'\n');print(f'Captured {len(captures)} HTTP responses.')
 finally:
- if server:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
+ if server:
+  server.terminate() if os.name=='nt' else os.killpg(server.pid,signal.SIGTERM)
+  server.wait(timeout=10)
+  log.close()
  shutil.rmtree(work)
