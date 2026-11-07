@@ -1,3 +1,10 @@
+## Publication/refund gap follow-up — 2026-11-07
+
+- [ ] Correct stale C-Series setup instructions and Dutch translation; verify localization and publisher regressions (pending commit SHA).
+- [ ] Supply authorized Ecwid/E-Series app registration and configure native storefront script delivery.
+- [ ] Establish the selected C-Series PSP read contract and map verified cash refunds.
+- [ ] Complete Squarespace merchant Code Injection and observe live storefront delivery; no reviewed automatic injection API.
+
 ## Consumer acceptance environment — 2026-11-03 (uncommitted)
 
 - [ ] Record isolated database/configuration guards and idempotent points fixtures in a tested commit.
