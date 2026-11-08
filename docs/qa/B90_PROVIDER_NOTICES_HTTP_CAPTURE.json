@@ -1,0 +1,1267 @@
+{
+  "captured_at": "2026-11-07T20:59:58Z",
+  "baseline": "06d43d9 plus B90 working tree",
+  "environment": "Actual Laravel loopback HTTP; isolated temporary SQLite/storage/key. Synthetic merchant records, actual API authentication/authorization/validation/connector creation. No native provider requests or genuine provider acceptance. One-time generated signing secret is redacted. Provider native notices are localized; no provider writes or storefront delivery.",
+  "exchanges": [
+    {
+      "label": "prestashop_create",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections",
+        "body": {
+          "platform": "prestashop"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6vwz5swymnjjgh04pqdd584",
+            "platform": "prestashop",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:57+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/prestashop/1vwQhkmqBv3CohJwovh9sZwuwIn8ZUdBTCN0Kx11",
+              "steps": [
+                "PrestaShop 9 candidate package: http://127.0.0.1:8797/downloads/integrations/shopbonus-prestashop9.zip. Upload in Module Manager, select one shop, configure the webhook and signing secret, and schedule the bundled CLI worker every minute. Configure the backend native Webservice credentials before delivery.",
+                "Vul de webhook-URL in en het ondertekeningsgeheim dat \u00e9\u00e9n keer werd getoond toen de koppeling werd aangemaakt (of na het vernieuwen).",
+                "Plaats een echte testbestelling. De koppeling blijft Beperkt totdat alle zeven verificatiecontroles van de provider slagen."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "PrestaShop9 Webservice JSON",
+              "native_read_configured": false,
+              "native_notice": "Configureer de exacte multistore-winkel-ID, HTTPS-installatie-URL, beperkte Webservice-sleutel voor GET en winkeltijdzone. Modulemeldingen starten geauthenticeerde native leesacties. Creditnota\u2019s zijn creditdocumenten, geen bevestigde geldterugbetalingen. Zonder afwikkelingsbewijs blijven native terugbetalingen ongekwalificeerd. Installatie en werking in de winkel zijn nog niet geverifieerd."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Terugbetaalde bedragen worden niet gekoppeld: order_slip waargenomen maar geen afgerekend geld; Onbekend bij alleen een creditnota",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Categoriesynchronisatie gebeurt naar beste vermogen waar die samen met producten is ge\u00efmplementeerd.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Kortingscodes aanmaken valt buiten deze afbakening.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Kandidaat-ZIP voor PrestaShop 9 met native footer-hook beschikbaar; acceptatie in thema en editor niet geverifieerd",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            },
+            "secrets": {
+              "signing_secret": "<ONE_TIME_SIGNING_SECRET>"
+            },
+            "secrets_notice": "Wordt maar \u00e9\u00e9n keer getoond. Sla het nu op in je winkelinstellingen; het kan later niet opnieuw worden opgehaald."
+          }
+        }
+      }
+    },
+    {
+      "label": "prestashop_nl",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections/01m6vwz5swymnjjgh04pqdd584",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vwz5swymnjjgh04pqdd584",
+            "platform": "prestashop",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:57+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/prestashop/1vwQhkmqBv3CohJwovh9sZwuwIn8ZUdBTCN0Kx11",
+              "steps": [
+                "PrestaShop 9 candidate package: http://127.0.0.1:8797/downloads/integrations/shopbonus-prestashop9.zip. Upload in Module Manager, select one shop, configure the webhook and signing secret, and schedule the bundled CLI worker every minute. Configure the backend native Webservice credentials before delivery.",
+                "Vul de webhook-URL in en het ondertekeningsgeheim dat \u00e9\u00e9n keer werd getoond toen de koppeling werd aangemaakt (of na het vernieuwen).",
+                "Plaats een echte testbestelling. De koppeling blijft Beperkt totdat alle zeven verificatiecontroles van de provider slagen."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "PrestaShop9 Webservice JSON",
+              "native_read_configured": false,
+              "native_notice": "Configureer de exacte multistore-winkel-ID, HTTPS-installatie-URL, beperkte Webservice-sleutel voor GET en winkeltijdzone. Modulemeldingen starten geauthenticeerde native leesacties. Creditnota\u2019s zijn creditdocumenten, geen bevestigde geldterugbetalingen. Zonder afwikkelingsbewijs blijven native terugbetalingen ongekwalificeerd. Installatie en werking in de winkel zijn nog niet geverifieerd."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Terugbetaalde bedragen worden niet gekoppeld: order_slip waargenomen maar geen afgerekend geld; Onbekend bij alleen een creditnota",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Categoriesynchronisatie gebeurt naar beste vermogen waar die samen met producten is ge\u00efmplementeerd.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Kortingscodes aanmaken valt buiten deze afbakening.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Kandidaat-ZIP voor PrestaShop 9 met native footer-hook beschikbaar; acceptatie in thema en editor niet geverifieerd",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "prestashop_en",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections/01m6vwz5swymnjjgh04pqdd584",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vwz5swymnjjgh04pqdd584",
+            "platform": "prestashop",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:57+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/prestashop/1vwQhkmqBv3CohJwovh9sZwuwIn8ZUdBTCN0Kx11",
+              "steps": [
+                "PrestaShop 9 candidate package: http://127.0.0.1:8797/downloads/integrations/shopbonus-prestashop9.zip. Upload in Module Manager, select one shop, configure the webhook and signing secret, and schedule the bundled CLI worker every minute. Configure the backend native Webservice credentials before delivery.",
+                "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
+                "Place a real test order. The connection remains Limited until all seven provider verification checks pass."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "PrestaShop9 Webservice JSON",
+              "native_read_configured": false,
+              "native_notice": "Configure exact multistore shop ID, HTTPS installation URL, restricted GET Webservice key and store timezone. Module notifications trigger authenticated native reads. Credit slips are credit documents, not confirmed cash refunds. Native refund qualification remains unavailable without settlement evidence. Installation and storefront acceptance remain unverified."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Refund amounts are not mapped: order_slip observed but not settled-cash; Unknown when slip-only",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Category sync is best-effort where implemented with products.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Coupon writes are out of scope for this boundary.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Candidate PrestaShop 9 ZIP with native footer display hook shipped; theme/editor acceptance unverified",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://devdocs.prestashop-project.org/9/modules/introduction/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_create",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections",
+        "body": {
+          "platform": "shopware6"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6vwz605y98bjw4pzj074s9t",
+            "platform": "shopware6",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:57+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/shopware6/VKKg1GFFq61mJjh8qZ9WvBvjAtcKzvflnvEUAHCs",
+              "steps": [
+                "Er is een compatibele module aan de kant van de merchant nodig; zie de installatie-instructies van dit platform.",
+                "Vul de webhook-URL in en het ondertekeningsgeheim dat \u00e9\u00e9n keer werd getoond toen de koppeling werd aangemaakt (of na het vernieuwen).",
+                "Plaats een echte testbestelling. De koppeling blijft Beperkt totdat alle zeven verificatiecontroles van de provider slagen."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "Shopware6 Admin API",
+              "native_read_configured": false,
+              "native_notice": "Beperkte integratiegegevens maken vaste leesacties via de Admin API mogelijk. Geef leestoestemming voor order, order_line_item, order_customer, order_address, currency, order_transaction, state_machine_history en sales_channel_domain. Appregistratie, native app-webhooks en CMS-publicatie staan los van de bestaande ondertekende Shopbonus-modulebrug. Bij gedeeltelijke of terugbetaalde statussen ontbreekt exact afwikkelingsbewijs; deze blijven ongekwalificeerd."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Terugbetaalde bedragen worden niet gekoppeld: Het koppelen van (gedeeltelijk) terugbetaald geld is onvolledig zonder geschiedenisbewijs",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Categoriesynchronisatie gebeurt naar beste vermogen waar die samen met producten is ge\u00efmplementeerd.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Kortingscodes aanmaken valt buiten deze afbakening.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Shopware CMS- of app-extensie; native webhooks uit het app-manifest, niet de Shopbonus HMAC-brug",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            },
+            "secrets": {
+              "signing_secret": "<ONE_TIME_SIGNING_SECRET>"
+            },
+            "secrets_notice": "Wordt maar \u00e9\u00e9n keer getoond. Sla het nu op in je winkelinstellingen; het kan later niet opnieuw worden opgehaald."
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_nl",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections/01m6vwz605y98bjw4pzj074s9t",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vwz605y98bjw4pzj074s9t",
+            "platform": "shopware6",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:57+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/shopware6/VKKg1GFFq61mJjh8qZ9WvBvjAtcKzvflnvEUAHCs",
+              "steps": [
+                "Er is een compatibele module aan de kant van de merchant nodig; zie de installatie-instructies van dit platform.",
+                "Vul de webhook-URL in en het ondertekeningsgeheim dat \u00e9\u00e9n keer werd getoond toen de koppeling werd aangemaakt (of na het vernieuwen).",
+                "Plaats een echte testbestelling. De koppeling blijft Beperkt totdat alle zeven verificatiecontroles van de provider slagen."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "Shopware6 Admin API",
+              "native_read_configured": false,
+              "native_notice": "Beperkte integratiegegevens maken vaste leesacties via de Admin API mogelijk. Geef leestoestemming voor order, order_line_item, order_customer, order_address, currency, order_transaction, state_machine_history en sales_channel_domain. Appregistratie, native app-webhooks en CMS-publicatie staan los van de bestaande ondertekende Shopbonus-modulebrug. Bij gedeeltelijke of terugbetaalde statussen ontbreekt exact afwikkelingsbewijs; deze blijven ongekwalificeerd."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Terugbetaalde bedragen worden niet gekoppeld: Het koppelen van (gedeeltelijk) terugbetaald geld is onvolledig zonder geschiedenisbewijs",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Categoriesynchronisatie gebeurt naar beste vermogen waar die samen met producten is ge\u00efmplementeerd.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Kortingscodes aanmaken valt buiten deze afbakening.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Shopware CMS- of app-extensie; native webhooks uit het app-manifest, niet de Shopbonus HMAC-brug",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_en",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections/01m6vwz605y98bjw4pzj074s9t",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vwz605y98bjw4pzj074s9t",
+            "platform": "shopware6",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:57+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/shopware6/VKKg1GFFq61mJjh8qZ9WvBvjAtcKzvflnvEUAHCs",
+              "steps": [
+                "A compatible merchant-side module is required; see this platform\u2019s installation instructions.",
+                "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
+                "Place a real test order. The connection remains Limited until all seven provider verification checks pass."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "Shopware6 Admin API",
+              "native_read_configured": false,
+              "native_notice": "Restricted integration client credentials enable fixed Admin API reads. Declare order, order_line_item, order_customer, order_address, currency, order_transaction, state_machine_history and sales_channel_domain read permissions. App registration/native app webhooks and CMS publication are separate from the existing Shopbonus signed module bridge. Partial/refunded states lack exact settled-refund evidence and stay unqualified."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Refund amounts are not mapped: Partial/refund cash mapping incomplete without history evidence",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Category sync is best-effort where implemented with products.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Coupon writes are out of scope for this boundary.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Shopware CMS/app extension; native app manifest webhooks not the Shopbonus HMAC bridge",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.shopware.com/docs/guides/plugins/apps/app-base-guide.html",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "magento_create",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections",
+        "body": {
+          "platform": "magento"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "data": {
+            "id": "01m6vwz65g88af2vah2xjh9as4",
+            "platform": "magento",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:58+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/dQ15UiLe0XFzyaGJVIqTUZpNQpqZEGnPTXhqYoCl",
+              "steps": [
+                "Er is een compatibele module aan de kant van de merchant nodig; zie de installatie-instructies van dit platform.",
+                "Vul de webhook-URL in en het ondertekeningsgeheim dat \u00e9\u00e9n keer werd getoond toen de koppeling werd aangemaakt (of na het vernieuwen).",
+                "Plaats een echte testbestelling. De koppeling blijft Beperkt totdat alle zeven verificatiecontroles van de provider slagen."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "Magento/Adobe Commerce2.4 self-hosted/PaaS REST",
+              "native_read_configured": false,
+              "native_notice": "Configureer beperkte native REST-toegangsgegevens en de exact geverifieerde winkel-ID/code. Kandidaat voor een asynchrone module: http://127.0.0.1:8797/downloads/integrations/shopbonus-magento2-async.zip. Alleen een lokale outbox bij het vastleggen; configureer versleutelde ondertekeningsinstellingen per winkel en cron. Acceptatie van native installatie, bestellingen, terugbetalingen en opruiming is NIET UITGEVOERD."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Categoriesynchronisatie gebeurt naar beste vermogen waar die samen met producten is ge\u00efmplementeerd.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Kortingscodes aanmaken valt buiten deze afbakening.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Goedgekeurde Commerce-module of winkelcomponent; afhankelijk van de architectuur",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            },
+            "secrets": {
+              "signing_secret": "<ONE_TIME_SIGNING_SECRET>"
+            },
+            "secrets_notice": "Wordt maar \u00e9\u00e9n keer getoond. Sla het nu op in je winkelinstellingen; het kan later niet opnieuw worden opgehaald."
+          }
+        }
+      }
+    },
+    {
+      "label": "magento_nl",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections/01m6vwz65g88af2vah2xjh9as4",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "nl",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vwz65g88af2vah2xjh9as4",
+            "platform": "magento",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:58+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/dQ15UiLe0XFzyaGJVIqTUZpNQpqZEGnPTXhqYoCl",
+              "steps": [
+                "Er is een compatibele module aan de kant van de merchant nodig; zie de installatie-instructies van dit platform.",
+                "Vul de webhook-URL in en het ondertekeningsgeheim dat \u00e9\u00e9n keer werd getoond toen de koppeling werd aangemaakt (of na het vernieuwen).",
+                "Plaats een echte testbestelling. De koppeling blijft Beperkt totdat alle zeven verificatiecontroles van de provider slagen."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "Magento/Adobe Commerce2.4 self-hosted/PaaS REST",
+              "native_read_configured": false,
+              "native_notice": "Configureer beperkte native REST-toegangsgegevens en de exact geverifieerde winkel-ID/code. Kandidaat voor een asynchrone module: http://127.0.0.1:8797/downloads/integrations/shopbonus-magento2-async.zip. Alleen een lokale outbox bij het vastleggen; configureer versleutelde ondertekeningsinstellingen per winkel en cron. Acceptatie van native installatie, bestellingen, terugbetalingen en opruiming is NIET UITGEVOERD."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Categoriesynchronisatie gebeurt naar beste vermogen waar die samen met producten is ge\u00efmplementeerd.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Kortingscodes aanmaken valt buiten deze afbakening.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Goedgekeurde Commerce-module of winkelcomponent; afhankelijk van de architectuur",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "Geen waarneming voor deze functie met de huidige gegevens.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "magento_en",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/workspaces/01m6vwz4bk9jk0v4ng9knsppqz/connections/01m6vwz65g88af2vah2xjh9as4",
+        "body": null,
+        "headers": {
+          "Accept": "application/json",
+          "Accept-Language": "en",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vwz65g88af2vah2xjh9as4",
+            "platform": "magento",
+            "method": "private_module",
+            "status": "setup_required",
+            "paused_at": null,
+            "external_shop_ref": null,
+            "limitations": [],
+            "last_event_at": null,
+            "last_verified_order_at": null,
+            "connected_at": null,
+            "disconnected_at": null,
+            "last_error": null,
+            "created_at": "2026-11-07T20:59:58+00:00",
+            "setup": {
+              "format": "shopbonus-webhook-v1",
+              "webhook_url": "http://localhost:8000/api/v1/webhooks/magento/dQ15UiLe0XFzyaGJVIqTUZpNQpqZEGnPTXhqYoCl",
+              "steps": [
+                "A compatible merchant-side module is required; see this platform\u2019s installation instructions.",
+                "Enter the webhook URL and the signing secret shown once when the connection was created (or after rotating it).",
+                "Place a real test order. The connection remains Limited until all seven provider verification checks pass."
+              ],
+              "documentation": "docs/api/README.md#shopbonus-webhook-format-v1",
+              "native_version": "Magento/Adobe Commerce2.4 self-hosted/PaaS REST",
+              "native_read_configured": false,
+              "native_notice": "Configure restricted native REST credentials and exact verified store ID/code. Candidate asynchronous module: http://127.0.0.1:8797/downloads/integrations/shopbonus-magento2-async.zip. Commit-time local outbox only; configure encrypted per-store signing settings and cron. Native installation/order/refund/cleanup acceptance NOT RUN."
+            },
+            "capabilities": {
+              "orders": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "payments": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "refunds": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "products": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "categories": {
+                "reason": "Category sync is best-effort where implemented with products.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_read": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "coupons_write": {
+                "reason": "Coupon writes are out of scope for this boundary.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "capability_unsupported",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "UNSUPPORTED"
+              },
+              "banner_embed": {
+                "reason": "Approved Commerce module/storefront component; architecture-dependent",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "webhooks": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              },
+              "backfill": {
+                "reason": "No feature-specific observation with the current credentials.",
+                "last_verified_at": null,
+                "evidence_id": null,
+                "source_url": "https://developer.adobe.com/commerce/extensibility/events/",
+                "error_code": "feature_evidence_missing",
+                "evidence_scope": "no_current_feature_observation",
+                "state": "LIMITED"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

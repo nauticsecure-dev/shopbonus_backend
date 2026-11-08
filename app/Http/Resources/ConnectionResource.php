@@ -73,6 +73,9 @@ class ConnectionResource extends JsonResource
             if (is_array($data['setup']['steps'] ?? null)) {
                 $data['setup']['steps'] = array_map(fn ($step) => is_string($step) ? __($step) : $step, $data['setup']['steps']);
             }
+            if (is_string($data['setup']['native_notice'] ?? null)) {
+                $data['setup']['native_notice'] = __($data['setup']['native_notice']);
+            }
             $data['capabilities'] = app(CapabilityMatrix::class)->forConnection($c);
         }
 

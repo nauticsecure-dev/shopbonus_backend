@@ -47,11 +47,14 @@ return [
 
     'wix_app' => ['enabled' => (bool) env('WIX_APP_ENABLED', false), 'app_id' => env('WIX_APP_ID', ''), 'app_secret' => env('WIX_APP_SECRET', '')],
 
+    // Separate deployment gate; OAuth defaults remain read-only.
+    'shopify_coupon_writes_enabled' => env('SHOPIFY_COUPON_WRITES_ENABLED', false),
+
     'shopify_oauth' => [
         'enabled' => (bool) env('SHOPIFY_OAUTH_ENABLED', false),
         'client_id' => env('SHOPIFY_CLIENT_ID', ''),
         'client_secret' => env('SHOPIFY_CLIENT_SECRET', ''),
-        'scopes' => ['read_orders', 'read_products'],
+        'scopes' => env('SHOPIFY_COUPON_WRITES_ENABLED', false) ? ['read_orders', 'read_products', 'write_discounts'] : ['read_orders', 'read_products'],
     ],
 
     'webhook_retention_days' => (int) env('WEBHOOK_PAYLOAD_RETENTION_DAYS', 14),
@@ -92,10 +95,10 @@ return [
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
                 'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. optional disabled-by-default browser OAuth and expiring offline token renewal implemented',
-                'scopes' => ['read_orders', 'read_products (catalog only)', 'read_discounts (optional coupon reads; not requested by default OAuth)'],
+                'scopes' => ['read_orders', 'read_products (catalog only)', 'read_discounts (optional coupon reads; not requested by default OAuth)', 'write_discounts (explicit deployment gate and reauthorization only)'],
                 'order_api' => 'POST /admin/api/2026-10/graphql.json: order/orders queries',
                 'refund_api' => 'Order.totalRefundedSet and successful REFUND transactions; no refund mutation',
-                'product_api' => 'products query; bounded core catalog metadata only', 'coupon_api' => 'discountNodes query with read_discounts: single-code basic and free-shipping discounts only; BXGY/app/bulk codes skipped; no writes',
+                'product_api' => 'products query; bounded core catalog metadata only', 'coupon_api' => 'discountNodes query with read_discounts: single-code basic and free-shipping discounts only; BXGY/app/bulk codes skipped; opt-in operator basic single-use create/repair/deactivate with exact readback, disabled by default',
                 'rate_limit_policy' => 'Pinned version,8second/1MiB reads,25orders/page,max5pages; no retries, HTTP200GraphQLerrors checked; throttling pauses reads.',
                 'webhook_topics' => ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'refunds/create', 'app/uninstalled'],
                 'banner_method' => 'Theme App Extension source shipped at /downloads/integrations/shopbonus-shopify-theme-source.zip; authorized app deployment, merchant activation and live acceptance required',

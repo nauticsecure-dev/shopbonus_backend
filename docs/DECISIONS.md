@@ -302,8 +302,12 @@ Agent reversible implementation within owner-delegated backend-only CMS scope. R
 
 ### D-109 — Shopify coupon writes: opt-in per offer (owner, 2026-11-05)
 
-Owner chose opt-in, per-offer Shopify discount-code creation. Off by default; when a merchant enables it for an offer, ShopBonus creates single-use Shopify discount codes matching the offer terms, verifies them by reading back, and can deactivate them. Requires the Shopify app to request `write_discounts` and merchants to re-authorize. Not implemented yet (queued after OpenCart native reads).
+Owner chose opt-in, per-offer Shopify discount-code creation. Off by default; when a merchant enables it for an offer, ShopBonus creates single-use Shopify discount codes matching the offer terms, verifies them by reading back, and can deactivate them. Requires the Shopify app to request `write_discounts` and merchants to re-authorize. Implemented locally by B91 as a default-off authorized operator workflow; see `docs/integrations/SHOPIFY_COUPON_WRITES.md`. Merchant generation HTTP/UI and genuine provider acceptance remain outside this checkpoint. OpenCart live reads were subsequently excluded by the owner’s D-110 reconfirmation.
 
 ### D-110 — OpenCart products/coupons via worker-pushed signed snapshots (owner, 2026-11-05)
 
 OpenCart has no core product/coupon API. Owner chose that the ShopBonus extension's existing CLI worker pushes signed snapshot pages (same webhook token/HMAC, topic `catalog.snapshot`, path `/catalog`) rather than adding a read endpoint on merchant shops. Nothing new is exposed on the shop; data is as fresh as the worker schedule (six hours).
+
+### OpenCart D-110 reconfirmation — 2026-11-07
+
+Owner explicitly chose “Keep the approved signed-snapshot architecture.” Live catalogue pull endpoints on merchant shops remain excluded. Signed worker snapshots remain the supported product/coupon synchronization path; six-hour freshness is not live API evidence.

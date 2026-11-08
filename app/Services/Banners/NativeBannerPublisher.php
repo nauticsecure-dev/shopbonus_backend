@@ -30,7 +30,7 @@ class NativeBannerPublisher
     /** @return array<string,mixed> */
     public function readiness(EcommercePlatform $platform): array
     {
-        return match ($platform) {
+        $readiness = match ($platform) {
             EcommercePlatform::BigCommerce => ['state' => 'implemented_opt_in', 'automatic_publication' => true, 'requires' => ['Content modify scope', 'single verified store', 'existing reviewed theme region', 'live funded campaign', 'HTTPS ShopBonus origin'], 'delivery' => 'not_observed'],
             EcommercePlatform::LightspeedC => ['state' => 'implemented_opt_in', 'automatic_publication' => true, 'requires' => ['LIGHTSPEED_BANNERS_ENABLED', 'API key allowed to manage shop scripts', 'verified shop identity and owned domain', 'live funded campaign', 'HTTPS ShopBonus origin'],
                 'delivery' => 'not_observed', 'method' => 'one owned Shop Script (POST /shop/scripts.json) loading /embed/v1.js', 'source' => 'https://developers.lightspeedhq.com/ecom/endpoints/shopscript/'],
@@ -38,6 +38,16 @@ class NativeBannerPublisher
             EcommercePlatform::Squarespace => ['state' => 'manual_installation_required', 'automatic_publication' => false, 'reason' => 'Orders/Commerce credentials do not establish code-injection authority; merchant Code Injection setup is required.', 'source' => 'https://support.squarespace.com/hc/en-us/articles/205815908-Customize-parts-of-your-site-with-code-injection'],
             default => ['state' => 'unsupported', 'automatic_publication' => false, 'reason' => 'No reviewed native publisher in this boundary.'],
         };
+        foreach (['reason', 'method'] as $field) {
+            if (isset($readiness[$field])) {
+                $readiness[$field] = __($readiness[$field]);
+            }
+        }
+        if (isset($readiness['requires'])) {
+            $readiness['requires'] = array_map(fn ($requirement) => __($requirement), $readiness['requires']);
+        }
+
+        return $readiness;
     }
 
     /** @param array<string,mixed> $target
