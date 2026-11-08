@@ -1798,3 +1798,17 @@ B87 implementing merge SHA `e14a603`; validation above covers conflict resolutio
 B88 local validation: Composer audit0 advisories/abandoned, strict validate PASS, focused31/8881 and lock-delta/diff checks PASS. Failed CI41968973988 was audit-only; new CI remains pending until push.
 
 B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; external follow-up CI pending push.
+
+### B89 — Correlated support connectivity receipts (2026-11-07)
+
+- [x] Separate public browser probe IDs from event-only receipt challenges; enforce current-admin ownership, freshness, configuration binding and atomic single use without leaking the challenge through HTTP.
+- [x] Bind worker completion to the latest dispatched nonce/time, exact queue connection/name/configuration and actual queued-job context; reject stale/out-of-order/manual completions.
+- [x] Keep browser observations per requesting administrator and scope receipt claims accurately; supersede older probes and invalidate changed configuration.
+- [x] Execute focused negative tests plus an isolated real HTTP/Reverb/database-worker synthetic client journey; explicitly retain production-browser/frontend/staging limitations.
+- [x] Capture changed API examples from the real server; update OpenAPI/runbook/checkpoint docs and record tests/SHA.
+
+B89 tested source: focused20/8920, scoped style/static/whitespace PASS; real isolated HTTP/Reverb/worker protocol PASS with21 HTTP exchanges. Checkmarks certify backend/protocol implementation only, not the missing frontend listener or actual browser/staging delivery. Implementing SHA follows closeout.
+
+B89 implementing SHA `e434296`; focused20/8920 and scoped static/style/diff PASS; actualHTTP/Reverb/worker21-exchange journey PASS. Frontend listener and browser/staging acceptance remain open.
+
+B89 integrated main06d43d9: preserved all checkpoint/NL histories and approved source bytes; focused20/8964 and refreshed21-exchange real protocol journey PASS. Runtime inventory495/496. Frontend/browser/staging acceptance remains open.

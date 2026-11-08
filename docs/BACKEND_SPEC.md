@@ -1,3 +1,5 @@
+B89: [Correlated support connectivity receipts](support/CONNECTIVITY_RECEIPTS.md) separate HTTP probe IDs from event-only challenges, bind actual worker completions to latest nonce/queue/backend configuration and isolate each administrator's receipt evidence. Real local HTTP/Reverb/worker protocol is exercised with a synthetic client; frontend/browser/staging acceptance remains separate.
+
 B86: [Reviewed backend QA execution planning](qa/B86_BACKEND_DISPOSITION.md) enforces exact executable case versions/assertion minima, persistent discovered impacts and report-to-plan reconciliation. Supplied opt-in reusable deployment workflow preserves independent release gates; missing original175/provider/staging/frontend proof remains blocked.
 
 B83: [Central FAQ/media/reusable-text management](cms/CENTRAL_MANAGEMENT.md) adds taxonomy revisions, soft media lifecycle/selected-draft replacement and immutable exact-locale shared-block snapshots with safe overrides/mount/detach and bounded source-aware usages. Public rich-text remains compatible; frontend/staging/universal discovery acceptance is separate.
