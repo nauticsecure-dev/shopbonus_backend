@@ -514,3 +514,34 @@ test('PrestaShop and Magento native notifications refetch their session source',
     assert.equal(h.requests.filter(r => r.url.startsWith('https://shop.test/')).length, 3);
   }
 });
+
+test('Adobe storefront drop-in bridge: exact pushed totals, no fetch, fail-closed on malformed/null carts', () => {
+  const listeners = {};
+  const { s, calls } = adapterSandbox(nativeSource, { 'data-platform': 'adobe-storefront' }, {
+    addEventListener(type, fn) { listeners[type] = fn; },
+  });
+  const cart = s.ShopBonusCart;
+  assert.ok(cart);
+  assert.equal(cart.getSnapshot(), null);
+  const push = (detail) => listeners['shopbonus:adobe-cart-data']({ detail });
+  push({ total: { includingTax: { value: 38.5, currency: 'EUR' } } });
+  assert.deepEqual([cart.getSnapshot().total_minor, cart.getSnapshot().currency], [3850, 'EUR']);
+  push({ total: { includingTax: { value: 12, currency: 'USD' } } });
+  assert.deepEqual([cart.getSnapshot().total_minor, cart.getSnapshot().currency], [1200, 'USD']);
+  for (const bad of [null, {}, { total: { includingTax: { value: 1.005, currency: 'EUR' } } },
+    { total: { includingTax: { value: '10', currency: 'EUR' } } }, { total: { includingTax: { value: -1, currency: 'EUR' } } },
+    { total: { includingTax: { value: 10, currency: 'JPY' } } }, { total: { excludingTax: { value: 10, currency: 'EUR' } } }]) {
+    push({ total: { includingTax: { value: 5, currency: 'EUR' } } });
+    assert.equal(cart.getSnapshot().total_minor, 500);
+    push(bad);
+    assert.equal(cart.getSnapshot(), null, JSON.stringify(bad));
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('Adobe storefront bridge stays off checkout/account pages', () => {
+  for (const pathname of ['/checkout', '/customer/account', '/order-received/1']) {
+    const { s } = adapterSandbox(nativeSource, { 'data-platform': 'adobe-storefront' }, { location: { origin: 'https://shop.test', pathname } });
+    assert.equal(s.ShopBonusCart, undefined);
+  }
+});

@@ -1,3 +1,7 @@
+## B94 — Adobe Commerce SaaS/headless storefront cart reader — 2026-11-08
+
+Branch `frank/native-cart-saas-adapters` (from `frank/native-cart-upgrades`). `public/embed/native-cart-v1.js` adds `data-platform="adobe-storefront"`: a no-fetch adapter fed by a merchant bridge that forwards the documented drop-in `cart/data` (`CartModel|null`) event; reads `total.includingTax {value,currency}` with exact decimal conversion and fail-closed validation. Executed: Node embed lifecycle 50 PASS (2 new), MerchantPackageTest 7 PASS (archives do not bundle the reader). Full suite NOT RUN (by request). Live drop-in/storefront acceptance NOT RUN. Ecwid/Lightspeed E, Lightspeed C and Squarespace remain OPEN: no documented unit/ISO currency/session source, so none was invented. Details: `docs/banners/NATIVE_CART_ADAPTERS.md#b94`. Next: verify `Price` shape on a real Adobe storefront; obtain vendor-confirmed contracts for the remaining three before implementing.
+
 ## Main synchronization — 2026-11-08
 
 User authorized direct synchronization to main. Local coupon implementation committed as `e633c0c`; merged existing `origin/main` history without rewriting commits. Preserved both documentation/translation additions, corrected a missing JSON comma from remote translations, and rebuilt all integration archives/manifest from merged sources. Backend branch `main`; final merge SHA is the commit containing this checkpoint. No migrations, deployment or provider activation performed.

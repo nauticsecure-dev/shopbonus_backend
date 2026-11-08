@@ -1875,3 +1875,10 @@ B92 implementing SHA `3180453`.
 B93 validation: combined package/publisher24 PASS / 731 assertions, including Node48 PASS via PHPUnit and four isolated native-framework contract fixtures; PHP syntax18 files and Magento XML well-formedness PASS; Pint/whitespace PASS. Actual native installation/DI/storefront/provider/staging acceptance NOT RUN. No Laravel migration or API route change. Source SHA follows closeout.
 
 B93 implementing SHA `3cc0ef7`; B92 implementing SHA `3180453`. Local tests passed; CI/native deployed acceptance remain pending as recorded.
+
+### B94 — Adobe storefront drop-in cart reader (2026-11-08)
+
+- [x] Add `adobe-storefront` reader branch fed by documented `cart/data` event bridge; exact `total.includingTax` conversion, fail closed.
+- [x] Focused Node tests for conversion, rejection, no-fetch and sensitive-page exclusion; document bridge snippet and limits.
+- [ ] Live Adobe storefront acceptance (NOT RUN).
+- [ ] Ecwid/Lightspeed E, Lightspeed C, Squarespace readers — blocked on missing documented unit/currency/session contracts.
