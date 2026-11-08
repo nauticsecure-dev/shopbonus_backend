@@ -19,10 +19,18 @@ class ProbeSupportWorker implements ShouldQueue
 
     public int $timeout = 10;
 
-    public function __construct(public readonly string $nonce, public readonly float $dispatchedAt) {}
+    // A class default also initializes this field when an older queued payload is unserialized.
+    public string $configuration = '';
+
+    public function __construct(public readonly string $nonce, public readonly float $dispatchedAt, string $configuration = '')
+    {
+        $this->configuration = $configuration;
+    }
 
     public function handle(SupportConnectivity $connectivity): void
     {
-        $connectivity->workerProcessed($this->nonce, $this->dispatchedAt);
+        if ($this->job !== null) {
+            $connectivity->workerProcessed($this->nonce, $this->dispatchedAt, $this->configuration, $this->job->getConnectionName(), $this->job->getQueue());
+        }
     }
 }

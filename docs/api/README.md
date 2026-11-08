@@ -25947,6 +25947,23 @@ Lightspeed C catalog follow-up (2026-11-03): product reads now use bounded nativ
 
 Example request: `curl -i http://localhost:<PORT>/api/v1/admin/ai/operations -H 'Accept: application/json' -H 'Authorization: Bearer <SYNTHETIC_TOKEN>'`. Actual response examples (200/401/403/422) are in [SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json](SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json), captured from a running loopback server with isolated synthetic SQLite at HassanDev9546163 plus this uncommitted change; the200example is also in OpenAPI. Broadcaster was disabled for that capture, accurately returning not_configured. Actual local Reverb delivery/invalid-credentials/recovery observations are separately captured in [SUPPORT_REVERB_LOCAL_PROBE.json](SUPPORT_REVERB_LOCAL_PROBE.json). See [runbook, executed checks and limits](../SUPPORT_SETTINGS_CONNECTIVITY_REVIEW_2026-11-04.md); deployed TLS/browser/queue/provider acceptance remains NOT RUN.
 
+## B89 — Correlated support connectivity receipts
+
+Security correction: `POST /api/v1/admin/ai/connectivity/browser-probe` no longer returns the acknowledgement nonce. It returns public `probe_id`, channel, event and60second lifetime. Authenticate/subscribe to the own private notifications channel first. The `support.connectivity.browser_probe` event alone supplies `{probe_id, nonce}`.
+
+`POST /api/v1/admin/ai/connectivity/browser-probe/{nonce}/ack` retains its legacy path spelling, but that path value is the **public probe_id**. The required JSON body carries `nonce` from the private event. Old clients that echoed the HTTP nonce must update; preserving that behavior would preserve the receipt bypass.
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/ai/connectivity/browser-probe" -H "Accept: application/json" -H "Authorization: Bearer <SYNTHETIC_TOKEN>" -H "Content-Type: application/json" --data '{}'
+curl -i -X POST "http://localhost:8000/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack" -H "Accept: application/json" -H "Authorization: Bearer <SYNTHETIC_TOKEN>" -H "Content-Type: application/json" --data '{"nonce": "1cc370243c8f152a3ce6f23eba989fd5"}'
+```
+
+Actual201/200 responses: `browser_start` and `event_receipt_ack` in [21 actual HTTP exchanges](../qa/B89_SUPPORT_RECEIPTS_HTTP_CAPTURE.json), reproduced with `python3 scripts/verify-support-receipts.py`. Includes missing challenge422, HTTP-only/foreign/replay404,401/403, concurrent operation409, stopped-broker503 and limiter429. No response body is invented. Both mutations are private/no-store.
+
+GET `/api/v1/admin/ai/operations` reports browser evidence only for the requesting administrator, invalidating changed Reverb configuration and superseded probes. Worker evidence requires the latest nonce, dispatch timestamp, exact connection/queue/configuration and actual queued-job context; a manual handle call or old completion cannot establish readiness.
+
+The isolated harness runs a real database queue worker and authenticated Node WebSocket client with actual Reverb events. It does not implement the frontend listener or prove browser-engine/cookie-CSRF/staging/deployed coverage. See [protocol, atomicity and deployment limits](../support/CONNECTIVITY_RECEIPTS.md).
+
 ## B90 — Provider notice localization
 
 POST `/api/v1/workspaces/{workspace}/connections` and GET `/api/v1/workspaces/{workspace}/connections/{connection}` now translate `setup.native_notice` for NL/EN, including the Adobe module URL via a placeholder. Actual examples: `prestashop_create`, `prestashop_nl/en`, `shopware6_nl/en`, `magento_nl/en` in [9 actual HTTP exchanges](../qa/B90_PROVIDER_NOTICES_HTTP_CAPTURE.json). Reproduce: `python3 scripts/capture-provider-notices.py`. Requests use Bearer `<token>` and `Accept-Language: nl` or `en`; source captures contain exact request bodies and real responses. No credentials/provider writes or live acceptance. Native publisher CLI readiness translates human reasons/requirements/method text while retaining machine states and source URLs.
