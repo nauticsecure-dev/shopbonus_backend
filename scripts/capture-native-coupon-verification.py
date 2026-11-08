@@ -1,6 +1,9 @@
 import os,tempfile,subprocess,pathlib,base64,json,time,urllib.request,urllib.error,shutil,signal,sys
 root=pathlib.Path.cwd();work=pathlib.Path(tempfile.mkdtemp(prefix='shopbonus-b71-'));env=os.environ.copy()
 wix_only='--wix' in sys.argv
+additional='--additional' in sys.argv
+remaining='--remaining' in sys.argv
+assert sum([wix_only, additional, remaining]) <= 1
 for d in ['framework/cache/data','framework/sessions','framework/views','logs','app/private']:(work/'storage'/d).mkdir(parents=True,exist_ok=True)
 db=work/'capture.sqlite';db.touch();env.update({'APP_ENV':'local','APP_DEBUG':'false','APP_KEY':'base64:'+base64.b64encode(os.urandom(32)).decode(),'DB_CONNECTION':'sqlite','DB_DATABASE':str(db),'DB_URL':'','LARAVEL_STORAGE_PATH':str(work/'storage'),'CACHE_STORE':'array','SESSION_DRIVER':'array','QUEUE_CONNECTION':'sync','MAIL_MAILER':'array','BROADCAST_CONNECTION':'null','ADMIN_MFA_REQUIRED':'false','OWNER_MFA_REQUIRED':'false','OWNER_STEP_UP_REQUIRED':'false','CAPTURE_PRIVATE':str(work/'private.json')})
 seed=r'''<?php
@@ -18,6 +21,13 @@ file_put_contents(getenv('CAPTURE_PRIVATE'),json_encode(['token'=>$owner->create
 if wix_only:
  seed=seed.replace("['shopify','bigcommerce','ecwid','lightspeed_e']", "['wix']").replace(
   "default=>['store_id'", r"'wix'=>['instance_id'=>Tests\Support\NativeCouponFixture::WIX_INSTANCE,'site_id'=>Tests\Support\NativeCouponFixture::WIX_SITE,'access_token'=>'SYNTHETIC_wix_token','public_key'=>file_get_contents(getcwd().'/tests/fixtures/rsa_public.pem')],default=>['store_id'")
+if additional:
+ seed=seed.replace("app(App\\Services\\Offers\\OfferService::class)->transition($offer,App\\Enums\\OfferStatus::Active);", "")
+ seed=seed.replace("['shopify','bigcommerce','ecwid','lightspeed_e']", "['magento','squarespace','shopware6']").replace("'discount_type'=>'fixed'", "'discount_type'=>'percentage'").replace("'min_order_minor'=>10000", "'min_order_minor'=>$platform==='shopware6'?0:10000").replace(
+  "default=>['store_id'", "'magento'=>['store_url'=>'https://shop.example.com','store_code'=>'default','store_id'=>'1','access_token'=>'SYNTHETIC_magento_token'],'squarespace'=>['website_id'=>'111111111111111111111111','api_key'=>'SYNTHETIC_squarespace_key'],'shopware6'=>['store_url'=>'https://shop.example.com','sales_channel_id'=>str_repeat('b',32),'client_id'=>'SYNTHETIC_shopware_client','client_secret'=>'SYNTHETIC_shopware_secret'],default=>['store_id'")
+if remaining:
+ seed=seed.replace("app(App\\Services\\Offers\\OfferService::class)->transition($offer,App\\Enums\\OfferStatus::Active);", "").replace("['shopify','bigcommerce','ecwid','lightspeed_e']", "['opencart','prestashop','ccv']").replace("'discount_type'=>'fixed'", "'discount_type'=>'percentage'").replace(
+  "default=>['store_id'", "'opencart'=>['store_url'=>'https://shop.example.com','timezone'=>'Europe/Amsterdam'],'prestashop'=>['store_url'=>'https://shop.example.com','shop_id'=>'1','webservice_key'=>'SYNTHETIC_prestashop_key','timezone'=>'Europe/Amsterdam'],'ccv'=>['store_url'=>'https://shop.example.com','webshop_id'=>'1','api_key'=>'SYNTHETIC_ccv_key','api_secret'=>'SYNTHETIC_ccv_secret'],default=>['store_id'")
 server=None
 try:
  subprocess.run(['php','artisan','migrate','--force'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,check=True)
@@ -29,10 +39,27 @@ try:
  if wix_only:
   # Re-read the router on the next request with a fixed minimum-subtotal Wix coupon.
   router.write_text(router.read_text().replace("else{$native['discountType']", "elseif($platform==='wix'){unset($native['specification']['percentOffRate']);$native['specification']['moneyOffAmount']=10;}else{$native['discountType']"))
+ if additional:
+  source=router.read_text()
+  start=source.index("if($platform==='shopify')")
+  end=source.index("Illuminate\\Support\\Facades\\Http::fake",start)
+  source=source[:start]+"if($scenario==='mismatch'){if($platform==='magento')$native['discount_amount']='11';elseif($platform==='shopware6')$native['discounts'][0]['value']='11';else $native['template']['percentage']=11;}\nif($scenario==='unknown'){if($platform==='magento')$native['uses_per_customer']=1;elseif($platform==='shopware6')$native['customerRestriction']=true;else $native['isOncePerCustomer']=true;}\n"+source[end:]
+  router.write_text(source)
+ if remaining:
+  source=router.read_text()
+  start=source.index("if($platform==='shopify')")
+  end=source.index("Illuminate\\Support\\Facades\\Http::fake",start)
+  source=source[:start]+"if($scenario==='mismatch')$native[$platform==='prestashop'?'reduction_percent':'discount']='11.00';\nif($scenario==='unknown')$native[match($platform){'opencart'=>'logged','prestashop'=>'quantity_per_user',default=>'productwhitelist'}]=match($platform){'opencart'=>1,'prestashop'=>'0',default=>true};\n"+source[end:]
+  source=source.replace("return Tests\\Support\\NativeCouponFixture::response($r,$platform,$native);", "preg_match('~/codes/([^/]+)/platform-validation~',$_SERVER['REQUEST_URI'],$m);$code=App\\Models\\VoucherCode::where('public_id',$m[1]??'')->first();$secret=$code?App\\Models\\WebshopConnection::where('webshop_id',$code->webshop_id)->first()?->credential('signing_secret'):null;return Tests\\Support\\NativeCouponFixture::response($r,$platform,$native,'EUR',true,false,$secret);")
+  router.write_text(source)
  captures=[]
 
 
  cases=[(p,'match',data['token'],200) for p in data['records']]+[('shopify','mismatch',data['token'],200),('shopify','unknown',data['token'],200),('shopify','context_changed',data['token'],200),('shopify','foreign_workspace',data['foreign_token'],404),('shopify','no_manage_permission',data['employee_token'],403),('shopify','unauthenticated',None,401),('shopify','invalid_mode',data['token'],422)]
+ if additional:
+  cases=[(p,label,data['token'],200) for p in data['records'] for label in ['match','mismatch','unknown']]+[('magento','foreign_workspace',data['foreign_token'],404),('squarespace','no_manage_permission',data['employee_token'],403),('shopware6','unauthenticated',None,401)]
+ if remaining:
+  cases=[(p,label,data['token'],200) for p in data['records'] for label in ['match','mismatch','unknown']]+[('opencart','foreign_workspace',data['foreign_token'],404),('prestashop','no_manage_permission',data['employee_token'],403),('ccv','unauthenticated',None,401)]
  for platform,label,token,expected in cases[:1] if wix_only else cases:
   r=data['records'][platform];path='/api/v1/workspaces/'+r['shop']+'/codes/'+r['code']+'/platform-validation'
   payload={'mode':'invalid' if label=='invalid_mode' else 'provider_check'}
@@ -42,11 +69,19 @@ try:
   except urllib.error.HTTPError as e:response=e
   body=json.loads(response.read());assert response.status==expected,(label,response.status,body)
   if wix_only:assert body['data']['platform_validation']=='verified',body
+  if additional and expected==200:assert body['data']['platform_validation']=={'match':'verified','mismatch':'mismatch','unknown':'merchant_verification_required'}[label],body
+  if remaining and expected==200:assert body['data']['platform_validation']==('merchant_verification_required' if platform=='ccv' and label=='match' else {'match':'verified','mismatch':'mismatch','unknown':'merchant_verification_required'}[label]),body
   captures.append({'label':platform+'_'+label,'request':{'method':'POST','path':path,'body':payload,'headers':{'Accept':'application/json',**({'Authorization':'Bearer <token>'} if token else {})}},'response':{'status':response.status,'body':body}})
 
  out={'captured_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'baseline':'52ef8c5 plus B71 working tree','environment':'Actual Laravel loopback HTTP; private temporary SQLite/key/storage. Synthetic native provider transport and public resolver fixtures are installed only in the disposable router; actual authentication, workspace permissions, lookups, comparison and persistence execute. No genuine provider, checkout acceptance or redemption proof. X-Capture headers are harness-only controls, not production API inputs.','exchanges':captures}
  if wix_only:out['baseline']='904239a plus Wix working tree'
  name='B71_WIX_COUPON_HTTP_CAPTURE.json' if wix_only else 'B71_COUPON_VERIFICATION_HTTP_CAPTURE.json'
+ if additional:
+  name='B71_ADDITIONAL_COUPON_HTTP_CAPTURE.json'
+  out['baseline']='06d43d9 plus additional coupon adapter working tree'
+ if remaining:
+  name='B71_REMAINING_COUPON_HTTP_CAPTURE.json'
+  out['baseline']='06d43d9 plus remaining coupon adapter working tree'
  (root/'docs/qa'/name).write_text(json.dumps(out,indent=2)+'\n');print(f'Captured {len(captures)} HTTP responses.')
 finally:
  if server:

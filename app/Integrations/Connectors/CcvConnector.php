@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -19,7 +20,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 /** CCV Shop REST v1, not the unrelated CCV PSP. Read-only creation-window discovery. */
-final class CcvConnector extends WebhookConnector implements PagedOrderReader
+final class CcvConnector extends WebhookConnector implements CouponLookup, PagedOrderReader
 {
     public function platform(): EcommercePlatform
     {
@@ -53,7 +54,7 @@ final class CcvConnector extends WebhookConnector implements PagedOrderReader
     public function setupInstructions(WebshopConnection $connection, string $webhookUrl): array
     {
         return ['format' => 'ccv-shop-rest-v1', 'live_verified' => false, 'steps' => [
-            'Create merchant-authorized CCV Shop API public/secret keys with webshop, domains and orders read permissions; supply the webshop ID and exact verified HTTPS store origin.',
+            'Create merchant-authorized CCV Shop API public/secret keys with webshop, domains and orders read permissions; add settings and discountcoupons read permissions for coupon comparison. Supply the webshop ID and exact verified HTTPS store origin.',
             'Native requests use x-public, x-date and HMAC-SHA512 x-hash over the exact GET URI including its query. No CCV payment-service credentials are accepted.',
             'Creation-window polling discovers completed orders. Historical payment changes require explicit order-ID recovery; no updated-since feed is claimed.',
             'Paid is the native marked-as-paid flag. Settlement/payment timestamps, refund cash amounts and consent remain unknown; no browser event substitutes for them.',
@@ -114,6 +115,45 @@ final class CcvConnector extends WebhookConnector implements PagedOrderReader
         if (! $matched) {
             throw ApiException::conflict('CCV has not confirmed the verified domain for this webshop.', 'provider_store_mismatch');
         }
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $this->identity($connection);
+        $settings = $this->read($connection, '/settings/');
+        $currency = $settings['currency'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $response = $this->read($connection, '/discountcoupons/', ['start' => 0, 'size' => 100]);
+        $rows = $response['items'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) >= 100 || ($response['start'] ?? null) !== 0 || ! is_int($response['size'] ?? null) || $response['size'] < count($rows) || $response['size'] > 100
+            || ! in_array($response['next'] ?? null, [null, ''], true)) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        $found = null;
+        $ids = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! is_int($row['id'] ?? null) || $row['id'] < 1 || isset($ids[$row['id']]) || ! is_string($row['code'] ?? null)) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $ids[$row['id']] = true;
+            if ($row['code'] === $code) {
+                if ($found !== null) {
+                    throw ApiException::conflict('The native coupon identity is ambiguous.', 'provider_coupon_ambiguous');
+                }
+                $found = $row;
+            }
+        }
+        if ($found !== null) {
+            $detail = $this->read($connection, '/discountcoupons/'.$found['id'].'/');
+            if (($detail['id'] ?? null) !== $found['id'] || ($detail['code'] ?? null) !== $code) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $found = $detail;
+        }
+
+        return ['currency' => $currency, 'coupon' => $found];
     }
 
     public function testConnection(WebshopConnection $connection): array

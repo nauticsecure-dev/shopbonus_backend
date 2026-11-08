@@ -1,3 +1,24 @@
+## Remaining native coupon completion — 2026-11-07
+
+OpenCart/PrestaShop live verification and CCV comparison implemented and tested in the working tree. C-Series/Mijnwebwinkel native schemas and CCV complete proof remain blocked on external contracts; see current HANDOFF. Checkboxes remain pending implementation commit.
+
+- [ ] Read remaining provider schemas and identify unprovable constraints without inventing native APIs.
+- [ ] Implement live bounded PrestaShop/CCV/C-Series readers using existing credential and identity gates.
+- [ ] Implement nonce-bound signed OpenCart module reads, exact native usage/date/restriction evidence and backend verification.
+- [ ] Integrate remaining comparisons without weakening existing usage/combination proof requirements.
+- [ ] Exercise real endpoint outcomes, negative transport/signature/replay paths and module queries.
+- [ ] Capture actual local HTTP and update API/provider setup, packages and handoff; distinguish unresolved partner contracts.
+
+## Remaining coupon verification adapters — 2026-11-07
+
+PARTIAL at base `06d43d9`; three adapters implemented/tested in the working tree. Boxes remain pending implementation commit. See `docs/integrations/COUPON_VERIFICATION.md` for the five remaining provider boundaries.
+
+- [ ] Audit current native contracts, scope, identity, currency and restriction semantics per provider.
+- [ ] Add bounded exact-code lookups with ambiguity, pagination and authority checks.
+- [ ] Compare known terms conservatively; preserve manual review for unknown restrictions.
+- [ ] Exercise matches, mismatches, permissions, malformed data and in-flight changes through the existing flow.
+- [ ] Record real local HTTP captures and provider-specific remaining boundaries.
+
 ## Quality Center gap closure — 2026-11-07
 
 - [ ] Require exact result-bound acceptance proofs before endpoint PASS, including unmapped cases.

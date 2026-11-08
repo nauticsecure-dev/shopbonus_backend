@@ -6,6 +6,7 @@ use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\AssignmentMetadata;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -20,7 +21,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 /** API-key polling. Fulfillment never substitutes for payment evidence. */
-final class SquarespaceConnector extends WebhookConnector implements PagedOrderReader
+final class SquarespaceConnector extends WebhookConnector implements CouponLookup, PagedOrderReader
 {
     public function platform(): EcommercePlatform
     {
@@ -47,7 +48,7 @@ final class SquarespaceConnector extends WebhookConnector implements PagedOrderR
     public function setupInstructions(WebshopConnection $connection, string $webhookUrl): array
     {
         return ['format' => 'squarespace-orders-api-1.0', 'steps' => [
-            'Create a restricted Orders read API key on an eligible Squarespace plan; supply its website ID and verify ownership of the exact canonical domain.',
+            'Create a restricted Orders read API key on an eligible Squarespace plan; also grant Discounts read for coupon verification. Supply its website ID and verify ownership of the exact canonical domain.',
             'Orders use durable incremental polling through the existing integration sync worker. Enable the reviewed connection explicitly in integration sync configuration.',
             'No webhook is accepted with an API key. Payment state and refund totals are mapped; settlement timestamps remain unknown. Test-mode orders are refused before ingestion.',
             'Revoke the API key in Squarespace when disconnecting. Native banner publication is not implemented.',
@@ -62,18 +63,19 @@ final class SquarespaceConnector extends WebhookConnector implements PagedOrderR
     /** @param array<string,mixed> $query
      * @return array<string,mixed>
      */
-    private function read(WebshopConnection $connection, string $path, array $query = []): array
+    private function read(WebshopConnection $connection, string $path, array $query = [], string $version = '1.0'): array
     {
         $key = $connection->credential('api_key');
         if ($key === null) {
             throw ApiException::conflict('Configure the provider API key before reading orders.', 'provider_credentials_missing');
         }
 
-        return app(PinnedJsonReader::class)->read($connection, 'https://api.squarespace.com/1.0'.$path,
+        return app(PinnedJsonReader::class)->read($connection, 'https://api.squarespace.com/'.$version.$path,
             ['headers' => ['Authorization' => 'Bearer '.$key, 'User-Agent' => 'Shopbonus/1.0']], 'GET', $query)['data'];
     }
 
-    private function identity(WebshopConnection $connection): void
+    /** @return array<string,mixed> */
+    private function identity(WebshopConnection $connection): array
     {
         $site = $this->read($connection, '/authorization/website');
         if (! is_string($site['id'] ?? null) || $site['id'] !== $connection->external_shop_ref) {
@@ -83,6 +85,44 @@ final class SquarespaceConnector extends WebhookConnector implements PagedOrderR
             || DomainName::fromInput($site['url']) !== strtolower((string) $connection->webshop->verified_domain)) {
             throw ApiException::conflict('Verify ownership of the exact canonical store domain.', 'store_identity_unverified');
         }
+
+        return $site;
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $site = $this->identity($connection);
+        $currency = $site['currency'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        // Observe all discounts to avoid certifying noncombination while another promotion applies.
+        $response = $this->read($connection, '/commerce/discounts', ['limit' => 100, 'offset' => 0, 'status' => 'ALL'], 'v1');
+        $rows = $response['discounts'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) > 100 || ($response['hasNextPage'] ?? null) !== false) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        $found = null;
+        $seen = [];
+        $others = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row) || ($row['websiteId'] ?? null) !== $connection->external_shop_ref
+                || ! is_string($row['id'] ?? null) || ! preg_match('/\A[A-Za-z0-9_-]{1,100}\z/D', $row['id'])
+                || isset($seen[$row['id']]) || ! in_array($row['status'] ?? null, ['ACTIVE', 'EXPIRED', 'SCHEDULED'], true)) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $seen[$row['id']] = true;
+            if (($row['trigger']['type'] ?? null) === 'CODE' && is_string($row['trigger']['promoCode'] ?? null) && mb_strtolower($row['trigger']['promoCode']) === mb_strtolower($code)) {
+                if ($found !== null) {
+                    throw ApiException::conflict('The native coupon identity is ambiguous.', 'provider_coupon_ambiguous');
+                }
+                $found = $row;
+            } elseif ($row['status'] !== 'EXPIRED') {
+                $others++;
+            }
+        }
+
+        return ['currency' => $currency, 'coupon' => $found === null ? null : ['discount' => $found, 'other_promotions' => $others]];
     }
 
     public function testConnection(WebshopConnection $connection): array

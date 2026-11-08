@@ -1,0 +1,627 @@
+{
+  "captured_at": "2026-11-07T17:03:05Z",
+  "baseline": "06d43d9 plus additional coupon adapter working tree",
+  "environment": "Actual Laravel loopback HTTP; private temporary SQLite/key/storage. Synthetic native provider transport and public resolver fixtures are installed only in the disposable router; actual authentication, workspace permissions, lookups, comparison and persistence execute. No genuine provider, checkout acceptance or redemption proof. X-Capture headers are harness-only controls, not production API inputs.",
+  "exchanges": [
+    {
+      "label": "magento_match",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfde997pfnfbyws022g0we/codes/01m6vfdea8pg1ybj3b3dn9yv8s/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdea8pg1ybj3b3dn9yv8s",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "verified",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "verified",
+            "detail": {
+              "reason": "provider_match",
+              "platform": "magento",
+              "provider_coupon": {
+                "external_id": "77",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T23:00:00+00:00",
+                "minimum_spend_minor": 10000
+              },
+              "differences": [],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "magento_mismatch",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfde997pfnfbyws022g0we/codes/01m6vfdea8pg1ybj3b3dn9yv8s/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdea8pg1ybj3b3dn9yv8s",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "mismatch",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "mismatch",
+            "detail": {
+              "reason": "provider_mismatch",
+              "platform": "magento",
+              "provider_coupon": {
+                "external_id": "77",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1100,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T23:00:00+00:00",
+                "minimum_spend_minor": 10000
+              },
+              "differences": [
+                "discount_value"
+              ],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "magento_unknown",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfde997pfnfbyws022g0we/codes/01m6vfdea8pg1ybj3b3dn9yv8s/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdea8pg1ybj3b3dn9yv8s",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "merchant_verification_required",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "merchant_verification_required",
+            "detail": {
+              "reason": "provider_constraints_unverified",
+              "platform": "magento",
+              "provider_coupon": {
+                "external_id": "77",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T23:00:00+00:00",
+                "minimum_spend_minor": 10000
+              },
+              "differences": [],
+              "unverified_constraints": [
+                "customer_usage"
+              ],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "squarespace_match",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdea97yyvey5n1j3tz0pk/codes/01m6vfdeajg06d9kzp8gtt17pe/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdeajg06d9kzp8gtt17pe",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "verified",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "verified",
+            "detail": {
+              "reason": "provider_match",
+              "platform": "squarespace",
+              "provider_coupon": {
+                "external_id": "discount-77",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1000,
+                "minimum_spend_minor": 10000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T17:03:05+00:00"
+              },
+              "differences": [],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "squarespace_mismatch",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdea97yyvey5n1j3tz0pk/codes/01m6vfdeajg06d9kzp8gtt17pe/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdeajg06d9kzp8gtt17pe",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "mismatch",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "mismatch",
+            "detail": {
+              "reason": "provider_mismatch",
+              "platform": "squarespace",
+              "provider_coupon": {
+                "external_id": "discount-77",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1100,
+                "minimum_spend_minor": 10000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T17:03:05+00:00"
+              },
+              "differences": [
+                "discount_value"
+              ],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "squarespace_unknown",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdea97yyvey5n1j3tz0pk/codes/01m6vfdeajg06d9kzp8gtt17pe/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdeajg06d9kzp8gtt17pe",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "merchant_verification_required",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "merchant_verification_required",
+            "detail": {
+              "reason": "provider_constraints_unverified",
+              "platform": "squarespace",
+              "provider_coupon": {
+                "external_id": "discount-77",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1000,
+                "minimum_spend_minor": 10000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T17:03:05+00:00"
+              },
+              "differences": [],
+              "unverified_constraints": [
+                "customer_usage"
+              ],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_match",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdeakxwd0v3psjxt5anqt/codes/01m6vfdeawnnykb59fpe4nrf90/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdeawnnykb59fpe4nrf90",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "verified",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "verified",
+            "detail": {
+              "reason": "provider_match",
+              "platform": "shopware6",
+              "provider_coupon": {
+                "external_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T17:03:05+00:00",
+                "minimum_spend_minor": 0
+              },
+              "differences": [],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_mismatch",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdeakxwd0v3psjxt5anqt/codes/01m6vfdeawnnykb59fpe4nrf90/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdeawnnykb59fpe4nrf90",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "mismatch",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "mismatch",
+            "detail": {
+              "reason": "provider_mismatch",
+              "platform": "shopware6",
+              "provider_coupon": {
+                "external_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1100,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T17:03:05+00:00",
+                "minimum_spend_minor": 0
+              },
+              "differences": [
+                "discount_value"
+              ],
+              "unverified_constraints": [],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_unknown",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdeakxwd0v3psjxt5anqt/codes/01m6vfdeawnnykb59fpe4nrf90/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "data": {
+            "id": "01m6vfdeawnnykb59fpe4nrf90",
+            "code": "****C-10",
+            "status": "available",
+            "reusable": false,
+            "uses_count": 0,
+            "platform_validation": "merchant_verification_required",
+            "batch_id": null,
+            "assigned": null,
+            "reserved_at": null,
+            "issued_at": null,
+            "redeemed_at": null,
+            "invalidated_at": null,
+            "invalid_reason": null,
+            "created_at": "2026-11-07T17:03:05+00:00"
+          },
+          "verification": {
+            "platform_validation": "merchant_verification_required",
+            "detail": {
+              "reason": "provider_constraints_unverified",
+              "platform": "shopware6",
+              "provider_coupon": {
+                "external_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "discount_type": "percent",
+                "amount_minor": null,
+                "percent_bps": 1000,
+                "currency": "EUR",
+                "usage_limit": 1,
+                "usage_count": 0,
+                "status": "active",
+                "expires_at": "2027-11-07T17:03:05+00:00",
+                "minimum_spend_minor": 0
+              },
+              "differences": [],
+              "unverified_constraints": [
+                "customerRestriction"
+              ],
+              "evidence_scope": "native_configuration_not_checkout_or_redemption",
+              "scope": "inventory",
+              "voucher_id": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "magento_foreign_workspace",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfde997pfnfbyws022g0we/codes/01m6vfdea8pg1ybj3b3dn9yv8s/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": {
+            "status": 404,
+            "code": "not_found",
+            "message": "The requested resource was not found.",
+            "request_id": "01a1b6f6-bbe6-7139-a2a6-1eb5b9beec7a"
+          }
+        }
+      }
+    },
+    {
+      "label": "squarespace_no_manage_permission",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdea97yyvey5n1j3tz0pk/codes/01m6vfdeajg06d9kzp8gtt17pe/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "Bearer <token>"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": {
+            "status": 403,
+            "code": "workspace_permission_denied",
+            "message": "You do not have permission to do this in this workspace.",
+            "request_id": "01a1b6f6-bbf6-7056-ad1f-61d774937802",
+            "details": {
+              "required_permission": "vouchers.manage"
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "shopware6_unauthenticated",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/workspaces/01m6vfdeakxwd0v3psjxt5anqt/codes/01m6vfdeawnnykb59fpe4nrf90/platform-validation",
+        "body": {
+          "mode": "provider_check"
+        },
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": {
+            "status": 401,
+            "code": "unauthenticated",
+            "message": "Authentication is required.",
+            "request_id": "01a1b6f6-bc08-7029-b979-89d6ebaa9b80"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -10,6 +10,7 @@
     <p><label>Banner public key <input class="form-control" name="key" value="{{ key|escape('html_attr') }}"></label></p>
     <p><label><input type="checkbox" name="status" value="1" {% if status == '1' %}checked{% endif %}> Enable order bridge</label></p>
     <p><label><input type="checkbox" name="banner" value="1" {% if banner == '1' %}checked{% endif %}> Enable storefront banner</label></p>
+    <p><label><input type="checkbox" name="coupon_read" value="1" {% if coupon_read == '1' %}checked{% endif %}> Enable authenticated live coupon reads</label></p>
     <button class="btn btn-primary" type="submit">Save</button>
   </form>
 </div></div>{{ footer }}

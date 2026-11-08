@@ -8,6 +8,7 @@ use App\Integrations\AdobeImsTokens;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -25,7 +26,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 /** Native Magento/PaaS REST and explicitly scoped Adobe Commerce SaaS REST. Event delivery is deployment-specific. */
-final class MagentoConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+final class MagentoConnector extends GenericSignedWebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
@@ -316,6 +317,66 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         $code = $this->storeConfig($c)['base_currency_code'] ?? null;
 
         return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $store = $this->storeConfig($connection);
+        $currency = $store['base_currency_code'] ?? null;
+        if (! Money::isCurrency($currency)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $response = $this->read($connection, 'coupons/search', ['searchCriteria' => ['filter_groups' => [['filters' => [['field' => 'code', 'value' => $code, 'condition_type' => 'eq']]]], 'page_size' => 2, 'current_page' => 1]]);
+        $rows = $response['items'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || ($response['total_count'] ?? null) !== count($rows) || count($rows) > 1) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        if ($rows === []) {
+            return ['coupon' => null, 'currency' => $currency];
+        }
+        $coupon = $rows[0];
+        if (! is_array($coupon) || ($coupon['code'] ?? null) !== $code || ! is_int($coupon['coupon_id'] ?? null) || $coupon['coupon_id'] < 1
+            || ! is_int($coupon['rule_id'] ?? null) || $coupon['rule_id'] < 1) {
+            throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+        // Detailed reads carry condition/action trees which list responses can omit.
+        $detail = $this->read($connection, 'coupons/'.$coupon['coupon_id']);
+        $rule = $this->read($connection, 'salesRules/'.$coupon['rule_id']);
+        if (($detail['coupon_id'] ?? null) !== $coupon['coupon_id'] || ($detail['code'] ?? null) !== $code
+            || ($detail['rule_id'] ?? null) !== $coupon['rule_id'] || ($rule['rule_id'] ?? null) !== $coupon['rule_id']) {
+            throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+        $groups = $this->read($connection, 'customerGroups/search', ['searchCriteria' => ['page_size' => 100, 'current_page' => 1]]);
+        $items = $groups['items'] ?? null;
+        if (! is_array($items) || ! array_is_list($items) || ($groups['total_count'] ?? null) !== count($items) || count($items) > 100 || $items === []) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        $ids = [];
+        foreach ($items as $item) {
+            if (! is_array($item) || ! is_int($item['id'] ?? null) || $item['id'] < 0 || in_array($item['id'], $ids, true)) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $ids[] = $item['id'];
+        }
+
+        $active = $this->read($connection, 'salesRules/search', ['searchCriteria' => ['filter_groups' => [['filters' => [['field' => 'is_active', 'value' => '1', 'condition_type' => 'eq']]]], 'page_size' => 100, 'current_page' => 1]]);
+        $rules = $active['items'] ?? null;
+        if (! is_array($rules) || ! array_is_list($rules) || ($active['total_count'] ?? null) !== count($rules) || count($rules) > 100) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        $idsSeen = [];
+        foreach ($rules as $item) {
+            if (! is_array($item) || ! is_int($item['rule_id'] ?? null) || $item['rule_id'] < 1 || in_array($item['rule_id'], $idsSeen, true)) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $idsSeen[] = $item['rule_id'];
+        }
+        if (($rule['is_active'] ?? null) === true && ! in_array($coupon['rule_id'], $idsSeen, true)) {
+            throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+        $otherRules = count(array_filter($idsSeen, fn ($id) => $id !== $coupon['rule_id']));
+
+        return ['currency' => $currency, 'coupon' => ['rule' => $rule, 'coupon' => $detail, 'store' => $store, 'customer_groups' => $ids, 'other_rules' => $otherRules]];
     }
 
     public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array

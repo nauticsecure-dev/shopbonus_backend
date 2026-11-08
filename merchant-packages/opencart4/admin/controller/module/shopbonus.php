@@ -12,7 +12,7 @@ class Shopbonus extends Controller
     {
         $this->document->setTitle('Shopbonus order bridge');
         $data = [];
-        foreach (['endpoint', 'origin', 'key', 'timezone', 'status', 'banner'] as $field) {
+        foreach (['endpoint', 'origin', 'key', 'timezone', 'status', 'banner', 'coupon_read'] as $field) {
             $data[$field] = $this->config->get('module_shopbonus_'.$field) ?? '';
         }
         $data['save'] = $this->url->link(self::ROUTE.'.save', 'user_token='.$this->session->data['user_token']);
@@ -47,7 +47,7 @@ class Shopbonus extends Controller
         $this->load->model('setting/setting');
         $settings = $this->model_setting_setting->getSetting('module_shopbonus', 0);
         foreach (['endpoint' => $endpoint, 'origin' => $origin, 'key' => $key, 'timezone' => $zone,
-            'status' => ($post['status'] ?? '') === '1' ? '1' : '0', 'banner' => ($post['banner'] ?? '') === '1' ? '1' : '0'] as $field => $value) {
+            'status' => ($post['status'] ?? '') === '1' ? '1' : '0', 'banner' => ($post['banner'] ?? '') === '1' ? '1' : '0', 'coupon_read' => ($post['coupon_read'] ?? '') === '1' ? '1' : '0'] as $field => $value) {
             $settings['module_shopbonus_'.$field] = $value;
         }
         if ($secret !== '') {

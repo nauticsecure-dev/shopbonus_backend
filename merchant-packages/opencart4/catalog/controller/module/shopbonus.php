@@ -6,6 +6,44 @@ use Opencart\System\Engine\Controller;
 
 class Shopbonus extends Controller
 {
+    public function coupon(): void
+    {
+        require_once DIR_EXTENSION.'shopbonus/system/library/CouponRead.php';
+        $this->response->addHeader('Content-Type: application/json');
+        $this->response->addHeader('Cache-Control: no-store');
+        $secret = (string) $this->config->get('module_shopbonus_secret');
+        $code = $this->request->get['code'] ?? null;
+        $time = $this->request->server['HTTP_X_SHOPBONUS_TIME'] ?? '';
+        $nonce = $this->request->server['HTTP_X_SHOPBONUS_NONCE'] ?? '';
+        $signature = $this->request->server['HTTP_X_SHOPBONUS_SIGNATURE'] ?? '';
+        if (! $this->config->get('module_shopbonus_coupon_read') || (int) $this->config->get('config_store_id') !== 0
+            || ($this->request->server['REQUEST_METHOD'] ?? '') !== 'GET' || ! is_string($code)
+            || ! \ShopbonusOpenCartCouponRead::authorize($secret, $code, $time, $nonce, $signature, time())) {
+            $this->response->addHeader('HTTP/1.1 403 Forbidden');
+            $this->response->setOutput('{}');
+
+            return;
+        }
+        try {
+            $timezone = (string) $this->config->get('module_shopbonus_timezone');
+            $coupon = \ShopbonusOpenCartCouponRead::coupon($this->db, DB_PREFIX, $code, $timezone);
+            $totals = [];
+            foreach ($this->db->query('SELECT extension,code FROM `'.DB_PREFIX."extension` WHERE type='total'")->rows as $extension) {
+                if ($this->config->get('total_'.$extension['code'].'_status')) {
+                    $totals[] = $extension['extension'].':'.$extension['code'];
+                }
+            }
+            sort($totals);
+            $payload = json_encode(['schema' => 'shopbonus.opencart.coupon.v1', 'nonce' => $nonce, 'observed_at' => time(), 'store_id' => 0,
+                'store_url' => rtrim((string) $this->config->get('config_url'), '/'), 'currency' => $this->config->get('config_currency'),
+                'timezone' => $timezone, 'enabled_totals' => $totals, 'coupon' => $coupon], JSON_THROW_ON_ERROR);
+            $this->response->setOutput(json_encode(['payload' => $payload, 'signature' => hash_hmac('sha256', 'shopbonus.opencart.coupon.v1.response|'.$payload, $secret)], JSON_THROW_ON_ERROR));
+        } catch (\Throwable $error) {
+            $this->response->addHeader('HTTP/1.1 503 Service Unavailable');
+            $this->response->setOutput('{}');
+        }
+    }
+
     public function created(string &$route, array &$args, mixed &$output): void
     {
         $this->queue((int) $output);

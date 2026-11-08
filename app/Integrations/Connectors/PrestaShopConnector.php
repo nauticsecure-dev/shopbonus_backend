@@ -5,6 +5,7 @@ namespace App\Integrations\Connectors;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -21,7 +22,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 /** PrestaShop9 native Webservice reads; legacy Shopbonus signed module contract remains explicit. */
-final class PrestaShopConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+final class PrestaShopConnector extends GenericSignedWebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
@@ -83,6 +84,8 @@ final class PrestaShopConnector extends GenericSignedWebhookConnector implements
     {
         $instructions = parent::setupInstructions($c, $url);
         $instructions['steps'][0] = 'PrestaShop 9 candidate package: '.url('/downloads/integrations/shopbonus-prestashop9.zip').'. Upload in Module Manager, select one shop, configure the webhook and signing secret, and schedule the bundled CLI worker every minute. Configure the backend native Webservice credentials before delivery.';
+
+        $instructions['steps'][] = 'Coupon verification additionally requires GET access to cart_rules, order_cart_rules and shops. Automatic matches require a single shop, a complete empty use history and no other active cart rules; prior-use capacity and combination allowlists remain unverified.';
 
         return $instructions + ['native_version' => 'PrestaShop9 Webservice JSON', 'native_read_configured' => $c->credential('webservice_key') !== null, 'native_notice' => 'Configure exact multistore shop ID, HTTPS installation URL, restricted GET Webservice key and store timezone. Module notifications trigger authenticated native reads. Credit slips are credit documents, not confirmed cash refunds. Native refund qualification remains unavailable without settlement evidence. Installation and storefront acceptance remain unverified.'];
     }
@@ -285,6 +288,58 @@ final class PrestaShopConnector extends GenericSignedWebhookConnector implements
         }
 
         return [$id, $code];
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        [$currencyId, $currency] = $this->defaultCurrency($connection);
+        // Enumerate a complete bounded list; user codes must never become webservice filter expressions.
+        $response = $this->read($connection, 'cart_rules', ['display' => 'full', 'limit' => '0,100']);
+        $rows = $response === [] ? [] : ($response['cart_rules'] ?? null);
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) >= 100) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        $found = null;
+        $ids = [];
+        $otherActive = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! is_string($row['code'] ?? null) || (! is_string($row['id'] ?? null) && ! is_int($row['id'] ?? null)) || ! preg_match('/\A[1-9][0-9]{0,18}\z/D', (string) $row['id']) || isset($ids[(string) $row['id']])) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            if (! in_array($row['active'] ?? null, [0, 1, '0', '1', true, false], true)) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $ids[(string) $row['id']] = true;
+            if (mb_strtolower($row['code']) === mb_strtolower($code)) {
+                if ($found !== null) {
+                    throw ApiException::conflict('The native coupon identity is ambiguous.', 'provider_coupon_ambiguous');
+                }
+                $found = $row;
+            } elseif (in_array($row['active'], [1, '1', true], true)) {
+                $otherActive++;
+            }
+        }
+        if ($found === null) {
+            return ['currency' => $currency, 'coupon' => null];
+        }
+        $history = $this->read($connection, 'order_cart_rules', ['display' => 'full', 'filter[id_cart_rule]' => '['.$found['id'].']', 'limit' => '0,100']);
+        $uses = $history === [] ? [] : ($history['order_cart_rules'] ?? null);
+        if (! is_array($uses) || ! array_is_list($uses) || count($uses) >= 100) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        $seen = [];
+        foreach ($uses as $use) {
+            $id = is_array($use) && (is_string($use['id'] ?? null) || is_int($use['id'] ?? null)) ? (string) $use['id'] : '';
+            if (! preg_match('/\A[1-9][0-9]{0,18}\z/D', $id) || isset($seen[$id]) || (string) ($use['id_cart_rule'] ?? '') !== (string) $found['id']) {
+                throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+            }
+            $seen[$id] = true;
+        }
+        $shops = $this->list($connection, 'shops');
+        $singleShop = count($shops) === 1 && (is_string($shops[0]['id'] ?? null) || is_int($shops[0]['id'] ?? null)) && (string) $shops[0]['id'] === $connection->credential('shop_id');
+
+        return ['currency' => $currency, 'coupon' => ['rule' => $found, 'currency_id' => $currencyId, 'timezone' => $connection->credential('timezone'),
+            'recorded_uses' => count($uses), 'single_shop' => $singleShop, 'other_active_rules' => $otherActive]];
     }
 
     public function catalogCurrency(WebshopConnection $c): string
