@@ -1,32 +1,32 @@
 {
     "shopbonus-adobe-appbuilder-source.zip": {
-        "sha256": "0b3c7a62fe6c7525b9992d25791434496d6ee140c12d8bdc94a92877762df043",
-        "bytes": 9371,
+        "sha256": "acecba71feeb24a2993d297a7f224a5afd575fac65cea4c0021e353f4167667c",
+        "bytes": 10530,
         "live_verified": false
     },
     "shopbonus-magento2-async.zip": {
-        "sha256": "8e49cc685ddcde36bd2288727a8e5917fa2a2cd1e0413885ee8421370731984e",
-        "bytes": 14077,
+        "sha256": "356ff5bf2e7797d10c2b6152c6a9537b7d3dae880d99580d0b5d18f491ffb01a",
+        "bytes": 19079,
         "live_verified": false
     },
     "shopbonus-prestashop9.zip": {
-        "sha256": "485eccd230da3df1fc667cdef0b1c5ae3fd260dfe5899ff2cd18b3f7d7a6e25a",
-        "bytes": 8831,
+        "sha256": "e14d9b196a47818e42c899f09555fa484f8c8bf608686c04c7f28954d70ad737",
+        "bytes": 11838,
         "live_verified": false
     },
     "shopbonus.ocmod.zip": {
-        "sha256": "10dea4c1cee83b4804a7db606a44ff81a38560f2a238f79c84bb2f6aef84ee50",
-        "bytes": 16477,
+        "sha256": "c5c6fb3964a5e33bc3bf12a61185b83894bd54ffca2d2d3a97e43fb3769385c2",
+        "bytes": 19132,
         "live_verified": false
     },
     "shopbonus-woocommerce-banner.zip": {
-        "sha256": "6d3c1e8c5ba2113bd9708f3268b6404bc0bc7a2fc4606193d558c8fd0c2601a0",
-        "bytes": 6320,
+        "sha256": "b861d11d9ec102d522b2bb662ed6312c7648d2607bb1139e0011de92a009c5be",
+        "bytes": 7479,
         "live_verified": false
     },
     "shopbonus-shopify-theme-source.zip": {
-        "sha256": "b184b1f854c5ec097900274ff97e6f50f5b031e500c47d5cfc4fe94595c6f52e",
-        "bytes": 5597,
+        "sha256": "74e60bfd6202155d8351b0a2e9a9fe7f1ea90c56398a7862df1551dfa6989b7c",
+        "bytes": 6756,
         "live_verified": false
     }
 }

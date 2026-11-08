@@ -5,10 +5,10 @@ namespace App\Events;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-/** One-time nonce to the requesting admin's own private channel; the browser echoes it back. */
+/** Event-only one-time challenge plus public correlation ID on the requesting admin private channel. */
 final class SupportBrowserProbe implements ShouldBroadcastNow
 {
-    public function __construct(private readonly string $userPublicId, private readonly string $nonce) {}
+    public function __construct(private readonly string $userPublicId, private readonly string $probeId, private readonly string $nonce) {}
 
     /** @return list<PrivateChannel> */
     public function broadcastOn(): array
@@ -24,6 +24,6 @@ final class SupportBrowserProbe implements ShouldBroadcastNow
     /** @return array<string, string> */
     public function broadcastWith(): array
     {
-        return ['nonce' => $this->nonce];
+        return ['probe_id' => $this->probeId, 'nonce' => $this->nonce];
     }
 }

@@ -68,6 +68,7 @@ class Shopbonus extends Controller
         foreach (['checkout/order.addOrder' => 'created', 'checkout/order.addHistory' => 'updated'] as $trigger => $action) {
             $this->model_setting_event->addEvent(['code' => 'shopbonus', 'description' => 'Queue Shopbonus order lookup', 'trigger' => 'catalog/model/'.$trigger.'/after', 'action' => self::ROUTE.'.'.$action, 'status' => 1, 'sort_order' => 0]);
         }
+        $this->model_setting_event->addEvent(['code' => 'shopbonus', 'description' => 'Shopbonus session cart snapshot', 'trigger' => 'catalog/controller/common/cart.info/after', 'action' => self::ROUTE.'.cartSnapshot', 'status' => 1, 'sort_order' => 0]);
         $this->model_setting_event->addEvent(['code' => 'shopbonus', 'description' => 'Shopbonus opt-in banner', 'trigger' => 'catalog/controller/common/footer/after', 'action' => self::ROUTE.'.banner', 'status' => 1, 'sort_order' => 0]);
     }
 

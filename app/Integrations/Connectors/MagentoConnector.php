@@ -102,7 +102,7 @@ final class MagentoConnector extends GenericSignedWebhookConnector implements Ca
         return parent::setupInstructions($c, $url) + ['native_version' => $saas ? 'Adobe Commerce as a Cloud Service REST' : 'Magento/Adobe Commerce2.4 self-hosted/PaaS REST',
             'native_read_configured' => $c->credential('access_token') !== null || $c->credential('ims_client_id') !== null,
             'native_notice' => $saas ? 'SaaS uses the exact tenant API URL, current IMS bearer token and Store header; storefront domain and store ID/code are verified independently. Optional encrypted IMS client credentials renew access tokens automatically; manually supplied tokens remain deployment-managed. Candidate private Adobe I/O/App Builder source: /downloads/integrations/shopbonus-adobe-appbuilder-source.zip. Runtime Action registration/signature validation, scoped event setup, actual deployment and delivery acceptance remain NOT RUN; PHP modules cannot run on SaaS.'
-                : 'Configure restricted native REST credentials and exact verified store ID/code. Candidate asynchronous module: '.url('/downloads/integrations/shopbonus-magento2-async.zip').'. Commit-time local outbox only; configure encrypted per-store signing settings and cron. Native installation/order/refund/cleanup acceptance NOT RUN.'];
+                : __('Configure restricted native REST credentials and exact verified store ID/code. Candidate asynchronous module: :module. Commit-time local outbox only; configure encrypted per-store signing settings and cron. Native installation/order/refund/cleanup acceptance NOT RUN.', ['module' => url('/downloads/integrations/shopbonus-magento2-async.zip')])];
     }
 
     /** @param array<string,mixed> $query

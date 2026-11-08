@@ -1,10 +1,10 @@
 # API route inventory (Trello #22)
 
-Generated 2026-11-05 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
+Generated 2026-11-07 using `php artisan shopbonus:api-routes --markdown` from runtime routes and OpenAPI.
 
-Runtime route entries: **493**. Method/path operations (HEAD aliases excluded): **494**. Unique paths: **432**.
+Runtime route entries: **495**. Method/path operations (HEAD aliases excluded): **496**. Unique paths: **433**.
 
-Access counts are per operation: admin 248, authenticated 4, integration 4, public 46, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
+Access counts are per operation: admin 250, authenticated 4, integration 4, public 46, verified 192. Runtime access and workspace permission annotations match OpenAPI for every listed operation.
 
 A route entry may accept multiple methods. GET and POST `/api/v1/affiliate/postback/{token}` are separate operations on one entry; HEAD aliases are not additional operations.
 
@@ -191,6 +191,8 @@ Regenerate before release using a temporary file, check command exit0, then repl
 | GET | `/api/v1/admin/qa/endpoints` | admin | super_admin, qa_tester | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/qa/endpoints/{endpoint}` | admin | super_admin, qa_tester | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/qa/evidence/{evidence}` | admin | super_admin, qa_tester, developer | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| GET | `/api/v1/admin/qa/executions` | admin | super_admin, qa_tester | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
+| POST | `/api/v1/admin/qa/executions` | admin | super_admin, qa_tester | session_cookie | - | platform | recent password | ThrottleRequests:api, ThrottleRequests:qa-ai | admin |
 | GET | `/api/v1/admin/qa/findings` | admin | super_admin, qa_tester, developer | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |
 | POST | `/api/v1/admin/qa/findings` | admin | super_admin, qa_tester | session_cookie | - | platform | recent password | ThrottleRequests:api | admin |
 | GET | `/api/v1/admin/qa/findings/{finding}` | admin | super_admin, qa_tester, developer | session_cookie, bearer_token | - | platform | - | ThrottleRequests:api | admin |

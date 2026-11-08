@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
 
 class NativeBanner extends Command
 {
-    protected $signature = 'shopbonus:banner-native {action : readiness|install|reconcile|bind|remove} {id : Platform for readiness; connection public ID otherwise} {--actor= : Current authorized public user ID} {--file= : Reviewed JSON target for install} {--step= : template|widget|placement for bind (BigCommerce)} {--remote-id= : Native UUID (BigCommerce) or shop script ID (Lightspeed C) for bind}';
+    protected $signature = 'shopbonus:banner-native {action : readiness|install|upgrade|reconcile|bind|remove} {id : Platform for readiness; connection public ID otherwise} {--actor= : Current authorized public user ID} {--file= : Reviewed JSON target for install} {--step= : template|widget|placement for bind (BigCommerce)} {--remote-id= : Native UUID (BigCommerce) or shop script ID (Lightspeed C) for bind}';
 
     protected $description = 'Explicit native banner provisioning, reconciliation and removal; no blind write retries';
 
@@ -34,7 +34,7 @@ class NativeBanner extends Command
             return self::SUCCESS;
         }
         $actorId = strtolower((string) $this->option('actor'));
-        if (! in_array($action, ['install', 'reconcile', 'bind', 'remove'], true) || ! Str::isUlid($id) || ! Str::isUlid($actorId)) {
+        if (! in_array($action, ['install', 'upgrade', 'reconcile', 'bind', 'remove'], true) || ! Str::isUlid($id) || ! Str::isUlid($actorId)) {
             $this->error('Provide a supported action, connection public ID and --actor public ID.');
 
             return self::FAILURE;
@@ -47,6 +47,9 @@ class NativeBanner extends Command
             return self::FAILURE;
         }
         try {
+            if ($connection->platform === EcommercePlatform::LightspeedC && $action === 'upgrade') {
+                throw new \InvalidArgumentException('Legacy cart upgrade applies to BigCommerce only.');
+            }
             if ($connection->platform === EcommercePlatform::LightspeedC) {
                 // One owned shop script; no target file, bind takes the numeric script ID.
                 $lightspeed = app(LightspeedScriptPublisher::class);
@@ -78,6 +81,7 @@ class NativeBanner extends Command
             }
             $result = match ($action) {
                 'install' => $publisher->install($connection, $target, $actor),
+                'upgrade' => $publisher->upgradeCart($connection, $actor),
                 'reconcile' => $publisher->reconcile($connection, $actor),
                 'bind' => $publisher->bind($connection, (string) $this->option('step'), (string) $this->option('remote-id'), $actor),
                 'remove' => $publisher->remove($connection, $actor),
