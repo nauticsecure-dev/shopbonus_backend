@@ -14,16 +14,17 @@ class SupportConnectivityController extends Controller
 
     public function start(Request $request): JsonResponse
     {
-        $nonce = $this->connectivity->startBrowserProbe($request->user());
+        $probeId = $this->connectivity->startBrowserProbe($request->user());
 
-        return response()->json(['data' => ['nonce' => $nonce, 'channel' => 'private-shopbonus.user.'.$request->user()->public_id.'.notifications',
-            'event' => 'support.connectivity.browser_probe', 'expires_in' => 60]], 201);
+        return response()->json(['data' => ['probe_id' => $probeId, 'channel' => 'private-shopbonus.user.'.$request->user()->public_id.'.notifications',
+            'event' => 'support.connectivity.browser_probe', 'expires_in' => 60]], 201, ['Cache-Control' => 'private, no-store']);
     }
 
     public function acknowledge(Request $request, string $nonce): JsonResponse
     {
-        $this->connectivity->acknowledgeBrowserProbe($request->user(), strtolower($nonce));
+        $data = $request->validate(['nonce' => ['required', 'string', 'regex:/\A[a-f0-9]{32}\z/D']]);
+        $this->connectivity->acknowledgeBrowserProbe($request->user(), strtolower($nonce), $data['nonce']);
 
-        return response()->json(['data' => $this->connectivity->evidence()]);
+        return response()->json(['data' => $this->connectivity->evidence($request->user())], 200, ['Cache-Control' => 'private, no-store']);
     }
 }
