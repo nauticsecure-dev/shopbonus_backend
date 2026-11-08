@@ -6,8 +6,10 @@ use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
 use App\Models\User;
 use App\Models\WebshopConnection;
+use App\Services\Banners\EcwidAppPublisher;
 use App\Services\Banners\LightspeedScriptPublisher;
 use App\Services\Banners\NativeBannerPublisher;
+use App\Services\Banners\SquarespaceInstallationVerifier;
 use App\Support\ExactJson;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
@@ -47,6 +49,19 @@ class NativeBanner extends Command
             return self::FAILURE;
         }
         try {
+            if (in_array($connection->platform, [EcommercePlatform::Ecwid, EcommercePlatform::LightspeedE, EcommercePlatform::Squarespace], true)) {
+                // Ecwid app config / Squarespace verified manual snippet: no target file, nothing to bind or upgrade.
+                $service = $connection->platform === EcommercePlatform::Squarespace ? app(SquarespaceInstallationVerifier::class) : app(EcwidAppPublisher::class);
+                $result = match ($action) {
+                    'install' => $service->install($connection, $actor),
+                    'reconcile' => $service->reconcile($connection, $actor),
+                    'remove' => $service->remove($connection, $actor),
+                    default => throw new \InvalidArgumentException,
+                };
+                $this->line(json_encode($result, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+
+                return self::SUCCESS;
+            }
             if ($connection->platform === EcommercePlatform::LightspeedC && $action === 'upgrade') {
                 throw new \InvalidArgumentException('Legacy cart upgrade applies to BigCommerce only.');
             }

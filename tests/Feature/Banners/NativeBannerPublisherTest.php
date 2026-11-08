@@ -375,9 +375,12 @@ class NativeBannerPublisherTest extends TestCase
     public function test_other_platforms_require_real_native_app_or_manual_installation(): void
     {
         // Lightspeed C now publishes through its documented Shop Scripts API (LightspeedScriptPublisherTest).
-        foreach ([EcommercePlatform::LightspeedE, EcommercePlatform::Squarespace] as $p) {
-            $this->assertFalse($this->publisher()->readiness($p)['automatic_publication']);
+        // Ecwid/Lightspeed E publish via app storage (EcwidAppPublisherTest); Squarespace is verified-manual.
+        foreach ([EcommercePlatform::LightspeedE, EcommercePlatform::Ecwid] as $p) {
+            $this->assertTrue($this->publisher()->readiness($p)['automatic_publication']);
         }
+        $this->assertFalse($this->publisher()->readiness(EcommercePlatform::Squarespace)['automatic_publication']);
+        $this->assertTrue($this->publisher()->readiness(EcommercePlatform::Squarespace)['automatic_verification']);
         $this->artisan('shopbonus:banner-native', ['action' => 'readiness', 'id' => 'bigcommerce'])->assertSuccessful();
         $this->artisan('shopbonus:banner-native', ['action' => 'remove', 'id' => $this->connection->public_id])->assertFailed();
     }

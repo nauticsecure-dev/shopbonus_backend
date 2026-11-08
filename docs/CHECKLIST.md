@@ -1882,3 +1882,10 @@ B93 implementing SHA `3cc0ef7`; B92 implementing SHA `3180453`. Local tests pass
 - [x] Focused Node tests for conversion, rejection, no-fetch and sensitive-page exclusion; document bridge snippet and limits.
 - [ ] Live Adobe storefront acceptance (NOT RUN).
 - [ ] Ecwid/Lightspeed E, Lightspeed C, Squarespace readers — blocked on missing documented unit/currency/session contracts.
+
+### B95 — Ecwid/Lightspeed E and Squarespace publication (2026-11-08)
+
+- [x] Ecwid/Lightspeed E automatic publication/cleanup via documented app storage `public` key + app customJsUrl loader; owned-only writes, read-back, no blind retries.
+- [x] Squarespace verified manual installation: exact snippet, pinned served-HTML presence and removal verification (no code-injection API exists).
+- [x] Readiness, command dispatch, NL translations, focused PHP/Node tests and docs.
+- [ ] Register ShopBonus Ecwid app and run real Ecwid/Lightspeed E and Squarespace store acceptance (NOT RUN).
