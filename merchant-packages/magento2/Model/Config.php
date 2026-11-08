@@ -24,4 +24,19 @@ class Config
     {
         return $this->encryptor->decrypt((string) $this->config->getValue('shopbonus_async/general/secret', ScopeInterface::SCOPE_STORE, $store));
     }
+
+    public function bannerEnabled(int $store): bool
+    {
+        return $this->config->isSetFlag('shopbonus_async/general/banner_enabled', ScopeInterface::SCOPE_STORE, $store);
+    }
+
+    public function bannerOrigin(int $store): string
+    {
+        return (string) $this->config->getValue('shopbonus_async/general/banner_origin', ScopeInterface::SCOPE_STORE, $store);
+    }
+
+    public function bannerKey(int $store): string
+    {
+        return (string) $this->config->getValue('shopbonus_async/general/banner_key', ScopeInterface::SCOPE_STORE, $store);
+    }
 }

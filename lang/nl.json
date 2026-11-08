@@ -878,4 +878,6 @@
     "Owned native coupon evidence is missing or differs. No mutation was sent.": "Het bewijs voor de eigen kortingscode bij de webshop ontbreekt of wijkt af. Er is geen wijziging verzonden.",
     "Exact unused native configuration readback is required before import.": "Voordat de code wordt geïmporteerd, moet de webshop bevestigen dat de ongebruikte code exact overeenkomt met de vastgelegde voorwaarden.",
     "The Shopify store currency differs from the frozen offer.": "De valuta van de Shopify-winkel wijkt af van de vastgelegde aanbieding."
+    "Confirm the complete owned native installation before upgrading.": "Controleer vóór de upgrade de volledige eigen installatie bij de provider.",
+    "Reconcile the existing native upgrade or removal before continuing.": "Controleer de status van de bestaande upgrade of verwijdering bij de provider voordat u verdergaat."
 }

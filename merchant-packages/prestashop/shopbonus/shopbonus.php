@@ -11,7 +11,7 @@ class Shopbonus extends Module
     {
         $this->name = 'shopbonus';
         $this->tab = 'advertising_marketing';
-        $this->version = '0.1.0';
+        $this->version = '0.2.0';
         $this->author = 'Shopbonus';
         $this->bootstrap = true;
         $this->ps_versions_compliancy = ['min' => '9.0.0', 'max' => '9.99.99'];
@@ -141,6 +141,35 @@ class Shopbonus extends Module
             return '';
         }
 
-        return '<script defer src="'.htmlspecialchars($origin.'/embed/v1.js', ENT_QUOTES, 'UTF-8').'" data-shopbonus-key="'.htmlspecialchars($key, ENT_QUOTES, 'UTF-8').'"></script>';
+        $page = (string) ($this->context->controller->php_self ?? '');
+        if (in_array($page, ['order', 'order-opc', 'authentication', 'my-account', 'identity', 'addresses', 'address', 'history', 'order-detail', 'order-slip', 'order-follow', 'password', 'registration'], true)) {
+            return '';
+        }
+        $cartUrl = $this->context->link->getModuleLink('shopbonus', 'cart', [], true);
+
+        return '<script defer src="'.htmlspecialchars($origin.'/embed/native-cart-v1.js', ENT_QUOTES, 'UTF-8').'" data-platform="prestashop" data-cart-url="'.htmlspecialchars($cartUrl, ENT_QUOTES, 'UTF-8').'"></script>'
+            .'<script defer src="'.htmlspecialchars($origin.'/embed/v1.js', ENT_QUOTES, 'UTF-8').'" data-shopbonus-key="'.htmlspecialchars($key, ENT_QUOTES, 'UTF-8').'"></script>';
+    }
+
+    /** Current browser context only: request parameters can never select another guest/cart/shop. */
+    public function cartSnapshot(): ?array
+    {
+        $shop = (int) $this->context->shop->id;
+        $cart = $this->context->cart;
+        if (! $this->active || $this->setting('SB_BANNER', $shop) !== '1' || ! $cart || ! $cart->id
+            || (int) $cart->id !== (int) $this->context->cookie->id_cart || (int) $cart->id_shop !== $shop || (int) $cart->id_currency !== (int) $this->context->currency->id) {
+            return null;
+        }
+        require_once __DIR__.'/CartSnapshot.php';
+        try {
+            if ($this->setting('PS_CATALOG_MODE', $shop) === '1' || ! Group::getCurrent()->show_prices) {
+                return null;
+            }
+
+            return ShopbonusCartSnapshot::fromMajor($cart->getOrderTotal(true, Cart::BOTH), (string) $this->context->currency->iso_code,
+                (int) $this->context->currency->precision, 'prestashop');
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

@@ -10,6 +10,7 @@ use App\Integrations\Data\VerifiedEvent;
 use App\Integrations\Exceptions\InvalidWebhook;
 use App\Models\WebshopConnection;
 use Illuminate\Http\Request;
+use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
 class MerchantPackageTest extends TestCase
@@ -120,6 +121,7 @@ class MerchantPackageTest extends TestCase
                 $name = $zip->getNameIndex($index);
                 $source = match ($name) {
                     'INSTALL.md' => base_path('merchant-packages/INSTALL.md'),
+                    'shopbonus/CartSnapshot.php', 'system/library/CartSnapshot.php', 'Shared/CartSnapshot.php' => base_path('merchant-packages/common/CartSnapshot.php'),
                     'shopbonus/Delivery.php', 'system/library/Delivery.php', 'Shared/Delivery.php' => base_path('merchant-packages/common/Delivery.php'),
                     default => base_path('merchant-packages/'.$directories[$filename].'/'.$name),
                 };
@@ -128,5 +130,24 @@ class MerchantPackageTest extends TestCase
             }
             $zip->close();
         }
+    }
+
+    public function test_packaged_cart_sources_keep_session_ownership_currency_and_private_values_isolated(): void
+    {
+        foreach (['common', 'prestashop', 'opencart', 'magento'] as $platform) {
+            $process = new Process([PHP_BINARY, base_path('tests/native-cart-packages.test.php'), $platform]);
+            $process->setTimeout(30)->run();
+            $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+            $result = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+            $this->assertSame($platform, $result['platform']);
+            $this->assertGreaterThanOrEqual(8, $result['checks']);
+        }
+    }
+
+    public function test_native_cart_reader_runtime_and_actual_renderer_contracts(): void
+    {
+        $process = new Process(['node', '--test', base_path('tests/embed-lifecycle.test.cjs')]);
+        $process->setTimeout(30)->run();
+        $this->assertSame(0, $process->getExitCode(), $process->getErrorOutput().$process->getOutput());
     }
 }

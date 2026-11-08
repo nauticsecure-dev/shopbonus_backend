@@ -95,7 +95,11 @@ class NativeBannerPublisher
             $this->current($connection, $actor);
             $existing = $this->latestPlan($connection);
             if ($existing !== null && ! $this->has($existing, 'removed')) {
-                if (($existing->metadata['digest'] ?? null) !== $context['digest']) {
+                $legacy = $context;
+                unset($legacy['cart_script_url'], $legacy['digest']);
+                $legacyDigest = hash('sha256', json_encode($legacy, JSON_THROW_ON_ERROR));
+                if (($existing->metadata['digest'] ?? null) !== $context['digest']
+                    && (isset($existing->metadata['cart_script_url']) || ($existing->metadata['digest'] ?? null) !== $legacyDigest)) {
                     throw ApiException::conflict('Remove or reconcile the previous frozen installation before changing it.', 'native_banner_plan_changed');
                 }
 
@@ -108,6 +112,9 @@ class NativeBannerPublisher
 
             return $this->audit->record('integration.banner_plan', category: AuditCategory::Integration, resource: $connection, actorUserId: $actor->id, webshopId: $connection->webshop_id, metadata: $context);
         });
+        if (! isset($plan->metadata['cart_script_url']) && $this->observation($plan, 'placement') !== null) {
+            return $this->upgradeCart($connection, $actor);
+        }
         foreach (array_keys(self::RESOURCES) as $step) {
             if ($this->observation($plan, $step) !== null) {
                 continue;
@@ -136,6 +143,58 @@ class NativeBannerPublisher
             $this->verify($plan, $step, $read);
             $this->observe($connection, $actor, $plan, $step, $read['uuid']);
         }
+
+        return $this->reconcile($connection, $actor);
+    }
+
+    /** Upgrade the owned legacy template in place; the provider propagates the current version to widgets.
+     * @return array<string,mixed>
+     */
+    public function upgradeCart(WebshopConnection $connection, User $actor): array
+    {
+        $this->authorize($connection, $actor);
+        $this->identity($connection);
+        $plan = $this->latestPlan($connection) ?? throw ApiException::conflict('No native publication plan exists.', 'native_banner_plan_missing');
+        $this->bound($connection, $plan);
+        if ($this->has($plan, 'removing') || $this->has($plan, 'removed')) {
+            throw ApiException::conflict('Native removal has started.', 'native_banner_removing');
+        }
+        if (isset($plan->metadata['cart_script_url']) || $this->has($plan, 'cart_upgrade_intent')) {
+            // A lost PUT response is resolved by exact readback only, never another PUT.
+            return $this->reconcile($connection, $actor);
+        }
+        $before = $this->reconcile($connection, $actor);
+        if ($before['state'] !== 'native_configured') {
+            throw ApiException::conflict('Confirm the complete owned native installation before upgrading.', 'native_banner_upgrade_incomplete');
+        }
+        if (! config('integrations.bigcommerce_banners.enabled')) {
+            throw ApiException::conflict('Native banner writes are disabled.', 'native_banner_disabled');
+        }
+        $url = $plan->metadata['script_url'];
+        $parts = is_string($url) ? parse_url($url) : false;
+        if (! is_array($parts) || ($parts['scheme'] ?? null) !== 'https' || ($parts['path'] ?? null) !== '/embed/v1.js'
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']) || isset($parts['query']) || isset($parts['fragment'])) {
+            throw ApiException::conflict('Configure a public HTTPS application origin first.', 'native_banner_app_origin_invalid');
+        }
+        DomainName::fromInput($url);
+        $context = $plan->metadata;
+        $context['cart_script_url'] = substr($url, 0, -strlen('/embed/v1.js')).'/embed/native-cart-v1.js';
+        $template = self::template($context);
+        DB::transaction(function () use ($connection, $actor, $plan, $template): void {
+            $this->current($connection, $actor);
+            $this->bound($connection, $plan);
+            if ($this->has($plan, 'removing') || $this->has($plan, 'removed') || $this->has($plan, 'cart_upgrade_intent')) {
+                throw ApiException::conflict('Reconcile the existing native upgrade or removal before continuing.', 'native_banner_upgrade_pending');
+            }
+            $this->record($connection, $actor, $plan, 'cart_upgrade_intent', ['template' => $template, 'template_digest' => hash('sha256', $template)]);
+        });
+        $id = $this->observation($plan, 'template')?->metadata['uuid'];
+        // Explicit false is the documented forced update of the current version and its existing widgets.
+        $remote = $this->api->request($connection, 'PUT', 'widget-templates', $id, $this->payload($plan, 'template') + ['create_new_version' => false]);
+        if ($remote === null) {
+            throw ApiException::conflict('Native create has not been confirmed.', 'native_banner_outcome_unknown');
+        }
+        $this->verify($plan, 'template', $remote);
 
         return $this->reconcile($connection, $actor);
     }
@@ -187,6 +246,16 @@ class NativeBannerPublisher
             }
             $this->verify($plan, $step, $remote);
             $ids[$step] = $id;
+        }
+
+        if ($this->has($plan, 'cart_upgrade_intent') && ! $this->has($plan, 'cart_upgrade_observed')) {
+            DB::transaction(function () use ($connection, $actor, $plan): void {
+                $this->current($connection, $actor);
+                $this->bound($connection, $plan);
+                if (! $this->has($plan, 'cart_upgrade_observed')) {
+                    $this->record($connection, $actor, $plan, 'cart_upgrade_observed');
+                }
+            });
         }
 
         return ['plan' => $plan->id, 'state' => 'native_configured', 'remote_ids' => $ids, 'storefront_delivery' => 'not_observed', 'automatic_campaign_updates' => true];
@@ -339,7 +408,7 @@ class NativeBannerPublisher
         $name = 'ShopBonus '.$plan->id;
 
         return match ($step) {
-            'template' => ['name' => $name, 'template' => self::template($m), 'channel_id' => 1],
+            'template' => ['name' => $name, 'template' => $this->events($plan, 'cart_upgrade_intent')->oldest('id')->first()?->metadata['template'] ?? self::template($m), 'channel_id' => 1],
             'widget' => ['name' => $name, 'widget_template_uuid' => $this->observation($plan, 'template')?->metadata['uuid'] ?? throw ApiException::conflict('Confirm the native template first.', 'native_banner_incomplete'),
                 'widget_configuration' => ['shopbonus_public_key' => $m['public_key']], 'channel_id' => 1],
             'placement' => $m['target'] + ['widget_uuid' => $this->observation($plan, 'widget')?->metadata['uuid'] ?? throw ApiException::conflict('Confirm the native widget first.', 'native_banner_incomplete'), 'status' => 'active', 'channel_id' => 1],

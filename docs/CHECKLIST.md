@@ -1833,3 +1833,24 @@ B90 implementing SHA: `2ce1c2f`.
 B91 validation: focused regression56 PASS / 8901 assertions; final provisioning/localization21 PASS / 494 assertions after drift/currency/immutable-intent additions. Scoped PHPStan, Pint and whitespace PASS. Seven real isolated API captures; actual provider writes/checkout/staging/MySQL NOT RUN. Implementation SHA follows closeout.
 
 B91 implementing SHA `60869b4`; B90 localization SHA `2ce1c2f`. Local validation passed as recorded above; current-head CI and genuine provider acceptance remain pending.
+### B92 — BigCommerce legacy native cart upgrade (2026-11-07)
+
+- [x] Add a fixed owned-template PUT operation using the documented forced update contract; keep external writes default-off.
+- [x] Upgrade matching legacy plans through install/explicit upgrade without rewriting immutable plans or removing widgets/placements; journal uncertain writes and reconcile without replay.
+- [x] Verify ownership, current authority, credential/domain binding, idempotency, lost responses and safe cleanup with focused native HTTP tests.
+- [x] Record commands, executed checks and remaining native cart/provider acceptance in task/progress/handoff docs.
+
+B92: native publisher17 PASS / 499 assertions; localization3 PASS / 9; scoped PHPStan and Pint/whitespace PASS. Actual BigCommerce propagation/storefront acceptance NOT RUN. SHA follows closeout.
+
+B92 implementing SHA `3180453`.
+
+### B93 — Native package session-cart sources (2026-11-07)
+
+- [x] Add exact bounded private session-cart snapshots for supported PrestaShop9/OpenCart4.1/Magento2.4 packages, without order data, guessed currency or new OpenCart catalogue endpoints.
+- [x] Extend the shared native reader with narrowly validated same-origin package routes/header/section contracts, lifecycle/sensitive-route protection and native change notifications.
+- [x] Wire ordered reader loading through enabled native packages and rebuild deterministic archives/manifests; preserve existing catalog/order semantics and disabled defaults.
+- [x] Run focused runtime/native package/reader negative checks, document exact version/source boundaries, and retain unsupported Lightspeed/Squarespace/Adobe SaaS cases honestly.
+
+B93 validation: combined package/publisher24 PASS / 731 assertions, including Node48 PASS via PHPUnit and four isolated native-framework contract fixtures; PHP syntax18 files and Magento XML well-formedness PASS; Pint/whitespace PASS. Actual native installation/DI/storefront/provider/staging acceptance NOT RUN. No Laravel migration or API route change. Source SHA follows closeout.
+
+B93 implementing SHA `3cc0ef7`; B92 implementing SHA `3180453`. Local tests passed; CI/native deployed acceptance remain pending as recorded.
