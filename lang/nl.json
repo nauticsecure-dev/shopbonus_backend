@@ -844,5 +844,7 @@
     "Choose an open AI proposal and a concrete protected GET endpoint.": "Kies een open AI-voorstel en een concreet beveiligd GET-endpoint.",
     "Link the proposal to the discovered endpoint before generation.": "Koppel het voorstel vóór het genereren aan het ontdekte endpoint.",
     "Generated executable already exists with different bytes.": "De gegenereerde uitvoerbare test bestaat al met andere inhoud.",
-    "The configured adapter has no native coupon comparison.": "De ingestelde adapter ondersteunt geen vergelijking van native kortingscodes."
+    "The configured adapter has no native coupon comparison.": "De ingestelde adapter ondersteunt geen vergelijking van native kortingscodes.",
+    "Confirm the complete owned native installation before upgrading.": "Controleer vóór de upgrade de volledige eigen installatie bij de provider.",
+    "Reconcile the existing native upgrade or removal before continuing.": "Controleer de status van de bestaande upgrade of verwijdering bij de provider voordat u verdergaat."
 }
