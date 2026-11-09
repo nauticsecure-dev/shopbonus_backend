@@ -33,8 +33,11 @@
         || endpoint.searchParams.get("sections") !== "shopbonus_cart") return;
       // Duplicated routing keys are ambiguous even if URLSearchParams.get returns a safe first value.
       if (keys.some(function (key, index) { return keys.indexOf(key) !== index; })) return;
+    } else if (platform === "adobe-storefront") {
+      // Adobe Commerce SaaS/headless storefront drop-ins: no fetch; the merchant bridge forwards cart/data events.
+      endpoint = null;
     } else return;
-    if (endpoint.origin !== location.origin || endpoint.username || endpoint.password || endpoint.hash) return;
+    if (endpoint && (endpoint.origin !== location.origin || endpoint.username || endpoint.password || endpoint.hash)) return;
   } catch (e) { return; }
   function excluded() {
     if (/(?:^|\/)(checkout|checkouts|checkout\.php|payment|payments|account|account\.php|my-account|login|login\.php|register|order-received|customer|authentication)(\/|$)/i.test(location.pathname)) return true;
@@ -57,6 +60,12 @@
   }
   // Match the renderer's currency precision; unknown currencies fail closed.
   var currencies = ["EUR", "USD", "GBP", "CAD", "AUD", "NZD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK"];
+  // Parse a reported major-unit decimal exactly; never round a fractional minor unit.
+  function exactMinor(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+    var parts = /^(0|[1-9][0-9]*)(?:\.([0-9]{1,2}))?$/.exec(String(value));
+    return parts ? Number(parts[1]) * 100 + Number(((parts[2] || "") + "00").slice(0, 2)) : null;
+  }
   function normalize(cart) {
     var amount, currency;
     if (platform === "woocommerce") {
@@ -67,21 +76,23 @@
       var source = platform === "magento" ? cart && cart.shopbonus_cart : cart;
       if (!source || source.schema !== "shopbonus.cart-source.v1" || source.platform !== platform || source.minor_unit !== 2) return null;
       amount = source.total_minor; currency = source.currency;
+    } else if (platform === "adobe-storefront") {
+      // Drop-in CartModel.total.includingTax is a Price {value, currency}; null/absent cart yields no snapshot.
+      var price = cart && cart.total && cart.total.includingTax;
+      if (!price || typeof price.currency !== "string") return null;
+      amount = exactMinor(price.value); currency = price.currency;
+      if (amount === null) return null;
     } else {
       // No cart has no reported currency: do not invent a zero/currency pair.
       if (!Array.isArray(cart) || cart.length !== 1 || !cart[0] || !cart[0].currency || cart[0].currency.decimalPlaces !== 2) return null;
       currency = cart[0].currency.code;
-      var value = cart[0].cartAmount;
-      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
-      // Parse the reported decimal exactly; never round a fractional minor unit.
-      var parts = /^(0|[1-9][0-9]*)(?:\.([0-9]{1,2}))?$/.exec(String(value));
-      if (!parts) return null;
-      amount = Number(parts[1]) * 100 + Number(((parts[2] || "") + "00").slice(0, 2));
+      amount = exactMinor(cart[0].cartAmount);
+      if (amount === null) return null;
     }
     return Number.isSafeInteger(amount) && amount >= 0 && currencies.indexOf(currency) >= 0 ? { total_minor: amount, currency: currency } : null;
   }
   var snapshot = null, subscribers = [], running = false, pending = false, stopped = false;
-  var revision = 0, activeController = null;
+  var revision = 0, activeController = null, pushedCart = null;
   function notify() {
     subscribers.slice().forEach(function (fn) { try { fn(); } catch (e) {} });
     window.dispatchEvent(new CustomEvent("shopbonus:cart-changed"));
@@ -89,6 +100,15 @@
   function invalidate() { snapshot = null; revision++; notify(); }
   function refresh() {
     if (stopped || document.visibilityState === "hidden" || excluded()) return;
+    if (platform === "adobe-storefront") {
+      // The drop-in state is current until its next cart/data event; re-stamp it on each visible refresh.
+      var pushed = pushedCart ? normalize(pushedCart) : null;
+      if (pushed) {
+        snapshot = { schema: "shopbonus.cart.v1", total_minor: pushed.total_minor, currency: pushed.currency, observed_at: Date.now() };
+        notify();
+      } else if (snapshot) invalidate();
+      return;
+    }
     if (running) { pending = true; return; }
     running = true;
     var generation = revision, started = Date.now(), controller = new AbortController();
@@ -155,6 +175,9 @@
   if (platform === "prestashop" && window.prestashop && typeof window.prestashop.on === "function") {
     window.prestashop.on("updateCart", changed);
     window.prestashop.on("updatedCart", changed);
+  }
+  if (platform === "adobe-storefront") {
+    window.addEventListener("shopbonus:adobe-cart-data", function (event) { pushedCart = event.detail || null; changed(); });
   }
   if (platform === "magento" && window.jQuery && document.body) {
     window.jQuery(document.body).on("ajax:addToCart ajax:removeFromCart", changed);

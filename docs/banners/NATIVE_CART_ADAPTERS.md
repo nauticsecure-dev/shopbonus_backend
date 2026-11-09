@@ -43,7 +43,8 @@ The shared reader branches allow the same explicit two-decimal currencies as the
 | BigCommerce Stencil | `native-cart-v1.js`, ordered merchant script installation | NOT RUN |
 | Wix, Shopware, Mijnwebwinkel, CCV | No native reader shipped; retain truthful static fallback or an existing verified merchant bridge | NOT RUN / unsupported by these readers |
 | PrestaShop9, OpenCart4.1.0.3, Magento2.4 / Adobe self-hosted/PaaS | B93 native package session source + shared reader (details below) | NOT RUN |
-| Ecwid / Lightspeed E-Series, Lightspeed C-Series, Squarespace, Adobe Commerce SaaS/headless | No reader shipped for these environments; missing verified native source/currency/installation contracts (see below) | NOT RUN |
+| Adobe Commerce SaaS / Edge Delivery storefront drop-ins | B94 `native-cart-v1.js` `data-platform="adobe-storefront"` + merchant `cart/data` bridge (below) | NOT RUN |
+| Ecwid / Lightspeed E-Series, Lightspeed C-Series, Squarespace | No reader shipped for these environments; missing verified native source/currency/installation contracts (see below) | NOT RUN |
 
 This does not promote platform capability/Connected status or prove payment, attribution, installation or reward eligibility. Server eligibility remains authoritative. Real merchant acceptance must record platform/theme versions and exercise add/remove/quantity/coupon/currency, empty cart, outages, sensitive pages, desktop/mobile, consent and uninstall. No live provider store was available in this task.
 
@@ -94,3 +95,23 @@ Reviewed primary source contracts2026-11-07:
 These are local native-source contracts, not provider acceptance. Squarespace's reviewed public Commerce/Custom Code docs and developer tools inventory do not establish a supported shopper cart-source interface; no private/undocumented endpoint or DOM price scrape is used. Ecwid's reviewed Cart.get/calculateTotal docs still do not establish a current ISO currency/units binding for this installation. See https://support.squarespace.com/hc/en-us/articles/41325887099533-Developer-Tools-APIs-at-Squarespace and https://docs.ecwid.com/storefronts/manage-cart-and-checkout/get-cart-details.md . Those remaining platform readers stay OPEN.
 
 B93 executed evidence: `tests/Unit/Integrations/MerchantPackageTest.php` checks deterministic archive/source/hash identity, four isolated native-framework contract fixtures and the actual shared reader/renderer Node harness; native framework doubles are explicitly synthetic. Node48 PASS includes the three new platform paths, exact totals, malformed/mismatched/currency/precision failures, lost/stale responses, hidden/bfcache/sensitive routes, restricted URLs, native notifications and privacy. Package PHP syntax and Magento XML well-formedness pass. Full framework/storefront/provider/staging acceptance remains NOT RUN.
+
+## B94 — Adobe Commerce SaaS/headless storefront drop-ins (2026-11-08)
+
+Source contract (reviewed 2026-11-08): [Cart drop-in events](https://experienceleague.adobe.com/developer/commerce/storefront/dropins/cart/events/) — `cart/data` "emitted when cart data is available or changes", payload `CartModel | null`, subscribed via `events.on` from `/@dropins/tools/event-bus.js`; grand total `CartModel.total.includingTax: Price`. The page does not define `Price`; the same model documents prices as `{ currency: string; value: number }`, so the reader requires exactly a finite non-negative number with at most two decimals and an allowed ISO currency, and otherwise fails closed (no snapshot). Null/absent carts yield no snapshot; no zero is invented.
+
+The event bus is an ES module, so the merchant storefront (e.g. `scripts/scripts.js`, registered **before** the cart drop-in initializes) forwards events; the reader never fetches or scrapes the DOM:
+
+```html
+<script defer src="https://YOUR_BACKEND/embed/native-cart-v1.js" data-platform="adobe-storefront"></script>
+<script defer src="https://YOUR_BACKEND/embed/v1.js" data-shopbonus-key="YOUR_PUBLIC_KEY"></script>
+```
+
+```js
+import { events } from '/@dropins/tools/event-bus.js';
+events.on('cart/data', (cart) => window.dispatchEvent(new CustomEvent('shopbonus:adobe-cart-data', { detail: cart })));
+```
+
+The last pushed cart is re-stamped on visible refreshes (drop-in state stays current until its next `cart/data`); checkout/account pages are excluded as for other platforms. Unverified, explicitly NOT RUN: the `Price` shape against a live drop-in, the `eager` option and empty-cart payload shape (undocumented), and real storefront/CSP/currency-switch acceptance. Tests: `node --test tests/embed-lifecycle.test.cjs` 50 PASS (2 new: exact conversion, malformed/null/sub-cent/string/negative/unsupported-currency rejection, no fetch, sensitive-page exclusion).
+
+Still OPEN, unchanged and intentionally not guessed: Ecwid/Lightspeed E-Series (unit of `order.total` and storefront ISO currency undocumented), Lightspeed C-Series (no reviewed JSON session/currency/change contract) and Squarespace (no public shopper cart source or change event).

@@ -514,3 +514,60 @@ test('PrestaShop and Magento native notifications refetch their session source',
     assert.equal(h.requests.filter(r => r.url.startsWith('https://shop.test/')).length, 3);
   }
 });
+
+test('Adobe storefront drop-in bridge: exact pushed totals, no fetch, fail-closed on malformed/null carts', () => {
+  const listeners = {};
+  const { s, calls } = adapterSandbox(nativeSource, { 'data-platform': 'adobe-storefront' }, {
+    addEventListener(type, fn) { listeners[type] = fn; },
+  });
+  const cart = s.ShopBonusCart;
+  assert.ok(cart);
+  assert.equal(cart.getSnapshot(), null);
+  const push = (detail) => listeners['shopbonus:adobe-cart-data']({ detail });
+  push({ total: { includingTax: { value: 38.5, currency: 'EUR' } } });
+  assert.deepEqual([cart.getSnapshot().total_minor, cart.getSnapshot().currency], [3850, 'EUR']);
+  push({ total: { includingTax: { value: 12, currency: 'USD' } } });
+  assert.deepEqual([cart.getSnapshot().total_minor, cart.getSnapshot().currency], [1200, 'USD']);
+  for (const bad of [null, {}, { total: { includingTax: { value: 1.005, currency: 'EUR' } } },
+    { total: { includingTax: { value: '10', currency: 'EUR' } } }, { total: { includingTax: { value: -1, currency: 'EUR' } } },
+    { total: { includingTax: { value: 10, currency: 'JPY' } } }, { total: { excludingTax: { value: 10, currency: 'EUR' } } }]) {
+    push({ total: { includingTax: { value: 5, currency: 'EUR' } } });
+    assert.equal(cart.getSnapshot().total_minor, 500);
+    push(bad);
+    assert.equal(cart.getSnapshot(), null, JSON.stringify(bad));
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('Adobe storefront bridge stays off checkout/account pages', () => {
+  for (const pathname of ['/checkout', '/customer/account', '/order-received/1']) {
+    const { s } = adapterSandbox(nativeSource, { 'data-platform': 'adobe-storefront' }, { location: { origin: 'https://shop.test', pathname } });
+    assert.equal(s.ShopBonusCart, undefined);
+  }
+});
+
+test('Ecwid app storefront script loads the renderer only from a valid same-origin public config', () => {
+  const ecwidSource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/ecwid-app-v1.js'), 'utf8');
+  const good = JSON.stringify({ schema: 'shopbonus.ecwid-app.v1', embed: 'https://api.example.com/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) });
+  function run(config, src = 'https://api.example.com/embed/ecwid-app-v1.js?client_id=shopbonus-app') {
+    const appended = [];
+    const s = {
+      URL, JSON,
+      document: { currentScript: { src }, querySelector: () => null, head: { appendChild: (el) => appended.push(el) },
+        createElement: () => ({ attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } }) },
+      Ecwid: { OnAPILoaded: { add: (fn) => fn() }, getAppPublicConfig: (id) => (id === 'shopbonus-app' ? config : null) },
+    };
+    s.window = s; vm.runInNewContext(ecwidSource, s); return appended;
+  }
+  for (const config of [good, { key: 'public', value: good }]) {
+    const [el] = run(config);
+    assert.equal(el.src, 'https://api.example.com/embed/v1.js');
+    assert.equal(el.attrs['data-shopbonus-key'], 'pk_' + 'a'.repeat(24));
+  }
+  for (const config of [null, '', "{'color':'red'}", JSON.stringify({ schema: 'shopbonus.ecwid-app.v1', embed: 'https://evil.test/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) }),
+    JSON.stringify({ schema: 'other', embed: 'https://api.example.com/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) })]) {
+    assert.equal(run(config).length, 0);
+  }
+  assert.equal(run(good, 'http://api.example.com/embed/ecwid-app-v1.js?client_id=shopbonus-app').length, 0);
+  assert.equal(run(good, 'https://api.example.com/embed/ecwid-app-v1.js').length, 0);
+});

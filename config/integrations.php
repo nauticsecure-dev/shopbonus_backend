@@ -64,6 +64,10 @@ return [
     // Lightspeed C-Series Shop Scripts publication (opt-in; the merchant's API key must be allowed to manage scripts).
     'lightspeed_banners' => ['enabled' => (bool) env('LIGHTSPEED_BANNERS_ENABLED', false)],
 
+    // Ecwid / Lightspeed E-Series: the registered ShopBonus Ecwid app (customize_storefront, customJsUrl
+    // = APP_URL/embed/ecwid-app-v1.js?client_id=...) reads its per-store public app-storage config.
+    'ecwid_banners' => ['enabled' => (bool) env('ECWID_BANNERS_ENABLED', false), 'client_id' => env('ECWID_APP_CLIENT_ID')],
+
     'platforms' => [
         'woocommerce' => [
             'profile' => [
