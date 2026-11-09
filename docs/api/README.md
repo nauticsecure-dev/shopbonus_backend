@@ -25947,6 +25947,21 @@ Lightspeed C catalog follow-up (2026-11-03): product reads now use bounded nativ
 
 Example request: `curl -i http://localhost:<PORT>/api/v1/admin/ai/operations -H 'Accept: application/json' -H 'Authorization: Bearer <SYNTHETIC_TOKEN>'`. Actual response examples (200/401/403/422) are in [SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json](SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json), captured from a running loopback server with isolated synthetic SQLite at HassanDev9546163 plus this uncommitted change; the200example is also in OpenAPI. Broadcaster was disabled for that capture, accurately returning not_configured. Actual local Reverb delivery/invalid-credentials/recovery observations are separately captured in [SUPPORT_REVERB_LOCAL_PROBE.json](SUPPORT_REVERB_LOCAL_PROBE.json). See [runbook, executed checks and limits](../SUPPORT_SETTINGS_CONNECTIVITY_REVIEW_2026-11-04.md); deployed TLS/browser/queue/provider acceptance remains NOT RUN.
 
+## Assignment cart bridge — 2026-11-08
+
+`POST /api/v1/banners/assignments` accepts optional `cart_context` containing exactly `platform: bigcommerce` and a native `cart_id` UUID. Requires current recorded consent, approved shop, allowed Origin, one active verified BigCommerce connection, Carts read scope, migrated storage and `BIGCOMMERCE_CART_ASSIGNMENTS_ENABLED=true`. Existing requests/response shape remain compatible. Immutable cart conflicts/disabled bridge return409; failed native cart identity returns502. Neither customer authentication nor payment confirmation is inferred. Setup/limits: [assignment persistence](../banners/ASSIGNMENT_PERSISTENCE_2026-11-08.md).
+
+Seven actual loopback HTTP captures: [evidence](CART_ASSIGNMENT_HTTP_CAPTURE.json), reproduced with `php -d xdebug.mode=off scripts/capture-cart-assignments.php`. Isolated synthetic SQLite, actual Laravel HTTP, mocked provider transport/DNS; genuine provider acceptance NOT RUN. Example request (Origin `https://shop.example.com`):
+
+```json
+{"key":"pk_o7rrq429jk7agwgorldipxvn","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834","cart_context":{"platform":"bigcommerce","cart_id":"d30016e2-23c0-4a90-884f-2e92ac135476"}}
+```
+
+Captured200 response:
+
+```json
+{"data":[{"campaign":"01m6wkc8hs6vt2pwrgsd4bcqvg","assignment_token":"bx_85b7d46de231ac50e588ac80f10c4f009161d4705ead23872f009947fac5375d","arm":"variant","version":1,"holdout":false,"expires_at":"2026-12-08T08:31:38+05:00"}]}
+```
 Additional native coupon reads (2026-11-07): the existing platform-validation endpoint supports Magento, Squarespace and simple Shopware 6 cart promotions within the [documented boundaries](../integrations/COUPON_VERIFICATION.md). [Twelve captured HTTP examples](../qa/B71_ADDITIONAL_COUPON_HTTP_CAPTURE.json) include all three matches/mismatches/manual-review results plus auth/tenant denial. Reproduce with `python3 scripts/capture-native-coupon-verification.py --additional`; synthetic provider transport, actual isolated Laravel HTTP. The full remaining-platform gap is partial; see the current provider boundaries in the linked contract. No checkout/redemption or live provider acceptance is asserted.
 
 Remaining coupon follow-up: OpenCart 4.1 opt-in signed live reads and unused single-shop PrestaShop rules now support configuration matches; CCV has native currency/discount readers and comparison but retains manual review for missing combination/usage proof. [Twelve actual HTTP captures](../qa/B71_REMAINING_COUPON_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-coupon-verification.py --remaining`, cover these outcomes. For OpenCart create/replace credentials, optional `store_url` requires `timezone`; old snapshot-only connection inputs remain compatible. Copy the newly generated secret to the updated module and enable authenticated coupon reads. No new backend routes or migrations. C-Series/Mijnwebwinkel contracts and CCV proof remain unresolved; see [current boundaries](../integrations/COUPON_VERIFICATION.md#remaining-provider-boundaries--2026-11-07).

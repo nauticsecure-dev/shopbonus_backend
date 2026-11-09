@@ -91,13 +91,13 @@
     }
     return Number.isSafeInteger(amount) && amount >= 0 && currencies.indexOf(currency) >= 0 ? { total_minor: amount, currency: currency } : null;
   }
-  var snapshot = null, subscribers = [], running = false, pending = false, stopped = false;
+  var snapshot = null, assignmentCart = null, subscribers = [], running = false, pending = false, stopped = false;
   var revision = 0, activeController = null, pushedCart = null;
   function notify() {
     subscribers.slice().forEach(function (fn) { try { fn(); } catch (e) {} });
     window.dispatchEvent(new CustomEvent("shopbonus:cart-changed"));
   }
-  function invalidate() { snapshot = null; revision++; notify(); }
+  function invalidate() { snapshot = null; assignmentCart = null; revision++; notify(); }
   function refresh() {
     if (stopped || document.visibilityState === "hidden" || excluded()) return;
     if (platform === "adobe-storefront") {
@@ -134,6 +134,7 @@
       var value = normalize(cart);
       if (!value) throw new Error("cart_invalid");
       snapshot = { schema: "shopbonus.cart.v1", total_minor: value.total_minor, currency: value.currency, observed_at: started };
+      assignmentCart = platform === "bigcommerce" && Array.isArray(cart) && cart.length === 1 && typeof cart[0].id === "string" && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(cart[0].id) ? cart[0].id : null;
       notify();
     }).catch(function () { if (!stopped && generation === revision) invalidate(); }).then(function () {
       clearTimeout(timeout); running = false; activeController = null;
@@ -152,6 +153,12 @@
     },
     refresh: changed,
   };
+  if (platform === "bigcommerce" && script.getAttribute("data-persist-attribution") === "true") {
+    // Native order reads correlate this cart UUID server-side; no management token or order ID in browser writes.
+    window.ShopBonusCart.getAssignmentContext = function () {
+      return assignmentCart && window.ShopBonusCart.getSnapshot() ? { platform: "bigcommerce", cart_id: assignmentCart } : null;
+    };
+  }
   if (attributionUrl) {
     // Only exact-format values are sent; an empty value clears what the store session holds (tracking withdrawn).
     window.ShopBonusCart.setAttribution = function (value) {

@@ -5,8 +5,9 @@ const fs = require('node:fs');
 const source = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/v1.js'), 'utf8');
 const shopifySource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/shopify-cart-v1.js'), 'utf8');
 const nativeSource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/native-cart-v1.js'), 'utf8');
+const ecwidSource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/ecwid-attribution-v1.js'), 'utf8');
 
-function harness({ allowed = false, observer = false, holdout = false, failEvents = 0, cart = null, shopify = false, platform = null, wooUrl = '/store/wp-json/wc/store/v1/cart' } = {}) {
+function harness({ allowed = false, observer = false, holdout = false, failEvents = 0, failCartBindings = false, cart = null, shopify = false, ecwid = false, persistAttribution = false, platform = null, wooUrl = '/store/wp-json/wc/store/v1/cart' } = {}) {
   const requests = [], reads = [], writes = [], bridge = [], timers = [], listeners = {}, observers = [], intervals = [], messages = [];
   const elements = [];
   let now = Date.parse('2026-10-31T10:00:00Z'), sequence = 0;
@@ -49,11 +50,15 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
         if (failEvents-- > 0) throw new Error('offline');
         return { ok: true, json: async () => ({ data: { click_ids: Object.fromEntries(body.events.filter((e) => e.type === 'cta_click').map((e) => [e.id, 'bc_click'])) } }) };
       }
-      if (url.includes('/assignments')) return { ok: true, json: async () => ({ data: body.consent ? [{ campaign: 'campaign', assignment_token: 'token', version: holdout ? 0 : 1, holdout }] : [] }) };
+      if (url.includes('/assignments')) return { ok: !(failCartBindings && body.cart_context), json: async () => ({ data: body.consent ? [{ campaign: 'campaign', assignment_token: ecwid ? 'bx_' + 'a'.repeat(64) : 'token', version: holdout ? 0 : 1, holdout }] : [] }) };
       return { ok: true, json: async () => JSON.parse(JSON.stringify({ data: { editor_origin: 'https://studio.test', tracking_allowed: allowed, campaigns: holdout || !published ? [] : [config] } })) };
     } };
   sandbox.window = sandbox;
   sandbox.parent = sandbox;
+  if (ecwid) {
+    sandbox.Ecwid = { refreshConfig() {}, OnAPILoaded: { add() {} } };
+    vm.runInNewContext(ecwidSource, sandbox);
+  }
   sandbox.opener = { postMessage(data, origin) { messages.push({ data, origin }); } };
   if (shopify) {
     delete sandbox.ShopBonusCart;
@@ -68,7 +73,7 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
     document.body = element('body');
     sandbox.prestashop = { on: listen };
     sandbox.jQuery = () => ({ on(names, callback) { names.split(' ').forEach((name) => listen(name, callback)); } });
-    document.currentScript = { getAttribute: (key) => ({ 'data-platform': platform, 'data-cart-url': wooUrl })[key] || null };
+    document.currentScript = { getAttribute: (key) => ({ 'data-platform': platform, 'data-cart-url': wooUrl, 'data-persist-attribution': persistAttribution ? 'true' : 'false' })[key] || null };
     vm.runInNewContext(nativeSource, sandbox);
     document.currentScript = embedScript;
   }
@@ -88,6 +93,64 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
     async timer(delay) { const t = timers.find((t) => !t.cancelled && !t.ran && t.delay === delay); assert.ok(t, `timer ${delay}`); t.ran = true; now += delay; t.callback(); await this.settle(); },
     async withdraw() { allowed = false; listeners['shopbonus:consent-changed'](); await this.settle(); } };
 }
+
+test('Ecwid hidden writer receives variant and holdout tokens from the real embed and clears on withdrawal', async () => {
+  for (const holdout of [false, true]) {
+    const h = harness({ ecwid: true, allowed: true, holdout });
+    await h.settle();
+    assert.equal(h.sandbox.ec.order.extraFields.shopbonus_assignment_token.value, 'bx_' + 'a'.repeat(64));
+    assert.equal(h.sandbox.ec.order.extraFields.shopbonus_assignment_token.checkoutDisplaySection, undefined);
+    await h.withdraw();
+    assert.equal(h.sandbox.ec.order.extraFields.shopbonus_assignment_token, undefined);
+  }
+  const h = harness({ ecwid: true });
+  await h.settle();
+  assert.equal(h.sandbox.ec.order.extraFields.shopbonus_assignment_token, undefined);
+  assert.equal(h.reads.length, 0);
+  assert.equal(h.writes.length, 0);
+});
+
+test('BigCommerce opt-in binds native cart context through the real embed, including carts created later', async () => {
+  const CART = 'd30016e2-23c0-4a90-884f-2e92ac135476';
+  for (const holdout of [false, true]) {
+    const h = harness({ platform: 'bigcommerce', persistAttribution: true, allowed: true, holdout });
+    await h.settle();
+    assert.ok(h.requests.filter(r => r.url.includes('/assignments')).every(r => !r.body.cart_context));
+    const cart = providerCart('bigcommerce', 9400);
+    cart[0].id = CART;
+    h.nativeCart(cart);
+    await h.settle();
+    const sent = h.requests.filter(r => r.url.includes('/assignments') && r.body.cart_context);
+    assert.equal(sent.length, 1);
+    assert.deepEqual(sent[0].body.cart_context, { platform: 'bigcommerce', cart_id: CART });
+    h.nativeCart(cart);
+    await h.settle();
+    assert.equal(h.requests.filter(r => r.url.includes('/assignments') && r.body.cart_context).length, 1);
+    await h.withdraw();
+    assert.equal(h.requests.filter(r => r.url.includes('/assignments')).at(-1).body.consent, false);
+  }
+  const h = harness({ platform: 'bigcommerce', persistAttribution: true });
+  await h.settle();
+  const cart = providerCart('bigcommerce', 9400); cart[0].id = CART;
+  h.nativeCart(cart); await h.settle();
+  assert.ok(h.requests.every(r => !r.body?.cart_context));
+  const off = harness({ platform: 'bigcommerce' });
+  assert.equal(off.sandbox.ShopBonusCart.getAssignmentContext, undefined);
+});
+
+test('BigCommerce binding outages preserve stable consented participation without claiming a stored order link', async () => {
+  const h = harness({ platform: 'bigcommerce', persistAttribution: true, allowed: true, failCartBindings: true });
+  const attribution = [];
+  h.sandbox.addEventListener('shopbonus:attribution', event => attribution.push(event.detail));
+  await h.settle();
+  const cart = providerCart('bigcommerce', 9400); cart[0].id = 'd30016e2-23c0-4a90-884f-2e92ac135476';
+  h.nativeCart(cart); await h.settle();
+  const calls = h.requests.filter(r => r.url.includes('/assignments'));
+  assert.ok(calls.some(r => r.body.cart_context));
+  assert.ok(!calls.at(-1).body.cart_context);
+  assert.ok(calls.every(r => r.body.consent));
+  assert.ok(attribution.some(value => value.assignment_token === 'token'));
+});
 
 test('no CMP consent: no identifiers, storage reads/writes, assignment or measurement', async () => {
   const h = harness(); await h.settle();

@@ -15,6 +15,7 @@ use App\Models\WebshopMembership;
 use App\Services\Banners\BannerExperiments;
 use App\Services\Banners\BannerMeasurement;
 use App\Services\Banners\BannerService;
+use App\Services\Banners\BigCommerceCartAssignments;
 use App\Services\Consent\CookieConsents;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -52,7 +53,8 @@ class PublicBannerController extends Controller
 
     public function assignments(Request $request, BannerExperiments $experiments): JsonResponse
     {
-        $data = $request->validate(['key' => ['required', 'string', 'max:40'], 'visitor_key' => ['required', 'uuid'], 'consent' => ['required', 'boolean'], 'consent_id' => ['sometimes', 'nullable', 'uuid']]);
+        $data = $request->validate(['key' => ['required', 'string', 'max:40'], 'visitor_key' => ['required', 'uuid'], 'consent' => ['required', 'boolean'], 'consent_id' => ['sometimes', 'nullable', 'uuid'],
+            'cart_context' => ['sometimes', 'array:platform,cart_id', 'required_array_keys:platform,cart_id'], 'cart_context.platform' => ['required_with:cart_context', Rule::in(['bigcommerce'])], 'cart_context.cart_id' => ['required_with:cart_context', 'uuid']]);
         $installation = $this->installation($request, $data['key']);
         if ($data['consent'] && ! app(CookieConsents::class)->trackingAllowed($data['consent_id'] ?? null)) {
             throw new ApiException('Current tracking consent is required.', 403, 'tracking_consent_required');
@@ -67,7 +69,12 @@ class PublicBannerController extends Controller
             return response()->json(['data' => []], 200, ['Cache-Control' => 'private, no-store']);
         }
 
-        return response()->json(['data' => $experiments->assign($installation, $data['visitor_key'])], 200, ['Cache-Control' => 'private, no-store']);
+        $assignments = $experiments->assign($installation, $data['visitor_key']);
+        if (isset($data['cart_context'])) {
+            app(BigCommerceCartAssignments::class)->bind($installation, $data['visitor_key'], $data['cart_context']['cart_id'], $assignments, $data['consent_id']);
+        }
+
+        return response()->json(['data' => $assignments], 200, ['Cache-Control' => 'private, no-store']);
     }
 
     public function events(Request $request, BannerMeasurement $measurement): JsonResponse
