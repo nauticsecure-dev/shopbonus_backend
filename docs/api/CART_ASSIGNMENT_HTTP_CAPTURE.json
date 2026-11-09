@@ -1,0 +1,182 @@
+{
+    "captured_at": "2026-11-08T03:31:50+00:00",
+    "environment": "Real loopback Laravel HTTP; isolated synthetic SQLite; mocked native BigCommerce transport/DNS; no provider/storefront acceptance",
+    "captures": [
+        {
+            "action": "bind",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://shop.example.com",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+                "consent": true,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "d30016e2-23c0-4a90-884f-2e92ac135476"
+                }
+            },
+            "status": 200,
+            "response": {
+                "data": [
+                    {
+                        "campaign": "01m6wkc8hs6vt2pwrgsd4bcqvg",
+                        "assignment_token": "bx_85b7d46de231ac50e588ac80f10c4f009161d4705ead23872f009947fac5375d",
+                        "arm": "variant",
+                        "version": 1,
+                        "holdout": false,
+                        "expires_at": "2026-12-08T03:31:38+00:00"
+                    }
+                ]
+            }
+        },
+        {
+            "action": "repeat",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://shop.example.com",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+                "consent": true,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "d30016e2-23c0-4a90-884f-2e92ac135476"
+                }
+            },
+            "status": 200,
+            "response": {
+                "data": [
+                    {
+                        "campaign": "01m6wkc8hs6vt2pwrgsd4bcqvg",
+                        "assignment_token": "bx_85b7d46de231ac50e588ac80f10c4f009161d4705ead23872f009947fac5375d",
+                        "arm": "variant",
+                        "version": 1,
+                        "holdout": false,
+                        "expires_at": "2026-12-08T03:31:38+00:00"
+                    }
+                ]
+            }
+        },
+        {
+            "action": "conflict",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://shop.example.com",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "acc3541f-04b2-4e12-a80a-2fdb3db92bf9",
+                "consent": true,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "d30016e2-23c0-4a90-884f-2e92ac135476"
+                }
+            },
+            "status": 409,
+            "response": {
+                "error": {
+                    "status": 409,
+                    "code": "cart_assignment_conflict",
+                    "message": "This cart already has an assignment.",
+                    "request_id": "01a1b936-4260-70fa-acab-fb5d64f8b56a"
+                }
+            }
+        },
+        {
+            "action": "foreign_origin",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://foreign.example",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+                "consent": true,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "d30016e2-23c0-4a90-884f-2e92ac135476"
+                }
+            },
+            "status": 403,
+            "response": {
+                "error": {
+                    "status": 403,
+                    "code": "origin_not_allowed",
+                    "message": "Unknown key or origin not allowed.",
+                    "request_id": "01a1b936-46e3-72e6-a189-f4f4913a187c"
+                }
+            }
+        },
+        {
+            "action": "invalid_cart",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://shop.example.com",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+                "consent": true,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "250"
+                }
+            },
+            "status": 422,
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "The given data was invalid.",
+                    "request_id": "01a1b936-5143-7300-bd7d-f8038be72fc5",
+                    "fields": {
+                        "cart_context.cart_id": [
+                            "The cart context.cart id field must be a valid UUID."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "action": "native_mismatch",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://shop.example.com",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+                "consent": true,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "d30016e2-23c0-4a90-884f-2e92ac135477"
+                }
+            },
+            "status": 502,
+            "response": {
+                "error": {
+                    "status": 502,
+                    "code": "provider_cart_invalid",
+                    "message": "The provider returned a different cart.",
+                    "request_id": "01a1b936-5795-7128-b447-e5b456dfa09f"
+                }
+            }
+        },
+        {
+            "action": "withdraw",
+            "request": "POST /api/v1/banners/assignments",
+            "origin": "https://shop.example.com",
+            "body": {
+                "key": "pk_o7rrq429jk7agwgorldipxvn",
+                "visitor_key": "bdd5903b-90d9-4c6b-b0d0-7757adafbd83",
+                "consent": false,
+                "consent_id": "d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834",
+                "cart_context": {
+                    "platform": "bigcommerce",
+                    "cart_id": "d30016e2-23c0-4a90-884f-2e92ac135476"
+                }
+            },
+            "status": 200,
+            "response": {
+                "data": []
+            }
+        }
+    ]
+}

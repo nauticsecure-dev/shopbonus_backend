@@ -5,7 +5,6 @@ namespace App\Integrations\Connectors;
 use App\Enums\ConnectionMethod;
 use App\Enums\EcommercePlatform;
 use App\Exceptions\ApiException;
-use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
 use App\Integrations\Data\PaymentStatus;
@@ -162,8 +161,8 @@ final class SquarespaceConnector extends WebhookConnector implements PagedOrderR
             paymentStatus: $status, orderStatus: $this->str($order['fulfillmentStatus'] ?? null),
             placedAt: $this->date($order['createdOn'] ?? null), paidAt: null, cancelledAt: null, refundedAt: null,
             refundedMinor: $refund, providerUpdatedAt: $this->date($order['modifiedOn'] ?? null),
-            // Documented checkout form rows (label/value); exactly one row with the reserved label.
-            bannerAssignmentToken: AssignmentMetadata::fromRows($order['formSubmission'] ?? null, 'label'),
+            // Checkout form answers are shopper input, not a hidden cart-to-order bridge.
+            bannerAssignmentToken: null,
         );
     }
 

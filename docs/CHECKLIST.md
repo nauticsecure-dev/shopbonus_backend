@@ -1798,3 +1798,15 @@ B87 implementing merge SHA `e14a603`; validation above covers conflict resolutio
 B88 local validation: Composer audit0 advisories/abandoned, strict validate PASS, focused31/8881 and lock-delta/diff checks PASS. Failed CI41968973988 was audit-only; new CI remains pending until push.
 
 B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; external follow-up CI pending push.
+
+### Assignment persistence follow-up — 2026-11-08
+
+- [ ] Ship a consent-driven hidden-field writer for Ecwid / Lightspeed E-Series, including holdout, withdrawal, late API load, expiry and idempotent installation.
+- [ ] Ship opt-in BigCommerce storefront/native cart-to-order server binding with credential/store isolation, immutable assignments, consent/revocation guards, migration and real HTTP examples.
+- [ ] Reject Squarespace shopper checkout answers as automatic assignment metadata; test ordinary order/payment behavior.
+- [ ] Verify the CCV native schema and record unsupported assignment persistence without inventing fields.
+- [ ] Document the exact remaining BigCommerce / Lightspeed C / other native bridges and installed-store acceptance; run focused regressions and static checks.
+
+Expanded before implementation. Checkboxes await a tested implementation commit SHA; no installed-provider acceptance is implied.
+
+Local evidence: Node43PASS; final backend/OpenAPI/package13PASS/8542; broad integration+Banners+OpenAPI311PASS+2skip/11502 before final hardening; PHPStan/Pint pass. Seven actual local HTTP captures. Broader sales attribution has one untouched coupon expectation failure (unsupported_integration versus sync_error). No provider acceptance, deployment or implementation commit yet.

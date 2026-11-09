@@ -14003,27 +14003,37 @@ paths:
       tags: [Banner embed]
       operationId: bannerAssignments
       summary: "Assign or revoke consented anonymous experiment participation"
-      description: "Origin must match the public key allowlist and shop must be approved. consent=true requires a valid consent_id from the recorded CMP decision and assigns an unpredictable stable arm for this opaque UUID (shop-scoped HMAC; raw UUID not stored). Returns a 30-day assignment token. consent=false revokes assignments for that UUID and returns an empty array; revoked assignments do not resurrect. Use a fresh consented visitor UUID after re-consent. This endpoint has no customer identity/authentication. Carry token with config/events and signed provider order metadata. Responses private/no-store."
+      description: "Origin must match the public key allowlist and shop must be approved. consent=true requires a valid consent_id from the recorded CMP decision and assigns an unpredictable stable arm for this opaque UUID (shop-scoped HMAC; raw UUID not stored). Returns a 30-day assignment token. consent=false revokes assignments for that UUID and returns an empty array; revoked assignments do not resurrect. Use a fresh consented visitor UUID after re-consent. This endpoint has no customer identity/authentication. Carry token with config/events and signed provider order metadata. Responses private/no-store. Optional cart_context (bigcommerce UUID) binds the first server-issued assignment to a live native cart after authenticated store/cart reads. Requires BIGCOMMERCE_CART_ASSIGNMENTS_ENABLED, Carts read scope and migrated storage. Binding is immutable; conflict or disabled bridge returns409. Native lookup errors retain provider502/429 behavior. The later authenticated order cart_id resolves the link; no browser payment or order ID is accepted."
       x-access: public
       security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: {"type": "object", "required": ["key", "visitor_key", "consent"], "properties": {"consent_id": {"type":"string","format":"uuid","description":"Required when consent=true; current recorded analytics and marketing opt-in."}, "key": {"type": "string", "maxLength": 40}, "visitor_key": {"type": "string", "format": "uuid"}, "consent": {"type": "boolean"}}}
-            example: {"key":"pk_attribution_fixture","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"}
+            schema: {"type": "object", "required": ["key", "visitor_key", "consent"], "properties": {"consent_id": {"type":"string","format":"uuid","description":"Required when consent=true; current recorded analytics and marketing opt-in."}, "key": {"type": "string", "maxLength": 40}, "visitor_key": {"type": "string", "format": "uuid"}, "consent": {"type": "boolean"}, "cart_context": {"type":"object","additionalProperties":false,"required":["platform","cart_id"],"properties":{"platform":{"type":"string","enum":["bigcommerce"]},"cart_id":{"type":"string","format":"uuid"}}}}}
+            example: {"key":"pk_o7rrq429jk7agwgorldipxvn","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834","cart_context":{"platform":"bigcommerce","cart_id":"d30016e2-23c0-4a90-884f-2e92ac135476"}}
       x-codeSamples:
         - lang: curl
           source: |
-            curl -i -X POST http://localhost:8000/api/v1/banners/assignments -H 'Accept: application/json' -H 'Origin: https://example.test' -H 'Content-Type: application/json' --data '{"key":"pk_attribution_fixture","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834"}'
+            curl -i -X POST http://localhost:8000/api/v1/banners/assignments -H 'Accept: application/json' -H 'Origin: https://shop.example.com' -H 'Content-Type: application/json' --data '{"key":"pk_o7rrq429jk7agwgorldipxvn","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834","cart_context":{"platform":"bigcommerce","cart_id":"d30016e2-23c0-4a90-884f-2e92ac135476"}}'
       responses:
         '200':
           description: Real local HTTP capture; simulated provider only.
           content:
             application/json:
-              example: {"data":[]}
+              example: {"data":[{"campaign":"01m6wkc8hs6vt2pwrgsd4bcqvg","assignment_token":"bx_85b7d46de231ac50e588ac80f10c4f009161d4705ead23872f009947fac5375d","arm":"variant","version":1,"holdout":false,"expires_at":"2026-12-08T08:31:38+05:00"}]}
 
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Actual local HTTP capture of a conflicting immutable cart assignment.
+          content:
+            application/json:
+              example: {"error":{"status":409,"code":"cart_assignment_conflict","message":"This cart already has an assignment.","request_id":"01a1b936-4260-70fa-acab-fb5d64f8b56a"}}
+        '502':
+          description: Actual local HTTP capture with deliberately mismatched synthetic native cart identity.
+          content:
+            application/json:
+              example: {"error":{"status":502,"code":"provider_cart_invalid","message":"The provider returned a different cart.","request_id":"01a1b936-5795-7128-b447-e5b456dfa09f"}}
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '500': { $ref: '#/components/responses/ServerError' }

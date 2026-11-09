@@ -49,6 +49,15 @@
   var attribution = {};
   var lifecycle = 0;
   var memorySession = { shown: {} };
+  var assignedCartContext = null;
+
+  function cartContext() {
+    try {
+      var bridge = window.ShopBonusCart;
+      var context = bridge && typeof bridge.getAssignmentContext === "function" ? bridge.getAssignmentContext() : null;
+      return context && context.platform === "bigcommerce" && typeof context.cart_id === "string" ? context : null;
+    } catch (e) { return null; }
+  }
 
   function permitted() { return !!consentId && Date.now() < consentUntil; }
 
@@ -72,7 +81,9 @@
     if (bridge && typeof bridge.setAttribution === "function") {
       try { Promise.resolve(bridge.setAttribution(value)).catch(function () {}); } catch (e) {}
     }
-    window.dispatchEvent(new CustomEvent("shopbonus:attribution", { detail: value }));
+    window.dispatchEvent(new CustomEvent("shopbonus:attribution", {
+      detail: Object.assign({}, value, { consent_expires_at: permitted() ? consentUntil : 0 }),
+    }));
   }
 
   function revokeTracking() {
@@ -81,6 +92,7 @@
     consentUntil = 0;
     visitor = null;
     assignments = Object.create(null);
+    assignedCartContext = null;
     eventQueue = [];
     if (flushTimer) clearTimeout(flushTimer);
     flushTimer = null;
@@ -119,14 +131,30 @@
           if (saved && saved.expires_at > Date.now()) attribution.click_id = saved.click_id;
           else delete attribution.click_id;
         } catch (e) {}
-        return fetch(API + "/api/v1/banners/assignments", {
-          method: "POST", credentials: "omit",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify({ key: KEY, visitor_key: visitor, consent: permitted(), consent_id: consentId }),
+        var context = cartContext();
+        var request = { key: KEY, visitor_key: visitor, consent: permitted(), consent_id: consentId };
+        if (context) request.cart_context = context;
+        function sendAssignment() {
+          return fetch(API + "/api/v1/banners/assignments", {
+            method: "POST", credentials: "omit",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(request),
+          });
+        }
+        return sendAssignment().then(function (r) {
+          if (!r.ok && context && generation === lifecycle && permitted()) {
+            // A missing cart bridge must not revoke/re-randomize otherwise valid participation.
+            // Retry assignment alone; the next consent refresh retries the native binding.
+            delete request.cart_context;
+            window.dispatchEvent(new CustomEvent("shopbonus:attribution-error", { detail: { code: "cart_assignment_unavailable" } }));
+            return sendAssignment();
+          }
+          return r;
         }).then(function (r) { if (!r.ok) throw new Error("assignment"); return r.json(); })
           .then(function (result) {
             if (generation !== lifecycle || !permitted()) return;
             assignments = Object.create(null);
+            assignedCartContext = context && context.cart_id;
             (result.data || []).forEach(function (a) { assignments[a.campaign] = a; });
             var first = (result.data || [])[0];
             bridgeAttribution(Object.assign({}, attribution, { assignment_token: first ? first.assignment_token : null }));
@@ -825,6 +853,10 @@
 
   window.addEventListener("message", onMessage);
   window.addEventListener("shopbonus:consent-changed", refreshConsent);
+  window.addEventListener("shopbonus:cart-changed", function () {
+    var context = cartContext();
+    if (permitted() && context && context.cart_id !== assignedCartContext) refreshConsent();
+  });
   window.addEventListener("focus", refreshConsent);
   window.addEventListener("pagehide", flushEvents);
   window.addEventListener("visibilitychange", function () {

@@ -200,6 +200,8 @@ final class CcvConnector extends WebhookConnector implements PagedOrderReader
             firstName: $this->str($o['customer']['billingaddress']['first_name'] ?? null), email: $this->str($o['customer']['email'] ?? null),
             phone: $this->str($o['customer']['billingaddress']['telephone'] ?? null), amountMinor: $amount, currency: $amount === null ? null : $currency,
             paymentStatus: $status, orderStatus: is_int($o['status'] ?? null) ? (string) $o['status'] : null, placedAt: $this->date($o['create_date'] ?? null),
-            paidAt: null, cancelledAt: null, refundedAt: null, refundedMinor: null, providerUpdatedAt: null);
+            paidAt: null, cancelledAt: null, refundedAt: null, refundedMinor: null, providerUpdatedAt: null,
+            // REST v1 has no dedicated hidden assignment field; reference/findus are shopper data.
+            bannerAssignmentToken: null);
     }
 }

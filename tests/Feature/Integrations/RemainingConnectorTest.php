@@ -114,6 +114,20 @@ class RemainingConnectorTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_ccv_has_no_assignment_fallback_to_customer_or_undocumented_fields(): void
+    {
+        $token = 'bx_'.str_repeat('a', 64);
+        $this->native['reference'] = $token;
+        $this->native['customer']['findus'] = $token;
+        $this->native['metadata'] = ['shopbonus_assignment_token' => $token];
+        $this->native['shopbonus_assignment_token'] = $token;
+        $adapter = app(CcvConnector::class);
+        $order = $adapter->normalizeOrder($adapter->fetchOrder($this->connection(), '4711'));
+        $this->assertNull($order->bannerAssignmentToken);
+        $this->assertSame(PaymentStatus::Paid, $order->paymentStatus);
+        $this->assertNull($order->paidAt);
+    }
+
     public function test_creation_window_paging_is_bounded_and_signed(): void
     {
         $page = app(CcvConnector::class)->discoverOrders($this->connection(), CarbonImmutable::parse('2026-11-01'), CarbonImmutable::parse('2026-11-02'), null);

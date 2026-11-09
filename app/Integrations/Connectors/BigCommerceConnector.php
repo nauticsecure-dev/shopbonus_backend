@@ -18,11 +18,13 @@ use App\Integrations\Exceptions\InvalidWebhook;
 use App\Integrations\Http\PinnedJsonReader;
 use App\Integrations\Http\WooCommerceApi;
 use App\Models\WebshopConnection;
+use App\Services\Banners\BigCommerceCartAssignments;
 use App\Services\Onboarding\DomainName;
 use App\Support\ExactJson;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 final class BigCommerceConnector extends WebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
@@ -166,6 +168,18 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
         return $rows;
     }
 
+    public function verifyAssignmentCart(WebshopConnection $connection, string $cartId): void
+    {
+        if (! Str::isUuid($cartId)) {
+            throw new \InvalidArgumentException('Invalid cart ID.');
+        }
+        $this->identity($connection);
+        $cart = $this->read($connection, '/v3/carts/'.strtolower($cartId));
+        if (($cart['data']['id'] ?? null) !== strtolower($cartId)) {
+            throw new ApiException('The provider returned a different cart.', 502, 'provider_cart_invalid');
+        }
+    }
+
     public function fetchOrder(WebshopConnection $c, string $id): array
     {
         $id = WooCommerceApi::orderId($id);
@@ -182,6 +196,16 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
                 throw new ApiException('Order assignment metadata is ambiguous or incomplete.', 502, 'provider_assignment_metadata_invalid');
             }
             $payload['assignment_metafields'] = $metadata['data'];
+        }
+
+        $bridged = app(BigCommerceCartAssignments::class)->token($c, $p);
+        if ($bridged !== null) {
+            $native = AssignmentMetadata::bigCommerce($payload['assignment_metafields'] ?? null, $p['id']);
+            // Conflicting metadata never chooses a winner; the bridge is not provider order metadata.
+            if (isset($payload['assignment_metafields']) && $payload['assignment_metafields'] !== [] && $native !== $bridged) {
+                throw new ApiException('Conflicting order assignment evidence.', 502, 'provider_assignment_metadata_invalid');
+            }
+            $payload['cart_assignment_token'] = $bridged;
         }
 
         return $payload;
@@ -262,7 +286,7 @@ final class BigCommerceConnector extends WebhookConnector implements CatalogRead
             $total === null => PaymentStatus::Unknown,($p['status_id'] ?? null) === 5 => PaymentStatus::Cancelled,$paidAt !== null && $captured >= $total && $refund === $total && $total > 0 => PaymentStatus::Refunded,$paidAt !== null && $captured >= $total && $refund > 0 => PaymentStatus::PartiallyRefunded,$paidAt !== null && $captured >= $total => PaymentStatus::Paid,default => PaymentStatus::Pending
         };
 
-        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null), bannerAssignmentToken: AssignmentMetadata::bigCommerce($payload['assignment_metafields'] ?? null, $p['id'] ?? null));
+        return new NormalizedOrder(externalId: $this->str($p['id'] ?? null), reference: $this->str($p['id'] ?? null), firstName: $this->str($p['billing_address']['first_name'] ?? null), email: $this->str($p['billing_address']['email'] ?? null), phone: $this->str($p['billing_address']['phone'] ?? null), amountMinor: $total, currency: $currency, paymentStatus: $payment, orderStatus: $this->str($p['status'] ?? null), placedAt: $this->date($p['date_created'] ?? null), paidAt: $paidAt, cancelledAt: null, refundedAt: $refundAt, refundedMinor: $refund, providerUpdatedAt: $this->date($p['date_modified'] ?? null), bannerAssignmentToken: AssignmentMetadata::token($payload['cart_assignment_token'] ?? null) ?? AssignmentMetadata::bigCommerce($payload['assignment_metafields'] ?? null, $p['id'] ?? null));
     }
 
     public function catalogCurrency(WebshopConnection $c): string

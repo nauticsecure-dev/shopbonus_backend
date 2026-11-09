@@ -25946,3 +25946,19 @@ Lightspeed C catalog follow-up (2026-11-03): product reads now use bounded nativ
 `GET /api/v1/admin/ai/operations` retains its route/auth/filter contract and adds current synthetic Reverb evidence under `data.connectivity`: `reverb_live_probe`, `reverb_probe_checked_at`, `reverb_probe_latency_ms`, `broadcast_evidence`, and `reverb_probe_scope`. The scheduler runs `shopbonus:probe-support-connectivity` every minute; receipt of the exact private-channel nonce is required. Evidence older than90seconds or from changed connection/origin settings cannot report current delivery. States include connected/failed/stale/not_measured/not_configured. Scope is server-to-Reverb, separately from browser, queue-worker and provider observations.
 
 Example request: `curl -i http://localhost:<PORT>/api/v1/admin/ai/operations -H 'Accept: application/json' -H 'Authorization: Bearer <SYNTHETIC_TOKEN>'`. Actual response examples (200/401/403/422) are in [SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json](SUPPORT_MONITORING_REVIEW_HTTP_CAPTURE.json), captured from a running loopback server with isolated synthetic SQLite at HassanDev9546163 plus this uncommitted change; the200example is also in OpenAPI. Broadcaster was disabled for that capture, accurately returning not_configured. Actual local Reverb delivery/invalid-credentials/recovery observations are separately captured in [SUPPORT_REVERB_LOCAL_PROBE.json](SUPPORT_REVERB_LOCAL_PROBE.json). See [runbook, executed checks and limits](../SUPPORT_SETTINGS_CONNECTIVITY_REVIEW_2026-11-04.md); deployed TLS/browser/queue/provider acceptance remains NOT RUN.
+
+## Assignment cart bridge — 2026-11-08
+
+`POST /api/v1/banners/assignments` accepts optional `cart_context` containing exactly `platform: bigcommerce` and a native `cart_id` UUID. Requires current recorded consent, approved shop, allowed Origin, one active verified BigCommerce connection, Carts read scope, migrated storage and `BIGCOMMERCE_CART_ASSIGNMENTS_ENABLED=true`. Existing requests/response shape remain compatible. Immutable cart conflicts/disabled bridge return409; failed native cart identity returns502. Neither customer authentication nor payment confirmation is inferred. Setup/limits: [assignment persistence](../banners/ASSIGNMENT_PERSISTENCE_2026-11-08.md).
+
+Seven actual loopback HTTP captures: [evidence](CART_ASSIGNMENT_HTTP_CAPTURE.json), reproduced with `php -d xdebug.mode=off scripts/capture-cart-assignments.php`. Isolated synthetic SQLite, actual Laravel HTTP, mocked provider transport/DNS; genuine provider acceptance NOT RUN. Example request (Origin `https://shop.example.com`):
+
+```json
+{"key":"pk_o7rrq429jk7agwgorldipxvn","visitor_key":"bdd5903b-90d9-4c6b-b0d0-7757adafbd83","consent":true,"consent_id":"d9181cd8-5aa7-4fcb-9f9e-5b2f6c04a834","cart_context":{"platform":"bigcommerce","cart_id":"d30016e2-23c0-4a90-884f-2e92ac135476"}}
+```
+
+Captured200 response:
+
+```json
+{"data":[{"campaign":"01m6wkc8hs6vt2pwrgsd4bcqvg","assignment_token":"bx_85b7d46de231ac50e588ac80f10c4f009161d4705ead23872f009947fac5375d","arm":"variant","version":1,"holdout":false,"expires_at":"2026-12-08T08:31:38+05:00"}]}
+```

@@ -39,3 +39,11 @@ After installing that app on the authorized test store, the merchant enables **S
 Record exact platform/PHP/theme versions, package SHA-256, store reference, genuine authorization, paid/pending/failed orders, full/partial refunds, duplicate/tampered delivery, worker outage/retry, concurrent update, credential rotation, disconnect/uninstall and downstream ledger/contact results. For banners include desktop/mobile storefront, pairing/editor review-and-publish, consent and disabled/uninstalled checks. Synthetic local tests cannot substitute for these runs. No package marks a platform verified or a connection Connected.
 
 Primary contracts: [PrestaShop modules](https://devdocs.prestashop-project.org/9/modules/introduction/), [OpenCart extensions](https://docs.opencart.com/developer-guide/extensions), [OpenCart 4.1 events](https://github.com/opencart/opencart/blob/4.1.0.3/upload/admin/model/setting/event.php), [WordPress Settings API](https://developer.wordpress.org/plugins/settings/using-settings-api/), [Shopify theme extensions](https://shopify.dev/docs/apps/build/online-store/theme-app-extensions/configuration).
+
+## Assignment persistence (2026-11-08)
+
+BigCommerce Stencil: deploy the cart-assignment migration, grant the server connection Carts read, enable `BIGCOMMERCE_CART_ASSIGNMENTS_ENABLED` in the authorized test environment and add `data-persist-attribution="true"` to the installed `native-cart-v1.js` tag. The existing renderer must follow that tag. This stores a server-side native cart/order association, not an order metafield. Do not expose management tokens.
+
+Ecwid/Lightspeed E-Series: load `/embed/ecwid-attribution-v1.js` after the native Ecwid loader exposes OnAPILoaded and before updated `/embed/v1.js` in the authorized app/storefront bootstrap. The writer uses hidden order extra fields and removes them on withdrawal/expiry. It does not add a cart-total reader. No automatic app installation is supplied.
+
+Full setup, privacy boundary and unimplemented-platform list: backend `docs/banners/ASSIGNMENT_PERSISTENCE_2026-11-08.md`. All genuine provider checkout/holdout/withdrawal acceptance remains NOT RUN.
