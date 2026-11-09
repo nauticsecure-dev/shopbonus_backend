@@ -12,7 +12,7 @@ class Shopbonus extends Controller
     {
         $this->document->setTitle('Shopbonus order bridge');
         $data = [];
-        foreach (['endpoint', 'origin', 'key', 'timezone', 'status', 'banner'] as $field) {
+        foreach (['endpoint', 'origin', 'key', 'timezone', 'status', 'banner', 'coupon_read'] as $field) {
             $data[$field] = $this->config->get('module_shopbonus_'.$field) ?? '';
         }
         $data['save'] = $this->url->link(self::ROUTE.'.save', 'user_token='.$this->session->data['user_token']);
@@ -47,7 +47,7 @@ class Shopbonus extends Controller
         $this->load->model('setting/setting');
         $settings = $this->model_setting_setting->getSetting('module_shopbonus', 0);
         foreach (['endpoint' => $endpoint, 'origin' => $origin, 'key' => $key, 'timezone' => $zone,
-            'status' => ($post['status'] ?? '') === '1' ? '1' : '0', 'banner' => ($post['banner'] ?? '') === '1' ? '1' : '0'] as $field => $value) {
+            'status' => ($post['status'] ?? '') === '1' ? '1' : '0', 'banner' => ($post['banner'] ?? '') === '1' ? '1' : '0', 'coupon_read' => ($post['coupon_read'] ?? '') === '1' ? '1' : '0'] as $field => $value) {
             $settings['module_shopbonus_'.$field] = $value;
         }
         if ($secret !== '') {
@@ -68,6 +68,7 @@ class Shopbonus extends Controller
         foreach (['checkout/order.addOrder' => 'created', 'checkout/order.addHistory' => 'updated'] as $trigger => $action) {
             $this->model_setting_event->addEvent(['code' => 'shopbonus', 'description' => 'Queue Shopbonus order lookup', 'trigger' => 'catalog/model/'.$trigger.'/after', 'action' => self::ROUTE.'.'.$action, 'status' => 1, 'sort_order' => 0]);
         }
+        $this->model_setting_event->addEvent(['code' => 'shopbonus', 'description' => 'Shopbonus session cart snapshot', 'trigger' => 'catalog/controller/common/cart.info/after', 'action' => self::ROUTE.'.cartSnapshot', 'status' => 1, 'sort_order' => 0]);
         $this->model_setting_event->addEvent(['code' => 'shopbonus', 'description' => 'Shopbonus opt-in banner', 'trigger' => 'catalog/controller/common/footer/after', 'action' => self::ROUTE.'.banner', 'status' => 1, 'sort_order' => 0]);
     }
 

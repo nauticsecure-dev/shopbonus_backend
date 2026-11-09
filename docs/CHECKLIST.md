@@ -1,3 +1,24 @@
+## Remaining native coupon completion — 2026-11-07
+
+OpenCart/PrestaShop live verification and CCV comparison implemented and tested in the working tree. C-Series/Mijnwebwinkel native schemas and CCV complete proof remain blocked on external contracts; see current HANDOFF. Checkboxes remain pending implementation commit.
+
+- [ ] Read remaining provider schemas and identify unprovable constraints without inventing native APIs.
+- [ ] Implement live bounded PrestaShop/CCV/C-Series readers using existing credential and identity gates.
+- [ ] Implement nonce-bound signed OpenCart module reads, exact native usage/date/restriction evidence and backend verification.
+- [ ] Integrate remaining comparisons without weakening existing usage/combination proof requirements.
+- [ ] Exercise real endpoint outcomes, negative transport/signature/replay paths and module queries.
+- [ ] Capture actual local HTTP and update API/provider setup, packages and handoff; distinguish unresolved partner contracts.
+
+## Remaining coupon verification adapters — 2026-11-07
+
+PARTIAL at base `06d43d9`; three adapters implemented/tested in the working tree. Boxes remain pending implementation commit. See `docs/integrations/COUPON_VERIFICATION.md` for the five remaining provider boundaries.
+
+- [ ] Audit current native contracts, scope, identity, currency and restriction semantics per provider.
+- [ ] Add bounded exact-code lookups with ambiguity, pagination and authority checks.
+- [ ] Compare known terms conservatively; preserve manual review for unknown restrictions.
+- [ ] Exercise matches, mismatches, permissions, malformed data and in-flight changes through the existing flow.
+- [ ] Record real local HTTP captures and provider-specific remaining boundaries.
+
 ## Quality Center gap closure — 2026-11-07
 
 - [ ] Require exact result-bound acceptance proofs before endpoint PASS, including unmapped cases.
@@ -1810,3 +1831,82 @@ B88 implementing SHA `435d229`; local audit/validation/focused31/8881 PASS; exte
 Expanded before implementation. Checkboxes await a tested implementation commit SHA; no installed-provider acceptance is implied.
 
 Local evidence: Node43PASS; final backend/OpenAPI/package13PASS/8542; broad integration+Banners+OpenAPI311PASS+2skip/11502 before final hardening; PHPStan/Pint pass. Seven actual local HTTP captures. Broader sales attribution has one untouched coupon expectation failure (unsupported_integration versus sync_error). No provider acceptance, deployment or implementation commit yet.
+### B89 — Correlated support connectivity receipts (2026-11-07)
+
+- [x] Separate public browser probe IDs from event-only receipt challenges; enforce current-admin ownership, freshness, configuration binding and atomic single use without leaking the challenge through HTTP.
+- [x] Bind worker completion to the latest dispatched nonce/time, exact queue connection/name/configuration and actual queued-job context; reject stale/out-of-order/manual completions.
+- [x] Keep browser observations per requesting administrator and scope receipt claims accurately; supersede older probes and invalidate changed configuration.
+- [x] Execute focused negative tests plus an isolated real HTTP/Reverb/database-worker synthetic client journey; explicitly retain production-browser/frontend/staging limitations.
+- [x] Capture changed API examples from the real server; update OpenAPI/runbook/checkpoint docs and record tests/SHA.
+
+B89 tested source: focused20/8920, scoped style/static/whitespace PASS; real isolated HTTP/Reverb/worker protocol PASS with21 HTTP exchanges. Checkmarks certify backend/protocol implementation only, not the missing frontend listener or actual browser/staging delivery. Implementing SHA follows closeout.
+
+B89 implementing SHA `e434296`; focused20/8920 and scoped static/style/diff PASS; actualHTTP/Reverb/worker21-exchange journey PASS. Frontend listener and browser/staging acceptance remain open.
+
+B89 integrated main06d43d9: preserved all checkpoint/NL histories and approved source bytes; focused20/8964 and refreshed21-exchange real protocol journey PASS. Runtime inventory495/496. Frontend/browser/staging acceptance remains open.
+
+### B90 — Provider notices and publication readiness localization (2026-11-07)
+
+- [x] Localize setup native_notice and publisher human-facing reasons/requirements/methods without translating machine states, URLs or identifiers.
+- [x] Add Dutch dictionary entries for the reviewed publication/setup notices, verify EN/NL behavior and capture changed API responses through a real isolated server.
+- [x] Record provider publication API limits and the OpenCart policy question; preserve current unsupported states until actual write authority exists.
+
+B90 validation: focused localization/OpenAPI 5 PASS / 8309 assertions; scoped PHPStan and Pint PASS. Implementing SHA recorded in the following checkpoint. Genuine provider acceptance NOT RUN.
+
+B90 implementing SHA: `2ce1c2f`.
+
+### B91 — Opt-in Shopify native coupon workflow (2026-11-07)
+
+- [x] Add default-off, per-offer/version/credential-bound authorization and durable encrypted generation intents.
+- [x] Implement fixed create/update/deactivate GraphQL operations with live scope/domain validation and owned-code readback; never blindly repeat uncertain writes.
+- [x] Provide an authorized backend command for enabling, generating, reconciling, importing verified codes and deactivating unused codes; reject unsupported terms and issued-code changes.
+- [x] Execute focused workflow/security/native-transport tests and scoped style/static checks; document migrations, configuration, exact supported subset and genuine-provider acceptance limits.
+
+B91 validation: focused regression56 PASS / 8901 assertions; final provisioning/localization21 PASS / 494 assertions after drift/currency/immutable-intent additions. Scoped PHPStan, Pint and whitespace PASS. Seven real isolated API captures; actual provider writes/checkout/staging/MySQL NOT RUN. Implementation SHA follows closeout.
+
+B91 implementing SHA `60869b4`; B90 localization SHA `2ce1c2f`. Local validation passed as recorded above; current-head CI and genuine provider acceptance remain pending.
+### B92 — BigCommerce legacy native cart upgrade (2026-11-07)
+
+- [x] Add a fixed owned-template PUT operation using the documented forced update contract; keep external writes default-off.
+- [x] Upgrade matching legacy plans through install/explicit upgrade without rewriting immutable plans or removing widgets/placements; journal uncertain writes and reconcile without replay.
+- [x] Verify ownership, current authority, credential/domain binding, idempotency, lost responses and safe cleanup with focused native HTTP tests.
+- [x] Record commands, executed checks and remaining native cart/provider acceptance in task/progress/handoff docs.
+
+B92: native publisher17 PASS / 499 assertions; localization3 PASS / 9; scoped PHPStan and Pint/whitespace PASS. Actual BigCommerce propagation/storefront acceptance NOT RUN. SHA follows closeout.
+
+B92 implementing SHA `3180453`.
+
+### B93 — Native package session-cart sources (2026-11-07)
+
+- [x] Add exact bounded private session-cart snapshots for supported PrestaShop9/OpenCart4.1/Magento2.4 packages, without order data, guessed currency or new OpenCart catalogue endpoints.
+- [x] Extend the shared native reader with narrowly validated same-origin package routes/header/section contracts, lifecycle/sensitive-route protection and native change notifications.
+- [x] Wire ordered reader loading through enabled native packages and rebuild deterministic archives/manifests; preserve existing catalog/order semantics and disabled defaults.
+- [x] Run focused runtime/native package/reader negative checks, document exact version/source boundaries, and retain unsupported Lightspeed/Squarespace/Adobe SaaS cases honestly.
+
+B93 validation: combined package/publisher24 PASS / 731 assertions, including Node48 PASS via PHPUnit and four isolated native-framework contract fixtures; PHP syntax18 files and Magento XML well-formedness PASS; Pint/whitespace PASS. Actual native installation/DI/storefront/provider/staging acceptance NOT RUN. No Laravel migration or API route change. Source SHA follows closeout.
+
+B93 implementing SHA `3cc0ef7`; B92 implementing SHA `3180453`. Local tests passed; CI/native deployed acceptance remain pending as recorded.
+
+### B94 — Adobe storefront drop-in cart reader (2026-11-08)
+
+- [x] Add `adobe-storefront` reader branch fed by documented `cart/data` event bridge; exact `total.includingTax` conversion, fail closed.
+- [x] Focused Node tests for conversion, rejection, no-fetch and sensitive-page exclusion; document bridge snippet and limits.
+- [ ] Live Adobe storefront acceptance (NOT RUN).
+- [ ] Ecwid/Lightspeed E, Lightspeed C, Squarespace readers — blocked on missing documented unit/currency/session contracts.
+
+### B95 — Ecwid/Lightspeed E and Squarespace publication (2026-11-08)
+
+- [x] Ecwid/Lightspeed E automatic publication/cleanup via documented app storage `public` key + app customJsUrl loader; owned-only writes, read-back, no blind retries.
+- [x] Squarespace verified manual installation: exact snippet, pinned served-HTML presence and removal verification (no code-injection API exists).
+- [x] Readiness, command dispatch, NL translations, focused PHP/Node tests and docs.
+- [ ] Register ShopBonus Ecwid app and run real Ecwid/Lightspeed E and Squarespace store acceptance (NOT RUN).
+
+### Backend merge conflict resolution — 2026-11-09
+
+- [ ] Preserve assignment persistence and incoming native-cart/provider changes when resolving source conflicts.
+- [ ] Preserve both documentation histories and rebuild integration archives with matching manifest hashes.
+- [ ] Run focused merge regressions and syntax/style checks; record results and remaining limits.
+
+Items remain unchecked pending a tested implementation commit SHA.
+
+Resolution validation: final focused regression 79 PASS / 8,980 assertions; Squarespace 8 PASS / 42 assertions; Node 54 PASS; syntax/Pint/staged whitespace PASS. All 12 unmerged paths resolved/staged. Merge uncommitted; boxes await implementation SHA.

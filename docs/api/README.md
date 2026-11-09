@@ -25962,3 +25962,32 @@ Captured200 response:
 ```json
 {"data":[{"campaign":"01m6wkc8hs6vt2pwrgsd4bcqvg","assignment_token":"bx_85b7d46de231ac50e588ac80f10c4f009161d4705ead23872f009947fac5375d","arm":"variant","version":1,"holdout":false,"expires_at":"2026-12-08T08:31:38+05:00"}]}
 ```
+Additional native coupon reads (2026-11-07): the existing platform-validation endpoint supports Magento, Squarespace and simple Shopware 6 cart promotions within the [documented boundaries](../integrations/COUPON_VERIFICATION.md). [Twelve captured HTTP examples](../qa/B71_ADDITIONAL_COUPON_HTTP_CAPTURE.json) include all three matches/mismatches/manual-review results plus auth/tenant denial. Reproduce with `python3 scripts/capture-native-coupon-verification.py --additional`; synthetic provider transport, actual isolated Laravel HTTP. The full remaining-platform gap is partial; see the current provider boundaries in the linked contract. No checkout/redemption or live provider acceptance is asserted.
+
+Remaining coupon follow-up: OpenCart 4.1 opt-in signed live reads and unused single-shop PrestaShop rules now support configuration matches; CCV has native currency/discount readers and comparison but retains manual review for missing combination/usage proof. [Twelve actual HTTP captures](../qa/B71_REMAINING_COUPON_HTTP_CAPTURE.json), reproduced with `python3 scripts/capture-native-coupon-verification.py --remaining`, cover these outcomes. For OpenCart create/replace credentials, optional `store_url` requires `timezone`; old snapshot-only connection inputs remain compatible. Copy the newly generated secret to the updated module and enable authenticated coupon reads. No new backend routes or migrations. C-Series/Mijnwebwinkel contracts and CCV proof remain unresolved; see [current boundaries](../integrations/COUPON_VERIFICATION.md#remaining-provider-boundaries--2026-11-07).
+## B89 — Correlated support connectivity receipts
+
+Security correction: `POST /api/v1/admin/ai/connectivity/browser-probe` no longer returns the acknowledgement nonce. It returns public `probe_id`, channel, event and60second lifetime. Authenticate/subscribe to the own private notifications channel first. The `support.connectivity.browser_probe` event alone supplies `{probe_id, nonce}`.
+
+`POST /api/v1/admin/ai/connectivity/browser-probe/{nonce}/ack` retains its legacy path spelling, but that path value is the **public probe_id**. The required JSON body carries `nonce` from the private event. Old clients that echoed the HTTP nonce must update; preserving that behavior would preserve the receipt bypass.
+
+```sh
+curl -i -X POST "http://localhost:8000/api/v1/admin/ai/connectivity/browser-probe" -H "Accept: application/json" -H "Authorization: Bearer <SYNTHETIC_TOKEN>" -H "Content-Type: application/json" --data '{}'
+curl -i -X POST "http://localhost:8000/api/v1/admin/ai/connectivity/browser-probe/310c2d6e1b4560df0deeffab652f0d47/ack" -H "Accept: application/json" -H "Authorization: Bearer <SYNTHETIC_TOKEN>" -H "Content-Type: application/json" --data '{"nonce": "1cc370243c8f152a3ce6f23eba989fd5"}'
+```
+
+Actual201/200 responses: `browser_start` and `event_receipt_ack` in [21 actual HTTP exchanges](../qa/B89_SUPPORT_RECEIPTS_HTTP_CAPTURE.json), reproduced with `python3 scripts/verify-support-receipts.py`. Includes missing challenge422, HTTP-only/foreign/replay404,401/403, concurrent operation409, stopped-broker503 and limiter429. No response body is invented. Both mutations are private/no-store.
+
+GET `/api/v1/admin/ai/operations` reports browser evidence only for the requesting administrator, invalidating changed Reverb configuration and superseded probes. Worker evidence requires the latest nonce, dispatch timestamp, exact connection/queue/configuration and actual queued-job context; a manual handle call or old completion cannot establish readiness.
+
+The isolated harness runs a real database queue worker and authenticated Node WebSocket client with actual Reverb events. It does not implement the frontend listener or prove browser-engine/cookie-CSRF/staging/deployed coverage. See [protocol, atomicity and deployment limits](../support/CONNECTIVITY_RECEIPTS.md).
+
+## B90 — Provider notice localization
+
+POST `/api/v1/workspaces/{workspace}/connections` and GET `/api/v1/workspaces/{workspace}/connections/{connection}` now translate `setup.native_notice` for NL/EN, including the Adobe module URL via a placeholder. Actual examples: `prestashop_create`, `prestashop_nl/en`, `shopware6_nl/en`, `magento_nl/en` in [9 actual HTTP exchanges](../qa/B90_PROVIDER_NOTICES_HTTP_CAPTURE.json). Reproduce: `python3 scripts/capture-provider-notices.py`. Requests use Bearer `<token>` and `Accept-Language: nl` or `en`; source captures contain exact request bodies and real responses. No credentials/provider writes or live acceptance. Native publisher CLI readiness translates human reasons/requirements/method text while retaining machine states and source URLs.
+
+## B91 — Shopify coupon capability
+
+GET `/api/v1/integrations/platforms`, POST `/api/v1/workspaces/{workspace}/connections`, GET `/api/v1/workspaces/{workspace}/connections/{connection}` and GET `/api/v1/workspaces/{workspace}/connections/{connection}/capabilities` now describe Shopify `coupons_write` as LIMITED. A default-off [operator workflow](../integrations/SHOPIFY_COUPON_WRITES.md) supports an explicit per-offer/version/grant opt-in and verified native generation/repair/cleanup; no merchant generation HTTP endpoint or checkout acceptance is claimed. Platform-wide or connection-wide AVAILABLE is never inferred from a generated code.
+
+[Seven actual HTTP request/response examples](../qa/B91_SHOPIFY_CAPABILITIES_HTTP_CAPTURE.json) include NL/EN platform, detail and capability reads and a synthetic connection creation. Reproduce: `python3 scripts/capture-shopify-capabilities.py`. OpenAPI embeds exact captured bodies and curl requests; captured values are synthetic and generated one-time signing secrets are redacted. No genuine provider call was made. OpenCart retains approved signed snapshots; no merchant live catalogue endpoint was added.

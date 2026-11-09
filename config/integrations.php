@@ -48,11 +48,14 @@ return [
 
     'wix_app' => ['enabled' => (bool) env('WIX_APP_ENABLED', false), 'app_id' => env('WIX_APP_ID', ''), 'app_secret' => env('WIX_APP_SECRET', '')],
 
+    // Separate deployment gate; OAuth defaults remain read-only.
+    'shopify_coupon_writes_enabled' => env('SHOPIFY_COUPON_WRITES_ENABLED', false),
+
     'shopify_oauth' => [
         'enabled' => (bool) env('SHOPIFY_OAUTH_ENABLED', false),
         'client_id' => env('SHOPIFY_CLIENT_ID', ''),
         'client_secret' => env('SHOPIFY_CLIENT_SECRET', ''),
-        'scopes' => ['read_orders', 'read_products'],
+        'scopes' => env('SHOPIFY_COUPON_WRITES_ENABLED', false) ? ['read_orders', 'read_products', 'write_discounts'] : ['read_orders', 'read_products'],
     ],
 
     'webhook_retention_days' => (int) env('WEBHOOK_PAYLOAD_RETENTION_DAYS', 14),
@@ -61,6 +64,10 @@ return [
 
     // Lightspeed C-Series Shop Scripts publication (opt-in; the merchant's API key must be allowed to manage scripts).
     'lightspeed_banners' => ['enabled' => (bool) env('LIGHTSPEED_BANNERS_ENABLED', false)],
+
+    // Ecwid / Lightspeed E-Series: the registered ShopBonus Ecwid app (customize_storefront, customJsUrl
+    // = APP_URL/embed/ecwid-app-v1.js?client_id=...) reads its per-store public app-storage config.
+    'ecwid_banners' => ['enabled' => (bool) env('ECWID_BANNERS_ENABLED', false), 'client_id' => env('ECWID_APP_CLIENT_ID')],
 
     'platforms' => [
         'woocommerce' => [
@@ -93,10 +100,10 @@ return [
                 // What the connector's order mapping really fills (CapabilityMatrix reports from these, not from the API notes).
                 'refund_amounts_mapped' => true, 'payment_time_mapped' => true,
                 'native_read_api_implemented' => true, 'auth_method' => 'Encrypted approved app token for pinned GraphQL; manual signing-secret compatibility. optional disabled-by-default browser OAuth and expiring offline token renewal implemented',
-                'scopes' => ['read_orders', 'read_products (catalog only)', 'read_discounts (optional coupon reads; not requested by default OAuth)'],
+                'scopes' => ['read_orders', 'read_products (catalog only)', 'read_discounts (optional coupon reads; not requested by default OAuth)', 'write_discounts (explicit deployment gate and reauthorization only)'],
                 'order_api' => 'POST /admin/api/2026-10/graphql.json: order/orders queries',
                 'refund_api' => 'Order.totalRefundedSet and successful REFUND transactions; no refund mutation',
-                'product_api' => 'products query; bounded core catalog metadata only', 'coupon_api' => 'discountNodes query with read_discounts: single-code basic and free-shipping discounts only; BXGY/app/bulk codes skipped; no writes',
+                'product_api' => 'products query; bounded core catalog metadata only', 'coupon_api' => 'discountNodes query with read_discounts: single-code basic and free-shipping discounts only; BXGY/app/bulk codes skipped; opt-in operator basic single-use create/repair/deactivate with exact readback, disabled by default',
                 'rate_limit_policy' => 'Pinned version,8second/1MiB reads,25orders/page,max5pages; no retries, HTTP200GraphQLerrors checked; throttling pauses reads.',
                 'webhook_topics' => ['orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled', 'refunds/create', 'app/uninstalled'],
                 'banner_method' => 'Theme App Extension source shipped at /downloads/integrations/shopbonus-shopify-theme-source.zip; authorized app deployment, merchant activation and live acceptance required',
@@ -229,7 +236,7 @@ return [
                 'scopes' => ['merchant extension pairing secret'],
                 'webhook_topics' => ['order.created', 'order.updated', 'order.paid', 'order.cancelled', 'order.refunded', 'ping'],
                 'order_api' => 'UNSUPPORTED native admin order read; OpenCart catalog API is checkout-session oriented, not authoritative order history',
-                'refund_api' => 'Via module payload fields only', 'product_api' => 'Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)', 'coupon_api' => 'Signed snapshots of coupon/coupon_product/coupon_category pushed by the extension worker',
+                'refund_api' => 'Via module payload fields only', 'product_api' => 'Signed snapshots of product/product_description pushed by the extension worker (no shop endpoint)', 'coupon_api' => 'Signed catalog snapshots; separate opt-in nonce/HMAC-bound OpenCart 4.1 live module read for coupon verification',
                 // Products/coupons come from worker-pushed signed snapshots, not a native shop API (D-110).
                 'catalog_snapshot_push' => true,
                 'banner_method' => 'Candidate OpenCart 4.1 default-store module/events shipped; theme/editor acceptance unverified',
@@ -304,12 +311,12 @@ return [
             'profile' => [
                 'api_version' => '1.0', 'reviewed_at' => '2026-11-03', 'last_live_verified_at' => null,
                 'native_read_api_implemented' => true, 'refund_amounts_mapped' => true, 'payment_time_mapped' => false,
-                'auth_method' => 'Restricted Bearer API key', 'scopes' => ['Orders read'], 'webhook_topics' => [],
+                'auth_method' => 'Restricted Bearer API key', 'scopes' => ['Orders read', 'Discounts read for coupon verification'], 'webhook_topics' => [],
                 'order_api' => 'GET /1.0/commerce/orders/{id}', 'refund_api' => 'Native order refundedTotal; no refund timestamps',
-                'product_api' => 'UNSUPPORTED', 'coupon_api' => 'UNSUPPORTED',
+                'product_api' => 'UNSUPPORTED', 'coupon_api' => 'GET /v1/commerce/discounts (bounded live configuration verification; no catalog sync)',
                 'banner_method' => 'Merchant placement only; native publication not implemented',
                 'rate_limit_policy' => 'Bounded pinned HTTPS reads, no redirect/retry, credential-bound circuit; 50 orders/page, fixed date window then cursor-only pages.',
-                'sources' => ['https://developers.squarespace.com/commerce-apis/orders', 'https://developers.squarespace.com/commerce-apis/retrieve-basic-site-info'],
+                'sources' => ['https://developers.squarespace.com/commerce-apis/discounts', 'https://developers.squarespace.com/commerce-apis/orders', 'https://developers.squarespace.com/commerce-apis/retrieve-basic-site-info'],
             ],
             'limitations' => ['Polling delay; sync opt-in required.', 'Paid/settlement timestamp unavailable; no donation, POS or test-mode ingestion.', 'Native storefront publication and live acceptance NOT RUN.'],
             'verification' => 'unverified', 'blocked_reason' => null,
@@ -333,7 +340,7 @@ return [
                 'api_version' => 'REST v1', 'reviewed_at' => '2026-11-04', 'last_live_verified_at' => null,
                 'native_read_api_implemented' => true, 'payment_time_mapped' => false, 'refund_amounts_mapped' => false,
                 'discovery_window' => 'created_at', 'order_api' => 'GET /api/rest/v1/orders/{id}/',
-                'refund_api' => 'UNSUPPORTED cash totals/times', 'product_api' => 'UNSUPPORTED', 'coupon_api' => 'UNSUPPORTED',
+                'refund_api' => 'UNSUPPORTED cash totals/times', 'product_api' => 'UNSUPPORTED', 'coupon_api' => 'GET /settings/ + /discountcoupons/ and detail (live comparison; combination/usage proof remains manual)',
                 'banner_method' => 'Native app code-block installation not implemented',
                 'sources' => ['https://demo.ccvshop.nl/API/Docs/'],
             ],

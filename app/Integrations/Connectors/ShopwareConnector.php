@@ -7,6 +7,7 @@ use App\Exceptions\ApiException;
 use App\Integrations\AmountBreakdown;
 use App\Integrations\AssignmentMetadata;
 use App\Integrations\Contracts\CatalogReader;
+use App\Integrations\Contracts\CouponLookup;
 use App\Integrations\Contracts\OrderNotification;
 use App\Integrations\Contracts\PagedOrderReader;
 use App\Integrations\Data\NormalizedOrder;
@@ -21,7 +22,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 
 /** Shopware6 integration read credentials, entered manually or bound from the app registration handshake (ShopwareAppRegistration). */
-final class ShopwareConnector extends GenericSignedWebhookConnector implements CatalogReader, OrderNotification, PagedOrderReader
+final class ShopwareConnector extends GenericSignedWebhookConnector implements CatalogReader, CouponLookup, OrderNotification, PagedOrderReader
 {
     public function __construct()
     {
@@ -227,6 +228,43 @@ final class ShopwareConnector extends GenericSignedWebhookConnector implements C
         $code = is_array($row) ? ($row['isoCode'] ?? null) : null;
 
         return Money::isCurrency($code) ? $code : throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+    }
+
+    public function lookupCoupon(WebshopConnection $connection, string $code): array
+    {
+        $token = $this->token($connection);
+        $this->identity($connection, $token);
+        // Multiple currencies require channel-specific conversion evidence, not a guessed base currency.
+        $currencies = $this->search($connection, $token, 'currency', ['limit' => 2, 'total-count-mode' => 1]);
+        $rows = $currencies['data'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || count($rows) !== 1 || ($currencies['total'] ?? null) !== 1
+            || ($rows[0]['id'] ?? null) !== ShopwareCatalog::SYSTEM_CURRENCY || ! Money::isCurrency($rows[0]['isoCode'] ?? null)) {
+            throw new ApiException('The provider store currency could not be read.', 502, 'provider_currency_invalid');
+        }
+        $currency = $rows[0]['isoCode'];
+        $associations = [];
+        foreach (['salesChannels', 'personaRules', 'personaCustomers', 'orderRules', 'cartRules', 'setgroups'] as $field) {
+            $associations[$field] = (object) [];
+        }
+        $associations['discounts'] = ['associations' => ['discountRules' => (object) [], 'promotionDiscountPrices' => (object) []]];
+        $response = $this->search($connection, $token, 'promotion', ['limit' => 2, 'total-count-mode' => 1,
+            'filter' => [['type' => 'equals', 'field' => 'code', 'value' => $code], ['type' => 'equals', 'field' => 'salesChannels.salesChannelId', 'value' => $connection->credential('sales_channel_id')]],
+            'associations' => $associations]);
+        $rows = $response['data'] ?? null;
+        if (! is_array($rows) || ! array_is_list($rows) || ($response['total'] ?? null) !== count($rows) || count($rows) > 1) {
+            throw ApiException::conflict('The native coupon lookup is incomplete.', 'provider_coupon_lookup_incomplete');
+        }
+        if ($rows === []) {
+            return ['coupon' => null, 'currency' => $currency];
+        }
+        $promotion = $rows[0];
+        if (! is_array($promotion) || ($promotion['code'] ?? null) !== $code || ! is_string($promotion['id'] ?? null)
+            || ! preg_match('/\A[a-f0-9]{32}\z/D', $promotion['id']) || ! is_array($promotion['salesChannels'] ?? null)
+            || count($promotion['salesChannels']) !== 1 || ($promotion['salesChannels'][0]['salesChannelId'] ?? null) !== $connection->credential('sales_channel_id')) {
+            throw new ApiException('The native coupon response is invalid.', 502, 'provider_coupon_invalid');
+        }
+
+        return ['coupon' => $promotion, 'currency' => $currency];
     }
 
     public function catalogPage(WebshopConnection $c, string $kind, ?string $cursor, string $currency): array

@@ -36,7 +36,8 @@ class BigCommerceWidgets
      */
     public function request(WebshopConnection $connection, string $method, string $resource, ?string $id = null, array $data = []): ?array
     {
-        if (! in_array($resource, ['widget-templates', 'widgets', 'placements'], true) || ! in_array($method, ['GET', 'POST', 'DELETE'], true)
+        if (! in_array($resource, ['widget-templates', 'widgets', 'placements'], true) || ! in_array($method, ['GET', 'POST', 'PUT', 'DELETE'], true)
+            || ($method === 'PUT' && ($resource !== 'widget-templates' || $id === null))
             || ($id !== null && ! Str::isUuid($id)) || ($method === 'DELETE' && $id === null) || ($method === 'POST' && $id !== null)) {
             throw new \InvalidArgumentException('Invalid native content operation.');
         }
@@ -53,7 +54,7 @@ class BigCommerceWidgets
         }
         try {
             $response = Http::acceptJson()->withHeaders(['X-Auth-Token' => $token])->withOptions(['allow_redirects' => false, 'proxy' => '', 'verify' => true, 'connect_timeout' => 3, 'timeout' => 8, 'stream' => true])
-                ->send($method, 'https://api.bigcommerce.com/stores/'.$store.'/v3/content/'.$resource.($id === null ? '' : '/'.$id), $method === 'GET' ? ['query' => $data] : ($method === 'POST' ? ['json' => $data] : []));
+                ->send($method, 'https://api.bigcommerce.com/stores/'.$store.'/v3/content/'.$resource.($id === null ? '' : '/'.$id), $method === 'GET' ? ['query' => $data] : (in_array($method, ['POST', 'PUT'], true) ? ['json' => $data] : []));
             if ($method === 'GET' && $response->status() === 404) {
                 return null;
             }
@@ -76,7 +77,7 @@ class BigCommerceWidgets
             }
             $body = ExactJson::decode($bytes);
             if (! is_array($body) || ! is_array($body['data'] ?? null) || array_is_list($body['data'])
-                || ($method === 'GET' && $id !== null && ($body['data']['uuid'] ?? null) !== $id)) {
+                || (in_array($method, ['GET', 'PUT'], true) && $id !== null && ($body['data']['uuid'] ?? null) !== $id)) {
                 throw new \RuntimeException;
             }
 

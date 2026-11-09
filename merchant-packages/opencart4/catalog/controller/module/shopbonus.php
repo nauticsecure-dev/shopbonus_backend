@@ -6,6 +6,44 @@ use Opencart\System\Engine\Controller;
 
 class Shopbonus extends Controller
 {
+    public function coupon(): void
+    {
+        require_once DIR_EXTENSION.'shopbonus/system/library/CouponRead.php';
+        $this->response->addHeader('Content-Type: application/json');
+        $this->response->addHeader('Cache-Control: no-store');
+        $secret = (string) $this->config->get('module_shopbonus_secret');
+        $code = $this->request->get['code'] ?? null;
+        $time = $this->request->server['HTTP_X_SHOPBONUS_TIME'] ?? '';
+        $nonce = $this->request->server['HTTP_X_SHOPBONUS_NONCE'] ?? '';
+        $signature = $this->request->server['HTTP_X_SHOPBONUS_SIGNATURE'] ?? '';
+        if (! $this->config->get('module_shopbonus_coupon_read') || (int) $this->config->get('config_store_id') !== 0
+            || ($this->request->server['REQUEST_METHOD'] ?? '') !== 'GET' || ! is_string($code)
+            || ! \ShopbonusOpenCartCouponRead::authorize($secret, $code, $time, $nonce, $signature, time())) {
+            $this->response->addHeader('HTTP/1.1 403 Forbidden');
+            $this->response->setOutput('{}');
+
+            return;
+        }
+        try {
+            $timezone = (string) $this->config->get('module_shopbonus_timezone');
+            $coupon = \ShopbonusOpenCartCouponRead::coupon($this->db, DB_PREFIX, $code, $timezone);
+            $totals = [];
+            foreach ($this->db->query('SELECT extension,code FROM `'.DB_PREFIX."extension` WHERE type='total'")->rows as $extension) {
+                if ($this->config->get('total_'.$extension['code'].'_status')) {
+                    $totals[] = $extension['extension'].':'.$extension['code'];
+                }
+            }
+            sort($totals);
+            $payload = json_encode(['schema' => 'shopbonus.opencart.coupon.v1', 'nonce' => $nonce, 'observed_at' => time(), 'store_id' => 0,
+                'store_url' => rtrim((string) $this->config->get('config_url'), '/'), 'currency' => $this->config->get('config_currency'),
+                'timezone' => $timezone, 'enabled_totals' => $totals, 'coupon' => $coupon], JSON_THROW_ON_ERROR);
+            $this->response->setOutput(json_encode(['payload' => $payload, 'signature' => hash_hmac('sha256', 'shopbonus.opencart.coupon.v1.response|'.$payload, $secret)], JSON_THROW_ON_ERROR));
+        } catch (\Throwable $error) {
+            $this->response->addHeader('HTTP/1.1 503 Service Unavailable');
+            $this->response->setOutput('{}');
+        }
+    }
+
     public function created(string &$route, array &$args, mixed &$output): void
     {
         $this->queue((int) $output);
@@ -39,7 +77,44 @@ class Shopbonus extends Controller
         if ($origin === null || ! preg_match('/\Apk_[A-Za-z0-9_-]+\z/D', $key)) {
             return;
         }
-        $script = '<script defer src="'.htmlspecialchars($origin.'/embed/v1.js', ENT_QUOTES, 'UTF-8').'" data-shopbonus-key="'.htmlspecialchars($key, ENT_QUOTES, 'UTF-8').'"></script>';
+        $nativeRoute = (string) ($this->request->get['route'] ?? '');
+        if (preg_match('~(?:^|/)(?:checkout|account|payment)(?:/|\.|$)~i', $nativeRoute)) {
+            return;
+        }
+        $cartUrl = $this->url->link('common/cart.info', 'language='.(string) $this->config->get('config_language'), true);
+        $script = '<script defer src="'.htmlspecialchars($origin.'/embed/native-cart-v1.js', ENT_QUOTES, 'UTF-8').'" data-platform="opencart" data-cart-url="'.htmlspecialchars($cartUrl, ENT_QUOTES, 'UTF-8').'"></script>'
+            .'<script defer src="'.htmlspecialchars($origin.'/embed/v1.js', ENT_QUOTES, 'UTF-8').'" data-shopbonus-key="'.htmlspecialchars($key, ENT_QUOTES, 'UTF-8').'"></script>';
         $output = str_contains($output, '</body>') ? str_replace('</body>', $script.'</body>', $output) : $output.$script;
+    }
+
+    /** Header on the existing native cart.info response; no new shop/catalogue read endpoint. */
+    public function cartSnapshot(string &$route, array &$args, mixed &$output): void
+    {
+        if (($this->request->server['REQUEST_METHOD'] ?? '') !== 'GET' || ! $this->config->get('module_shopbonus_status') || ! $this->config->get('module_shopbonus_banner')
+            || (int) $this->config->get('config_store_id') !== 0 || (! $this->customer->isLogged() && $this->config->get('config_customer_price'))) {
+            return;
+        }
+        $this->response->addHeader('Cache-Control: private, no-store, max-age=0');
+        $this->response->addHeader('Vary: Cookie');
+        require_once DIR_EXTENSION.'shopbonus/system/library/CartSnapshot.php';
+        try {
+            $currency = $this->session->data['currency'] ?? null;
+            if (! is_string($currency) || ! $this->currency->has($currency) || $this->currency->getDecimalPlace($currency) !== 2) {
+                return;
+            }
+            $totals = [];
+            $taxes = $this->cart->getTaxes();
+            $total = 0;
+            $this->load->model('checkout/cart');
+            ($this->model_checkout_cart->getTotals)($totals, $taxes, $total);
+            // Use OpenCart's native presentment conversion/rounding, not the base-currency total.
+            $amount = $this->currency->format($total, $currency, 0, false);
+            $snapshot = \ShopbonusCartSnapshot::fromMajor($amount, $currency, 2, 'opencart');
+            if ($snapshot !== null) {
+                $this->response->addHeader('X-ShopBonus-Cart: '.json_encode($snapshot, JSON_THROW_ON_ERROR));
+            }
+        } catch (\Throwable) {
+            // Native HTML/cart operation remains usable when the optional snapshot cannot be calculated.
+        }
     }
 }

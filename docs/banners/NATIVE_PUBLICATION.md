@@ -25,7 +25,7 @@ php artisan shopbonus:banner-native remove CONNECTION_ULID --actor=USER_ULID
 
 Installation reads native store identity and current theme regions, freezes the source/domain/credential generation/public key/script origin/target in append-only audit events, then creates and reads back:
 
-1. Widget template loading `/embed/native-cart-v1.js` (`data-platform="bigcommerce"`) and then the existing `/embed/v1.js` loader, both `defer` so the cart reader runs first and cart changes drive live progress. Plans frozen before 2026-11-05 (no `cart_script_url` in the plan) keep their original renderer-only template and still verify; remove and reinstall to add the cart reader.
+1. Widget template loading `/embed/native-cart-v1.js` (`data-platform="bigcommerce"`) and then the existing `/embed/v1.js` loader, both `defer` so the cart reader runs first and cart changes drive live progress. B92: plans frozen before 2026-11-05 keep their immutable original audit snapshot. Re-running install with the same target automatically upgrades their owned template in place; an explicit `shopbonus:banner-native upgrade CONNECTION --actor=USER` does the same. No widget/placement removal or reinstallation is required.
 2. Widget with this workspace's public installation key.
 3. Active placement in the frozen page/region.
 
@@ -83,3 +83,27 @@ Before release, independently run merchant authorization/content permissions, ac
 - [Lightspeed C JavaScript installation](https://ecom-support.lightspeedhq.com/hc/en-us/articles/220661887-Adding-JavaScript)
 - [Ecwid app settings](https://docs.ecwid.com/develop-apps/app-settings)
 - [Squarespace Code Injection](https://support.squarespace.com/hc/en-us/articles/205815908-Customize-parts-of-your-site-with-code-injection)
+
+## B92 — Legacy BigCommerce cart-reader upgrades
+
+An owned, fully reconciled legacy installation can be upgraded with `shopbonus:banner-native upgrade CONNECTION --actor=USER`, or by re-running install with exactly the same target. The existing default-off BigCommerce write gate and active merchant/Super Admin, verified domain/store, credential generation and public-key guards remain required. The reviewed operation is `PUT /v3/content/widget-templates/{uuid}` with `create_new_version: false`: BigCommerce documents this as updating the current template and forcing existing widgets onto that update. Existing remote UUIDs/placements are preserved.
+
+Before writing, all three owned resources must match their exact frozen configuration. The original audit plan is never edited. A new append-only `cart_upgrade_intent` freezes the ordered cart-reader/renderer template before the one PUT. Exact subsequent GETs reconcile the template, widget and placement and append `cart_upgrade_observed`. Losing a response never triggers another PUT: repeat upgrade/reconcile reads only. If the provider still reports the old or a foreign template, the operation remains unresolved and requires operator investigation; no success or safe retry is invented. Removal verifies the upgraded expectation and still deletes in dependency order.
+
+No Laravel route, migration or API contract changes. Local synthetic transport checks do not establish installed-store propagation, CSP/theme compatibility or actual shopper delivery. Genuine provider acceptance is NOT RUN. Source reviewed2026-11-07: https://docs.bigcommerce.com/developer/docs/admin/widgets-and-scripts/guide/versioning and https://raw.githubusercontent.com/bigcommerce/api-specs/main/reference/widgets.v3.yml .
+
+## B95 — Ecwid / Lightspeed E-Series and Squarespace (2026-11-08)
+
+### Ecwid / Lightspeed E-Series — automatic, opt-in (`EcwidAppPublisher`)
+
+Contract (reviewed 2026-11-08): Ecwid app storage reserved `public` key — POST `/api/v3/{storeId}/storage/public` `{"value": string}` → `{"success": bool}`, GET → `[{key, value}]`, DELETE → `{"success": bool}` ([add](https://docs.ecwid.com/api-reference/rest-api/application/add-app-storage-data.md), [get](https://docs.ecwid.com/api-reference/rest-api/application/get-specific-app-storage-data.md), [delete](https://docs.ecwid.com/api-reference/rest-api/application/delete-specific-app-storage-data.md)); storefront reads it with `Ecwid.getAppPublicConfig(client_id)`; `customize_storefront` requires the app-level `customJsUrl` ([app settings](https://docs.ecwid.com/develop-apps/app-settings)).
+
+One-time platform setup (senior/ops, not per store): register the ShopBonus Ecwid app with scopes `read_store_profile update_store_profile read_orders customize_storefront` and `customJsUrl = https://APP_URL/embed/ecwid-app-v1.js?client_id=CLIENT_ID`; set `ECWID_BANNERS_ENABLED=true`, `ECWID_APP_CLIENT_ID`. The connection's `access_token` must be that app's per-store token (storage is app-scoped; a different app's token yields 401/403 → `native_banner_permission_missing`).
+
+`shopbonus:banner-native install|reconcile|remove <connection> --actor=<user>`: verifies identity/domain/API plan, live campaign and allowed origin; freezes `{"schema":"shopbonus.ecwid-app.v1","embed":"APP_URL/embed/v1.js","public_key":...}`; refuses to overwrite or delete any value it did not write; records intent before the write; POST overwrites, so a lost response is resolved by read-back (no blind second write). Remove deletes only the owned value and confirms absence. `ecwid-app-v1.js` loads the renderer only from its own HTTPS origin and only for an exact schema/embed/key config. Unverified: whether `getAppPublicConfig` returns the raw string or entry object (both accepted), GET 404 for missing key (404 and `[]` both treated as absent). Real app registration/storefront acceptance NOT RUN.
+
+### Squarespace — verified manual installation (`SquarespaceInstallationVerifier`)
+
+Squarespace has no code-injection API, so a write adapter would require an invented endpoint. `install` (after API identity/domain verification) returns the exact frozen snippet and Code Injection location; `reconcile` verifies the snippet in the verified storefront's served HTML via a DNS-pinned, public-address-only, no-redirect, 2 MiB bounded GET; `remove` reports `removal_pending` until neither the snippet nor any tag with this public key is served, then records `removed`. Served HTML is configuration evidence, not browser delivery proof; password-protected or redirecting domains cannot be verified (fail closed).
+
+Tests: `EcwidAppPublisherTest` 6 + `SquarespaceInstallationVerifierTest` 3 PASS (108 assertions); Node embed 51 PASS (Ecwid app script case); NativeBannerPublisher/Lightspeed/localization PASS; scoped PHPStan/Pint PASS. Full suite NOT RUN by request.

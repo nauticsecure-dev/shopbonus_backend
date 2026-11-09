@@ -13,6 +13,7 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
   let now = Date.parse('2026-10-31T10:00:00Z'), sequence = 0;
   let nativeCart = { total_price: 9400, currency: 'EUR' }, nativeFailure = false, nativeHold = null, draftHold = null, pairHold = null;
   if (platform) nativeCart = providerCart(platform, 9400);
+  if (['prestashop', 'opencart', 'magento'].includes(platform)) wooUrl = ({ prestashop: '/store/module/shopbonus/cart', opencart: '/store/index.php?route=common%2Fcart.info&language=en-gb', magento: '/store/customer/section/load/?sections=shopbonus_cart' })[platform];
   function listen(name, callback) { const previous = listeners[name]; listeners[name] = previous ? (...args) => { previous(...args); callback(...args); } : callback; }
   function element(tag) {
     const el = { tag, children: [], style: {}, classList: { add() {}, contains() { return false; } }, isConnected: true,
@@ -41,7 +42,7 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
         const value = JSON.parse(JSON.stringify(nativeCart));
         if (nativeHold) await nativeHold;
         if (nativeFailure) throw new Error('native_cart_offline');
-        return { ok: true, json: async () => value };
+        return { ok: true, headers: { get: name => name === 'X-ShopBonus-Cart' ? JSON.stringify(value) : null }, json: async () => value };
       }
       if (url.includes('/editor/pair')) { if (pairHold) await pairHold; return { ok: true, json: async () => ({ data: { editor_token: 'editor-secret', expires_in: 1800 } }) }; }
       if (url.includes('/editor/campaigns/')) { if (draftHold) await draftHold; return { ok: true, json: async () => ({ data: { id: 'campaign', draft_config: config.config, draft_revision: 1 } }) }; }
@@ -70,6 +71,7 @@ function harness({ allowed = false, observer = false, holdout = false, failEvent
     sandbox.AbortController = AbortController;
     const embedScript = document.currentScript;
     document.body = element('body');
+    sandbox.prestashop = { on: listen };
     sandbox.jQuery = () => ({ on(names, callback) { names.split(' ').forEach((name) => listen(name, callback)); } });
     document.currentScript = { getAttribute: (key) => ({ 'data-platform': platform, 'data-cart-url': wooUrl, 'data-persist-attribution': persistAttribution ? 'true' : 'false' })[key] || null };
     vm.runInNewContext(nativeSource, sandbox);
@@ -389,11 +391,15 @@ test('Shopify adapter preserves an existing bridge and rejects absent or foreign
 });
 
 function providerCart(platform, minor, currency = 'EUR') {
+  if (['prestashop', 'opencart', 'magento'].includes(platform)) {
+    const value = { schema: 'shopbonus.cart-source.v1', platform, total_minor: minor, currency, minor_unit: 2 };
+    return platform === 'magento' ? { shopbonus_cart: value } : value;
+  }
   return platform === 'woocommerce'
     ? { totals: { total_price: String(minor), currency_code: currency, currency_minor_unit: 2 } }
     : [{ cartAmount: minor / 100, currency: { code: currency, decimalPlaces: 2 } }];
 }
-for (const platform of ['woocommerce', 'bigcommerce']) {
+for (const platform of ['woocommerce', 'bigcommerce', 'prestashop', 'opencart', 'magento']) {
   test(`${platform}: native cart drives actual banner without consent or tracking`, async () => {
     const h = harness({ platform }); await h.settle();
     const bar = h.elements.find((e) => e.sbItem).querySelector('.sb-bar');
@@ -413,7 +419,9 @@ for (const platform of ['woocommerce', 'bigcommerce']) {
   test(`${platform}: malformed precision, empty responses and outages hide progress and recover`, async () => {
     const h = harness({ platform }); await h.settle();
     const bar = h.elements.find((e) => e.sbItem).querySelector('.sb-bar');
-    const invalid = platform === 'woocommerce'
+    const invalid = ['prestashop', 'opencart', 'magento'].includes(platform)
+      ? [null, {}, platform === 'magento' ? { shopbonus_cart: { ...providerCart('prestashop', 9400), platform: 'magento', minor_unit: 3 } } : { ...providerCart(platform, 9400), total_minor: '9400' }, providerCart(platform === 'magento' ? 'prestashop' : 'magento', 9400)]
+      : platform === 'woocommerce'
       ? [null, {}, { totals: { total_price: '9400.0', currency_minor_unit: 2, currency_code: 'EUR' } }, { totals: { total_price: 9400, currency_minor_unit: 2, currency_code: 'EUR' } }, { totals: { total_price: '9400', currency_minor_unit: 0, currency_code: 'EUR' } }]
       : [null, [], [{ cartAmount: 94.001, currency: { code: 'EUR', decimalPlaces: 2 } }], [{ cartAmount: '94', currency: { code: 'EUR', decimalPlaces: 2 } }], [{ cartAmount: 94, currency: { code: 'EUR', decimalPlaces: 3 } }], [...providerCart(platform, 9400), ...providerCart(platform, 100)]];
     for (const value of [...invalid, providerCart(platform, -1), providerCart(platform, 9400, 'JPY'), providerCart(platform, 9400, 'AAA'), providerCart(platform, Number.MAX_SAFE_INTEGER * 2)]) {
@@ -537,4 +545,92 @@ test('Shopify reader writes cart attributes only when the merchant opts in', asy
   calls.length = 0;
   await s.ShopBonusCart.setAttribution({});
   assert.deepEqual(JSON.parse(calls.find((c) => c.options.method === 'POST').options.body), { attributes: { shopbonus_assignment_token: '', shopbonus_click_id: '' } });
+});
+
+
+test('native package routes reject cross-origin, duplicate routing keys and private cart selectors', () => {
+  function load(platform, url, search = '') {
+    const s = { window: null, URL, AbortController, fetch() { throw new Error('Unsafe route must not fetch'); },
+      location: { origin: 'https://shop.test', pathname: '/index.php', search },
+      document: { currentScript: { getAttribute: k => ({ 'data-platform': platform, 'data-cart-url': url })[k] } } };
+    s.window = s; vm.runInNewContext(nativeSource, s); return s;
+  }
+  for (const [platform, url] of [
+    ['prestashop', 'https://foreign.test/module/shopbonus/cart'],
+    ['prestashop', '/module/shopbonus/cart?id_cart=77'],
+    ['prestashop', '/index.php?fc=module&module=shopbonus&controller=cart&controller=order'],
+    ['prestashop', '/index.php?fc=module&module=other&controller=cart'],
+    ['opencart', '/index.php?route=common/cart.info&cart_id=77'],
+    ['opencart', '/index.php?route=common/cart.info&route=checkout/checkout'],
+    ['magento', '/customer/section/load/?sections=cart'],
+    ['magento', '/customer/section/load/?sections=shopbonus_cart&SID=secret'],
+  ]) assert.equal(load(platform, url).ShopBonusCart, undefined);
+  for (const search of ['?route=checkout/checkout', '?route=account/login', '?controller=order', '?controller=authentication']) {
+    assert.equal(load('opencart', '/index.php?route=common/cart.info', search).ShopBonusCart, undefined);
+  }
+});
+
+test('PrestaShop and Magento native notifications refetch their session source', async () => {
+  for (const [platform, events] of [['prestashop', ['updateCart', 'updatedCart']], ['magento', ['ajax:addToCart', 'ajax:removeFromCart']]]) {
+    const h = harness({ platform }); await h.settle();
+    for (const name of events) { h.listeners[name](); await h.settle(); }
+    assert.equal(h.requests.filter(r => r.url.startsWith('https://shop.test/')).length, 3);
+  }
+});
+
+test('Adobe storefront drop-in bridge: exact pushed totals, no fetch, fail-closed on malformed/null carts', () => {
+  const listeners = {};
+  const { s, calls } = adapterSandbox(nativeSource, { 'data-platform': 'adobe-storefront' }, {
+    addEventListener(type, fn) { listeners[type] = fn; },
+  });
+  const cart = s.ShopBonusCart;
+  assert.ok(cart);
+  assert.equal(cart.getSnapshot(), null);
+  const push = (detail) => listeners['shopbonus:adobe-cart-data']({ detail });
+  push({ total: { includingTax: { value: 38.5, currency: 'EUR' } } });
+  assert.deepEqual([cart.getSnapshot().total_minor, cart.getSnapshot().currency], [3850, 'EUR']);
+  push({ total: { includingTax: { value: 12, currency: 'USD' } } });
+  assert.deepEqual([cart.getSnapshot().total_minor, cart.getSnapshot().currency], [1200, 'USD']);
+  for (const bad of [null, {}, { total: { includingTax: { value: 1.005, currency: 'EUR' } } },
+    { total: { includingTax: { value: '10', currency: 'EUR' } } }, { total: { includingTax: { value: -1, currency: 'EUR' } } },
+    { total: { includingTax: { value: 10, currency: 'JPY' } } }, { total: { excludingTax: { value: 10, currency: 'EUR' } } }]) {
+    push({ total: { includingTax: { value: 5, currency: 'EUR' } } });
+    assert.equal(cart.getSnapshot().total_minor, 500);
+    push(bad);
+    assert.equal(cart.getSnapshot(), null, JSON.stringify(bad));
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('Adobe storefront bridge stays off checkout/account pages', () => {
+  for (const pathname of ['/checkout', '/customer/account', '/order-received/1']) {
+    const { s } = adapterSandbox(nativeSource, { 'data-platform': 'adobe-storefront' }, { location: { origin: 'https://shop.test', pathname } });
+    assert.equal(s.ShopBonusCart, undefined);
+  }
+});
+
+test('Ecwid app storefront script loads the renderer only from a valid same-origin public config', () => {
+  const ecwidSource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/ecwid-app-v1.js'), 'utf8');
+  const good = JSON.stringify({ schema: 'shopbonus.ecwid-app.v1', embed: 'https://api.example.com/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) });
+  function run(config, src = 'https://api.example.com/embed/ecwid-app-v1.js?client_id=shopbonus-app') {
+    const appended = [];
+    const s = {
+      URL, JSON,
+      document: { currentScript: { src }, querySelector: () => null, head: { appendChild: (el) => appended.push(el) },
+        createElement: () => ({ attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } }) },
+      Ecwid: { OnAPILoaded: { add: (fn) => fn() }, getAppPublicConfig: (id) => (id === 'shopbonus-app' ? config : null) },
+    };
+    s.window = s; vm.runInNewContext(ecwidSource, s); return appended;
+  }
+  for (const config of [good, { key: 'public', value: good }]) {
+    const [el] = run(config);
+    assert.equal(el.src, 'https://api.example.com/embed/v1.js');
+    assert.equal(el.attrs['data-shopbonus-key'], 'pk_' + 'a'.repeat(24));
+  }
+  for (const config of [null, '', "{'color':'red'}", JSON.stringify({ schema: 'shopbonus.ecwid-app.v1', embed: 'https://evil.test/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) }),
+    JSON.stringify({ schema: 'other', embed: 'https://api.example.com/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) })]) {
+    assert.equal(run(config).length, 0);
+  }
+  assert.equal(run(good, 'http://api.example.com/embed/ecwid-app-v1.js?client_id=shopbonus-app').length, 0);
+  assert.equal(run(good, 'https://api.example.com/embed/ecwid-app-v1.js').length, 0);
 });
