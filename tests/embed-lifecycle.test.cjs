@@ -609,24 +609,34 @@ test('Adobe storefront bridge stays off checkout/account pages', () => {
   }
 });
 
-test('Ecwid app storefront script loads the renderer only from a valid same-origin public config', () => {
+test('Ecwid app storefront script loads attribution before rendering only with valid same-origin config', () => {
   const ecwidSource = fs.readFileSync(require('node:path').join(__dirname, '../public/embed/ecwid-app-v1.js'), 'utf8');
   const good = JSON.stringify({ schema: 'shopbonus.ecwid-app.v1', embed: 'https://api.example.com/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) });
-  function run(config, src = 'https://api.example.com/embed/ecwid-app-v1.js?client_id=shopbonus-app') {
+  function run(config, src = 'https://api.example.com/embed/ecwid-app-v1.js?client_id=shopbonus-app', fail = false) {
     const appended = [];
     const s = {
       URL, JSON,
       document: { currentScript: { src }, querySelector: () => null, head: { appendChild: (el) => appended.push(el) },
         createElement: () => ({ attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } }) },
-      Ecwid: { OnAPILoaded: { add: (fn) => fn() }, getAppPublicConfig: (id) => (id === 'shopbonus-app' ? config : null) },
+      Ecwid: { OnAPILoaded: { add: (fn) => { fn(); fn(); } }, getAppPublicConfig: (id) => (id === 'shopbonus-app' ? config : null) },
     };
-    s.window = s; vm.runInNewContext(ecwidSource, s); return appended;
+    s.window = s; vm.runInNewContext(ecwidSource, s);
+    if (appended.length) {
+      assert.equal(appended.length, 1);
+      assert.equal(appended[0].src, 'https://api.example.com/embed/ecwid-attribution-v1.js');
+      s.Ecwid.OnAPILoaded.add(() => {});
+      if (fail) appended[0].onerror();
+      else appended[0].onload();
+    }
+    return appended;
   }
   for (const config of [good, { key: 'public', value: good }]) {
-    const [el] = run(config);
+    const [writer, el] = run(config);
+    assert.equal(writer.onload, null);
     assert.equal(el.src, 'https://api.example.com/embed/v1.js');
     assert.equal(el.attrs['data-shopbonus-key'], 'pk_' + 'a'.repeat(24));
   }
+  assert.equal(run(good, undefined, true).length, 1);
   for (const config of [null, '', "{'color':'red'}", JSON.stringify({ schema: 'shopbonus.ecwid-app.v1', embed: 'https://evil.test/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) }),
     JSON.stringify({ schema: 'other', embed: 'https://api.example.com/embed/v1.js', public_key: 'pk_' + 'a'.repeat(24) })]) {
     assert.equal(run(config).length, 0);

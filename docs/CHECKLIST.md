@@ -1910,3 +1910,11 @@ B93 implementing SHA `3cc0ef7`; B92 implementing SHA `3180453`. Local tests pass
 Items remain unchecked pending a tested implementation commit SHA.
 
 Resolution validation: final focused regression 79 PASS / 8,980 assertions; Squarespace 8 PASS / 42 assertions; Node 54 PASS; syntax/Pint/staged whitespace PASS. All 12 unmerged paths resolved/staged. Merge uncommitted; boxes await implementation SHA.
+
+### Ecwid/E-Series automatic attribution bootstrap — 2026-11-10
+
+- [x] Load the existing same-origin attribution writer before the renderer from valid app configuration; suppress duplicate readiness callbacks and fail closed on load error.
+- [x] Test ordered execution, duplicate callbacks, invalid config and writer load failure alongside existing consent/expiry tests.
+- [x] Update installation and checkpoint documentation with executed evidence and remaining provider gaps.
+
+Local implementation checks: 60 Node tests PASS; JavaScript syntax and whitespace PASS. Implementation SHA `9d30dca22223425b3c74582a7cfcb2d23020a9f7`. Genuine provider acceptance remains separate and NOT RUN.
