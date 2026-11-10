@@ -1917,4 +1917,4 @@ Resolution validation: final focused regression 79 PASS / 8,980 assertions; Squa
 - [x] Test ordered execution, duplicate callbacks, invalid config and writer load failure alongside existing consent/expiry tests.
 - [x] Update installation and checkpoint documentation with executed evidence and remaining provider gaps.
 
-Local implementation checks: 60 Node tests PASS; JavaScript syntax and whitespace PASS. Implementation SHA recorded in the following closeout. Genuine provider acceptance remains separate and NOT RUN.
+Local implementation checks: 60 Node tests PASS; JavaScript syntax and whitespace PASS. Implementation SHA `9d30dca22223425b3c74582a7cfcb2d23020a9f7`. Genuine provider acceptance remains separate and NOT RUN.

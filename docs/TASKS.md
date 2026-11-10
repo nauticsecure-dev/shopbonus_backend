@@ -1,3 +1,7 @@
+## Ecwid bootstrap commit closeout — 2026-11-10
+
+Implementation SHA `9d30dca22223425b3c74582a7cfcb2d23020a9f7`, branch `fix/ecwid-attribution-bootstrap`. Repeated focused Node regression: 60 PASS; JavaScript syntax and whitespace PASS. Implementation committed; this documentation closeout is the only subsequent change. No migrations or policy changes. Full application suite and genuine provider acceptance NOT RUN. Next action: push branch and open PR to `main` as authorized, then review CI and execute authorized installed-store acceptance. Remaining provider propagation blockers are unchanged below.
+
 ## Ecwid/E-Series attribution bootstrap — 2026-11-10
 
 Local implementation tested; overall propagation acceptance PARTIAL. Branch `fix/ecwid-attribution-bootstrap`, base SHA `00a12b7b13f4f39feed1a607cd5fd92af076b086`; scoped changes uncommitted. The existing app bootstrap now loads the same-origin attribution writer before inserting the renderer. Repeated API readiness callbacks are suppressed; writer load failure leaves the renderer unloaded. Existing configuration validation, consent/expiry handling and hidden-field writer remain in use. No API route/schema changes, migrations, deployment, provider activation, commit or push.
