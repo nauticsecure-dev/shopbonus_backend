@@ -2,7 +2,7 @@
  * ShopBonus Ecwid / Lightspeed E-Series app storefront script (app customJsUrl:
  * https://YOUR_BACKEND/embed/ecwid-app-v1.js?client_id=APP_CLIENT_ID).
  * Reads this store's app public config (Ecwid.getAppPublicConfig) written by EcwidAppPublisher and loads
- * the renderer from this script's own origin only. Missing/malformed/foreign config loads nothing.
+ * the attribution writer before the renderer from this script's own origin only. Missing/malformed/foreign config loads nothing.
  */
 (function () {
   "use strict";
@@ -27,15 +27,28 @@
       || typeof value.public_key !== "string" || !/^[A-Za-z0-9_-]{8,128}$/.test(value.public_key)) return null;
     return value;
   }
+  var loading = false;
   function load() {
+    if (loading) return;
     if (document.querySelector("script[data-shopbonus-key]")) return;
     var value = config();
     if (!value) return;
-    var s = document.createElement("script");
-    s.async = true;
-    s.src = value.embed;
-    s.setAttribute("data-shopbonus-key", value.public_key);
-    (document.head || document.body).appendChild(s);
+    loading = true;
+    var writer = document.createElement("script");
+    writer.async = true;
+    writer.src = self.origin + "/embed/ecwid-attribution-v1.js";
+    writer.onload = function () {
+      writer.onload = null;
+      if (document.querySelector("script[data-shopbonus-key]")) return;
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = value.embed;
+      s.setAttribute("data-shopbonus-key", value.public_key);
+      (document.head || document.body).appendChild(s);
+    };
+    // A failed writer load must not start an uninstrumented renderer.
+    writer.onerror = function () { writer.onload = null; };
+    (document.head || document.body).appendChild(writer);
   }
   if (window.Ecwid && window.Ecwid.OnAPILoaded && typeof window.Ecwid.OnAPILoaded.add === "function") window.Ecwid.OnAPILoaded.add(load);
 })();

@@ -1,3 +1,11 @@
+## Ecwid/E-Series attribution bootstrap — 2026-11-10
+
+Local implementation tested; overall propagation acceptance PARTIAL. Branch `fix/ecwid-attribution-bootstrap`, base SHA `00a12b7b13f4f39feed1a607cd5fd92af076b086`; scoped changes uncommitted. The existing app bootstrap now loads the same-origin attribution writer before inserting the renderer. Repeated API readiness callbacks are suppressed; writer load failure leaves the renderer unloaded. Existing configuration validation, consent/expiry handling and hidden-field writer remain in use. No API route/schema changes, migrations, deployment, provider activation, commit or push.
+
+Executed: `node --test tests/ecwid-attribution.test.cjs tests/embed-lifecycle.test.cjs` — 60 PASS / 0 FAIL; `node --check public/embed/ecwid-app-v1.js` and `git diff --check` PASS. Regression covers ordering, invalid configuration, duplicate readiness and writer failure alongside writer consent/expiry/withdrawal tests. Full PHP/application suite and genuine provider acceptance NOT RUN. Checklist remains unchecked pending implementation commit SHA.
+
+Exact next action: review/commit this scoped patch and deploy both assets on an authorized Ecwid/E-Series test store; run both-arm/no-consent/withdrawal/expiry/native checkout/paid/refund/replay acceptance. CCV extraction remains null pending an authoritative hidden-field or session-to-order contract. Lightspeed C, Shopware, Magento, Wix, PrestaShop, OpenCart and Mijnwebwinkel native storefront writers remain open; readers and signed webhook contracts do not close those gaps. No financial policy decision changed.
+
 ## Backend merge conflicts resolved — 2026-11-09
 
 Resolved all 12 unmerged paths for the in-progress merge on `HassanDev`, HEAD `51522a8736b66b25ccfa0ffabc3d459e56a7d0aa`, incoming `9d22d9793d8419390f33d75cc550952604f2d906`. Kept Squarespace coupon lookup and the existing rejection of shopper-provided attribution; combined assignmentCart and Adobe pushedCart reader state; retained both documentation histories. Rebuilt all six integration archives and manifest from merged sources. Resolutions are staged; merge remains uncommitted, no push/deployment performed.
