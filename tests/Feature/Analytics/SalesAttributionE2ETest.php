@@ -474,7 +474,7 @@ class SalesAttributionE2ETest extends TestCase
 
         WebshopConnection::create([
             'webshop_id' => $this->shopB->id,
-            'platform' => EcommercePlatform::Wix,
+            'platform' => EcommercePlatform::Other,
             'method' => ConnectionMethod::Webhook,
             'status' => ConnectionStatus::Connected,
             'webhook_token' => str_repeat('b', 40),

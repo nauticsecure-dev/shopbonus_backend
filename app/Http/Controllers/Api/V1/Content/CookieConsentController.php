@@ -21,7 +21,7 @@ class CookieConsentController extends Controller
 {
     public function policy(Request $request): JsonResponse
     {
-        $data = $request->validate(['locale' => ['sometimes', Rule::in(['nl', 'en'])]]);
+        $data = $request->validate(['locale' => ['sometimes', Rule::in(User::SUPPORTED_LOCALES)]]);
         $locale = $data['locale'] ?? 'nl';
         $policy = CookiePolicy::current();
 

@@ -127,7 +127,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $this->assertSame(1000, $program->commission_value);
         $this->assertTrue($program->category_restricted);
 
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
         $detail = $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk();
         $this->assertSame('Tot 7% cashback', $detail->json('data.cashback_label'));
         $this->assertSame(0.07, $detail->json('data.benefits.0.consumer_cashback_rate'));
@@ -158,7 +158,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
     public function test_acceptance_05_cashback_page_shows_seven_percent_without_prepaid_unlock_fields(): void
     {
         $this->importPrograms(['type' => 'percentage', 'value' => '10', 'restricted' => false]);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
 
         $detail = $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk();
         $this->assertSame('7% cashback', $detail->json('data.cashback_label'));
@@ -175,7 +175,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
     {
         $this->importPrograms(['type' => 'percentage', 'value' => '10', 'restricted' => false]);
         $this->promoOffer(combinable: false, discountBps: 1500, name: '15% kortingscode');
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
 
         $offer = collect($this->getJson('/api/v1/public/webshops/fietsen-utrecht')->json('data.offers'))
             ->firstWhere('title', '15% kortingscode');
@@ -187,7 +187,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
     {
         $this->importPrograms();
         $this->promoOffer(combinable: true);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
 
         $combined = collect($this->getJson('/api/v1/public/webshops/fietsen-utrecht')->json('data.offers'))
             ->firstWhere('title', '10% kortingscode');
@@ -198,7 +198,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $shop2 = $this->activeWebshop($owner, ['name' => 'Fietsen Den Bosch', 'verified_domain' => 'fietsen-den-bosch.nl']);
         Sanctum::actingAs($owner);
         $this->putJson("/api/v1/workspaces/{$shop2->public_id}/public-profile", ['short_description' => 'Fietsen', 'website_url' => 'https://fietsen-den-bosch.nl', 'categories' => ['sports_outdoor'], 'published' => true])->assertOk();
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
 
         app(AffiliateSync::class)->import($this->daisycon, [[
             'id' => 'P2', 'name' => 'Fietsen Den Bosch', 'url' => 'https://fietsen-den-bosch.nl', 'status' => 'active', 'currency_code' => 'EUR',
@@ -248,7 +248,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $this->importPrograms();
         $this->promoOffer(combinable: true);
         OfferVersion::query()->update(['cashback_permission' => null]);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
         $detail = $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk();
         $this->assertSame('discount_code', collect($detail->json('data.offers'))->firstWhere('title', '10% kortingscode')['offer_kind']);
         AffiliateRewardRule::query()->update(['active' => false]);
@@ -344,7 +344,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         Http::assertNothingSent();
 
         $this->importPrograms(cashbackAllowed: false);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
         $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()
             ->assertJsonPath('data.cashback_label', null)
             ->assertJsonMissingPath('data.benefits.0.consumer_cashback_rate');
@@ -354,7 +354,7 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $offer = $this->shop->offers()->latest('id')->firstOrFail();
         DB::table('offer_versions')->where('id', $offer->current_version_id)->update(['ends_at' => now()->subDay()]);
         $offer->touch();
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs($this->anna);
         $expired = collect($this->getJson('/api/v1/public/webshops/fietsen-utrecht')->json('data.offers'))
             ->firstWhere('title', '10% kortingscode');
         $this->assertSame('expired', $expired['availability']);
@@ -364,14 +364,16 @@ class AffiliateCashbackOffersE2ETest extends TestCase
         $this->importPrograms();
         app(ProgramSelector::class)->select($this->shop->fresh());
         $this->app['auth']->forgetGuards();
-        $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
-        $anonRef = AffiliateClick::latest('id')->firstOrFail()->reference;
-        $this->assertNull(AffiliateClick::latest('id')->first()->user_id);
+        $this->getJson('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertUnauthorized();
+        $this->assertSame(0, AffiliateClick::count());
 
         Sanctum::actingAs($this->anna);
         $this->get('/api/v1/public/webshops/fietsen-utrecht/visit'.$this->marketingConsentQuery())->assertRedirect();
-        $annaRef = AffiliateClick::where('user_id', $this->anna->id)->latest('id')->firstOrFail()->reference;
-        $this->app['auth']->forgetGuards();
+        $click = AffiliateClick::where('user_id', $this->anna->id)->sole();
+        $annaRef = $click->reference;
+        // Historical anonymous clicks still arrive in provider reports and must not earn user credit.
+        $anonRef = 'LEGACYANONYMOUS00001';
+        $click->replicate()->forceFill(['reference' => $anonRef, 'user_id' => null])->save();
 
         $txRow = [
             'affiliatemarketing_id' => 'D-DUP', 'program_id' => 'P1', 'date' => now()->toIso8601String(),

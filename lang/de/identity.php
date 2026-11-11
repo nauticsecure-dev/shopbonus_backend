@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'notification_current_details' => 'Die aktuellen Angaben findest du in deinem Konto.',
+    'registration_role' => 'Wähle Verbraucher oder Shopbetreiber.',
+    'registration_terms' => 'Akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung.',
+    'registration_terms_version' => 'Die Nutzungsbedingungen wurden geändert. Lade die Seite neu und lies sie erneut.',
+    'registration_privacy_version' => 'Die Datenschutzerklärung wurde geändert. Lade die Seite neu und lies sie erneut.',
     'verification_subject' => 'Dein Shopbonus-Bestätigungscode',
     'verification_greeting' => 'Hallo :name,',
     'verification_line' => 'Bestätige deine E-Mail-Adresse mit diesem Code:',

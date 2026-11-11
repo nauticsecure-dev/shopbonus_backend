@@ -55,11 +55,12 @@ class LocalIntegrationSetupTest extends TestCase
         $this->assertSame(10, VoucherCode::count());
         $this->assertTrue(User::where('email', $manifest['accounts']['admin']['email'])->sole()->isSuperAdmin());
         $this->getJson('/api/v1/public/legal-requirements')->assertOk()->assertJsonPath('data.registration_available', true)->assertJsonPath('data.documents_available', true);
-        $this->getJson('/api/v1/public/webshops')->assertOk()->assertJsonFragment(['slug' => 'local-sample-shop']);
+        $this->getJson('/api/v1/public/webshops')->assertUnauthorized();
         $this->getJson('/api/v1/public/faq')->assertOk()->assertJsonFragment(['key' => 'local-integration']);
         $consumer = User::where('email', $manifest['accounts']['consumer']['email'])->sole();
         $this->assertTrue(Hash::check($manifest['accounts']['consumer']['password'], $consumer->getAuthPassword()));
         Sanctum::actingAs($consumer);
+        $this->getJson('/api/v1/public/webshops')->assertOk()->assertJsonFragment(['slug' => 'local-sample-shop']);
         $this->postJson('/api/v1/consumer/offers/'.$manifest['offer_slug'].'/claim')->assertCreated();
         $this->assertSame(0, Artisan::call('shopbonus:setup-local-integration'), Artisan::output());
         $this->assertSame($manifest, json_decode(file_get_contents($file), true));

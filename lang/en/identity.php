@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'notification_current_details' => 'View current details in your account.',
+    'registration_role' => 'Choose consumer or webshop owner.',
+    'registration_terms' => 'Accept the Terms and Privacy Policy.',
+    'registration_terms_version' => 'The Terms have been updated. Reload the page and review them.',
+    'registration_privacy_version' => 'The Privacy Policy has been updated. Reload the page and review it.',
     'verification_subject' => 'Your Shopbonus verification code',
     'verification_greeting' => 'Hello :name,',
     'verification_line' => 'Use this code to verify your email address:',

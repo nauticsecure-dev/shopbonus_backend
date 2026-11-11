@@ -243,7 +243,7 @@ class BusinessJourneyTest extends TestCase
         $rewardCode = $claimed->json('data.code');
         $this->assertContains($rewardCode, ['FIETS-A24-0001', 'FIETS-A24-0002']);
 
-        // 12–13. Pending commission is not spendable; approval plus recorded settlement credits once.
+        // 12–13. Trusted validation credits once. Approval and settlement update finance evidence.
         $network = AffiliateConnection::create(['network' => 'daisycon', 'name' => 'Daisycon', 'status' => 'connected', 'credentials' => ['publisher_id' => '1', 'access_token' => 'SYNTHETIC', 'media_id' => '9'],
             'postback_token_hash' => AffiliateConnection::hashToken('daisycon-token')]);
         AffiliateRewardRule::create(['version' => 1, 'unit' => 'eur_credit', 'share_bps' => 5000, 'min_commission_minor' => 50, 'review_above_minor' => 5000, 'active' => true, 'created_by' => $admin->id]);
@@ -257,11 +257,11 @@ class BusinessJourneyTest extends TestCase
             'parts' => [['subid' => $click, 'referencenumber' => 'ORD-AFF-1', 'revenue' => 79.95, 'commission' => 4.797, 'status' => $status, 'currency_code' => 'EUR']]];
         $sync->import($network, [], [$tx('pending', '2026-10-23T12:00:00Z')], $admin->id);
         $this->as($anna);
-        $this->getJson('/api/v1/consumer/wallet')->assertOk()->assertJsonPath('data.balances.eur_credit.available', 0)->assertJsonPath('data.balances.eur_credit.pending', 239)->assertJsonPath('data.withdrawable', false);
+        $this->getJson('/api/v1/consumer/wallet')->assertOk()->assertJsonPath('data.balances.eur_credit.available', 239)->assertJsonPath('data.balances.eur_credit.pending', 0)->assertJsonPath('data.withdrawable', false);
         $sync->import($network, [], [$tx('approved', '2026-10-24T09:00:00Z')], $admin->id);
         $sync->import($network, [], [$tx('approved', '2026-10-24T09:00:00Z')], $admin->id); // network retry
         $this->as($anna);
-        $this->getJson('/api/v1/consumer/wallet')->assertOk()->assertJsonPath('data.balances.eur_credit.available', 0)->assertJsonPath('data.balances.eur_credit.pending', 239);
+        $this->getJson('/api/v1/consumer/wallet')->assertOk()->assertJsonPath('data.balances.eur_credit.available', 239)->assertJsonPath('data.balances.eur_credit.pending', 0);
         $conversion = AffiliateTransaction::where('connection_id', $network->id)->where('external_id', 'D-1')->sole();
         app(SettlementRecorder::class)->record($conversion, $admin, 'SYNTHETIC-journey-remittance', CarbonImmutable::now()->subMinute());
         $sync->import($network, [], [$tx('approved', '2026-10-24T09:00:00Z')], $admin->id); // replay after settlement

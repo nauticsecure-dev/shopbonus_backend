@@ -4,7 +4,7 @@ All items below are OPEN unless supported by existing owner-approved implementat
 
 | ID | State | Question / Evidence needed | Conservative interim handling |
 | --- | --- | --- | --- |
-| OPEN-AFFILIATE-CREDIT-TIMING | RESOLVED for new rewards (owner2026-11-03: approval plus recorded settlement, D-109; supersedes D-089/D-107) | Trello #19/#22: pending, not spendable until approved. #23: instantly approved/spendable on valid attribution despite future network rejection. Which has priority and what fraud/abuse policy applies? | Do not change live spendable balances on ambiguous events; implement status data model and independent tests first. |
+| OPEN-AFFILIATE-CREDIT-TIMING | RESOLVED for new conversions (owner 2026-11-11: immediate validated credit, D-114) | Trello #19/#22: pending, not spendable until approved. #23: instantly approved/spendable on valid attribution despite future network rejection. Which has priority and what fraud/abuse policy applies? | Do not change live spendable balances on ambiguous events; implement status data model and independent tests first. |
 | OPEN-REWARD-UNITS | OPEN (owner 2026-10-23: proceed with the safe default) | Are EUR redemption credits and integer points the same unit? Conversion rate and per-program rules? | Store explicit unit and integer quantity; no implicit conversion. |
 | OPEN-FINANCIAL-LEGAL | OPEN | Seller of record, VAT, invoice obligations, refund/chargeback ownership, merchant settlement arrangements. | Sandbox-only payments / no production enablement until owner/legal decision. |
 | OPEN-MARKETING-CONSENT | OPEN | Document lawful basis and scope for Answer24 phone outreach and voucher-reminder communications in NL/EU. | No unsolicited outbound contact; eligibility engine records blocked reason. |
@@ -311,3 +311,7 @@ OpenCart has no core product/coupon API. Owner chose that the ShopBonus extensio
 ### OpenCart D-110 reconfirmation — 2026-11-07
 
 Owner explicitly chose “Keep the approved signed-snapshot architecture.” Live catalogue pull endpoints on merchant shops remain excluded. Signed worker snapshots remain the supported product/coupon synchronization path; six-hour freshness is not live API evidence.
+
+### D-114 — Immediate credit for new validated affiliate conversions (owner, 2026-11-11)
+
+Trusted sync/import and the existing attribution, eligibility and review checks govern new conversions. Eligible credit is spendable immediately and is recorded once. Later provider rejection or adjustment updates finance and review evidence without automatically debiting that credit. Existing conversions keep their frozen timing and historical accounting. This supersedes the 2026-11-03 settlement rule for new conversions.

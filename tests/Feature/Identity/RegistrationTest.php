@@ -159,6 +159,67 @@ class RegistrationTest extends TestCase
         $this->register(['password' => 'onlyletterslongenough'])->assertStatus(422);
     }
 
+    public function test_registration_returns_all_localized_password_and_terms_errors_in_one_response(): void
+    {
+        foreach (['nl', 'en', 'de'] as $index => $locale) {
+            foreach (['consumer', 'merchant'] as $role) {
+                $response = $this->withServerVariables(['REMOTE_ADDR' => '127.0.0.'.($index + 2)])
+                    ->postJson('/register', $this->registrationPayload([
+                        'account_type' => $role,
+                        'email' => $role.'-'.$locale.'@registration.test',
+                        'password' => '123',
+                        'accept_terms' => false,
+                        'locale' => $locale,
+                    ]), ['Accept-Language' => $locale])
+                    ->assertUnprocessable()
+                    ->assertHeader('Content-Language', $locale)
+                    ->assertJsonPath('error.code', 'validation_failed')
+                    ->assertJsonPath('error.fields.accept_terms.0', __('identity.registration_terms', [], $locale));
+
+                $this->assertCount(2, $response->json('error.fields.password'));
+                $this->assertSame($response->headers->get('X-Request-ID'), $response->json('error.request_id'));
+                $this->assertStringContainsString('10', $response->json('error.fields.password.0'));
+                $this->assertStringContainsString(match ($locale) {
+                    'nl' => 'letter',
+                    'en' => 'letter',
+                    'de' => 'Buchstaben',
+                }, $response->json('error.fields.password.1'));
+            }
+        }
+    }
+
+    public function test_common_password_is_rejected_without_an_external_lookup(): void
+    {
+        foreach (['nl', 'en', 'de'] as $locale) {
+            $this->postJson('/register', $this->registrationPayload([
+                'password' => 'Password123!',
+                'locale' => $locale,
+            ]), ['Accept-Language' => $locale])
+                ->assertUnprocessable()
+                ->assertJsonPath('error.fields.password.0', __('validation.password.common', [], $locale));
+        }
+    }
+
+    public function test_unicode_passphrase_is_hashed_in_full_and_legacy_bcrypt_login_upgrades(): void
+    {
+        $password = str_repeat('Veilige🌍zin ', 8).'2026';
+        $this->register(['password' => $password])->assertCreated();
+        $user = User::where('email', $this->registrationPayload()['email'])->sole();
+        $this->assertSame('argon2id', password_get_info($user->password)['algoName']);
+        $this->assertTrue(password_verify($password, $user->password));
+        $this->assertFalse(password_verify(substr($password, 0, 72), $user->password));
+
+        $this->postJson('/logout')->assertNoContent();
+        $legacy = User::factory()->create([
+            'email' => 'legacy-hash@example.test',
+        ]);
+        DB::table('users')->where('id', $legacy->id)->update([
+            'password' => password_hash('Legacy-password-2026', PASSWORD_BCRYPT, ['cost' => 4]),
+        ]);
+        $this->postJson('/login', ['email' => $legacy->email, 'password' => 'Legacy-password-2026'])->assertOk();
+        $this->assertSame('argon2id', password_get_info($legacy->fresh()->password)['algoName']);
+    }
+
     public function test_e2e7_email_is_unique_regardless_of_case(): void
     {
         $this->register(['email' => 'Jan@Example.NL'])->assertCreated();

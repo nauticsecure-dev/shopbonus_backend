@@ -88,7 +88,7 @@ class PublicDiscoveryTest extends TestCase
         $hidden = $this->activeWebshop($this->owner, ['name' => 'Fietsen Verborgen']);
         $this->putJson("/api/v1/workspaces/{$hidden->public_id}/public-profile", ['short_description' => 'x', 'categories' => ['sports_outdoor']])->assertOk();
 
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $all = $this->getJson('/api/v1/public/webshops')->assertOk();
         $this->assertSame(['Fietsen Utrecht', 'Woon & Co'], array_column($all->json('data'), 'name'));
         $this->assertSame(2, $all->json('meta.total'));
@@ -125,7 +125,7 @@ class PublicDiscoveryTest extends TestCase
     public function test_card18_e2e3_webshop_detail_shows_public_data_only(): void
     {
         DB::table('webshops')->where('id', $this->fietsen->id)->update(['verified_domain' => 'secret-domain.nl']);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
 
         $detail = $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->assertOk()
             ->assertJsonPath('data.name', 'Fietsen Utrecht')
@@ -145,7 +145,7 @@ class PublicDiscoveryTest extends TestCase
 
     public function test_card18_e2e4_offer_availability_and_unavailable_offers(): void
     {
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $slug = $this->fietsenOffer->slug;
         $this->assertMatchesRegularExpression('/^eur10-korting-op-je-volgende-fiets-[a-z0-9]{6}$/', $slug);
 
@@ -173,12 +173,12 @@ class PublicDiscoveryTest extends TestCase
 
     public function test_public_cache_is_invalidated_by_profile_offer_and_status_changes(): void
     {
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $this->assertCount(2, $this->getJson('/api/v1/public/webshops')->json('data'));
 
         Sanctum::actingAs($this->owner);
         $this->putJson("/api/v1/workspaces/{$this->fietsen->public_id}/public-profile", ['published' => false])->assertOk()->assertJsonPath('data.listed', false);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $this->assertSame(['Woon & Co'], array_column($this->getJson('/api/v1/public/webshops')->json('data'), 'name'));
 
         Sanctum::actingAs($this->owner);
@@ -233,7 +233,7 @@ class PublicDiscoveryTest extends TestCase
         $first = Storage::disk('local')->allFiles('public-profiles');
         $this->assertCount(1, $first);
 
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $logoUrl = $this->getJson('/api/v1/public/webshops/fietsen-utrecht')->json('data.logo_url');
         $this->assertStringNotContainsString('public-profiles', $logoUrl);
         $this->get(parse_url($logoUrl, PHP_URL_PATH))->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('X-Content-Type-Options', 'nosniff');
@@ -245,7 +245,7 @@ class PublicDiscoveryTest extends TestCase
 
         $this->deleteJson($url)->assertOk()->assertJsonPath('data.has_logo', false);
         $this->assertCount(0, Storage::disk('local')->allFiles('public-profiles'));
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $this->getJson('/api/v1/public/webshops/fietsen-utrecht/logo')->assertNotFound();
     }
 

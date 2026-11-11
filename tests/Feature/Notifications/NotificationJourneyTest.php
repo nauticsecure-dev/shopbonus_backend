@@ -82,6 +82,7 @@ class NotificationJourneyTest extends TestCase
         $this->assertSame(0, $maintenance->reminders());
         $dispatcher->drain();
         $this->assertSame(1, $user->notifications()->where('event_type', 'voucher_received')->count());
+        $this->assertSame('/vouchers?voucher='.$v->public_id, $user->notifications()->where('event_type', 'voucher_received')->sole()->data['action_route']);
         $this->travel(23)->days();
         $this->assertSame(1, $maintenance->reminders());
         $dispatcher->drain();

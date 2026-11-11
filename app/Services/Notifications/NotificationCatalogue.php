@@ -40,6 +40,36 @@ final class NotificationCatalogue
     public static function content(string $event, string $locale, ?string $amount = null): array
     {
         $definition = self::EVENTS[$event] ?? throw new \LogicException('Unknown notification event.');
+        if ($locale === 'de') {
+            $title = match ($event) {
+                'account_welcome' => 'Willkommen bei ShopBonus',
+                'email_verified' => 'E-Mail-Adresse bestätigt',
+                'cashback_credited' => 'ShopBonus-Guthaben erhalten',
+                'voucher_received' => 'Dein Gutschein ist bereit',
+                'voucher_expiring' => 'Dein Gutschein läuft bald ab',
+                'voucher_used' => 'Gutschein verwendet',
+                'voucher_cancelled' => 'Gutschein storniert',
+                'cashback_adjusted' => 'Dein Guthaben wurde angepasst',
+                'support_reply', 'workspace_support_reply' => 'Neue Antwort vom Support',
+                'favorite_merchant_offer' => 'Neues Angebot eines deiner Lieblingsshops',
+                'workspace_approved' => 'Webshop genehmigt',
+                'workspace_rejected' => 'Webshop abgelehnt',
+                'offer_published' => 'Angebot veröffentlicht',
+                'offer_expiring' => 'Angebot läuft bald ab',
+                'commission_changed' => 'Provisionseinstellung geändert',
+                'integration_attention' => 'Prüfe deine Webshop-Anbindung',
+                'workspace_review_required' => 'Webshop wartet auf Prüfung',
+                'ai_support_escalated' => 'Supportanfrage wartet auf Prüfung',
+                'affiliate_import_failed' => 'Affiliate-Import fehlgeschlagen',
+                'notification_delivery_failed' => 'Benachrichtigung konnte nicht zugestellt werden',
+                'critical_notification_failure' => 'Wichtige Benachrichtigung nicht verfügbar',
+                'merchant_attention' => 'Webshop-Benachrichtigung',
+            };
+
+            return ['title' => $title, 'body' => $event === 'cashback_credited' && $amount !== null
+                ? $amount.' wurde deinem ShopBonus-Guthaben gutgeschrieben.'
+                : 'Sieh dir die aktuellen Informationen in deinem ShopBonus-Konto an.', 'action_label' => 'Details ansehen'];
+        }
         $nl = $locale === 'nl';
         $title = $definition[$nl ? 2 : 3];
         $body = $nl ? 'Bekijk de actuele gegevens in je ShopBonus-account.' : 'View the current details in your ShopBonus account.';

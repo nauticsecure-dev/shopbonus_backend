@@ -1,4 +1,12 @@
 {
+    "The provider returned a different cart.": "De provider heeft een andere winkelwagen teruggestuurd.",
+    "Conflicting order assignment evidence.": "Tegenstrijdige gegevens over de koppeling aan de bestelling.",
+    "BigCommerce cart assignments are disabled.": "BigCommerce-winkelwagenkoppelingen zijn uitgeschakeld.",
+    "Configure one active BigCommerce connection.": "Configureer één actieve BigCommerce-verbinding.",
+    "The assignment is no longer current.": "De koppeling is niet meer actueel.",
+    "The connection or assignment changed.": "De verbinding of koppeling is gewijzigd.",
+    "This cart already has an assignment.": "Deze winkelwagen is al gekoppeld.",
+    "Requests from this origin are not allowed.": "Verzoeken vanaf deze herkomst zijn niet toegestaan.",
     "The request could not be processed.": "Het verzoek kon niet worden verwerkt.",
     "Authentication is required.": "Je moet ingelogd zijn.",
     "You are not allowed to perform this action.": "Je hebt geen toestemming voor deze actie.",

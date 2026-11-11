@@ -47,7 +47,7 @@ class WalletController extends Controller
     public function transactions(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'filter' => ['sometimes', Rule::in(['all', 'pending', ...array_keys(self::FILTERS)])],
+            'filter' => ['sometimes', Rule::in(['all', 'posted', 'pending', ...array_keys(self::FILTERS)])],
             'unit' => ['sometimes', Rule::enum(WalletUnit::class)],
             'q' => ['sometimes', 'nullable', 'string', 'max:120'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
@@ -75,7 +75,9 @@ class WalletController extends Controller
         }
 
         $query = WalletLedgerEntry::whereIn('wallet_id', $wallets->keys())->orderByDesc('id');
-        if ($filter !== 'all') {
+        if ($filter === 'posted') {
+            $query->whereNotIn('type', self::FILTERS['holds']);
+        } elseif ($filter !== 'all') {
             $query->whereIn('type', self::FILTERS[$filter]);
         }
         if (! empty($data['q'])) {
@@ -147,7 +149,7 @@ class WalletController extends Controller
             'unit' => 'EUR_REDEMPTION_CREDIT',
             'updated_at' => now()->toIso8601String(),
             'withdrawable' => false,
-            'notice' => 'ShopBonus credit and points are not money: they cannot be withdrawn or transferred.',
+            'notice' => __('benefits.notice'),
             'savings_goal' => null,
         ];
     }
@@ -195,7 +197,7 @@ class WalletController extends Controller
             $tx = AffiliateTransaction::where('public_id', $e->source_ref)->first();
             if ($tx?->webshop_id) {
                 $merchant = Webshop::whereKey($tx->webshop_id)->value('name');
-                $subtitle = $merchant ? $merchant.' aankoop' : null;
+                $subtitle = $merchant ? __('benefits.purchase', ['merchant' => $merchant]) : null;
             }
         }
 
@@ -203,10 +205,10 @@ class WalletController extends Controller
             $conv = MerchantCommissionConversion::where('external_id', $e->source_ref)->orWhere('public_id', $e->source_ref)->first();
             if ($conv) {
                 $merchant = Webshop::whereKey($conv->webshop_id)->value('name');
-                $subtitle = $merchant ? $merchant.' aankoop' : null;
+                $subtitle = $merchant ? __('benefits.purchase', ['merchant' => $merchant]) : null;
             } elseif (is_string($e->reason) && str_contains($e->reason, '—')) {
                 $merchant = trim(explode('—', $e->reason, 2)[1] ?? '') ?: null;
-                $subtitle = $merchant ? $merchant.' aankoop' : null;
+                $subtitle = $merchant ? __('benefits.purchase', ['merchant' => $merchant]) : null;
             }
         }
 
@@ -220,12 +222,12 @@ class WalletController extends Controller
         }
 
         $title = match (true) {
-            $e->type === LedgerEntryType::Credit && in_array($e->source_type, ['affiliate', 'direct_merchant'], true) => 'ShopBonus ontvangen',
-            $e->type === LedgerEntryType::Debit => 'Voucher gebruikt',
-            $e->type === LedgerEntryType::Reversal => 'Correctie (terugboeking)',
-            $e->type === LedgerEntryType::Adjustment => 'Aanpassing',
-            $e->type === LedgerEntryType::Expire => 'Tegoed verlopen',
-            default => $e->reason ?: 'Walletmutatie',
+            $e->type === LedgerEntryType::Credit && in_array($e->source_type, ['affiliate', 'direct_merchant'], true) => __('benefits.credit'),
+            $e->type === LedgerEntryType::Debit => __('benefits.debit'),
+            $e->type === LedgerEntryType::Reversal => __('benefits.reversal'),
+            $e->type === LedgerEntryType::Adjustment => __('benefits.adjustment'),
+            $e->type === LedgerEntryType::Expire => __('benefits.expire'),
+            default => __('benefits.movement'),
         };
 
         return ['title' => $title, 'subtitle' => $subtitle, 'merchant_name' => $merchant];

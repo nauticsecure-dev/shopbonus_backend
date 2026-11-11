@@ -78,8 +78,9 @@ return [
         // Relative to frontend_url; {workspace} and {conversation} are filled in. Align with the frontend router.
         'frontend_paths' => [
             'consumer_benefits' => env('FRONTEND_PATH_CONSUMER_BENEFITS', '/mijn-voordelen'),
-            'consumer_wallet' => env('FRONTEND_PATH_CONSUMER_WALLET', '/mijn-voordelen?tab=transacties'),
-            'consumer_vouchers' => env('FRONTEND_PATH_CONSUMER_VOUCHERS', '/mijn-voordelen?tab=vouchers'),
+            'consumer_wallet' => env('FRONTEND_PATH_CONSUMER_WALLET', '/transacties'),
+            'consumer_vouchers' => env('FRONTEND_PATH_CONSUMER_VOUCHERS', '/vouchers'),
+            'consumer_profile' => env('FRONTEND_PATH_CONSUMER_PROFILE', '/profiel'),
             'support_conversation' => env('FRONTEND_PATH_SUPPORT_CONVERSATION', '/app/support?conversation={conversation}'),
             'workspace_home' => env('FRONTEND_PATH_WORKSPACE_HOME', '/dashboard?workspace={workspace}'),
             'workspace_wallet' => env('FRONTEND_PATH_WORKSPACE_WALLET', '/dashboard?workspace={workspace}'),
@@ -285,9 +286,8 @@ return [
 
     // Affiliate tracking (Trello #19, #23). Adapters are NOT VERIFIED (no network accounts).
     'affiliate' => [
-        // D-109: new rewards require approval plus independently recorded settlement.
-        // Existing reward snapshots retain their historical policy.
-        'credit_timing' => 'on_network_settlement',
+        // Freeze this policy on new conversion rows. Historical rows retain their policy.
+        'credit_timing' => 'on_validated_attribution',
         // Default consumer share of eligible commission (70% / ShopBonus 30%).
         'default_consumer_share_bps' => (int) env('AFFILIATE_DEFAULT_CONSUMER_SHARE_BPS', 7000),
         // Network used when programs cannot be compared reliably.

@@ -1,3 +1,18 @@
+## Final integration and local acceptance
+
+- [ ] Verify canonical benefits routes, legacy query preservation and safe login return.
+- [ ] Verify notification event destinations, owner-only details, read state and pagination in NL/EN/DE.
+- [ ] Capture updated real HTTP contracts and classify T01–T21 independently from local regression checks.
+- [ ] Verify canonical contact form, published support destination, queued branded confirmation, spam/validation/failure paths and CMS copy.
+
+- [ ] Verify one localized registration response and shared password rules for both roles in NL, EN and DE.
+- [ ] Verify complete Unicode hashing and the legacy bcrypt login upgrade.
+- [ ] Verify website-logo rendering in both local mail pipelines.
+- [ ] Verify current route discovery, translation audit and per-item acceptance export.
+- [ ] Verify immediate credit after trusted validation, replay and later provider rejection.
+- [ ] Verify historical timing, pending and fraud review protections.
+- [ ] Verify the EUR posted-history query, pagination and authorization. Capture real local HTTP evidence.
+
 ## Remaining native coupon completion — 2026-11-07
 
 OpenCart/PrestaShop live verification and CCV comparison implemented and tested in the working tree. C-Series/Mijnwebwinkel native schemas and CCV complete proof remain blocked on external contracts; see current HANDOFF. Checkboxes remain pending implementation commit.

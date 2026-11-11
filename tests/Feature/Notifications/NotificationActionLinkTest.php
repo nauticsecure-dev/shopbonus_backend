@@ -15,8 +15,9 @@ class NotificationActionLinkTest extends TestCase
         config(['shopbonus.identity.frontend_paths' => $defaults['identity']['frontend_paths']]);
         $expected = [
             'consumer_benefits' => '/mijn-voordelen',
-            'consumer_wallet' => '/mijn-voordelen?tab=transacties',
-            'consumer_vouchers' => '/mijn-voordelen?tab=vouchers',
+            'consumer_wallet' => '/transacties',
+            'consumer_vouchers' => '/vouchers',
+            'consumer_profile' => '/profiel',
             'workspace_home' => '/dashboard?workspace=shop_fixture',
             'workspace_wallet' => '/dashboard?workspace=shop_fixture',
             'workspace_offers' => '/dashboard/offers?workspace=shop_fixture',

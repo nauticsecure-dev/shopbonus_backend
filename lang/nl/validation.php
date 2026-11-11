@@ -45,6 +45,7 @@ return [
     'not_regex' => 'Het formaat van :attribute is ongeldig.',
     'numeric' => ':Attribute moet een getal zijn.',
     'password' => [
+        'common' => 'Kies een minder algemeen wachtwoord.',
         'letters' => ':Attribute moet minimaal één letter bevatten.',
         'mixed' => ':Attribute moet minimaal één hoofdletter en één kleine letter bevatten.',
         'numbers' => ':Attribute moet minimaal één cijfer bevatten.',

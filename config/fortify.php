@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SetRequestLocale;
 use App\Http\Middleware\ThrottleIdentityEndpoints;
 use Laravel\Fortify\Features;
 
@@ -102,7 +103,7 @@ return [
     |
     */
 
-    'middleware' => ['web', ThrottleIdentityEndpoints::class, 'account.active'],
+    'middleware' => [SetRequestLocale::class, 'web', ThrottleIdentityEndpoints::class, 'account.active'],
 
     /*
     |--------------------------------------------------------------------------

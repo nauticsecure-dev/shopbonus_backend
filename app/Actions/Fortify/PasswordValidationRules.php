@@ -19,7 +19,7 @@ trait PasswordValidationRules
      */
     protected function passwordRules(bool $confirmed = false): array
     {
-        $rules = ['required', 'string', 'max:255', Password::default()];
+        $rules = ['required', 'string', Password::default()];
         if ($confirmed) {
             $rules[] = 'confirmed';
         }

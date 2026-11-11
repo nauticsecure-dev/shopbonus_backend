@@ -125,7 +125,11 @@ final class NotificationTemplates
                     DB::table('notification_template_fallbacks')->insertOrIgnore(['event_type' => $event, 'requested_locale' => $locale, 'occurrences' => 0]);
                     DB::table('notification_template_fallbacks')->where('event_type', $event)->where('requested_locale', $locale)->increment('occurrences');
                 }
-                $amount = $candidate === 'nl' ? str_replace(['.', ' points'], [',', ' punten'], $amount ?? '') : str_replace([',', ' punten'], ['.', ' points'], $amount ?? '');
+                $decimal = $candidate === 'en' ? '.' : ',';
+                $points = match ($candidate) {
+                    'nl' => ' punten', 'de' => ' Punkte', default => ' points'
+                };
+                $amount = str_replace(['.', ',', ' punten', ' points', ' Punkte'], [$decimal, $decimal, $points, $points, $points], $amount ?? '');
                 if (! hash_equals($v->checksum, PlatformSettings::checksum($v->value))) {
                     throw new \LogicException('Published template integrity failure.');
                 }

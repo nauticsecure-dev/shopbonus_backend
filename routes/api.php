@@ -162,17 +162,18 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
     // Public discovery (Trello #18): published data of approved webshops only.
     Route::prefix('public')->name('public.')->group(function () {
+        Route::post('contact', \App\Http\Controllers\Api\V1\Content\ContactController::class)->middleware('throttle:contact')->name('contact.store');
         Route::get('categories', [PublicDiscoveryController::class, 'categories'])->name('categories.index');
-        Route::get('webshops', [PublicDiscoveryController::class, 'webshops'])->name('webshops.index');
-        Route::get('webshops/{slug}', [PublicDiscoveryController::class, 'webshop'])->name('webshops.show');
+        Route::get('webshops', [PublicDiscoveryController::class, 'webshops'])->middleware(['auth:sanctum', 'account.active', 'cache.headers:private;no_store'])->name('webshops.index');
+        Route::get('webshops/{slug}', [PublicDiscoveryController::class, 'webshop'])->middleware(['auth:sanctum', 'account.active', 'cache.headers:private;no_store'])->name('webshops.show');
         Route::get('webshops/{slug}/logo', [PublicDiscoveryController::class, 'logo'])->name('webshops.logo');
         Route::get('webshops/{slug}/cover', [PublicDiscoveryController::class, 'cover'])->name('webshops.cover');
         // Affiliate "Visit webshop": redirect through the selected network (Trello #19). Signed-in consumers are attributed.
-        Route::get('webshops/{slug}/visit', [VisitController::class, 'visit'])->middleware('throttle:visits')->name('webshops.visit');
-        Route::get('offers', [PublicDiscoveryController::class, 'offers'])->name('offers.index');
-        Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->name('offers.show');
-        Route::get('search', PublicSearchController::class)->middleware('throttle:public-search')->name('search');
-        Route::get('discount-codes', PublicDiscountCodesController::class)->middleware('throttle:public-search')->name('discount-codes.index');
+        Route::get('webshops/{slug}/visit', [VisitController::class, 'visit'])->middleware(['auth:sanctum', 'account.active', 'throttle:visits', 'cache.headers:private;no_store'])->name('webshops.visit');
+        Route::get('offers', [PublicDiscoveryController::class, 'offers'])->middleware(['auth:sanctum', 'account.active', 'cache.headers:private;no_store'])->name('offers.index');
+        Route::get('offers/{slug}', [PublicDiscoveryController::class, 'offer'])->middleware(['auth:sanctum', 'account.active', 'cache.headers:private;no_store'])->name('offers.show');
+        Route::get('search', PublicSearchController::class)->middleware(['auth:sanctum', 'account.active', 'throttle:public-search', 'cache.headers:private;no_store'])->name('search');
+        Route::get('discount-codes', PublicDiscountCodesController::class)->middleware(['auth:sanctum', 'account.active', 'throttle:public-search', 'cache.headers:private;no_store'])->name('discount-codes.index');
         // Published CMS content (Trello #5).
         Route::get('legal-requirements', [PublicContentController::class, 'legalRequirements'])->name('legal-requirements.show');
         Route::get('pages', [PublicContentController::class, 'pages'])->name('pages.index');

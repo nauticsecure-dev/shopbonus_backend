@@ -27,6 +27,7 @@ class DiscoveryPerformanceTest extends TestCase
         }
         $this->withoutMiddleware(ThrottleRequests::class);
         $owner = User::factory()->create();
+        \Laravel\Sanctum\Sanctum::actingAs($owner);
         // Representative scale assumption: 200 shops, 1000 offers, 2000 codes.
         // Includes future, expired, allocation-limited and obtainable offers.
         Model::withoutEvents(function () use ($owner) {

@@ -89,7 +89,7 @@ class ApiExceptionRenderer
         // with a fresh CSRF token cannot fix it, so it is not a 419.
         if ($e instanceof OriginMismatchException || $e->getPrevious() instanceof OriginMismatchException) {
             $error['code'] = 'origin_not_allowed';
-            $error['message'] = 'Requests from this origin are not allowed.';
+            $error['message'] = __('Requests from this origin are not allowed.');
         }
 
         if ($e instanceof ValidationException) {
