@@ -1,0 +1,747 @@
+{
+    "captured_at": "2026-11-11T03:57:02+00:00",
+    "git_sha": "00a12b7b13f4f39feed1a607cd5fd92af076b086",
+    "source_state": "working_tree",
+    "environment": "Real loopback HTTP / isolated SQLite / encrypted database queue / synthetic data; no external delivery",
+    "queued_encrypted_contact_jobs": 1,
+    "local_worker_array_transport_messages": [
+        {
+            "locale": "de",
+            "html_sha256": "391745558c65a7c67e30f670deed157accd8ed00f88b216df32eab929496e6e2",
+            "text_sha256": "230efbdaa3d63d9196dbc3188f6ff6d892f2d5a5fd9aab17448ab53290c47bc7",
+            "brand_png": true
+        },
+        {
+            "locale": "de",
+            "html_sha256": "a14edcd88862b9acc9a23d7be8ee5d4b8d2d36590d25e95eae4cbff9691729cd",
+            "text_sha256": "96934917b5f2ce9e73b40662c3a7e3518fc8f4aee857d09d89d42e908ced64e0",
+            "brand_png": true
+        }
+    ],
+    "captures": [
+        {
+            "stage": "guest_webshops",
+            "request": "GET /api/v1/public/webshops",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-2cae-733a-8bcc-02cc1b341c76",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-2cae-733a-8bcc-02cc1b341c76"
+                }
+            }
+        },
+        {
+            "stage": "guest_webshops/missing",
+            "request": "GET /api/v1/public/webshops/missing",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-3171-70de-9326-6abdaf590e8b",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-3171-70de-9326-6abdaf590e8b"
+                }
+            }
+        },
+        {
+            "stage": "guest_webshops/missing/visit",
+            "request": "GET /api/v1/public/webshops/missing/visit",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-3690-71ba-b51d-1acd2d0eb502",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-3690-71ba-b51d-1acd2d0eb502"
+                }
+            }
+        },
+        {
+            "stage": "guest_offers",
+            "request": "GET /api/v1/public/offers",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-3a87-73fc-aee7-4f36bebe32a8",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-3a87-73fc-aee7-4f36bebe32a8"
+                }
+            }
+        },
+        {
+            "stage": "guest_offers/missing",
+            "request": "GET /api/v1/public/offers/missing",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-3e96-70e7-a90e-341864bd6e8e",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-3e96-70e7-a90e-341864bd6e8e"
+                }
+            }
+        },
+        {
+            "stage": "guest_search?q=shop",
+            "request": "GET /api/v1/public/search?q=shop",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-4249-70df-847e-8adc6ae5a981",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-4249-70df-847e-8adc6ae5a981"
+                }
+            }
+        },
+        {
+            "stage": "guest_discount-codes",
+            "request": "GET /api/v1/public/discount-codes",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 401,
+            "headers": {
+                "x-request-id": "01a1c8c0-45c8-71e3-ac7a-f19d6d5a4554",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 401,
+                    "code": "unauthenticated",
+                    "message": "Je moet ingelogd zijn.",
+                    "request_id": "01a1c8c0-45c8-71e3-ac7a-f19d6d5a4554"
+                }
+            }
+        },
+        {
+            "stage": "signed_in_webshops",
+            "request": "GET /api/v1/public/webshops",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-492f-71a2-9272-3ac39986a646"
+            },
+            "response": {
+                "data": [],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "per_page": 20,
+                    "total": 0
+                }
+            }
+        },
+        {
+            "stage": "signed_in_offers",
+            "request": "GET /api/v1/public/offers",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-4d85-732a-a927-0ee6d92233c7"
+            },
+            "response": {
+                "data": [],
+                "meta": {
+                    "current_page": 1,
+                    "last_page": 1,
+                    "per_page": 20,
+                    "total": 0
+                }
+            }
+        },
+        {
+            "stage": "signed_in_discount-codes",
+            "request": "GET /api/v1/public/discount-codes",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-5105-717b-b3b9-83fe310516ac"
+            },
+            "response": {
+                "data": []
+            }
+        },
+        {
+            "stage": "signed_in_search?q=shop",
+            "request": "GET /api/v1/public/search?q=shop",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "max-age=30, no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-5485-7064-9253-e4f73f71795b"
+            },
+            "response": {
+                "data": {
+                    "q": "shop",
+                    "groups": {
+                        "webshops": [],
+                        "categories": [],
+                        "offers": [],
+                        "discount_codes": []
+                    }
+                }
+            }
+        },
+        {
+            "stage": "german_notifications",
+            "request": "GET /api/v1/notifications",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "de",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-cache, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-57d8-730b-86ff-5d9cf43d9140"
+            },
+            "response": {
+                "data": [
+                    {
+                        "id": "2869d24e-9178-48c8-9ca1-65896f3ae4f9",
+                        "type": "account_welcome",
+                        "recipient_type": "consumer",
+                        "title": "Willkommen bei ShopBonus",
+                        "body": "Sieh dir die aktuellen Informationen in deinem ShopBonus-Konto an.",
+                        "action_label": "Details ansehen",
+                        "template_version": "builtin-account_welcome-v1",
+                        "locale": "de",
+                        "locale_fallback": false,
+                        "workspace_id": null,
+                        "action_route": "/mijn-voordelen",
+                        "delivery_channels": {
+                            "database": "delivered",
+                            "email": "pending"
+                        },
+                        "read_at": null,
+                        "created_at": "2026-11-11T03:56:38+00:00"
+                    },
+                    {
+                        "id": "c4a15444-f70b-4d1e-951c-d483672d2c8b",
+                        "type": "email_verified",
+                        "recipient_type": "consumer",
+                        "title": "E-Mail-Adresse best\u00e4tigt",
+                        "body": "Sieh dir die aktuellen Informationen in deinem ShopBonus-Konto an.",
+                        "action_label": "Details ansehen",
+                        "template_version": "builtin-email_verified-v1",
+                        "locale": "de",
+                        "locale_fallback": false,
+                        "workspace_id": null,
+                        "action_route": "/profiel",
+                        "delivery_channels": {
+                            "database": "delivered",
+                            "email": "pending"
+                        },
+                        "read_at": null,
+                        "created_at": "2026-11-11T03:56:37+00:00"
+                    }
+                ],
+                "meta": {
+                    "unread_count": 2,
+                    "current_page": 1,
+                    "per_page": 20,
+                    "total": 2
+                }
+            }
+        },
+        {
+            "stage": "read_notification",
+            "request": "PATCH /api/v1/notifications/c4a15444-f70b-4d1e-951c-d483672d2c8b/read",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-cache, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-5b33-7138-965a-de04d822cf42"
+            },
+            "response": {
+                "data": {
+                    "id": "c4a15444-f70b-4d1e-951c-d483672d2c8b",
+                    "type": "email_verified",
+                    "recipient_type": "consumer",
+                    "title": "E-Mail-Adresse best\u00e4tigt",
+                    "body": "Sieh dir die aktuellen Informationen in deinem ShopBonus-Konto an.",
+                    "action_label": "Details ansehen",
+                    "template_version": "builtin-email_verified-v1",
+                    "locale": "de",
+                    "locale_fallback": false,
+                    "workspace_id": null,
+                    "action_route": "/profiel",
+                    "delivery_channels": {
+                        "database": "delivered",
+                        "email": "pending"
+                    },
+                    "read_at": "2026-11-11T03:56:52+00:00",
+                    "created_at": "2026-11-11T03:56:37+00:00"
+                }
+            }
+        },
+        {
+            "stage": "foreign_read_rejected",
+            "request": "PATCH /api/v1/notifications/c4a15444-f70b-4d1e-951c-d483672d2c8b/read",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 404,
+            "headers": {
+                "x-request-id": "01a1c8c0-5e78-7205-8ea1-afff11a001ce",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 404,
+                    "code": "not_found",
+                    "message": "Melding niet gevonden.",
+                    "request_id": "01a1c8c0-5e78-7205-8ea1-afff11a001ce"
+                }
+            }
+        },
+        {
+            "stage": "read_all",
+            "request": "POST /api/v1/notifications/read-all",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-cache, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-62a8-736a-a602-24c93ae27971"
+            },
+            "response": {
+                "data": {
+                    "marked_read": 1
+                }
+            }
+        },
+        {
+            "stage": "unread_empty",
+            "request": "GET /api/v1/notifications?filter=unread",
+            "input": null,
+            "authorization": "Bearer <redacted>",
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-cache, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-65f8-7245-b791-0ed5c36e9675"
+            },
+            "response": {
+                "data": [],
+                "meta": {
+                    "unread_count": 0,
+                    "current_page": 1,
+                    "per_page": 20,
+                    "total": 0
+                }
+            }
+        },
+        {
+            "stage": "contact_cms_nl",
+            "request": "GET /api/v1/public/pages/nl/contact",
+            "input": null,
+            "authorization": null,
+            "locale": "nl",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-698f-701e-82c2-22d28277175a"
+            },
+            "response": {
+                "data": {
+                    "key": "contact",
+                    "type": "info",
+                    "locale": "nl",
+                    "slug": "contact",
+                    "content": {
+                        "title": "Contact NL",
+                        "body": {
+                            "type": "doc",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Contact NL"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "legal": null,
+                    "revision": 1,
+                    "published_at": "2026-11-11T03:56:37+00:00",
+                    "alternates": {
+                        "de": "contact",
+                        "en": "contact",
+                        "nl": "contact"
+                    }
+                }
+            }
+        },
+        {
+            "stage": "contact_errors_nl",
+            "request": "POST /api/v1/public/contact",
+            "input": {
+                "privacy": false
+            },
+            "authorization": null,
+            "locale": "nl",
+            "status": 422,
+            "headers": {
+                "x-request-id": "01a1c8c0-6c5f-7028-93d7-6c7911bb927d",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "De ingevulde gegevens zijn ongeldig.",
+                    "request_id": "01a1c8c0-6c5f-7028-93d7-6c7911bb927d",
+                    "fields": {
+                        "name": [
+                            "Naam is verplicht."
+                        ],
+                        "email": [
+                            "E-mailadres is verplicht."
+                        ],
+                        "subject": [
+                            "Onderwerp is verplicht."
+                        ],
+                        "message": [
+                            "Bericht is verplicht."
+                        ],
+                        "privacy": [
+                            "Privacyverklaring moet worden geaccepteerd."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "stage": "contact_cms_en",
+            "request": "GET /api/v1/public/pages/en/contact",
+            "input": null,
+            "authorization": null,
+            "locale": "en",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-6f52-70b2-9eea-59f215ad569d"
+            },
+            "response": {
+                "data": {
+                    "key": "contact",
+                    "type": "info",
+                    "locale": "en",
+                    "slug": "contact",
+                    "content": {
+                        "title": "Contact EN",
+                        "body": {
+                            "type": "doc",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Contact EN"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "legal": null,
+                    "revision": 1,
+                    "published_at": "2026-11-11T03:56:37+00:00",
+                    "alternates": {
+                        "de": "contact",
+                        "en": "contact",
+                        "nl": "contact"
+                    }
+                }
+            }
+        },
+        {
+            "stage": "contact_errors_en",
+            "request": "POST /api/v1/public/contact",
+            "input": {
+                "privacy": false
+            },
+            "authorization": null,
+            "locale": "en",
+            "status": 422,
+            "headers": {
+                "x-request-id": "01a1c8c0-7214-7339-9e8b-f4ca77d10c62",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "The given data was invalid.",
+                    "request_id": "01a1c8c0-7214-7339-9e8b-f4ca77d10c62",
+                    "fields": {
+                        "name": [
+                            "The name field is required."
+                        ],
+                        "email": [
+                            "The email address field is required."
+                        ],
+                        "subject": [
+                            "The subject field is required."
+                        ],
+                        "message": [
+                            "The message field is required."
+                        ],
+                        "privacy": [
+                            "The privacy acknowledgement field must be accepted."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "stage": "contact_cms_de",
+            "request": "GET /api/v1/public/pages/de/contact",
+            "input": null,
+            "authorization": null,
+            "locale": "de",
+            "status": 200,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-751d-7082-b113-cd87ee9cf6d1"
+            },
+            "response": {
+                "data": {
+                    "key": "contact",
+                    "type": "info",
+                    "locale": "de",
+                    "slug": "contact",
+                    "content": {
+                        "title": "Kontakt DE",
+                        "body": {
+                            "type": "doc",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "Kontakt DE"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    "legal": null,
+                    "revision": 1,
+                    "published_at": "2026-11-11T03:56:37+00:00",
+                    "alternates": {
+                        "de": "contact",
+                        "en": "contact",
+                        "nl": "contact"
+                    }
+                }
+            }
+        },
+        {
+            "stage": "contact_errors_de",
+            "request": "POST /api/v1/public/contact",
+            "input": {
+                "privacy": false
+            },
+            "authorization": null,
+            "locale": "de",
+            "status": 422,
+            "headers": {
+                "x-request-id": "01a1c8c0-77e8-731d-89b9-ef17ca64ab84",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 422,
+                    "code": "validation_failed",
+                    "message": "Die eingegebenen Daten sind ung\u00fcltig.",
+                    "request_id": "01a1c8c0-77e8-731d-89b9-ef17ca64ab84",
+                    "fields": {
+                        "name": [
+                            "Name ist erforderlich."
+                        ],
+                        "email": [
+                            "E-Mail-Adresse ist erforderlich."
+                        ],
+                        "subject": [
+                            "Betreff ist erforderlich."
+                        ],
+                        "message": [
+                            "Nachricht ist erforderlich."
+                        ],
+                        "privacy": [
+                            "Du musst Datenschutzhinweis akzeptieren."
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "stage": "contact_missing_destination",
+            "request": "POST /api/v1/public/contact",
+            "input": {
+                "name": "Synthetic Anna",
+                "email": "synthetic-sender@example.test",
+                "subject": "Synthetic question",
+                "message": "An isolated synthetic question.",
+                "privacy": true
+            },
+            "authorization": null,
+            "locale": "nl",
+            "status": 503,
+            "headers": {
+                "x-request-id": "01a1c8c0-7ad8-70bb-97bc-a3f6e92cc41f",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 503,
+                    "code": "contact_unavailable",
+                    "message": "Je bericht kon niet worden verzonden. Probeer het later opnieuw.",
+                    "request_id": "01a1c8c0-7ad8-70bb-97bc-a3f6e92cc41f"
+                }
+            }
+        },
+        {
+            "stage": "contact_accepted",
+            "request": "POST /api/v1/public/contact",
+            "input": {
+                "name": "Synthetic Anna",
+                "email": "synthetic-sender@example.test",
+                "subject": "Synthetic question",
+                "message": "An isolated synthetic question.",
+                "privacy": true
+            },
+            "authorization": null,
+            "locale": "de",
+            "status": 202,
+            "headers": {
+                "cache-control": "no-store, private",
+                "content-type": "application/json",
+                "x-request-id": "01a1c8c0-7e15-733e-ab6f-974c7e73d733"
+            },
+            "response": {
+                "data": {
+                    "accepted": true,
+                    "request_id": "01a1c8c0-7e15-733e-ab6f-974c7e73d733"
+                }
+            }
+        },
+        {
+            "stage": "contact_rate_limited",
+            "request": "POST /api/v1/public/contact",
+            "input": {
+                "name": "Synthetic Anna",
+                "email": "synthetic-sender@example.test",
+                "subject": "Synthetic question",
+                "message": "An isolated synthetic question.",
+                "privacy": true
+            },
+            "authorization": null,
+            "locale": "nl",
+            "status": 429,
+            "headers": {
+                "x-request-id": "01a1c8c0-8141-7005-b7a6-61eec3da1d02",
+                "cache-control": "no-cache, private",
+                "content-type": "application/json"
+            },
+            "response": {
+                "error": {
+                    "status": 429,
+                    "code": "too_many_requests",
+                    "message": "Te veel verzoeken. Probeer het zo opnieuw.",
+                    "request_id": "01a1c8c0-8141-7005-b7a6-61eec3da1d02"
+                }
+            }
+        }
+    ]
+}

@@ -91,6 +91,27 @@ class NotificationSourcesTest extends TestCase
         $this->assertSame('cashback_adjusted', NotificationEvent::firstOrFail()->event_type);
         app(NotificationDispatcher::class)->drain();
         $this->assertSame('cashback_adjusted', $user->notifications()->firstOrFail()->event_type);
+        $entry = \App\Models\WalletLedgerEntry::where('type', 'adjustment')->sole();
+        $this->assertSame('/transacties?transaction='.$entry->public_id, $user->notifications()->firstOrFail()->data['action_route']);
+    }
+
+    public function test_identity_destinations_and_german_builtins_are_localized_and_owned(): void
+    {
+        $user = User::factory()->create(['locale' => 'de']);
+        app(NotificationSources::class)->capture('email_verified', 'verified-de', [$user->id]);
+        app(NotificationSources::class)->capture('account_welcome', 'welcome-de', [$user->id]);
+        app(NotificationDispatcher::class)->drain();
+        $verified = $user->notifications()->where('event_type', 'email_verified')->sole();
+        $this->assertSame('/profiel', $verified->data['action_route']);
+        $this->assertSame('E-Mail-Adresse bestätigt', $verified->data['title']);
+        $this->assertSame('de', $verified->data['locale']);
+        $this->assertSame('/mijn-voordelen', $user->notifications()->where('event_type', 'account_welcome')->sole()->data['action_route']);
+        // Old stored identity rows also receive the corrected target without a data migration.
+        $verified->forceFill(['data' => [...$verified->data, 'action_route' => '/app/benefits']])->save();
+        Sanctum::actingAs($user);
+        $this->getJson('/api/v1/notifications')->assertOk()->assertJsonFragment(['action_route' => '/profiel']);
+        Sanctum::actingAs(User::factory()->create());
+        $this->patchJson('/api/v1/notifications/'.$verified->id.'/read')->assertNotFound();
     }
 
     public function test_real_source_audit_creates_admin_intent_and_no_ordinary_request_noise(): void

@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'notification_current_details' => 'Bekijk de actuele gegevens in je account.',
+    'registration_role' => 'Kies consument of webshopeigenaar.',
+    'registration_terms' => 'Accepteer de voorwaarden en de privacyverklaring.',
+    'registration_terms_version' => 'De voorwaarden zijn gewijzigd. Vernieuw de pagina en bekijk ze opnieuw.',
+    'registration_privacy_version' => 'De privacyverklaring is gewijzigd. Vernieuw de pagina en bekijk deze opnieuw.',
     'verification_subject' => 'Je Shopbonus-verificatiecode',
     'verification_greeting' => 'Hallo :name,',
     'verification_line' => 'Gebruik deze code om je e-mailadres te bevestigen:',

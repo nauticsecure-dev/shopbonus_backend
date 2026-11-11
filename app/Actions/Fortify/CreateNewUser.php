@@ -60,9 +60,10 @@ class CreateNewUser implements CreatesNewUsers
             'marketing_opt_in' => ['sometimes', 'boolean'],
             'locale' => ['sometimes', Rule::in(User::SUPPORTED_LOCALES)],
         ], [
-            'account_type.Illuminate\Validation\Rules\Enum' => 'Choose consumer or merchant (webshop owner). Super Admin cannot be self-registered.',
-            'terms_version.in' => 'The Terms have been updated. Reload the page and review them.',
-            'privacy_version.in' => 'The Privacy Statement has been updated. Reload the page and review it.',
+            'account_type.Illuminate\Validation\Rules\Enum' => __('identity.registration_role'),
+            'accept_terms.accepted' => __('identity.registration_terms'),
+            'terms_version.in' => __('identity.registration_terms_version'),
+            'privacy_version.in' => __('identity.registration_privacy_version'),
         ])->validate();
 
         try {

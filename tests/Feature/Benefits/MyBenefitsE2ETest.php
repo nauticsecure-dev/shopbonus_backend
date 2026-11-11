@@ -109,11 +109,11 @@ class MyBenefitsE2ETest extends TestCase
         $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()
             ->assertJsonPath('data', [])
             ->assertJsonPath('meta.total', 0);
-        $this->assertSame('on_network_settlement', config('shopbonus.affiliate.credit_timing'));
     }
 
     public function test_02_standard_affiliate_cashback_70_30_waits_for_settlement(): void
     {
+        config(['shopbonus.affiliate.credit_timing' => 'on_network_settlement']);
         $this->seedProgram();
         $ref = $this->click();
         app(AffiliateSync::class)->import($this->daisycon, [], [[

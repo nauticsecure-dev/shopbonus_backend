@@ -1,3 +1,20 @@
+## Final local acceptance follow-up — 2026-11-11
+
+Status **PARTIAL / NO-GO**. Consumer discovery now checks the active account in Laravel. The shared benefits UI exposes the three canonical routes and preserves legacy query parameters. The central inbox uses event destinations and the public contact form uses the existing CMS pages, reviewed support setting and encrypted Laravel queue. See [local acceptance and open checks](../../qa-evidence/FINAL_LOCAL_ACCEPTANCE.md) for T01–T21 and the independent local test evidence.
+
+## Final integration QA — 2026-11-11
+
+Status **PARTIAL / NO-GO**. Backend HassanDev base 00a12b7b13f4f39feed1a607cd5fd92af076b086 with uncommitted changes. The user selected isolated local acceptance and confirmed immediate credit for new eligible affiliate conversions.
+
+- Fortify registration returns all localized field errors for both roles. The shared policy adds local common-password screening and Argon2id for complete Unicode passphrases. The custom Fortify authentication callback upgrades legacy hashes after successful verification with a compare-and-update.
+- New affiliate conversions snapshot D-114 timing. Trusted validation grants one eligible credit immediately. Provider rejection has its own recorded status. Existing conversion snapshots govern historical rewards. The nine real loopback captures include replay, rejection, posted EUR history and German cookie and purchase responses.
+- The consumer wallet history supports the posted EUR view. Cookie policy supports a German locale and German stored copy alongside existing NL and EN policies. Identity and central mail use the same website PNG. Inline CMS publication of a versioned logo remains open.
+- Two real local MySQL race cases passed. Eight simultaneous debits yielded four successful spends and a zero balance. Two same-key checkout requests yielded one voucher and one debit. The disposable database reconciled and was removed.
+- Open work includes complete registration anti-enumeration, the full auth/locale matrix, per-field CMS and media workflows, real provider mail and Mollie, verified AI cost evidence, and exact-build promotion proof.
+
+Evidence is in the sibling qa-evidence folder. The acceptance matrix records 4 PASS, 3 FAIL, 3 BLOCKED and 6 UNTESTED. Reproduce HTTP evidence with php -d xdebug.mode=off scripts/capture-revised-brief.php docs/api/FINAL_INTEGRATION_HTTP_CAPTURE.json.
+
+
 ## Backend merge conflicts resolved — 2026-11-09
 
 Resolved all 12 unmerged paths for the in-progress merge on `HassanDev`, HEAD `51522a8736b66b25ccfa0ffabc3d459e56a7d0aa`, incoming `9d22d9793d8419390f33d75cc550952604f2d906`. Kept Squarespace coupon lookup and the existing rejection of shopper-provided attribution; combined assignmentCart and Adobe pushedCart reader state; retained both documentation histories. Rebuilt all six integration archives and manifest from merged sources. Resolutions are staged; merge remains uncommitted, no push/deployment performed.

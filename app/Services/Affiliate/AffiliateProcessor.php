@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  *   webshop, inside the attribution window. Otherwise: unmatched (review).
  * - Repeated purchase references are disputed; distinct orders may share a click.
  * - Postbacks are untrusted: they only record "tracked"; rewards need sync/import.
- * - New rewards remain pending until approved and backed by settlement evidence.
+ * - New conversions credit after trusted validation and eligibility checks.
  * - Historical reward timing snapshots retain their original behavior.
  */
 class AffiliateProcessor
@@ -112,6 +112,7 @@ class AffiliateProcessor
             'order_reference_hash' => $orderHash, 'order_amount_minor' => $data->orderAmountMinor, 'currency' => $data->currency,
             'commission_minor' => $data->commissionMinor, 'network_status' => $data->networkStatus, 'status' => $status, 'reward_status' => 'none',
             'review_reason' => $duplicate !== null ? 'duplicate' : $reason, 'duplicate_of_id' => $duplicate?->id,
+            'reward_timing' => config('shopbonus.affiliate.credit_timing'),
             'transaction_at' => $data->transactionAt, 'network_updated_at' => $data->networkUpdatedAt, 'last_synced_at' => $trusted ? now() : null,
         ]);
         $this->event($tx, $source, null, $status, $data->networkStatus, $tx->review_reason, $actorUserId);

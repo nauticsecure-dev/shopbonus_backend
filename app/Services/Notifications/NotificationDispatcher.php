@@ -102,7 +102,9 @@ final class NotificationDispatcher
                 $amount = null;
                 if (isset($facts['amount_minor'], $facts['unit'])) {
                     $minor = abs((int) $facts['amount_minor']);
-                    $amount = $facts['unit'] === 'eur_credit' ? '€'.intdiv($minor, 100).($locale === 'nl' ? ',' : '.').str_pad((string) ($minor % 100), 2, '0', STR_PAD_LEFT) : $minor.($locale === 'nl' ? ' punten' : ' points');
+                    $amount = $facts['unit'] === 'eur_credit' ? '€'.intdiv($minor, 100).($locale === 'en' ? '.' : ',').str_pad((string) ($minor % 100), 2, '0', STR_PAD_LEFT) : $minor.match ($locale) {
+                        'nl' => ' punten', 'de' => ' Punkte', default => ' points'
+                    };
                 }
                 $shop = $event->webshop_id === null ? null : Webshop::whereKey($event->webshop_id)->first(['public_id', 'name']);
                 $content = app(NotificationTemplates::class)->resolve($event->event_type, $locale, $amount, ['webshop_name' => $shop?->name, 'first_name' => $user->first_name]);
@@ -110,6 +112,37 @@ final class NotificationDispatcher
                 $path = match ($event->recipient_type) {
                     'admin' => FrontendPath::to('admin_home'), 'workspace' => FrontendPath::to('workspace_home', ['workspace' => $workspaceRef]), default => FrontendPath::to('consumer_benefits')
                 };
+                $voucherRef = $facts['voucher_ref'] ?? null;
+                if ($event->recipient_type === 'consumer') {
+                    if ($event->event_type === 'email_verified') {
+                        $path = FrontendPath::to('consumer_profile');
+                    } elseif (str_starts_with($event->event_type, 'voucher_')) {
+                        $voucher = Voucher::where('consumer_user_id', $user->id)
+                            ->where(function ($query) use ($facts, $voucherRef) {
+                                $query->where('public_id', $voucherRef ?? '');
+                                if (isset($facts['voucher_id'])) {
+                                    $query->orWhere('id', $facts['voucher_id']);
+                                }
+                            })->first();
+                        $voucherRef = $voucher?->public_id;
+                        $path = FrontendPath::to('consumer_vouchers');
+                        if ($voucherRef !== null) {
+                            $path .= (str_contains($path, '?') ? '&' : '?').'voucher='.rawurlencode($voucherRef);
+                        }
+                    } elseif (str_starts_with($event->event_type, 'cashback_')) {
+                        $path = FrontendPath::to('consumer_wallet');
+                        $entryRef = isset($facts['entry_id']) ? WalletLedgerEntry::query()
+                            ->join('wallets', 'wallets.id', '=', 'wallet_ledger_entries.wallet_id')
+                            ->where('wallet_ledger_entries.id', $facts['entry_id'])
+                            ->where('wallets.owner_type', 'user')->where('wallets.owner_id', $user->id)
+                            ->value('wallet_ledger_entries.public_id') : null;
+                        if ($entryRef !== null) {
+                            $path .= (str_contains($path, '?') ? '&' : '?').'transaction='.rawurlencode($entryRef);
+                        }
+                    } elseif ($event->event_type === 'favorite_merchant_offer' && isset($offer)) {
+                        $path = '/aanbiedingen/'.rawurlencode($offer->slug);
+                    }
+                }
                 $legacy = isset($facts['legacy_id']) ? MerchantNotification::find($facts['legacy_id']) : null;
                 if (isset($facts['legacy_id']) && $legacy === null) {
                     continue;
@@ -118,7 +151,7 @@ final class NotificationDispatcher
                 $n = $user->notifications()->create(['id' => (string) Str::uuid(), 'type' => NotificationEvent::class, 'event_type' => $event->event_type,
                     'event_key' => $key, 'in_app_enabled' => $inApp, 'recipient_type' => $event->recipient_type, 'webshop_id' => $event->webshop_id, 'legacy_notification_id' => $legacy?->id,
                     'read_at' => $legacyRead ?? ($facts['legacy_read_at'] ?? null), 'data' => [...$content, 'workspace_id' => $workspaceRef, 'action_route' => $path,
-                        'voucher_ref' => $facts['voucher_ref'] ?? null, 'reminder_stage' => $facts['reminder_stage'] ?? null, 'reminder_expires_at' => $facts['expires_at'] ?? null, 'offer_ref' => isset($facts['offer_id']) ? Offer::whereKey($facts['offer_id'])->value('public_id') : null, 'delivery_channels' => ['database' => $inApp ? 'delivered' : 'skipped', 'email' => 'pending']]]);
+                        'voucher_ref' => $voucherRef, 'reminder_stage' => $facts['reminder_stage'] ?? null, 'reminder_expires_at' => $facts['expires_at'] ?? null, 'offer_ref' => isset($facts['offer_id']) ? Offer::whereKey($facts['offer_id'])->value('public_id') : null, 'delivery_channels' => ['database' => $inApp ? 'delivered' : 'skipped', 'email' => 'pending']]]);
                 if ($inApp) {
                     app(NotificationInbox::class)->signal($user, 'NotificationCreated', $n->id);
                     app(NotificationInbox::class)->signal($user, 'NotificationCountUpdated');

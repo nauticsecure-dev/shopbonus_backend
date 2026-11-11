@@ -261,6 +261,7 @@ class HomepageCmsTest extends TestCase
             'first_published_at' => now(),
         ]);
 
+        Sanctum::actingAs(User::factory()->create());
         $this->getJson('/api/v1/public/search?q=Mode&locale=nl')
             ->assertOk()
             ->assertJsonPath('data.groups.webshops.0.slug', 'modehuis-test')
@@ -329,6 +330,7 @@ class HomepageCmsTest extends TestCase
             'reusable' => true,
         ]);
 
+        Sanctum::actingAs(User::factory()->create());
         $codes = $this->getJson('/api/v1/public/discount-codes?limit=10')->assertOk()->json('data');
         $this->assertCount(1, $codes);
         $this->assertSame('SAVE4', $codes[0]['code']);

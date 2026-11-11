@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Rules\CommonPassword;
 use App\Services\Errors\ErrorRecorder;
 use App\Services\Notifications\NotificationMail;
 use App\Services\Notifications\NotificationSources;
@@ -82,7 +83,7 @@ class AppServiceProvider extends ServiceProvider
         // Breached-password check (k-anonymity HIBP lookup) only in production,
         // where outbound HTTP is expected; length/character rules everywhere.
         Password::defaults(function () {
-            $rule = Password::min(10)->max(255)->letters()->numbers();
+            $rule = Password::min(10)->max(255)->letters()->numbers()->rules([new CommonPassword]);
 
             return $this->app->isProduction() ? $rule->uncompromised() : $rule;
         });
@@ -111,6 +112,7 @@ class AppServiceProvider extends ServiceProvider
         // Partner systems: per integration key, not per IP. Claim links: per IP (token guessing).
         RateLimiter::for('integrations', fn (Request $request) => Limit::perMinute(600)->by('integration:'.$request->header('X-Shopbonus-Key', $request->ip())));
         RateLimiter::for('claims', fn (Request $request) => Limit::perMinute(10)->by('claims:'.$request->ip()));
+        RateLimiter::for('contact', fn (Request $request) => Limit::perMinute(5)->by('contact:'.$request->ip()));
 
         // Consumer account actions (per user).
         RateLimiter::for('email-change', fn (Request $request) => Limit::perHour(10)->by('email-change:'.$request->user()?->getAuthIdentifier()));

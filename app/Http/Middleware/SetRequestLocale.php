@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -9,14 +10,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * API language (Trello #5 "I18N"): the frontend sends the visitor's or
- * user's chosen language as `Accept-Language` (nl or en). Validation and auth
+ * user's chosen language as `Accept-Language` (nl, en or de). Validation and auth
  * messages follow it; `Content-Language` says which one was used. Requests
- * without a supported preference use Dutch (NL default; EN fully available).
+ * without a supported preference use the configured default.
  */
 class SetRequestLocale
 {
-    /** Ordered for future locales (e.g. de) without requiring them at launch. */
-    public const SUPPORTED = ['nl', 'en'];
+    public const SUPPORTED = User::SUPPORTED_LOCALES;
 
     public function handle(Request $request, Closure $next): Response
     {

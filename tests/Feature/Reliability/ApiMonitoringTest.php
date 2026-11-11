@@ -25,6 +25,7 @@ class ApiMonitoringTest extends TestCase
     public function test_observations_never_store_sql_bindings_or_actual_paths_and_do_not_recurse(): void
     {
         config(['reliability.enabled' => true]);
+        Sanctum::actingAs(User::factory()->create());
         $this->getJson('/api/v1/public/webshops/private-secret-slug?token=secret')->assertNotFound();
         $row = DB::table('api_observations')->sole();
         $this->assertSame('api/v1/public/webshops/{slug}', $row->route);

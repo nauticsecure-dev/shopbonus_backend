@@ -55,4 +55,20 @@ class IdentityMailTest extends TestCase
         $this->assertSame('Hallo Anna,', $mail->greeting);
         $this->assertSame('Dein Shopbonus-Passwort zurücksetzen', (new ResetPasswordLink('t'))->toMail($user)->subject);
     }
+
+    public function test_identity_mail_uses_the_website_logo_with_public_url_and_dimensions(): void
+    {
+        config(['shopbonus.identity.frontend_url' => 'https://shopbonus.example.test']);
+        $user = User::factory()->create();
+        foreach ([
+            (new EmailVerificationCode('123456', 10))->toMail($user),
+            (new ResetPasswordLink('fixture-token'))->toMail($user),
+        ] as $mail) {
+            $html = (string) $mail->render();
+            $this->assertStringContainsString('https://shopbonus.example.test/brand/logo-full.png', $html);
+            $this->assertStringContainsString('alt="ShopBonus"', $html);
+            $this->assertStringContainsString('width="180"', $html);
+            $this->assertStringContainsString('height="44"', $html);
+        }
+    }
 }

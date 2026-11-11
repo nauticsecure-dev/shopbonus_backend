@@ -3,6 +3,7 @@
 // A non-empty English attributes map prevents the Dutch fallback locale from
 // supplying field labels inside otherwise English validation messages.
 return [
+    'password' => ['common' => 'Choose a less common password.'],
     'attributes' => [
         'email' => 'email',
         'password' => 'password',

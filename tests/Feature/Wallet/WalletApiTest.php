@@ -57,6 +57,13 @@ class WalletApiTest extends TestCase
         $this->assertSame([], $this->getJson('/api/v1/consumer/wallet/transactions?filter=pending')->assertOk()->json('data'));
         $this->getJson('/api/v1/consumer/wallet/transactions?filter=cash')->assertUnprocessable();
 
+        $points = $wallets->consumerWallet($anna, WalletUnit::Points);
+        $wallets->credit($points, 200, 'seed-points');
+        $this->getJson('/api/v1/consumer/wallet/transactions?filter=posted&unit=eur_credit&per_page=1')
+            ->assertOk()->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('data.0.ledger_type', 'debit')
+            ->assertJsonPath('data.0.available_after', 1220);
+
         $credit = collect($all->json('data'))->firstWhere('ledger_type', 'credit');
         $this->getJson("/api/v1/consumer/wallet/transactions/{$credit['id']}")->assertOk();
     }

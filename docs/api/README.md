@@ -1,3 +1,190 @@
+## Local final follow-up — 2026-11-11
+
+The directory, offer, visit, search and discount-code reads retain their legacy `/api/v1/public/` paths for compatibility. They now require an active Sanctum session or bearer token and return private, non-cacheable data. Categories and approved public image assets are still public. Example request: `GET /api/v1/public/webshops`, `Accept: application/json`, `Authorization: Bearer <token>`. The actual guest 401 and signed-in 200, with cache headers, are in [FINAL_FOLLOWUP_HTTP_CAPTURE.json](FINAL_FOLLOWUP_HTTP_CAPTURE.json).
+
+`POST /api/v1/public/contact` accepts `name`, `email`, `subject`, `message`, `privacy: true` and an optional empty `website` honeypot. Set `Accept-Language: nl`, `en` or `de`. A valid submission queues encrypted mail for the reviewed `public.support_email` setting. Cookie sessions use the existing Sanctum CSRF flow. The rate limit is five attempts per minute per IP. The API returns 202 with `data.accepted` and `data.request_id`, 422 with all field errors, 429 when throttled, or 503 when the support destination or queue is unavailable. The `contact_accepted` exchange has the exact request and response. The worker processed the fixture against Laravel's local array transport and captured two branded multipart messages; it did not deliver to external mailboxes.
+
+Existing notification endpoints retain ownership checks. The capture records `/profiel` for confirmed email, `/mijn-voordelen` for welcome, a rejected foreign read, and mark-all followed by zero unread. New voucher and wallet notifications point to the existing owned detail views using `/vouchers?voucher=…` and `/transacties?transaction=…`. Reproduce the 25 loopback exchanges with `php -d xdebug.mode=off scripts/capture-final-followup.php`. The capture uses isolated SQLite, published CMS contact copy in all three locales, and synthetic accounts only.
+
+## Final local integration verification — 2026-11-11
+
+The wallet history query supports filter=posted with unit=eur_credit. Pagination and totals exclude checkout reservations and releases for this filter. Existing history filters retain their behavior. Transaction titles and purchase explanations follow NL, EN and DE. The cookie-policy query accepts all three locales.
+
+Captured against backend base 00a12b7b13f4f39feed1a607cd5fd92af076b086 plus the working-tree changes on an isolated SQLite HTTP server. The fixtures are synthetic. The capture records exact response bodies and one credit after replay and rejection. Reproduce with php -d xdebug.mode=off scripts/capture-revised-brief.php docs/api/FINAL_INTEGRATION_HTTP_CAPTURE.json.
+
+### GET /api/v1/consumer/wallet/transactions?filter=posted&unit=eur_credit
+
+Accept-Language is nl. The response is HTTP 200. Authorization is redacted.
+
+```json
+{
+  "data": [
+    {
+      "id": "01m74496fpavwetchqgsrae38j",
+      "type": "cashback_credit",
+      "ledger_type": "credit",
+      "amount": 475,
+      "amount_minor": 475,
+      "currency": "EUR",
+      "unit": "eur_credit",
+      "status": "credited",
+      "available_after": 475,
+      "source": {
+        "type": "affiliate",
+        "ref": "01m74496a812v3a6wycde1pqst"
+      },
+      "description": "Affiliate purchase",
+      "title": "ShopBonus ontvangen",
+      "subtitle": "Videoplaza aankoop",
+      "merchant_name": "Videoplaza",
+      "sign": "credit",
+      "expires_at": "2027-11-11T01:41:41+00:00",
+      "created_at": "2026-11-11T01:41:41+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 1
+  }
+}
+```
+
+### GET /api/v1/consumer/wallet/transactions?filter=posted&unit=eur_credit
+
+Accept-Language is en. The response is HTTP 200. Authorization is redacted.
+
+```json
+{
+  "data": [
+    {
+      "id": "01m74496fpavwetchqgsrae38j",
+      "type": "cashback_credit",
+      "ledger_type": "credit",
+      "amount": 475,
+      "amount_minor": 475,
+      "currency": "EUR",
+      "unit": "eur_credit",
+      "status": "credited",
+      "available_after": 475,
+      "source": {
+        "type": "affiliate",
+        "ref": "01m74496a812v3a6wycde1pqst"
+      },
+      "description": "Affiliate purchase",
+      "title": "ShopBonus earned",
+      "subtitle": "Videoplaza purchase",
+      "merchant_name": "Videoplaza",
+      "sign": "credit",
+      "expires_at": "2027-11-11T01:41:41+00:00",
+      "created_at": "2026-11-11T01:41:41+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 1
+  }
+}
+```
+
+### GET /api/v1/consumer/wallet/transactions?filter=posted&unit=eur_credit
+
+Accept-Language is de. The response is HTTP 200. Authorization is redacted.
+
+```json
+{
+  "data": [
+    {
+      "id": "01m74496fpavwetchqgsrae38j",
+      "type": "cashback_credit",
+      "ledger_type": "credit",
+      "amount": 475,
+      "amount_minor": 475,
+      "currency": "EUR",
+      "unit": "eur_credit",
+      "status": "credited",
+      "available_after": 475,
+      "source": {
+        "type": "affiliate",
+        "ref": "01m74496a812v3a6wycde1pqst"
+      },
+      "description": "Affiliate purchase",
+      "title": "ShopBonus erhalten",
+      "subtitle": "Einkauf bei Videoplaza",
+      "merchant_name": "Videoplaza",
+      "sign": "credit",
+      "expires_at": "2027-11-11T01:41:41+00:00",
+      "created_at": "2026-11-11T01:41:41+00:00"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 1
+  }
+}
+```
+
+### GET /api/v1/public/cookie-policy?locale=de
+
+Accept-Language is de. The response is HTTP 200. Authorization is redacted.
+
+```json
+{
+  "data": {
+    "version": "integration-local-1",
+    "requires_reconsent": false,
+    "published_at": "2026-11-11T01:41:41+00:00",
+    "texts": {
+      "title": "Lokale Cookies"
+    },
+    "categories": [
+      {
+        "key": "necessary",
+        "required": true,
+        "trackers": []
+      }
+    ]
+  }
+}
+```
+
+### GET /api/v1/consumer/affiliate-activity?locale=de
+
+Accept-Language is de. The response is HTTP 200. Authorization is redacted.
+
+```json
+{
+  "data": [
+    {
+      "id": "01m74496a812v3a6wycde1pqst",
+      "webshop": "Videoplaza",
+      "purchased_at": "2026-11-11T01:41:41+00:00",
+      "order_amount_minor": 10000,
+      "currency": "EUR",
+      "status": "rejected",
+      "explanation": "Dein Guthaben ist verfügbar. Der Kaufstatus des Netzwerks wird separat erfasst.",
+      "reward": {
+        "amount": 475,
+        "unit": "eur_credit",
+        "status": "credited"
+      }
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": 25,
+    "total": 1
+  },
+  "notice": "Cashback becomes available after approval and receipt of the network payment. Checkout reservations are separate."
+}
+```
+
 ## Quality Center staging execution requests — 2026-11-07
 
 `GET /api/v1/admin/qa/executions` lists recent paginated requests. `POST /api/v1/admin/qa/executions` queues an idempotent fixed staging suite; recent password and current Super Admin/QA role are mandatory. The worker rechecks the actor and exact build, executes the existing combined runner/gates once, and never grants release approval. Duplicate keys return the existing intent; changed plans conflict. Sync/short-visibility queues and nonmatching/nonstaging builds are rejected.
@@ -33,7 +220,7 @@ B65 (2026-11-03): platform/connection/capability/health reports include per-feat
 
 2026-11-03 adapter follow-up: [real isolated HTTP catalogue and PrestaShop/OpenCart setup responses](ADAPTER_REVIEW_PLATFORMS_HTTP_CAPTURE.json), reproduced with `php scripts/capture-adapter-review.php`. Existing GET platform/connection endpoint shapes are retained. E-Series now resolves through its Ecwid-based connector; Squarespace uses restricted API-key polling. Setup steps link candidate PS9/OC4.1 packages. Signed PS9 ID notifications schedule native recovery; they never trust a payment claim in the notification. Package installation and genuine providers remain unverified; see [implementation and limits](../integrations/ADAPTER_REVIEW_2026-11-03.md).
 
-Current affiliate policy (D-109, owner decision 2026-11-03): new rewards become spendable after network approval **and independently recorded settlement**. Historical timing snapshots and their reversal rules remain unchanged. Earlier immediate-credit and pending-only captures below describe their original checkpoints. The EUR4.75 example requires an explicit 100% rule; default consumer share remains70%.
+Current affiliate policy follows D-114, confirmed by the owner on 2026-11-11. New trusted, attributed and eligible conversions credit immediately once. Provider rejection updates finance and review evidence. Existing conversion timing snapshots keep their recorded accounting.
 
 
 Current connection policy: `Connected` requires all seven native verification gates. Complete webhooks and passive API probes stay `Limited`; see [B23d readiness and recovery](../integrations/READINESS_AND_RECOVERY.md). Earlier checkpoint captures below are historical.

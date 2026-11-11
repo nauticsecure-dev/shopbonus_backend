@@ -1,0 +1,15 @@
+{
+    "The request could not be processed.": "Die Anfrage konnte nicht verarbeitet werden.",
+    "Authentication is required.": "Du musst angemeldet sein.",
+    "You are not allowed to perform this action.": "Du hast keine Berechtigung für diese Aktion.",
+    "The requested resource was not found.": "Die angeforderte Ressource wurde nicht gefunden.",
+    "This method is not allowed for the requested resource.": "Diese Methode ist für die angeforderte Ressource nicht erlaubt.",
+    "The request conflicts with the current state of the resource.": "Die Anfrage steht im Konflikt mit dem aktuellen Zustand.",
+    "The request content type is not supported.": "Das Inhaltsformat der Anfrage wird nicht unterstützt.",
+    "The session or CSRF token has expired. Refresh and try again.": "Deine Sitzung ist abgelaufen. Lade die Seite neu und versuche es erneut.",
+    "The given data was invalid.": "Die eingegebenen Daten sind ungültig.",
+    "Too many requests. Please slow down.": "Zu viele Anfragen. Versuche es später erneut.",
+    "An unexpected error occurred.": "Ein unerwarteter Fehler ist aufgetreten.",
+    "The service is temporarily unavailable.": "Der Dienst ist vorübergehend nicht verfügbar.",
+    "Requests from this origin are not allowed.": "Anfragen von dieser Herkunft sind nicht erlaubt."
+}

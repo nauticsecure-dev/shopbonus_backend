@@ -57,7 +57,21 @@ class FortifyServiceProvider extends ServiceProvider
             }
 
             // Suspended/deleted accounts get the same generic failure as a wrong password.
-            return Hash::check($password, $user->password) && $user->isActive() ? $user : null;
+            if (! Hash::check($password, $user->password) || ! $user->isActive()) {
+                return null;
+            }
+
+            // Fortify's custom callback bypasses the guard's normal rehash path.
+            if (Hash::needsRehash($user->password)) {
+                $hash = Hash::make($password);
+                $updated = User::whereKey($user->id)->where('password', $user->password)->update(['password' => $hash]);
+                if ($updated !== 1) {
+                    return null;
+                }
+                $user->forceFill(['password' => $hash])->syncOriginalAttribute('password');
+            }
+
+            return $user;
         });
 
         ResetPassword::createUrlUsing(function (User $user, string $token): string {

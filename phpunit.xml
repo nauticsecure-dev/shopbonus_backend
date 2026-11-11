@@ -22,6 +22,8 @@
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="ARGON_MEMORY" value="1024"/>
+        <env name="ARGON_TIME" value="1"/>
         <!-- Most admin/workspace tests use actors without 2FA; dedicated MFA tests enable the gates. -->
         <env name="ADMIN_MFA_REQUIRED" value="false"/>
         <env name="OWNER_MFA_REQUIRED" value="false"/>

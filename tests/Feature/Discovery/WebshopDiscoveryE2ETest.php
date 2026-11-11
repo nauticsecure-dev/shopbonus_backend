@@ -52,7 +52,7 @@ class WebshopDiscoveryE2ETest extends TestCase
         $this->seedOffers($this->woon, 3);
         $this->seedOffers($this->mode, 3);
         $this->seedOffers($this->tech, 2);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
     }
 
     private function listedShop(string $name, string $slug, array $categories, string $short): Webshop
@@ -117,7 +117,7 @@ class WebshopDiscoveryE2ETest extends TestCase
             'categories' => ['fashion'],
             'published' => true,
         ])->assertOk();
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
 
         $res = $this->getJson('/api/v1/public/webshops?per_page=12')->assertOk();
         $names = array_column($res->json('data'), 'name');
@@ -161,7 +161,7 @@ class WebshopDiscoveryE2ETest extends TestCase
     {
         $extra = $this->listedShop('WoonXtra', 'woon-xtra', ['home_living'], 'Nog meer wonen.');
         $this->seedOffers($extra, 1);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
 
         $page = $this->getJson('/api/v1/public/webshops?search=woon&category=home_living&sort=most_offers&page=1&per_page=12')
             ->assertOk();
@@ -249,7 +249,8 @@ class WebshopDiscoveryE2ETest extends TestCase
     /** 8. Guest / consumer / workspace isolation. */
     public function test_08_access_and_isolation(): void
     {
-        $guest = $this->getJson('/api/v1/public/webshops')->assertOk();
+        $this->app['auth']->forgetGuards();
+        $guest = $this->getJson('/api/v1/public/webshops')->assertUnauthorized();
         $this->assertStringNotContainsString('available_minor', $guest->getContent());
 
         $this->getJson('/api/v1/me/wallet')->assertUnauthorized();
@@ -263,7 +264,7 @@ class WebshopDiscoveryE2ETest extends TestCase
         $draftProfile = $this->getJson("/api/v1/workspaces/{$this->woon->public_id}/public-profile")->assertOk();
         $this->assertArrayHasKey('listing_blockers', $draftProfile->json('data'));
 
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $public = $this->getJson('/api/v1/public/webshops/woon-en-co')->assertOk();
         $this->assertArrayNotHasKey('listing_blockers', $public->json('data'));
     }
@@ -286,12 +287,12 @@ class WebshopDiscoveryE2ETest extends TestCase
     {
         $new = $this->listedShop('Beauty Studio', 'beauty-studio', ['beauty_health'], 'Glow up.');
         $this->seedOffers($new, 1);
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $this->assertContains('beauty-studio', array_column($this->getJson('/api/v1/public/webshops')->json('data'), 'slug'));
 
         Sanctum::actingAs($this->owner);
         $this->putJson("/api/v1/workspaces/{$this->mode->public_id}/public-profile", ['published' => false])->assertOk();
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $slugs = array_column($this->getJson('/api/v1/public/webshops')->json('data'), 'slug');
         $this->assertNotContains('modehuis', $slugs);
         $this->assertContains('beauty-studio', $slugs);
@@ -357,7 +358,7 @@ class WebshopDiscoveryE2ETest extends TestCase
             $shop = $this->listedShop('Extra '.$i, 'extra-'.$i, ['fashion'], 'Directory query fixture');
             $this->seedOffers($shop, 1);
         }
-        $this->app['auth']->forgetGuards();
+        Sanctum::actingAs(User::factory()->create());
         $measure = function (int $size): int {
             DiscoveryCache::flush();
             DB::table('affiliate_program_selections')->delete();

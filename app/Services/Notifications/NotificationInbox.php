@@ -129,6 +129,10 @@ final class NotificationInbox
     public function present(CentralNotification $n): array
     {
         $data = $n->data;
+        // Historical identity notifications also resolve to the current account page.
+        if ($n->recipient_type === 'consumer' && $n->event_type === 'email_verified') {
+            $data['action_route'] = FrontendPath::to('consumer_profile');
+        }
         $delivery = NotificationDelivery::where('notification_id', $n->id)->first();
         $data['delivery_channels']['email'] = $delivery->status ?? 'not_requested';
         unset($data['voucher_ref'], $data['offer_ref'], $data['reminder_stage'], $data['reminder_expires_at']);
